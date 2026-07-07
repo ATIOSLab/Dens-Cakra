@@ -71,7 +71,46 @@ const _data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  initialRole?: string;
+}
+
+const getRoleData = (roleStr?: string) => {
+  let activeRole = roleStr;
+  if (!activeRole && typeof document !== "undefined") {
+    const cookies = document.cookie.split(";").reduce((acc, cookie) => {
+      const [key, val] = cookie.trim().split("=");
+      if (key && val) {
+        acc[key] = val;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+    activeRole = cookies["user_role"];
+  }
+
+  switch (activeRole) {
+    case "super-admin":
+      return { user: users[0], items: sidebarItems };
+    case "admin-nasional":
+      return { user: users[1], items: adminSidebarItems };
+    case "kabin-sumut":
+      return { user: users[2], items: kabinSidebarItems };
+    case "admin-riau":
+      return { user: users[3], items: adminRiauSidebarItems };
+    case "analis":
+      return { user: users[4], items: analisSidebarItems };
+    case "koordinator":
+      return { user: users[5], items: koordinatorSidebarItems };
+    case "operator":
+      return { user: users[6], items: operatorSidebarItems };
+    case "personel":
+      return { user: users[7], items: personelSidebarItems };
+    default:
+      return { user: users[0], items: sidebarItems };
+  }
+};
+
+export function AppSidebar({ initialRole, ...props }: AppSidebarProps) {
   const { sidebarVariant, sidebarCollapsible, isSynced } = usePreferencesStore(
     useShallow((s) => ({
       sidebarVariant: s.values.sidebar_variant,
@@ -83,57 +122,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const variant = isSynced ? sidebarVariant : props.variant;
   const collapsible = isSynced ? sidebarCollapsible : props.collapsible;
 
-  const [currentUser, setCurrentUser] = useState(rootUser);
-  const [activeItems, setActiveItems] = useState(sidebarItems);
+  const [currentUser, setCurrentUser] = useState(() => getRoleData(initialRole).user);
+  const [activeItems, setActiveItems] = useState(() => getRoleData(initialRole).items);
 
   useEffect(() => {
-    const cookies = document.cookie.split(";").reduce((acc, cookie) => {
-      const [key, val] = cookie.trim().split("=");
-      if (key && val) {
-        acc[key] = val;
-      }
-      return acc;
-    }, {} as Record<string, string>);
-
-    const activeRole = cookies["user_role"];
-    switch (activeRole) {
-      case "super-admin":
-        setCurrentUser(users[0]);
-        setActiveItems(sidebarItems);
-        break;
-      case "admin-nasional":
-        setCurrentUser(users[1]);
-        setActiveItems(adminSidebarItems);
-        break;
-      case "kabin-sumut":
-        setCurrentUser(users[2]);
-        setActiveItems(kabinSidebarItems);
-        break;
-      case "admin-riau":
-        setCurrentUser(users[3]);
-        setActiveItems(adminRiauSidebarItems);
-        break;
-      case "analis":
-        setCurrentUser(users[4]);
-        setActiveItems(analisSidebarItems);
-        break;
-      case "koordinator":
-        setCurrentUser(users[5]);
-        setActiveItems(koordinatorSidebarItems);
-        break;
-      case "operator":
-        setCurrentUser(users[6]);
-        setActiveItems(operatorSidebarItems);
-        break;
-      case "personel":
-        setCurrentUser(users[7]);
-        setActiveItems(personelSidebarItems);
-        break;
-      default:
-        setCurrentUser(users[0]);
-        setActiveItems(sidebarItems);
-    }
-  }, []);
+    const data = getRoleData(initialRole);
+    setCurrentUser(data.user);
+    setActiveItems(data.items);
+  }, [initialRole]);
 
   const firstItemUrl = activeItems[0]?.items[0]?.url || "/dashboard/default";
 

@@ -84,8 +84,7 @@ const roles = [
     iconColor: "text-amber-500",
     iconBg: "bg-amber-500/10",
     borderColor: "border-amber-500/30",
-    glow: "shadow-[0_0_15px_rgba(245,158,11,0.3)]",
-    features: ["Verifikasi", "Analisis", "Eskalasi"],
+    features: ["Beranda Analis", "Komando Regional", "Verifikasi Data"],
     actionText: "MASUK SEBAGAI ANALIS",
     href: "/dashboard/default",
   },
@@ -149,7 +148,7 @@ export default function FrontPage() {
         router.push("/dashboard/riau-personnel");
         break;
       case "analis":
-        router.push("/dashboard/analis-verification");
+        router.push("/dashboard/analis-beranda");
         break;
       case "koordinator":
         router.push("/dashboard/koordinator-monitoring");
@@ -209,16 +208,11 @@ export default function FrontPage() {
         </header>
 
         {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full mb-8 border-b border-slate-800/60 pb-4 gap-4">
-          <div className="flex items-center gap-4">
-            <h2 className="text-sm md:text-base tracking-[0.2em] uppercase font-semibold text-slate-300">Masuk Sebagai</h2>
-            <span className="text-[10px] md:text-xs px-2.5 py-1 rounded border border-blue-500/30 text-blue-400 bg-blue-500/10 font-mono tracking-wider">
-              MODE DEMO
-            </span>
-          </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end w-full mb-8 border-b border-slate-800/60 pb-4 gap-4">
           <Button 
             variant="outline" 
-            className="border-slate-700/50 hover:bg-slate-800/80 hover:text-white text-slate-400 bg-slate-900/50 transition-all font-mono tracking-wider text-xs h-9"
+            onClick={() => router.push("/login")}
+            className="border-slate-700/50 hover:bg-slate-800/80 hover:text-white text-slate-400 bg-slate-900/50 transition-all font-mono tracking-wider text-xs h-9 cursor-pointer"
           >
             <Lock className="w-3.5 h-3.5 mr-2" /> Login Enterprise
           </Button>

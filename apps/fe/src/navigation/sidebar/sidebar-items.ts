@@ -1,17 +1,19 @@
 import {
-  Globe,
-  Map,
-  LayoutDashboard,
-  Target,
-  Database,
-  Monitor,
-  FileText,
-  MapPin,
-  Users,
+  AlertTriangle,
   Building2,
-  ShieldCheck,
-  Search,
+  ClipboardCheck,
+  Database,
+  FileText,
+  Globe,
+  LayoutDashboard,
+  Map as MapIcon,
+  MapPin,
+  Monitor,
   Radio,
+  Search,
+  ShieldCheck,
+  Target,
+  Users,
 } from "lucide-react";
 
 export type NavBadge = "new" | "soon";
@@ -59,7 +61,7 @@ export const sidebarItems: NavGroup[] = [
         id: "seluruh-binda",
         title: "Seluruh BINDA",
         url: "/dashboard/regional",
-        icon: Map,
+        icon: MapIcon,
       },
       {
         id: "kpi-nasional",
@@ -72,6 +74,18 @@ export const sidebarItems: NavGroup[] = [
         title: "Master Data",
         url: "/dashboard/master",
         icon: Database,
+      },
+      {
+        id: "ukstr",
+        title: "Penjabaran UK/STR",
+        url: "/dashboard/ukstr",
+        icon: FileText,
+      },
+      {
+        id: "answers",
+        title: "Jawaban Lapangan",
+        url: "/dashboard/answers",
+        icon: ClipboardCheck,
       },
     ],
   },
@@ -100,6 +114,18 @@ export const adminSidebarItems: NavGroup[] = [
         url: "/dashboard/personnel",
         icon: Users,
       },
+      {
+        id: "ukstr",
+        title: "Penjabaran UK/STR",
+        url: "/dashboard/ukstr",
+        icon: FileText,
+      },
+      {
+        id: "answers",
+        title: "Jawaban Lapangan",
+        url: "/dashboard/answers",
+        icon: ClipboardCheck,
+      },
     ],
   },
 ];
@@ -126,6 +152,18 @@ export const kabinSidebarItems: NavGroup[] = [
         title: "Monitoring Personel",
         url: "/dashboard/kabin-monitoring",
         icon: Users,
+      },
+      {
+        id: "ukstr",
+        title: "Penjabaran UK/STR",
+        url: "/dashboard/ukstr",
+        icon: FileText,
+      },
+      {
+        id: "answers",
+        title: "Jawaban Lapangan",
+        url: "/dashboard/answers",
+        icon: ClipboardCheck,
       },
     ],
   },
@@ -154,6 +192,18 @@ export const adminRiauSidebarItems: NavGroup[] = [
         url: "/dashboard/riau-kpi",
         icon: Target,
       },
+      {
+        id: "ukstr",
+        title: "Penjabaran UK/STR",
+        url: "/dashboard/ukstr",
+        icon: FileText,
+      },
+      {
+        id: "answers",
+        title: "Jawaban Lapangan",
+        url: "/dashboard/answers",
+        icon: ClipboardCheck,
+      },
     ],
   },
 ];
@@ -163,6 +213,30 @@ export const analisSidebarItems: NavGroup[] = [
     id: 1,
     label: "OPERASIONAL",
     items: [
+      {
+        id: "beranda",
+        title: "Beranda",
+        url: "/dashboard/analis-beranda",
+        icon: LayoutDashboard,
+      },
+      {
+        id: "komando-regional",
+        title: "Komando Regional",
+        url: "/dashboard/analis-regional",
+        icon: Building2,
+      },
+      {
+        id: "ukstr",
+        title: "Penjabaran UK/STR",
+        url: "/dashboard/ukstr",
+        icon: FileText,
+      },
+      {
+        id: "answers",
+        title: "Jawaban Lapangan",
+        url: "/dashboard/answers",
+        icon: ClipboardCheck,
+      },
       {
         id: "verifikasi",
         title: "Verifikasi",
@@ -180,6 +254,12 @@ export const analisSidebarItems: NavGroup[] = [
         title: "Eskalasi",
         url: "/dashboard/analis-escalation",
         icon: Database,
+      },
+      {
+        id: "peringatan-dini",
+        title: "Peringatan Dini",
+        url: "/dashboard/operator-alerts",
+        icon: AlertTriangle,
       },
     ],
   },
@@ -219,15 +299,9 @@ export const operatorSidebarItems: NavGroup[] = [
       },
       {
         id: "alert-center",
-        title: "Alert Center",
+        title: "Peringatan Dini",
         url: "/dashboard/operator-alerts",
-        icon: Globe,
-      },
-      {
-        id: "incident-feed",
-        title: "Incident Feed",
-        url: "/dashboard/operator-incidents",
-        icon: Database,
+        icon: AlertTriangle,
       },
     ],
   },
@@ -259,4 +333,3 @@ export const personelSidebarItems: NavGroup[] = [
     ],
   },
 ];
-

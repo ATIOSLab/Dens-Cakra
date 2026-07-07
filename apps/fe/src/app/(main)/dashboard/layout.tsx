@@ -22,6 +22,7 @@ import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+  const userRole = cookieStore.get("user_role")?.value;
   const [variant, collapsible] = await Promise.all([
     getPreference("sidebar_variant"),
     getPreference("sidebar_collapsible"),
@@ -36,7 +37,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant={variant} collapsible={collapsible} />
+      <AppSidebar variant={variant} collapsible={collapsible} initialRole={userRole} />
       <SidebarInset
         className={cn(
           "[html[data-content-layout=centered]_&>*]:mx-auto",
