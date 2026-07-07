@@ -157,7 +157,7 @@ export default function FrontPage() {
         router.push("/dashboard/operator-cc");
         break;
       case "personel":
-        router.push("/dashboard/field-report");
+        router.push("/mobile");
         break;
       default:
         router.push("/dashboard/default");
