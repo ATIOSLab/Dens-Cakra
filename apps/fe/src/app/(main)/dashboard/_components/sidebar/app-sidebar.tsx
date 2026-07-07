@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -16,8 +17,17 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { APP_CONFIG } from "@/config/app-config";
-import { rootUser } from "@/data/users";
-import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
+import { rootUser, users } from "@/data/users";
+import { 
+  sidebarItems, 
+  adminSidebarItems,
+  kabinSidebarItems,
+  adminRiauSidebarItems,
+  analisSidebarItems,
+  koordinatorSidebarItems,
+  operatorSidebarItems,
+  personelSidebarItems
+} from "@/navigation/sidebar/sidebar-items";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 
 import { NavMain } from "./nav-main";
@@ -73,13 +83,67 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const variant = isSynced ? sidebarVariant : props.variant;
   const collapsible = isSynced ? sidebarCollapsible : props.collapsible;
 
+  const [currentUser, setCurrentUser] = useState(rootUser);
+  const [activeItems, setActiveItems] = useState(sidebarItems);
+
+  useEffect(() => {
+    const cookies = document.cookie.split(";").reduce((acc, cookie) => {
+      const [key, val] = cookie.trim().split("=");
+      if (key && val) {
+        acc[key] = val;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+
+    const activeRole = cookies["user_role"];
+    switch (activeRole) {
+      case "super-admin":
+        setCurrentUser(users[0]);
+        setActiveItems(sidebarItems);
+        break;
+      case "admin-nasional":
+        setCurrentUser(users[1]);
+        setActiveItems(adminSidebarItems);
+        break;
+      case "kabin-sumut":
+        setCurrentUser(users[2]);
+        setActiveItems(kabinSidebarItems);
+        break;
+      case "admin-riau":
+        setCurrentUser(users[3]);
+        setActiveItems(adminRiauSidebarItems);
+        break;
+      case "analis":
+        setCurrentUser(users[4]);
+        setActiveItems(analisSidebarItems);
+        break;
+      case "koordinator":
+        setCurrentUser(users[5]);
+        setActiveItems(koordinatorSidebarItems);
+        break;
+      case "operator":
+        setCurrentUser(users[6]);
+        setActiveItems(operatorSidebarItems);
+        break;
+      case "personel":
+        setCurrentUser(users[7]);
+        setActiveItems(personelSidebarItems);
+        break;
+      default:
+        setCurrentUser(users[0]);
+        setActiveItems(sidebarItems);
+    }
+  }, []);
+
+  const firstItemUrl = activeItems[0]?.items[0]?.url || "/dashboard/default";
+
   return (
     <Sidebar {...props} variant={variant} collapsible={collapsible}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="h-auto p-2">
-              <Link prefetch={false} href="/dashboard/default" className="flex items-center gap-3">
+              <Link prefetch={false} href={firstItemUrl} className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-900 border border-slate-700/50 shadow-[0_0_10px_rgba(6,182,212,0.15)] overflow-hidden shrink-0 p-0">
                   <Image
                     src="/logo-badan-intelijen-negara.png"
@@ -100,12 +164,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={sidebarItems} />
+        <NavMain items={activeItems} />
         {/* <NavDocuments items={data.documents} /> */}
         {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={rootUser} />
+        <NavUser user={currentUser} />
       </SidebarFooter>
     </Sidebar>
   );

@@ -91,10 +91,10 @@ export default function CommandCenterPage() {
         {/* Live Clock HUD */}
         <div className="flex items-center gap-6">
           <div className="text-right">
-            <div className="text-lg font-bold tracking-widest text-emerald-400 font-mono leading-none drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">
+            <div suppressHydrationWarning className="text-lg font-bold tracking-widest text-emerald-400 font-mono leading-none drop-shadow-[0_0_6px_rgba(52,211,153,0.3)]">
               {time || "00.00.00"}
             </div>
-            <div className="text-[8px] tracking-wider text-slate-500 uppercase mt-1 leading-none">
+            <div suppressHydrationWarning className="text-[8px] tracking-wider text-slate-500 uppercase mt-1 leading-none">
               {date || "SEL, 7 JUL 2026"}
             </div>
           </div>
@@ -321,9 +321,8 @@ export default function CommandCenterPage() {
           <span className="text-[8px] uppercase tracking-widest">Ticker Intelijen</span>
         </div>
 
-        {/* Marquee effect for scrolling news feed */}
         <div className="flex-1 overflow-hidden relative mx-4 h-full flex items-center">
-          <div className="animate-intel-marquee absolute flex items-center gap-12 whitespace-nowrap font-mono text-slate-400">
+          <div className="animate-marquee absolute flex items-center gap-12 whitespace-nowrap font-mono text-slate-400">
             {INTEL_TICKER_MESSAGES.map((message) => (
               <span key={message}>{message}</span>
             ))}

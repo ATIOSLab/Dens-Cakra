@@ -1,4 +1,6 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Globe,
@@ -128,7 +130,40 @@ const roles = [
   },
 ];
 
-export default function Home() {
+export default function FrontPage() {
+  const router = useRouter();
+
+  const handleRoleSelect = (roleId: string) => {
+    document.cookie = `user_role=${roleId}; path=/`;
+    switch (roleId) {
+      case "super-admin":
+        router.push("/dashboard/default");
+        break;
+      case "admin-nasional":
+        router.push("/dashboard/monitoring-nasional");
+        break;
+      case "kabin-sumut":
+        router.push("/dashboard/kabin-dashboard");
+        break;
+      case "admin-riau":
+        router.push("/dashboard/riau-personnel");
+        break;
+      case "analis":
+        router.push("/dashboard/analis-verification");
+        break;
+      case "koordinator":
+        router.push("/dashboard/koordinator-monitoring");
+        break;
+      case "operator":
+        router.push("/dashboard/operator-cc");
+        break;
+      case "personel":
+        router.push("/dashboard/field-report");
+        break;
+      default:
+        router.push("/dashboard/default");
+    }
+  };
   return (
     <div className="min-h-screen bg-[#050B14] text-slate-300 font-sans relative overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
       {/* Dotted Background */}
@@ -223,13 +258,13 @@ export default function Home() {
               </div>
 
               {/* Card Action */}
-              <Link 
-                href={role.href} 
-                className="group-hover:text-cyan-400 text-slate-500 text-[10px] tracking-[0.15em] uppercase font-bold flex items-center justify-between pt-5 border-t border-slate-800/50 mt-auto transition-colors"
+              <button 
+                onClick={() => handleRoleSelect(role.id)}
+                className="w-full text-left group-hover:text-cyan-400 text-slate-500 text-[10px] tracking-[0.15em] uppercase font-bold flex items-center justify-between pt-5 border-t border-slate-800/50 mt-auto transition-colors cursor-pointer"
               >
                 {role.actionText}
                 <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
+              </button>
             </div>
           ))}
         </div>
