@@ -234,6 +234,20 @@ html {
   overscroll-behavior: none;
 }
 
+.animate-intel-marquee {
+  animation: intel-marquee 45s linear infinite;
+}
+
+@keyframes intel-marquee {
+  0% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
 .disable-transitions * {
   transition: none !important;
 }

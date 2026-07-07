@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
-import { CircleHelp, ClipboardList, Command, Database, File, Search, Settings } from "lucide-react";
+import { CircleHelp, ClipboardList, Database, File, Search, Settings } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -77,10 +78,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link prefetch={false} href="/dashboard/default">
-                <Command />
-                <span className="font-semibold text-base">{APP_CONFIG.name}</span>
+            <SidebarMenuButton asChild className="h-auto p-2">
+              <Link prefetch={false} href="/dashboard/default" className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-slate-900 border border-slate-700/50 shadow-[0_0_10px_rgba(6,182,212,0.15)] overflow-hidden shrink-0 p-0">
+                  <Image
+                    src="/logo-badan-intelijen-negara.png"
+                    alt="Logo Badan Intelijen Negara"
+                    width={36}
+                    height={36}
+                    className="object-contain scale-125"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-sm tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 leading-tight drop-shadow-[0_0_5px_rgba(6,182,212,0.3)]">DENS CAKRA</span>
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 leading-tight mt-0.5">Pusat Komando Nasional</span>
+                  <span className="text-[9px] italic font-serif text-slate-500 leading-tight">Velox Et Exactus</span>
+                </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -92,7 +105,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
-        <SidebarSupportCard />
         <NavUser user={rootUser} />
       </SidebarFooter>
     </Sidebar>
