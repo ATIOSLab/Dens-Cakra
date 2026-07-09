@@ -1,35 +1,54 @@
 import {
-  AlertTriangle,
-  Building2,
-  ClipboardCheck,
-  Database,
-  FileText,
-  Globe,
+  Banknote,
+  Calendar,
+  ChartBar,
+  CheckSquare,
+  Fingerprint,
+  Forklift,
+  Gauge,
+  GraduationCap,
+  Kanban,
   LayoutDashboard,
-  Map as MapIcon,
-  MapPin,
-  Monitor,
-  Radio,
-  Search,
-  ShieldCheck,
-  Target,
+  ListTodo,
+  Lock,
+  type LucideIcon,
+  Mail,
+  MessageSquare,
+  ReceiptText,
+  Server,
+  ShoppingBag,
+  SquareArrowUpRight,
   Users,
 } from "lucide-react";
 
 export type NavBadge = "new" | "soon";
 
-export interface NavMainLinkItem {
+export interface NavSubItem {
   id: string;
   title: string;
   url: string;
-  icon?: React.ElementType;
+  icon?: LucideIcon;
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
 }
 
-export interface NavMainParentItem extends Omit<NavMainLinkItem, "url"> {
-  subItems: NavMainLinkItem[];
+interface NavItemBase {
+  id: string;
+  title: string;
+  icon?: LucideIcon;
+  badge?: NavBadge;
+  disabled?: boolean;
+  newTab?: boolean;
+}
+
+export interface NavMainLinkItem extends NavItemBase {
+  url: string;
+  subItems?: never;
+}
+
+export interface NavMainParentItem extends NavItemBase {
+  subItems: NavSubItem[];
 }
 
 export type NavMainItem = NavMainLinkItem | NavMainParentItem;
@@ -43,292 +62,158 @@ export interface NavGroup {
 export const sidebarItems: NavGroup[] = [
   {
     id: 1,
-    label: "HAK AKSES",
+    label: "Dashboards",
     items: [
       {
-        id: "dashboard-nasional",
-        title: "Dashboard Nasional",
+        id: "default",
+        title: "Default",
         url: "/dashboard/default",
         icon: LayoutDashboard,
       },
       {
-        id: "seluruh-indonesia",
-        title: "Seluruh Indonesia",
-        url: "/dashboard/indonesia",
-        icon: Globe,
+        id: "crm",
+        title: "CRM",
+        url: "/dashboard/crm",
+        icon: ChartBar,
       },
       {
-        id: "seluruh-binda",
-        title: "Seluruh BINDA",
-        url: "/dashboard/regional",
-        icon: MapIcon,
+        id: "finance",
+        title: "Finance",
+        url: "/dashboard/finance",
+        icon: Banknote,
       },
       {
-        id: "kpi-nasional",
-        title: "KPI Nasional",
-        url: "/dashboard/kpi",
-        icon: Target,
+        id: "analytics",
+        title: "Analytics",
+        url: "/dashboard/analytics",
+        icon: Gauge,
       },
       {
-        id: "master-data",
-        title: "Master Data",
-        url: "/dashboard/master",
-        icon: Database,
+        id: "productivity",
+        title: "Productivity",
+        url: "/dashboard/productivity",
+        icon: ListTodo,
       },
       {
-        id: "ukstr",
-        title: "Penjabaran UK/STR",
-        url: "/dashboard/ukstr",
-        icon: FileText,
+        id: "ecommerce",
+        title: "E-commerce",
+        url: "/dashboard/ecommerce",
+        icon: ShoppingBag,
       },
       {
-        id: "answers",
-        title: "Jawaban Lapangan",
-        url: "/dashboard/answers",
-        icon: ClipboardCheck,
+        id: "academy",
+        title: "Academy",
+        url: "/dashboard/academy",
+        icon: GraduationCap,
+      },
+      {
+        id: "logistics",
+        title: "Logistics",
+        url: "/dashboard/logistics",
+        icon: Forklift,
+      },
+      {
+        id: "infrastructure",
+        title: "Infrastructure",
+        url: "/dashboard/infrastructure",
+        icon: Server,
+        badge: "new",
       },
     ],
   },
-];
-
-export const adminSidebarItems: NavGroup[] = [
   {
-    id: 1,
-    label: "OPERASIONAL",
+    id: 2,
+    label: "Pages",
     items: [
       {
-        id: "monitoring-nasional",
-        title: "Monitoring Nasional",
-        url: "/dashboard/monitoring-nasional",
-        icon: Monitor,
+        id: "email",
+        title: "Email",
+        url: "/dashboard/mail",
+        icon: Mail,
       },
       {
-        id: "laporan-nasional",
-        title: "Laporan Nasional",
-        url: "/dashboard/reports",
-        icon: FileText,
+        id: "chat",
+        title: "Chat",
+        url: "/dashboard/chat",
+        icon: MessageSquare,
       },
       {
-        id: "monitoring-binda",
-        title: "Monitoring BINDA",
-        url: "/dashboard/personnel",
+        id: "calendar",
+        title: "Calendar",
+        url: "/dashboard/calendar",
+        icon: Calendar,
+      },
+      {
+        id: "kanban",
+        title: "Kanban",
+        url: "/dashboard/kanban",
+        icon: Kanban,
+      },
+      {
+        id: "tasks",
+        title: "Tasks",
+        url: "/dashboard/tasks",
+        icon: CheckSquare,
+        badge: "new",
+      },
+      {
+        id: "invoice",
+        title: "Invoice",
+        url: "/dashboard/invoice",
+        icon: ReceiptText,
+      },
+      {
+        id: "users",
+        title: "Users",
+        url: "/dashboard/users",
         icon: Users,
       },
       {
-        id: "ukstr",
-        title: "Penjabaran UK/STR",
-        url: "/dashboard/ukstr",
-        icon: FileText,
+        id: "roles",
+        title: "Roles",
+        url: "/dashboard/roles",
+        icon: Lock,
       },
       {
-        id: "answers",
-        title: "Jawaban Lapangan",
-        url: "/dashboard/answers",
-        icon: ClipboardCheck,
-      },
-    ],
-  },
-];
-
-export const kabinSidebarItems: NavGroup[] = [
-  {
-    id: 1,
-    label: "OPERASIONAL",
-    items: [
-      {
-        id: "dashboard-binda",
-        title: "Dashboard BINDA",
-        url: "/dashboard/kabin-dashboard",
-        icon: Building2,
-      },
-      {
-        id: "kpi-wilayah",
-        title: "KPI Wilayah",
-        url: "/dashboard/kabin-kpi",
-        icon: Target,
-      },
-      {
-        id: "monitoring-personel",
-        title: "Monitoring Personel",
-        url: "/dashboard/kabin-monitoring",
-        icon: Users,
-      },
-      {
-        id: "ukstr",
-        title: "Penjabaran UK/STR",
-        url: "/dashboard/ukstr",
-        icon: FileText,
-      },
-      {
-        id: "answers",
-        title: "Jawaban Lapangan",
-        url: "/dashboard/answers",
-        icon: ClipboardCheck,
+        id: "authentication",
+        title: "Authentication",
+        icon: Fingerprint,
+        subItems: [
+          { id: "auth-login-v1", title: "Login v1", url: "/auth/v1/login", newTab: true },
+          { id: "auth-login-v2", title: "Login v2", url: "/auth/v2/login", newTab: true },
+          { id: "auth-register-v1", title: "Register v1", url: "/auth/v1/register", newTab: true },
+          { id: "auth-register-v2", title: "Register v2", url: "/auth/v2/register", newTab: true },
+        ],
       },
     ],
   },
-];
-
-export const adminRiauSidebarItems: NavGroup[] = [
   {
-    id: 1,
-    label: "OPERASIONAL",
+    id: 3,
+    label: "Legacy",
     items: [
       {
-        id: "kelola-personel",
-        title: "Kelola Personel",
-        url: "/dashboard/riau-personnel",
-        icon: Users,
-      },
-      {
-        id: "verifikasi-laporan",
-        title: "Verifikasi Laporan",
-        url: "/dashboard/riau-verification",
-        icon: ShieldCheck,
-      },
-      {
-        id: "kpi-wilayah",
-        title: "KPI Wilayah",
-        url: "/dashboard/riau-kpi",
-        icon: Target,
-      },
-      {
-        id: "ukstr",
-        title: "Penjabaran UK/STR",
-        url: "/dashboard/ukstr",
-        icon: FileText,
-      },
-      {
-        id: "answers",
-        title: "Jawaban Lapangan",
-        url: "/dashboard/answers",
-        icon: ClipboardCheck,
+        id: "legacy-dashboards",
+        title: "Dashboards",
+        subItems: [
+          { id: "legacy-default", title: "Default V1", url: "/dashboard/default-v1" },
+          { id: "legacy-crm", title: "CRM V1", url: "/dashboard/crm-v1" },
+          { id: "legacy-finance", title: "Finance V1", url: "/dashboard/finance-v1" },
+          { id: "legacy-analytics", title: "Analytics V1", url: "/dashboard/analytics-v1" },
+        ],
       },
     ],
   },
-];
-
-export const analisSidebarItems: NavGroup[] = [
   {
-    id: 1,
-    label: "OPERASIONAL",
+    id: 4,
+    label: "Misc",
     items: [
       {
-        id: "beranda",
-        title: "Beranda",
-        url: "/dashboard/analis-beranda",
-        icon: LayoutDashboard,
-      },
-      {
-        id: "komando-regional",
-        title: "Komando Regional",
-        url: "/dashboard/analis-regional",
-        icon: Building2,
-      },
-      {
-        id: "ukstr",
-        title: "Penjabaran UK/STR",
-        url: "/dashboard/ukstr",
-        icon: FileText,
-      },
-      {
-        id: "answers",
-        title: "Jawaban Lapangan",
-        url: "/dashboard/answers",
-        icon: ClipboardCheck,
-      },
-      {
-        id: "verifikasi",
-        title: "Verifikasi",
-        url: "/dashboard/analis-verification",
-        icon: ShieldCheck,
-      },
-      {
-        id: "analisis",
-        title: "Analisis",
-        url: "/dashboard/analis-analysis",
-        icon: Search,
-      },
-      {
-        id: "eskalasi",
-        title: "Eskalasi",
-        url: "/dashboard/analis-escalation",
-        icon: Database,
-      },
-      {
-        id: "peringatan-dini",
-        title: "Peringatan Dini",
-        url: "/dashboard/operator-alerts",
-        icon: AlertTriangle,
-      },
-    ],
-  },
-];
-
-export const koordinatorSidebarItems: NavGroup[] = [
-  {
-    id: 1,
-    label: "OPERASIONAL",
-    items: [
-      {
-        id: "monitoring-wilayah",
-        title: "Monitoring Wilayah",
-        url: "/dashboard/koordinator-monitoring",
-        icon: MapPin,
-      },
-      {
-        id: "monitoring-personel",
-        title: "Monitoring Personel",
-        url: "/dashboard/koordinator-personnel",
-        icon: Users,
-      },
-    ],
-  },
-];
-
-export const operatorSidebarItems: NavGroup[] = [
-  {
-    id: 1,
-    label: "OPERASIONAL",
-    items: [
-      {
-        id: "command-center",
-        title: "Command Center",
-        url: "/dashboard/operator-cc",
-        icon: Monitor,
-      },
-      {
-        id: "alert-center",
-        title: "Peringatan Dini",
-        url: "/dashboard/operator-alerts",
-        icon: AlertTriangle,
-      },
-    ],
-  },
-];
-
-export const personelSidebarItems: NavGroup[] = [
-  {
-    id: 1,
-    label: "OPERASIONAL",
-    items: [
-      {
-        id: "buat-laporan",
-        title: "Buat Laporan",
-        url: "/dashboard/field-report",
-        icon: FileText,
-      },
-      {
-        id: "kpi-pribadi",
-        title: "KPI Pribadi",
-        url: "/dashboard/field-kpi",
-        icon: Target,
-      },
-      {
-        id: "panic-button",
-        title: "Panic Button",
-        url: "/dashboard/field-panic",
-        icon: Radio,
+        id: "others",
+        title: "Others",
+        url: "/dashboard/coming-soon",
+        icon: SquareArrowUpRight,
+        badge: "soon",
+        disabled: true,
       },
     ],
   },

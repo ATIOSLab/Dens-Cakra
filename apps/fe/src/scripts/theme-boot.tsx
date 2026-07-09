@@ -57,7 +57,12 @@ export function ThemeBootScript() {
         });
 
         var mode = preferences.theme_mode;
-        var resolvedMode = "dark";
+        var resolvedMode =
+          mode === "system" && window.matchMedia
+            ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+            : mode === "dark"
+              ? "dark"
+              : "light";
 
         root.classList.toggle("dark", resolvedMode === "dark");
         root.style.colorScheme = resolvedMode;
