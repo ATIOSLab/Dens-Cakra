@@ -1,25 +1,32 @@
 import {
-  Banknote,
-  Calendar,
-  ChartBar,
-  CheckSquare,
-  Fingerprint,
-  Forklift,
-  Gauge,
-  GraduationCap,
-  Kanban,
+  BellRing,
+  BrainCircuit,
+  ChartColumn,
+  CheckCheck,
+  ClipboardList,
+  Command,
+  FileSearch,
+  FileText,
+  Inbox,
   LayoutDashboard,
   ListTodo,
-  Lock,
   type LucideIcon,
-  Mail,
-  MessageSquare,
-  ReceiptText,
-  Server,
-  ShoppingBag,
-  SquareArrowUpRight,
+  Map,
+  MapPinned,
+  Radar,
+  ScrollText,
+  Send,
+  ShieldCheck,
+  Siren,
+  TriangleAlert,
   Users,
 } from "lucide-react";
+
+import {
+  SYSTEM_ROLES,
+  SYSTEM_ROLE_HOME_ROUTES,
+  type SystemRole,
+} from "./system-roles";
 
 export type NavBadge = "new" | "soon";
 
@@ -31,6 +38,7 @@ export interface NavSubItem {
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
+  roles?: SystemRole[];
 }
 
 interface NavItemBase {
@@ -40,6 +48,7 @@ interface NavItemBase {
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
+  roles?: SystemRole[];
 }
 
 export interface NavMainLinkItem extends NavItemBase {
@@ -57,164 +66,342 @@ export interface NavGroup {
   id: number;
   label?: string;
   items: NavMainItem[];
+  roles?: SystemRole[];
 }
+
+const EXECUTIVE_ROLE = [SYSTEM_ROLES.EXECUTIVE];
+const REGIONAL_COMMANDER_ROLE = [SYSTEM_ROLES.REGIONAL_COMMANDER];
+const OIM_ROLE = [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER];
+const FIELD_COORDINATOR_ROLE = [SYSTEM_ROLES.FIELD_COORDINATOR];
+const FIELD_OFFICER_ROLE = [SYSTEM_ROLES.FIELD_OFFICER];
+const ADMIN_SYSTEM_ROLE = [SYSTEM_ROLES.ADMIN_SYSTEM];
 
 export const sidebarItems: NavGroup[] = [
   {
     id: 1,
-    label: "Dashboards",
+    label: "Menu Utama",
     items: [
       {
-        id: "default",
-        title: "Default",
-        url: "/dashboard/default",
+        id: "executive-home",
+        title: "Beranda Eksekutif",
+        url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.EXECUTIVE],
         icon: LayoutDashboard,
+        roles: EXECUTIVE_ROLE,
       },
       {
-        id: "crm",
-        title: "CRM",
-        url: "/dashboard/crm",
-        icon: ChartBar,
+        id: "executive-strategic-situation",
+        title: "Situasi Strategis",
+        icon: Map,
+        roles: EXECUTIVE_ROLE,
+        subItems: [
+          {
+            id: "executive-risk-map",
+            title: "Peta Kerawanan",
+            url: "/dashboard/executive/situasi-strategis/peta-kerawanan",
+            roles: EXECUTIVE_ROLE,
+          },
+          {
+            id: "executive-early-warning",
+            title: "Peringatan Dini",
+            url: "/dashboard/executive/situasi-strategis/peringatan-dini",
+            roles: EXECUTIVE_ROLE,
+          },
+        ],
       },
       {
-        id: "finance",
-        title: "Finance",
-        url: "/dashboard/finance",
-        icon: Banknote,
+        id: "executive-command-center",
+        title: "Pusat Komando",
+        icon: Command,
+        roles: EXECUTIVE_ROLE,
+        subItems: [
+          {
+            id: "executive-directives",
+            title: "Direktif",
+            url: "/dashboard/executive/pusat-komando/direktif",
+            roles: EXECUTIVE_ROLE,
+          },
+          {
+            id: "executive-emergency-operations",
+            title: "Operasi Darurat",
+            url: "/dashboard/executive/pusat-komando/operasi-darurat",
+            roles: EXECUTIVE_ROLE,
+          },
+        ],
       },
       {
-        id: "analytics",
-        title: "Analytics",
-        url: "/dashboard/analytics",
-        icon: Gauge,
+        id: "executive-intelligence-products",
+        title: "Produk Intelijen",
+        url: "/dashboard/executive/produk-intelijen",
+        icon: FileText,
+        roles: EXECUTIVE_ROLE,
       },
       {
-        id: "productivity",
-        title: "Productivity",
-        url: "/dashboard/productivity",
+        id: "executive-approval",
+        title: "Persetujuan",
+        url: "/dashboard/executive/persetujuan",
+        icon: CheckCheck,
+        roles: EXECUTIVE_ROLE,
+      },
+      {
+        id: "executive-performance",
+        title: "Kinerja & Evaluasi",
+        url: "/dashboard/executive/kinerja-evaluasi",
+        icon: ChartColumn,
+        roles: EXECUTIVE_ROLE,
+      },
+      {
+        id: "regional-home",
+        title: "Beranda",
+        url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.REGIONAL_COMMANDER],
+        icon: LayoutDashboard,
+        roles: REGIONAL_COMMANDER_ROLE,
+      },
+      {
+        id: "regional-command",
+        title: "Komando Regional",
+        url: "/dashboard/regional-commander/komando-regional",
+        icon: Command,
+        roles: REGIONAL_COMMANDER_ROLE,
+      },
+      {
+        id: "regional-directives",
+        title: "Direktif & Penjabaran UUK/STR",
+        url: "/dashboard/regional-commander/direktif-penjabaran-uuk-str",
+        icon: ScrollText,
+        roles: REGIONAL_COMMANDER_ROLE,
+      },
+      {
+        id: "regional-task-monitoring",
+        title: "Monitoring Tugas",
+        url: "/dashboard/regional-commander/monitoring-tugas",
         icon: ListTodo,
+        roles: REGIONAL_COMMANDER_ROLE,
       },
       {
-        id: "ecommerce",
-        title: "E-commerce",
-        url: "/dashboard/ecommerce",
-        icon: ShoppingBag,
+        id: "regional-field-responses",
+        title: "Jawaban Lapangan",
+        url: "/dashboard/regional-commander/jawaban-lapangan",
+        icon: FileSearch,
+        roles: REGIONAL_COMMANDER_ROLE,
       },
       {
-        id: "academy",
-        title: "Academy",
-        url: "/dashboard/academy",
-        icon: GraduationCap,
+        id: "regional-intelligence-reports",
+        title: "Laporan Intelijen",
+        url: "/dashboard/regional-commander/laporan-intelijen",
+        icon: FileText,
+        roles: REGIONAL_COMMANDER_ROLE,
       },
       {
-        id: "logistics",
-        title: "Logistics",
-        url: "/dashboard/logistics",
-        icon: Forklift,
+        id: "regional-map-warning",
+        title: "Peta & Peringatan Dini",
+        url: "/dashboard/regional-commander/peta-peringatan-dini",
+        icon: BellRing,
+        roles: REGIONAL_COMMANDER_ROLE,
       },
       {
-        id: "infrastructure",
-        title: "Infrastructure",
-        url: "/dashboard/infrastructure",
-        icon: Server,
-        badge: "new",
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: "Pages",
-    items: [
-      {
-        id: "email",
-        title: "Email",
-        url: "/dashboard/mail",
-        icon: Mail,
-      },
-      {
-        id: "chat",
-        title: "Chat",
-        url: "/dashboard/chat",
-        icon: MessageSquare,
-      },
-      {
-        id: "calendar",
-        title: "Calendar",
-        url: "/dashboard/calendar",
-        icon: Calendar,
-      },
-      {
-        id: "kanban",
-        title: "Kanban",
-        url: "/dashboard/kanban",
-        icon: Kanban,
-      },
-      {
-        id: "tasks",
-        title: "Tasks",
-        url: "/dashboard/tasks",
-        icon: CheckSquare,
-        badge: "new",
-      },
-      {
-        id: "invoice",
-        title: "Invoice",
-        url: "/dashboard/invoice",
-        icon: ReceiptText,
-      },
-      {
-        id: "users",
-        title: "Users",
-        url: "/dashboard/users",
+        id: "regional-personnel-network",
+        title: "Personel & Jaring",
+        url: "/dashboard/regional-commander/personel-jaring",
         icon: Users,
+        roles: REGIONAL_COMMANDER_ROLE,
       },
       {
-        id: "roles",
-        title: "Roles",
-        url: "/dashboard/roles",
-        icon: Lock,
+        id: "regional-kpi",
+        title: "KPI & Evaluasi",
+        url: "/dashboard/regional-commander/kpi-evaluasi",
+        icon: ChartColumn,
+        roles: REGIONAL_COMMANDER_ROLE,
       },
       {
-        id: "authentication",
-        title: "Authentication",
-        icon: Fingerprint,
+        id: "oim-home",
+        title: "Beranda",
+        url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER],
+        icon: LayoutDashboard,
+        roles: OIM_ROLE,
+      },
+      {
+        id: "oim-directives",
+        title: "Direktif & Tugas",
+        url: "/dashboard/oim/direktif-tugas",
+        icon: ClipboardList,
+        roles: OIM_ROLE,
+      },
+      {
+        id: "oim-incoming-reports",
+        title: "Laporan Masuk",
+        url: "/dashboard/oim/laporan-masuk",
+        icon: Inbox,
+        roles: OIM_ROLE,
+      },
+      {
+        id: "oim-verification",
+        title: "Verifikasi & Neraca Penilaian",
+        url: "/dashboard/oim/verifikasi-neraca-penilaian",
+        icon: ShieldCheck,
+        roles: OIM_ROLE,
+      },
+      {
+        id: "oim-analysis",
+        title: "Analisis Intelijen",
+        url: "/dashboard/oim/analisis-intelijen",
+        icon: BrainCircuit,
+        roles: OIM_ROLE,
+      },
+      {
+        id: "oim-products",
+        title: "Produk Intelijen",
+        url: "/dashboard/oim/produk-intelijen",
+        icon: FileText,
+        roles: OIM_ROLE,
+      },
+      {
+        id: "oim-field-monitoring",
+        title: "Monitoring Lapangan",
+        url: "/dashboard/oim/monitoring-lapangan",
+        icon: Radar,
+        roles: OIM_ROLE,
+      },
+      {
+        id: "oim-situation-map",
+        title: "Peta Situasi",
+        url: "/dashboard/oim/peta-situasi",
+        icon: MapPinned,
+        roles: OIM_ROLE,
+      },
+      {
+        id: "field-coordinator-home",
+        title: "Beranda",
+        url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.FIELD_COORDINATOR],
+        icon: LayoutDashboard,
+        roles: FIELD_COORDINATOR_ROLE,
+      },
+      {
+        id: "field-coordinator-field-tasks",
+        title: "Tugas Lapangan",
+        icon: ListTodo,
+        roles: FIELD_COORDINATOR_ROLE,
         subItems: [
-          { id: "auth-login-v1", title: "Login v1", url: "/auth/v1/login", newTab: true },
-          { id: "auth-login-v2", title: "Login v2", url: "/auth/v2/login", newTab: true },
-          { id: "auth-register-v1", title: "Register v1", url: "/auth/v1/register", newTab: true },
-          { id: "auth-register-v2", title: "Register v2", url: "/auth/v2/register", newTab: true },
+          {
+            id: "field-coordinator-received-tasks",
+            title: "Tugas Diterima",
+            url: "/dashboard/field-coordinator/tugas-lapangan/tugas-diterima",
+            roles: FIELD_COORDINATOR_ROLE,
+          },
+          {
+            id: "field-coordinator-team-assignment",
+            title: "Penugasan Tim",
+            url: "/dashboard/field-coordinator/tugas-lapangan/penugasan-tim",
+            roles: FIELD_COORDINATOR_ROLE,
+          },
         ],
       },
-    ],
-  },
-  {
-    id: 3,
-    label: "Legacy",
-    items: [
       {
-        id: "legacy-dashboards",
-        title: "Dashboards",
-        subItems: [
-          { id: "legacy-default", title: "Default V1", url: "/dashboard/default-v1" },
-          { id: "legacy-crm", title: "CRM V1", url: "/dashboard/crm-v1" },
-          { id: "legacy-finance", title: "Finance V1", url: "/dashboard/finance-v1" },
-          { id: "legacy-analytics", title: "Analytics V1", url: "/dashboard/analytics-v1" },
-        ],
+        id: "field-coordinator-reports",
+        title: "Laporan Lapangan",
+        url: "/dashboard/field-coordinator/laporan-lapangan",
+        icon: ClipboardList,
+        roles: FIELD_COORDINATOR_ROLE,
       },
-    ],
-  },
-  {
-    id: 4,
-    label: "Misc",
-    items: [
       {
-        id: "others",
-        title: "Others",
-        url: "/dashboard/coming-soon",
-        icon: SquareArrowUpRight,
-        badge: "soon",
-        disabled: true,
+        id: "field-coordinator-map",
+        title: "Peta Lapangan",
+        url: "/dashboard/field-coordinator/peta-lapangan",
+        icon: MapPinned,
+        roles: FIELD_COORDINATOR_ROLE,
+      },
+      {
+        id: "field-coordinator-personnel",
+        title: "Personel & Jaring",
+        url: "/dashboard/field-coordinator/personel-jaring",
+        icon: Users,
+        roles: FIELD_COORDINATOR_ROLE,
+      },
+      {
+        id: "field-coordinator-emergency",
+        title: "Laporan Darurat",
+        url: "/dashboard/field-coordinator/laporan-darurat",
+        icon: TriangleAlert,
+        roles: FIELD_COORDINATOR_ROLE,
+      },
+      {
+        id: "field-officer-home",
+        title: "Beranda",
+        url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.FIELD_OFFICER],
+        icon: LayoutDashboard,
+        roles: FIELD_OFFICER_ROLE,
+      },
+      {
+        id: "field-officer-tasks",
+        title: "Tugas Saya",
+        url: "/dashboard/field-officer/tugas-saya",
+        icon: ListTodo,
+        roles: FIELD_OFFICER_ROLE,
+      },
+      {
+        id: "field-officer-baket",
+        title: "Kirim Baket",
+        url: "/dashboard/field-officer/kirim-baket",
+        icon: Send,
+        roles: FIELD_OFFICER_ROLE,
+      },
+      {
+        id: "field-officer-reports",
+        title: "Laporan Saya",
+        url: "/dashboard/field-officer/laporan-saya",
+        icon: ClipboardList,
+        roles: FIELD_OFFICER_ROLE,
+      },
+      {
+        id: "field-officer-map",
+        title: "Peta Tugas",
+        url: "/dashboard/field-officer/peta-tugas",
+        icon: MapPinned,
+        roles: FIELD_OFFICER_ROLE,
+      },
+      {
+        id: "field-officer-emergency",
+        title: "Laporan Darurat",
+        url: "/dashboard/field-officer/laporan-darurat",
+        icon: Siren,
+        roles: FIELD_OFFICER_ROLE,
+      },
+      {
+        id: "admin-system-home",
+        title: "Beranda Admin Sistem",
+        url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.ADMIN_SYSTEM],
+        icon: ShieldCheck,
+        roles: ADMIN_SYSTEM_ROLE,
       },
     ],
   },
 ];
+
+function hasRoleAccess(roles: SystemRole[] | undefined, role: SystemRole) {
+  if (!roles?.length) {
+    return true;
+  }
+
+  return roles.includes(role);
+}
+
+export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
+  return sidebarItems
+    .filter((group) => hasRoleAccess(group.roles, role))
+    .map((group) => ({
+      ...group,
+      items: group.items
+        .filter((item) => hasRoleAccess(item.roles, role))
+        .map((item) => {
+          if (!item.subItems) {
+            return item;
+          }
+
+          return {
+            ...item,
+            subItems: item.subItems.filter((subItem) => hasRoleAccess(subItem.roles, role)),
+          };
+        })
+        .filter((item) => !item.subItems || item.subItems.length > 0),
+    }))
+    .filter((group) => group.items.length > 0);
+}

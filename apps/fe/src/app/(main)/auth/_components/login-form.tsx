@@ -1,32 +1,31 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useTransition } from "react";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth/auth-client";
 
 const formSchema = z.object({
   email: z.email({ message: "Please enter a valid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters." }),
   remember: z.boolean().optional(),
 });
 
-function onSubmit(data: z.infer<typeof formSchema>) {
-  toast("You submitted the following values", {
-    description: (
-      <pre className="mt-2 w-[320px] rounded-md bg-neutral-950 p-4">
-        <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-      </pre>
-    ),
-  });
-}
-
 export function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -36,8 +35,39 @@ export function LoginForm() {
     },
   });
 
+  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+    setFormError(null);
+
+    startTransition(async () => {
+      const callbackUrl = searchParams.get("callbackUrl")?.trim();
+      const { error } = await authClient.signIn.email({
+        email: values.email,
+        password: values.password,
+        rememberMe: values.remember ?? true,
+      });
+
+      if (error) {
+        if (error.status === 403) {
+          setFormError("Email Anda belum diverifikasi. Silakan cek inbox dan verifikasi terlebih dahulu.");
+          return;
+        }
+
+        setFormError(error.message || "Login gagal. Silakan periksa kembali kredensial Anda.");
+        return;
+      }
+
+      router.replace(callbackUrl || "/dashboard");
+      router.refresh();
+    });
+  };
+
   return (
-    <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+    <form noValidate onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-4">
+      {formError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{formError}</AlertDescription>
+        </Alert>
+      ) : null}
       <FieldGroup className="gap-4">
         <Controller
           control={form.control}
@@ -52,6 +82,7 @@ export function LoginForm() {
                 placeholder="you@example.com"
                 autoComplete="email"
                 aria-invalid={fieldState.invalid}
+                disabled={isPending}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
@@ -67,9 +98,10 @@ export function LoginForm() {
                 {...field}
                 id="login-password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="********"
                 autoComplete="current-password"
                 aria-invalid={fieldState.invalid}
+                disabled={isPending}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
@@ -86,6 +118,7 @@ export function LoginForm() {
                 checked={field.value}
                 onCheckedChange={(checked) => field.onChange(Boolean(checked))}
                 aria-invalid={fieldState.invalid}
+                disabled={isPending}
               />
               <FieldContent>
                 <FieldLabel htmlFor="login-remember" className="font-normal">
@@ -97,8 +130,13 @@ export function LoginForm() {
           )}
         />
       </FieldGroup>
-      <Button className="w-full" type="submit">
-        Login
+      <div className="flex justify-end">
+        <Link prefetch={false} href="/auth/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
+          Forgot password?
+        </Link>
+      </div>
+      <Button className="w-full" type="submit" disabled={isPending}>
+        {isPending ? "Signing in..." : "Login"}
       </Button>
     </form>
   );

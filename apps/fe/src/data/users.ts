@@ -1,20 +1,53 @@
-export const users = [
+import { SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
+
+export interface DashboardUser {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  avatar: string;
+  role: SystemRole;
+}
+
+export const users: DashboardUser[] = [
   {
     id: "1",
-    name: "Arham Khan",
-    username: "Aarhamkhnz",
-    email: "hello@arhamkhnz.com",
-    avatar: "https://avatars.githubusercontent.com/u/43849669",
-    role: "administrator",
+    name: "Kabinda Demo",
+    username: "kabinda-demo",
+    email: "executive@denscakra.local",
+    avatar: "",
+    role: SYSTEM_ROLES.EXECUTIVE,
   },
   {
     id: "2",
-    name: "Ammar Khan",
-    username: "ammarkhnz",
-    email: "hello@ammarkhnz.com",
+    name: "Direktur Wilayah Demo",
+    username: "regional-demo",
+    email: "regional.commander@denscakra.local",
     avatar: "",
-    role: "admin",
+    role: SYSTEM_ROLES.REGIONAL_COMMANDER,
+  },
+  {
+    id: "3",
+    name: "Kabagops Demo",
+    username: "oim-demo",
+    email: "oim@denscakra.local",
+    avatar: "",
+    role: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
+  },
+  {
+    id: "4",
+    name: "Korwil Demo",
+    username: "korwil-demo",
+    email: "field.coordinator@denscakra.local",
+    avatar: "",
+    role: SYSTEM_ROLES.FIELD_COORDINATOR,
+  },
+  {
+    id: "5",
+    name: "Petugas Organik Demo",
+    username: "field-officer-demo",
+    email: "field.officer@denscakra.local",
+    avatar: "",
+    role: SYSTEM_ROLES.FIELD_OFFICER,
   },
 ];
-
-export const rootUser = users[0];

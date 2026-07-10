@@ -24,6 +24,12 @@ Backend foundation for DEN CAKRA using NestJS, Prisma, PostgreSQL, and Better Au
 
 Copy `.env.example` to `.env` and adjust values as needed.
 
+Untuk setup FE-BE terpisah dengan Next.js sebagai reverse proxy:
+
+- `BETTER_AUTH_URL` harus menunjuk ke origin frontend publik, misalnya `http://localhost:3000`
+- `CORS_ORIGIN` harus mengizinkan origin frontend yang sama
+- Browser mengakses auth lewat frontend `/api/auth/*`, lalu frontend meneruskan request ke backend NestJS
+
 ## Useful Commands
 
 ```bash

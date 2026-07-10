@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 
-export default function Home() {
-  redirect("/dashboard/default");
-  return <>Coming Soon</>;
+import { getSessionPrincipal } from "@/lib/auth/server-session";
+
+export default async function Home() {
+  const principal = await getSessionPrincipal();
+
+  redirect(principal?.homeRoute ?? "/auth/login");
 }

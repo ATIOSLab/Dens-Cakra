@@ -88,6 +88,19 @@ For a full breakdown of the structure with examples, see the [Next Colocation Te
 
 You can run this project locally, or deploy it instantly with Vercel.
 
+## Auth Integration
+
+Frontend sekarang diasumsikan menjadi reverse proxy untuk Better Auth:
+
+- browser memanggil `/api/auth/*` di aplikasi Next.js
+- route handler Next.js meneruskan request auth ke backend NestJS
+- session cookie tetap tersimpan di origin frontend
+
+Env minimum untuk mode ini ada di `.env.example`:
+
+- `BACKEND_INTERNAL_URL`
+- `NEXT_PUBLIC_APP_URL`
+
 ### Deploy with Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Farhamkhnz%2Fnext-shadcn-admin-dashboard)
