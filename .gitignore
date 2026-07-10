@@ -1,3 +1,10 @@
 .agents/
 @.agents/
 skills
+node_modules/
+dist/
+coverage/
+.env
+.env.local
+apps/be/node_modules/
+apps/be/dist/
