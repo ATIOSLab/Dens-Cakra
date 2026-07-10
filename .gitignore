@@ -1,10 +1,18 @@
 .agents/
 @.agents/
 skills
+
+# Dependencies
 node_modules/
+apps/be/node_modules/
+
+# Build output
 dist/
+apps/be/dist/
 coverage/
+
+# Local environment files
 .env
 .env.local
-apps/be/node_modules/
-apps/be/dist/
+.env.*
+!.env.example
