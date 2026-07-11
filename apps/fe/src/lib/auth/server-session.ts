@@ -5,11 +5,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import {
-  getSystemRoleHomeRoute,
-  parseSystemRole,
-  type SystemRole,
-} from "@/navigation/sidebar/system-roles";
+import { getSystemRoleHomeRoute, parseSystemRole, type SystemRole } from "@/navigation/sidebar/system-roles";
 
 import { getBackendInternalUrl } from "./backend-url";
 import type { SessionPrincipal } from "./types";
@@ -28,6 +24,13 @@ type AuthMeResponse = {
     expiresAt?: string;
   } | null;
 };
+
+type ApiEnvelope<T> = {
+  success: true;
+  data: T;
+};
+
+type AuthSessionPayload = AuthMeResponse | null;
 
 async function buildForwardedHeaders() {
   const requestHeaders = await headers();
@@ -53,12 +56,12 @@ export const getSessionPrincipal = cache(async (): Promise<SessionPrincipal | nu
     return null;
   }
 
-  const response = await fetch(`${getBackendInternalUrl()}/v1/auth/me`, {
+  const response = await fetch(`${getBackendInternalUrl()}/api/auth/get-session`, {
     headers: forwardedHeaders,
     cache: "no-store",
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 || response.status === 403) {
     return null;
   }
 
@@ -66,7 +69,12 @@ export const getSessionPrincipal = cache(async (): Promise<SessionPrincipal | nu
     throw new Error(`Failed to load authenticated session. Received ${response.status}.`);
   }
 
-  const payload = (await response.json()) as AuthMeResponse;
+  const envelope = (await response.json()) as ApiEnvelope<AuthSessionPayload> | AuthSessionPayload;
+  const payload = envelope && "success" in envelope ? envelope.data : envelope;
+
+  if (!payload) {
+    return null;
+  }
   const role = parseSystemRole(payload.user?.role);
 
   if (

@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { admin } from 'better-auth/plugins';
+import type { Prisma } from '../generated/prisma/client.js';
 import {
   accessControl,
   accessControlRoles,
@@ -13,15 +14,69 @@ import {
   queueMail,
 } from './email.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
+import {
+  ensureUserProfileForAuthUser,
+  getUserProfileIdForAuthUser,
+  touchUserProfileLastLogin,
+} from './user-profile.js';
+
+async function createAuditLogForAuthEvent(input: {
+  authUserId: string;
+  action: string;
+  entityType: string;
+  entityId?: string;
+  metadata?: Prisma.InputJsonValue;
+}) {
+  const actorUserProfileId = await getUserProfileIdForAuthUser(
+    input.authUserId,
+  );
+
+  await prisma.auditLog.create({
+    data: {
+      actorUserProfileId,
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      ...(input.metadata ? { metadata: input.metadata } : {}),
+    },
+  });
+}
 
 export const auth = betterAuth({
-  appName: 'DEN CAKRA',
+  appName: 'DENS CAKRA',
   baseURL: env.betterAuthUrl,
   secret: env.betterAuthSecret,
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
   trustedOrigins: env.corsOrigins,
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await ensureUserProfileForAuthUser({
+            authUserId: user.id,
+            fullName: user.name,
+          });
+        },
+      },
+      update: {
+        after: async (user) => {
+          await ensureUserProfileForAuthUser({
+            authUserId: user.id,
+            fullName: user.name,
+          });
+        },
+      },
+    },
+    session: {
+      create: {
+        after: async (session) => {
+          await touchUserProfileLastLogin(session.userId);
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     disableSignUp: env.authDisableSignUp,
@@ -55,15 +110,13 @@ export const auth = betterAuth({
       return Promise.resolve();
     },
     onPasswordReset: async ({ user }) => {
-      await prisma.auditLog.create({
-        data: {
-          actorId: user.id,
-          action: 'auth.password.reset',
-          entityType: 'user',
-          entityId: user.id,
-          metadata: {
-            email: user.email,
-          },
+      await createAuditLogForAuthEvent({
+        authUserId: user.id,
+        action: 'auth.password.reset',
+        entityType: 'user',
+        entityId: user.id,
+        metadata: {
+          email: user.email,
         },
       });
     },
@@ -88,15 +141,13 @@ export const auth = betterAuth({
     expiresIn: 60 * 60,
     autoSignInAfterVerification: false,
     afterEmailVerification: async (user) => {
-      await prisma.auditLog.create({
-        data: {
-          actorId: user.id,
-          action: 'auth.email.verified',
-          entityType: 'user',
-          entityId: user.id,
-          metadata: {
-            email: user.email,
-          },
+      await createAuditLogForAuthEvent({
+        authUserId: user.id,
+        action: 'auth.email.verified',
+        entityType: 'user',
+        entityId: user.id,
+        metadata: {
+          email: user.email,
         },
       });
     },
@@ -104,9 +155,25 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 12,
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+      strategy: 'jwe',
+    },
+  },
+  rateLimit: {
+    enabled: true,
+    window: 10,
+    max: 100,
+    storage: 'memory',
+    customRules: {
+      '/sign-in/email': { window: 10, max: 3 },
+      '/forget-password': { window: 60, max: 3 },
+    },
   },
   advanced: {
     cookiePrefix: 'denscakra',
+    useSecureCookies: env.nodeEnv === 'production',
   },
   experimental: {
     joins: true,

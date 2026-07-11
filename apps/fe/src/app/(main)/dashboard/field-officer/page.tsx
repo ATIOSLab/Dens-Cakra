@@ -1,10 +1,18 @@
-import { ComingSoonPage } from "../coming-soon/page";
+﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+type PageProps = {
+  params?: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Page({ params, searchParams }: PageProps) {
   return (
-    <ComingSoonPage
-      title="Beranda Petugas Lapangan"
-      description="Beranda Petugas Lapangan sedang disiapkan untuk tugas aktif, deadline terdekat, dan akses cepat operasional."
+    <UniversalDensRoutePage
+      routePattern="/dashboard/field-officer"
+      params={(await params) ?? {}}
+      searchParams={(await searchParams) ?? {}}
     />
   );
 }

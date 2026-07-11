@@ -37,7 +37,382 @@ export type Account = Prisma.AccountModel
  */
 export type Verification = Prisma.VerificationModel
 /**
+ * Model UserProfile
+ * 
+ */
+export type UserProfile = Prisma.UserProfileModel
+/**
+ * Model Role
+ * 
+ */
+export type Role = Prisma.RoleModel
+/**
+ * Model Permission
+ * 
+ */
+export type Permission = Prisma.PermissionModel
+/**
+ * Model RolePermission
+ * 
+ */
+export type RolePermission = Prisma.RolePermissionModel
+/**
+ * Model OrganizationUnit
+ * 
+ */
+export type OrganizationUnit = Prisma.OrganizationUnitModel
+/**
+ * Model OrganizationUnitClosure
+ * 
+ */
+export type OrganizationUnitClosure = Prisma.OrganizationUnitClosureModel
+/**
+ * Model Position
+ * 
+ */
+export type Position = Prisma.PositionModel
+/**
+ * Model PositionAssignment
+ * 
+ */
+export type PositionAssignment = Prisma.PositionAssignmentModel
+/**
+ * Model PositionAreaPolicy
+ * 
+ */
+export type PositionAreaPolicy = Prisma.PositionAreaPolicyModel
+/**
+ * Model PositionAreaScope
+ * 
+ */
+export type PositionAreaScope = Prisma.PositionAreaScopeModel
+/**
+ * Model AdministrativeArea
+ * 
+ */
+export type AdministrativeArea = Prisma.AdministrativeAreaModel
+/**
+ * Model AdministrativeAreaClosure
+ * 
+ */
+export type AdministrativeAreaClosure = Prisma.AdministrativeAreaClosureModel
+/**
+ * Model AdministrativeAreaDataSource
+ * 
+ */
+export type AdministrativeAreaDataSource = Prisma.AdministrativeAreaDataSourceModel
+/**
+ * Model AdministrativeAreaBoundary
+ * 
+ */
+export type AdministrativeAreaBoundary = Prisma.AdministrativeAreaBoundaryModel
+/**
+ * Model OrganizationAreaCoverage
+ * 
+ */
+export type OrganizationAreaCoverage = Prisma.OrganizationAreaCoverageModel
+/**
+ * Model FileAsset
+ * 
+ */
+export type FileAsset = Prisma.FileAssetModel
+/**
+ * Model Directive
+ * 
+ */
+export type Directive = Prisma.DirectiveModel
+/**
+ * Model DirectiveVersion
+ * 
+ */
+export type DirectiveVersion = Prisma.DirectiveVersionModel
+/**
+ * Model DirectiveTargetArea
+ * 
+ */
+export type DirectiveTargetArea = Prisma.DirectiveTargetAreaModel
+/**
+ * Model DirectiveRecipient
+ * 
+ */
+export type DirectiveRecipient = Prisma.DirectiveRecipientModel
+/**
+ * Model UukStr
+ * 
+ */
+export type UukStr = Prisma.UukStrModel
+/**
+ * Model UukStrVersion
+ * 
+ */
+export type UukStrVersion = Prisma.UukStrVersionModel
+/**
+ * Model UukStrSection
+ * 
+ */
+export type UukStrSection = Prisma.UukStrSectionModel
+/**
+ * Model UukStrSectionItem
+ * 
+ */
+export type UukStrSectionItem = Prisma.UukStrSectionItemModel
+/**
+ * Model Task
+ * 
+ */
+export type Task = Prisma.TaskModel
+/**
+ * Model TaskTargetArea
+ * 
+ */
+export type TaskTargetArea = Prisma.TaskTargetAreaModel
+/**
+ * Model TaskAssignment
+ * 
+ */
+export type TaskAssignment = Prisma.TaskAssignmentModel
+/**
+ * Model TaskProgressLog
+ * 
+ */
+export type TaskProgressLog = Prisma.TaskProgressLogModel
+/**
+ * Model TaskAttachment
+ * 
+ */
+export type TaskAttachment = Prisma.TaskAttachmentModel
+/**
+ * Model Jaring
+ * 
+ */
+export type Jaring = Prisma.JaringModel
+/**
+ * Model JaringCaretakerAssignment
+ * 
+ */
+export type JaringCaretakerAssignment = Prisma.JaringCaretakerAssignmentModel
+/**
+ * Model JaringAreaCoverage
+ * 
+ */
+export type JaringAreaCoverage = Prisma.JaringAreaCoverageModel
+/**
+ * Model WhatsAppMessage
+ * 
+ */
+export type WhatsAppMessage = Prisma.WhatsAppMessageModel
+/**
+ * Model WhatsAppValidationIssue
+ * 
+ */
+export type WhatsAppValidationIssue = Prisma.WhatsAppValidationIssueModel
+/**
+ * Model WhatsAppMessageMedia
+ * 
+ */
+export type WhatsAppMessageMedia = Prisma.WhatsAppMessageMediaModel
+/**
+ * Model WhatsAppRoutingLog
+ * 
+ */
+export type WhatsAppRoutingLog = Prisma.WhatsAppRoutingLogModel
+/**
+ * Model Baket
+ * 
+ */
+export type Baket = Prisma.BaketModel
+/**
+ * Model BaketVersion
+ * 
+ */
+export type BaketVersion = Prisma.BaketVersionModel
+/**
+ * Model BaketVersionSourceMessage
+ * 
+ */
+export type BaketVersionSourceMessage = Prisma.BaketVersionSourceMessageModel
+/**
+ * Model BaketVersionAttachment
+ * 
+ */
+export type BaketVersionAttachment = Prisma.BaketVersionAttachmentModel
+/**
+ * Model BaketRevisionRequest
+ * 
+ */
+export type BaketRevisionRequest = Prisma.BaketRevisionRequestModel
+/**
+ * Model BaketVerification
+ * 
+ */
+export type BaketVerification = Prisma.BaketVerificationModel
+/**
+ * Model BaketCoverageCheck
+ * 
+ */
+export type BaketCoverageCheck = Prisma.BaketCoverageCheckModel
+/**
+ * Model BaketVerificationCheck
+ * 
+ */
+export type BaketVerificationCheck = Prisma.BaketVerificationCheckModel
+/**
+ * Model BaketVerificationCrossReference
+ * 
+ */
+export type BaketVerificationCrossReference = Prisma.BaketVerificationCrossReferenceModel
+/**
+ * Model AnalysisCase
+ * 
+ */
+export type AnalysisCase = Prisma.AnalysisCaseModel
+/**
+ * Model AnalysisSourceVerification
+ * 
+ */
+export type AnalysisSourceVerification = Prisma.AnalysisSourceVerificationModel
+/**
+ * Model AnalysisVersion
+ * 
+ */
+export type AnalysisVersion = Prisma.AnalysisVersionModel
+/**
+ * Model AnalysisEntity
+ * 
+ */
+export type AnalysisEntity = Prisma.AnalysisEntityModel
+/**
+ * Model AnalysisRelationship
+ * 
+ */
+export type AnalysisRelationship = Prisma.AnalysisRelationshipModel
+/**
+ * Model ProductTypeDefinition
+ * 
+ */
+export type ProductTypeDefinition = Prisma.ProductTypeDefinitionModel
+/**
+ * Model ProductTemplate
+ * 
+ */
+export type ProductTemplate = Prisma.ProductTemplateModel
+/**
+ * Model ProductTemplateSection
+ * 
+ */
+export type ProductTemplateSection = Prisma.ProductTemplateSectionModel
+/**
+ * Model ProductTemplateField
+ * 
+ */
+export type ProductTemplateField = Prisma.ProductTemplateFieldModel
+/**
+ * Model IntelligenceProduct
+ * 
+ */
+export type IntelligenceProduct = Prisma.IntelligenceProductModel
+/**
+ * Model ProductVersion
+ * 
+ */
+export type ProductVersion = Prisma.ProductVersionModel
+/**
+ * Model ProductSourceVerification
+ * 
+ */
+export type ProductSourceVerification = Prisma.ProductSourceVerificationModel
+/**
+ * Model ProductSourceAnalysis
+ * 
+ */
+export type ProductSourceAnalysis = Prisma.ProductSourceAnalysisModel
+/**
+ * Model ProductAttachment
+ * 
+ */
+export type ProductAttachment = Prisma.ProductAttachmentModel
+/**
+ * Model ProductApprovalWorkflow
+ * 
+ */
+export type ProductApprovalWorkflow = Prisma.ProductApprovalWorkflowModel
+/**
+ * Model ProductApprovalStep
+ * 
+ */
+export type ProductApprovalStep = Prisma.ProductApprovalStepModel
+/**
+ * Model ProductDistribution
+ * 
+ */
+export type ProductDistribution = Prisma.ProductDistributionModel
+/**
+ * Model EmergencyIncident
+ * 
+ */
+export type EmergencyIncident = Prisma.EmergencyIncidentModel
+/**
+ * Model EmergencyAttachment
+ * 
+ */
+export type EmergencyAttachment = Prisma.EmergencyAttachmentModel
+/**
+ * Model Alert
+ * 
+ */
+export type Alert = Prisma.AlertModel
+/**
+ * Model PersonnelLocationPing
+ * 
+ */
+export type PersonnelLocationPing = Prisma.PersonnelLocationPingModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel
+/**
  * Model AuditLog
  * 
  */
 export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model IntegrationChannel
+ * 
+ */
+export type IntegrationChannel = Prisma.IntegrationChannelModel
+/**
+ * Model IntegrationWebhookEvent
+ * 
+ */
+export type IntegrationWebhookEvent = Prisma.IntegrationWebhookEventModel
+/**
+ * Model SystemSetting
+ * 
+ */
+export type SystemSetting = Prisma.SystemSettingModel
+/**
+ * Model ApiIdempotencyRecord
+ * 
+ */
+export type ApiIdempotencyRecord = Prisma.ApiIdempotencyRecordModel
+/**
+ * Model AsyncJob
+ * 
+ */
+export type AsyncJob = Prisma.AsyncJobModel
+/**
+ * Model OutboxEvent
+ * 
+ */
+export type OutboxEvent = Prisma.OutboxEventModel
+/**
+ * Model FileUploadReservation
+ * 
+ */
+export type FileUploadReservation = Prisma.FileUploadReservationModel
+/**
+ * Model ProductApprovalEvent
+ * 
+ */
+export type ProductApprovalEvent = Prisma.ProductApprovalEventModel

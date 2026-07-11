@@ -8,7 +8,558 @@
 * 🟢 You can import this file directly.
 */
 
+export const RoleCode = {
+  ADMIN_SYSTEM: 'ADMIN_SYSTEM',
+  EXECUTIVE: 'EXECUTIVE',
+  REGIONAL_COMMANDER: 'REGIONAL_COMMANDER',
+  OPERATIONAL_INTELLIGENCE_MANAGER: 'OPERATIONAL_INTELLIGENCE_MANAGER',
+  FIELD_COORDINATOR: 'FIELD_COORDINATOR',
+  FIELD_OFFICER: 'FIELD_OFFICER'
+} as const
+
+export type RoleCode = (typeof RoleCode)[keyof typeof RoleCode]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const PositionCode = {
+  ADMIN: 'ADMIN',
+  DEPUTI_II: 'DEPUTI_II',
+  DIREKTUR_WILAYAH: 'DIREKTUR_WILAYAH',
+  KABINDA: 'KABINDA',
+  KASUBDIT: 'KASUBDIT',
+  KABAGOPS: 'KABAGOPS',
+  STAF_SUBDIT: 'STAF_SUBDIT',
+  KORWIL: 'KORWIL',
+  PETUGAS_ORGANIK: 'PETUGAS_ORGANIK'
+} as const
+
+export type PositionCode = (typeof PositionCode)[keyof typeof PositionCode]
+
+
+export const OrganizationType = {
+  DEPUTI: 'DEPUTI',
+  DIRECTORATE: 'DIRECTORATE',
+  SUBDIRECTORATE: 'SUBDIRECTORATE',
+  BINDA: 'BINDA',
+  BAGOPS: 'BAGOPS',
+  FIELD_COORDINATION_UNIT: 'FIELD_COORDINATION_UNIT',
+  OTHER: 'OTHER'
+} as const
+
+export type OrganizationType = (typeof OrganizationType)[keyof typeof OrganizationType]
+
+
+export const AdministrativeLevel = {
+  COUNTRY: 'COUNTRY',
+  PROVINCE: 'PROVINCE',
+  REGENCY: 'REGENCY',
+  CITY: 'CITY',
+  DISTRICT: 'DISTRICT',
+  VILLAGE: 'VILLAGE',
+  URBAN_VILLAGE: 'URBAN_VILLAGE',
+  RW: 'RW',
+  RT: 'RT'
+} as const
+
+export type AdministrativeLevel = (typeof AdministrativeLevel)[keyof typeof AdministrativeLevel]
+
+
+export const CoordinateSource = {
+  WHATSAPP_LOCATION: 'WHATSAPP_LOCATION',
+  DEVICE_GPS: 'DEVICE_GPS',
+  MANUAL_PIN: 'MANUAL_PIN',
+  MANUAL_COORDINATE: 'MANUAL_COORDINATE',
+  CORRECTED_BY_FIELD_OFFICER: 'CORRECTED_BY_FIELD_OFFICER',
+  SYSTEM_DERIVED: 'SYSTEM_DERIVED'
+} as const
+
+export type CoordinateSource = (typeof CoordinateSource)[keyof typeof CoordinateSource]
+
+
+export const AreaResolutionMethod = {
+  POLYGON_MATCH: 'POLYGON_MATCH',
+  PARENT_POLYGON_MATCH: 'PARENT_POLYGON_MATCH',
+  NEAREST_CENTROID: 'NEAREST_CENTROID',
+  MANUAL_CONFIRMATION: 'MANUAL_CONFIRMATION',
+  UNRESOLVED: 'UNRESOLVED'
+} as const
+
+export type AreaResolutionMethod = (typeof AreaResolutionMethod)[keyof typeof AreaResolutionMethod]
+
+
+export const CoverageValidationStatus = {
+  NOT_CHECKED: 'NOT_CHECKED',
+  WITHIN_SCOPE: 'WITHIN_SCOPE',
+  OUTSIDE_JARING_SCOPE: 'OUTSIDE_JARING_SCOPE',
+  OUTSIDE_FIELD_OFFICER_SCOPE: 'OUTSIDE_FIELD_OFFICER_SCOPE',
+  OUTSIDE_FIELD_COORDINATOR_SCOPE: 'OUTSIDE_FIELD_COORDINATOR_SCOPE',
+  OUTSIDE_UNIT_SCOPE: 'OUTSIDE_UNIT_SCOPE',
+  BORDER_AMBIGUOUS: 'BORDER_AMBIGUOUS'
+} as const
+
+export type CoverageValidationStatus = (typeof CoverageValidationStatus)[keyof typeof CoverageValidationStatus]
+
+
+export const BoundaryQualityStatus = {
+  VERIFIED: 'VERIFIED',
+  PARTIAL: 'PARTIAL',
+  SIMPLIFIED: 'SIMPLIFIED',
+  INVALID: 'INVALID'
+} as const
+
+export type BoundaryQualityStatus = (typeof BoundaryQualityStatus)[keyof typeof BoundaryQualityStatus]
+
+
+export const AreaScopeMode = {
+  NATIONAL: 'NATIONAL',
+  INHERIT_UNIT: 'INHERIT_UNIT',
+  INHERIT_PARENT_POSITION: 'INHERIT_PARENT_POSITION',
+  EXPLICIT: 'EXPLICIT'
+} as const
+
+export type AreaScopeMode = (typeof AreaScopeMode)[keyof typeof AreaScopeMode]
+
+
+export const Classification = {
+  SANGAT_RAHASIA: 'SANGAT_RAHASIA',
+  RAHASIA: 'RAHASIA',
+  TERBATAS: 'TERBATAS',
+  BIASA: 'BIASA'
+} as const
+
+export type Classification = (typeof Classification)[keyof typeof Classification]
+
+
+export const PriorityLevel = {
+  LOW: 'LOW',
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT'
+} as const
+
+export type PriorityLevel = (typeof PriorityLevel)[keyof typeof PriorityLevel]
+
+
+export const DirectiveStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  DISTRIBUTED: 'DISTRIBUTED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type DirectiveStatus = (typeof DirectiveStatus)[keyof typeof DirectiveStatus]
+
+
+export const RecipientStatus = {
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  READ: 'READ',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  FAILED: 'FAILED'
+} as const
+
+export type RecipientStatus = (typeof RecipientStatus)[keyof typeof RecipientStatus]
+
+
+export const UukStrStatus = {
+  DRAFT: 'DRAFT',
+  READY: 'READY',
+  PUBLISHED: 'PUBLISHED',
+  REVISED: 'REVISED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type UukStrStatus = (typeof UukStrStatus)[keyof typeof UukStrStatus]
+
+
+export const UukStrSectionType = {
+  BASIS_BACKGROUND: 'BASIS_BACKGROUND',
+  INVESTIGATION_TARGETS: 'INVESTIGATION_TARGETS',
+  EEI_PIR: 'EEI_PIR',
+  COLLECTION_PLAN: 'COLLECTION_PLAN',
+  THREAT_RISK_ANALYSIS: 'THREAT_RISK_ANALYSIS',
+  IMPLEMENTATION_MECHANISM: 'IMPLEMENTATION_MECHANISM',
+  COORDINATION_REPORTING: 'COORDINATION_REPORTING',
+  RECOMMENDATION: 'RECOMMENDATION',
+  AUTHENTICATION: 'AUTHENTICATION'
+} as const
+
+export type UukStrSectionType = (typeof UukStrSectionType)[keyof typeof UukStrSectionType]
+
+
+export const TaskStatus = {
+  DRAFT: 'DRAFT',
+  ASSIGNED: 'ASSIGNED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]
+
+
+export const TaskAssignmentStatus = {
+  SENT: 'SENT',
+  READ: 'READ',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  OVERDUE: 'OVERDUE',
+  REASSIGNED: 'REASSIGNED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type TaskAssignmentStatus = (typeof TaskAssignmentStatus)[keyof typeof TaskAssignmentStatus]
+
+
+export const JaringStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  TRANSFERRED: 'TRANSFERRED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type JaringStatus = (typeof JaringStatus)[keyof typeof JaringStatus]
+
+
+export const WhatsAppMessageStatus = {
+  RECEIVED: 'RECEIVED',
+  UNKNOWN_SENDER: 'UNKNOWN_SENDER',
+  ROUTED: 'ROUTED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  PROCESSED: 'PROCESSED',
+  DUPLICATE: 'DUPLICATE',
+  SPAM: 'SPAM',
+  ERROR: 'ERROR'
+} as const
+
+export type WhatsAppMessageStatus = (typeof WhatsAppMessageStatus)[keyof typeof WhatsAppMessageStatus]
+
+
+export const WhatsAppValidationSummary = {
+  NOT_CHECKED: 'NOT_CHECKED',
+  VALID: 'VALID',
+  INVALID: 'INVALID'
+} as const
+
+export type WhatsAppValidationSummary = (typeof WhatsAppValidationSummary)[keyof typeof WhatsAppValidationSummary]
+
+
+export const CoverageScopeType = {
+  JARING: 'JARING',
+  FIELD_OFFICER: 'FIELD_OFFICER',
+  FIELD_COORDINATOR: 'FIELD_COORDINATOR',
+  ORGANIZATION_UNIT: 'ORGANIZATION_UNIT'
+} as const
+
+export type CoverageScopeType = (typeof CoverageScopeType)[keyof typeof CoverageScopeType]
+
+
+export const FileType = {
+  PHOTO: 'PHOTO',
+  VIDEO: 'VIDEO',
+  DOCUMENT: 'DOCUMENT',
+  AUDIO: 'AUDIO',
+  OTHER: 'OTHER'
+} as const
+
+export type FileType = (typeof FileType)[keyof typeof FileType]
+
+
+export const BaketStatus = {
+  DRAFT: 'DRAFT',
+  READY_TO_SEND: 'READY_TO_SEND',
+  SENT_TO_OIM: 'SENT_TO_OIM',
+  UNDER_VERIFICATION: 'UNDER_VERIFICATION',
+  NEEDS_DEVELOPMENT: 'NEEDS_DEVELOPMENT',
+  VERIFIED: 'VERIFIED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type BaketStatus = (typeof BaketStatus)[keyof typeof BaketStatus]
+
+
+export const RevisionRequestStatus = {
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
+  RESUBMITTED: 'RESUBMITTED',
+  RESOLVED: 'RESOLVED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type RevisionRequestStatus = (typeof RevisionRequestStatus)[keyof typeof RevisionRequestStatus]
+
+
+export const VerificationStatus = {
+  DRAFT: 'DRAFT',
+  IN_PROGRESS: 'IN_PROGRESS',
+  VERIFIED: 'VERIFIED',
+  NEEDS_DEVELOPMENT: 'NEEDS_DEVELOPMENT',
+  REJECTED: 'REJECTED'
+} as const
+
+export type VerificationStatus = (typeof VerificationStatus)[keyof typeof VerificationStatus]
+
+
+export const VerificationCheckStatus = {
+  PASS: 'PASS',
+  FAIL: 'FAIL',
+  WARNING: 'WARNING',
+  NOT_APPLICABLE: 'NOT_APPLICABLE'
+} as const
+
+export type VerificationCheckStatus = (typeof VerificationCheckStatus)[keyof typeof VerificationCheckStatus]
+
+
+export const SourceReliability = {
+  A: 'A',
+  B: 'B',
+  C: 'C',
+  D: 'D',
+  E: 'E',
+  F: 'F'
+} as const
+
+export type SourceReliability = (typeof SourceReliability)[keyof typeof SourceReliability]
+
+
+export const InformationCredibility = {
+  ONE: 'ONE',
+  TWO: 'TWO',
+  THREE: 'THREE',
+  FOUR: 'FOUR',
+  FIVE: 'FIVE',
+  SIX: 'SIX'
+} as const
+
+export type InformationCredibility = (typeof InformationCredibility)[keyof typeof InformationCredibility]
+
+
+export const AnalysisStatus = {
+  DRAFT: 'DRAFT',
+  IN_REVIEW: 'IN_REVIEW',
+  VALIDATED: 'VALIDATED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type AnalysisStatus = (typeof AnalysisStatus)[keyof typeof AnalysisStatus]
+
+
+export const IntelEntityType = {
+  PERSON: 'PERSON',
+  ORGANIZATION: 'ORGANIZATION',
+  LOCATION: 'LOCATION',
+  EVENT: 'EVENT',
+  ISSUE: 'ISSUE',
+  ASSET: 'ASSET',
+  OTHER: 'OTHER'
+} as const
+
+export type IntelEntityType = (typeof IntelEntityType)[keyof typeof IntelEntityType]
+
+
+export const ProductStatus = {
+  DRAFT: 'DRAFT',
+  READY_FOR_SUBMISSION: 'READY_FOR_SUBMISSION',
+  UNDER_REGIONAL_REVIEW: 'UNDER_REGIONAL_REVIEW',
+  NEEDS_REVISION: 'NEEDS_REVISION',
+  APPROVED_REGIONAL: 'APPROVED_REGIONAL',
+  UNDER_EXECUTIVE_REVIEW: 'UNDER_EXECUTIVE_REVIEW',
+  APPROVED_EXECUTIVE: 'APPROVED_EXECUTIVE',
+  DISTRIBUTED: 'DISTRIBUTED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type ProductStatus = (typeof ProductStatus)[keyof typeof ProductStatus]
+
+
+export const ApprovalStage = {
+  REGIONAL: 'REGIONAL',
+  EXECUTIVE: 'EXECUTIVE'
+} as const
+
+export type ApprovalStage = (typeof ApprovalStage)[keyof typeof ApprovalStage]
+
+
+export const ApprovalWorkflowStatus = {
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  NEEDS_REVISION: 'NEEDS_REVISION',
+  APPROVED: 'APPROVED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type ApprovalWorkflowStatus = (typeof ApprovalWorkflowStatus)[keyof typeof ApprovalWorkflowStatus]
+
+
+export const ApprovalStepStatus = {
+  WAITING: 'WAITING',
+  ACTIVE: 'ACTIVE',
+  APPROVED: 'APPROVED',
+  NEEDS_REVISION: 'NEEDS_REVISION',
+  REJECTED: 'REJECTED',
+  SKIPPED: 'SKIPPED'
+} as const
+
+export type ApprovalStepStatus = (typeof ApprovalStepStatus)[keyof typeof ApprovalStepStatus]
+
+
+export const ApprovalDecision = {
+  APPROVE: 'APPROVE',
+  NEEDS_REVISION: 'NEEDS_REVISION',
+  REJECT: 'REJECT',
+  REQUEST_CLARIFICATION: 'REQUEST_CLARIFICATION'
+} as const
+
+export type ApprovalDecision = (typeof ApprovalDecision)[keyof typeof ApprovalDecision]
+
+
+export const DistributionStatus = {
+  QUEUED: 'QUEUED',
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  READ: 'READ',
+  FAILED: 'FAILED',
+  REVOKED: 'REVOKED'
+} as const
+
+export type DistributionStatus = (typeof DistributionStatus)[keyof typeof DistributionStatus]
+
+
+export const NotificationType = {
+  DIRECTIVE: 'DIRECTIVE',
+  TASK: 'TASK',
+  WHATSAPP_REPORT: 'WHATSAPP_REPORT',
+  BAKET: 'BAKET',
+  VERIFICATION: 'VERIFICATION',
+  PRODUCT: 'PRODUCT',
+  APPROVAL: 'APPROVAL',
+  REVISION: 'REVISION',
+  ALERT: 'ALERT',
+  SYSTEM: 'SYSTEM'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
+
+
+export const EmergencyStatus = {
+  NEW: 'NEW',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  VERIFIED: 'VERIFIED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  CONTROLLED: 'CONTROLLED',
+  RESOLVED: 'RESOLVED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type EmergencyStatus = (typeof EmergencyStatus)[keyof typeof EmergencyStatus]
+
+
+export const AlertSeverity = {
+  INFO: 'INFO',
+  ATTENTION: 'ATTENTION',
+  WARNING: 'WARNING',
+  CRITICAL: 'CRITICAL',
+  EMERGENCY: 'EMERGENCY'
+} as const
+
+export type AlertSeverity = (typeof AlertSeverity)[keyof typeof AlertSeverity]
+
+
+export const AlertStatus = {
+  NEW: 'NEW',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  ASSIGNED: 'ASSIGNED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  RESOLVED: 'RESOLVED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type AlertStatus = (typeof AlertStatus)[keyof typeof AlertStatus]
+
+
+export const IntegrationStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  DEGRADED: 'DEGRADED',
+  ERROR: 'ERROR'
+} as const
+
+export type IntegrationStatus = (typeof IntegrationStatus)[keyof typeof IntegrationStatus]
+
+
+export const FileLifecycleStatus = {
+  PENDING_UPLOAD: 'PENDING_UPLOAD',
+  UPLOADED: 'UPLOADED',
+  SCANNING: 'SCANNING',
+  CLEAN: 'CLEAN',
+  QUARANTINED: 'QUARANTINED',
+  REJECTED: 'REJECTED',
+  DELETED: 'DELETED'
+} as const
+
+export type FileLifecycleStatus = (typeof FileLifecycleStatus)[keyof typeof FileLifecycleStatus]
+
+
+export const AsyncJobStatus = {
+  QUEUED: 'QUEUED',
+  PROCESSING: 'PROCESSING',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED',
+  DEAD_LETTER: 'DEAD_LETTER',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type AsyncJobStatus = (typeof AsyncJobStatus)[keyof typeof AsyncJobStatus]
+
+
+export const OutboxEventStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  PUBLISHED: 'PUBLISHED',
+  FAILED: 'FAILED',
+  DEAD_LETTER: 'DEAD_LETTER'
+} as const
+
+export type OutboxEventStatus = (typeof OutboxEventStatus)[keyof typeof OutboxEventStatus]
+
+
+export const IdempotencyStatus = {
+  PROCESSING: 'PROCESSING',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED'
+} as const
+
+export type IdempotencyStatus = (typeof IdempotencyStatus)[keyof typeof IdempotencyStatus]
+
+
+export const ApprovalEventType = {
+  ACTIVATED: 'ACTIVATED',
+  APPROVED: 'APPROVED',
+  REVISION_REQUESTED: 'REVISION_REQUESTED',
+  REJECTED: 'REJECTED',
+  CLARIFICATION_REQUESTED: 'CLARIFICATION_REQUESTED',
+  CANCELLED: 'CANCELLED',
+  COMMENT: 'COMMENT'
+} as const
+
+export type ApprovalEventType = (typeof ApprovalEventType)[keyof typeof ApprovalEventType]
+
+
+export const UserProfileStatus = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type UserProfileStatus = (typeof UserProfileStatus)[keyof typeof UserProfileStatus]
+
+
+export const CommandRouteType = {
+  DIRECTORATE: 'DIRECTORATE',
+  BINDA: 'BINDA'
+} as const
+
+export type CommandRouteType = (typeof CommandRouteType)[keyof typeof CommandRouteType]
