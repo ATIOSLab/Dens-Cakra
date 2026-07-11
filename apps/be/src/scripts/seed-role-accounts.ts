@@ -49,7 +49,19 @@ const seedAccounts: SeedAccount[] = [
   },
   {
     email: 'field.officer@denscakra.local',
-    name: 'Field Officer Demo',
+    name: 'Field Officer Bangkinang',
+    password: defaultDemoPassword,
+    role: SYSTEM_ROLES.FIELD_OFFICER,
+  },
+  {
+    email: 'field.officer.bangkinang@denscakra.local',
+    name: 'Field Officer Bangkinang',
+    password: defaultDemoPassword,
+    role: SYSTEM_ROLES.FIELD_OFFICER,
+  },
+  {
+    email: 'field.officer.pekanbaru@denscakra.local',
+    name: 'Field Officer Pekanbaru',
     password: defaultDemoPassword,
     role: SYSTEM_ROLES.FIELD_OFFICER,
   },
@@ -88,6 +100,18 @@ async function ensureUser(account: SeedAccount): Promise<void> {
 }
 
 async function seedRoleAccounts() {
+  const activeSeedEmails = seedAccounts.map((account) => account.email);
+
+  await prisma.user.deleteMany({
+    where: {
+      role: SYSTEM_ROLES.FIELD_OFFICER,
+      email: {
+        endsWith: '@denscakra.local',
+        notIn: activeSeedEmails,
+      },
+    },
+  });
+
   for (const account of seedAccounts) {
     await ensureUser(account);
   }

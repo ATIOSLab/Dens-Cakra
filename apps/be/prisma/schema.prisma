@@ -89,3 +89,70 @@ model AuditLog {
   @@index([entityType, entityId])
   @@map("audit_log")
 }
+
+enum WhatsappRole {
+  FIELD_OFFICER
+  JARING
+}
+
+model WhatsappAllowedUser {
+  id                        Int          @id @default(autoincrement())
+  whatsappId                String       @unique
+  name                      String?
+  cluster                   String?
+  role                      WhatsappRole @default(JARING)
+  authPin                   String
+  fieldOfficerUsername      String?      @unique
+  fieldOfficerPassword      String?
+  fieldOfficerPasswordPlain String?
+  isVerified                Boolean      @default(false)
+  createdAt                 DateTime     @default(now())
+  fieldOfficerId            Int?
+  fieldOfficer              WhatsappAllowedUser?  @relation("WhatsappFieldOfficerJaring", fields: [fieldOfficerId], references: [id])
+  jaringList                WhatsappAllowedUser[] @relation("WhatsappFieldOfficerJaring")
+
+  @@map("whatsapp_allowed_users")
+}
+
+model WhatsappReport {
+  id                 Int      @id @default(autoincrement())
+  whatsappId         String
+  pushName           String?
+  title              String?
+  content            String
+  photoUrl           String?
+  cluster            String?
+  category           String?
+  locationLatitude   Float?
+  locationLongitude  Float?
+  locationLivePeriod Int?
+  occurredAt         DateTime?
+  status             String   @default("PENDING")
+  informationStatus  String   @default("PENDING")
+  baketId            String?
+  closedAt           DateTime?
+  createdAt          DateTime @default(now())
+
+  @@map("whatsapp_reports")
+}
+
+model FieldOfficerLiveLocation {
+  id               Int      @id @default(autoincrement())
+  fieldOfficerId   String   @unique
+  fieldOfficerName String?
+  title            String?
+  sector           String?
+  latitude         Float
+  longitude        Float
+  accuracy         Float?
+  altitude         Float?
+  heading          Float?
+  speed            Float?
+  source           String   @default("browser")
+  capturedAt       DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([updatedAt])
+  @@map("field_officer_live_locations")
+}

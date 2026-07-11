@@ -53,10 +53,16 @@ export const getSessionPrincipal = cache(async (): Promise<SessionPrincipal | nu
     return null;
   }
 
-  const response = await fetch(`${getBackendInternalUrl()}/v1/auth/me`, {
-    headers: forwardedHeaders,
-    cache: "no-store",
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${getBackendInternalUrl()}/v1/auth/me`, {
+      headers: forwardedHeaders,
+      cache: "no-store",
+    });
+  } catch {
+    return null;
+  }
 
   if (response.status === 401) {
     return null;

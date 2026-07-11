@@ -1,10 +1,5 @@
-import { ComingSoonPage } from "../coming-soon/page";
+import { FieldOfficerPageShell } from "./_components/field-officer-page-shell";
 
-export default function Page() {
-  return (
-    <ComingSoonPage
-      title="Beranda Petugas Lapangan"
-      description="Beranda Petugas Lapangan sedang disiapkan untuk tugas aktif, deadline terdekat, dan akses cepat operasional."
-    />
-  );
+export default function FieldOfficerPage() {
+  return <FieldOfficerPageShell initialTab="home" />;
 }

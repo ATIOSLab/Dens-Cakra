@@ -1,7 +1,8 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { json, urlencoded, type Express } from 'express';
+import { json, static as serveStatic, urlencoded, type Express } from 'express';
 import helmet from 'helmet';
+import { join } from 'path';
 import { toNodeHandler } from 'better-auth/node';
 import { AppModule } from './app.module.js';
 import { auth } from './lib/auth.js';
@@ -34,6 +35,7 @@ async function bootstrap() {
 
   expressApp.set('trust proxy', 1);
   expressApp.all('/api/auth/{*any}', toNodeHandler(auth));
+  expressApp.use('/uploads', serveStatic(join(process.cwd(), 'uploads')));
   expressApp.use(json());
   expressApp.use(urlencoded({ extended: true }));
 

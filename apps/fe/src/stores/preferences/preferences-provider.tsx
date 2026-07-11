@@ -36,6 +36,39 @@ function readDomPreferences(): PreferenceValueMap {
   return values;
 }
 
+function readCookie(name: string) {
+  const match = document.cookie.split("; ").find((cookie) => cookie.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
+}
+
+function readLocal(name: string) {
+  try {
+    return window.localStorage.getItem(name);
+  } catch {
+    return null;
+  }
+}
+
+function applyStoredPreferences() {
+  const values = { ...PREFERENCE_DEFAULTS };
+
+  function applyPreference<K extends PreferenceKey>(key: K) {
+    const definition = PREFERENCE_REGISTRY[key];
+    const persistence = definition.persistence as string;
+    const persistedValue =
+      persistence === "localStorage" ? readLocal(key) : readCookie(key);
+    const value = parsePreference(key, persistedValue);
+
+    values[key] = value;
+    document.documentElement.setAttribute(definition.attribute, value);
+  }
+
+  for (const key of PREFERENCE_KEYS) applyPreference(key);
+
+  const resolvedThemeMode = applyThemeMode(values.theme_mode);
+  return { values, resolvedThemeMode };
+}
+
 export function PreferencesStoreProvider({
   children,
   initialValues,
@@ -46,9 +79,10 @@ export function PreferencesStoreProvider({
   const [store] = useState<StoreApi<PreferencesState>>(() => createPreferencesStore(initialValues));
 
   useEffect(() => {
+    const syncedPreferences = applyStoredPreferences();
     store.setState({
-      values: readDomPreferences(),
-      resolvedThemeMode: document.documentElement.classList.contains("dark") ? "dark" : "light",
+      values: syncedPreferences.values,
+      resolvedThemeMode: syncedPreferences.resolvedThemeMode,
       isSynced: true,
     });
   }, [store]);

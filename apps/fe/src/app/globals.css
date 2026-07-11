@@ -1,6 +1,63 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+
+.fo-live-marker {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #020617;
+  border-radius: 9999px;
+  background: #34d399;
+  box-shadow:
+    0 0 0 3px rgba(52, 211, 153, 0.35),
+    0 10px 24px rgba(2, 6, 23, 0.45);
+}
+
+.fo-live-marker-current {
+  background: #22d3ee;
+  box-shadow:
+    0 0 0 3px rgba(34, 211, 238, 0.4),
+    0 0 22px rgba(34, 211, 238, 0.55),
+    0 10px 24px rgba(2, 6, 23, 0.45);
+}
+
+.fo-live-marker-stale {
+  background: #facc15;
+  box-shadow:
+    0 0 0 3px rgba(250, 204, 21, 0.35),
+    0 10px 24px rgba(2, 6, 23, 0.45);
+}
+
+.fo-live-marker-missing {
+  position: relative;
+  background: #ef4444;
+  box-shadow:
+    0 0 0 3px rgba(239, 68, 68, 0.25),
+    0 10px 24px rgba(2, 6, 23, 0.45);
+}
+
+.fo-live-marker-missing::before,
+.fo-live-marker-missing::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 3px;
+  border-radius: 9999px;
+  background: #fff;
+  content: "";
+  transform-origin: center;
+}
+
+.fo-live-marker-missing::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.fo-live-marker-missing::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
 
 /* Theme preset styles: these override CSS variables based on the selected data-theme-preset */
 @import "../styles/presets/brutalist.css";

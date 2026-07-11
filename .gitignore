@@ -1,6 +1,7 @@
 .agents/
 @.agents/
 skills
+.codex/
 
 # Dependencies
 node_modules/
@@ -16,3 +17,8 @@ coverage/
 .env.local
 .env.*
 !.env.example
+
+# Local runtime artifacts
+apps/be/uploads/
+apps/be/wa_auth/
+apps/fe/*.log
