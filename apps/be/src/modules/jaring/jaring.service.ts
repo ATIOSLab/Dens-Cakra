@@ -9,11 +9,17 @@ import type { AuthorizationContext } from '../../common/types/authorization-cont
 import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
+  CreateJaringClusterDto,
+  CreateReportCategoryDto,
   CoverageDto,
   CreateJaringDto,
+  JaringClusterQuery,
   JaringQuery,
+  ReportCategoryQuery,
   ReasonDto,
   TransferDto,
+  UpdateJaringClusterDto,
+  UpdateReportCategoryDto,
   UpdateJaringDto,
 } from './jaring.dto.js';
 
@@ -21,10 +27,47 @@ import type {
 export class JaringService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private clusterCode(value: string) {
+    const normalized = value
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 80);
+
+    return normalized || `CLUSTER_${Date.now()}`;
+  }
+
+  private reportCategoryCode(value: string) {
+    const normalized = this.clusterCode(value);
+    return normalized.startsWith('CLUSTER_')
+      ? `CATEGORY_${Date.now()}`
+      : normalized;
+  }
+
+  private async ensureActiveCluster(clusterId?: string) {
+    if (!clusterId) {
+      return;
+    }
+
+    const cluster = await this.prisma.jaringCluster.findUnique({
+      where: { id: clusterId },
+    });
+
+    if (!cluster || !cluster.isActive) {
+      throw new ApiException(
+        'JARING_CLUSTER_INVALID',
+        'Cluster Jaring tidak ditemukan atau tidak aktif.',
+        422,
+      );
+    }
+  }
+
   private detail(id: string) {
     return this.prisma.jaring.findFirstOrThrow({
       where: { id, deletedAt: null },
       include: {
+        cluster: true,
         caretakerAssignments: {
           include: {
             fieldOfficerAssignment: {
@@ -97,6 +140,7 @@ export class JaringService {
       take: query.limit,
       orderBy: { createdAt: 'desc' },
       include: {
+        cluster: true,
         caretakerAssignments: {
           where: { isActive: true, validUntil: null },
           include: {
@@ -112,6 +156,8 @@ export class JaringService {
   }
 
   async create(body: CreateJaringDto, context: AuthorizationContext) {
+    await this.ensureActiveCluster(body.clusterId);
+
     const officer = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: body.fieldOfficerAssignmentId },
       include: { position: true },
@@ -131,6 +177,7 @@ export class JaringService {
         code: body.code,
         aliasName: body.aliasName,
         whatsappNumber: normalizeIndonesianPhoneNumber(body.whatsappNumber),
+        clusterId: body.clusterId,
         createdByAssignmentId: context.primaryAssignmentId,
         notes: body.notes,
         caretakerAssignments: {
@@ -157,9 +204,238 @@ export class JaringService {
     body: UpdateJaringDto,
     context: AuthorizationContext,
   ) {
+    await this.ensureActiveCluster(body.clusterId);
     await this.prisma.jaring.update({ where: { id }, data: body });
     await this.audit(context, 'JARING.UPDATE', id);
     return this.detail(id);
+  }
+
+  async listClusters(query: JaringClusterQuery) {
+    return this.prisma.jaringCluster.findMany({
+      where: {
+        ...(query.includeInactive ? {} : { isActive: true }),
+        ...(query.search
+          ? {
+              OR: [
+                { code: { contains: query.search, mode: 'insensitive' } },
+                { name: { contains: query.search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      take: query.limit,
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+      include: {
+        _count: { select: { jaring: true } },
+      },
+    });
+  }
+
+  async createCluster(
+    body: CreateJaringClusterDto,
+    context: AuthorizationContext,
+  ) {
+    const code = this.clusterCode(body.code ?? body.name);
+    const name = body.name.trim();
+
+    const duplicate = await this.prisma.jaringCluster.findFirst({
+      where: {
+        OR: [
+          { code: { equals: code, mode: 'insensitive' } },
+          { name: { equals: name, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (duplicate) {
+      throw new ApiException(
+        'JARING_CLUSTER_DUPLICATE',
+        'Kode atau nama cluster Jaring sudah digunakan.',
+        409,
+      );
+    }
+
+    const cluster = await this.prisma.jaringCluster.create({
+      data: {
+        code,
+        name,
+        description: body.description?.trim() || null,
+      },
+    });
+
+    await this.audit(context, 'JARING_CLUSTER.CREATE', cluster.id);
+    return cluster;
+  }
+
+  async updateCluster(
+    id: string,
+    body: UpdateJaringClusterDto,
+    context: AuthorizationContext,
+  ) {
+    const patch: Prisma.JaringClusterUpdateInput = {};
+
+    if (body.code !== undefined) {
+      patch.code = this.clusterCode(body.code);
+    }
+
+    if (body.name !== undefined) {
+      patch.name = body.name.trim();
+    }
+
+    if (body.description !== undefined) {
+      patch.description = body.description.trim() || null;
+    }
+
+    if (body.isActive !== undefined) {
+      patch.isActive = body.isActive;
+    }
+
+    if (patch.code || patch.name) {
+      const duplicate = await this.prisma.jaringCluster.findFirst({
+        where: {
+          id: { not: id },
+          OR: [
+            ...(typeof patch.code === 'string'
+              ? [{ code: { equals: patch.code, mode: 'insensitive' as const } }]
+              : []),
+            ...(typeof patch.name === 'string'
+              ? [{ name: { equals: patch.name, mode: 'insensitive' as const } }]
+              : []),
+          ],
+        },
+      });
+
+      if (duplicate) {
+        throw new ApiException(
+          'JARING_CLUSTER_DUPLICATE',
+          'Kode atau nama cluster Jaring sudah digunakan.',
+          409,
+        );
+      }
+    }
+
+    const cluster = await this.prisma.jaringCluster.update({
+      where: { id },
+      data: patch,
+      include: { _count: { select: { jaring: true } } },
+    });
+
+    await this.audit(context, 'JARING_CLUSTER.UPDATE', id);
+    return cluster;
+  }
+
+  async listReportCategories(query: ReportCategoryQuery) {
+    return this.prisma.reportCategory.findMany({
+      where: {
+        ...(query.includeInactive ? {} : { isActive: true }),
+        ...(query.search
+          ? {
+              OR: [
+                { code: { contains: query.search, mode: 'insensitive' } },
+                { name: { contains: query.search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      take: query.limit,
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+      include: {
+        _count: { select: { whatsAppMessages: true } },
+      },
+    });
+  }
+
+  async createReportCategory(
+    body: CreateReportCategoryDto,
+    context: AuthorizationContext,
+  ) {
+    const code = this.reportCategoryCode(body.code ?? body.name);
+    const name = body.name.trim();
+
+    const duplicate = await this.prisma.reportCategory.findFirst({
+      where: {
+        OR: [
+          { code: { equals: code, mode: 'insensitive' } },
+          { name: { equals: name, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (duplicate) {
+      throw new ApiException(
+        'REPORT_CATEGORY_DUPLICATE',
+        'Kode atau nama kategori laporan sudah digunakan.',
+        409,
+      );
+    }
+
+    const category = await this.prisma.reportCategory.create({
+      data: {
+        code,
+        name,
+        description: body.description?.trim() || null,
+      },
+    });
+
+    await this.audit(context, 'REPORT_CATEGORY.CREATE', category.id);
+    return category;
+  }
+
+  async updateReportCategory(
+    id: string,
+    body: UpdateReportCategoryDto,
+    context: AuthorizationContext,
+  ) {
+    const patch: Prisma.ReportCategoryUpdateInput = {};
+
+    if (body.code !== undefined) {
+      patch.code = this.reportCategoryCode(body.code);
+    }
+
+    if (body.name !== undefined) {
+      patch.name = body.name.trim();
+    }
+
+    if (body.description !== undefined) {
+      patch.description = body.description.trim() || null;
+    }
+
+    if (body.isActive !== undefined) {
+      patch.isActive = body.isActive;
+    }
+
+    if (patch.code || patch.name) {
+      const duplicate = await this.prisma.reportCategory.findFirst({
+        where: {
+          id: { not: id },
+          OR: [
+            ...(typeof patch.code === 'string'
+              ? [{ code: { equals: patch.code, mode: 'insensitive' as const } }]
+              : []),
+            ...(typeof patch.name === 'string'
+              ? [{ name: { equals: patch.name, mode: 'insensitive' as const } }]
+              : []),
+          ],
+        },
+      });
+
+      if (duplicate) {
+        throw new ApiException(
+          'REPORT_CATEGORY_DUPLICATE',
+          'Kode atau nama kategori laporan sudah digunakan.',
+          409,
+        );
+      }
+    }
+
+    const category = await this.prisma.reportCategory.update({
+      where: { id },
+      data: patch,
+      include: { _count: { select: { whatsAppMessages: true } } },
+    });
+
+    await this.audit(context, 'REPORT_CATEGORY.UPDATE', id);
+    return category;
   }
 
   async activate(id: string, body: ReasonDto, context: AuthorizationContext) {
@@ -246,7 +522,24 @@ export class JaringService {
     return this.prisma.whatsAppMessage.findMany({
       where: { jaringId: id },
       orderBy: { receivedAt: 'desc' },
-      include: { validationIssues: true, media: true },
+      include: {
+        category: true,
+        resolvedArea: true,
+        validationIssues: true,
+        media: {
+          include: {
+            file: {
+              select: {
+                id: true,
+                originalName: true,
+                mimeType: true,
+                fileType: true,
+                lifecycleStatus: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 

@@ -10,6 +10,15 @@ async function forwardAuthRequest(request: NextRequest) {
 
   forwardedHeaders.delete("host");
   forwardedHeaders.delete("content-length");
+  forwardedHeaders.delete("connection");
+  forwardedHeaders.delete("expect");
+  forwardedHeaders.delete("keep-alive");
+  forwardedHeaders.delete("proxy-authenticate");
+  forwardedHeaders.delete("proxy-authorization");
+  forwardedHeaders.delete("te");
+  forwardedHeaders.delete("trailer");
+  forwardedHeaders.delete("transfer-encoding");
+  forwardedHeaders.delete("upgrade");
 
   const response = await fetch(targetUrl, {
     method: request.method,

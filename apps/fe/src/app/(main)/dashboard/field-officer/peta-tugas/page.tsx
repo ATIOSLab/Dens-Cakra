@@ -1,5 +1,5 @@
-import { FieldOfficerOperationsPage } from "@/app/(main)/dashboard/field-officer/_components/field-officer-operations-page";
+import { PetaTugasPage } from "./_components/peta-tugas-page";
 
 export default function Page() {
-  return <FieldOfficerOperationsPage view="map" />;
+  return <PetaTugasPage />;
 }

@@ -374,6 +374,7 @@ export function MapControls({
       return;
     }
 
+    const map = context.map;
     const controls: Array<NavigationControl | FullscreenControl | GeolocateControl> = [];
 
     if (showZoom || showCompass) {
@@ -382,13 +383,13 @@ export function MapControls({
         showCompass,
         visualizePitch: showCompass,
       });
-      context.map.addControl(navigation, position);
+      map.addControl(navigation, position);
       controls.push(navigation);
     }
 
     if (showFullscreen) {
       const fullscreen = new FullscreenControl();
-      context.map.addControl(fullscreen, position);
+      map.addControl(fullscreen, position);
       controls.push(fullscreen);
     }
 
@@ -397,13 +398,18 @@ export function MapControls({
         trackUserLocation: false,
         showUserLocation: true,
       });
-      context.map.addControl(geolocate, position);
+      map.addControl(geolocate, position);
       controls.push(geolocate);
     }
 
     return () => {
       for (const control of controls) {
-        context.map?.removeControl(control);
+        try {
+          map.removeControl(control);
+        } catch {
+          // MapLibre controls can throw during React strict-mode cleanup if the
+          // map instance was already removed by the parent effect.
+        }
       }
     };
   }, [context?.map, position, showCompass, showFullscreen, showLocate, showZoom]);

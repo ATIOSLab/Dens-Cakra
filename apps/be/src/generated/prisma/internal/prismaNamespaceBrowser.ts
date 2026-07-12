@@ -87,6 +87,8 @@ export const ModelName = {
   TaskProgressLog: 'TaskProgressLog',
   TaskAttachment: 'TaskAttachment',
   Jaring: 'Jaring',
+  JaringCluster: 'JaringCluster',
+  ReportCategory: 'ReportCategory',
   JaringCaretakerAssignment: 'JaringCaretakerAssignment',
   JaringAreaCoverage: 'JaringAreaCoverage',
   WhatsAppMessage: 'WhatsAppMessage',
@@ -663,6 +665,7 @@ export const JaringScalarFieldEnum = {
   code: 'code',
   aliasName: 'aliasName',
   whatsappNumber: 'whatsappNumber',
+  clusterId: 'clusterId',
   status: 'status',
   createdByAssignmentId: 'createdByAssignmentId',
   notes: 'notes',
@@ -674,6 +677,32 @@ export const JaringScalarFieldEnum = {
 } as const
 
 export type JaringScalarFieldEnum = (typeof JaringScalarFieldEnum)[keyof typeof JaringScalarFieldEnum]
+
+
+export const JaringClusterScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  description: 'description',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type JaringClusterScalarFieldEnum = (typeof JaringClusterScalarFieldEnum)[keyof typeof JaringClusterScalarFieldEnum]
+
+
+export const ReportCategoryScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  description: 'description',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReportCategoryScalarFieldEnum = (typeof ReportCategoryScalarFieldEnum)[keyof typeof ReportCategoryScalarFieldEnum]
 
 
 export const JaringCaretakerAssignmentScalarFieldEnum = {
@@ -708,6 +737,7 @@ export const WhatsAppMessageScalarFieldEnum = {
   externalMessageId: 'externalMessageId',
   senderPhone: 'senderPhone',
   jaringId: 'jaringId',
+  categoryId: 'categoryId',
   routedToFieldOfficerAssignmentId: 'routedToFieldOfficerAssignmentId',
   title: 'title',
   content: 'content',

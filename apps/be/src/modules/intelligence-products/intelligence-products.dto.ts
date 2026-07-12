@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
@@ -416,9 +417,9 @@ export class AlertSummaryQuery {
 
 export class CreateLocationPingDto {
   @IsUUID() positionAssignmentId!: string;
-  @Type(() => Number) latitude!: number;
-  @Type(() => Number) longitude!: number;
-  @IsOptional() @Type(() => Number) gpsAccuracyMeters?: number;
+  @Type(() => Number) @IsNumber() latitude!: number;
+  @Type(() => Number) @IsNumber() longitude!: number;
+  @IsOptional() @Type(() => Number) @IsNumber() gpsAccuracyMeters?: number;
   @IsString() coordinateSource!: string;
   @IsDateString() capturedAt!: string;
   @IsOptional() @Type(() => Boolean) @IsBoolean() isStealth?: boolean;

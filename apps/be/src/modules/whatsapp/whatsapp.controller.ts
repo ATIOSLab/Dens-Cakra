@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -19,6 +20,7 @@ import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   DuplicateDto,
+  AssignCategoryDto,
   LinkDto,
   MessageQuery,
   ReasonDto,
@@ -87,6 +89,21 @@ export class WhatsAppController {
     @Body() body: LinkDto,
   ) {
     return apiResult(await this.whatsAppService.link(id, body));
+  }
+
+  @Patch('whatsapp-messages/:messageId/category')
+  @UseGuards(SessionGuard, DomainAccessGuard)
+  @ApiContract({
+    operationId: 'apiWa004b',
+    contractId: 'API-WA-004B',
+    summary: 'Assign kategori laporan WhatsApp',
+    roles: ['field_officer'],
+  })
+  async assignCategory(
+    @Param('messageId', ParseUUIDPipe) id: string,
+    @Body() body: AssignCategoryDto,
+  ) {
+    return apiResult(await this.whatsAppService.assignCategory(id, body));
   }
 
   @Post('whatsapp-messages/:messageId/validate')

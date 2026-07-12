@@ -420,6 +420,8 @@ export const ModelName = {
   TaskProgressLog: 'TaskProgressLog',
   TaskAttachment: 'TaskAttachment',
   Jaring: 'Jaring',
+  JaringCluster: 'JaringCluster',
+  ReportCategory: 'ReportCategory',
   JaringCaretakerAssignment: 'JaringCaretakerAssignment',
   JaringAreaCoverage: 'JaringAreaCoverage',
   WhatsAppMessage: 'WhatsAppMessage',
@@ -483,7 +485,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "userProfile" | "role" | "organizationUnit" | "organizationUnitClosure" | "position" | "organizationRoleSeat" | "userSeatAssignment" | "roleAreaPolicy" | "positionAreaScope" | "administrativeArea" | "administrativeAreaClosure" | "administrativeAreaDataSource" | "administrativeAreaBoundary" | "organizationAreaCoverage" | "directorateProfile" | "directorateCoverage" | "bindaProfile" | "fileAsset" | "directive" | "directiveVersion" | "directiveTargetArea" | "directiveRecipient" | "uukStr" | "uukStrVersion" | "uukStrSection" | "uukStrSectionItem" | "task" | "taskTargetArea" | "taskAssignment" | "taskProgressLog" | "taskAttachment" | "jaring" | "jaringCaretakerAssignment" | "jaringAreaCoverage" | "whatsAppMessage" | "whatsAppValidationIssue" | "whatsAppMessageMedia" | "whatsAppRoutingLog" | "baket" | "baketVersion" | "baketVersionSourceMessage" | "baketVersionAttachment" | "baketRevisionRequest" | "baketVerification" | "baketCoverageCheck" | "baketVerificationCheck" | "baketVerificationCrossReference" | "analysisCase" | "analysisSourceVerification" | "analysisVersion" | "analysisEntity" | "analysisRelationship" | "productTypeDefinition" | "productTemplate" | "productTemplateSection" | "productTemplateField" | "intelligenceProduct" | "productVersion" | "productSourceVerification" | "productSourceAnalysis" | "productAttachment" | "productApprovalWorkflow" | "productApprovalStep" | "productDistribution" | "emergencyIncident" | "emergencyAttachment" | "alert" | "personnelLocationPing" | "notification" | "auditLog" | "integrationChannel" | "whatsAppBotChannelState" | "whatsAppSenderNumber" | "integrationWebhookEvent" | "systemSetting" | "apiIdempotencyRecord" | "asyncJob" | "outboxEvent" | "fileUploadReservation" | "productApprovalEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "userProfile" | "role" | "organizationUnit" | "organizationUnitClosure" | "position" | "organizationRoleSeat" | "userSeatAssignment" | "roleAreaPolicy" | "positionAreaScope" | "administrativeArea" | "administrativeAreaClosure" | "administrativeAreaDataSource" | "administrativeAreaBoundary" | "organizationAreaCoverage" | "directorateProfile" | "directorateCoverage" | "bindaProfile" | "fileAsset" | "directive" | "directiveVersion" | "directiveTargetArea" | "directiveRecipient" | "uukStr" | "uukStrVersion" | "uukStrSection" | "uukStrSectionItem" | "task" | "taskTargetArea" | "taskAssignment" | "taskProgressLog" | "taskAttachment" | "jaring" | "jaringCluster" | "reportCategory" | "jaringCaretakerAssignment" | "jaringAreaCoverage" | "whatsAppMessage" | "whatsAppValidationIssue" | "whatsAppMessageMedia" | "whatsAppRoutingLog" | "baket" | "baketVersion" | "baketVersionSourceMessage" | "baketVersionAttachment" | "baketRevisionRequest" | "baketVerification" | "baketCoverageCheck" | "baketVerificationCheck" | "baketVerificationCrossReference" | "analysisCase" | "analysisSourceVerification" | "analysisVersion" | "analysisEntity" | "analysisRelationship" | "productTypeDefinition" | "productTemplate" | "productTemplateSection" | "productTemplateField" | "intelligenceProduct" | "productVersion" | "productSourceVerification" | "productSourceAnalysis" | "productAttachment" | "productApprovalWorkflow" | "productApprovalStep" | "productDistribution" | "emergencyIncident" | "emergencyAttachment" | "alert" | "personnelLocationPing" | "notification" | "auditLog" | "integrationChannel" | "whatsAppBotChannelState" | "whatsAppSenderNumber" | "integrationWebhookEvent" | "systemSetting" | "apiIdempotencyRecord" | "asyncJob" | "outboxEvent" | "fileUploadReservation" | "productApprovalEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3132,6 +3134,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.JaringCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.JaringCountAggregateOutputType> | number
+        }
+      }
+    }
+    JaringCluster: {
+      payload: Prisma.$JaringClusterPayload<ExtArgs>
+      fields: Prisma.JaringClusterFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.JaringClusterFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.JaringClusterFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload>
+        }
+        findFirst: {
+          args: Prisma.JaringClusterFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.JaringClusterFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload>
+        }
+        findMany: {
+          args: Prisma.JaringClusterFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload>[]
+        }
+        create: {
+          args: Prisma.JaringClusterCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload>
+        }
+        createMany: {
+          args: Prisma.JaringClusterCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.JaringClusterCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload>[]
+        }
+        delete: {
+          args: Prisma.JaringClusterDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload>
+        }
+        update: {
+          args: Prisma.JaringClusterUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload>
+        }
+        deleteMany: {
+          args: Prisma.JaringClusterDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.JaringClusterUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.JaringClusterUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload>[]
+        }
+        upsert: {
+          args: Prisma.JaringClusterUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringClusterPayload>
+        }
+        aggregate: {
+          args: Prisma.JaringClusterAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateJaringCluster>
+        }
+        groupBy: {
+          args: Prisma.JaringClusterGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.JaringClusterGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.JaringClusterCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.JaringClusterCountAggregateOutputType> | number
+        }
+      }
+    }
+    ReportCategory: {
+      payload: Prisma.$ReportCategoryPayload<ExtArgs>
+      fields: Prisma.ReportCategoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ReportCategoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ReportCategoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload>
+        }
+        findFirst: {
+          args: Prisma.ReportCategoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ReportCategoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload>
+        }
+        findMany: {
+          args: Prisma.ReportCategoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload>[]
+        }
+        create: {
+          args: Prisma.ReportCategoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload>
+        }
+        createMany: {
+          args: Prisma.ReportCategoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ReportCategoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload>[]
+        }
+        delete: {
+          args: Prisma.ReportCategoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload>
+        }
+        update: {
+          args: Prisma.ReportCategoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.ReportCategoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ReportCategoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ReportCategoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.ReportCategoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReportCategoryPayload>
+        }
+        aggregate: {
+          args: Prisma.ReportCategoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateReportCategory>
+        }
+        groupBy: {
+          args: Prisma.ReportCategoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReportCategoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ReportCategoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReportCategoryCountAggregateOutputType> | number
         }
       }
     }
@@ -7220,6 +7370,7 @@ export const JaringScalarFieldEnum = {
   code: 'code',
   aliasName: 'aliasName',
   whatsappNumber: 'whatsappNumber',
+  clusterId: 'clusterId',
   status: 'status',
   createdByAssignmentId: 'createdByAssignmentId',
   notes: 'notes',
@@ -7231,6 +7382,32 @@ export const JaringScalarFieldEnum = {
 } as const
 
 export type JaringScalarFieldEnum = (typeof JaringScalarFieldEnum)[keyof typeof JaringScalarFieldEnum]
+
+
+export const JaringClusterScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  description: 'description',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type JaringClusterScalarFieldEnum = (typeof JaringClusterScalarFieldEnum)[keyof typeof JaringClusterScalarFieldEnum]
+
+
+export const ReportCategoryScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  description: 'description',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReportCategoryScalarFieldEnum = (typeof ReportCategoryScalarFieldEnum)[keyof typeof ReportCategoryScalarFieldEnum]
 
 
 export const JaringCaretakerAssignmentScalarFieldEnum = {
@@ -7265,6 +7442,7 @@ export const WhatsAppMessageScalarFieldEnum = {
   externalMessageId: 'externalMessageId',
   senderPhone: 'senderPhone',
   jaringId: 'jaringId',
+  categoryId: 'categoryId',
   routedToFieldOfficerAssignmentId: 'routedToFieldOfficerAssignmentId',
   title: 'title',
   content: 'content',
@@ -8957,6 +9135,8 @@ export type GlobalOmitConfig = {
   taskProgressLog?: Prisma.TaskProgressLogOmit
   taskAttachment?: Prisma.TaskAttachmentOmit
   jaring?: Prisma.JaringOmit
+  jaringCluster?: Prisma.JaringClusterOmit
+  reportCategory?: Prisma.ReportCategoryOmit
   jaringCaretakerAssignment?: Prisma.JaringCaretakerAssignmentOmit
   jaringAreaCoverage?: Prisma.JaringAreaCoverageOmit
   whatsAppMessage?: Prisma.WhatsAppMessageOmit
