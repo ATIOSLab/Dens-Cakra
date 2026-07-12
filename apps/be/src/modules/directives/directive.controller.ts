@@ -240,7 +240,7 @@ export class DirectiveController {
     operationId: 'apiDir013',
     contractId: 'API-DIR-013',
     summary: 'Tracking pelaksanaan direktif',
-    roles: ['executive', 'regional_commander'],
+    roles: ['executive'],
   })
   async tracking(
     @Param('directiveId', ParseUUIDPipe) directiveId: string,

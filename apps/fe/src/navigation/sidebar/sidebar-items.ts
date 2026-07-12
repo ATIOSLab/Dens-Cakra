@@ -113,7 +113,7 @@ export const sidebarItems: NavGroup[] = [
           {
             id: "executive-directives",
             title: "Direktif Strategis",
-            url: "/dashboard/executive/pusat-komando/direktif-strategis",
+            url: "/dashboard/executive/pusat-komando/direktif",
             roles: EXECUTIVE_ROLE,
           },
           {
