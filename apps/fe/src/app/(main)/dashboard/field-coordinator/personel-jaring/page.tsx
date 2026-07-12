@@ -1,5 +1,5 @@
-import { PersonelJaringPage } from "./_components/personel-jaring-page";
+import { FieldCoordinatorWhatsappPage } from "@/features/field-ops/field-coordinator-whatsapp-page";
 
 export default function Page() {
-  return <PersonelJaringPage />;
+  return <FieldCoordinatorWhatsappPage />;
 }

@@ -1,0 +1,86 @@
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  AreaResolutionMethod,
+  CoordinateSource,
+  Prisma,
+  WhatsAppMessageStatus,
+} from '../../generated/prisma/client.js';
+import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { JobHandlerRegistry } from '../runtime/job-handler.registry.js';
+type MessagePayload = {
+  externalMessageId: string;
+  senderPhone: string;
+  receivedAt: string;
+  title?: string;
+  content?: string;
+  latitude?: number;
+  longitude?: number;
+  gpsAccuracyMeters?: number;
+  rawPayload?: Record<string, unknown>;
+};
+@Injectable()
+export class WhatsAppProcessor implements OnModuleInit {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly handlers: JobHandlerRegistry,
+  ) {}
+  onModuleInit() {
+    this.handlers.register('WHATSAPP_PROCESS', (payload) =>
+      this.process(payload as { eventId: string; message: MessagePayload }),
+    );
+  }
+  private async process(input: { eventId: string; message: MessagePayload }) {
+    const event = await this.prisma.integrationWebhookEvent.findUniqueOrThrow({
+      where: { id: input.eventId },
+    });
+    const phone = normalizeIndonesianPhoneNumber(input.message.senderPhone);
+    const jaring = await this.prisma.jaring.findFirst({
+      where: { whatsappNumber: phone, status: 'ACTIVE', deletedAt: null },
+      include: {
+        caretakerAssignments: {
+          where: { isActive: true, validUntil: null },
+          take: 1,
+        },
+      },
+    });
+    const message = await this.prisma.whatsAppMessage.upsert({
+      where: {
+        integrationChannelId_externalMessageId: {
+          integrationChannelId: event.channelId,
+          externalMessageId: input.message.externalMessageId,
+        },
+      },
+      update: {},
+      create: {
+        integrationChannelId: event.channelId,
+        externalMessageId: input.message.externalMessageId,
+        senderPhone: phone,
+        jaringId: jaring?.id,
+        routedToFieldOfficerAssignmentId:
+          jaring?.caretakerAssignments[0]?.fieldOfficerAssignmentId,
+        title: input.message.title,
+        content: input.message.content,
+        latitude: input.message.latitude,
+        longitude: input.message.longitude,
+        gpsAccuracyMeters: input.message.gpsAccuracyMeters,
+        coordinateSource:
+          input.message.latitude !== undefined
+            ? CoordinateSource.WHATSAPP_LOCATION
+            : null,
+        areaResolutionMethod: AreaResolutionMethod.UNRESOLVED,
+        status: jaring
+          ? WhatsAppMessageStatus.RECEIVED
+          : WhatsAppMessageStatus.UNKNOWN_SENDER,
+        rawPayload: (input.message.rawPayload ??
+          input.message) as unknown as Prisma.InputJsonValue,
+        receivedAt: new Date(input.message.receivedAt),
+      },
+    });
+    await this.prisma.integrationWebhookEvent.update({
+      where: { id: event.id },
+      data: { processedAt: new Date(), success: true, errorMessage: null },
+    });
+    return { messageId: message.id };
+  }
+}

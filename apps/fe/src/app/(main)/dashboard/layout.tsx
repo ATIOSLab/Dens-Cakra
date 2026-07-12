@@ -30,7 +30,8 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       defaultOpen={defaultOpen}
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 68)",
+          "--sidebar-width": "var(--dc-sidebar-width)",
+          "--sidebar-width-icon": "var(--dc-sidebar-collapsed)",
         } as React.CSSProperties
       }
     >
@@ -42,13 +43,13 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
             "[html[data-content-layout=centered]_&>*]:w-full",
             "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
             "peer-data-[variant=inset]:border",
-            "[--dashboard-header-height:--spacing(12)]",
+            "[--dashboard-header-height:var(--dc-topbar-height)]",
             "min-w-0 overflow-x-clip",
           )}
         >
           <header
             className={cn(
-              "flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",
+              "flex h-14 shrink-0 items-center gap-2 border-b border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] transition-[width,height] ease-linear md:h-[var(--dc-topbar-height)] group-has-data-[collapsible=icon]/sidebar-wrapper:md:h-[var(--dc-topbar-height)]",
               "[html[data-navbar-style=sticky]_&]:sticky [html[data-navbar-style=sticky]_&]:top-0 [html[data-navbar-style=sticky]_&]:z-50 [html[data-navbar-style=sticky]_&]:overflow-hidden [html[data-navbar-style=sticky]_&]:rounded-t-[inherit] [html[data-navbar-style=sticky]_&]:bg-background/50 [html[data-navbar-style=sticky]_&]:backdrop-blur-md",
             )}
           >
@@ -69,7 +70,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
               </div>
             </div>
           </header>
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 has-data-[content-padding=false]:p-0 md:p-6 md:has-data-[content-padding=false]:p-0">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-3 has-data-[content-padding=false]:p-0 md:p-4 md:has-data-[content-padding=false]:p-0 xl:p-6 xl:has-data-[content-padding=false]:p-0">
             {children}
           </div>
         </SidebarInset>

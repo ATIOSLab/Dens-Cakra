@@ -1,5 +1,7 @@
-import { DirektifPage } from "./_components/direktif-page";
+import { DirectiveAliasListPage } from "@/features/directives/pages";
+
+export const dynamic = "force-dynamic";
 
 export default function Page() {
-  return <DirektifPage />;
+  DirectiveAliasListPage();
 }

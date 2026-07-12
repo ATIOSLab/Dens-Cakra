@@ -1,5 +1,18 @@
-import { VerifikasiNeracaPenilaianPage } from "./_components/verifikasi-neraca-penilaian-page";
+﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
 
-export default function Page() {
-  return <VerifikasiNeracaPenilaianPage />;
+export const dynamic = "force-dynamic";
+
+type PageProps = {
+  params?: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Page({ params, searchParams }: PageProps) {
+  return (
+    <UniversalDensRoutePage
+      routePattern="/dashboard/oim/verifikasi-neraca-penilaian"
+      params={(await params) ?? {}}
+      searchParams={(await searchParams) ?? {}}
+    />
+  );
 }

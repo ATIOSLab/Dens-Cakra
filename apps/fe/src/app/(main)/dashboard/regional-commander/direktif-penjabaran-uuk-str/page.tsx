@@ -1,5 +1,7 @@
-import { DirektifPenjabaranUukStrPage } from "./_components/direktif-penjabaran-uuk-str-page";
+import { UukListPage } from "@/features/uuk-str/pages";
 
-export default function Page() {
-  return <DirektifPenjabaranUukStrPage />;
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  return <UukListPage />;
 }

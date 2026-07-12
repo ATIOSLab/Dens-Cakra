@@ -56,7 +56,29 @@ export const env = {
   betterAuthSecret: getString('BETTER_AUTH_SECRET'),
   betterAuthUrl: getString('BETTER_AUTH_URL', 'http://localhost:3001'),
   corsOrigins: getStringList('CORS_ORIGIN', ['http://localhost:3000']),
-  authDisableSignUp: getBoolean('AUTH_DISABLE_SIGN_UP', false),
+  authDisableSignUp: getBoolean('AUTH_DISABLE_SIGN_UP', true),
+  apiDocsEnabled: getBoolean(
+    'API_DOCS_ENABLED',
+    process.env.NODE_ENV !== 'production',
+  ),
+  worker: {
+    enabled: getBoolean('WORKER_ENABLED', true),
+    id: getString('WORKER_ID', `api-${process.pid}`),
+    pollIntervalMs: getNumber('WORKER_POLL_INTERVAL_MS', 1000),
+    leaseTimeoutMs: getNumber('WORKER_LEASE_TIMEOUT_MS', 60_000),
+  },
+  storage: {
+    root: getString('LOCAL_STORAGE_ROOT', './storage'),
+    signingSecret: getString(
+      'STORAGE_SIGNING_SECRET',
+      getString('BETTER_AUTH_SECRET'),
+    ),
+    maxFileSizeBytes: getNumber('MAX_FILE_SIZE_BYTES', 25 * 1024 * 1024),
+  },
+  encryptionKey: getString(
+    'APPLICATION_ENCRYPTION_KEY',
+    getString('BETTER_AUTH_SECRET'),
+  ),
   email: {
     provider: getString('EMAIL_PROVIDER', 'smtp'),
     from: getString('EMAIL_FROM'),
@@ -72,5 +94,13 @@ export const env = {
     name: getString('BOOTSTRAP_ADMIN_NAME', 'Admin System DEN CAKRA'),
     email: getString('BOOTSTRAP_ADMIN_EMAIL', 'admin@denscakra.local'),
     password: getString('BOOTSTRAP_ADMIN_PASSWORD', 'ChangeMe123!'),
+  },
+  bootstrapSuperAdmin: {
+    name: getString('BOOTSTRAP_SUPERADMIN_NAME', 'Super Admin DENS CAKRA'),
+    email: getString(
+      'BOOTSTRAP_SUPERADMIN_EMAIL',
+      'superadmin@denscakra.local',
+    ),
+    password: getString('BOOTSTRAP_SUPERADMIN_PASSWORD', 'SuperAdmin123!'),
   },
 } as const;

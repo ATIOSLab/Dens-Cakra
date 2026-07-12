@@ -1,5 +1,5 @@
-import { PetaTugasPage } from "./_components/peta-tugas-page";
+import { FieldOfficerOperationsPage } from "@/features/field-ops/field-officer-operations-page";
 
 export default function Page() {
-  return <PetaTugasPage />;
+  return <FieldOfficerOperationsPage view="map" />;
 }

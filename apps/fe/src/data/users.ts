@@ -12,7 +12,7 @@ export interface DashboardUser {
 export const users: DashboardUser[] = [
   {
     id: "1",
-    name: "Kabinda Demo",
+    name: "Deputi II Demo",
     username: "kabinda-demo",
     email: "executive@denscakra.local",
     avatar: "",
@@ -28,7 +28,7 @@ export const users: DashboardUser[] = [
   },
   {
     id: "3",
-    name: "Kabagops Demo",
+    name: "Kasubdit Demo",
     username: "oim-demo",
     email: "oim@denscakra.local",
     avatar: "",
@@ -49,5 +49,13 @@ export const users: DashboardUser[] = [
     email: "field.officer@denscakra.local",
     avatar: "",
     role: SYSTEM_ROLES.FIELD_OFFICER,
+  },
+  {
+    id: "6",
+    name: "Admin Sistem Demo",
+    username: "admin-sistem-demo",
+    email: "admin.system@denscakra.local",
+    avatar: "",
+    role: SYSTEM_ROLES.ADMIN_SYSTEM,
   },
 ];

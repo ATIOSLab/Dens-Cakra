@@ -1,5 +1,7 @@
-import { DirektifTugasPage } from "./_components/direktif-tugas-page";
+import { OimTaskListPage } from "@/features/tasks/pages";
 
-export default function Page() {
-  return <DirektifTugasPage />;
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  return <OimTaskListPage />;
 }

@@ -1,5 +1,5 @@
-import { TugasSayaPage } from "./_components/tugas-saya-page";
+import { FieldOfficerOperationsPage } from "@/features/field-ops/field-officer-operations-page";
 
 export default function Page() {
-  return <TugasSayaPage />;
+  return <FieldOfficerOperationsPage view="tasks" />;
 }
