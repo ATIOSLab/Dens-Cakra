@@ -29,6 +29,7 @@
     "seed:accounts": "npm run build && node dist/src/scripts/seed-role-accounts.js",
     "seed:master": "npm run build && node dist/src/scripts/seed-master.js",
     "seed:wilayah": "npm run build && node dist/src/scripts/seed-wilayah.js",
+    "seed:str-hierarchy": "npm run build && node dist/src/scripts/seed-str-hierarchy.js",
     "seed:all": "npm run build && node dist/src/scripts/seed-all.js"
   },
   "dependencies": {
