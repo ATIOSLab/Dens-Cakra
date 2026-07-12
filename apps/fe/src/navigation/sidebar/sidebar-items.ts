@@ -383,18 +383,26 @@ export const sidebarItems: NavGroup[] = [
         roles: FIELD_OFFICER_ROLE,
       },
       {
-        id: "field-officer-reports",
-        title: "Laporan Saya",
-        url: "/dashboard/field-officer/laporan-saya",
-        icon: ClipboardList,
-        roles: FIELD_OFFICER_ROLE,
-      },
-      {
         id: "field-officer-map",
-        title: "Peta Tugas",
-        url: "/dashboard/field-officer/peta-tugas",
+        title: "Peta",
         icon: MapPinned,
         roles: FIELD_OFFICER_ROLE,
+        subItems: [
+          {
+            id: "field-officer-agent-map",
+            title: "Peta Agen",
+            url: "/dashboard/field-officer/peta/agen",
+            icon: Users,
+            roles: FIELD_OFFICER_ROLE,
+          },
+          {
+            id: "field-officer-report-map",
+            title: "Peta Laporan",
+            url: "/dashboard/field-officer/peta/laporan",
+            icon: MapIcon,
+            roles: FIELD_OFFICER_ROLE,
+          },
+        ],
       },
       {
         id: "field-officer-emergency",

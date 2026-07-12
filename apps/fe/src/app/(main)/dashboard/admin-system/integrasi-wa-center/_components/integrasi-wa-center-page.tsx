@@ -416,7 +416,10 @@ export function AdminWaCenterPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {channels.map((channel) => (
+        {channels.map((channel) => {
+          const isConnected = channel.connectionStatus === "CONNECTED";
+
+          return (
           <Card key={channel.id} className="flex flex-col justify-between shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-2">
@@ -465,9 +468,10 @@ export function AdminWaCenterPage() {
             
             <CardContent className="grid gap-4 pb-4">
               {channel.sessionJid ? (
-                <div className="text-sm text-muted-foreground">
-                  <span>Sesi: </span>
-                  <span className="font-medium text-foreground">{channel.sessionJid.split('@')[0]}</span>
+                <div className="flex items-center gap-2 rounded-md border border-emerald-400/25 bg-emerald-500/10 p-2 text-sm text-emerald-700 dark:text-emerald-200">
+                  <CheckCircle2 className="size-4 shrink-0" />
+                  <span>WhatsApp terhubung: </span>
+                  <span className="font-medium">{channel.sessionJid.split("@")[0]}</span>
                 </div>
               ) : null}
               
@@ -502,7 +506,7 @@ export function AdminWaCenterPage() {
                       Nonaktifkan
                     </Button>
                   </div>
-                  {(channel.connectionStatus === "DISCONNECTED" || channel.connectionStatus === "ERROR") && (
+                  {!isConnected && (channel.connectionStatus === "DISCONNECTED" || channel.connectionStatus === "ERROR") && (
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button
@@ -513,7 +517,7 @@ export function AdminWaCenterPage() {
                           onClick={() => void runAction(channel.id, "request-qr")}
                         >
                           <QrCode className="mr-2 size-4" />
-                          Koneksikan (QR)
+                          Hubungkan WhatsApp
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
@@ -524,12 +528,7 @@ export function AdminWaCenterPage() {
                           </DialogDescription>
                         </DialogHeader>
                         <div className="flex min-h-64 flex-col items-center justify-center p-6">
-                          {channel.connectionStatus === "CONNECTED" ? (
-                            <div className="flex flex-col items-center text-emerald-500">
-                              <Check className="mb-4 size-12" />
-                              <p className="font-medium">Berhasil Terhubung!</p>
-                            </div>
-                          ) : channel.qrCodeDataUrl ? (
+                          {channel.qrCodeDataUrl ? (
                             <div className="rounded-xl border bg-white p-4">
                               <img
                                 alt={`QR ${channel.name}`}
@@ -542,11 +541,6 @@ export function AdminWaCenterPage() {
                               <p className="mb-2 text-sm text-muted-foreground">Pairing Code Anda:</p>
                               <span className="text-4xl font-bold tracking-[0.3em] text-cyan-600">{channel.pairingCode}</span>
                             </div>
-                          ) : channel.connectionStatus === "CONNECTING" ? (
-                            <div className="flex flex-col items-center gap-4 text-muted-foreground">
-                              <Activity className="size-8 animate-spin" />
-                              <p>Menghubungkan...</p>
-                            </div>
                           ) : (
                             <div className="flex flex-col items-center gap-4 text-muted-foreground">
                               <Activity className="size-8 animate-spin" />
@@ -554,32 +548,33 @@ export function AdminWaCenterPage() {
                             </div>
                           )}
                         </div>
+                        <DialogFooter>
+                          <Button
+                            className="w-full"
+                            disabled={busyKey === `request-qr:${channel.id}`}
+                            onClick={() => void runAction(channel.id, "request-qr")}
+                          >
+                            <QrCode className="mr-2 size-4" />
+                            Request QR Baru
+                          </Button>
+                        </DialogFooter>
                       </DialogContent>
                     </Dialog>
                   )}
                 </>
               ) : (
                 <>
-                  <Button
-                    size="sm"
-                    className="w-full bg-emerald-500 text-white hover:bg-emerald-600 dark:bg-emerald-400 dark:text-slate-950 dark:hover:bg-emerald-300"
-                    disabled={busyKey === `activate:${channel.id}`}
-                    onClick={() => void runAction(channel.id, "activate")}
-                  >
-                    <Bot className="mr-2 size-4" />
-                    Aktifkan Bot
-                  </Button>
+                  {!isConnected ? (
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="w-full"
+                        className="w-full bg-emerald-500 text-white hover:bg-emerald-600 dark:bg-emerald-400 dark:text-slate-950 dark:hover:bg-emerald-300"
                         disabled={busyKey === `request-qr:${channel.id}`}
                         onClick={() => void runAction(channel.id, "request-qr")}
                       >
                         <QrCode className="mr-2 size-4" />
-                        Koneksikan (Request QR)
+                        Hubungkan WhatsApp
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
@@ -590,12 +585,7 @@ export function AdminWaCenterPage() {
                         </DialogDescription>
                       </DialogHeader>
                       <div className="flex min-h-64 flex-col items-center justify-center p-6">
-                        {channel.connectionStatus === "CONNECTED" ? (
-                          <div className="flex flex-col items-center text-emerald-500">
-                            <Check className="mb-4 size-12" />
-                            <p className="font-medium">Berhasil Terhubung!</p>
-                          </div>
-                        ) : channel.qrCodeDataUrl ? (
+                        {channel.qrCodeDataUrl ? (
                           <div className="rounded-xl border bg-white p-4">
                             <img
                               alt={`QR ${channel.name}`}
@@ -620,13 +610,30 @@ export function AdminWaCenterPage() {
                           </div>
                         )}
                       </div>
-                    </DialogContent>
-                  </Dialog>
+                      <DialogFooter>
+                        <Button
+                          className="w-full"
+                          disabled={busyKey === `request-qr:${channel.id}`}
+                          onClick={() => void runAction(channel.id, "request-qr")}
+                        >
+                          <QrCode className="mr-2 size-4" />
+                          Request QR Baru
+                        </Button>
+                      </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  ) : (
+                    <div className="flex w-full items-center justify-center gap-2 rounded-md border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-200">
+                      <CheckCircle2 className="size-4" />
+                      WhatsApp sudah terhubung
+                    </div>
+                  )}
                 </>
               )}
             </CardFooter>
           </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import type {
   DuplicateDto,
+  AssignCategoryDto,
   LinkDto,
   MessageQuery,
   ReasonDto,
@@ -39,8 +40,30 @@ export class WhatsAppService {
       include: {
         integrationChannel: true,
         jaring: true,
+        category: true,
         resolvedArea: true,
-        media: { include: { file: true } },
+        media: {
+          include: {
+            file: {
+              select: {
+                id: true,
+                storageKey: true,
+                originalName: true,
+                mimeType: true,
+                fileType: true,
+                checksumSha256: true,
+                lifecycleStatus: true,
+                scanResult: true,
+                scannedAt: true,
+                quarantineReason: true,
+                retentionUntil: true,
+                createdByAssignmentId: true,
+                createdAt: true,
+                deletedAt: true,
+              },
+            },
+          },
+        },
         validationIssues: true,
         routingLogs: true,
       },
@@ -133,6 +156,7 @@ export class WhatsAppService {
       orderBy: { receivedAt: 'desc' },
       include: {
         jaring: true,
+        category: true,
         resolvedArea: true,
         validationIssues: true,
         media: true,
@@ -152,15 +176,46 @@ export class WhatsAppService {
     return this.detail(id);
   }
 
+  async assignCategory(id: string, body: AssignCategoryDto) {
+    const category = await this.prisma.reportCategory.findUnique({
+      where: { id: body.categoryId },
+    });
+
+    if (!category || !category.isActive) {
+      throw new ApiException(
+        'REPORT_CATEGORY_NOT_FOUND',
+        'Kategori laporan tidak aktif atau tidak ditemukan.',
+        422,
+      );
+    }
+
+    await this.prisma.whatsAppMessage.update({
+      where: { id },
+      data: { categoryId: category.id },
+    });
+
+    return this.detail(id);
+  }
+
   async validate(id: string) {
     const message = await this.detail(id);
+    const rawPayload =
+      message.rawPayload &&
+      typeof message.rawPayload === 'object' &&
+      !Array.isArray(message.rawPayload)
+        ? (message.rawPayload as Record<string, unknown>)
+        : null;
+    const hasPhotoEvidence =
+      message.media.length > 0 ||
+      (typeof rawPayload?.photoMessageId === 'string' &&
+        rawPayload.photoMessageId.length > 0);
     const issues = [
       ...(!message.title ? [['MISSING_TITLE', 'Judul wajib tersedia']] : []),
       ...(!message.content ? [['MISSING_CONTENT', 'Isi wajib tersedia']] : []),
       ...(message.latitude === null || message.longitude === null
         ? [['MISSING_GPS', 'GPS wajib tersedia']]
         : []),
-      ...(message.media.length === 0
+      ...(!hasPhotoEvidence
         ? [['MISSING_PHOTO', 'Foto wajib tersedia']]
         : []),
     ];

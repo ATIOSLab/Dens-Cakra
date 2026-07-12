@@ -585,7 +585,7 @@ export class IntelligenceProductsController {
   }
 
   @Get('personnel-location-map')
-  @ApiContract({ operationId: 'apiLoc005', contractId: 'API-LOC-005', summary: 'Peta lokasi personel terbaru', roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'] })
+  @ApiContract({ operationId: 'apiLoc005', contractId: 'API-LOC-005', summary: 'Peta lokasi personel terbaru', roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'] })
   async locationMap(@Query() query: PersonnelLocationMapQuery, @CurrentAccessContext() context: AuthorizationContext) {
     return apiResult(await this.service.personnelLocationMap(query, context));
   }

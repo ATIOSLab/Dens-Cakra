@@ -24,6 +24,20 @@ import type { AuthenticatedRequest } from '../types/authenticated-request.js';
 import { canonicalJson } from '../utils/canonical-json.js';
 import { ApiException } from './api-exception.js';
 
+function toJsonCacheValue(
+  value: unknown,
+): Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue {
+  if (value === undefined) {
+    return Prisma.JsonNull;
+  }
+
+  return JSON.parse(
+    JSON.stringify(value, (_key, currentValue: unknown) =>
+      typeof currentValue === 'bigint' ? currentValue.toString() : currentValue,
+    ),
+  ) as Prisma.InputJsonValue;
+}
+
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
   constructor(
@@ -91,7 +105,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
                 data: {
                   status: IdempotencyStatus.SUCCEEDED,
                   responseStatus: response.statusCode,
-                  responseBody: body as Prisma.InputJsonValue,
+                  responseBody: toJsonCacheValue(body),
                 },
               }),
             ).pipe(map(() => body)),

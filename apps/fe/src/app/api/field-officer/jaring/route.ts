@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
       code: string;
       aliasName: string;
       whatsappNumber: string;
+      clusterId?: string;
       notes?: string;
       areaIds: string[];
       fieldOfficerAssignmentId: string;

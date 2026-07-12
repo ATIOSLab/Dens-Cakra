@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Crosshair, MapPin, Radio, RefreshCw, Send, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Crosshair, MapPin, Radio, RefreshCw, Send, ShieldCheck, Trash2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Map, MapControls, MapMarker, MarkerContent, MarkerPopup } from "@/components/ui/map";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { FieldOfficerWorkspace } from "@/server/field-ops/types";
+import { LeafletLocationPreview } from "./leaflet-location-preview";
 
 type FieldOfficerView =
   | "overview"
@@ -82,6 +84,7 @@ function nextTaskAction(status: string) {
 export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView }) {
   const [workspace, setWorkspace] = useState<FieldOfficerWorkspace | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState<string | null>(null);
   const [forwardedAssignments, setForwardedAssignments] = useState<string[]>([]);
@@ -89,6 +92,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     code: "",
     aliasName: "",
     whatsappNumber: "",
+    clusterId: "",
     notes: "",
     areaId: "",
   });
@@ -146,9 +150,12 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   const runAction = async (key: string, callback: () => Promise<void>) => {
     try {
       setIsBusy(key);
+      setActionNotice(null);
       await callback();
       await loadWorkspace();
+      setError(null);
     } catch (actionError) {
+      setActionNotice(null);
       setError(actionError instanceof Error ? actionError.message : "Aksi gagal dijalankan.");
     } finally {
       setIsBusy(null);
@@ -177,6 +184,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
           code: jaringForm.code,
           aliasName: jaringForm.aliasName,
           whatsappNumber: jaringForm.whatsappNumber,
+          clusterId: jaringForm.clusterId || undefined,
           notes: jaringForm.notes,
           areaIds: [jaringForm.areaId || workspace.context.areaScopes[0]?.areaId].filter(Boolean),
           fieldOfficerAssignmentId: workspace.context.primaryAssignmentId,
@@ -192,6 +200,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         code: "",
         aliasName: "",
         whatsappNumber: "",
+        clusterId: "",
         notes: "",
         areaId: "",
       });
@@ -221,10 +230,31 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       const response = await fetch(`/api/field-officer/incoming/${messageId}/validate`, {
         method: "POST",
       });
+      const body = (await response.json().catch(() => null)) as { validationSummary?: string; title?: string | null } | { message?: string } | null;
 
       if (!response.ok) {
-        const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal memvalidasi laporan.");
+        throw new Error((body && "message" in body ? body.message : null) || "Gagal memvalidasi laporan.");
+      }
+
+      const result = body && "validationSummary" in body ? body.validationSummary : null;
+      setActionNotice(
+        result === "VALID"
+          ? "Validasi berhasil. Laporan sudah lengkap dan siap dibuat menjadi Baket."
+          : "Validasi selesai. Cek badge dan kelengkapan laporan sebelum dibuat menjadi Baket.",
+      );
+    });
+  };
+
+  const assignCategory = async (messageId: string, categoryId: string) => {
+    await runAction(`category:${messageId}`, async () => {
+      const response = await fetch(`/api/field-officer/incoming/${messageId}/category`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ categoryId }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(body?.message || "Gagal menyimpan kategori laporan.");
       }
     });
   };
@@ -238,6 +268,19 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
         throw new Error(body.message || "Gagal membuat baket.");
+      }
+    });
+  };
+
+  const deleteIncoming = async (messageId: string) => {
+    await runAction(`delete:${messageId}`, async () => {
+      const response = await fetch(`/api/field-officer/incoming/${messageId}/delete`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        throw new Error(body.message || "Gagal menghapus laporan.");
       }
     });
   };
@@ -432,6 +475,14 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         </Alert>
       ) : null}
 
+      {actionNotice ? (
+        <Alert className="border-emerald-400/30 bg-emerald-500/10 text-emerald-50">
+          <CheckCircle2 className="size-4" />
+          <AlertTitle>Aksi berhasil</AlertTitle>
+          <AlertDescription>{actionNotice}</AlertDescription>
+        </Alert>
+      ) : null}
+
       {(view === "overview" || view === "tasks") && (
         <Card className="border-white/10 bg-white/5">
           <CardHeader>
@@ -522,6 +573,18 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               />
               <select
                 className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 text-sm text-white"
+                value={jaringForm.clusterId}
+                onChange={(event) => setJaringForm((current) => ({ ...current, clusterId: event.target.value }))}
+              >
+                <option value="">Pilih cluster jaring</option>
+                {workspace.jaringClusters.map((cluster) => (
+                  <option key={cluster.id} value={cluster.id}>
+                    {cluster.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 text-sm text-white"
                 value={jaringForm.areaId}
                 onChange={(event) => setJaringForm((current) => ({ ...current, areaId: event.target.value }))}
               >
@@ -567,6 +630,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       </div>
                       <h3 className="font-semibold text-white">{jaring.aliasName}</h3>
                       <p className="text-sm text-white/70">{jaring.whatsappNumber}</p>
+                      <p className="text-sm text-cyan-200">{jaring.clusterName || "Belum ada cluster"}</p>
                       <p className="text-sm text-white/55">{jaring.areaNames.join(", ") || "-"}</p>
                       {jaring.notes ? <p className="text-sm text-white/65">{jaring.notes}</p> : null}
                       <div className="flex gap-4 text-xs text-white/50">
@@ -634,14 +698,94 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       <Badge variant="outline" className="border-white/15 text-white/70">
                         {message.jaringCode}
                       </Badge>
+                      <Badge variant="outline" className="border-white/15 text-white/70">
+                        {message.categoryName ?? "Belum ada kategori"}
+                      </Badge>
                     </div>
                     <h3 className="font-semibold text-white">{message.title || message.jaringAlias}</h3>
                     <p className="text-sm text-white/70">{message.content || "Pesan belum memiliki isi teks."}</p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/55">
                       <span>Masuk: {formatDateTime(message.receivedAt)}</span>
+                      <span>Kejadian: {formatDateTime(message.eventDateTime)}</span>
+                      <span>GPS dibagikan: {formatDateTime(message.gpsSharedAt)}</span>
+                      <span>Timestamp: {formatDateTime(message.reportTimestamp)}</span>
                       <span>Pengirim: {message.senderPhone}</span>
                       <span>Area: {message.areaName || "-"}</span>
-                      <span>Media: {message.mediaCount}</span>
+                      <span>Bukti: {message.hasPhoto ? "Foto diterima" : "Belum ada foto"}</span>
+                    </div>
+                    {message.hasPhoto ? (
+                      <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-50">
+                        <p className="font-medium">Foto bukti</p>
+                        {message.photoUrl ? (
+                          <img
+                            src={message.photoUrl}
+                            alt={`Foto bukti ${message.title || message.jaringAlias}`}
+                            className="mt-2 max-h-64 w-full max-w-md rounded-lg border border-white/10 object-cover"
+                          />
+                        ) : (
+                          <p className="mt-2 text-xs text-emerald-100/75">
+                            Foto diterima oleh bot, tetapi file visual belum tersedia di storage. Kiriman lama sebelum patch hanya punya metadata WA.
+                          </p>
+                        )}
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-100/75">
+                          <span>Media DB: {message.mediaCount}</span>
+                          <span>File: {message.photoFileId || "-"}</span>
+                          <span>WA ID: {message.photoMessageId || "-"}</span>
+                          {message.photoCaption ? <span>Caption: {message.photoCaption}</span> : null}
+                        </div>
+                      </div>
+                    ) : null}
+                    {message.latitude !== null && message.longitude !== null ? (
+                      <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-3 md:grid-cols-[minmax(0,1fr)_14rem]">
+                        <div className="space-y-1 text-sm text-white/70">
+                          <p className="font-medium text-white">Lokasi kejadian</p>
+                          <p className="font-mono text-xs">
+                            {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)}
+                          </p>
+                          <p className="text-xs text-white/55">
+                            Akurasi: {message.gpsAccuracyMeters !== null ? `${message.gpsAccuracyMeters} m` : "-"}
+                          </p>
+                          <Button asChild size="sm" variant="outline" className="mt-2 border-white/15 bg-transparent text-white hover:bg-white/10">
+                            <a
+                              href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              Buka di Google Maps
+                            </a>
+                          </Button>
+                        </div>
+                        <a
+                          href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
+                          rel="noreferrer"
+                          target="_blank"
+                          aria-label="Buka koordinat laporan di Google Maps"
+                        >
+                          <LeafletLocationPreview
+                            latitude={message.latitude}
+                            longitude={message.longitude}
+                            title={message.title || message.jaringAlias}
+                          />
+                        </a>
+                      </div>
+                    ) : null}
+                    <div className="max-w-xs">
+                      <Select
+                        value={message.categoryId ?? undefined}
+                        onValueChange={(categoryId) => void assignCategory(message.id, categoryId)}
+                        disabled={isBusy === `category:${message.id}` || workspace.reportCategories.length === 0}
+                      >
+                        <SelectTrigger className="border-white/15 bg-black/20 text-white">
+                          <SelectValue placeholder="Pilih kategori laporan" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {workspace.reportCategories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -652,7 +796,16 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       disabled={isBusy === `validate:${message.id}`}
                       onClick={() => void validateIncoming(message.id)}
                     >
-                      Validasi
+                      {isBusy === `validate:${message.id}` ? (
+                        "Memvalidasi..."
+                      ) : message.validationSummary === "VALID" ? (
+                        <>
+                          <ShieldCheck className="mr-2 size-4" />
+                          Validasi ulang
+                        </>
+                      ) : (
+                        "Validasi"
+                      )}
                     </Button>
                     <Button
                       size="sm"
@@ -662,17 +815,16 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                     >
                       Buat Baket
                     </Button>
-                    {message.latitude !== null && message.longitude !== null ? (
-                      <Button asChild size="sm" variant="outline" className="border-white/15 bg-transparent text-white hover:bg-white/10">
-                        <a
-                          href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          Lihat Map
-                        </a>
-                      </Button>
-                    ) : null}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-400/40 bg-transparent text-red-100 hover:bg-red-500/10"
+                      disabled={isBusy === `delete:${message.id}`}
+                      onClick={() => void deleteIncoming(message.id)}
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      Hapus
+                    </Button>
                   </div>
                 </div>
               </div>

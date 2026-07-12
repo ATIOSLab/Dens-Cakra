@@ -36,6 +36,10 @@ export class LinkDto {
   @IsUUID() jaringId!: string;
 }
 
+export class AssignCategoryDto {
+  @IsUUID() categoryId!: string;
+}
+
 export class ResolveDto {
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsString() reason?: string;

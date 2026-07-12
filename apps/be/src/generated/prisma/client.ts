@@ -222,6 +222,16 @@ export type TaskAttachment = Prisma.TaskAttachmentModel
  */
 export type Jaring = Prisma.JaringModel
 /**
+ * Model JaringCluster
+ * 
+ */
+export type JaringCluster = Prisma.JaringClusterModel
+/**
+ * Model ReportCategory
+ * 
+ */
+export type ReportCategory = Prisma.ReportCategoryModel
+/**
  * Model JaringCaretakerAssignment
  * 
  */

@@ -18,11 +18,17 @@ import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
+  CreateJaringClusterDto,
+  CreateReportCategoryDto,
   CoverageDto,
   CreateJaringDto,
+  JaringClusterQuery,
   JaringQuery,
+  ReportCategoryQuery,
   ReasonDto,
   TransferDto,
+  UpdateJaringClusterDto,
+  UpdateReportCategoryDto,
   UpdateJaringDto,
 } from './jaring.dto.js';
 import { JaringService } from './jaring.service.js';
@@ -58,6 +64,94 @@ export class JaringController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.jaringService.create(body, context));
+  }
+
+  @Get('clusters')
+  @ApiContract({
+    operationId: 'apiJarCluster001',
+    contractId: 'API-JAR-CLUSTER-001',
+    summary: 'Daftar Cluster Jaring',
+    roles: ['admin_system', 'field_officer'],
+  })
+  async listClusters(@Query() query: JaringClusterQuery) {
+    return apiResult(await this.jaringService.listClusters(query));
+  }
+
+  @Post('clusters')
+  @ApiContract({
+    operationId: 'apiJarCluster002',
+    contractId: 'API-JAR-CLUSTER-002',
+    summary: 'Buat Cluster Jaring',
+    roles: ['admin_system'],
+    successStatus: 201,
+    idempotent: true,
+  })
+  async createCluster(
+    @Body() body: CreateJaringClusterDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.createCluster(body, context));
+  }
+
+  @Patch('clusters/:clusterId')
+  @ApiContract({
+    operationId: 'apiJarCluster003',
+    contractId: 'API-JAR-CLUSTER-003',
+    summary: 'Ubah Cluster Jaring',
+    roles: ['admin_system'],
+  })
+  async updateCluster(
+    @Param('clusterId', ParseUUIDPipe) id: string,
+    @Body() body: UpdateJaringClusterDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.updateCluster(id, body, context));
+  }
+
+  @Get('report-categories')
+  @ApiContract({
+    operationId: 'apiReportCategory001',
+    contractId: 'API-REPORT-CATEGORY-001',
+    summary: 'Daftar kategori laporan',
+    roles: ['admin_system', 'field_officer'],
+  })
+  async listReportCategories(@Query() query: ReportCategoryQuery) {
+    return apiResult(await this.jaringService.listReportCategories(query));
+  }
+
+  @Post('report-categories')
+  @ApiContract({
+    operationId: 'apiReportCategory002',
+    contractId: 'API-REPORT-CATEGORY-002',
+    summary: 'Buat kategori laporan',
+    roles: ['admin_system'],
+    successStatus: 201,
+    idempotent: true,
+  })
+  async createReportCategory(
+    @Body() body: CreateReportCategoryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.jaringService.createReportCategory(body, context),
+    );
+  }
+
+  @Patch('report-categories/:categoryId')
+  @ApiContract({
+    operationId: 'apiReportCategory003',
+    contractId: 'API-REPORT-CATEGORY-003',
+    summary: 'Ubah kategori laporan',
+    roles: ['admin_system'],
+  })
+  async updateReportCategory(
+    @Param('categoryId', ParseUUIDPipe) id: string,
+    @Body() body: UpdateReportCategoryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.jaringService.updateReportCategory(id, body, context),
+    );
   }
 
   @Get(':jaringId')

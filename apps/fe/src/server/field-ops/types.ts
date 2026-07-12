@@ -36,12 +36,32 @@ export type FieldOfficerJaring = {
   code: string;
   aliasName: string;
   whatsappNumber: string;
+  clusterId: string | null;
+  clusterName: string | null;
   status: string;
   notes: string | null;
   areaNames: string[];
   areaIds: string[];
   messageCount: number;
   baketCount: number;
+};
+
+export type JaringCluster = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  jaringCount?: number;
+};
+
+export type ReportCategory = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  messageCount?: number;
 };
 
 export type FieldOfficerIncoming = {
@@ -54,13 +74,23 @@ export type FieldOfficerIncoming = {
   content: string | null;
   status: string;
   validationSummary: string;
+  categoryId: string | null;
+  categoryName: string | null;
   receivedAt: string;
+  eventDateTime: string | null;
+  gpsSharedAt: string | null;
+  processedAt: string | null;
+  reportTimestamp: string | null;
   areaName: string | null;
   latitude: number | null;
   longitude: number | null;
   gpsAccuracyMeters: number | null;
   mediaCount: number;
   hasPhoto: boolean;
+  photoCaption: string | null;
+  photoMessageId: string | null;
+  photoFileId: string | null;
+  photoUrl: string | null;
 };
 
 export type FieldOfficerBaket = {
@@ -92,6 +122,8 @@ export type FieldOfficerWorkspace = {
     role: string;
   };
   jaring: FieldOfficerJaring[];
+  jaringClusters: JaringCluster[];
+  reportCategories: ReportCategory[];
   incoming: FieldOfficerIncoming[];
   tasks: FieldOfficerTask[];
   bakets: FieldOfficerBaket[];

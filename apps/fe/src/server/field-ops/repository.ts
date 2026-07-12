@@ -10,6 +10,8 @@ import type {
   FieldOfficerLocation,
   FieldOfficerTask,
   FieldOfficerWorkspace,
+  JaringCluster,
+  ReportCategory,
   WhatsappControlChannel,
 } from "./types";
 
@@ -27,6 +29,11 @@ type JaringRecord = {
   code: string;
   aliasName: string;
   whatsappNumber: string;
+  clusterId?: string | null;
+  cluster?: {
+    id: string;
+    name: string;
+  } | null;
   status: string;
   notes?: string | null;
   areaCoverages?: Array<{
@@ -54,14 +61,30 @@ type MessageRecord = {
   content?: string | null;
   status: string;
   validationSummary: string;
+  categoryId?: string | null;
+  category?: {
+    id: string;
+    name: string;
+  } | null;
   receivedAt: string;
+  locationCapturedAt?: string | null;
+  processedAt?: string | null;
   latitude?: string | number | null;
   longitude?: string | number | null;
   gpsAccuracyMeters?: string | number | null;
+  rawPayload?: unknown;
   resolvedArea?: {
     name?: string | null;
   } | null;
-  media?: Array<unknown>;
+  media?: Array<{
+    fileId?: string | null;
+    caption?: string | null;
+    file?: {
+      id?: string | null;
+      mimeType?: string | null;
+      originalName?: string | null;
+    } | null;
+  }>;
 };
 
 type TaskRecord = {
@@ -133,6 +156,18 @@ function asNumber(value: string | number | null | undefined) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function asRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
 async function getAccess(cookie: string) {
   const access = await backendApi<AccessMeResponse>("/access/me", { cookie });
 
@@ -184,6 +219,11 @@ function mapTask(record: TaskRecord, assignmentId: string): FieldOfficerTask | n
 }
 
 function mapIncoming(record: MessageRecord, jaring: FieldOfficerJaring): FieldOfficerIncoming {
+  const rawPayload = asRecord(record.rawPayload);
+  const photoMessageId = asString(rawPayload?.photoMessageId);
+  const photoCaption = asString(rawPayload?.photoCaption);
+  const photoFileId = record.media?.find((item) => item.fileId || item.file?.id)?.fileId ?? record.media?.find((item) => item.file?.id)?.file?.id ?? null;
+
   return {
     id: record.id,
     jaringId: jaring.id,
@@ -194,13 +234,23 @@ function mapIncoming(record: MessageRecord, jaring: FieldOfficerJaring): FieldOf
     content: record.content ?? null,
     status: record.status,
     validationSummary: record.validationSummary,
+    categoryId: record.categoryId ?? record.category?.id ?? null,
+    categoryName: record.category?.name ?? null,
     receivedAt: record.receivedAt,
+    eventDateTime: asString(rawPayload?.eventDateTime) ?? record.locationCapturedAt ?? null,
+    gpsSharedAt: asString(rawPayload?.gpsSharedAt),
+    processedAt: record.processedAt ?? null,
+    reportTimestamp: asString(rawPayload?.timestamp) ?? record.processedAt ?? record.receivedAt,
     areaName: record.resolvedArea?.name ?? null,
     latitude: asNumber(record.latitude),
     longitude: asNumber(record.longitude),
     gpsAccuracyMeters: asNumber(record.gpsAccuracyMeters),
     mediaCount: record.media?.length ?? 0,
-    hasPhoto: Boolean(record.media?.length),
+    hasPhoto: Boolean(record.media?.length || photoMessageId),
+    photoCaption,
+    photoMessageId,
+    photoFileId,
+    photoUrl: photoFileId ? `/api/field-officer/files/${photoFileId}` : null,
   };
 }
 
@@ -208,10 +258,18 @@ export async function getFieldOfficerWorkspace(cookie: string): Promise<FieldOff
   const access = await getAccess(cookie);
   const assignmentId = access.context.primaryAssignmentId;
 
-  const [allJaring, tasks, ownBakets, latestLocation] = await Promise.all([
+  const [allJaring, jaringClusters, reportCategories, tasks, ownBakets, latestLocation] = await Promise.all([
     backendApi<JaringRecord[]>("/jaring", {
       cookie,
       query: { limit: 100 },
+    }),
+    backendApi<Array<JaringCluster & { _count?: { jaring?: number } }>>("/jaring/clusters", {
+      cookie,
+      query: { limit: 200 },
+    }),
+    backendApi<Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>>("/jaring/report-categories", {
+      cookie,
+      query: { limit: 200 },
     }),
     backendApi<TaskRecord[]>("/tasks", {
       cookie,
@@ -241,6 +299,8 @@ export async function getFieldOfficerWorkspace(cookie: string): Promise<FieldOff
       code: item.code,
       aliasName: item.aliasName,
       whatsappNumber: item.whatsappNumber,
+      clusterId: item.clusterId ?? item.cluster?.id ?? null,
+      clusterName: item.cluster?.name ?? null,
       status: item.status,
       notes: item.notes ?? null,
       areaNames: (item.areaCoverages ?? []).map((coverage) => coverage.area?.name).filter(Boolean) as string[],
@@ -251,7 +311,14 @@ export async function getFieldOfficerWorkspace(cookie: string): Promise<FieldOff
 
   const incomingGroups = await Promise.all(
     jaring.map(async (item) => {
-      const messages = await backendApi<MessageRecord[]>(`/jaring/${item.id}/messages`, { cookie });
+      const messages = await backendApi<MessageRecord[]>(`/jaring/${item.id}/messages`, { cookie }).catch((error) => {
+        console.error("[field-ops] failed to load jaring messages", {
+          jaringId: item.id,
+          jaringCode: item.code,
+          error,
+        });
+        return [];
+      });
       return messages.map((message) => mapIncoming(message, item));
     }),
   );
@@ -265,7 +332,26 @@ export async function getFieldOfficerWorkspace(cookie: string): Promise<FieldOff
     context: access.context,
     profile: access.profile,
     jaring,
-    incoming: incomingGroups.flat().sort((left, right) => right.receivedAt.localeCompare(left.receivedAt)),
+    jaringClusters: jaringClusters.map((cluster) => ({
+      id: cluster.id,
+      code: cluster.code,
+      name: cluster.name,
+      description: cluster.description ?? null,
+      isActive: cluster.isActive,
+      jaringCount: cluster._count?.jaring ?? cluster.jaringCount,
+    })),
+    reportCategories: reportCategories.map((category) => ({
+      id: category.id,
+      code: category.code,
+      name: category.name,
+      description: category.description ?? null,
+      isActive: category.isActive,
+      messageCount: category._count?.whatsAppMessages ?? category.messageCount,
+    })),
+    incoming: incomingGroups
+      .flat()
+      .filter((item) => item.status !== "SPAM")
+      .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt)),
     tasks: tasks
       .map((record) => mapTask(record, assignmentId))
       .filter((value): value is FieldOfficerTask => Boolean(value)),
@@ -299,6 +385,7 @@ export async function createFieldOfficerJaring(
     code: string;
     aliasName: string;
     whatsappNumber: string;
+    clusterId?: string;
     notes?: string;
     areaIds: string[];
     fieldOfficerAssignmentId: string;
@@ -350,10 +437,27 @@ export async function validateIncomingMessage(cookie: string, messageId: string)
   });
 }
 
+export async function assignIncomingMessageCategory(cookie: string, messageId: string, categoryId: string) {
+  return backendApi(`/whatsapp-messages/${messageId}/category`, {
+    cookie,
+    method: "PATCH",
+    body: { categoryId },
+  });
+}
+
 export async function createBaketFromMessage(cookie: string, messageId: string) {
   return backendApi(`/whatsapp-messages/${messageId}/create-baket`, {
     cookie,
     method: "POST",
+    idempotent: true,
+  });
+}
+
+export async function deleteIncomingMessage(cookie: string, messageId: string) {
+  return backendApi(`/whatsapp-messages/${messageId}/mark-spam`, {
+    cookie,
+    method: "POST",
+    body: { reason: "Dihapus dari Kotak Masuk Jaring oleh Field Officer." },
     idempotent: true,
   });
 }

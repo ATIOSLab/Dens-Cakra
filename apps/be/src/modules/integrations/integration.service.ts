@@ -466,7 +466,7 @@ export class IntegrationService {
     });
     
     if (channel.channelType.includes('WHATSAPP') || channel.channelType.includes('WA')) {
-      await this.whatsappBotRuntime.disconnectChannel(id, false);
+      await this.whatsappBotRuntime.deleteChannelSession(id);
     }
     
     await this.prisma.integrationChannel.delete({

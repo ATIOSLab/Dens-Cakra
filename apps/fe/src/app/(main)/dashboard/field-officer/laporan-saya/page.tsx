@@ -1,5 +1,5 @@
-import { FieldOfficerOperationsPage } from "@/app/(main)/dashboard/field-officer/_components/field-officer-operations-page";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <FieldOfficerOperationsPage view="reports" />;
+  redirect("/dashboard/field-officer/buat-baket");
 }

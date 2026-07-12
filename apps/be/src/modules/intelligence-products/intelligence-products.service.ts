@@ -14,6 +14,7 @@ import {
   EmergencyStatus,
   FileLifecycleStatus,
   NotificationType,
+  PositionCode,
   Prisma,
   ProductStatus,
   RoleCode,
@@ -104,6 +105,39 @@ const USABLE_FILE_STATUSES: FileLifecycleStatus[] = [
 
 @Injectable()
 export class IntelligenceProductsService {
+  private readonly locationPingSelect = {
+    id: true,
+    positionAssignmentId: true,
+    areaId: true,
+    latitude: true,
+    longitude: true,
+    gpsAccuracyMeters: true,
+    coordinateSource: true,
+    areaResolutionMethod: true,
+    capturedAt: true,
+    receivedAt: true,
+    isStealth: true,
+    area: true,
+    positionAssignment: {
+      include: { position: true, userProfile: true },
+    },
+  } satisfies Prisma.PersonnelLocationPingSelect;
+
+  private readonly ownLocationPingSelect = {
+    id: true,
+    positionAssignmentId: true,
+    areaId: true,
+    latitude: true,
+    longitude: true,
+    gpsAccuracyMeters: true,
+    coordinateSource: true,
+    areaResolutionMethod: true,
+    capturedAt: true,
+    receivedAt: true,
+    isStealth: true,
+    area: true,
+  } satisfies Prisma.PersonnelLocationPingSelect;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly spatial: SpatialRepository,
@@ -3673,12 +3707,7 @@ export class IntelligenceProductsService {
     await this.audit(context, 'LOCATION.PING.CREATE', 'PersonnelLocationPing', created.id);
     return this.prisma.personnelLocationPing.findUniqueOrThrow({
       where: { id: created.id },
-      include: {
-        area: true,
-        positionAssignment: {
-          include: { position: true, userProfile: true },
-        },
-      },
+      select: this.locationPingSelect,
     });
   }
 
@@ -3686,9 +3715,7 @@ export class IntelligenceProductsService {
     return this.prisma.personnelLocationPing.findFirstOrThrow({
       where: { positionAssignmentId: context.primaryAssignmentId },
       orderBy: { capturedAt: 'desc' },
-      include: {
-        area: true,
-      },
+      select: this.ownLocationPingSelect,
     });
   }
 
@@ -3697,12 +3724,7 @@ export class IntelligenceProductsService {
     return this.prisma.personnelLocationPing.findFirstOrThrow({
       where: { positionAssignmentId: assignmentId },
       orderBy: { capturedAt: 'desc' },
-      include: {
-        area: true,
-        positionAssignment: {
-          include: { position: true, userProfile: true },
-        },
-      },
+      select: this.locationPingSelect,
     });
   }
 
@@ -3720,14 +3742,140 @@ export class IntelligenceProductsService {
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       take: query.limit + 1,
       orderBy: [{ capturedAt: 'desc' }, { id: 'desc' }],
-      include: {
-        area: true,
-      },
+      select: this.ownLocationPingSelect,
     });
     return this.toCursorPage(items, query.limit);
   }
 
   async personnelLocationMap(
+    query: PersonnelLocationMapQuery,
+    context: AuthorizationContext,
+  ) {
+    const assignments = await this.prisma.userSeatAssignment.findMany({
+      where: {
+        isActive: true,
+        validUntil: null,
+        position: {
+          code: PositionCode.PETUGAS_ORGANIK,
+          isActive: true,
+          ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
+        },
+        ...(query.areaId
+          ? {
+              areaScopes: {
+                some: { areaId: query.areaId, validUntil: null },
+              },
+            }
+          : {}),
+      },
+      include: {
+        userProfile: true,
+        areaScopes: {
+          where: { validUntil: null },
+          include: { area: true },
+          orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+        },
+        position: {
+          include: {
+            organizationUnit: true,
+            reportsTo: {
+              include: {
+                organizationUnit: true,
+                assignments: {
+                  where: { isActive: true, validUntil: null },
+                  take: 1,
+                  include: { userProfile: true },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const assignmentIds = assignments.map((item) => item.id);
+    const pings = assignmentIds.length
+      ? await this.prisma.personnelLocationPing.findMany({
+          where: {
+            positionAssignmentId: { in: assignmentIds },
+            ...(query.includeStealth ? {} : { isStealth: false }),
+          },
+          orderBy: [{ capturedAt: 'desc' }, { id: 'desc' }],
+          include: {
+            area: true,
+          },
+        })
+      : [];
+
+    const latest = new Map<string, (typeof pings)[number]>();
+    for (const ping of pings) {
+      if (!latest.has(ping.positionAssignmentId)) {
+        latest.set(ping.positionAssignmentId, ping);
+      }
+    }
+
+    const features = assignments.map((assignment) => {
+      const ping = latest.get(assignment.id);
+      const fallbackArea = assignment.areaScopes.find(
+        (scope) => scope.area?.centroidLatitude && scope.area.centroidLongitude,
+      )?.area;
+      const latitude = ping
+        ? Number(ping.latitude)
+        : fallbackArea?.centroidLatitude
+          ? Number(fallbackArea.centroidLatitude)
+          : 0.5071;
+      const longitude = ping
+        ? Number(ping.longitude)
+        : fallbackArea?.centroidLongitude
+          ? Number(fallbackArea.centroidLongitude)
+          : 101.4478;
+      const supervisorAssignment =
+        assignment.position.reportsTo?.assignments[0] ?? null;
+
+      return {
+        type: 'Feature',
+        id: ping?.id ?? `assignment:${assignment.id}`,
+        geometry:
+          latitude !== null && longitude !== null
+            ? {
+                type: 'Point',
+                coordinates: [longitude, latitude],
+              }
+            : null,
+        properties: {
+          assignmentId: assignment.id,
+          capturedAt: ping?.capturedAt ?? null,
+          isStealth: ping?.isStealth ?? false,
+          hasLiveLocation: Boolean(ping),
+          areaId: ping?.areaId ?? fallbackArea?.id ?? null,
+          areaName: ping?.area?.name ?? fallbackArea?.name ?? null,
+          userProfileId: assignment.userProfile.id,
+          userName: assignment.userProfile.fullName,
+          positionTitle: assignment.position.title,
+          unitName: assignment.position.organizationUnit.name,
+          supervisorAssignmentId: supervisorAssignment?.id ?? null,
+          supervisorName:
+            supervisorAssignment?.userProfile.fullName ??
+            assignment.position.reportsTo?.title ??
+            null,
+          supervisorPositionTitle:
+            assignment.position.reportsTo?.title ?? null,
+          supervisorUnitName:
+            assignment.position.reportsTo?.organizationUnit.name ?? null,
+          canSeeStealth:
+            query.includeStealth && context.roleCode !== RoleCode.FIELD_OFFICER,
+        },
+      };
+    });
+
+    return {
+      type: 'FeatureCollection',
+      features,
+    };
+  }
+
+  async personnelLocationMapOld(
     query: PersonnelLocationMapQuery,
     context: AuthorizationContext,
   ) {

@@ -25,6 +25,7 @@ export class CreateJaringDto {
   @IsString() @MaxLength(80) code!: string;
   @IsOptional() @IsString() @MaxLength(150) aliasName?: string;
   @IsString() @MaxLength(30) whatsappNumber!: string;
+  @IsOptional() @IsUUID() clusterId?: string;
   @IsUUID() fieldOfficerAssignmentId!: string;
   @IsArray() @ArrayMinSize(1) @IsUUID(undefined, { each: true }) areaIds!: string[];
   @IsOptional() @IsString() @MaxLength(3000) notes?: string;
@@ -32,7 +33,46 @@ export class CreateJaringDto {
 
 export class UpdateJaringDto {
   @IsOptional() @IsString() @MaxLength(150) aliasName?: string;
+  @IsOptional() @IsUUID() clusterId?: string;
   @IsOptional() @IsString() @MaxLength(3000) notes?: string;
+}
+
+export class JaringClusterQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limit = 100;
+  @IsOptional() @IsString() search?: string;
+  @IsOptional() @IsBoolean() @Type(() => Boolean) includeInactive = false;
+}
+
+export class CreateJaringClusterDto {
+  @IsOptional() @IsString() @MaxLength(80) code?: string;
+  @IsString() @MinLength(2) @MaxLength(120) name!: string;
+  @IsOptional() @IsString() @MaxLength(1000) description?: string;
+}
+
+export class UpdateJaringClusterDto {
+  @IsOptional() @IsString() @MaxLength(80) code?: string;
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(120) name?: string;
+  @IsOptional() @IsString() @MaxLength(1000) description?: string;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+}
+
+export class ReportCategoryQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limit = 100;
+  @IsOptional() @IsString() search?: string;
+  @IsOptional() @IsBoolean() @Type(() => Boolean) includeInactive = false;
+}
+
+export class CreateReportCategoryDto {
+  @IsOptional() @IsString() @MaxLength(80) code?: string;
+  @IsString() @MinLength(2) @MaxLength(120) name!: string;
+  @IsOptional() @IsString() @MaxLength(1000) description?: string;
+}
+
+export class UpdateReportCategoryDto {
+  @IsOptional() @IsString() @MaxLength(80) code?: string;
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(120) name?: string;
+  @IsOptional() @IsString() @MaxLength(1000) description?: string;
+  @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 export class ReasonDto {
