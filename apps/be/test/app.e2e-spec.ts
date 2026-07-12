@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, VersioningType } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request, { type Response } from 'supertest';
 import { AppModule } from './../src/app.module.js';
@@ -18,21 +18,31 @@ describe('HealthController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('v1');
+    app.setGlobalPrefix('api');
+    app.enableVersioning({
+      type: VersioningType.URI,
+      defaultVersion: '1',
+    });
     await app.init();
   });
 
-  it('/v1/health (GET)', () => {
+  it('/api/v1/health/live (GET)', () => {
     const server = app.getHttpServer() as unknown as Parameters<
       typeof request
     >[0];
 
     return request(server)
-      .get('/v1/health')
+      .get('/api/v1/health/live')
       .expect(200)
       .expect((response: Response) => {
-        const body = response.body as { status: string };
-        expect(body.status).toBe('ok');
+        const body = response.body as {
+          success: boolean;
+          data: { status: string };
+          requestId: string;
+        };
+        expect(body.success).toBe(true);
+        expect(body.data.status).toBe('ok');
+        expect(body.requestId).toBeTruthy();
       });
   });
 

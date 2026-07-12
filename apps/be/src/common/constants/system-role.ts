@@ -14,36 +14,36 @@ export const SYSTEM_ROLE_CATALOG = [
     key: SYSTEM_ROLES.EXECUTIVE,
     label: 'Executive',
     summary:
-      'Membuat STR/UUK, memberi arahan strategis, dan memantau keluaran intelijen yang sudah disetujui.',
+      'Membuat direktif strategis, memantau situasi nasional, dan memberi persetujuan eksekutif atas keluaran intelijen.',
   },
   {
     key: SYSTEM_ROLES.REGIONAL_COMMANDER,
     label: 'Regional Commander',
     summary:
-      'Menerima direktif, mengendalikan wilayah, serta melakukan review dan approval laporan.',
+      'Menjabarkan direktif, mengendalikan operasi wilayah, serta melakukan review dan persetujuan regional.',
   },
   {
     key: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
     label: 'Operational Intelligence Manager',
     summary:
-      'Mengelola assignment, memverifikasi BAKET, dan menyusun draft intelligence report.',
+      'Menerima Baket, melakukan verifikasi formal dan Neraca Penilaian, lalu menyusun produk intelijen.',
   },
   {
     key: SYSTEM_ROLES.FIELD_COORDINATOR,
     label: 'Field Coordinator',
     summary:
-      'Membagi assignment ke Field Officer dan memantau progres personel lapangan.',
+      'Lapisan koordinasi lapangan untuk membagi tugas ke Field Officer, memantau progres, personel, peta lapangan, dan laporan darurat.',
   },
   {
     key: SYSTEM_ROLES.FIELD_OFFICER,
     label: 'Field Officer',
     summary:
-      'Melaksanakan tugas lapangan, memvalidasi incoming information, dan membuat BAKET.',
+      'Mengelola Jaring binaan, menerima laporan WhatsApp, melakukan verifikasi awal, dan membentuk Baket.',
   },
   {
     key: SYSTEM_ROLES.ADMIN_SYSTEM,
     label: 'Admin System',
     summary:
-      'Mengelola user, role, permission, keamanan, dan konfigurasi teknis aplikasi.',
+      'Mengelola organisasi, pengguna, permission, reporting line, integrasi WA Center, keamanan, dan konfigurasi sistem.',
   },
 ] as const;

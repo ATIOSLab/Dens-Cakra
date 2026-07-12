@@ -1,5 +1,5 @@
-import { LaporanDaruratPage } from "./_components/laporan-darurat-page";
+import { FieldOfficerOperationsPage } from "@/features/field-ops/field-officer-operations-page";
 
 export default function Page() {
-  return <LaporanDaruratPage />;
+  return <FieldOfficerOperationsPage view="alert" />;
 }

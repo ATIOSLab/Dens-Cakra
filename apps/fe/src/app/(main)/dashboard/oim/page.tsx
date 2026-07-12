@@ -1,10 +1,18 @@
-import { ComingSoonPage } from "../coming-soon/page";
+﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+type PageProps = {
+  params?: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Page({ params, searchParams }: PageProps) {
   return (
-    <ComingSoonPage
-      title="Beranda Manajer Intelijen Operasional"
-      description="Beranda OIM sedang disiapkan untuk antrian verifikasi, laporan masuk, dan ringkasan workload operasional."
+    <UniversalDensRoutePage
+      routePattern="/dashboard/oim"
+      params={(await params) ?? {}}
+      searchParams={(await searchParams) ?? {}}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { defaultStatements, adminAc } from 'better-auth/plugins/admin/access';
+import { defaultStatements } from 'better-auth/plugins/admin/access';
 import { createAccessControl } from 'better-auth/plugins/access';
 import { SYSTEM_ROLES } from '../constants/system-role.js';
 
@@ -15,10 +15,26 @@ export const permissionStatements = {
 
 export const accessControl = createAccessControl(permissionStatements);
 
+const adminSystemAdminPermissions = {
+  user: [
+    'create',
+    'list',
+    'set-role',
+    'ban',
+    'impersonate',
+    'impersonate-admins',
+    'set-password',
+    'set-email',
+    'get',
+    'update',
+  ],
+  session: ['list', 'revoke', 'delete'],
+} as const;
+
 export const accessControlRoles = {
   [SYSTEM_ROLES.EXECUTIVE]: accessControl.newRole({
     directive: ['create', 'read', 'track'],
-    report: ['read'],
+    report: ['read', 'review', 'approve', 'return'],
     monitoring: ['read'],
   }),
   [SYSTEM_ROLES.REGIONAL_COMMANDER]: accessControl.newRole({
@@ -35,7 +51,7 @@ export const accessControlRoles = {
     monitoring: ['read'],
   }),
   [SYSTEM_ROLES.FIELD_COORDINATOR]: accessControl.newRole({
-    assignment: ['read', 'distribute'],
+    assignment: ['read', 'update', 'distribute'],
     monitoring: ['read'],
   }),
   [SYSTEM_ROLES.FIELD_OFFICER]: accessControl.newRole({
@@ -43,7 +59,7 @@ export const accessControlRoles = {
     baket: ['create', 'read', 'submit'],
   }),
   [SYSTEM_ROLES.ADMIN_SYSTEM]: accessControl.newRole({
-    ...adminAc.statements,
+    ...adminSystemAdminPermissions,
     administration: ['read', 'manage'],
     monitoring: ['read'],
   }),
