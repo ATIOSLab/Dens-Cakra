@@ -1,16 +1,18 @@
-import { defaultStatements } from "better-auth/plugins/admin/access";
 import { createAccessControl } from "better-auth/plugins/access";
+import { defaultStatements } from "better-auth/plugins/admin/access";
+
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 export const permissionStatements = {
   ...defaultStatements,
-  directive: ["create", "read", "assign", "track"],
-  assignment: ["create", "read", "update", "distribute"],
-  intake: ["read", "route", "validate"],
-  baket: ["create", "read", "verify", "submit", "return"],
-  report: ["create", "read", "review", "approve", "return"],
-  monitoring: ["read"],
-  administration: ["read", "manage"],
+  dashboard: ["read"],
+  organization: ["read"],
+  position: ["read"],
+  area: ["read"],
+  directive: ["acknowledge", "cancel", "create", "distribute", "publish", "read", "track", "update"],
+  uuk: ["cancel", "create", "publish", "read", "update"],
+  task: ["assign", "cancel", "create", "execute", "read", "reassign", "update"],
+  assignment: ["read"],
 } as const;
 
 export const accessControl = createAccessControl(permissionStatements);
@@ -33,34 +35,52 @@ const adminSystemAdminPermissions = {
 
 export const accessControlRoles = {
   [SYSTEM_ROLES.EXECUTIVE]: accessControl.newRole({
-    directive: ["create", "read", "track"],
-    report: ["read", "review", "approve", "return"],
-    monitoring: ["read"],
+    dashboard: ["read"],
+    organization: ["read"],
+    position: ["read"],
+    area: ["read"],
+    directive: ["cancel", "create", "distribute", "publish", "read", "track", "update"],
+    uuk: ["read"],
+    task: ["read"],
+    assignment: ["read"],
   }),
   [SYSTEM_ROLES.REGIONAL_COMMANDER]: accessControl.newRole({
-    directive: ["read", "assign", "track"],
+    dashboard: ["read"],
+    organization: ["read"],
+    position: ["read"],
+    area: ["read"],
+    directive: ["acknowledge", "read", "track"],
+    uuk: ["cancel", "create", "publish", "read", "update"],
+    task: ["read"],
     assignment: ["read"],
-    report: ["read", "review", "approve", "return"],
-    monitoring: ["read"],
   }),
   [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: accessControl.newRole({
-    directive: ["read"],
-    assignment: ["create", "read", "update"],
-    baket: ["read", "verify", "return"],
-    report: ["create", "read"],
-    monitoring: ["read"],
+    dashboard: ["read"],
+    organization: ["read"],
+    position: ["read"],
+    area: ["read"],
+    directive: ["acknowledge", "read"],
+    uuk: ["read"],
+    task: ["assign", "cancel", "create", "read", "reassign", "update"],
+    assignment: ["read"],
   }),
   [SYSTEM_ROLES.FIELD_COORDINATOR]: accessControl.newRole({
-    assignment: ["read", "update", "distribute"],
-    monitoring: ["read"],
+    dashboard: ["read"],
+    organization: ["read"],
+    position: ["read"],
+    area: ["read"],
+    directive: ["acknowledge", "read"],
+    uuk: ["read"],
+    task: ["assign", "read", "reassign"],
+    assignment: ["read"],
   }),
   [SYSTEM_ROLES.FIELD_OFFICER]: accessControl.newRole({
-    intake: ["read", "validate"],
-    baket: ["create", "read", "submit"],
+    dashboard: ["read"],
+    area: ["read"],
+    task: ["execute", "read"],
+    assignment: ["read"],
   }),
   [SYSTEM_ROLES.ADMIN_SYSTEM]: accessControl.newRole({
     ...adminSystemAdminPermissions,
-    administration: ["read", "manage"],
-    monitoring: ["read"],
   }),
 } as const;

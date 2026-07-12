@@ -1,0 +1,2937 @@
+{
+  "document": "DENS CAKRA UI Layout Manifest",
+  "version": "1.0",
+  "date": "2026-07-11",
+  "globalShell": {
+    "sidebarExpandedPx": 232,
+    "sidebarCollapsedPx": 72,
+    "topbarDesktopPx": 60,
+    "topbarMobilePx": 56,
+    "desktopColumns": 12,
+    "tabletColumns": 8,
+    "mobileColumns": 1,
+    "contentMaxPx": 1792
+  },
+  "tokens": {
+    "canvas": "#090E0B",
+    "sidebar": "#0C130F",
+    "surface": "#111A15",
+    "surfaceRaised": "#17231C",
+    "border": "#2B3A31",
+    "textPrimary": "#F4F8F5",
+    "textSecondary": "#B6C2BA",
+    "textMuted": "#849289",
+    "primary": "#39D982",
+    "warning": "#F4B844",
+    "danger": "#FF6565",
+    "info": "#64B5F6"
+  },
+  "layoutPatterns": {
+    "dashboard-grid": {
+      "desktop": "12-column grid: 4 KPI cards; 8-col primary panel + 4-col priority queue; full-width activity/map; quick links row",
+      "tablet": "8-column grid: 2 KPI cards per row; primary panel full width; queue and map stacked",
+      "mobile": "1-column stack; urgent card first; quick actions sticky at bottom",
+      "cards": [
+        "KPI",
+        "Priority queue",
+        "Map preview",
+        "Activity",
+        "Quick access",
+        "System status"
+      ]
+    },
+    "list-table": {
+      "desktop": "Page header; horizontal filter bar; data table; pagination; optional detail drawer",
+      "tablet": "Filter drawer; reduced columns; row actions in overflow menu",
+      "mobile": "Card list; bottom-sheet filters; single primary action",
+      "cards": [
+        "Filter bar",
+        "Table/card list",
+        "Bulk action bar",
+        "Empty state"
+      ]
+    },
+    "detail-two-column": {
+      "desktop": "8-col main content + 4-col sticky metadata/actions rail",
+      "tablet": "Main content full width; metadata below; sticky action bar",
+      "mobile": "Single column; bottom sticky primary action",
+      "cards": [
+        "Summary",
+        "Metadata",
+        "Timeline",
+        "Attachments",
+        "Map",
+        "Available actions"
+      ]
+    },
+    "master-detail": {
+      "desktop": "5-col searchable master list + 7-col selected detail",
+      "tablet": "Master list then detail route",
+      "mobile": "Separate list/detail routes",
+      "cards": [
+        "Master list",
+        "Detail panel",
+        "Status",
+        "History"
+      ]
+    },
+    "tree-detail": {
+      "desktop": "4-col hierarchy tree + 8-col detail",
+      "tablet": "Tree drawer + detail",
+      "mobile": "Separate hierarchy and detail pages",
+      "cards": [
+        "Tree",
+        "Detail",
+        "Relations",
+        "Validation"
+      ]
+    },
+    "audit-investigation": {
+      "desktop": "Full-width filter bar; 7-col audit table + 5-col immutable event detail",
+      "tablet": "Table and detail stacked",
+      "mobile": "Audit event cards",
+      "cards": [
+        "Audit table",
+        "Before/after diff",
+        "Actor/device",
+        "Export action"
+      ]
+    },
+    "settings-sections": {
+      "desktop": "3-col settings navigation + 9-col grouped forms",
+      "tablet": "Horizontal tabs + form sections",
+      "mobile": "Accordion groups",
+      "cards": [
+        "Setting section",
+        "Secret indicator",
+        "Change confirmation"
+      ]
+    },
+    "tabbed-workspace": {
+      "desktop": "Page header + tab bar + tab-specific workspace",
+      "tablet": "Scrollable tabs",
+      "mobile": "Select/dropdown tab switcher",
+      "cards": [
+        "Tab navigation",
+        "Tab content",
+        "Context summary"
+      ]
+    },
+    "tree-map-split": {
+      "desktop": "4-col organization/area tree + 8-col map/detail; resizable split",
+      "tablet": "Tree drawer + full map",
+      "mobile": "Tree screen and map screen separated",
+      "cards": [
+        "Hierarchy tree",
+        "Boundary map",
+        "Coverage metadata",
+        "Import status"
+      ]
+    },
+    "permission-matrix": {
+      "desktop": "Sticky first column; horizontally scrollable permission matrix; impact summary rail",
+      "tablet": "Role tabs + grouped permission switches",
+      "mobile": "Role accordion with grouped permissions",
+      "cards": [
+        "Matrix",
+        "Impact preview",
+        "Save bar"
+      ]
+    },
+    "analytics-grid": {
+      "desktop": "Filter bar; KPI row; 8-col main chart + 4-col breakdown; detail table",
+      "tablet": "Charts stacked",
+      "mobile": "KPI carousel; one chart per section",
+      "cards": [
+        "KPI",
+        "Trend chart",
+        "Breakdown",
+        "Comparison",
+        "Data table"
+      ]
+    },
+    "analytics-map": {
+      "desktop": "4-col analytics/filters + 8-col map; bottom data table",
+      "tablet": "Map first, analytics below",
+      "mobile": "Map/list toggle",
+      "cards": [
+        "Map",
+        "KPI",
+        "Trend",
+        "Area breakdown"
+      ]
+    },
+    "map-workspace": {
+      "desktop": "Full-height map; top filter bar; left layer control; right detail drawer",
+      "tablet": "Full map; bottom-sheet details",
+      "mobile": "Map/list toggle; bottom sheet; locate and layer controls",
+      "cards": [
+        "Map canvas",
+        "Layer control",
+        "Legend",
+        "Popup",
+        "Detail drawer",
+        "Unlocated list"
+      ]
+    },
+    "map-command-center": {
+      "desktop": "9-col map + 3-col live critical queue; bottom incident timeline drawer",
+      "tablet": "Map + bottom queue",
+      "mobile": "Critical queue first, map second",
+      "cards": [
+        "Map",
+        "Critical queue",
+        "Incident timeline",
+        "Action panel"
+      ]
+    },
+    "map-analytics": {
+      "desktop": "8-col choropleth/heatmap + 4-col metric panel; compare-period toolbar",
+      "tablet": "Map and metric panel stacked",
+      "mobile": "Map/list toggle and metric selector",
+      "cards": [
+        "Choropleth",
+        "Metric selector",
+        "Trend drawer",
+        "Legend"
+      ]
+    },
+    "briefing-grid": {
+      "desktop": "12-col editorial grid; 8-col lead briefing + 4-col critical alerts; two 6-col supporting panels",
+      "tablet": "Lead full width; supporting panels stacked",
+      "mobile": "Prioritized briefing feed",
+      "cards": [
+        "Lead briefing",
+        "Critical alerts",
+        "Products",
+        "Directive progress",
+        "Trends"
+      ]
+    },
+    "module-landing": {
+      "desktop": "Module summary; quick actions; status cards; recent items",
+      "tablet": "Two-column cards",
+      "mobile": "Single-column action cards",
+      "cards": [
+        "Summary",
+        "Quick action",
+        "Recent records"
+      ]
+    },
+    "queue-detail": {
+      "desktop": "4-col queue + 8-col selected detail/action workspace",
+      "tablet": "Queue route then detail route",
+      "mobile": "Separate list/detail pages",
+      "cards": [
+        "Queue",
+        "Detail",
+        "Timeline",
+        "Decision panel"
+      ]
+    },
+    "list-detail": {
+      "desktop": "5-col list + 7-col detail or full detail route",
+      "tablet": "List then detail",
+      "mobile": "Card list then detail",
+      "cards": [
+        "List",
+        "Summary",
+        "Timeline",
+        "Related records"
+      ]
+    },
+    "stepper-form": {
+      "desktop": "8-col form + 4-col sticky review/validation rail; horizontal stepper",
+      "tablet": "Form full width; review below",
+      "mobile": "One task per screen; bottom sticky next/save",
+      "cards": [
+        "Stepper",
+        "Form section",
+        "Validation summary",
+        "Review"
+      ]
+    },
+    "dynamic-form": {
+      "desktop": "3-col section navigation + 6-col form + 3-col validation/source rail",
+      "tablet": "Section tabs + form + validation",
+      "mobile": "Accordion sections; bottom save/submit",
+      "cards": [
+        "Section navigation",
+        "Generated fields",
+        "Source selector",
+        "Validation panel"
+      ]
+    },
+    "editor-workspace": {
+      "desktop": "3-col sources + 6-col editor + 3-col entities/validation",
+      "tablet": "Editor first; sources and metadata in drawers",
+      "mobile": "Editor sections stacked",
+      "cards": [
+        "Sources",
+        "Editor",
+        "Entities",
+        "Relationships",
+        "Validation"
+      ]
+    },
+    "workflow-workspace": {
+      "desktop": "7-col evidence/content + 5-col sticky checklist/scoring/actions",
+      "tablet": "Evidence then workflow controls",
+      "mobile": "Single column; action bar at bottom",
+      "cards": [
+        "Evidence",
+        "Checklist",
+        "Scoring",
+        "Decision",
+        "Timeline"
+      ]
+    },
+    "alert-queue": {
+      "desktop": "4-col severity queue + 8-col alert detail/map",
+      "tablet": "Queue then detail",
+      "mobile": "Severity-sorted cards",
+      "cards": [
+        "Alert queue",
+        "Map",
+        "Timeline",
+        "Action panel"
+      ]
+    },
+    "alert-analytics": {
+      "desktop": "Filter bar; trends; recurring areas; related formal products",
+      "tablet": "Stacked charts",
+      "mobile": "Metric selector + cards",
+      "cards": [
+        "Trend",
+        "Area concentration",
+        "Related products"
+      ]
+    },
+    "command-board": {
+      "desktop": "12-col command board; active directives 7-col; emergency 5-col; regional map full width",
+      "tablet": "Stacked command panels",
+      "mobile": "Emergency and urgent actions first",
+      "cards": [
+        "Directives",
+        "UUK/STR",
+        "Tasks",
+        "Emergency",
+        "Map"
+      ]
+    },
+    "analytics-table": {
+      "desktop": "KPI row; filter bar; grouped table/tree; side summary",
+      "tablet": "KPI + table",
+      "mobile": "Summary cards + card list",
+      "cards": [
+        "KPI",
+        "Table",
+        "Progress",
+        "Overdue"
+      ]
+    },
+    "assignment-builder": {
+      "desktop": "5-col task/context + 7-col eligible personnel and workload",
+      "tablet": "Context then candidate list",
+      "mobile": "Candidate cards with single-select/multi-select",
+      "cards": [
+        "Task context",
+        "Candidate list",
+        "Workload",
+        "Coverage",
+        "Assignment review"
+      ]
+    },
+    "directory-map": {
+      "desktop": "5-col personnel directory + 7-col latest-location map",
+      "tablet": "Map/list toggle",
+      "mobile": "Directory first; map optional",
+      "cards": [
+        "Personnel list",
+        "Location map",
+        "Workload",
+        "Coverage"
+      ]
+    },
+    "kanban-board": {
+      "desktop": "Horizontal status columns; sticky filter bar; task detail drawer",
+      "tablet": "Horizontally scrollable board",
+      "mobile": "Status tabs + card list",
+      "cards": [
+        "Kanban column",
+        "Task card",
+        "Detail drawer"
+      ]
+    },
+    "inbox-list": {
+      "desktop": "Inbox list with read/priority indicators and filter sidebar",
+      "tablet": "Full-width list",
+      "mobile": "Message/task cards",
+      "cards": [
+        "Inbox",
+        "Read status",
+        "Quick actions"
+      ]
+    },
+    "inbox-detail": {
+      "desktop": "4-col inbox + 8-col immutable source detail",
+      "tablet": "List then detail",
+      "mobile": "Separate routes",
+      "cards": [
+        "Message",
+        "Media",
+        "Location",
+        "Validation",
+        "Routing history"
+      ]
+    },
+    "review-submit": {
+      "desktop": "8-col full preview + 4-col completeness and submit panel",
+      "tablet": "Preview then submit panel",
+      "mobile": "Summary sections + sticky submit",
+      "cards": [
+        "Preview",
+        "Completeness",
+        "Warnings",
+        "Submit confirmation"
+      ]
+    },
+    "critical-action-form": {
+      "desktop": "Centered max-width 640px critical form with strong status header",
+      "tablet": "Full-width form",
+      "mobile": "Full-screen one-task form; 56px submit button",
+      "cards": [
+        "Critical form",
+        "GPS state",
+        "Attachment",
+        "Confirmation"
+      ]
+    },
+    "catalog-grid": {
+      "desktop": "Filter bar; table/card view switch; 3-column cards or full table",
+      "tablet": "2-column cards",
+      "mobile": "1-column cards",
+      "cards": [
+        "Catalog card",
+        "Status",
+        "Metadata",
+        "Pagination"
+      ]
+    },
+    "system-state": {
+      "desktop": "Centered loading/access state",
+      "tablet": "Centered state",
+      "mobile": "Centered state",
+      "cards": [
+        "Loading",
+        "Access error"
+      ]
+    }
+  },
+  "pages": [
+    {
+      "role": "GLOBAL",
+      "route": "/dashboard",
+      "title": "Role Dashboard Redirect",
+      "pageType": "redirect",
+      "layoutPattern": "system-state",
+      "layout": {
+        "desktop": "Centered loading/access state",
+        "tablet": "Centered state",
+        "mobile": "Centered state",
+        "cards": [
+          "Loading",
+          "Access error"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Loading state",
+        "Access error state"
+      ],
+      "filters": []
+    },
+    {
+      "role": "GLOBAL",
+      "route": "/dashboard/notifications",
+      "title": "Notifications",
+      "pageType": "list",
+      "layoutPattern": "list-table",
+      "layout": {
+        "desktop": "Page header; horizontal filter bar; data table; pagination; optional detail drawer",
+        "tablet": "Filter drawer; reduced columns; row actions in overflow menu",
+        "mobile": "Card list; bottom-sheet filters; single primary action",
+        "cards": [
+          "Filter bar",
+          "Table/card list",
+          "Bulk action bar",
+          "Empty state"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Unread counter",
+        "Notification feed",
+        "Type badge",
+        "Timestamp",
+        "Deep-link resource"
+      ],
+      "filters": [
+        "unreadOnly",
+        "type",
+        "cursor",
+        "limit"
+      ]
+    },
+    {
+      "role": "GLOBAL",
+      "route": "/dashboard/profil",
+      "title": "Profile & Security",
+      "pageType": "detail",
+      "layoutPattern": "detail-two-column",
+      "layout": {
+        "desktop": "8-col main content + 4-col sticky metadata/actions rail",
+        "tablet": "Main content full width; metadata below; sticky action bar",
+        "mobile": "Single column; bottom sticky primary action",
+        "cards": [
+          "Summary",
+          "Metadata",
+          "Timeline",
+          "Attachments",
+          "Map",
+          "Available actions"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Profile",
+        "Business role",
+        "Position",
+        "Unit",
+        "Clearance",
+        "Area scopes",
+        "Active sessions summary"
+      ],
+      "filters": []
+    },
+    {
+      "role": "ADMIN_SYSTEM",
+      "route": "/dashboard/admin-system",
+      "title": "System Dashboard",
+      "pageType": "dashboard",
+      "layoutPattern": "dashboard-grid",
+      "layout": {
+        "desktop": "12-column grid: 4 KPI cards; 8-col primary panel + 4-col priority queue; full-width activity/map; quick links row",
+        "tablet": "8-column grid: 2 KPI cards per row; primary panel full width; queue and map stacked",
+        "mobile": "1-column stack; urgent card first; quick actions sticky at bottom",
+        "cards": [
+          "KPI",
+          "Priority queue",
+          "Map preview",
+          "Activity",
+          "Quick access",
+          "System status"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "System readiness",
+        "Integration health",
+        "Webhook error count",
+        "Active users",
+        "Locked users",
+        "Audit anomaly cards"
+      ],
+      "filters": [
+        "from",
+        "to",
+        "channelId",
+        "severity"
+      ]
+    },
+    {
+      "role": "ADMIN_SYSTEM",
+      "route": "/dashboard/admin-system/integrasi-wa-center",
+      "title": "WA Center Integration",
+      "pageType": "master-detail",
+      "layoutPattern": "master-detail",
+      "layout": {
+        "desktop": "5-col searchable master list + 7-col selected detail",
+        "tablet": "Master list then detail route",
+        "mobile": "Separate list/detail routes",
+        "cards": [
+          "Master list",
+          "Detail panel",
+          "Status",
+          "History"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Channel table",
+        "Status",
+        "Last health",
+        "Webhook timeline",
+        "Failure reason",
+        "Retry state",
+        "Inbox summary"
+      ],
+      "filters": [
+        "status",
+        "channelType",
+        "success",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "ADMIN_SYSTEM",
+      "route": "/dashboard/admin-system/jabatan-reporting-line",
+      "title": "Position & Reporting Line",
+      "pageType": "tree-table",
+      "layoutPattern": "tree-detail",
+      "layout": {
+        "desktop": "4-col hierarchy tree + 8-col detail",
+        "tablet": "Tree drawer + detail",
+        "mobile": "Separate hierarchy and detail pages",
+        "cards": [
+          "Tree",
+          "Detail",
+          "Relations",
+          "Validation"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Organization/position tree",
+        "Seat code",
+        "Role",
+        "Current occupant",
+        "Reports-to",
+        "Area policy",
+        "Vacancy status"
+      ],
+      "filters": [
+        "unitId",
+        "positionCode",
+        "roleCode",
+        "isActive",
+        "q",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "ADMIN_SYSTEM",
+      "route": "/dashboard/admin-system/keamanan-audit",
+      "title": "Security & Audit",
+      "pageType": "investigation",
+      "layoutPattern": "audit-investigation",
+      "layout": {
+        "desktop": "Full-width filter bar; 7-col audit table + 5-col immutable event detail",
+        "tablet": "Table and detail stacked",
+        "mobile": "Audit event cards",
+        "cards": [
+          "Audit table",
+          "Before/after diff",
+          "Actor/device",
+          "Export action"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Audit table",
+        "Actor",
+        "Action",
+        "Entity",
+        "Before/after diff",
+        "IP/device",
+        "Security event severity"
+      ],
+      "filters": [
+        "actorUserProfileId",
+        "actorAssignmentId",
+        "action",
+        "entityType",
+        "entityId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "ADMIN_SYSTEM",
+      "route": "/dashboard/admin-system/konfigurasi-sistem",
+      "title": "System Configuration",
+      "pageType": "settings",
+      "layoutPattern": "settings-sections",
+      "layout": {
+        "desktop": "3-col settings navigation + 9-col grouped forms",
+        "tablet": "Horizontal tabs + form sections",
+        "mobile": "Accordion groups",
+        "cards": [
+          "Setting section",
+          "Secret indicator",
+          "Change confirmation"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Setting groups",
+        "Effective value",
+        "Secret indicator",
+        "Last updated",
+        "Diagnostics"
+      ],
+      "filters": [
+        "group",
+        "q",
+        "isSecret"
+      ]
+    },
+    {
+      "role": "ADMIN_SYSTEM",
+      "route": "/dashboard/admin-system/master-data",
+      "title": "Reference & Master Data",
+      "pageType": "tabs",
+      "layoutPattern": "tabbed-workspace",
+      "layout": {
+        "desktop": "Page header + tab bar + tab-specific workspace",
+        "tablet": "Scrollable tabs",
+        "mobile": "Select/dropdown tab switcher",
+        "cards": [
+          "Tab navigation",
+          "Tab content",
+          "Context summary"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Enum catalog",
+        "Product types",
+        "Product templates",
+        "Position area policies",
+        "Boundary data sources"
+      ],
+      "filters": [
+        "tab",
+        "isActive",
+        "q",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "ADMIN_SYSTEM",
+      "route": "/dashboard/admin-system/organisasi-wilayah",
+      "title": "Organization & Administrative Area",
+      "pageType": "split-tree-map",
+      "layoutPattern": "tree-map-split",
+      "layout": {
+        "desktop": "4-col organization/area tree + 8-col map/detail; resizable split",
+        "tablet": "Tree drawer + full map",
+        "mobile": "Tree screen and map screen separated",
+        "cards": [
+          "Hierarchy tree",
+          "Boundary map",
+          "Coverage metadata",
+          "Import status"
+        ]
+      },
+      "mapMode": "boundary-editor",
+      "display": [
+        "Organization tree",
+        "Area tree",
+        "Boundary map",
+        "Coverage overlay",
+        "Boundary quality",
+        "Import jobs"
+      ],
+      "filters": [
+        "tab",
+        "parentId",
+        "level",
+        "unitType",
+        "q",
+        "bbox",
+        "zoom",
+        "isActive"
+      ]
+    },
+    {
+      "role": "ADMIN_SYSTEM",
+      "route": "/dashboard/admin-system/pengguna",
+      "title": "User Provisioning",
+      "pageType": "master-detail",
+      "layoutPattern": "master-detail",
+      "layout": {
+        "desktop": "5-col searchable master list + 7-col selected detail",
+        "tablet": "Master list then detail route",
+        "mobile": "Separate list/detail routes",
+        "cards": [
+          "Master list",
+          "Detail panel",
+          "Status",
+          "History"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "User list",
+        "Status",
+        "Role",
+        "Primary position",
+        "Unit",
+        "Area scope",
+        "Lock/ban indicators",
+        "Assignment history"
+      ],
+      "filters": [
+        "q",
+        "status",
+        "roleCode",
+        "positionCode",
+        "unitId",
+        "areaId",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "ADMIN_SYSTEM",
+      "route": "/dashboard/admin-system/role-hak-akses",
+      "title": "Roles & Permissions",
+      "pageType": "matrix",
+      "layoutPattern": "permission-matrix",
+      "layout": {
+        "desktop": "Sticky first column; horizontally scrollable permission matrix; impact summary rail",
+        "tablet": "Role tabs + grouped permission switches",
+        "mobile": "Role accordion with grouped permissions",
+        "cards": [
+          "Matrix",
+          "Impact preview",
+          "Save bar"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Role-permission matrix",
+        "Permission catalog",
+        "Position area policy",
+        "Impact preview"
+      ],
+      "filters": [
+        "roleId",
+        "module",
+        "q"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive",
+      "title": "Executive Dashboard",
+      "pageType": "dashboard",
+      "layoutPattern": "dashboard-grid",
+      "layout": {
+        "desktop": "12-column grid: 4 KPI cards; 8-col primary panel + 4-col priority queue; full-width activity/map; quick links row",
+        "tablet": "8-column grid: 2 KPI cards per row; primary panel full width; queue and map stacked",
+        "mobile": "1-column stack; urgent card first; quick actions sticky at bottom",
+        "cards": [
+          "KPI",
+          "Priority queue",
+          "Map preview",
+          "Activity",
+          "Quick access",
+          "System status"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "National KPIs",
+        "Critical alerts",
+        "Directive progress",
+        "Product pipeline",
+        "National map summary",
+        "Pending approvals"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to",
+        "classificationMax"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/kinerja-evaluasi",
+      "title": "National Performance & Evaluation",
+      "pageType": "analytics",
+      "layoutPattern": "analytics-grid",
+      "layout": {
+        "desktop": "Filter bar; KPI row; 8-col main chart + 4-col breakdown; detail table",
+        "tablet": "Charts stacked",
+        "mobile": "KPI carousel; one chart per section",
+        "cards": [
+          "KPI",
+          "Trend chart",
+          "Breakdown",
+          "Comparison",
+          "Data table"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "KPI cards",
+        "Task completion",
+        "Directive fulfillment",
+        "Verification quality",
+        "Product status",
+        "Area ranking"
+      ],
+      "filters": [
+        "areaId",
+        "unitId",
+        "from",
+        "to",
+        "groupBy",
+        "compareWithPrevious"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/laporan-briefing",
+      "title": "Executive Briefing",
+      "pageType": "composition",
+      "layoutPattern": "briefing-grid",
+      "layout": {
+        "desktop": "12-col editorial grid; 8-col lead briefing + 4-col critical alerts; two 6-col supporting panels",
+        "tablet": "Lead full width; supporting panels stacked",
+        "mobile": "Prioritized briefing feed",
+        "cards": [
+          "Lead briefing",
+          "Critical alerts",
+          "Products",
+          "Directive progress",
+          "Trends"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Approved product highlights",
+        "Critical alerts",
+        "Open directives",
+        "Trend chart",
+        "Regional exceptions",
+        "Briefing notes"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to",
+        "classification",
+        "productTypeId"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/monitoring-nasional",
+      "title": "National Monitoring",
+      "pageType": "analytics-map",
+      "layoutPattern": "analytics-map",
+      "layout": {
+        "desktop": "4-col analytics/filters + 8-col map; bottom data table",
+        "tablet": "Map first, analytics below",
+        "mobile": "Map/list toggle",
+        "cards": [
+          "Map",
+          "KPI",
+          "Trend",
+          "Area breakdown"
+        ]
+      },
+      "mapMode": "national-choropleth",
+      "display": [
+        "National map",
+        "Area breakdown",
+        "Task status",
+        "Emergency count",
+        "Report trend",
+        "Regional leaderboard"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to",
+        "metric",
+        "childLevel",
+        "status",
+        "urgency"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/persetujuan",
+      "title": "Approval Summary",
+      "pageType": "landing",
+      "layoutPattern": "module-landing",
+      "layout": {
+        "desktop": "Module summary; quick actions; status cards; recent items",
+        "tablet": "Two-column cards",
+        "mobile": "Single-column action cards",
+        "cards": [
+          "Summary",
+          "Quick action",
+          "Recent records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Pending count",
+        "Overdue count",
+        "Recent decisions",
+        "Approval pipeline",
+        "Quick links"
+      ],
+      "filters": [
+        "routeType",
+        "status",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/persetujuan-eksekutif",
+      "title": "Executive Approval Inbox",
+      "pageType": "queue-detail",
+      "layoutPattern": "queue-detail",
+      "layout": {
+        "desktop": "4-col queue + 8-col selected detail/action workspace",
+        "tablet": "Queue route then detail route",
+        "mobile": "Separate list/detail pages",
+        "cards": [
+          "Queue",
+          "Detail",
+          "Timeline",
+          "Decision panel"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Active steps",
+        "Product summary",
+        "Traceability",
+        "Regional decision",
+        "Classification",
+        "Deadline"
+      ],
+      "filters": [
+        "status",
+        "productTypeId",
+        "classification",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/produk-intelijen",
+      "title": "Approved Intelligence Products",
+      "pageType": "catalog",
+      "layoutPattern": "catalog-grid",
+      "layout": {
+        "desktop": "Filter bar; table/card view switch; 3-column cards or full table",
+        "tablet": "2-column cards",
+        "mobile": "1-column cards",
+        "cards": [
+          "Catalog card",
+          "Status",
+          "Metadata",
+          "Pagination"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Product cards/table",
+        "Status",
+        "Type",
+        "Owner region",
+        "Period",
+        "Classification",
+        "Distribution"
+      ],
+      "filters": [
+        "q",
+        "status",
+        "productTypeId",
+        "ownerUnitId",
+        "areaId",
+        "classification",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/pusat-komando",
+      "title": "Command Center",
+      "pageType": "landing",
+      "layoutPattern": "module-landing",
+      "layout": {
+        "desktop": "Module summary; quick actions; status cards; recent items",
+        "tablet": "Two-column cards",
+        "mobile": "Single-column action cards",
+        "cards": [
+          "Summary",
+          "Quick action",
+          "Recent records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Active directives",
+        "Emergency panel",
+        "Approval queue",
+        "National map",
+        "Quick actions"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/pusat-komando/direktif",
+      "title": "Strategic Directives",
+      "pageType": "list-detail",
+      "layoutPattern": "list-detail",
+      "layout": {
+        "desktop": "5-col list + 7-col detail or full detail route",
+        "tablet": "List then detail",
+        "mobile": "Card list then detail",
+        "cards": [
+          "List",
+          "Summary",
+          "Timeline",
+          "Related records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Directive table",
+        "Current version",
+        "Recipients",
+        "Target areas",
+        "Acknowledgement",
+        "Progress"
+      ],
+      "filters": [
+        "q",
+        "status",
+        "classification",
+        "areaId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/pusat-komando/direktif-strategis",
+      "title": "Directive Builder",
+      "pageType": "wizard",
+      "layoutPattern": "stepper-form",
+      "layout": {
+        "desktop": "8-col form + 4-col sticky review/validation rail; horizontal stepper",
+        "tablet": "Form full width; review below",
+        "mobile": "One task per screen; bottom sticky next/save",
+        "cards": [
+          "Stepper",
+          "Form section",
+          "Validation summary",
+          "Review"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Step 1 identity",
+        "Step 2 content",
+        "Step 3 target areas",
+        "Step 4 recipients",
+        "Step 5 review"
+      ],
+      "filters": []
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/pusat-komando/operasi-darurat",
+      "title": "Emergency Operations",
+      "pageType": "map-command",
+      "layoutPattern": "map-command-center",
+      "layout": {
+        "desktop": "9-col map + 3-col live critical queue; bottom incident timeline drawer",
+        "tablet": "Map + bottom queue",
+        "mobile": "Critical queue first, map second",
+        "cards": [
+          "Map",
+          "Critical queue",
+          "Incident timeline",
+          "Action panel"
+        ]
+      },
+      "mapMode": "emergency-command",
+      "display": [
+        "Live incident map",
+        "Critical queue",
+        "Incident timeline",
+        "Assigned positions",
+        "Action status"
+      ],
+      "filters": [
+        "status",
+        "severity",
+        "areaId",
+        "from",
+        "to",
+        "bbox",
+        "zoom"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/situasi-nasional",
+      "title": "National Situation",
+      "pageType": "landing",
+      "layoutPattern": "module-landing",
+      "layout": {
+        "desktop": "Module summary; quick actions; status cards; recent items",
+        "tablet": "Two-column cards",
+        "mobile": "Single-column action cards",
+        "cards": [
+          "Summary",
+          "Quick action",
+          "Recent records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "National situation scorecards",
+        "Risk map preview",
+        "Warning list",
+        "Trend snapshot"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/situasi-nasional/peringatan-dini",
+      "title": "National Early Warning",
+      "pageType": "alert-queue",
+      "layoutPattern": "alert-queue",
+      "layout": {
+        "desktop": "4-col severity queue + 8-col alert detail/map",
+        "tablet": "Queue then detail",
+        "mobile": "Severity-sorted cards",
+        "cards": [
+          "Alert queue",
+          "Map",
+          "Timeline",
+          "Action panel"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Alert queue",
+        "Severity",
+        "Area",
+        "Source",
+        "Age",
+        "Owner",
+        "Status"
+      ],
+      "filters": [
+        "status",
+        "severity",
+        "areaId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/situasi-nasional/peta-kerawanan",
+      "title": "National Risk Map",
+      "pageType": "map",
+      "layoutPattern": "map-workspace",
+      "layout": {
+        "desktop": "Full-height map; top filter bar; left layer control; right detail drawer",
+        "tablet": "Full map; bottom-sheet details",
+        "mobile": "Map/list toggle; bottom sheet; locate and layer controls",
+        "cards": [
+          "Map canvas",
+          "Layer control",
+          "Legend",
+          "Popup",
+          "Detail drawer",
+          "Unlocated list"
+        ]
+      },
+      "mapMode": "risk-choropleth",
+      "display": [
+        "Choropleth boundary",
+        "Heatmap",
+        "Report clusters",
+        "Legend",
+        "Area summary drawer"
+      ],
+      "filters": [
+        "bbox",
+        "zoom",
+        "areaId",
+        "from",
+        "to",
+        "metric",
+        "status",
+        "urgency",
+        "viewMode"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/situasi-strategis",
+      "title": "Strategic Situation",
+      "pageType": "analytics",
+      "layoutPattern": "analytics-grid",
+      "layout": {
+        "desktop": "Filter bar; KPI row; 8-col main chart + 4-col breakdown; detail table",
+        "tablet": "Charts stacked",
+        "mobile": "KPI carousel; one chart per section",
+        "cards": [
+          "KPI",
+          "Trend chart",
+          "Breakdown",
+          "Comparison",
+          "Data table"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "30/90-day trends",
+        "Strategic issues",
+        "Formal products",
+        "Area comparison",
+        "Risk movement"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to",
+        "interval",
+        "productTypeId",
+        "classification"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/situasi-strategis/peringatan-dini",
+      "title": "Strategic Warning Analysis",
+      "pageType": "analytics-alerts",
+      "layoutPattern": "alert-analytics",
+      "layout": {
+        "desktop": "Filter bar; trends; recurring areas; related formal products",
+        "tablet": "Stacked charts",
+        "mobile": "Metric selector + cards",
+        "cards": [
+          "Trend",
+          "Area concentration",
+          "Related products"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Alert trends",
+        "Recurring areas",
+        "Severity movement",
+        "Related products/analysis"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to",
+        "interval",
+        "severity",
+        "status"
+      ]
+    },
+    {
+      "role": "EXECUTIVE",
+      "route": "/dashboard/executive/situasi-strategis/peta-kerawanan",
+      "title": "Strategic Risk Trend Map",
+      "pageType": "map-analytics",
+      "layoutPattern": "map-analytics",
+      "layout": {
+        "desktop": "8-col choropleth/heatmap + 4-col metric panel; compare-period toolbar",
+        "tablet": "Map and metric panel stacked",
+        "mobile": "Map/list toggle and metric selector",
+        "cards": [
+          "Choropleth",
+          "Metric selector",
+          "Trend drawer",
+          "Legend"
+        ]
+      },
+      "mapMode": "strategic-choropleth",
+      "display": [
+        "Area choropleth by period",
+        "Compare-period toggle",
+        "Trend drawer",
+        "Heatmap"
+      ],
+      "filters": [
+        "bbox",
+        "zoom",
+        "areaId",
+        "from",
+        "to",
+        "compareFrom",
+        "compareTo",
+        "metric"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator",
+      "title": "Field Coordination Dashboard",
+      "pageType": "dashboard",
+      "layoutPattern": "dashboard-grid",
+      "layout": {
+        "desktop": "12-column grid: 4 KPI cards; 8-col primary panel + 4-col priority queue; full-width activity/map; quick links row",
+        "tablet": "8-column grid: 2 KPI cards per row; primary panel full width; queue and map stacked",
+        "mobile": "1-column stack; urgent card first; quick actions sticky at bottom",
+        "cards": [
+          "KPI",
+          "Priority queue",
+          "Map preview",
+          "Activity",
+          "Quick access",
+          "System status"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Incoming tasks",
+        "Team workload",
+        "Overdue items",
+        "Field map",
+        "Emergencies",
+        "Recent Baket outputs"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/laporan-darurat",
+      "title": "Field Emergency Monitor",
+      "pageType": "queue-map",
+      "layoutPattern": "detail-two-column",
+      "layout": {
+        "desktop": "8-col main content + 4-col sticky metadata/actions rail",
+        "tablet": "Main content full width; metadata below; sticky action bar",
+        "mobile": "Single column; bottom sticky primary action",
+        "cards": [
+          "Summary",
+          "Metadata",
+          "Timeline",
+          "Attachments",
+          "Map",
+          "Available actions"
+        ]
+      },
+      "mapMode": "emergency-field",
+      "display": [
+        "Incident list",
+        "Map",
+        "Severity",
+        "Status",
+        "Reporter",
+        "Response timeline"
+      ],
+      "filters": [
+        "status",
+        "severity",
+        "areaId",
+        "from",
+        "to",
+        "bbox",
+        "zoom"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/laporan-lapangan",
+      "title": "Field Reports",
+      "pageType": "list-detail",
+      "layoutPattern": "list-detail",
+      "layout": {
+        "desktop": "5-col list + 7-col detail or full detail route",
+        "tablet": "List then detail",
+        "mobile": "Card list then detail",
+        "cards": [
+          "List",
+          "Summary",
+          "Timeline",
+          "Related records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Baket from subordinate Field Officers",
+        "Status",
+        "Urgency",
+        "Area",
+        "Task",
+        "Latest version",
+        "Coverage flag"
+      ],
+      "filters": [
+        "q",
+        "status",
+        "urgency",
+        "areaId",
+        "assigneeAssignmentId",
+        "taskId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/monitoring-tugas",
+      "title": "Task Monitoring",
+      "pageType": "analytics-table",
+      "layoutPattern": "analytics-table",
+      "layout": {
+        "desktop": "KPI row; filter bar; grouped table/tree; side summary",
+        "tablet": "KPI + table",
+        "mobile": "Summary cards + card list",
+        "cards": [
+          "KPI",
+          "Table",
+          "Progress",
+          "Overdue"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Task tree",
+        "Assignment status",
+        "Progress",
+        "Overdue",
+        "Team workload",
+        "Area"
+      ],
+      "filters": [
+        "status",
+        "priority",
+        "areaId",
+        "assigneeAssignmentId",
+        "from",
+        "to",
+        "groupBy"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/penugasan-field-officer",
+      "title": "Assign Field Officer",
+      "pageType": "assignment-builder",
+      "layoutPattern": "assignment-builder",
+      "layout": {
+        "desktop": "5-col task/context + 7-col eligible personnel and workload",
+        "tablet": "Context then candidate list",
+        "mobile": "Candidate cards with single-select/multi-select",
+        "cards": [
+          "Task context",
+          "Candidate list",
+          "Workload",
+          "Coverage",
+          "Assignment review"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Available Field Officers",
+        "Current workload",
+        "Area scope",
+        "Task details",
+        "Due date"
+      ],
+      "filters": [
+        "taskId",
+        "areaId",
+        "availability",
+        "q"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/personel-jaring",
+      "title": "Personnel & Jaring",
+      "pageType": "tabs",
+      "layoutPattern": "tabbed-workspace",
+      "layout": {
+        "desktop": "Page header + tab bar + tab-specific workspace",
+        "tablet": "Scrollable tabs",
+        "mobile": "Select/dropdown tab switcher",
+        "cards": [
+          "Tab navigation",
+          "Tab content",
+          "Context summary"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Tab personnel",
+        "Tab Jaring",
+        "Caretaker relationship",
+        "Coverage",
+        "Status",
+        "Workload"
+      ],
+      "filters": [
+        "tab",
+        "q",
+        "status",
+        "areaId",
+        "positionCode",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/personel-lapangan",
+      "title": "Field Personnel",
+      "pageType": "directory-map",
+      "layoutPattern": "directory-map",
+      "layout": {
+        "desktop": "5-col personnel directory + 7-col latest-location map",
+        "tablet": "Map/list toggle",
+        "mobile": "Directory first; map optional",
+        "cards": [
+          "Personnel list",
+          "Location map",
+          "Workload",
+          "Coverage"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Personnel cards/table",
+        "Position",
+        "Availability",
+        "Active tasks",
+        "Last location time",
+        "Coverage"
+      ],
+      "filters": [
+        "q",
+        "areaId",
+        "status",
+        "hasActiveTask",
+        "capturedAfter"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/peta-lapangan",
+      "title": "Field Operations Map",
+      "pageType": "map",
+      "layoutPattern": "map-workspace",
+      "layout": {
+        "desktop": "Full-height map; top filter bar; left layer control; right detail drawer",
+        "tablet": "Full map; bottom-sheet details",
+        "mobile": "Map/list toggle; bottom sheet; locate and layer controls",
+        "cards": [
+          "Map canvas",
+          "Layer control",
+          "Legend",
+          "Popup",
+          "Detail drawer",
+          "Unlocated list"
+        ]
+      },
+      "mapMode": "field-operations",
+      "display": [
+        "Personnel layer",
+        "Task target layer",
+        "Report layer",
+        "Emergency layer",
+        "Boundary layer",
+        "Layer legend"
+      ],
+      "filters": [
+        "bbox",
+        "zoom",
+        "areaId",
+        "from",
+        "to",
+        "layers",
+        "status",
+        "urgency",
+        "capturedAfter"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/tugas-lapangan",
+      "title": "Field Task Workspace",
+      "pageType": "landing",
+      "layoutPattern": "module-landing",
+      "layout": {
+        "desktop": "Module summary; quick actions; status cards; recent items",
+        "tablet": "Two-column cards",
+        "mobile": "Single-column action cards",
+        "cards": [
+          "Summary",
+          "Quick action",
+          "Recent records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Received tasks",
+        "Team assignments",
+        "Operational board",
+        "Overdue alerts"
+      ],
+      "filters": [
+        "status",
+        "priority",
+        "areaId"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/tugas-lapangan/tugas-diterima",
+      "title": "Received Tasks",
+      "pageType": "inbox",
+      "layoutPattern": "inbox-list",
+      "layout": {
+        "desktop": "Inbox list with read/priority indicators and filter sidebar",
+        "tablet": "Full-width list",
+        "mobile": "Message/task cards",
+        "cards": [
+          "Inbox",
+          "Read status",
+          "Quick actions"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Task inbox",
+        "Directive/UUK source",
+        "Priority",
+        "Due date",
+        "Target area",
+        "Read/ack status"
+      ],
+      "filters": [
+        "status",
+        "priority",
+        "areaId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/tugas-lapangan/penugasan-tim",
+      "title": "Team Assignment",
+      "pageType": "assignment-builder",
+      "layoutPattern": "assignment-builder",
+      "layout": {
+        "desktop": "5-col task/context + 7-col eligible personnel and workload",
+        "tablet": "Context then candidate list",
+        "mobile": "Candidate cards with single-select/multi-select",
+        "cards": [
+          "Task context",
+          "Candidate list",
+          "Workload",
+          "Coverage",
+          "Assignment review"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Task detail",
+        "Subordinate roster",
+        "Workload",
+        "Area coverage",
+        "Assigned members"
+      ],
+      "filters": [
+        "taskId",
+        "areaId",
+        "q"
+      ]
+    },
+    {
+      "role": "FIELD_COORDINATOR",
+      "route": "/dashboard/field-coordinator/tugas-operasional",
+      "title": "Operational Task Board",
+      "pageType": "kanban",
+      "layoutPattern": "kanban-board",
+      "layout": {
+        "desktop": "Horizontal status columns; sticky filter bar; task detail drawer",
+        "tablet": "Horizontally scrollable board",
+        "mobile": "Status tabs + card list",
+        "cards": [
+          "Kanban column",
+          "Task card",
+          "Detail drawer"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Columns SENT/ACK/IN_PROGRESS/OVERDUE/COMPLETED",
+        "Task cards",
+        "Progress",
+        "Officer",
+        "Area",
+        "Due date"
+      ],
+      "filters": [
+        "status",
+        "priority",
+        "areaId",
+        "assigneeAssignmentId",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "FIELD_OFFICER",
+      "route": "/dashboard/field-officer",
+      "title": "Field Officer Dashboard",
+      "pageType": "dashboard",
+      "layoutPattern": "dashboard-grid",
+      "layout": {
+        "desktop": "12-column grid: 4 KPI cards; 8-col primary panel + 4-col priority queue; full-width activity/map; quick links row",
+        "tablet": "8-column grid: 2 KPI cards per row; primary panel full width; queue and map stacked",
+        "mobile": "1-column stack; urgent card first; quick actions sticky at bottom",
+        "cards": [
+          "KPI",
+          "Priority queue",
+          "Map preview",
+          "Activity",
+          "Quick access",
+          "System status"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "My tasks",
+        "Jaring inbox",
+        "Draft Baket",
+        "Revision requests",
+        "Emergency shortcut",
+        "Task map preview"
+      ],
+      "filters": [
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "FIELD_OFFICER",
+      "route": "/dashboard/field-officer/buat-baket",
+      "title": "Create Baket",
+      "pageType": "wizard",
+      "layoutPattern": "stepper-form",
+      "layout": {
+        "desktop": "8-col form + 4-col sticky review/validation rail; horizontal stepper",
+        "tablet": "Form full width; review below",
+        "mobile": "One task per screen; bottom sticky next/save",
+        "cards": [
+          "Stepper",
+          "Form section",
+          "Validation summary",
+          "Review"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Source selection",
+        "5W+1H content",
+        "Event time",
+        "Map pin",
+        "Resolved area",
+        "Attachments",
+        "Coverage warning",
+        "Review"
+      ],
+      "filters": []
+    },
+    {
+      "role": "FIELD_OFFICER",
+      "route": "/dashboard/field-officer/jaring-binaan",
+      "title": "Managed Jaring",
+      "pageType": "list-detail",
+      "layoutPattern": "list-detail",
+      "layout": {
+        "desktop": "5-col list + 7-col detail or full detail route",
+        "tablet": "List then detail",
+        "mobile": "Card list then detail",
+        "cards": [
+          "List",
+          "Summary",
+          "Timeline",
+          "Related records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Jaring list",
+        "Alias",
+        "Normalized WhatsApp",
+        "Status",
+        "Coverage",
+        "Last message",
+        "Caretaker history"
+      ],
+      "filters": [
+        "q",
+        "status",
+        "areaId",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "FIELD_OFFICER",
+      "route": "/dashboard/field-officer/kirim-baket",
+      "title": "Submit Baket",
+      "pageType": "review-submit",
+      "layoutPattern": "review-submit",
+      "layout": {
+        "desktop": "8-col full preview + 4-col completeness and submit panel",
+        "tablet": "Preview then submit panel",
+        "mobile": "Summary sections + sticky submit",
+        "cards": [
+          "Preview",
+          "Completeness",
+          "Warnings",
+          "Submit confirmation"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Completeness summary",
+        "Source messages",
+        "Coordinates",
+        "Area path",
+        "Coverage checks",
+        "Attachments",
+        "Revision warning"
+      ],
+      "filters": [
+        "status=DRAFT,READY_TO_SEND",
+        "q",
+        "areaId"
+      ]
+    },
+    {
+      "role": "FIELD_OFFICER",
+      "route": "/dashboard/field-officer/kotak-masuk-jaring",
+      "title": "Jaring Inbox",
+      "pageType": "inbox-detail",
+      "layoutPattern": "inbox-detail",
+      "layout": {
+        "desktop": "4-col inbox + 8-col immutable source detail",
+        "tablet": "List then detail",
+        "mobile": "Separate routes",
+        "cards": [
+          "Message",
+          "Media",
+          "Location",
+          "Validation",
+          "Routing history"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "WhatsApp messages",
+        "Sender/Jaring",
+        "Validation issues",
+        "GPS",
+        "Resolved area",
+        "Media",
+        "Routing status"
+      ],
+      "filters": [
+        "status",
+        "validationStatus",
+        "hasGps",
+        "jaringId",
+        "from",
+        "to",
+        "cursor",
+        "limit"
+      ]
+    },
+    {
+      "role": "FIELD_OFFICER",
+      "route": "/dashboard/field-officer/laporan-darurat",
+      "title": "Emergency Report",
+      "pageType": "quick-form",
+      "layoutPattern": "critical-action-form",
+      "layout": {
+        "desktop": "Centered max-width 640px critical form with strong status header",
+        "tablet": "Full-width form",
+        "mobile": "Full-screen one-task form; 56px submit button",
+        "cards": [
+          "Critical form",
+          "GPS state",
+          "Attachment",
+          "Confirmation"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Large severity selector",
+        "Situation",
+        "Action taken",
+        "Needs",
+        "GPS status",
+        "Attachments",
+        "Send confirmation"
+      ],
+      "filters": []
+    },
+    {
+      "role": "FIELD_OFFICER",
+      "route": "/dashboard/field-officer/laporan-saya",
+      "title": "My Baket",
+      "pageType": "list-detail",
+      "layoutPattern": "list-detail",
+      "layout": {
+        "desktop": "5-col list + 7-col detail or full detail route",
+        "tablet": "List then detail",
+        "mobile": "Card list then detail",
+        "cards": [
+          "List",
+          "Summary",
+          "Timeline",
+          "Related records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "My reports",
+        "Status",
+        "Current version",
+        "Revision request",
+        "Urgency",
+        "Area",
+        "Submitted time"
+      ],
+      "filters": [
+        "q",
+        "status",
+        "areaId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "FIELD_OFFICER",
+      "route": "/dashboard/field-officer/peta-tugas",
+      "title": "My Task Map",
+      "pageType": "map",
+      "layoutPattern": "map-workspace",
+      "layout": {
+        "desktop": "Full-height map; top filter bar; left layer control; right detail drawer",
+        "tablet": "Full map; bottom-sheet details",
+        "mobile": "Map/list toggle; bottom sheet; locate and layer controls",
+        "cards": [
+          "Map canvas",
+          "Layer control",
+          "Legend",
+          "Popup",
+          "Detail drawer",
+          "Unlocated list"
+        ]
+      },
+      "mapMode": "my-task-map",
+      "display": [
+        "Task target areas",
+        "My report points",
+        "My latest location",
+        "Selected task drawer"
+      ],
+      "filters": [
+        "bbox",
+        "zoom",
+        "areaId",
+        "status",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "FIELD_OFFICER",
+      "route": "/dashboard/field-officer/tugas-saya",
+      "title": "My Tasks",
+      "pageType": "inbox-kanban",
+      "layoutPattern": "detail-two-column",
+      "layout": {
+        "desktop": "8-col main content + 4-col sticky metadata/actions rail",
+        "tablet": "Main content full width; metadata below; sticky action bar",
+        "mobile": "Single column; bottom sticky primary action",
+        "cards": [
+          "Summary",
+          "Metadata",
+          "Timeline",
+          "Attachments",
+          "Map",
+          "Available actions"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Assignments",
+        "Priority",
+        "Due date",
+        "Target area",
+        "Progress",
+        "Related Baket"
+      ],
+      "filters": [
+        "status",
+        "priority",
+        "areaId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim",
+      "title": "OIM Dashboard",
+      "pageType": "dashboard",
+      "layoutPattern": "dashboard-grid",
+      "layout": {
+        "desktop": "12-column grid: 4 KPI cards; 8-col primary panel + 4-col priority queue; full-width activity/map; quick links row",
+        "tablet": "8-column grid: 2 KPI cards per row; primary panel full width; queue and map stacked",
+        "mobile": "1-column stack; urgent card first; quick actions sticky at bottom",
+        "cards": [
+          "KPI",
+          "Priority queue",
+          "Map preview",
+          "Activity",
+          "Quick access",
+          "System status"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Incoming Baket",
+        "Verification queue",
+        "Needs development",
+        "Analysis cases",
+        "Product drafts",
+        "Field progress"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/analisis-intelijen",
+      "title": "Intelligence Analysis",
+      "pageType": "workspace",
+      "layoutPattern": "editor-workspace",
+      "layout": {
+        "desktop": "3-col sources + 6-col editor + 3-col entities/validation",
+        "tablet": "Editor first; sources and metadata in drawers",
+        "mobile": "Editor sections stacked",
+        "cards": [
+          "Sources",
+          "Editor",
+          "Entities",
+          "Relationships",
+          "Validation"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Analysis case list",
+        "Source verifications",
+        "Version editor",
+        "Entities",
+        "Relationships",
+        "Graph",
+        "Traceability"
+      ],
+      "filters": [
+        "q",
+        "status",
+        "ownerUnitId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/direktif-tugas",
+      "title": "Directive & Tasking",
+      "pageType": "list-builder",
+      "layoutPattern": "detail-two-column",
+      "layout": {
+        "desktop": "8-col main content + 4-col sticky metadata/actions rail",
+        "tablet": "Main content full width; metadata below; sticky action bar",
+        "mobile": "Single column; bottom sticky primary action",
+        "cards": [
+          "Summary",
+          "Metadata",
+          "Timeline",
+          "Attachments",
+          "Map",
+          "Available actions"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Received directives/UUK",
+        "Task builder",
+        "Field Coordinator candidates",
+        "Target areas",
+        "Progress"
+      ],
+      "filters": [
+        "directiveId",
+        "uukStrVersionId",
+        "status",
+        "priority",
+        "areaId",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/laporan-masuk",
+      "title": "Incoming Baket",
+      "pageType": "queue-detail",
+      "layoutPattern": "queue-detail",
+      "layout": {
+        "desktop": "4-col queue + 8-col selected detail/action workspace",
+        "tablet": "Queue route then detail route",
+        "mobile": "Separate list/detail pages",
+        "cards": [
+          "Queue",
+          "Detail",
+          "Timeline",
+          "Decision panel"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Baket queue",
+        "Field Officer",
+        "Task",
+        "Area",
+        "Urgency",
+        "Coverage status",
+        "Submission time"
+      ],
+      "filters": [
+        "status=SENT_TO_OIM,UNDER_VERIFICATION,NEEDS_DEVELOPMENT",
+        "areaId",
+        "urgency",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/monitoring-lapangan",
+      "title": "Field Monitoring",
+      "pageType": "analytics-map",
+      "layoutPattern": "analytics-map",
+      "layout": {
+        "desktop": "4-col analytics/filters + 8-col map; bottom data table",
+        "tablet": "Map first, analytics below",
+        "mobile": "Map/list toggle",
+        "cards": [
+          "Map",
+          "KPI",
+          "Trend",
+          "Area breakdown"
+        ]
+      },
+      "mapMode": "oim-monitoring",
+      "display": [
+        "Task performance",
+        "Field reports",
+        "Personnel locations",
+        "Emergencies",
+        "Area map"
+      ],
+      "filters": [
+        "areaId",
+        "unitId",
+        "from",
+        "to",
+        "status",
+        "priority",
+        "bbox",
+        "zoom"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/pengajuan-persetujuan",
+      "title": "Submission & Approval Tracking",
+      "pageType": "queue",
+      "layoutPattern": "detail-two-column",
+      "layout": {
+        "desktop": "8-col main content + 4-col sticky metadata/actions rail",
+        "tablet": "Main content full width; metadata below; sticky action bar",
+        "mobile": "Single column; bottom sticky primary action",
+        "cards": [
+          "Summary",
+          "Metadata",
+          "Timeline",
+          "Attachments",
+          "Map",
+          "Available actions"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Products ready to submit",
+        "Validation errors",
+        "Workflow status",
+        "Regional step",
+        "Executive step"
+      ],
+      "filters": [
+        "status",
+        "productTypeId",
+        "classification",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/peta-situasi",
+      "title": "OIM Situation Map",
+      "pageType": "map",
+      "layoutPattern": "map-workspace",
+      "layout": {
+        "desktop": "Full-height map; top filter bar; left layer control; right detail drawer",
+        "tablet": "Full map; bottom-sheet details",
+        "mobile": "Map/list toggle; bottom sheet; locate and layer controls",
+        "cards": [
+          "Map canvas",
+          "Layer control",
+          "Legend",
+          "Popup",
+          "Detail drawer",
+          "Unlocated list"
+        ]
+      },
+      "mapMode": "oim-situation",
+      "display": [
+        "Verified report layer",
+        "Incoming Baket layer",
+        "Alert layer",
+        "Heatmap",
+        "Area boundary",
+        "Popup with score summary"
+      ],
+      "filters": [
+        "bbox",
+        "zoom",
+        "areaId",
+        "from",
+        "to",
+        "status",
+        "urgency",
+        "viewMode"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/produk-intelijen",
+      "title": "Intelligence Products Workspace",
+      "pageType": "landing",
+      "layoutPattern": "module-landing",
+      "layout": {
+        "desktop": "Module summary; quick actions; status cards; recent items",
+        "tablet": "Two-column cards",
+        "mobile": "Single-column action cards",
+        "cards": [
+          "Summary",
+          "Quick action",
+          "Recent records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Draft count",
+        "Needs revision",
+        "Submitted",
+        "Approved",
+        "Template shortcuts"
+      ],
+      "filters": [
+        "status",
+        "productTypeId"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/produk-intelijen/buat-produk",
+      "title": "Product Builder",
+      "pageType": "dynamic-form",
+      "layoutPattern": "dynamic-form",
+      "layout": {
+        "desktop": "3-col section navigation + 6-col form + 3-col validation/source rail",
+        "tablet": "Section tabs + form + validation",
+        "mobile": "Accordion sections; bottom save/submit",
+        "cards": [
+          "Section navigation",
+          "Generated fields",
+          "Source selector",
+          "Validation panel"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Product type",
+        "Template sections",
+        "Source verifications",
+        "Source analyses",
+        "Attachments",
+        "Validation panel"
+      ],
+      "filters": []
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/produk-intelijen/daftar-produk",
+      "title": "Product List",
+      "pageType": "list-detail",
+      "layoutPattern": "list-detail",
+      "layout": {
+        "desktop": "5-col list + 7-col detail or full detail route",
+        "tablet": "List then detail",
+        "mobile": "Card list then detail",
+        "cards": [
+          "List",
+          "Summary",
+          "Timeline",
+          "Related records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Product table",
+        "Type",
+        "Status",
+        "Version",
+        "Classification",
+        "Workflow",
+        "Period"
+      ],
+      "filters": [
+        "q",
+        "status",
+        "productTypeId",
+        "classification",
+        "areaId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "OPERATIONAL_INTELLIGENCE_MANAGER",
+      "route": "/dashboard/oim/verifikasi-neraca-penilaian",
+      "title": "Verification & Assessment Balance",
+      "pageType": "workspace",
+      "layoutPattern": "editor-workspace",
+      "layout": {
+        "desktop": "3-col sources + 6-col editor + 3-col entities/validation",
+        "tablet": "Editor first; sources and metadata in drawers",
+        "mobile": "Editor sections stacked",
+        "cards": [
+          "Sources",
+          "Editor",
+          "Entities",
+          "Relationships",
+          "Validation"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Verification queue",
+        "Baket source",
+        "Checklist",
+        "Cross references",
+        "A-F selector",
+        "1-6 selector",
+        "Score interpretation",
+        "Decision"
+      ],
+      "filters": [
+        "status",
+        "areaId",
+        "verifiedByMe",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander",
+      "title": "Regional Command Dashboard",
+      "pageType": "dashboard",
+      "layoutPattern": "dashboard-grid",
+      "layout": {
+        "desktop": "12-column grid: 4 KPI cards; 8-col primary panel + 4-col priority queue; full-width activity/map; quick links row",
+        "tablet": "8-column grid: 2 KPI cards per row; primary panel full width; queue and map stacked",
+        "mobile": "1-column stack; urgent card first; quick actions sticky at bottom",
+        "cards": [
+          "KPI",
+          "Priority queue",
+          "Map preview",
+          "Activity",
+          "Quick access",
+          "System status"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Regional KPIs",
+        "Directive status",
+        "Task progress",
+        "Pending approvals",
+        "Warnings",
+        "Map summary"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/direktif-penjabaran-uuk-str",
+      "title": "UUK/STR Elaboration",
+      "pageType": "wizard-list",
+      "layoutPattern": "detail-two-column",
+      "layout": {
+        "desktop": "8-col main content + 4-col sticky metadata/actions rail",
+        "tablet": "Main content full width; metadata below; sticky action bar",
+        "mobile": "Single column; bottom sticky primary action",
+        "cards": [
+          "Summary",
+          "Metadata",
+          "Timeline",
+          "Attachments",
+          "Map",
+          "Available actions"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Received directive",
+        "UUK/STR versions",
+        "Section completeness",
+        "Target area",
+        "Publication state"
+      ],
+      "filters": [
+        "directiveVersionId",
+        "status",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/jawaban-lapangan",
+      "title": "Field Answers",
+      "pageType": "list-detail",
+      "layoutPattern": "list-detail",
+      "layout": {
+        "desktop": "5-col list + 7-col detail or full detail route",
+        "tablet": "List then detail",
+        "mobile": "Card list then detail",
+        "cards": [
+          "List",
+          "Summary",
+          "Timeline",
+          "Related records"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Task outputs",
+        "Baket summaries",
+        "Verification state",
+        "Area",
+        "Timeliness",
+        "Traceability"
+      ],
+      "filters": [
+        "directiveId",
+        "taskId",
+        "status",
+        "areaId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/komando-regional",
+      "title": "Regional Command Center",
+      "pageType": "command-board",
+      "layoutPattern": "command-board",
+      "layout": {
+        "desktop": "12-col command board; active directives 7-col; emergency 5-col; regional map full width",
+        "tablet": "Stacked command panels",
+        "mobile": "Emergency and urgent actions first",
+        "cards": [
+          "Directives",
+          "UUK/STR",
+          "Tasks",
+          "Emergency",
+          "Map"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Active directives",
+        "Published UUK/STR",
+        "OIM tasking",
+        "Emergency panel",
+        "Regional map"
+      ],
+      "filters": [
+        "areaId",
+        "from",
+        "to",
+        "status"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/kpi-evaluasi",
+      "title": "Regional KPI & Evaluation",
+      "pageType": "analytics",
+      "layoutPattern": "analytics-grid",
+      "layout": {
+        "desktop": "Filter bar; KPI row; 8-col main chart + 4-col breakdown; detail table",
+        "tablet": "Charts stacked",
+        "mobile": "KPI carousel; one chart per section",
+        "cards": [
+          "KPI",
+          "Trend chart",
+          "Breakdown",
+          "Comparison",
+          "Data table"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Task KPI",
+        "Directive progress",
+        "Verification quality",
+        "Product pipeline",
+        "Area comparison"
+      ],
+      "filters": [
+        "areaId",
+        "unitId",
+        "from",
+        "to",
+        "groupBy",
+        "compareWithPrevious"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/laporan-intelijen",
+      "title": "Regional Intelligence Findings",
+      "pageType": "catalog",
+      "layoutPattern": "catalog-grid",
+      "layout": {
+        "desktop": "Filter bar; table/card view switch; 3-column cards or full table",
+        "tablet": "2-column cards",
+        "mobile": "1-column cards",
+        "cards": [
+          "Catalog card",
+          "Status",
+          "Metadata",
+          "Pagination"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Verified Baket summary",
+        "Analysis cases",
+        "Area",
+        "Issue",
+        "Confidence/score summary",
+        "Period"
+      ],
+      "filters": [
+        "q",
+        "areaId",
+        "from",
+        "to",
+        "status",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/laporan-produk-intelijen",
+      "title": "Regional Intelligence Products",
+      "pageType": "catalog",
+      "layoutPattern": "catalog-grid",
+      "layout": {
+        "desktop": "Filter bar; table/card view switch; 3-column cards or full table",
+        "tablet": "2-column cards",
+        "mobile": "1-column cards",
+        "cards": [
+          "Catalog card",
+          "Status",
+          "Metadata",
+          "Pagination"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Product list",
+        "Type",
+        "Status",
+        "Version",
+        "Classification",
+        "Approval timeline",
+        "Distribution"
+      ],
+      "filters": [
+        "q",
+        "status",
+        "productTypeId",
+        "classification",
+        "areaId",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/monitoring-tugas",
+      "title": "Regional Task Monitoring",
+      "pageType": "analytics-tree",
+      "layoutPattern": "detail-two-column",
+      "layout": {
+        "desktop": "8-col main content + 4-col sticky metadata/actions rail",
+        "tablet": "Main content full width; metadata below; sticky action bar",
+        "mobile": "Single column; bottom sticky primary action",
+        "cards": [
+          "Summary",
+          "Metadata",
+          "Timeline",
+          "Attachments",
+          "Map",
+          "Available actions"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Directive-to-task tree",
+        "Unit progress",
+        "Overdue",
+        "Area",
+        "Baket output count"
+      ],
+      "filters": [
+        "directiveId",
+        "status",
+        "areaId",
+        "unitId",
+        "from",
+        "to"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/persetujuan-regional",
+      "title": "Regional Approval",
+      "pageType": "queue-detail",
+      "layoutPattern": "queue-detail",
+      "layout": {
+        "desktop": "4-col queue + 8-col selected detail/action workspace",
+        "tablet": "Queue route then detail route",
+        "mobile": "Separate list/detail pages",
+        "cards": [
+          "Queue",
+          "Detail",
+          "Timeline",
+          "Decision panel"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Active approval steps",
+        "Product",
+        "Traceability",
+        "Source analysis",
+        "Classification",
+        "Deadline"
+      ],
+      "filters": [
+        "status",
+        "productTypeId",
+        "classification",
+        "from",
+        "to",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/personel-jaring",
+      "title": "Regional Personnel & Jaring",
+      "pageType": "tabs",
+      "layoutPattern": "tabbed-workspace",
+      "layout": {
+        "desktop": "Page header + tab bar + tab-specific workspace",
+        "tablet": "Scrollable tabs",
+        "mobile": "Select/dropdown tab switcher",
+        "cards": [
+          "Tab navigation",
+          "Tab content",
+          "Context summary"
+        ]
+      },
+      "mapMode": null,
+      "display": [
+        "Personnel counts",
+        "Position occupancy",
+        "Jaring status",
+        "Coverage gaps",
+        "Caretaker relationship"
+      ],
+      "filters": [
+        "tab",
+        "q",
+        "status",
+        "areaId",
+        "unitId",
+        "positionCode",
+        "page",
+        "limit"
+      ]
+    },
+    {
+      "role": "REGIONAL_COMMANDER",
+      "route": "/dashboard/regional-commander/peta-peringatan-dini",
+      "title": "Regional Early Warning Map",
+      "pageType": "map",
+      "layoutPattern": "map-workspace",
+      "layout": {
+        "desktop": "Full-height map; top filter bar; left layer control; right detail drawer",
+        "tablet": "Full map; bottom-sheet details",
+        "mobile": "Map/list toggle; bottom sheet; locate and layer controls",
+        "cards": [
+          "Map canvas",
+          "Layer control",
+          "Legend",
+          "Popup",
+          "Detail drawer",
+          "Unlocated list"
+        ]
+      },
+      "mapMode": "regional-warning",
+      "display": [
+        "Alert layer",
+        "Emergency layer",
+        "Report cluster",
+        "Heatmap",
+        "Boundary",
+        "Area summary"
+      ],
+      "filters": [
+        "bbox",
+        "zoom",
+        "areaId",
+        "from",
+        "to",
+        "severity",
+        "status",
+        "urgency",
+        "layers"
+      ]
+    }
+  ]
+}

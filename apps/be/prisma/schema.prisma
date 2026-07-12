@@ -505,7 +505,6 @@ model UserProfile {
   username               String?           @unique @db.VarChar(100)
   fullName               String?           @db.VarChar(180)
   phone                  String?           @db.VarChar(30)
-  clearanceLevel         Classification    @default(TERBATAS)
   status                 UserProfileStatus @default(PENDING)
   isActive               Boolean           @default(true)
   operationalLockedAt    DateTime?

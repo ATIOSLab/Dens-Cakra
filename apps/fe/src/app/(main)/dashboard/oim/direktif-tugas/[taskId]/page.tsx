@@ -1,18 +1,12 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { OimTaskDetailPage } from "@/features/tasks/pages";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function Page({ params, searchParams }: PageProps) {
-  return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/oim/direktif-tugas/[taskId]"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
-    />
-  );
+export default async function Page({ params }: PageProps) {
+  const routeParams = (await params) ?? {};
+  return <OimTaskDetailPage taskId={routeParams.taskId} />;
 }

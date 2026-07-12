@@ -3,6 +3,7 @@ import {
   DirectiveStatus,
   Prisma,
   RecipientStatus,
+  RoleCode,
   TaskStatus,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
@@ -26,6 +27,143 @@ import type {
 export class DirectiveService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private areaIds(context: AuthorizationContext) {
+    return context.areaScopes.map((scope) => scope.areaId);
+  }
+
+  private recipientScopeWhere(
+    context: AuthorizationContext,
+  ): Prisma.DirectiveRecipientWhereInput {
+    return {
+      OR: [
+        { targetPositionId: context.positionId },
+        { targetUnitId: context.organizationUnitId },
+      ],
+    };
+  }
+
+  private areaScopeWhere(
+    context: AuthorizationContext,
+  ): Prisma.DirectiveWhereInput | undefined {
+    const areaIds = this.areaIds(context);
+
+    if (areaIds.length === 0) {
+      return undefined;
+    }
+
+    return {
+      versions: {
+        some: {
+          targetAreas: {
+            some: {
+              area: {
+                OR: [
+                  { id: { in: areaIds } },
+                  {
+                    ancestorLinks: {
+                      some: {
+                        ancestorId: { in: areaIds },
+                      },
+                    },
+                  },
+                  {
+                    descendantLinks: {
+                      some: {
+                        descendantId: { in: areaIds },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
+  private directiveAccessWhere(
+    context: AuthorizationContext,
+    extra: Prisma.DirectiveWhereInput = {},
+  ): Prisma.DirectiveWhereInput {
+    const areaScope = this.areaScopeWhere(context);
+    const visibilityBranches: Prisma.DirectiveWhereInput[] = [
+      { ownerUnitId: context.organizationUnitId },
+      { createdByAssignmentId: context.primaryAssignmentId },
+      {
+        versions: {
+          some: {
+            recipients: {
+              some: this.recipientScopeWhere(context),
+            },
+          },
+        },
+      },
+      {
+        versions: {
+          some: {
+            uukStrs: {
+              some: {
+                ownerUnitId: context.organizationUnitId,
+              },
+            },
+          },
+        },
+      },
+      {
+        versions: {
+          some: {
+            tasks: {
+              some: {
+                OR: [
+                  { ownerUnitId: context.organizationUnitId },
+                  {
+                    assignments: {
+                      some: {
+                        OR: [
+                          {
+                            assigneeAssignmentId:
+                              context.primaryAssignmentId,
+                          },
+                          {
+                            assignerAssignmentId:
+                              context.primaryAssignmentId,
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    if (areaScope) {
+      visibilityBranches.push(areaScope);
+    }
+
+    return {
+      AND: [
+        { deletedAt: null },
+        extra,
+        { OR: visibilityBranches },
+      ],
+    };
+  }
+
+  private assertRole(
+    context: AuthorizationContext,
+    allowedRoles: readonly RoleCode[],
+    message: string,
+  ) {
+    if (!allowedRoles.includes(context.roleCode)) {
+      throw new ApiException('DIRECTIVE_ROLE_FORBIDDEN', message, 403);
+    }
+  }
+
   private validateRecipients(recipients: VersionRecipientDto[]) {
     const seen = new Set<string>();
 
@@ -45,6 +183,7 @@ export class DirectiveService {
       const key = recipient.targetUnitId
         ? `unit:${recipient.targetUnitId}`
         : `position:${recipient.targetPositionId}`;
+
       if (seen.has(key)) {
         throw new ApiException(
           'DIRECTIVE_RECIPIENT_DUPLICATE',
@@ -52,6 +191,7 @@ export class DirectiveService {
           409,
         );
       }
+
       seen.add(key);
     }
   }
@@ -74,9 +214,37 @@ export class DirectiveService {
     });
   }
 
-  private detail(id: string) {
+  private detailWhere(
+    id: string,
+    context?: AuthorizationContext,
+  ): Prisma.DirectiveWhereInput {
+    const extra: Prisma.DirectiveWhereInput = { id };
+    return context ? this.directiveAccessWhere(context, extra) : extra;
+  }
+
+  private versionWhere(
+    versionId: string,
+    context?: AuthorizationContext,
+  ): Prisma.DirectiveVersionWhereInput {
+    const extra: Prisma.DirectiveVersionWhereInput = { id: versionId };
+
+    if (!context) {
+      return extra;
+    }
+
+    return {
+      AND: [
+        extra,
+        {
+          directive: this.directiveAccessWhere(context),
+        },
+      ],
+    };
+  }
+
+  private detail(id: string, context?: AuthorizationContext) {
     return this.prisma.directive.findFirstOrThrow({
-      where: { id, deletedAt: null },
+      where: this.detailWhere(id, context),
       include: {
         ownerUnit: true,
         createdByAssignment: {
@@ -97,11 +265,17 @@ export class DirectiveService {
             },
             tasks: {
               include: {
-                assignments: true,
+                ownerUnit: true,
+                assignments: {
+                  include: {
+                    assigner: { include: { position: true, userProfile: true } },
+                    assignee: { include: { position: true, userProfile: true } },
+                  },
+                },
                 targetAreas: {
                   include: {
                     area: {
-                      include: { ancestorLinks: true },
+                      include: { ancestorLinks: true, descendantLinks: true },
                     },
                   },
                 },
@@ -122,9 +296,9 @@ export class DirectiveService {
     });
   }
 
-  private versionDetail(versionId: string) {
-    return this.prisma.directiveVersion.findUniqueOrThrow({
-      where: { id: versionId },
+  private versionDetail(versionId: string, context?: AuthorizationContext) {
+    return this.prisma.directiveVersion.findFirstOrThrow({
+      where: this.versionWhere(versionId, context),
       include: {
         directive: true,
         createdByAssignment: {
@@ -139,11 +313,17 @@ export class DirectiveService {
         },
         tasks: {
           include: {
-            assignments: true,
+            ownerUnit: true,
+            assignments: {
+              include: {
+                assigner: { include: { position: true, userProfile: true } },
+                assignee: { include: { position: true, userProfile: true } },
+              },
+            },
             targetAreas: {
               include: {
                 area: {
-                  include: { ancestorLinks: true },
+                  include: { ancestorLinks: true, descendantLinks: true },
                 },
               },
             },
@@ -162,10 +342,15 @@ export class DirectiveService {
     });
   }
 
-  private async getEditableVersion(versionId: string) {
+  private async getEditableVersion(
+    versionId: string,
+    context: AuthorizationContext,
+  ) {
     const version = await this.prisma.directiveVersion.findUniqueOrThrow({
       where: { id: versionId },
-      include: { directive: true },
+      include: {
+        directive: true,
+      },
     });
 
     if (
@@ -179,15 +364,25 @@ export class DirectiveService {
       );
     }
 
+    if (
+      version.directive.ownerUnitId !== context.organizationUnitId &&
+      version.directive.createdByAssignmentId !== context.primaryAssignmentId
+    ) {
+      throw new ApiException(
+        'DIRECTIVE_NOT_MUTABLE',
+        'Only the owning executive chain can edit this directive.',
+        403,
+      );
+    }
+
     return version;
   }
 
   private directiveListWhere(
     query: DirectiveQuery,
-    context?: AuthorizationContext,
+    context: AuthorizationContext,
   ): Prisma.DirectiveWhereInput {
-    return {
-      deletedAt: null,
+    return this.directiveAccessWhere(context, {
       ...(query.status ? { status: query.status } : {}),
       ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
       ...(query.search
@@ -258,6 +453,11 @@ export class DirectiveService {
                         {
                           ancestorLinks: { some: { ancestorId: query.areaId } },
                         },
+                        {
+                          descendantLinks: {
+                            some: { descendantId: query.areaId },
+                          },
+                        },
                       ],
                     },
                   },
@@ -266,23 +466,18 @@ export class DirectiveService {
             },
           }
         : {}),
-      ...(query.assignedToMe && context
+      ...(query.assignedToMe
         ? {
             versions: {
               some: {
                 recipients: {
-                  some: {
-                    OR: [
-                      { targetPositionId: context.positionId },
-                      { targetUnitId: context.organizationUnitId },
-                    ],
-                  },
+                  some: this.recipientScopeWhere(context),
                 },
               },
             },
           }
         : {}),
-    };
+    });
   }
 
   async list(query: DirectiveQuery, context: AuthorizationContext) {
@@ -297,7 +492,12 @@ export class DirectiveService {
           take: 1,
           include: {
             targetAreas: { include: { area: true } },
-            recipients: true,
+            recipients: {
+              include: {
+                targetUnit: true,
+                targetPosition: true,
+              },
+            },
           },
         },
         _count: {
@@ -310,6 +510,20 @@ export class DirectiveService {
   }
 
   async create(body: CreateDirectiveDto, context: AuthorizationContext) {
+    this.assertRole(
+      context,
+      [RoleCode.EXECUTIVE],
+      'Only Executive can create strategic directives.',
+    );
+
+    if (body.ownerUnitId !== context.organizationUnitId) {
+      throw new ApiException(
+        'DIRECTIVE_OWNER_UNIT_OUT_OF_SCOPE',
+        'Directives can only be created for the current organization unit.',
+        403,
+      );
+    }
+
     this.validateRecipients(body.version.recipients);
 
     const directive = await this.prisma.$transaction(async (tx) => {
@@ -353,16 +567,20 @@ export class DirectiveService {
     });
 
     await this.audit(context, 'DIRECTIVE.CREATE', directive.id);
-    return this.detail(directive.id);
+    return this.detail(directive.id, context);
   }
 
-  async get(directiveId: string) {
-    return this.detail(directiveId);
+  async get(directiveId: string, context: AuthorizationContext) {
+    return this.detail(directiveId, context);
   }
 
-  async versions(directiveId: string) {
+  async versions(directiveId: string, context: AuthorizationContext) {
+    await this.detail(directiveId, context);
+
     return this.prisma.directiveVersion.findMany({
-      where: { directiveId },
+      where: {
+        directiveId,
+      },
       orderBy: { versionNumber: 'desc' },
       include: {
         createdByAssignment: {
@@ -384,13 +602,29 @@ export class DirectiveService {
     body: CreateDirectiveRevisionDto,
     context: AuthorizationContext,
   ) {
+    this.assertRole(
+      context,
+      [RoleCode.EXECUTIVE],
+      'Only Executive can revise strategic directives.',
+    );
+
     if (body.patch.recipients) {
       this.validateRecipients(body.patch.recipients);
     }
 
-    const directive = await this.prisma.directive.findUniqueOrThrow({
-      where: { id: directiveId },
-    });
+    const directive = await this.detail(directiveId, context);
+
+    if (
+      directive.ownerUnitId !== context.organizationUnitId &&
+      directive.createdByAssignmentId !== context.primaryAssignmentId
+    ) {
+      throw new ApiException(
+        'DIRECTIVE_NOT_MUTABLE',
+        'Only the owning executive chain can revise this directive.',
+        403,
+      );
+    }
+
     if (
       directive.status === DirectiveStatus.CANCELLED ||
       directive.status === DirectiveStatus.COMPLETED
@@ -415,6 +649,7 @@ export class DirectiveService {
           });
 
       const nextVersionNumber = directive.currentVersionNumber + 1;
+
       const version = await tx.directiveVersion.create({
         data: {
           directiveId,
@@ -467,11 +702,11 @@ export class DirectiveService {
       versionId: newVersion.id,
       versionNumber: newVersion.versionNumber,
     });
-    return this.versionDetail(newVersion.id);
+    return this.versionDetail(newVersion.id, context);
   }
 
-  async getVersion(versionId: string) {
-    return this.versionDetail(versionId);
+  async getVersion(versionId: string, context: AuthorizationContext) {
+    return this.versionDetail(versionId, context);
   }
 
   async updateVersion(
@@ -479,7 +714,14 @@ export class DirectiveService {
     body: UpdateDirectiveVersionDto,
     context: AuthorizationContext,
   ) {
-    await this.getEditableVersion(versionId);
+    this.assertRole(
+      context,
+      [RoleCode.EXECUTIVE],
+      'Only Executive can edit directive drafts.',
+    );
+
+    await this.getEditableVersion(versionId, context);
+
     await this.prisma.directiveVersion.update({
       where: { id: versionId },
       data: {
@@ -488,8 +730,9 @@ export class DirectiveService {
         ...(body.dueDate ? { dueDate: new Date(body.dueDate) } : {}),
       },
     });
+
     await this.audit(context, 'DIRECTIVE.VERSION.UPDATE', versionId);
-    return this.versionDetail(versionId);
+    return this.versionDetail(versionId, context);
   }
 
   async replaceAreas(
@@ -497,7 +740,14 @@ export class DirectiveService {
     body: ReplaceAreasDto,
     context: AuthorizationContext,
   ) {
-    await this.getEditableVersion(versionId);
+    this.assertRole(
+      context,
+      [RoleCode.EXECUTIVE],
+      'Only Executive can edit directive draft areas.',
+    );
+
+    await this.getEditableVersion(versionId, context);
+
     await this.prisma.$transaction(async (tx) => {
       await tx.directiveTargetArea.deleteMany({
         where: { directiveVersionId: versionId },
@@ -512,8 +762,9 @@ export class DirectiveService {
         })),
       });
     });
+
     await this.audit(context, 'DIRECTIVE.TARGETS.REPLACE', versionId);
-    return (await this.versionDetail(versionId)).targetAreas;
+    return (await this.versionDetail(versionId, context)).targetAreas;
   }
 
   async replaceRecipients(
@@ -521,8 +772,15 @@ export class DirectiveService {
     body: ReplaceRecipientsDto,
     context: AuthorizationContext,
   ) {
-    await this.getEditableVersion(versionId);
+    this.assertRole(
+      context,
+      [RoleCode.EXECUTIVE],
+      'Only Executive can edit directive recipients.',
+    );
+
+    await this.getEditableVersion(versionId, context);
     this.validateRecipients(body.recipients);
+
     await this.prisma.$transaction(async (tx) => {
       await tx.directiveRecipient.deleteMany({
         where: { directiveVersionId: versionId },
@@ -535,8 +793,9 @@ export class DirectiveService {
         })),
       });
     });
+
     await this.audit(context, 'DIRECTIVE.RECIPIENTS.REPLACE', versionId);
-    return (await this.versionDetail(versionId)).recipients;
+    return (await this.versionDetail(versionId, context)).recipients;
   }
 
   async publish(
@@ -544,6 +803,12 @@ export class DirectiveService {
     body: PublishDirectiveDto,
     context: AuthorizationContext,
   ) {
+    this.assertRole(
+      context,
+      [RoleCode.EXECUTIVE],
+      'Only Executive can publish strategic directives.',
+    );
+
     if (body.confirmation !== 'PUBLISH') {
       throw new ApiException(
         'DIRECTIVE_PUBLISH_CONFIRMATION_REQUIRED',
@@ -552,8 +817,9 @@ export class DirectiveService {
       );
     }
 
-    const version = await this.getEditableVersion(versionId);
-    const fullVersion = await this.versionDetail(versionId);
+    const version = await this.getEditableVersion(versionId, context);
+    const fullVersion = await this.versionDetail(versionId, context);
+
     if (
       fullVersion.targetAreas.length === 0 ||
       fullVersion.recipients.length === 0
@@ -569,11 +835,12 @@ export class DirectiveService {
       where: { id: version.directiveId },
       data: { status: DirectiveStatus.PUBLISHED },
     });
+
     await this.audit(context, 'DIRECTIVE.PUBLISH', version.directiveId, {
       versionId,
       note: body.note ?? null,
     });
-    return this.detail(version.directiveId);
+    return this.detail(version.directiveId, context);
   }
 
   async distribute(
@@ -581,10 +848,31 @@ export class DirectiveService {
     body: DistributeDirectiveDto,
     context: AuthorizationContext,
   ) {
+    this.assertRole(
+      context,
+      [RoleCode.EXECUTIVE],
+      'Only Executive can distribute strategic directives.',
+    );
+
     const version = await this.prisma.directiveVersion.findUniqueOrThrow({
       where: { id: versionId },
-      include: { directive: true, recipients: true },
+      include: {
+        directive: true,
+        recipients: true,
+      },
     });
+
+    if (
+      version.directive.ownerUnitId !== context.organizationUnitId &&
+      version.directive.createdByAssignmentId !== context.primaryAssignmentId
+    ) {
+      throw new ApiException(
+        'DIRECTIVE_NOT_DISTRIBUTABLE',
+        'Only the owning executive chain can distribute this directive.',
+        403,
+      );
+    }
+
     if (
       version.directive.status !== DirectiveStatus.PUBLISHED ||
       version.versionNumber !== version.directive.currentVersionNumber
@@ -606,22 +894,34 @@ export class DirectiveService {
       });
 
       if (body.sendNotifications) {
-        const unitRecipients = version.recipients.filter(
-          (item) => item.targetUnitId,
-        );
-        for (const recipient of unitRecipients) {
+        const notifiedProfiles = new Set<string>();
+
+        for (const recipient of version.recipients) {
           const profiles = await tx.positionAssignment.findMany({
             where: {
-              position: {
-                organizationUnitId: recipient.targetUnitId ?? undefined,
-              },
               isActive: true,
               validUntil: null,
+              ...(recipient.targetPositionId
+                ? { positionId: recipient.targetPositionId }
+                : {}),
+              ...(recipient.targetUnitId
+                ? {
+                    position: {
+                      organizationUnitId: recipient.targetUnitId,
+                    },
+                  }
+                : {}),
             },
             select: { userProfileId: true },
           });
 
           for (const profile of profiles) {
+            if (notifiedProfiles.has(profile.userProfileId)) {
+              continue;
+            }
+
+            notifiedProfiles.add(profile.userProfileId);
+
             await tx.notification.create({
               data: {
                 userProfileId: profile.userProfileId,
@@ -666,6 +966,7 @@ export class DirectiveService {
     const recipient = await this.prisma.directiveRecipient.findUniqueOrThrow({
       where: { id: recipientId },
     });
+
     if (
       recipient.targetPositionId &&
       recipient.targetPositionId !== context.positionId
@@ -676,6 +977,7 @@ export class DirectiveService {
         403,
       );
     }
+
     if (
       recipient.targetUnitId &&
       recipient.targetUnitId !== context.organizationUnitId
@@ -697,6 +999,7 @@ export class DirectiveService {
         failureReason: body.note ?? recipient.failureReason,
       },
     });
+
     await this.audit(
       context,
       'DIRECTIVE.ACKNOWLEDGE',
@@ -706,6 +1009,7 @@ export class DirectiveService {
         note: body.note ?? null,
       },
     );
+
     return this.prisma.directiveRecipient.findUniqueOrThrow({
       where: { id: recipientId },
       include: {
@@ -717,14 +1021,16 @@ export class DirectiveService {
 
   async tracking(
     directiveId: string,
-    areaId?: string,
-    unitId?: string,
+    areaId: string | undefined,
+    unitId: string | undefined,
     includeTasks = 'true',
+    context: AuthorizationContext,
   ) {
-    const directive = await this.detail(directiveId);
+    const directive = await this.detail(directiveId, context);
     const version = directive.versions.find(
       (item) => item.versionNumber === directive.currentVersionNumber,
     );
+
     const tasks = (version?.tasks ?? []).filter((task) => {
       const areaMatch = areaId
         ? task.targetAreas.some(
@@ -732,11 +1038,24 @@ export class DirectiveService {
               target.areaId === areaId ||
               target.area.ancestorLinks.some(
                 (link) => link.ancestorId === areaId,
+              ) ||
+              target.area.descendantLinks.some(
+                (link) => link.descendantId === areaId,
               ),
           )
         : true;
       const unitMatch = unitId ? task.ownerUnitId === unitId : true;
-      return areaMatch && unitMatch;
+      const visibilityMatch =
+        directive.ownerUnitId === context.organizationUnitId ||
+        directive.createdByAssignmentId === context.primaryAssignmentId ||
+        task.ownerUnitId === context.organizationUnitId ||
+        task.assignments.some(
+          (assignment) =>
+            assignment.assigneeAssignmentId === context.primaryAssignmentId ||
+            assignment.assignerAssignmentId === context.primaryAssignmentId,
+        );
+
+      return areaMatch && unitMatch && visibilityMatch;
     });
 
     const baketCount = await this.prisma.baket.count({
@@ -793,7 +1112,25 @@ export class DirectiveService {
     body: RequiredReasonDto,
     context: AuthorizationContext,
   ) {
-    const directive = await this.detail(directiveId);
+    this.assertRole(
+      context,
+      [RoleCode.EXECUTIVE],
+      'Only Executive can cancel strategic directives.',
+    );
+
+    const directive = await this.detail(directiveId, context);
+
+    if (
+      directive.ownerUnitId !== context.organizationUnitId &&
+      directive.createdByAssignmentId !== context.primaryAssignmentId
+    ) {
+      throw new ApiException(
+        'DIRECTIVE_NOT_MUTABLE',
+        'Only the owning executive chain can cancel this directive.',
+        403,
+      );
+    }
+
     if (directive.status === DirectiveStatus.CANCELLED) {
       return directive;
     }
@@ -807,6 +1144,7 @@ export class DirectiveService {
       const currentVersion = directive.versions.find(
         (item) => item.versionNumber === directive.currentVersionNumber,
       );
+
       if (currentVersion) {
         await tx.task.updateMany({
           where: {
@@ -827,6 +1165,6 @@ export class DirectiveService {
     await this.audit(context, 'DIRECTIVE.CANCEL', directiveId, {
       reason: body.reason,
     });
-    return this.detail(directiveId);
+    return this.detail(directiveId, context);
   }
 }

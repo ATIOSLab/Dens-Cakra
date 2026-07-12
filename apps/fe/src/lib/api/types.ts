@@ -20,6 +20,7 @@ export type ApiErrorEnvelope = {
 };
 
 export type ApiEnvelope<T> = ApiSuccessEnvelope<T> | ApiErrorEnvelope;
+export type ApiResolvedEnvelope<T> = ApiSuccessEnvelope<T>;
 
 export type PaginationMeta = {
   page?: number;
@@ -45,7 +46,6 @@ export type AppliedScope = {
   unitId?: string | null;
   areaId?: string | null;
   includeDescendants?: boolean;
-  clearanceRank?: number | null;
   generatedAt?: string;
 };
 

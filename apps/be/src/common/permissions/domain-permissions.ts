@@ -166,8 +166,12 @@ export const DOMAIN_ROLE_PERMISSIONS: Record<
   [RoleCode.EXECUTIVE]: grants(
     ['directive', 'dashboard', 'map', 'emergency', 'alert'],
     [
+      'organization.read',
+      'position.read',
+      'area.read',
       'uuk.read',
       'task.read',
+      'assignment.read',
       'baket.read',
       'verification.read',
       'analysis.read',
@@ -187,6 +191,10 @@ export const DOMAIN_ROLE_PERMISSIONS: Record<
   [RoleCode.REGIONAL_COMMANDER]: grants(
     ['uuk', 'task', 'dashboard', 'map', 'emergency', 'alert'],
     [
+      'organization.read',
+      'position.read',
+      'area.read',
+      'assignment.read',
       'directive.read',
       'directive.track',
       'directive.acknowledge',
@@ -218,6 +226,10 @@ export const DOMAIN_ROLE_PERMISSIONS: Record<
       'alert',
     ],
     [
+      'organization.read',
+      'position.read',
+      'area.read',
+      'assignment.read',
       'directive.read',
       'directive.acknowledge',
       'uuk.read',
@@ -242,6 +254,10 @@ export const DOMAIN_ROLE_PERMISSIONS: Record<
   [RoleCode.FIELD_COORDINATOR]: grants(
     ['task', 'dashboard', 'map', 'emergency', 'alert'],
     [
+      'organization.read',
+      'position.read',
+      'area.read',
+      'assignment.read',
       'directive.read',
       'directive.acknowledge',
       'uuk.read',
@@ -259,6 +275,8 @@ export const DOMAIN_ROLE_PERMISSIONS: Record<
   [RoleCode.FIELD_OFFICER]: grants(
     ['jaring', 'whatsapp'],
     [
+      'area.read',
+      'assignment.read',
       'task.read',
       'task.execute',
       'baket.create',

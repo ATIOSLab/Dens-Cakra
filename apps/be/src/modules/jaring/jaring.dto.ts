@@ -26,7 +26,7 @@ export class CreateJaringDto {
   @IsOptional() @IsString() @MaxLength(150) aliasName?: string;
   @IsString() @MaxLength(30) whatsappNumber!: string;
   @IsUUID() fieldOfficerAssignmentId!: string;
-  @IsArray() @ArrayMinSize(1) @IsUUID('4', { each: true }) areaIds!: string[];
+  @IsArray() @ArrayMinSize(1) @IsUUID(undefined, { each: true }) areaIds!: string[];
   @IsOptional() @IsString() @MaxLength(3000) notes?: string;
 }
 

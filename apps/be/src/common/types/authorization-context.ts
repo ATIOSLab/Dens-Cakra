@@ -1,6 +1,5 @@
 import type {
   AdministrativeLevel,
-  Classification,
   CommandRouteType,
   OrganizationType,
   PositionCode,
@@ -22,7 +21,6 @@ export type AuthorizationContext = {
   authRole: SystemRole;
   userProfileId: string;
   userProfileStatus: UserProfileStatus;
-  clearanceLevel: Classification;
   primaryAssignmentId: string;
   positionId: string;
   positionCode: PositionCode;

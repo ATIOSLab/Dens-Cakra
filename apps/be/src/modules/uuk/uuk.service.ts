@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   DirectiveStatus,
   Prisma,
+  RoleCode,
   TaskStatus,
   UukStrSectionType,
   UukStrStatus,
@@ -36,6 +37,165 @@ const REQUIRED_UUK_SECTION_TYPES = new Set<UukStrSectionType>([
 export class UukService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private areaIds(context: AuthorizationContext) {
+    return context.areaScopes.map((scope) => scope.areaId);
+  }
+
+  private recipientScopeWhere(
+    context: AuthorizationContext,
+  ): Prisma.DirectiveRecipientWhereInput {
+    return {
+      OR: [
+        { targetPositionId: context.positionId },
+        { targetUnitId: context.organizationUnitId },
+      ],
+    };
+  }
+
+  private areaScopeWhere(
+    context: AuthorizationContext,
+  ): Prisma.UukStrWhereInput | undefined {
+    const areaIds = this.areaIds(context);
+
+    if (areaIds.length === 0) {
+      return undefined;
+    }
+
+    return {
+      OR: [
+        {
+          directiveVersion: {
+            targetAreas: {
+              some: {
+                area: {
+                  OR: [
+                    { id: { in: areaIds } },
+                    {
+                      ancestorLinks: {
+                        some: {
+                          ancestorId: { in: areaIds },
+                        },
+                      },
+                    },
+                    {
+                      descendantLinks: {
+                        some: {
+                          descendantId: { in: areaIds },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          versions: {
+            some: {
+              tasks: {
+                some: {
+                  targetAreas: {
+                    some: {
+                      area: {
+                        OR: [
+                          { id: { in: areaIds } },
+                          {
+                            ancestorLinks: {
+                              some: {
+                                ancestorId: { in: areaIds },
+                              },
+                            },
+                          },
+                          {
+                            descendantLinks: {
+                              some: {
+                                descendantId: { in: areaIds },
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+  }
+
+  private uukAccessWhere(
+    context: AuthorizationContext,
+    extra: Prisma.UukStrWhereInput = {},
+  ): Prisma.UukStrWhereInput {
+    const areaScope = this.areaScopeWhere(context);
+    const visibilityBranches: Prisma.UukStrWhereInput[] = [
+      { ownerUnitId: context.organizationUnitId },
+      { createdByAssignmentId: context.primaryAssignmentId },
+      {
+        directiveVersion: {
+          recipients: {
+            some: this.recipientScopeWhere(context),
+          },
+        },
+      },
+      {
+        versions: {
+          some: {
+            tasks: {
+              some: {
+                OR: [
+                  { ownerUnitId: context.organizationUnitId },
+                  {
+                    assignments: {
+                      some: {
+                        OR: [
+                          {
+                            assigneeAssignmentId:
+                              context.primaryAssignmentId,
+                          },
+                          {
+                            assignerAssignmentId:
+                              context.primaryAssignmentId,
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    if (areaScope) {
+      visibilityBranches.push(areaScope);
+    }
+
+    return {
+      AND: [
+        { deletedAt: null },
+        extra,
+        { OR: visibilityBranches },
+      ],
+    };
+  }
+
+  private assertRole(
+    context: AuthorizationContext,
+    allowedRoles: readonly RoleCode[],
+    message: string,
+  ) {
+    if (!allowedRoles.includes(context.roleCode)) {
+      throw new ApiException('UUK_ROLE_FORBIDDEN', message, 403);
+    }
+  }
+
   private validateSections(sections: SectionDto[]) {
     const sectionTypeSet = new Set<string>();
     const sectionOrderSet = new Set<number>();
@@ -61,6 +221,7 @@ export class UukService {
 
       const itemCodeSet = new Set<string>();
       const itemOrderSet = new Set<number>();
+
       for (const item of section.items) {
         if (
           itemCodeSet.has(item.itemCode) ||
@@ -72,6 +233,7 @@ export class UukService {
             409,
           );
         }
+
         itemCodeSet.add(item.itemCode);
         itemOrderSet.add(item.orderNumber);
       }
@@ -80,11 +242,13 @@ export class UukService {
 
   private isComplete(sections: SectionDto[]) {
     const typeSet = new Set(sections.map((section) => section.sectionType));
+
     for (const required of REQUIRED_UUK_SECTION_TYPES) {
       if (!typeSet.has(required)) {
         return false;
       }
     }
+
     return true;
   }
 
@@ -106,15 +270,21 @@ export class UukService {
     });
   }
 
-  private detail(id: string) {
+  private detail(id: string, context?: AuthorizationContext) {
     return this.prisma.uukStr.findFirstOrThrow({
-      where: { id, deletedAt: null },
+      where: context ? this.uukAccessWhere(context, { id }) : { id, deletedAt: null },
       include: {
         ownerUnit: true,
         directiveVersion: {
           include: {
             directive: true,
             targetAreas: { include: { area: true } },
+            recipients: {
+              include: {
+                targetUnit: true,
+                targetPosition: true,
+              },
+            },
           },
         },
         createdByAssignment: {
@@ -134,7 +304,13 @@ export class UukService {
             },
             tasks: {
               include: {
-                assignments: true,
+                ownerUnit: true,
+                assignments: {
+                  include: {
+                    assigner: { include: { position: true, userProfile: true } },
+                    assignee: { include: { position: true, userProfile: true } },
+                  },
+                },
                 targetAreas: { include: { area: true } },
               },
             },
@@ -144,9 +320,14 @@ export class UukService {
     });
   }
 
-  private versionDetail(versionId: string) {
-    return this.prisma.uukStrVersion.findUniqueOrThrow({
-      where: { id: versionId },
+  private versionDetail(versionId: string, context?: AuthorizationContext) {
+    return this.prisma.uukStrVersion.findFirstOrThrow({
+      where: context
+        ? {
+            id: versionId,
+            uukStr: this.uukAccessWhere(context),
+          }
+        : { id: versionId },
       include: {
         uukStr: {
           include: {
@@ -154,6 +335,12 @@ export class UukService {
             directiveVersion: {
               include: {
                 directive: true,
+                recipients: {
+                  include: {
+                    targetUnit: true,
+                    targetPosition: true,
+                  },
+                },
               },
             },
           },
@@ -169,7 +356,13 @@ export class UukService {
         },
         tasks: {
           include: {
-            assignments: true,
+            ownerUnit: true,
+            assignments: {
+              include: {
+                assigner: { include: { position: true, userProfile: true } },
+                assignee: { include: { position: true, userProfile: true } },
+              },
+            },
             targetAreas: { include: { area: true } },
           },
         },
@@ -177,7 +370,10 @@ export class UukService {
     });
   }
 
-  private async getEditableVersion(versionId: string) {
+  private async getEditableVersion(
+    versionId: string,
+    context: AuthorizationContext,
+  ) {
     const version = await this.prisma.uukStrVersion.findUniqueOrThrow({
       where: { id: versionId },
       include: { uukStr: true },
@@ -195,7 +391,26 @@ export class UukService {
       );
     }
 
+    if (
+      version.uukStr.ownerUnitId !== context.organizationUnitId &&
+      version.uukStr.createdByAssignmentId !== context.primaryAssignmentId
+    ) {
+      throw new ApiException(
+        'UUK_NOT_MUTABLE',
+        'Only the owning regional chain can edit this UUK/STR.',
+        403,
+      );
+    }
+
     return version;
+  }
+
+  private assertForwardingImmutable() {
+    throw new ApiException(
+      'UUK_FORWARDING_IMMUTABLE',
+      'Regional forwarding only passes the published STR downward. Its content cannot be revised or edited.',
+      409,
+    );
   }
 
   private async replaceSectionsInternal(
@@ -228,10 +443,9 @@ export class UukService {
     }
   }
 
-  async list(query: UukQuery) {
+  async list(query: UukQuery, context: AuthorizationContext) {
     return this.prisma.uukStr.findMany({
-      where: {
-        deletedAt: null,
+      where: this.uukAccessWhere(context, {
         ...(query.status ? { status: query.status } : {}),
         ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
         ...(query.directiveId
@@ -264,13 +478,21 @@ export class UukService {
               ],
             }
           : {}),
-      },
+      }),
       take: query.limit,
       orderBy: { updatedAt: 'desc' },
       include: {
         ownerUnit: true,
         directiveVersion: {
-          include: { directive: true },
+          include: {
+            directive: true,
+            recipients: {
+              include: {
+                targetUnit: true,
+                targetPosition: true,
+              },
+            },
+          },
         },
         versions: {
           orderBy: { versionNumber: 'desc' },
@@ -287,12 +509,48 @@ export class UukService {
   }
 
   async create(body: CreateUukDto, context: AuthorizationContext) {
+    this.assertRole(
+      context,
+      [RoleCode.REGIONAL_COMMANDER],
+      'Only Regional Commander can create UUK/STR elaboration.',
+    );
+
+    if (body.ownerUnitId !== context.organizationUnitId) {
+      throw new ApiException(
+        'UUK_OWNER_UNIT_OUT_OF_SCOPE',
+        'UUK/STR can only be created for the current organization unit.',
+        403,
+      );
+    }
+
     this.validateSections(body.sections);
-    const directiveVersion =
-      await this.prisma.directiveVersion.findUniqueOrThrow({
-        where: { id: body.directiveVersionId },
-        include: { directive: true },
-      });
+
+    const directiveVersion = await this.prisma.directiveVersion.findFirstOrThrow({
+      where: {
+        id: body.directiveVersionId,
+        OR: [
+          {
+            directive: {
+              deletedAt: null,
+              ownerUnitId: context.organizationUnitId,
+            },
+          },
+          {
+            directive: {
+              deletedAt: null,
+            },
+            recipients: {
+              some: this.recipientScopeWhere(context),
+            },
+          },
+        ],
+      },
+      include: {
+        directive: true,
+        recipients: true,
+      },
+    });
+
     if (
       directiveVersion.directive.status === DirectiveStatus.CANCELLED ||
       directiveVersion.directive.status === DirectiveStatus.COMPLETED
@@ -304,17 +562,40 @@ export class UukService {
       );
     }
 
+    const hasRecipient =
+      directiveVersion.directive.ownerUnitId === context.organizationUnitId ||
+      directiveVersion.recipients.some(
+        (recipient) =>
+          recipient.targetPositionId === context.positionId ||
+          recipient.targetUnitId === context.organizationUnitId,
+      );
+
+    if (!hasRecipient) {
+      throw new ApiException(
+        'UUK_DIRECTIVE_NOT_ASSIGNED',
+        'UUK/STR can only be elaborated from a directive received by the current command.',
+        403,
+      );
+    }
+
+    if (!this.isComplete(body.sections)) {
+      throw new ApiException(
+        'UUK_FORWARDING_INCOMPLETE',
+        'Regional forwarding must carry the complete published STR content without omissions.',
+        422,
+      );
+    }
+
     const uuk = await this.prisma.$transaction(async (tx) => {
       const root = await tx.uukStr.create({
         data: {
           directiveVersionId: body.directiveVersionId,
           ownerUnitId: body.ownerUnitId,
           createdByAssignmentId: context.primaryAssignmentId,
-          status: this.isComplete(body.sections)
-            ? UukStrStatus.READY
-            : UukStrStatus.DRAFT,
+          status: UukStrStatus.PUBLISHED,
         },
       });
+
       const version = await tx.uukStrVersion.create({
         data: {
           uukStrId: root.id,
@@ -323,19 +604,22 @@ export class UukService {
           createdByAssignmentId: context.primaryAssignmentId,
         },
       });
+
       await this.replaceSectionsInternal(tx, version.id, body.sections);
       return root;
     });
 
     await this.audit(context, 'UUK.CREATE', uuk.id);
-    return this.detail(uuk.id);
+    return this.detail(uuk.id, context);
   }
 
-  async get(uukStrId: string) {
-    return this.detail(uukStrId);
+  async get(uukStrId: string, context: AuthorizationContext) {
+    return this.detail(uukStrId, context);
   }
 
-  async versions(uukStrId: string) {
+  async versions(uukStrId: string, context: AuthorizationContext) {
+    await this.detail(uukStrId, context);
+
     return this.prisma.uukStrVersion.findMany({
       where: { uukStrId },
       orderBy: { versionNumber: 'desc' },
@@ -358,57 +642,20 @@ export class UukService {
     body: CreateUukRevisionDto,
     context: AuthorizationContext,
   ) {
-    this.validateSections(body.sections);
-    const uuk = await this.prisma.uukStr.findUniqueOrThrow({
-      where: { id: uukStrId },
-    });
-    if (uuk.status === UukStrStatus.CANCELLED) {
-      throw new ApiException(
-        'UUK_NOT_MUTABLE',
-        'Cancelled UUK/STR cannot be revised.',
-        409,
-      );
-    }
+    this.assertRole(
+      context,
+      [RoleCode.REGIONAL_COMMANDER],
+      'Only Regional Commander can revise UUK/STR.',
+    );
 
-    const version = await this.prisma.$transaction(async (tx) => {
-      if (body.basedOnVersionId) {
-        await tx.uukStrVersion.findUniqueOrThrow({
-          where: { id: body.basedOnVersionId },
-        });
-      }
-
-      const nextVersionNumber = uuk.currentVersionNumber + 1;
-      const created = await tx.uukStrVersion.create({
-        data: {
-          uukStrId,
-          versionNumber: nextVersionNumber,
-          title: body.title,
-          createdByAssignmentId: context.primaryAssignmentId,
-          changeReason: body.changeReason,
-        },
-      });
-      await this.replaceSectionsInternal(tx, created.id, body.sections);
-      await tx.uukStr.update({
-        where: { id: uukStrId },
-        data: {
-          currentVersionNumber: nextVersionNumber,
-          status: this.isComplete(body.sections)
-            ? UukStrStatus.READY
-            : UukStrStatus.REVISED,
-        },
-      });
-      return created;
-    });
-
-    await this.audit(context, 'UUK.VERSION.CREATE', uukStrId, {
-      versionId: version.id,
-      versionNumber: version.versionNumber,
-    });
-    return this.versionDetail(version.id);
+    void uukStrId;
+    void body;
+    void context;
+    this.assertForwardingImmutable();
   }
 
-  async getVersion(versionId: string) {
-    return this.versionDetail(versionId);
+  async getVersion(versionId: string, context: AuthorizationContext) {
+    return this.versionDetail(versionId, context);
   }
 
   async updateVersion(
@@ -416,16 +663,16 @@ export class UukService {
     body: UpdateUukVersionDto,
     context: AuthorizationContext,
   ) {
-    await this.getEditableVersion(versionId);
-    await this.prisma.uukStrVersion.update({
-      where: { id: versionId },
-      data: {
-        title: body.title,
-        ...(body.changeReason ? { changeReason: body.changeReason } : {}),
-      },
-    });
-    await this.audit(context, 'UUK.VERSION.UPDATE', versionId);
-    return this.versionDetail(versionId);
+    this.assertRole(
+      context,
+      [RoleCode.REGIONAL_COMMANDER],
+      'Only Regional Commander can edit UUK/STR drafts.',
+    );
+
+    void versionId;
+    void body;
+    void context;
+    this.assertForwardingImmutable();
   }
 
   async replaceSections(
@@ -433,20 +680,16 @@ export class UukService {
     body: ReplaceSectionsDto,
     context: AuthorizationContext,
   ) {
-    const version = await this.getEditableVersion(versionId);
-    await this.prisma.$transaction(async (tx) => {
-      await this.replaceSectionsInternal(tx, versionId, body.sections);
-      await tx.uukStr.update({
-        where: { id: version.uukStrId },
-        data: {
-          status: this.isComplete(body.sections)
-            ? UukStrStatus.READY
-            : UukStrStatus.DRAFT,
-        },
-      });
-    });
-    await this.audit(context, 'UUK.SECTIONS.REPLACE', versionId);
-    return this.versionDetail(versionId);
+    this.assertRole(
+      context,
+      [RoleCode.REGIONAL_COMMANDER],
+      'Only Regional Commander can edit UUK/STR sections.',
+    );
+
+    void versionId;
+    void body;
+    void context;
+    this.assertForwardingImmutable();
   }
 
   async publish(
@@ -454,6 +697,12 @@ export class UukService {
     body: PublishDto,
     context: AuthorizationContext,
   ) {
+    this.assertRole(
+      context,
+      [RoleCode.REGIONAL_COMMANDER],
+      'Only Regional Commander can publish UUK/STR.',
+    );
+
     if (body.confirmation !== 'PUBLISH') {
       throw new ApiException(
         'UUK_PUBLISH_CONFIRMATION_REQUIRED',
@@ -462,8 +711,9 @@ export class UukService {
       );
     }
 
-    const version = await this.getEditableVersion(versionId);
-    const fullVersion = await this.versionDetail(versionId);
+    const version = await this.getEditableVersion(versionId, context);
+    const fullVersion = await this.versionDetail(versionId, context);
+
     if (
       fullVersion.sections.length < REQUIRED_UUK_SECTION_TYPES.size ||
       !this.isComplete(
@@ -490,8 +740,9 @@ export class UukService {
       where: { id: version.uukStrId },
       data: { status: UukStrStatus.PUBLISHED },
     });
+
     await this.audit(context, 'UUK.PUBLISH', version.uukStrId, { versionId });
-    return this.detail(version.uukStrId);
+    return this.detail(version.uukStrId, context);
   }
 
   async cancel(
@@ -499,12 +750,31 @@ export class UukService {
     body: CancelDto,
     context: AuthorizationContext,
   ) {
-    const uuk = await this.detail(uukStrId);
+    this.assertRole(
+      context,
+      [RoleCode.REGIONAL_COMMANDER],
+      'Only Regional Commander can cancel UUK/STR.',
+    );
+
+    const uuk = await this.detail(uukStrId, context);
+
+    if (
+      uuk.ownerUnitId !== context.organizationUnitId &&
+      uuk.createdByAssignmentId !== context.primaryAssignmentId
+    ) {
+      throw new ApiException(
+        'UUK_NOT_MUTABLE',
+        'Only the owning regional chain can cancel this UUK/STR.',
+        403,
+      );
+    }
+
     if (uuk.status === UukStrStatus.CANCELLED) {
       return uuk;
     }
 
     const linkedTasks = uuk.versions.flatMap((version) => version.tasks);
+
     if (
       linkedTasks.length > 0 &&
       linkedTasks.every((task) => task.status === TaskStatus.COMPLETED)
@@ -520,7 +790,8 @@ export class UukService {
       where: { id: uukStrId },
       data: { status: UukStrStatus.CANCELLED },
     });
+
     await this.audit(context, 'UUK.CANCEL', uukStrId, { reason: body.reason });
-    return this.detail(uukStrId);
+    return this.detail(uukStrId, context);
   }
 }

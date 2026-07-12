@@ -17,7 +17,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 import {
-  Classification,
   PositionCode,
   RoleCode,
   UserProfileStatus,
@@ -46,7 +45,6 @@ export class ProvisionProfileDto {
   @IsString() @MinLength(2) @MaxLength(100) username!: string;
   @IsString() @MinLength(2) @MaxLength(180) fullName!: string;
   @IsOptional() @IsString() @MaxLength(30) phone?: string;
-  @IsEnum(Classification) clearanceLevel!: Classification;
 }
 
 export class ProvisionAssignmentDto {
@@ -72,7 +70,6 @@ export class UpdateUserProfileDto {
   @IsOptional() @IsString() @MinLength(2) @MaxLength(100) username?: string;
   @IsOptional() @IsString() @MinLength(2) @MaxLength(180) fullName?: string;
   @IsOptional() @IsString() @MaxLength(30) phone?: string;
-  @IsOptional() @IsEnum(Classification) clearanceLevel?: Classification;
 }
 
 export class ReasonDto {

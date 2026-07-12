@@ -156,7 +156,6 @@ export class UserProfileService {
             phone: input.profile.phone
               ? normalizeIndonesianPhoneNumber(input.profile.phone)
               : null,
-            clearanceLevel: input.profile.clearanceLevel,
             status: UserProfileStatus.PENDING,
             isActive: false,
           },

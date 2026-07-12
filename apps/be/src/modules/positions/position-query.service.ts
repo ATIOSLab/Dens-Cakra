@@ -122,12 +122,19 @@ export class PositionQueryService {
 
   async assignments(query: AssignmentListQueryDto) {
     const validAt = query.validAt ? new Date(query.validAt) : null;
+    const positionIds = Array.from(
+      new Set([query.positionId, ...(query.positionIds ?? [])].filter((value): value is string => Boolean(value))),
+    );
+    const positionFilter: Prisma.PositionWhereInput = {
+      ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
+      ...(query.roleCode ? { role: { code: query.roleCode } } : {}),
+      ...(query.positionCode ? { code: query.positionCode } : {}),
+    };
     const where: Prisma.PositionAssignmentWhereInput = {
       ...(query.userProfileId ? { userProfileId: query.userProfileId } : {}),
-      ...(query.positionId ? { positionId: query.positionId } : {}),
-      ...(query.unitId
-        ? { position: { organizationUnitId: query.unitId } }
-        : {}),
+      ...(positionIds.length === 1 ? { positionId: positionIds[0] } : {}),
+      ...(positionIds.length > 1 ? { positionId: { in: positionIds } } : {}),
+      ...(Object.keys(positionFilter).length > 0 ? { position: positionFilter } : {}),
       ...(query.isActive === undefined ? {} : { isActive: query.isActive }),
       ...(validAt
         ? {

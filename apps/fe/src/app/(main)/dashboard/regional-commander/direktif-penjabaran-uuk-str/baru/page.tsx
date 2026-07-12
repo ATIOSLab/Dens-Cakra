@@ -1,18 +1,15 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { UukCreatePage } from "@/features/uuk-str/pages";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Promise<{
+    directiveVersionId?: string;
+  }>;
 };
 
-export default async function Page({ params, searchParams }: PageProps) {
-  return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/regional-commander/direktif-penjabaran-uuk-str/baru"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
-    />
-  );
+export default async function Page({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
+
+  return <UukCreatePage directiveVersionId={resolvedSearchParams?.directiveVersionId} />;
 }

@@ -7,7 +7,7 @@ import { getBackendInternalUrl } from "@/lib/auth/backend-url";
 import { ApiClientError } from "./errors";
 import { createIdempotencyKey } from "./idempotency";
 import { withQuery } from "./query";
-import type { ApiEnvelope, QueryParams } from "./types";
+import type { ApiEnvelope, ApiResolvedEnvelope, QueryParams } from "./types";
 
 type ServerRequestOptions = {
   query?: QueryParams;
@@ -37,7 +37,7 @@ async function buildForwardedHeaders(extra?: HeadersInit, idempotent?: boolean) 
   return forwardedHeaders;
 }
 
-async function parseEnvelope<T>(response: Response): Promise<T> {
+async function parseEnvelope<T>(response: Response): Promise<ApiResolvedEnvelope<T>> {
   const contentType = response.headers.get("content-type") ?? "";
   const payload = contentType.includes("application/json") ? ((await response.json()) as ApiEnvelope<T>) : null;
 
@@ -49,10 +49,10 @@ async function parseEnvelope<T>(response: Response): Promise<T> {
     );
   }
 
-  return payload.data;
+  return payload;
 }
 
-export async function apiServerFetch<T>(path: string, options: ServerRequestOptions = {}) {
+export async function apiServerFetchEnvelope<T>(path: string, options: ServerRequestOptions = {}) {
   const url = `${getBackendInternalUrl()}/api/v1${withQuery(path, options.query)}`;
   const forwardedHeaders = await buildForwardedHeaders(options.init?.headers, options.idempotent);
 
@@ -63,6 +63,12 @@ export async function apiServerFetch<T>(path: string, options: ServerRequestOpti
   });
 
   return parseEnvelope<T>(response);
+}
+
+export async function apiServerFetch<T>(path: string, options: ServerRequestOptions = {}) {
+  const payload = await apiServerFetchEnvelope<T>(path, options);
+
+  return payload.data;
 }
 
 export async function apiServerGet<T>(path: string, query?: QueryParams) {

@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
@@ -57,7 +57,17 @@ export class AssignmentListQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsUUID() userProfileId?: string;
   @IsOptional() @IsUUID() positionId?: string;
+  @Transform(({ value }) => {
+      if (Array.isArray(value)) {
+        return value;
+      }
+
+      return value ? [value] : undefined;
+  })
+  @IsOptional() @IsArray() @IsUUID(undefined, { each: true }) positionIds?: string[];
   @IsOptional() @IsUUID() unitId?: string;
+  @IsOptional() @IsEnum(RoleCode) roleCode?: RoleCode;
+  @IsOptional() @IsEnum(PositionCode) positionCode?: PositionCode;
   @IsOptional() @Type(() => Boolean) @IsBoolean() isActive?: boolean;
   @IsOptional() @IsDateString() validAt?: string;
 }
@@ -70,7 +80,7 @@ export class CreatePositionAssignmentDto {
   @IsOptional() @IsDateString() validUntil?: string;
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsUUID(undefined, { each: true })
   areaScopeIds!: string[];
 }
 
@@ -98,5 +108,5 @@ export class ReplaceAssignmentScopesDto extends ReasonDto {
 }
 
 export class ValidateAssignmentScopesDto {
-  @IsArray() @ArrayMinSize(1) @IsUUID('4', { each: true }) areaIds!: string[];
+  @IsArray() @ArrayMinSize(1) @IsUUID(undefined, { each: true }) areaIds!: string[];
 }

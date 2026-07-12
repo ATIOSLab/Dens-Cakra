@@ -43,8 +43,11 @@ export class TaskController {
     summary: 'Daftar tugas',
     permission: 'task.read',
   })
-  async list(@Query() query: TaskQuery) {
-    return apiResult(await this.taskService.list(query));
+  async list(
+    @Query() query: TaskQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.taskService.list(query, context));
   }
 
   @Post('tasks')
@@ -87,8 +90,11 @@ export class TaskController {
     summary: 'Detail tugas',
     permission: 'task.read',
   })
-  async get(@Param('taskId', ParseUUIDPipe) taskId: string) {
-    return apiResult(await this.taskService.get(taskId));
+  async get(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.taskService.get(taskId, context));
   }
 
   @Patch('tasks/:taskId')
@@ -146,8 +152,11 @@ export class TaskController {
     summary: 'Daftar assignment tugas',
     permission: 'task.read',
   })
-  async assignments(@Param('taskId', ParseUUIDPipe) taskId: string) {
-    return apiResult(await this.taskService.assignments(taskId));
+  async assignments(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.taskService.assignments(taskId, context));
   }
 
   @Get('task-assignments/:assignmentId')
@@ -157,8 +166,11 @@ export class TaskController {
     summary: 'Detail task assignment',
     permission: 'task.read',
   })
-  async assignment(@Param('assignmentId', ParseUUIDPipe) assignmentId: string) {
-    return apiResult(await this.taskService.assignment(assignmentId));
+  async assignment(
+    @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.taskService.assignment(assignmentId, context));
   }
 
   @Post('task-assignments/:assignmentId/mark-read')
@@ -288,8 +300,11 @@ export class TaskController {
     summary: 'Hierarki cascade tugas',
     permission: 'task.read',
   })
-  async cascade(@Param('taskId', ParseUUIDPipe) taskId: string) {
-    return apiResult(await this.taskService.cascade(taskId));
+  async cascade(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.taskService.cascade(taskId, context));
   }
 
   @Get('tasks/:taskId/progress-summary')
@@ -299,7 +314,10 @@ export class TaskController {
     summary: 'Ringkasan progres tugas',
     permission: 'task.read',
   })
-  async summary(@Param('taskId', ParseUUIDPipe) taskId: string) {
-    return apiResult(await this.taskService.summary(taskId));
+  async summary(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.taskService.summary(taskId, context));
   }
 }

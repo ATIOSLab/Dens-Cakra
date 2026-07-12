@@ -23,7 +23,6 @@ export class IdentityService {
             username: true,
             fullName: true,
             phone: true,
-            clearanceLevel: true,
             status: true,
           },
         },

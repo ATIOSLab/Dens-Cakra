@@ -41,8 +41,11 @@ export class UukController {
     summary: 'Daftar UUK/STR',
     permission: 'uuk.read',
   })
-  async list(@Query() query: UukQuery) {
-    return apiResult(await this.uukService.list(query));
+  async list(
+    @Query() query: UukQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.uukService.list(query, context));
   }
 
   @Post('uuk-strs')
@@ -68,8 +71,11 @@ export class UukController {
     summary: 'Detail UUK/STR',
     permission: 'uuk.read',
   })
-  async get(@Param('uukStrId', ParseUUIDPipe) uukStrId: string) {
-    return apiResult(await this.uukService.get(uukStrId));
+  async get(
+    @Param('uukStrId', ParseUUIDPipe) uukStrId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.uukService.get(uukStrId, context));
   }
 
   @Get('uuk-strs/:uukStrId/versions')
@@ -79,8 +85,11 @@ export class UukController {
     summary: 'Riwayat versi UUK/STR',
     permission: 'uuk.read',
   })
-  async versions(@Param('uukStrId', ParseUUIDPipe) uukStrId: string) {
-    return apiResult(await this.uukService.versions(uukStrId));
+  async versions(
+    @Param('uukStrId', ParseUUIDPipe) uukStrId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.uukService.versions(uukStrId, context));
   }
 
   @Post('uuk-strs/:uukStrId/versions')
@@ -109,8 +118,11 @@ export class UukController {
     summary: 'Detail versi UUK/STR',
     permission: 'uuk.read',
   })
-  async getVersion(@Param('versionId', ParseUUIDPipe) versionId: string) {
-    return apiResult(await this.uukService.getVersion(versionId));
+  async getVersion(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.uukService.getVersion(versionId, context));
   }
 
   @Patch('uuk-str-versions/:versionId')

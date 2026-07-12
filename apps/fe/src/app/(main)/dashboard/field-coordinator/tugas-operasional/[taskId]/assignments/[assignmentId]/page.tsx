@@ -1,18 +1,12 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { FieldCoordinatorAssignmentPage } from "@/features/tasks/pages";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function Page({ params, searchParams }: PageProps) {
-  return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/field-coordinator/tugas-operasional/[taskId]/assignments/[assignmentId]"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
-    />
-  );
+export default async function Page({ params }: PageProps) {
+  const routeParams = (await params) ?? {};
+  return <FieldCoordinatorAssignmentPage taskId={routeParams.taskId} assignmentId={routeParams.assignmentId} />;
 }

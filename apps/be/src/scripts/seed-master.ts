@@ -100,6 +100,20 @@ const positionAreaPolicies = [
   },
   {
     positionCode: PositionCode.PETUGAS_ORGANIK,
+    administrativeLevel: AdministrativeLevel.REGENCY,
+    scopeMode: AreaScopeMode.EXPLICIT,
+    minimumAreas: 1,
+    maximumAreas: null,
+  },
+  {
+    positionCode: PositionCode.PETUGAS_ORGANIK,
+    administrativeLevel: AdministrativeLevel.CITY,
+    scopeMode: AreaScopeMode.EXPLICIT,
+    minimumAreas: 1,
+    maximumAreas: null,
+  },
+  {
+    positionCode: PositionCode.PETUGAS_ORGANIK,
     administrativeLevel: AdministrativeLevel.DISTRICT,
     scopeMode: AreaScopeMode.EXPLICIT,
     minimumAreas: 1,
@@ -448,11 +462,6 @@ async function seedSystemSettingsAndIntegration() {
       key: 'verification.checkCodes',
       value: verificationCheckCodes,
       description: 'Formal verification checklist baseline.',
-    },
-    {
-      key: 'security.clearanceRanking',
-      value: ['SANGAT_RAHASIA', 'RAHASIA', 'TERBATAS', 'BIASA'],
-      description: 'Ordered clearance ranking for need-to-know checks.',
     },
     {
       key: 'seed.rwrtStatus',

@@ -48,7 +48,7 @@ export class DirectiveVersionCreateDto {
   @IsString() commandDescription!: string;
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsUUID(undefined, { each: true })
   targetAreaIds!: string[];
   @IsArray()
   @ArrayMinSize(1)
@@ -71,7 +71,7 @@ export class DirectiveRevisionPatchDto {
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsUUID(undefined, { each: true })
   targetAreaIds?: string[];
   @IsOptional()
   @IsArray()
@@ -96,7 +96,7 @@ export class UpdateDirectiveVersionDto {
 }
 
 export class ReplaceAreasDto {
-  @IsArray() @ArrayMinSize(1) @IsUUID('4', { each: true }) areaIds!: string[];
+  @IsArray() @ArrayMinSize(1) @IsUUID(undefined, { each: true }) areaIds!: string[];
   @IsOptional() @IsUUID() primaryAreaId?: string;
 }
 

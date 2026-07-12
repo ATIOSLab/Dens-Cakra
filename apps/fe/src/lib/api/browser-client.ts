@@ -3,7 +3,7 @@
 import { ApiClientError } from "./errors";
 import { createIdempotencyKey } from "./idempotency";
 import { withQuery } from "./query";
-import type { ApiEnvelope, QueryParams } from "./types";
+import type { ApiEnvelope, ApiResolvedEnvelope, QueryParams } from "./types";
 
 type BrowserRequestOptions = {
   query?: QueryParams;
@@ -11,7 +11,11 @@ type BrowserRequestOptions = {
   idempotent?: boolean;
 };
 
-async function parseEnvelope<T>(response: Response): Promise<T> {
+function getBrowserBackendUrl() {
+  return (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001").replace(/\/$/, "");
+}
+
+async function parseEnvelope<T>(response: Response): Promise<ApiResolvedEnvelope<T>> {
   const contentType = response.headers.get("content-type") ?? "";
   const payload = contentType.includes("application/json") ? ((await response.json()) as ApiEnvelope<T>) : null;
 
@@ -23,10 +27,10 @@ async function parseEnvelope<T>(response: Response): Promise<T> {
     );
   }
 
-  return payload.data;
+  return payload;
 }
 
-export async function apiBrowserFetch<T>(path: string, options: BrowserRequestOptions = {}) {
+export async function apiBrowserFetchEnvelope<T>(path: string, options: BrowserRequestOptions = {}) {
   const headers = new Headers(options.init?.headers);
   headers.set("accept", "application/json");
 
@@ -34,7 +38,7 @@ export async function apiBrowserFetch<T>(path: string, options: BrowserRequestOp
     headers.set("idempotency-key", createIdempotencyKey("dc_web"));
   }
 
-  const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "").replace(/\/$/, "");
+  const backendUrl = getBrowserBackendUrl();
   const response = await fetch(`${backendUrl}/api/v1${withQuery(path, options.query)}`, {
     ...options.init,
     headers,
@@ -42,6 +46,12 @@ export async function apiBrowserFetch<T>(path: string, options: BrowserRequestOp
   });
 
   return parseEnvelope<T>(response);
+}
+
+export async function apiBrowserFetch<T>(path: string, options: BrowserRequestOptions = {}) {
+  const payload = await apiBrowserFetchEnvelope<T>(path, options);
+
+  return payload.data;
 }
 
 export async function apiBrowserMutation<T>(

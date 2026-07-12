@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -21,10 +22,19 @@ import {
 } from '../../generated/prisma/client.js';
 
 export class TaskQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(TaskStatus) status?: TaskStatus;
+  @IsOptional() @IsEnum(PriorityLevel) priority?: PriorityLevel;
   @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsUUID() assigneeAssignmentId?: string;
   @IsOptional() @IsUUID() areaId?: string;
+  @IsOptional() @IsDateString() dueBefore?: string;
+  @IsOptional() @IsDateString() dueAfter?: string;
+  @IsOptional() @IsUUID() parentTaskId?: string;
+  @IsOptional() @IsUUID() directiveId?: string;
+  @IsOptional() @IsUUID() uukStrId?: string;
+  @IsOptional() @Type(() => Boolean) @IsBoolean() overdue?: boolean;
 }
 
 export class CreateTaskDto {
@@ -39,7 +49,7 @@ export class CreateTaskDto {
   @IsOptional() @IsDateString() dueDate?: string;
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsUUID(undefined, { each: true })
   targetAreaIds!: string[];
 }
 
@@ -51,7 +61,7 @@ export class UpdateTaskDto {
 }
 
 export class TargetAreasDto {
-  @IsArray() @ArrayMinSize(1) @IsUUID('4', { each: true }) areaIds!: string[];
+  @IsArray() @ArrayMinSize(1) @IsUUID(undefined, { each: true }) areaIds!: string[];
   @IsOptional() @IsUUID() primaryAreaId?: string;
 }
 

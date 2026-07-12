@@ -74,8 +74,11 @@ export class DirectiveController {
     summary: 'Detail directive current version',
     permission: 'directive.read',
   })
-  async get(@Param('directiveId', ParseUUIDPipe) directiveId: string) {
-    return apiResult(await this.directiveService.get(directiveId));
+  async get(
+    @Param('directiveId', ParseUUIDPipe) directiveId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.directiveService.get(directiveId, context));
   }
 
   @Get('directives/:directiveId/versions')
@@ -85,8 +88,11 @@ export class DirectiveController {
     summary: 'Riwayat versi directive',
     permission: 'directive.read',
   })
-  async versions(@Param('directiveId', ParseUUIDPipe) directiveId: string) {
-    return apiResult(await this.directiveService.versions(directiveId));
+  async versions(
+    @Param('directiveId', ParseUUIDPipe) directiveId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.directiveService.versions(directiveId, context));
   }
 
   @Post('directives/:directiveId/versions')
@@ -115,8 +121,11 @@ export class DirectiveController {
     summary: 'Detail versi directive',
     permission: 'directive.read',
   })
-  async getVersion(@Param('versionId', ParseUUIDPipe) versionId: string) {
-    return apiResult(await this.directiveService.getVersion(versionId));
+  async getVersion(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.directiveService.getVersion(versionId, context));
   }
 
   @Patch('directive-versions/:versionId')
@@ -235,6 +244,7 @@ export class DirectiveController {
   })
   async tracking(
     @Param('directiveId', ParseUUIDPipe) directiveId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
     @Query('areaId') areaId?: string,
     @Query('unitId') unitId?: string,
     @Query('includeTasks') includeTasks = 'true',
@@ -245,6 +255,7 @@ export class DirectiveController {
         areaId,
         unitId,
         includeTasks,
+        context,
       ),
     );
   }
