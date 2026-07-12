@@ -7,7 +7,6 @@ export const taskBuilderSchema = z.object({
   uukStrVersionId: z.string().uuid().optional(),
   title: z.string().min(3),
   description: z.string().min(10),
-  classification: z.enum(["BIASA", "TERBATAS", "RAHASIA", "SANGAT_RAHASIA"]),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
   dueDate: z.string().optional(),
   targetAreaIds: z.array(z.string().uuid()).min(1),

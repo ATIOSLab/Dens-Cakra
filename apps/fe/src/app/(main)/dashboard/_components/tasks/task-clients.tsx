@@ -114,6 +114,17 @@ function incomingForwardingStatusVariant(task?: TaskSummary) {
   return badgeVariant(task.status);
 }
 
+function taskClassificationLabel(task: Pick<TaskSummary, "directiveVersion" | "uukStrVersion">) {
+  return task.directiveVersion?.classification ?? task.uukStrVersion?.uukStr?.directiveVersion?.classification ?? null;
+}
+
+function taskMetaLine(task: Pick<TaskSummary, "ownerUnit" | "priority" | "directiveVersion" | "uukStrVersion">) {
+  const classification = taskClassificationLabel(task);
+  const parts = [task.ownerUnit?.name ?? "-", task.priority, classification].filter(Boolean);
+
+  return parts.join(" · ");
+}
+
 function normalizeDisplayText(value?: string | null) {
   const normalized = value?.trim();
 
@@ -209,7 +220,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                 <Badge variant={badgeVariant(task.status)}>{task.status}</Badge>
               </CardTitle>
               <CardDescription>
-                {task.ownerUnit?.name ?? "-"} · {task.priority} · {task.classification}
+                {taskMetaLine(task)}
               </CardDescription>
               <CardAction>
                 <Button asChild size="sm" variant="outline">
@@ -325,7 +336,7 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
                     <Badge variant={badgeVariant(task.status)}>{task.status}</Badge>
                   </CardTitle>
                   <CardDescription>
-                    {task.ownerUnit?.name ?? "-"} · {task.priority} · {task.classification}
+                    {taskMetaLine(task)}
                   </CardDescription>
                   <CardAction className="flex gap-2">
                     <Button asChild size="sm" variant="outline">
@@ -787,12 +798,6 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
       return;
     }
 
-    const sourceClassification = source.directiveVersion?.classification;
-    if (!sourceClassification) {
-      toast.error("Klasifikasi STR sumber tidak tersedia, jadi penerusan belum bisa diproses.");
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -801,7 +806,6 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
         uukStrVersionId: source.currentVersion.id,
         title: source.currentVersion.title,
         description: buildForwardingDescription(source),
-        classification: sourceClassification,
         priority: "NORMAL",
         targetAreaIds:
           sourceAreaIds.length > 0
@@ -1045,7 +1049,6 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
   const [uukStrVersionId, setUukStrVersionId] = useState(task?.uukStrVersion?.id ?? "");
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
-  const [classification, setClassification] = useState(task?.classification ?? "TERBATAS");
   const [priority, setPriority] = useState(task?.priority ?? "NORMAL");
   const [dueDate, setDueDate] = useState(task?.dueDate?.slice(0, 10) ?? "");
   const [targetAreaIds, setTargetAreaIds] = useState<string[]>(
@@ -1063,7 +1066,6 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
         uukStrVersionId: sourceType === "uuk" ? uukStrVersionId || undefined : undefined,
         title,
         description,
-        classification,
         priority,
         dueDate: dueDate || undefined,
         targetAreaIds,
@@ -1184,21 +1186,6 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
             <Input value={title} onChange={(event) => setTitle(event.target.value)} />
           </label>
           <label className="space-y-2 text-sm">
-            <span>Klasifikasi</span>
-            <Select value={classification} onValueChange={setClassification} disabled={mode === "edit"}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pilih klasifikasi" />
-              </SelectTrigger>
-              <SelectContent>
-                {["BIASA", "TERBATAS", "RAHASIA", "SANGAT_RAHASIA"].map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {item}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
-          <label className="space-y-2 text-sm">
             <span>Prioritas</span>
             <Select value={priority} onValueChange={setPriority}>
               <SelectTrigger className="w-full">
@@ -1292,7 +1279,7 @@ export function TaskDetailClient({
             <Badge variant={badgeVariant(task.status)}>{task.status}</Badge>
           </div>
           <p className="text-muted-foreground text-sm">
-            {task.ownerUnit?.name ?? "-"} · {task.priority} · {task.classification}
+            {taskMetaLine(task)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

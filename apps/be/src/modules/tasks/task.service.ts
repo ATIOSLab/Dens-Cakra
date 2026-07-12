@@ -596,6 +596,11 @@ export class TaskService {
             uukStr: {
               include: {
                 ownerUnit: true,
+                directiveVersion: {
+                  include: {
+                    directive: true,
+                  },
+                },
               },
             },
           },
