@@ -40,12 +40,13 @@ export class UserProfileController {
     operationId: 'apiUsr001',
     contractId: 'API-USR-001',
     summary: 'Daftar user profile',
-    permission: 'user.read',
+    roles: ['admin_system'],
   })
   async list(@Query() query: UserProfileListQueryDto) {
     const result = await this.users.list(query);
     return apiResult(result.items, undefined, {
       pagination: result.pagination,
+      facets: result.facets,
     });
   }
 
@@ -54,7 +55,7 @@ export class UserProfileController {
     operationId: 'apiUsr002',
     contractId: 'API-USR-002',
     summary: 'Provision akun, profile, jabatan dan scope',
-    permission: 'user.provision',
+    roles: ['admin_system'],
     successStatus: 201,
     idempotent: true,
   })
@@ -73,7 +74,7 @@ export class UserProfileController {
     operationId: 'apiUsr003',
     contractId: 'API-USR-003',
     summary: 'Detail user profile',
-    permission: 'user.read',
+    roles: ['admin_system'],
   })
   async detail(@Param('userProfileId', ParseUUIDPipe) id: string) {
     return apiResult(await this.users.detail(id));
@@ -84,7 +85,7 @@ export class UserProfileController {
     operationId: 'apiUsr004',
     contractId: 'API-USR-004',
     summary: 'Ubah metadata profile',
-    permission: 'user.update',
+    roles: ['admin_system'],
   })
   async update(
     @Param('userProfileId', ParseUUIDPipe) id: string,
@@ -99,7 +100,7 @@ export class UserProfileController {
     operationId: 'apiUsr005',
     contractId: 'API-USR-005',
     summary: 'Aktifkan profile setelah provisioning',
-    permission: 'user.activate',
+    roles: ['admin_system'],
     idempotent: true,
   })
   async activate(
@@ -115,7 +116,7 @@ export class UserProfileController {
     operationId: 'apiUsr006',
     contractId: 'API-USR-006',
     summary: 'Suspend akses operasional',
-    permission: 'user.suspend',
+    roles: ['admin_system'],
     idempotent: true,
   })
   async suspend(
@@ -131,7 +132,7 @@ export class UserProfileController {
     operationId: 'apiUsr007',
     contractId: 'API-USR-007',
     summary: 'Arsipkan personel',
-    permission: 'user.archive',
+    roles: ['admin_system'],
     idempotent: true,
   })
   async archive(
@@ -147,7 +148,7 @@ export class UserProfileController {
     operationId: 'apiUsr008',
     contractId: 'API-USR-008',
     summary: 'Operational security lock',
-    permission: 'user.lock',
+    roles: ['admin_system'],
     idempotent: true,
   })
   async lock(
@@ -163,7 +164,7 @@ export class UserProfileController {
     operationId: 'apiUsr009',
     contractId: 'API-USR-009',
     summary: 'Lepas operational lock',
-    permission: 'user.unlock',
+    roles: ['admin_system'],
     idempotent: true,
   })
   async unlock(
@@ -179,7 +180,7 @@ export class UserProfileController {
     operationId: 'apiUsr010',
     contractId: 'API-USR-010',
     summary: 'Mutasi jabatan utama',
-    permission: 'assignment.transfer',
+    roles: ['admin_system'],
     successStatus: 201,
     idempotent: true,
   })
@@ -198,7 +199,7 @@ export class UserProfileController {
     operationId: 'apiUsr011',
     contractId: 'API-USR-011',
     summary: 'Riwayat penugasan jabatan',
-    permission: 'assignment.read',
+    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async assignments(
     @Param('userProfileId', ParseUUIDPipe) id: string,

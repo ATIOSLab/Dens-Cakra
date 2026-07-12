@@ -17,6 +17,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import {
+  CommandRouteType,
   PositionCode,
   RoleCode,
   UserProfileStatus,
@@ -28,6 +29,7 @@ export class UserProfileListQueryDto {
   @IsOptional() @IsString() @MaxLength(100) search?: string;
   @IsOptional() @IsEnum(UserProfileStatus) status?: UserProfileStatus;
   @IsOptional() @IsEnum(RoleCode) roleCode?: RoleCode;
+  @IsOptional() @IsEnum(CommandRouteType) branch?: CommandRouteType;
   @IsOptional() @IsEnum(PositionCode) positionCode?: PositionCode;
   @IsOptional() @IsUUID() unitId?: string;
   @IsOptional() @IsUUID() areaId?: string;
@@ -37,7 +39,7 @@ export class UserProfileListQueryDto {
 export class ProvisionAuthDto {
   @IsString() @MinLength(2) @MaxLength(180) name!: string;
   @IsEmail() @MaxLength(250) email!: string;
-  @IsString() @MinLength(8) @MaxLength(128) password!: string;
+  @IsOptional() @IsString() @MinLength(8) @MaxLength(128) password?: string;
   @IsString() @MaxLength(80) role!: string;
 }
 
@@ -48,7 +50,9 @@ export class ProvisionProfileDto {
 }
 
 export class ProvisionAssignmentDto {
-  @IsUUID() positionId!: string;
+  @IsUUID() organizationUnitId!: string;
+  @IsOptional() @IsEnum(CommandRouteType) branch?: CommandRouteType;
+  @IsOptional() @IsUUID() positionId?: string;
   @IsDateString() validFrom!: string;
 }
 

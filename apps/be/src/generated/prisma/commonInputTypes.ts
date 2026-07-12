@@ -216,6 +216,13 @@ export type EnumOrganizationTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumOrganizationTypeFilter<$PrismaModel> | $Enums.OrganizationType
 }
 
+export type EnumCommandRouteTypeNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.CommandRouteType | Prisma.EnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  in?: $Enums.CommandRouteType[] | Prisma.ListEnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.CommandRouteType[] | Prisma.ListEnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumCommandRouteTypeNullableFilter<$PrismaModel> | $Enums.CommandRouteType | null
+}
+
 export type UuidNullableFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
@@ -236,6 +243,16 @@ export type EnumOrganizationTypeWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumOrganizationTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumOrganizationTypeFilter<$PrismaModel>
+}
+
+export type EnumCommandRouteTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CommandRouteType | Prisma.EnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  in?: $Enums.CommandRouteType[] | Prisma.ListEnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.CommandRouteType[] | Prisma.ListEnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumCommandRouteTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.CommandRouteType | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCommandRouteTypeNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCommandRouteTypeNullableFilter<$PrismaModel>
 }
 
 export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -1515,6 +1532,13 @@ export type NestedEnumOrganizationTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumOrganizationTypeFilter<$PrismaModel> | $Enums.OrganizationType
 }
 
+export type NestedEnumCommandRouteTypeNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.CommandRouteType | Prisma.EnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  in?: $Enums.CommandRouteType[] | Prisma.ListEnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.CommandRouteType[] | Prisma.ListEnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumCommandRouteTypeNullableFilter<$PrismaModel> | $Enums.CommandRouteType | null
+}
+
 export type NestedUuidNullableFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
@@ -1534,6 +1558,16 @@ export type NestedEnumOrganizationTypeWithAggregatesFilter<$PrismaModel = never>
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumOrganizationTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumOrganizationTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumCommandRouteTypeNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CommandRouteType | Prisma.EnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  in?: $Enums.CommandRouteType[] | Prisma.ListEnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.CommandRouteType[] | Prisma.ListEnumCommandRouteTypeFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumCommandRouteTypeNullableWithAggregatesFilter<$PrismaModel> | $Enums.CommandRouteType | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCommandRouteTypeNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCommandRouteTypeNullableFilter<$PrismaModel>
 }
 
 export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {

@@ -238,7 +238,7 @@ export type JaringWhereInput = {
   deletedAt?: Prisma.DateTimeNullableFilter<"Jaring"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Jaring"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Jaring"> | Date | string
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentListRelationFilter
   areaCoverages?: Prisma.JaringAreaCoverageListRelationFilter
   messages?: Prisma.WhatsAppMessageListRelationFilter
@@ -258,7 +258,7 @@ export type JaringOrderByWithRelationInput = {
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentOrderByRelationAggregateInput
   areaCoverages?: Prisma.JaringAreaCoverageOrderByRelationAggregateInput
   messages?: Prisma.WhatsAppMessageOrderByRelationAggregateInput
@@ -281,7 +281,7 @@ export type JaringWhereUniqueInput = Prisma.AtLeast<{
   deletedAt?: Prisma.DateTimeNullableFilter<"Jaring"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Jaring"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Jaring"> | Date | string
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentListRelationFilter
   areaCoverages?: Prisma.JaringAreaCoverageListRelationFilter
   messages?: Prisma.WhatsAppMessageListRelationFilter
@@ -336,7 +336,7 @@ export type JaringCreateInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutJaringCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
@@ -374,7 +374,7 @@ export type JaringUpdateInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
@@ -707,7 +707,7 @@ export type JaringCreateWithoutCaretakerAssignmentsInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutJaringCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
   primaryBakets?: Prisma.BaketCreateNestedManyWithoutPrimaryJaringInput
@@ -759,7 +759,7 @@ export type JaringUpdateWithoutCaretakerAssignmentsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
   primaryBakets?: Prisma.BaketUpdateManyWithoutPrimaryJaringNestedInput
@@ -795,7 +795,7 @@ export type JaringCreateWithoutAreaCoveragesInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutJaringCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
   primaryBakets?: Prisma.BaketCreateNestedManyWithoutPrimaryJaringInput
@@ -847,7 +847,7 @@ export type JaringUpdateWithoutAreaCoveragesInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
   primaryBakets?: Prisma.BaketUpdateManyWithoutPrimaryJaringNestedInput
@@ -883,7 +883,7 @@ export type JaringCreateWithoutMessagesInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutJaringCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   primaryBakets?: Prisma.BaketCreateNestedManyWithoutPrimaryJaringInput
@@ -935,7 +935,7 @@ export type JaringUpdateWithoutMessagesInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   primaryBakets?: Prisma.BaketUpdateManyWithoutPrimaryJaringNestedInput
@@ -971,7 +971,7 @@ export type JaringCreateWithoutPrimaryBaketsInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutJaringCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
@@ -1023,7 +1023,7 @@ export type JaringUpdateWithoutPrimaryBaketsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
@@ -1182,7 +1182,7 @@ export type JaringSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   caretakerAssignments?: boolean | Prisma.Jaring$caretakerAssignmentsArgs<ExtArgs>
   areaCoverages?: boolean | Prisma.Jaring$areaCoveragesArgs<ExtArgs>
   messages?: boolean | Prisma.Jaring$messagesArgs<ExtArgs>
@@ -1203,7 +1203,7 @@ export type JaringSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["jaring"]>
 
 export type JaringSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1219,7 +1219,7 @@ export type JaringSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["jaring"]>
 
 export type JaringSelectScalar = {
@@ -1239,7 +1239,7 @@ export type JaringSelectScalar = {
 
 export type JaringOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "aliasName" | "whatsappNumber" | "status" | "createdByAssignmentId" | "notes" | "registeredAt" | "deactivatedAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["jaring"]>
 export type JaringInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   caretakerAssignments?: boolean | Prisma.Jaring$caretakerAssignmentsArgs<ExtArgs>
   areaCoverages?: boolean | Prisma.Jaring$areaCoveragesArgs<ExtArgs>
   messages?: boolean | Prisma.Jaring$messagesArgs<ExtArgs>
@@ -1247,16 +1247,16 @@ export type JaringInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   _count?: boolean | Prisma.JaringCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type JaringIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type JaringIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $JaringPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Jaring"
   objects: {
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     caretakerAssignments: Prisma.$JaringCaretakerAssignmentPayload<ExtArgs>[]
     areaCoverages: Prisma.$JaringAreaCoveragePayload<ExtArgs>[]
     messages: Prisma.$WhatsAppMessagePayload<ExtArgs>[]
@@ -1669,7 +1669,7 @@ readonly fields: JaringFieldRefs;
  */
 export interface Prisma__JaringClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   caretakerAssignments<T extends Prisma.Jaring$caretakerAssignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Jaring$caretakerAssignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JaringCaretakerAssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   areaCoverages<T extends Prisma.Jaring$areaCoveragesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Jaring$areaCoveragesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JaringAreaCoveragePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   messages<T extends Prisma.Jaring$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Jaring$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>

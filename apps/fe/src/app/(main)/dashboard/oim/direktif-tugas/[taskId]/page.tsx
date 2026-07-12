@@ -1,4 +1,4 @@
-import { OimTaskDetailPage } from "@/features/tasks/pages";
+import { OimTaskDetailPage } from "@/app/(main)/dashboard/_components/tasks/task-pages";
 
 export const dynamic = "force-dynamic";
 

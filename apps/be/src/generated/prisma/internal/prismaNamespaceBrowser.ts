@@ -57,19 +57,21 @@ export const ModelName = {
   Verification: 'Verification',
   UserProfile: 'UserProfile',
   Role: 'Role',
-  Permission: 'Permission',
-  RolePermission: 'RolePermission',
   OrganizationUnit: 'OrganizationUnit',
   OrganizationUnitClosure: 'OrganizationUnitClosure',
   Position: 'Position',
-  PositionAssignment: 'PositionAssignment',
-  PositionAreaPolicy: 'PositionAreaPolicy',
+  OrganizationRoleSeat: 'OrganizationRoleSeat',
+  UserSeatAssignment: 'UserSeatAssignment',
+  RoleAreaPolicy: 'RoleAreaPolicy',
   PositionAreaScope: 'PositionAreaScope',
   AdministrativeArea: 'AdministrativeArea',
   AdministrativeAreaClosure: 'AdministrativeAreaClosure',
   AdministrativeAreaDataSource: 'AdministrativeAreaDataSource',
   AdministrativeAreaBoundary: 'AdministrativeAreaBoundary',
   OrganizationAreaCoverage: 'OrganizationAreaCoverage',
+  DirectorateProfile: 'DirectorateProfile',
+  DirectorateCoverage: 'DirectorateCoverage',
+  BindaProfile: 'BindaProfile',
   FileAsset: 'FileAsset',
   Directive: 'Directive',
   DirectiveVersion: 'DirectiveVersion',
@@ -247,31 +249,12 @@ export const RoleScalarFieldEnum = {
 export type RoleScalarFieldEnum = (typeof RoleScalarFieldEnum)[keyof typeof RoleScalarFieldEnum]
 
 
-export const PermissionScalarFieldEnum = {
-  id: 'id',
-  code: 'code',
-  name: 'name',
-  description: 'description',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type PermissionScalarFieldEnum = (typeof PermissionScalarFieldEnum)[keyof typeof PermissionScalarFieldEnum]
-
-
-export const RolePermissionScalarFieldEnum = {
-  roleId: 'roleId',
-  permissionId: 'permissionId'
-} as const
-
-export type RolePermissionScalarFieldEnum = (typeof RolePermissionScalarFieldEnum)[keyof typeof RolePermissionScalarFieldEnum]
-
-
 export const OrganizationUnitScalarFieldEnum = {
   id: 'id',
   code: 'code',
   name: 'name',
   type: 'type',
+  branch: 'branch',
   parentId: 'parentId',
   isActive: 'isActive',
   deletedAt: 'deletedAt',
@@ -297,6 +280,7 @@ export const PositionScalarFieldEnum = {
   code: 'code',
   title: 'title',
   roleId: 'roleId',
+  branch: 'branch',
   organizationUnitId: 'organizationUnitId',
   reportsToPositionId: 'reportsToPositionId',
   isActive: 'isActive',
@@ -307,9 +291,24 @@ export const PositionScalarFieldEnum = {
 export type PositionScalarFieldEnum = (typeof PositionScalarFieldEnum)[keyof typeof PositionScalarFieldEnum]
 
 
-export const PositionAssignmentScalarFieldEnum = {
+export const OrganizationRoleSeatScalarFieldEnum = {
+  id: 'id',
+  roleId: 'roleId',
+  branch: 'branch',
+  organizationUnitId: 'organizationUnitId',
+  positionId: 'positionId',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OrganizationRoleSeatScalarFieldEnum = (typeof OrganizationRoleSeatScalarFieldEnum)[keyof typeof OrganizationRoleSeatScalarFieldEnum]
+
+
+export const UserSeatAssignmentScalarFieldEnum = {
   id: 'id',
   userProfileId: 'userProfileId',
+  seatId: 'seatId',
   positionId: 'positionId',
   isPrimary: 'isPrimary',
   isActive: 'isActive',
@@ -319,12 +318,13 @@ export const PositionAssignmentScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type PositionAssignmentScalarFieldEnum = (typeof PositionAssignmentScalarFieldEnum)[keyof typeof PositionAssignmentScalarFieldEnum]
+export type UserSeatAssignmentScalarFieldEnum = (typeof UserSeatAssignmentScalarFieldEnum)[keyof typeof UserSeatAssignmentScalarFieldEnum]
 
 
-export const PositionAreaPolicyScalarFieldEnum = {
+export const RoleAreaPolicyScalarFieldEnum = {
   id: 'id',
-  positionCode: 'positionCode',
+  roleCode: 'roleCode',
+  branch: 'branch',
   administrativeLevel: 'administrativeLevel',
   scopeMode: 'scopeMode',
   minimumAreas: 'minimumAreas',
@@ -334,7 +334,7 @@ export const PositionAreaPolicyScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type PositionAreaPolicyScalarFieldEnum = (typeof PositionAreaPolicyScalarFieldEnum)[keyof typeof PositionAreaPolicyScalarFieldEnum]
+export type RoleAreaPolicyScalarFieldEnum = (typeof RoleAreaPolicyScalarFieldEnum)[keyof typeof RoleAreaPolicyScalarFieldEnum]
 
 
 export const PositionAreaScopeScalarFieldEnum = {
@@ -427,6 +427,37 @@ export const OrganizationAreaCoverageScalarFieldEnum = {
 export type OrganizationAreaCoverageScalarFieldEnum = (typeof OrganizationAreaCoverageScalarFieldEnum)[keyof typeof OrganizationAreaCoverageScalarFieldEnum]
 
 
+export const DirectorateProfileScalarFieldEnum = {
+  organizationUnitId: 'organizationUnitId',
+  code: 'code',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DirectorateProfileScalarFieldEnum = (typeof DirectorateProfileScalarFieldEnum)[keyof typeof DirectorateProfileScalarFieldEnum]
+
+
+export const DirectorateCoverageScalarFieldEnum = {
+  id: 'id',
+  directorateUnitId: 'directorateUnitId',
+  provinceAreaId: 'provinceAreaId',
+  isPrimary: 'isPrimary',
+  createdAt: 'createdAt'
+} as const
+
+export type DirectorateCoverageScalarFieldEnum = (typeof DirectorateCoverageScalarFieldEnum)[keyof typeof DirectorateCoverageScalarFieldEnum]
+
+
+export const BindaProfileScalarFieldEnum = {
+  organizationUnitId: 'organizationUnitId',
+  provinceAreaId: 'provinceAreaId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BindaProfileScalarFieldEnum = (typeof BindaProfileScalarFieldEnum)[keyof typeof BindaProfileScalarFieldEnum]
+
+
 export const FileAssetScalarFieldEnum = {
   id: 'id',
   storageKey: 'storageKey',
@@ -495,6 +526,7 @@ export const DirectiveRecipientScalarFieldEnum = {
   id: 'id',
   directiveVersionId: 'directiveVersionId',
   targetUnitId: 'targetUnitId',
+  targetSeatId: 'targetSeatId',
   targetPositionId: 'targetPositionId',
   status: 'status',
   sentAt: 'sentAt',
@@ -566,7 +598,6 @@ export const TaskScalarFieldEnum = {
   createdByAssignmentId: 'createdByAssignmentId',
   title: 'title',
   description: 'description',
-  classification: 'classification',
   priority: 'priority',
   dueDate: 'dueDate',
   status: 'status',
@@ -994,7 +1025,6 @@ export const IntelligenceProductScalarFieldEnum = {
   productTypeId: 'productTypeId',
   ownerUnitId: 'ownerUnitId',
   createdByAssignmentId: 'createdByAssignmentId',
-  classification: 'classification',
   productNumber: 'productNumber',
   title: 'title',
   status: 'status',
@@ -1073,6 +1103,7 @@ export const ProductApprovalStepScalarFieldEnum = {
   workflowId: 'workflowId',
   stepNumber: 'stepNumber',
   stage: 'stage',
+  targetSeatId: 'targetSeatId',
   targetPositionId: 'targetPositionId',
   status: 'status',
   decision: 'decision',
@@ -1091,9 +1122,9 @@ export const ProductDistributionScalarFieldEnum = {
   productVersionId: 'productVersionId',
   sentByAssignmentId: 'sentByAssignmentId',
   targetUnitId: 'targetUnitId',
+  targetSeatId: 'targetSeatId',
   targetPositionId: 'targetPositionId',
   targetUserProfileId: 'targetUserProfileId',
-  classification: 'classification',
   status: 'status',
   sentAt: 'sentAt',
   deliveredAt: 'deliveredAt',
@@ -1148,6 +1179,7 @@ export const AlertScalarFieldEnum = {
   longitude: 'longitude',
   sourceBaketId: 'sourceBaketId',
   sourceIncidentId: 'sourceIncidentId',
+  assignedSeatId: 'assignedSeatId',
   assignedPositionId: 'assignedPositionId',
   createdAt: 'createdAt',
   acknowledgedAt: 'acknowledgedAt',

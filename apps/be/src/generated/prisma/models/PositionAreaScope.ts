@@ -198,7 +198,7 @@ export type PositionAreaScopeWhereInput = {
   validFrom?: Prisma.DateTimeFilter<"PositionAreaScope"> | Date | string
   validUntil?: Prisma.DateTimeNullableFilter<"PositionAreaScope"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"PositionAreaScope"> | Date | string
-  assignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  assignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   area?: Prisma.XOR<Prisma.AdministrativeAreaScalarRelationFilter, Prisma.AdministrativeAreaWhereInput>
 }
 
@@ -210,7 +210,7 @@ export type PositionAreaScopeOrderByWithRelationInput = {
   validFrom?: Prisma.SortOrder
   validUntil?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
-  assignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  assignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   area?: Prisma.AdministrativeAreaOrderByWithRelationInput
 }
 
@@ -226,7 +226,7 @@ export type PositionAreaScopeWhereUniqueInput = Prisma.AtLeast<{
   validFrom?: Prisma.DateTimeFilter<"PositionAreaScope"> | Date | string
   validUntil?: Prisma.DateTimeNullableFilter<"PositionAreaScope"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"PositionAreaScope"> | Date | string
-  assignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  assignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   area?: Prisma.XOR<Prisma.AdministrativeAreaScalarRelationFilter, Prisma.AdministrativeAreaWhereInput>
 }, "id" | "positionAssignmentId_areaId_validFrom">
 
@@ -262,7 +262,7 @@ export type PositionAreaScopeCreateInput = {
   validFrom?: Date | string
   validUntil?: Date | string | null
   createdAt?: Date | string
-  assignment: Prisma.PositionAssignmentCreateNestedOneWithoutAreaScopesInput
+  assignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAreaScopesInput
   area: Prisma.AdministrativeAreaCreateNestedOneWithoutPositionScopesInput
 }
 
@@ -282,7 +282,7 @@ export type PositionAreaScopeUpdateInput = {
   validFrom?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   validUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  assignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAreaScopesNestedInput
+  assignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAreaScopesNestedInput
   area?: Prisma.AdministrativeAreaUpdateOneRequiredWithoutPositionScopesNestedInput
 }
 
@@ -517,7 +517,7 @@ export type PositionAreaScopeCreateWithoutAreaInput = {
   validFrom?: Date | string
   validUntil?: Date | string | null
   createdAt?: Date | string
-  assignment: Prisma.PositionAssignmentCreateNestedOneWithoutAreaScopesInput
+  assignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAreaScopesInput
 }
 
 export type PositionAreaScopeUncheckedCreateWithoutAreaInput = {
@@ -606,7 +606,7 @@ export type PositionAreaScopeUpdateWithoutAreaInput = {
   validFrom?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   validUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  assignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAreaScopesNestedInput
+  assignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAreaScopesNestedInput
 }
 
 export type PositionAreaScopeUncheckedUpdateWithoutAreaInput = {
@@ -637,7 +637,7 @@ export type PositionAreaScopeSelect<ExtArgs extends runtime.Types.Extensions.Int
   validFrom?: boolean
   validUntil?: boolean
   createdAt?: boolean
-  assignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.AdministrativeAreaDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["positionAreaScope"]>
 
@@ -649,7 +649,7 @@ export type PositionAreaScopeSelectCreateManyAndReturn<ExtArgs extends runtime.T
   validFrom?: boolean
   validUntil?: boolean
   createdAt?: boolean
-  assignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.AdministrativeAreaDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["positionAreaScope"]>
 
@@ -661,7 +661,7 @@ export type PositionAreaScopeSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   validFrom?: boolean
   validUntil?: boolean
   createdAt?: boolean
-  assignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.AdministrativeAreaDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["positionAreaScope"]>
 
@@ -677,22 +677,22 @@ export type PositionAreaScopeSelectScalar = {
 
 export type PositionAreaScopeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "positionAssignmentId" | "areaId" | "isPrimary" | "validFrom" | "validUntil" | "createdAt", ExtArgs["result"]["positionAreaScope"]>
 export type PositionAreaScopeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  assignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.AdministrativeAreaDefaultArgs<ExtArgs>
 }
 export type PositionAreaScopeIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  assignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.AdministrativeAreaDefaultArgs<ExtArgs>
 }
 export type PositionAreaScopeIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  assignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.AdministrativeAreaDefaultArgs<ExtArgs>
 }
 
 export type $PositionAreaScopePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "PositionAreaScope"
   objects: {
-    assignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    assignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     area: Prisma.$AdministrativeAreaPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1097,7 +1097,7 @@ readonly fields: PositionAreaScopeFieldRefs;
  */
 export interface Prisma__PositionAreaScopeClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  assignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  assignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   area<T extends Prisma.AdministrativeAreaDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AdministrativeAreaDefaultArgs<ExtArgs>>): Prisma.Prisma__AdministrativeAreaClient<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.

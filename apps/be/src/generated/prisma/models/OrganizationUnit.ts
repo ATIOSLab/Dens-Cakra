@@ -29,6 +29,7 @@ export type OrganizationUnitMinAggregateOutputType = {
   code: string | null
   name: string | null
   type: $Enums.OrganizationType | null
+  branch: $Enums.CommandRouteType | null
   parentId: string | null
   isActive: boolean | null
   deletedAt: Date | null
@@ -41,6 +42,7 @@ export type OrganizationUnitMaxAggregateOutputType = {
   code: string | null
   name: string | null
   type: $Enums.OrganizationType | null
+  branch: $Enums.CommandRouteType | null
   parentId: string | null
   isActive: boolean | null
   deletedAt: Date | null
@@ -53,6 +55,7 @@ export type OrganizationUnitCountAggregateOutputType = {
   code: number
   name: number
   type: number
+  branch: number
   parentId: number
   isActive: number
   deletedAt: number
@@ -67,6 +70,7 @@ export type OrganizationUnitMinAggregateInputType = {
   code?: true
   name?: true
   type?: true
+  branch?: true
   parentId?: true
   isActive?: true
   deletedAt?: true
@@ -79,6 +83,7 @@ export type OrganizationUnitMaxAggregateInputType = {
   code?: true
   name?: true
   type?: true
+  branch?: true
   parentId?: true
   isActive?: true
   deletedAt?: true
@@ -91,6 +96,7 @@ export type OrganizationUnitCountAggregateInputType = {
   code?: true
   name?: true
   type?: true
+  branch?: true
   parentId?: true
   isActive?: true
   deletedAt?: true
@@ -176,6 +182,7 @@ export type OrganizationUnitGroupByOutputType = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch: $Enums.CommandRouteType | null
   parentId: string | null
   isActive: boolean
   deletedAt: Date | null
@@ -209,6 +216,7 @@ export type OrganizationUnitWhereInput = {
   code?: Prisma.StringFilter<"OrganizationUnit"> | string
   name?: Prisma.StringFilter<"OrganizationUnit"> | string
   type?: Prisma.EnumOrganizationTypeFilter<"OrganizationUnit"> | $Enums.OrganizationType
+  branch?: Prisma.EnumCommandRouteTypeNullableFilter<"OrganizationUnit"> | $Enums.CommandRouteType | null
   parentId?: Prisma.UuidNullableFilter<"OrganizationUnit"> | string | null
   isActive?: Prisma.BoolFilter<"OrganizationUnit"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"OrganizationUnit"> | Date | string | null
@@ -219,7 +227,10 @@ export type OrganizationUnitWhereInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureListRelationFilter
   descendantLinks?: Prisma.OrganizationUnitClosureListRelationFilter
   positions?: Prisma.PositionListRelationFilter
+  roleSeats?: Prisma.OrganizationRoleSeatListRelationFilter
   areaCoverages?: Prisma.OrganizationAreaCoverageListRelationFilter
+  directorateProfile?: Prisma.XOR<Prisma.DirectorateProfileNullableScalarRelationFilter, Prisma.DirectorateProfileWhereInput> | null
+  bindaProfile?: Prisma.XOR<Prisma.BindaProfileNullableScalarRelationFilter, Prisma.BindaProfileWhereInput> | null
   directives?: Prisma.DirectiveListRelationFilter
   uukStrs?: Prisma.UukStrListRelationFilter
   tasks?: Prisma.TaskListRelationFilter
@@ -234,6 +245,7 @@ export type OrganizationUnitOrderByWithRelationInput = {
   code?: Prisma.SortOrder
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  branch?: Prisma.SortOrderInput | Prisma.SortOrder
   parentId?: Prisma.SortOrderInput | Prisma.SortOrder
   isActive?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -244,7 +256,10 @@ export type OrganizationUnitOrderByWithRelationInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureOrderByRelationAggregateInput
   descendantLinks?: Prisma.OrganizationUnitClosureOrderByRelationAggregateInput
   positions?: Prisma.PositionOrderByRelationAggregateInput
+  roleSeats?: Prisma.OrganizationRoleSeatOrderByRelationAggregateInput
   areaCoverages?: Prisma.OrganizationAreaCoverageOrderByRelationAggregateInput
+  directorateProfile?: Prisma.DirectorateProfileOrderByWithRelationInput
+  bindaProfile?: Prisma.BindaProfileOrderByWithRelationInput
   directives?: Prisma.DirectiveOrderByRelationAggregateInput
   uukStrs?: Prisma.UukStrOrderByRelationAggregateInput
   tasks?: Prisma.TaskOrderByRelationAggregateInput
@@ -262,6 +277,7 @@ export type OrganizationUnitWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.OrganizationUnitWhereInput | Prisma.OrganizationUnitWhereInput[]
   name?: Prisma.StringFilter<"OrganizationUnit"> | string
   type?: Prisma.EnumOrganizationTypeFilter<"OrganizationUnit"> | $Enums.OrganizationType
+  branch?: Prisma.EnumCommandRouteTypeNullableFilter<"OrganizationUnit"> | $Enums.CommandRouteType | null
   parentId?: Prisma.UuidNullableFilter<"OrganizationUnit"> | string | null
   isActive?: Prisma.BoolFilter<"OrganizationUnit"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"OrganizationUnit"> | Date | string | null
@@ -272,7 +288,10 @@ export type OrganizationUnitWhereUniqueInput = Prisma.AtLeast<{
   ancestorLinks?: Prisma.OrganizationUnitClosureListRelationFilter
   descendantLinks?: Prisma.OrganizationUnitClosureListRelationFilter
   positions?: Prisma.PositionListRelationFilter
+  roleSeats?: Prisma.OrganizationRoleSeatListRelationFilter
   areaCoverages?: Prisma.OrganizationAreaCoverageListRelationFilter
+  directorateProfile?: Prisma.XOR<Prisma.DirectorateProfileNullableScalarRelationFilter, Prisma.DirectorateProfileWhereInput> | null
+  bindaProfile?: Prisma.XOR<Prisma.BindaProfileNullableScalarRelationFilter, Prisma.BindaProfileWhereInput> | null
   directives?: Prisma.DirectiveListRelationFilter
   uukStrs?: Prisma.UukStrListRelationFilter
   tasks?: Prisma.TaskListRelationFilter
@@ -287,6 +306,7 @@ export type OrganizationUnitOrderByWithAggregationInput = {
   code?: Prisma.SortOrder
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  branch?: Prisma.SortOrderInput | Prisma.SortOrder
   parentId?: Prisma.SortOrderInput | Prisma.SortOrder
   isActive?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -305,6 +325,7 @@ export type OrganizationUnitScalarWhereWithAggregatesInput = {
   code?: Prisma.StringWithAggregatesFilter<"OrganizationUnit"> | string
   name?: Prisma.StringWithAggregatesFilter<"OrganizationUnit"> | string
   type?: Prisma.EnumOrganizationTypeWithAggregatesFilter<"OrganizationUnit"> | $Enums.OrganizationType
+  branch?: Prisma.EnumCommandRouteTypeNullableWithAggregatesFilter<"OrganizationUnit"> | $Enums.CommandRouteType | null
   parentId?: Prisma.UuidNullableWithAggregatesFilter<"OrganizationUnit"> | string | null
   isActive?: Prisma.BoolWithAggregatesFilter<"OrganizationUnit"> | boolean
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"OrganizationUnit"> | Date | string | null
@@ -317,6 +338,7 @@ export type OrganizationUnitCreateInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -326,7 +348,10 @@ export type OrganizationUnitCreateInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -341,6 +366,7 @@ export type OrganizationUnitUncheckedCreateInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -350,7 +376,10 @@ export type OrganizationUnitUncheckedCreateInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -365,6 +394,7 @@ export type OrganizationUnitUpdateInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -374,7 +404,10 @@ export type OrganizationUnitUpdateInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -389,6 +422,7 @@ export type OrganizationUnitUncheckedUpdateInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -398,7 +432,10 @@ export type OrganizationUnitUncheckedUpdateInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -413,6 +450,7 @@ export type OrganizationUnitCreateManyInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -425,6 +463,7 @@ export type OrganizationUnitUpdateManyMutationInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -436,6 +475,7 @@ export type OrganizationUnitUncheckedUpdateManyInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -463,6 +503,7 @@ export type OrganizationUnitCountOrderByAggregateInput = {
   code?: Prisma.SortOrder
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  branch?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
@@ -475,6 +516,7 @@ export type OrganizationUnitMaxOrderByAggregateInput = {
   code?: Prisma.SortOrder
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  branch?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
@@ -487,6 +529,7 @@ export type OrganizationUnitMinOrderByAggregateInput = {
   code?: Prisma.SortOrder
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  branch?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
@@ -521,6 +564,10 @@ export type OrganizationUnitUncheckedCreateNestedManyWithoutParentInput = {
 
 export type EnumOrganizationTypeFieldUpdateOperationsInput = {
   set?: $Enums.OrganizationType
+}
+
+export type NullableEnumCommandRouteTypeFieldUpdateOperationsInput = {
+  set?: $Enums.CommandRouteType | null
 }
 
 export type OrganizationUnitUpdateOneWithoutChildrenNestedInput = {
@@ -603,6 +650,20 @@ export type OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUnitUpdateToOneWithWhereWithoutPositionsInput, Prisma.OrganizationUnitUpdateWithoutPositionsInput>, Prisma.OrganizationUnitUncheckedUpdateWithoutPositionsInput>
 }
 
+export type OrganizationUnitCreateNestedOneWithoutRoleSeatsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutRoleSeatsInput, Prisma.OrganizationUnitUncheckedCreateWithoutRoleSeatsInput>
+  connectOrCreate?: Prisma.OrganizationUnitCreateOrConnectWithoutRoleSeatsInput
+  connect?: Prisma.OrganizationUnitWhereUniqueInput
+}
+
+export type OrganizationUnitUpdateOneRequiredWithoutRoleSeatsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutRoleSeatsInput, Prisma.OrganizationUnitUncheckedCreateWithoutRoleSeatsInput>
+  connectOrCreate?: Prisma.OrganizationUnitCreateOrConnectWithoutRoleSeatsInput
+  upsert?: Prisma.OrganizationUnitUpsertWithoutRoleSeatsInput
+  connect?: Prisma.OrganizationUnitWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUnitUpdateToOneWithWhereWithoutRoleSeatsInput, Prisma.OrganizationUnitUpdateWithoutRoleSeatsInput>, Prisma.OrganizationUnitUncheckedUpdateWithoutRoleSeatsInput>
+}
+
 export type OrganizationUnitCreateNestedOneWithoutAreaCoveragesInput = {
   create?: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutAreaCoveragesInput, Prisma.OrganizationUnitUncheckedCreateWithoutAreaCoveragesInput>
   connectOrCreate?: Prisma.OrganizationUnitCreateOrConnectWithoutAreaCoveragesInput
@@ -615,6 +676,34 @@ export type OrganizationUnitUpdateOneRequiredWithoutAreaCoveragesNestedInput = {
   upsert?: Prisma.OrganizationUnitUpsertWithoutAreaCoveragesInput
   connect?: Prisma.OrganizationUnitWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUnitUpdateToOneWithWhereWithoutAreaCoveragesInput, Prisma.OrganizationUnitUpdateWithoutAreaCoveragesInput>, Prisma.OrganizationUnitUncheckedUpdateWithoutAreaCoveragesInput>
+}
+
+export type OrganizationUnitCreateNestedOneWithoutDirectorateProfileInput = {
+  create?: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutDirectorateProfileInput, Prisma.OrganizationUnitUncheckedCreateWithoutDirectorateProfileInput>
+  connectOrCreate?: Prisma.OrganizationUnitCreateOrConnectWithoutDirectorateProfileInput
+  connect?: Prisma.OrganizationUnitWhereUniqueInput
+}
+
+export type OrganizationUnitUpdateOneRequiredWithoutDirectorateProfileNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutDirectorateProfileInput, Prisma.OrganizationUnitUncheckedCreateWithoutDirectorateProfileInput>
+  connectOrCreate?: Prisma.OrganizationUnitCreateOrConnectWithoutDirectorateProfileInput
+  upsert?: Prisma.OrganizationUnitUpsertWithoutDirectorateProfileInput
+  connect?: Prisma.OrganizationUnitWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUnitUpdateToOneWithWhereWithoutDirectorateProfileInput, Prisma.OrganizationUnitUpdateWithoutDirectorateProfileInput>, Prisma.OrganizationUnitUncheckedUpdateWithoutDirectorateProfileInput>
+}
+
+export type OrganizationUnitCreateNestedOneWithoutBindaProfileInput = {
+  create?: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutBindaProfileInput, Prisma.OrganizationUnitUncheckedCreateWithoutBindaProfileInput>
+  connectOrCreate?: Prisma.OrganizationUnitCreateOrConnectWithoutBindaProfileInput
+  connect?: Prisma.OrganizationUnitWhereUniqueInput
+}
+
+export type OrganizationUnitUpdateOneRequiredWithoutBindaProfileNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutBindaProfileInput, Prisma.OrganizationUnitUncheckedCreateWithoutBindaProfileInput>
+  connectOrCreate?: Prisma.OrganizationUnitCreateOrConnectWithoutBindaProfileInput
+  upsert?: Prisma.OrganizationUnitUpsertWithoutBindaProfileInput
+  connect?: Prisma.OrganizationUnitWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUnitUpdateToOneWithWhereWithoutBindaProfileInput, Prisma.OrganizationUnitUpdateWithoutBindaProfileInput>, Prisma.OrganizationUnitUncheckedUpdateWithoutBindaProfileInput>
 }
 
 export type OrganizationUnitCreateNestedOneWithoutDirectivesInput = {
@@ -724,6 +813,7 @@ export type OrganizationUnitCreateWithoutChildrenInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -732,7 +822,10 @@ export type OrganizationUnitCreateWithoutChildrenInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -747,6 +840,7 @@ export type OrganizationUnitUncheckedCreateWithoutChildrenInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -755,7 +849,10 @@ export type OrganizationUnitUncheckedCreateWithoutChildrenInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -775,6 +872,7 @@ export type OrganizationUnitCreateWithoutParentInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -783,7 +881,10 @@ export type OrganizationUnitCreateWithoutParentInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -798,6 +899,7 @@ export type OrganizationUnitUncheckedCreateWithoutParentInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -806,7 +908,10 @@ export type OrganizationUnitUncheckedCreateWithoutParentInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -842,6 +947,7 @@ export type OrganizationUnitUpdateWithoutChildrenInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -850,7 +956,10 @@ export type OrganizationUnitUpdateWithoutChildrenInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -865,6 +974,7 @@ export type OrganizationUnitUncheckedUpdateWithoutChildrenInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -873,7 +983,10 @@ export type OrganizationUnitUncheckedUpdateWithoutChildrenInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -907,6 +1020,7 @@ export type OrganizationUnitScalarWhereInput = {
   code?: Prisma.StringFilter<"OrganizationUnit"> | string
   name?: Prisma.StringFilter<"OrganizationUnit"> | string
   type?: Prisma.EnumOrganizationTypeFilter<"OrganizationUnit"> | $Enums.OrganizationType
+  branch?: Prisma.EnumCommandRouteTypeNullableFilter<"OrganizationUnit"> | $Enums.CommandRouteType | null
   parentId?: Prisma.UuidNullableFilter<"OrganizationUnit"> | string | null
   isActive?: Prisma.BoolFilter<"OrganizationUnit"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"OrganizationUnit"> | Date | string | null
@@ -919,6 +1033,7 @@ export type OrganizationUnitCreateWithoutAncestorLinksInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -927,7 +1042,10 @@ export type OrganizationUnitCreateWithoutAncestorLinksInput = {
   children?: Prisma.OrganizationUnitCreateNestedManyWithoutParentInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -942,6 +1060,7 @@ export type OrganizationUnitUncheckedCreateWithoutAncestorLinksInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -950,7 +1069,10 @@ export type OrganizationUnitUncheckedCreateWithoutAncestorLinksInput = {
   children?: Prisma.OrganizationUnitUncheckedCreateNestedManyWithoutParentInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -970,6 +1092,7 @@ export type OrganizationUnitCreateWithoutDescendantLinksInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -978,7 +1101,10 @@ export type OrganizationUnitCreateWithoutDescendantLinksInput = {
   children?: Prisma.OrganizationUnitCreateNestedManyWithoutParentInput
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -993,6 +1119,7 @@ export type OrganizationUnitUncheckedCreateWithoutDescendantLinksInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -1001,7 +1128,10 @@ export type OrganizationUnitUncheckedCreateWithoutDescendantLinksInput = {
   children?: Prisma.OrganizationUnitUncheckedCreateNestedManyWithoutParentInput
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -1032,6 +1162,7 @@ export type OrganizationUnitUpdateWithoutAncestorLinksInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1040,7 +1171,10 @@ export type OrganizationUnitUpdateWithoutAncestorLinksInput = {
   children?: Prisma.OrganizationUnitUpdateManyWithoutParentNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -1055,6 +1189,7 @@ export type OrganizationUnitUncheckedUpdateWithoutAncestorLinksInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1063,7 +1198,10 @@ export type OrganizationUnitUncheckedUpdateWithoutAncestorLinksInput = {
   children?: Prisma.OrganizationUnitUncheckedUpdateManyWithoutParentNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1089,6 +1227,7 @@ export type OrganizationUnitUpdateWithoutDescendantLinksInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1097,7 +1236,10 @@ export type OrganizationUnitUpdateWithoutDescendantLinksInput = {
   children?: Prisma.OrganizationUnitUpdateManyWithoutParentNestedInput
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -1112,6 +1254,7 @@ export type OrganizationUnitUncheckedUpdateWithoutDescendantLinksInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1120,7 +1263,10 @@ export type OrganizationUnitUncheckedUpdateWithoutDescendantLinksInput = {
   children?: Prisma.OrganizationUnitUncheckedUpdateManyWithoutParentNestedInput
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1135,6 +1281,7 @@ export type OrganizationUnitCreateWithoutPositionsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -1143,7 +1290,10 @@ export type OrganizationUnitCreateWithoutPositionsInput = {
   children?: Prisma.OrganizationUnitCreateNestedManyWithoutParentInput
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -1158,6 +1308,7 @@ export type OrganizationUnitUncheckedCreateWithoutPositionsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -1166,7 +1317,10 @@ export type OrganizationUnitUncheckedCreateWithoutPositionsInput = {
   children?: Prisma.OrganizationUnitUncheckedCreateNestedManyWithoutParentInput
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -1197,6 +1351,7 @@ export type OrganizationUnitUpdateWithoutPositionsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1205,7 +1360,10 @@ export type OrganizationUnitUpdateWithoutPositionsInput = {
   children?: Prisma.OrganizationUnitUpdateManyWithoutParentNestedInput
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -1220,6 +1378,7 @@ export type OrganizationUnitUncheckedUpdateWithoutPositionsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1228,7 +1387,134 @@ export type OrganizationUnitUncheckedUpdateWithoutPositionsInput = {
   children?: Prisma.OrganizationUnitUncheckedUpdateManyWithoutParentNestedInput
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  analysisCases?: Prisma.AnalysisCaseUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  intelligenceProducts?: Prisma.IntelligenceProductUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetUnitNestedInput
+  productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetUnitNestedInput
+}
+
+export type OrganizationUnitCreateWithoutRoleSeatsInput = {
+  id?: string
+  code: string
+  name: string
+  type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent?: Prisma.OrganizationUnitCreateNestedOneWithoutChildrenInput
+  children?: Prisma.OrganizationUnitCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
+  positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
+  directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
+  uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
+  analysisCases?: Prisma.AnalysisCaseCreateNestedManyWithoutOwnerUnitInput
+  intelligenceProducts?: Prisma.IntelligenceProductCreateNestedManyWithoutOwnerUnitInput
+  directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetUnitInput
+  productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetUnitInput
+}
+
+export type OrganizationUnitUncheckedCreateWithoutRoleSeatsInput = {
+  id?: string
+  code: string
+  name: string
+  type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
+  parentId?: string | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  children?: Prisma.OrganizationUnitUncheckedCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
+  positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
+  uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
+  analysisCases?: Prisma.AnalysisCaseUncheckedCreateNestedManyWithoutOwnerUnitInput
+  intelligenceProducts?: Prisma.IntelligenceProductUncheckedCreateNestedManyWithoutOwnerUnitInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetUnitInput
+  productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetUnitInput
+}
+
+export type OrganizationUnitCreateOrConnectWithoutRoleSeatsInput = {
+  where: Prisma.OrganizationUnitWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutRoleSeatsInput, Prisma.OrganizationUnitUncheckedCreateWithoutRoleSeatsInput>
+}
+
+export type OrganizationUnitUpsertWithoutRoleSeatsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUnitUpdateWithoutRoleSeatsInput, Prisma.OrganizationUnitUncheckedUpdateWithoutRoleSeatsInput>
+  create: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutRoleSeatsInput, Prisma.OrganizationUnitUncheckedCreateWithoutRoleSeatsInput>
+  where?: Prisma.OrganizationUnitWhereInput
+}
+
+export type OrganizationUnitUpdateToOneWithWhereWithoutRoleSeatsInput = {
+  where?: Prisma.OrganizationUnitWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUnitUpdateWithoutRoleSeatsInput, Prisma.OrganizationUnitUncheckedUpdateWithoutRoleSeatsInput>
+}
+
+export type OrganizationUnitUpdateWithoutRoleSeatsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.OrganizationUnitUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.OrganizationUnitUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
+  positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
+  directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
+  uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
+  analysisCases?: Prisma.AnalysisCaseUpdateManyWithoutOwnerUnitNestedInput
+  intelligenceProducts?: Prisma.IntelligenceProductUpdateManyWithoutOwnerUnitNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetUnitNestedInput
+  productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetUnitNestedInput
+}
+
+export type OrganizationUnitUncheckedUpdateWithoutRoleSeatsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  children?: Prisma.OrganizationUnitUncheckedUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
+  positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1243,6 +1529,7 @@ export type OrganizationUnitCreateWithoutAreaCoveragesInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -1252,6 +1539,9 @@ export type OrganizationUnitCreateWithoutAreaCoveragesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -1266,6 +1556,7 @@ export type OrganizationUnitUncheckedCreateWithoutAreaCoveragesInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -1275,6 +1566,9 @@ export type OrganizationUnitUncheckedCreateWithoutAreaCoveragesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -1305,6 +1599,7 @@ export type OrganizationUnitUpdateWithoutAreaCoveragesInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1314,6 +1609,9 @@ export type OrganizationUnitUpdateWithoutAreaCoveragesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -1328,6 +1626,7 @@ export type OrganizationUnitUncheckedUpdateWithoutAreaCoveragesInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1337,6 +1636,257 @@ export type OrganizationUnitUncheckedUpdateWithoutAreaCoveragesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  analysisCases?: Prisma.AnalysisCaseUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  intelligenceProducts?: Prisma.IntelligenceProductUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetUnitNestedInput
+  productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetUnitNestedInput
+}
+
+export type OrganizationUnitCreateWithoutDirectorateProfileInput = {
+  id?: string
+  code: string
+  name: string
+  type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent?: Prisma.OrganizationUnitCreateNestedOneWithoutChildrenInput
+  children?: Prisma.OrganizationUnitCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
+  positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
+  directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
+  uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
+  analysisCases?: Prisma.AnalysisCaseCreateNestedManyWithoutOwnerUnitInput
+  intelligenceProducts?: Prisma.IntelligenceProductCreateNestedManyWithoutOwnerUnitInput
+  directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetUnitInput
+  productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetUnitInput
+}
+
+export type OrganizationUnitUncheckedCreateWithoutDirectorateProfileInput = {
+  id?: string
+  code: string
+  name: string
+  type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
+  parentId?: string | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  children?: Prisma.OrganizationUnitUncheckedCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
+  positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
+  uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
+  analysisCases?: Prisma.AnalysisCaseUncheckedCreateNestedManyWithoutOwnerUnitInput
+  intelligenceProducts?: Prisma.IntelligenceProductUncheckedCreateNestedManyWithoutOwnerUnitInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetUnitInput
+  productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetUnitInput
+}
+
+export type OrganizationUnitCreateOrConnectWithoutDirectorateProfileInput = {
+  where: Prisma.OrganizationUnitWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutDirectorateProfileInput, Prisma.OrganizationUnitUncheckedCreateWithoutDirectorateProfileInput>
+}
+
+export type OrganizationUnitUpsertWithoutDirectorateProfileInput = {
+  update: Prisma.XOR<Prisma.OrganizationUnitUpdateWithoutDirectorateProfileInput, Prisma.OrganizationUnitUncheckedUpdateWithoutDirectorateProfileInput>
+  create: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutDirectorateProfileInput, Prisma.OrganizationUnitUncheckedCreateWithoutDirectorateProfileInput>
+  where?: Prisma.OrganizationUnitWhereInput
+}
+
+export type OrganizationUnitUpdateToOneWithWhereWithoutDirectorateProfileInput = {
+  where?: Prisma.OrganizationUnitWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUnitUpdateWithoutDirectorateProfileInput, Prisma.OrganizationUnitUncheckedUpdateWithoutDirectorateProfileInput>
+}
+
+export type OrganizationUnitUpdateWithoutDirectorateProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.OrganizationUnitUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.OrganizationUnitUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
+  positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
+  directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
+  uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
+  analysisCases?: Prisma.AnalysisCaseUpdateManyWithoutOwnerUnitNestedInput
+  intelligenceProducts?: Prisma.IntelligenceProductUpdateManyWithoutOwnerUnitNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetUnitNestedInput
+  productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetUnitNestedInput
+}
+
+export type OrganizationUnitUncheckedUpdateWithoutDirectorateProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  children?: Prisma.OrganizationUnitUncheckedUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
+  positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  analysisCases?: Prisma.AnalysisCaseUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  intelligenceProducts?: Prisma.IntelligenceProductUncheckedUpdateManyWithoutOwnerUnitNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetUnitNestedInput
+  productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetUnitNestedInput
+}
+
+export type OrganizationUnitCreateWithoutBindaProfileInput = {
+  id?: string
+  code: string
+  name: string
+  type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent?: Prisma.OrganizationUnitCreateNestedOneWithoutChildrenInput
+  children?: Prisma.OrganizationUnitCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
+  positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
+  uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
+  analysisCases?: Prisma.AnalysisCaseCreateNestedManyWithoutOwnerUnitInput
+  intelligenceProducts?: Prisma.IntelligenceProductCreateNestedManyWithoutOwnerUnitInput
+  directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetUnitInput
+  productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetUnitInput
+}
+
+export type OrganizationUnitUncheckedCreateWithoutBindaProfileInput = {
+  id?: string
+  code: string
+  name: string
+  type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
+  parentId?: string | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  children?: Prisma.OrganizationUnitUncheckedCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
+  positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
+  uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
+  analysisCases?: Prisma.AnalysisCaseUncheckedCreateNestedManyWithoutOwnerUnitInput
+  intelligenceProducts?: Prisma.IntelligenceProductUncheckedCreateNestedManyWithoutOwnerUnitInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetUnitInput
+  productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetUnitInput
+}
+
+export type OrganizationUnitCreateOrConnectWithoutBindaProfileInput = {
+  where: Prisma.OrganizationUnitWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutBindaProfileInput, Prisma.OrganizationUnitUncheckedCreateWithoutBindaProfileInput>
+}
+
+export type OrganizationUnitUpsertWithoutBindaProfileInput = {
+  update: Prisma.XOR<Prisma.OrganizationUnitUpdateWithoutBindaProfileInput, Prisma.OrganizationUnitUncheckedUpdateWithoutBindaProfileInput>
+  create: Prisma.XOR<Prisma.OrganizationUnitCreateWithoutBindaProfileInput, Prisma.OrganizationUnitUncheckedCreateWithoutBindaProfileInput>
+  where?: Prisma.OrganizationUnitWhereInput
+}
+
+export type OrganizationUnitUpdateToOneWithWhereWithoutBindaProfileInput = {
+  where?: Prisma.OrganizationUnitWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUnitUpdateWithoutBindaProfileInput, Prisma.OrganizationUnitUncheckedUpdateWithoutBindaProfileInput>
+}
+
+export type OrganizationUnitUpdateWithoutBindaProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.OrganizationUnitUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.OrganizationUnitUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
+  positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
+  uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
+  analysisCases?: Prisma.AnalysisCaseUpdateManyWithoutOwnerUnitNestedInput
+  intelligenceProducts?: Prisma.IntelligenceProductUpdateManyWithoutOwnerUnitNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetUnitNestedInput
+  productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetUnitNestedInput
+}
+
+export type OrganizationUnitUncheckedUpdateWithoutBindaProfileInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  children?: Prisma.OrganizationUnitUncheckedUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
+  positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1351,6 +1901,7 @@ export type OrganizationUnitCreateWithoutDirectivesInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -1360,7 +1911,10 @@ export type OrganizationUnitCreateWithoutDirectivesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
   analysisCases?: Prisma.AnalysisCaseCreateNestedManyWithoutOwnerUnitInput
@@ -1374,6 +1928,7 @@ export type OrganizationUnitUncheckedCreateWithoutDirectivesInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -1383,7 +1938,10 @@ export type OrganizationUnitUncheckedCreateWithoutDirectivesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
   analysisCases?: Prisma.AnalysisCaseUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -1413,6 +1971,7 @@ export type OrganizationUnitUpdateWithoutDirectivesInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1422,7 +1981,10 @@ export type OrganizationUnitUpdateWithoutDirectivesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
   analysisCases?: Prisma.AnalysisCaseUpdateManyWithoutOwnerUnitNestedInput
@@ -1436,6 +1998,7 @@ export type OrganizationUnitUncheckedUpdateWithoutDirectivesInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1445,7 +2008,10 @@ export type OrganizationUnitUncheckedUpdateWithoutDirectivesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
   analysisCases?: Prisma.AnalysisCaseUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1459,6 +2025,7 @@ export type OrganizationUnitCreateWithoutDirectiveRecipientsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -1468,7 +2035,10 @@ export type OrganizationUnitCreateWithoutDirectiveRecipientsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -1482,6 +2052,7 @@ export type OrganizationUnitUncheckedCreateWithoutDirectiveRecipientsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -1491,7 +2062,10 @@ export type OrganizationUnitUncheckedCreateWithoutDirectiveRecipientsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -1521,6 +2095,7 @@ export type OrganizationUnitUpdateWithoutDirectiveRecipientsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1530,7 +2105,10 @@ export type OrganizationUnitUpdateWithoutDirectiveRecipientsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -1544,6 +2122,7 @@ export type OrganizationUnitUncheckedUpdateWithoutDirectiveRecipientsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1553,7 +2132,10 @@ export type OrganizationUnitUncheckedUpdateWithoutDirectiveRecipientsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1567,6 +2149,7 @@ export type OrganizationUnitCreateWithoutUukStrsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -1576,7 +2159,10 @@ export type OrganizationUnitCreateWithoutUukStrsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
   analysisCases?: Prisma.AnalysisCaseCreateNestedManyWithoutOwnerUnitInput
@@ -1590,6 +2176,7 @@ export type OrganizationUnitUncheckedCreateWithoutUukStrsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -1599,7 +2186,10 @@ export type OrganizationUnitUncheckedCreateWithoutUukStrsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
   analysisCases?: Prisma.AnalysisCaseUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -1629,6 +2219,7 @@ export type OrganizationUnitUpdateWithoutUukStrsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1638,7 +2229,10 @@ export type OrganizationUnitUpdateWithoutUukStrsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
   analysisCases?: Prisma.AnalysisCaseUpdateManyWithoutOwnerUnitNestedInput
@@ -1652,6 +2246,7 @@ export type OrganizationUnitUncheckedUpdateWithoutUukStrsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1661,7 +2256,10 @@ export type OrganizationUnitUncheckedUpdateWithoutUukStrsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
   analysisCases?: Prisma.AnalysisCaseUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1675,6 +2273,7 @@ export type OrganizationUnitCreateWithoutTasksInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -1684,7 +2283,10 @@ export type OrganizationUnitCreateWithoutTasksInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   analysisCases?: Prisma.AnalysisCaseCreateNestedManyWithoutOwnerUnitInput
@@ -1698,6 +2300,7 @@ export type OrganizationUnitUncheckedCreateWithoutTasksInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -1707,7 +2310,10 @@ export type OrganizationUnitUncheckedCreateWithoutTasksInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   analysisCases?: Prisma.AnalysisCaseUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -1737,6 +2343,7 @@ export type OrganizationUnitUpdateWithoutTasksInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1746,7 +2353,10 @@ export type OrganizationUnitUpdateWithoutTasksInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   analysisCases?: Prisma.AnalysisCaseUpdateManyWithoutOwnerUnitNestedInput
@@ -1760,6 +2370,7 @@ export type OrganizationUnitUncheckedUpdateWithoutTasksInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1769,7 +2380,10 @@ export type OrganizationUnitUncheckedUpdateWithoutTasksInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   analysisCases?: Prisma.AnalysisCaseUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1783,6 +2397,7 @@ export type OrganizationUnitCreateWithoutAnalysisCasesInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -1792,7 +2407,10 @@ export type OrganizationUnitCreateWithoutAnalysisCasesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -1806,6 +2424,7 @@ export type OrganizationUnitUncheckedCreateWithoutAnalysisCasesInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -1815,7 +2434,10 @@ export type OrganizationUnitUncheckedCreateWithoutAnalysisCasesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -1845,6 +2467,7 @@ export type OrganizationUnitUpdateWithoutAnalysisCasesInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1854,7 +2477,10 @@ export type OrganizationUnitUpdateWithoutAnalysisCasesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -1868,6 +2494,7 @@ export type OrganizationUnitUncheckedUpdateWithoutAnalysisCasesInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1877,7 +2504,10 @@ export type OrganizationUnitUncheckedUpdateWithoutAnalysisCasesInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1891,6 +2521,7 @@ export type OrganizationUnitCreateWithoutIntelligenceProductsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -1900,7 +2531,10 @@ export type OrganizationUnitCreateWithoutIntelligenceProductsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -1914,6 +2548,7 @@ export type OrganizationUnitUncheckedCreateWithoutIntelligenceProductsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -1923,7 +2558,10 @@ export type OrganizationUnitUncheckedCreateWithoutIntelligenceProductsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -1953,6 +2591,7 @@ export type OrganizationUnitUpdateWithoutIntelligenceProductsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1962,7 +2601,10 @@ export type OrganizationUnitUpdateWithoutIntelligenceProductsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -1976,6 +2618,7 @@ export type OrganizationUnitUncheckedUpdateWithoutIntelligenceProductsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1985,7 +2628,10 @@ export type OrganizationUnitUncheckedUpdateWithoutIntelligenceProductsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -1999,6 +2645,7 @@ export type OrganizationUnitCreateWithoutProductDistributionsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -2008,7 +2655,10 @@ export type OrganizationUnitCreateWithoutProductDistributionsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskCreateNestedManyWithoutOwnerUnitInput
@@ -2022,6 +2672,7 @@ export type OrganizationUnitUncheckedCreateWithoutProductDistributionsInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   parentId?: string | null
   isActive?: boolean
   deletedAt?: Date | string | null
@@ -2031,7 +2682,10 @@ export type OrganizationUnitUncheckedCreateWithoutProductDistributionsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedCreateNestedManyWithoutDescendantInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutOrganizationUnitInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutOrganizationUnitInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
+  bindaProfile?: Prisma.BindaProfileUncheckedCreateNestedOneWithoutOrganizationUnitInput
   directives?: Prisma.DirectiveUncheckedCreateNestedManyWithoutOwnerUnitInput
   uukStrs?: Prisma.UukStrUncheckedCreateNestedManyWithoutOwnerUnitInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutOwnerUnitInput
@@ -2061,6 +2715,7 @@ export type OrganizationUnitUpdateWithoutProductDistributionsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2070,7 +2725,10 @@ export type OrganizationUnitUpdateWithoutProductDistributionsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -2084,6 +2742,7 @@ export type OrganizationUnitUncheckedUpdateWithoutProductDistributionsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2093,7 +2752,10 @@ export type OrganizationUnitUncheckedUpdateWithoutProductDistributionsInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -2107,6 +2769,7 @@ export type OrganizationUnitCreateManyParentInput = {
   code: string
   name: string
   type: $Enums.OrganizationType
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -2118,6 +2781,7 @@ export type OrganizationUnitUpdateWithoutParentInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2126,7 +2790,10 @@ export type OrganizationUnitUpdateWithoutParentInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutOwnerUnitNestedInput
@@ -2141,6 +2808,7 @@ export type OrganizationUnitUncheckedUpdateWithoutParentInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2149,7 +2817,10 @@ export type OrganizationUnitUncheckedUpdateWithoutParentInput = {
   ancestorLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.OrganizationUnitClosureUncheckedUpdateManyWithoutDescendantNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutOrganizationUnitNestedInput
   areaCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutOrganizationUnitNestedInput
+  directorateProfile?: Prisma.DirectorateProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
+  bindaProfile?: Prisma.BindaProfileUncheckedUpdateOneWithoutOrganizationUnitNestedInput
   directives?: Prisma.DirectiveUncheckedUpdateManyWithoutOwnerUnitNestedInput
   uukStrs?: Prisma.UukStrUncheckedUpdateManyWithoutOwnerUnitNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutOwnerUnitNestedInput
@@ -2164,6 +2835,7 @@ export type OrganizationUnitUncheckedUpdateManyWithoutParentInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumOrganizationTypeFieldUpdateOperationsInput | $Enums.OrganizationType
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2180,6 +2852,7 @@ export type OrganizationUnitCountOutputType = {
   ancestorLinks: number
   descendantLinks: number
   positions: number
+  roleSeats: number
   areaCoverages: number
   directives: number
   uukStrs: number
@@ -2195,6 +2868,7 @@ export type OrganizationUnitCountOutputTypeSelect<ExtArgs extends runtime.Types.
   ancestorLinks?: boolean | OrganizationUnitCountOutputTypeCountAncestorLinksArgs
   descendantLinks?: boolean | OrganizationUnitCountOutputTypeCountDescendantLinksArgs
   positions?: boolean | OrganizationUnitCountOutputTypeCountPositionsArgs
+  roleSeats?: boolean | OrganizationUnitCountOutputTypeCountRoleSeatsArgs
   areaCoverages?: boolean | OrganizationUnitCountOutputTypeCountAreaCoveragesArgs
   directives?: boolean | OrganizationUnitCountOutputTypeCountDirectivesArgs
   uukStrs?: boolean | OrganizationUnitCountOutputTypeCountUukStrsArgs
@@ -2241,6 +2915,13 @@ export type OrganizationUnitCountOutputTypeCountDescendantLinksArgs<ExtArgs exte
  */
 export type OrganizationUnitCountOutputTypeCountPositionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.PositionWhereInput
+}
+
+/**
+ * OrganizationUnitCountOutputType without action
+ */
+export type OrganizationUnitCountOutputTypeCountRoleSeatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OrganizationRoleSeatWhereInput
 }
 
 /**
@@ -2305,6 +2986,7 @@ export type OrganizationUnitSelect<ExtArgs extends runtime.Types.Extensions.Inte
   code?: boolean
   name?: boolean
   type?: boolean
+  branch?: boolean
   parentId?: boolean
   isActive?: boolean
   deletedAt?: boolean
@@ -2315,7 +2997,10 @@ export type OrganizationUnitSelect<ExtArgs extends runtime.Types.Extensions.Inte
   ancestorLinks?: boolean | Prisma.OrganizationUnit$ancestorLinksArgs<ExtArgs>
   descendantLinks?: boolean | Prisma.OrganizationUnit$descendantLinksArgs<ExtArgs>
   positions?: boolean | Prisma.OrganizationUnit$positionsArgs<ExtArgs>
+  roleSeats?: boolean | Prisma.OrganizationUnit$roleSeatsArgs<ExtArgs>
   areaCoverages?: boolean | Prisma.OrganizationUnit$areaCoveragesArgs<ExtArgs>
+  directorateProfile?: boolean | Prisma.OrganizationUnit$directorateProfileArgs<ExtArgs>
+  bindaProfile?: boolean | Prisma.OrganizationUnit$bindaProfileArgs<ExtArgs>
   directives?: boolean | Prisma.OrganizationUnit$directivesArgs<ExtArgs>
   uukStrs?: boolean | Prisma.OrganizationUnit$uukStrsArgs<ExtArgs>
   tasks?: boolean | Prisma.OrganizationUnit$tasksArgs<ExtArgs>
@@ -2331,6 +3016,7 @@ export type OrganizationUnitSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   code?: boolean
   name?: boolean
   type?: boolean
+  branch?: boolean
   parentId?: boolean
   isActive?: boolean
   deletedAt?: boolean
@@ -2344,6 +3030,7 @@ export type OrganizationUnitSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   code?: boolean
   name?: boolean
   type?: boolean
+  branch?: boolean
   parentId?: boolean
   isActive?: boolean
   deletedAt?: boolean
@@ -2357,6 +3044,7 @@ export type OrganizationUnitSelectScalar = {
   code?: boolean
   name?: boolean
   type?: boolean
+  branch?: boolean
   parentId?: boolean
   isActive?: boolean
   deletedAt?: boolean
@@ -2364,14 +3052,17 @@ export type OrganizationUnitSelectScalar = {
   updatedAt?: boolean
 }
 
-export type OrganizationUnitOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "name" | "type" | "parentId" | "isActive" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["organizationUnit"]>
+export type OrganizationUnitOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "name" | "type" | "branch" | "parentId" | "isActive" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["organizationUnit"]>
 export type OrganizationUnitInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   parent?: boolean | Prisma.OrganizationUnit$parentArgs<ExtArgs>
   children?: boolean | Prisma.OrganizationUnit$childrenArgs<ExtArgs>
   ancestorLinks?: boolean | Prisma.OrganizationUnit$ancestorLinksArgs<ExtArgs>
   descendantLinks?: boolean | Prisma.OrganizationUnit$descendantLinksArgs<ExtArgs>
   positions?: boolean | Prisma.OrganizationUnit$positionsArgs<ExtArgs>
+  roleSeats?: boolean | Prisma.OrganizationUnit$roleSeatsArgs<ExtArgs>
   areaCoverages?: boolean | Prisma.OrganizationUnit$areaCoveragesArgs<ExtArgs>
+  directorateProfile?: boolean | Prisma.OrganizationUnit$directorateProfileArgs<ExtArgs>
+  bindaProfile?: boolean | Prisma.OrganizationUnit$bindaProfileArgs<ExtArgs>
   directives?: boolean | Prisma.OrganizationUnit$directivesArgs<ExtArgs>
   uukStrs?: boolean | Prisma.OrganizationUnit$uukStrsArgs<ExtArgs>
   tasks?: boolean | Prisma.OrganizationUnit$tasksArgs<ExtArgs>
@@ -2396,7 +3087,10 @@ export type $OrganizationUnitPayload<ExtArgs extends runtime.Types.Extensions.In
     ancestorLinks: Prisma.$OrganizationUnitClosurePayload<ExtArgs>[]
     descendantLinks: Prisma.$OrganizationUnitClosurePayload<ExtArgs>[]
     positions: Prisma.$PositionPayload<ExtArgs>[]
+    roleSeats: Prisma.$OrganizationRoleSeatPayload<ExtArgs>[]
     areaCoverages: Prisma.$OrganizationAreaCoveragePayload<ExtArgs>[]
+    directorateProfile: Prisma.$DirectorateProfilePayload<ExtArgs> | null
+    bindaProfile: Prisma.$BindaProfilePayload<ExtArgs> | null
     directives: Prisma.$DirectivePayload<ExtArgs>[]
     uukStrs: Prisma.$UukStrPayload<ExtArgs>[]
     tasks: Prisma.$TaskPayload<ExtArgs>[]
@@ -2410,6 +3104,7 @@ export type $OrganizationUnitPayload<ExtArgs extends runtime.Types.Extensions.In
     code: string
     name: string
     type: $Enums.OrganizationType
+    branch: $Enums.CommandRouteType | null
     parentId: string | null
     isActive: boolean
     deletedAt: Date | null
@@ -2814,7 +3509,10 @@ export interface Prisma__OrganizationUnitClient<T, Null = never, ExtArgs extends
   ancestorLinks<T extends Prisma.OrganizationUnit$ancestorLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$ancestorLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrganizationUnitClosurePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   descendantLinks<T extends Prisma.OrganizationUnit$descendantLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$descendantLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrganizationUnitClosurePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   positions<T extends Prisma.OrganizationUnit$positionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$positionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PositionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  roleSeats<T extends Prisma.OrganizationUnit$roleSeatsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$roleSeatsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrganizationRoleSeatPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   areaCoverages<T extends Prisma.OrganizationUnit$areaCoveragesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$areaCoveragesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrganizationAreaCoveragePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  directorateProfile<T extends Prisma.OrganizationUnit$directorateProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$directorateProfileArgs<ExtArgs>>): Prisma.Prisma__DirectorateProfileClient<runtime.Types.Result.GetResult<Prisma.$DirectorateProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  bindaProfile<T extends Prisma.OrganizationUnit$bindaProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$bindaProfileArgs<ExtArgs>>): Prisma.Prisma__BindaProfileClient<runtime.Types.Result.GetResult<Prisma.$BindaProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   directives<T extends Prisma.OrganizationUnit$directivesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$directivesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DirectivePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   uukStrs<T extends Prisma.OrganizationUnit$uukStrsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$uukStrsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UukStrPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tasks<T extends Prisma.OrganizationUnit$tasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnit$tasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2855,6 +3553,7 @@ export interface OrganizationUnitFieldRefs {
   readonly code: Prisma.FieldRef<"OrganizationUnit", 'String'>
   readonly name: Prisma.FieldRef<"OrganizationUnit", 'String'>
   readonly type: Prisma.FieldRef<"OrganizationUnit", 'OrganizationType'>
+  readonly branch: Prisma.FieldRef<"OrganizationUnit", 'CommandRouteType'>
   readonly parentId: Prisma.FieldRef<"OrganizationUnit", 'String'>
   readonly isActive: Prisma.FieldRef<"OrganizationUnit", 'Boolean'>
   readonly deletedAt: Prisma.FieldRef<"OrganizationUnit", 'DateTime'>
@@ -3376,6 +4075,30 @@ export type OrganizationUnit$positionsArgs<ExtArgs extends runtime.Types.Extensi
 }
 
 /**
+ * OrganizationUnit.roleSeats
+ */
+export type OrganizationUnit$roleSeatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrganizationRoleSeat
+   */
+  select?: Prisma.OrganizationRoleSeatSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OrganizationRoleSeat
+   */
+  omit?: Prisma.OrganizationRoleSeatOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrganizationRoleSeatInclude<ExtArgs> | null
+  where?: Prisma.OrganizationRoleSeatWhereInput
+  orderBy?: Prisma.OrganizationRoleSeatOrderByWithRelationInput | Prisma.OrganizationRoleSeatOrderByWithRelationInput[]
+  cursor?: Prisma.OrganizationRoleSeatWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OrganizationRoleSeatScalarFieldEnum | Prisma.OrganizationRoleSeatScalarFieldEnum[]
+}
+
+/**
  * OrganizationUnit.areaCoverages
  */
 export type OrganizationUnit$areaCoveragesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3397,6 +4120,44 @@ export type OrganizationUnit$areaCoveragesArgs<ExtArgs extends runtime.Types.Ext
   take?: number
   skip?: number
   distinct?: Prisma.OrganizationAreaCoverageScalarFieldEnum | Prisma.OrganizationAreaCoverageScalarFieldEnum[]
+}
+
+/**
+ * OrganizationUnit.directorateProfile
+ */
+export type OrganizationUnit$directorateProfileArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DirectorateProfile
+   */
+  select?: Prisma.DirectorateProfileSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DirectorateProfile
+   */
+  omit?: Prisma.DirectorateProfileOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DirectorateProfileInclude<ExtArgs> | null
+  where?: Prisma.DirectorateProfileWhereInput
+}
+
+/**
+ * OrganizationUnit.bindaProfile
+ */
+export type OrganizationUnit$bindaProfileArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BindaProfile
+   */
+  select?: Prisma.BindaProfileSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BindaProfile
+   */
+  omit?: Prisma.BindaProfileOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BindaProfileInclude<ExtArgs> | null
+  where?: Prisma.BindaProfileWhereInput
 }
 
 /**

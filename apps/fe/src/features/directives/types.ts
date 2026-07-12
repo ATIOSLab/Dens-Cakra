@@ -98,6 +98,58 @@ export type ProvinceBoundaryCollection = FeatureCollection<
   ProvinceBoundaryProperties
 >;
 
+export type RegionalMasterBinda = {
+  unitId: string;
+  code: string;
+  name: string;
+  parentUnitId: string | null;
+  parentUnitCode: string | null;
+  parentUnitName: string | null;
+};
+
+export type RegionalMasterDirectorate = {
+  unitId: string;
+  code: string;
+  name: string;
+  profileCode: string | null;
+  parentUnitId: string | null;
+  parentUnitCode: string | null;
+  parentUnitName: string | null;
+  primaryProvinceAreaId: string | null;
+  coverageAreas: Array<{
+    areaId: string;
+    code: string;
+    name: string;
+    level: string;
+    isPrimary: boolean;
+  }>;
+};
+
+export type RegionalMasterProvinceSummary = {
+  province: ProvinceOption & {
+    isActive?: boolean;
+    centroidLatitude?: number | null;
+    centroidLongitude?: number | null;
+  };
+  binda: RegionalMasterBinda | null;
+  directorates: RegionalMasterDirectorate[];
+};
+
+export type RegionalMasterOverview = {
+  totals: {
+    provinceCount: number;
+    bindaCount: number;
+    directorateCount: number;
+    coveredProvinceCount: number;
+  };
+  deputyOptions: Array<{
+    id: string;
+    code: string;
+    name: string;
+  }>;
+  provinces: RegionalMasterProvinceSummary[];
+};
+
 export type RegionalAssignmentOption = {
   id: string;
   positionId: string;

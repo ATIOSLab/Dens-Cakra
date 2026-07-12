@@ -437,6 +437,31 @@ export async function getWhatsappControlChannels(cookie: string) {
   });
 }
 
+export async function createWhatsappControlChannel(
+  cookie: string,
+  body: {
+    code: string;
+    name: string;
+    config: {
+      userId: string;
+      [key: string]: unknown;
+    };
+  },
+) {
+  return backendApi("/integration-channels", {
+    cookie,
+    method: "POST",
+    body: {
+      code: body.code,
+      name: body.name,
+      channelType: "WHATSAPP",
+      status: "INACTIVE",
+      config: body.config,
+    },
+    idempotent: true,
+  });
+}
+
 export async function updateWhatsappControlChannel(
   cookie: string,
   channelId: string,
@@ -485,3 +510,14 @@ export async function activateWhatsappControlChannel(
     idempotent: true,
   });
 }
+
+export async function removeWhatsappControlChannel(
+  cookie: string,
+  channelId: string,
+) {
+  return backendApi(`/integration-channels/${channelId}`, {
+    cookie,
+    method: "DELETE",
+  });
+}
+

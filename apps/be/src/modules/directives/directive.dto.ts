@@ -25,7 +25,6 @@ export class DirectiveQuery {
   @IsOptional() @IsEnum(DirectiveStatus) status?: DirectiveStatus;
   @IsOptional() @IsUUID() ownerUnitId?: string;
   @IsOptional() @IsUUID() areaId?: string;
-  @IsOptional() @IsEnum(Classification) classification?: Classification;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
   @IsOptional() @IsString() search?: string;

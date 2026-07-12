@@ -57,7 +57,6 @@ export class SystemController {
       'PositionCode',
       'OrganizationType',
       'AdministrativeLevel',
-      'Classification',
       'PriorityLevel',
       'DirectiveStatus',
       'TaskStatus',
@@ -91,7 +90,7 @@ export class SystemController {
     operationId: 'apiSys002',
     contractId: 'API-SYS-002',
     summary: 'Daftar settings',
-    permission: 'system.setting.read',
+    roles: ['admin_system'],
   })
   async settings(@Query() q: SettingQuery) {
     const items = await this.prisma.systemSetting.findMany({
@@ -117,7 +116,7 @@ export class SystemController {
     operationId: 'apiSys003',
     contractId: 'API-SYS-003',
     summary: 'Detail setting',
-    permission: 'system.setting.read',
+    roles: ['admin_system'],
   })
   async setting(@Param('key') key: string) {
     const i = await this.prisma.systemSetting.findUniqueOrThrow({
@@ -133,7 +132,7 @@ export class SystemController {
     operationId: 'apiSys004',
     contractId: 'API-SYS-004',
     summary: 'Upsert setting',
-    permission: 'system.setting.manage',
+    roles: ['admin_system'],
     idempotent: true,
   })
   async upsert(
@@ -175,7 +174,7 @@ export class SystemController {
     operationId: 'apiSys007',
     contractId: 'API-SYS-007',
     summary: 'Diagnostics administratif',
-    permission: 'system.diagnostics.read',
+    roles: ['admin_system'],
   })
   async diagnostics() {
     const [databaseVersion, migrationCount, deadJobs, failedWebhooks] =

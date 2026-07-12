@@ -118,4 +118,7 @@ export type WhatsappControlChannel = {
   lastDisconnectedAt: string | null;
   lastError: string | null;
   senderNumbers: string[];
+  userId?: string | null;
+  coordinatorName?: string | null;
+  coordinatorRegion?: string | null;
 };

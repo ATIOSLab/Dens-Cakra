@@ -95,18 +95,18 @@ enum AreaScopeMode {
   EXPLICIT
 }
 
-enum Classification {
-  SANGAT_RAHASIA
-  RAHASIA
-  TERBATAS
-  BIASA
-}
-
 enum PriorityLevel {
   LOW
   NORMAL
   HIGH
   URGENT
+}
+
+enum Classification {
+  SANGAT_RAHASIA
+  RAHASIA
+  TERBATAS
+  BIASA
 }
 
 enum DirectiveStatus {
@@ -526,7 +526,7 @@ model UserProfile {
 
   authUser User @relation("AuthUserProfile", fields: [authUserId], references: [id], onDelete: Restrict)
 
-  positionAssignments   PositionAssignment[]
+  positionAssignments   UserSeatAssignment[]
   notifications         Notification[]
   auditLogs             AuditLog[]               @relation("AuditActor")
   receivedDistributions ProductDistribution[]    @relation("DistributionTargetUser")
@@ -549,30 +549,8 @@ model Role {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  positions  Position[]
-  permissions RolePermission[]
-}
-
-model Permission {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique @db.VarChar(120)
-  name        String   @db.VarChar(150)
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  roles RolePermission[]
-}
-
-model RolePermission {
-  roleId       String @db.Uuid
-  permissionId String @db.Uuid
-
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@id([roleId, permissionId])
-  @@index([permissionId])
+  positions Position[]
+  roleSeats  OrganizationRoleSeat[]
 }
 
 model OrganizationUnit {
@@ -580,6 +558,7 @@ model OrganizationUnit {
   code        String           @unique @db.VarChar(80)
   name        String           @db.VarChar(180)
   type        OrganizationType
+  branch      CommandRouteType?
   parentId    String?          @db.Uuid
   isActive    Boolean          @default(true)
   deletedAt   DateTime?
@@ -592,7 +571,10 @@ model OrganizationUnit {
   descendantLinks OrganizationUnitClosure[] @relation("OrganizationClosureDescendant")
 
   positions             Position[]
+  roleSeats             OrganizationRoleSeat[]
   areaCoverages         OrganizationAreaCoverage[]
+  directorateProfile    DirectorateProfile?
+  bindaProfile          BindaProfile?
   directives            Directive[]              @relation("DirectiveOwnerUnit")
   uukStrs               UukStr[]                  @relation("UukOwnerUnit")
   tasks                 Task[]                    @relation("TaskOwnerUnit")
@@ -624,6 +606,7 @@ model Position {
   code                PositionCode
   title               String       @db.VarChar(180)
   roleId              String       @db.Uuid
+  branch              CommandRouteType?
   organizationUnitId  String       @db.Uuid
   reportsToPositionId String?      @db.Uuid
   isActive            Boolean      @default(true)
@@ -635,19 +618,46 @@ model Position {
   reportsTo        Position?        @relation("PositionReportingLine", fields: [reportsToPositionId], references: [id], onDelete: Restrict)
   subordinates     Position[]       @relation("PositionReportingLine")
 
-  assignments          PositionAssignment[]
-  directiveRecipients  DirectiveRecipient[]  @relation("DirectiveRecipientPosition")
+  roleSeats             OrganizationRoleSeat[]
+  assignments           UserSeatAssignment[]
+  directiveRecipients   DirectiveRecipient[]  @relation("DirectiveRecipientPosition")
   approvalSteps         ProductApprovalStep[] @relation("ApprovalTargetPosition")
-  productDistributions ProductDistribution[] @relation("DistributionTargetPosition")
+  productDistributions  ProductDistribution[] @relation("DistributionTargetPosition")
   assignedAlerts        Alert[]               @relation("AlertAssignedPosition")
 
   @@index([organizationUnitId, code])
   @@index([reportsToPositionId])
 }
 
-model PositionAssignment {
+model OrganizationRoleSeat {
+  id                 String            @id @default(uuid()) @db.Uuid
+  roleId             String            @db.Uuid
+  branch             CommandRouteType?
+  organizationUnitId String            @db.Uuid
+  positionId         String?           @db.Uuid
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  role             Role             @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  organizationUnit OrganizationUnit @relation(fields: [organizationUnitId], references: [id], onDelete: Restrict)
+  position         Position?        @relation(fields: [positionId], references: [id], onDelete: SetNull)
+
+  assignments          UserSeatAssignment[]
+  directiveRecipients  DirectiveRecipient[]   @relation("DirectiveRecipientSeat")
+  approvalSteps        ProductApprovalStep[]  @relation("ApprovalTargetSeat")
+  productDistributions ProductDistribution[]  @relation("DistributionTargetSeat")
+  assignedAlerts       Alert[]                @relation("AlertAssignedSeat")
+
+  @@unique([organizationUnitId, roleId, branch])
+  @@index([roleId, branch, isActive])
+  @@index([positionId])
+}
+
+model UserSeatAssignment {
   id            String   @id @default(uuid()) @db.Uuid
   userProfileId String   @db.Uuid
+  seatId        String   @db.Uuid
   positionId    String   @db.Uuid
   isPrimary     Boolean  @default(true)
   isActive      Boolean  @default(true)
@@ -656,8 +666,9 @@ model PositionAssignment {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Restrict)
-  position    Position    @relation(fields: [positionId], references: [id], onDelete: Restrict)
+  userProfile UserProfile          @relation(fields: [userProfileId], references: [id], onDelete: Restrict)
+  seat        OrganizationRoleSeat @relation(fields: [seatId], references: [id], onDelete: Restrict)
+  position    Position             @relation(fields: [positionId], references: [id], onDelete: Restrict)
 
   areaScopes                  PositionAreaScope[]
   filesCreated                FileAsset[]
@@ -690,12 +701,14 @@ model PositionAssignment {
   locationPings               PersonnelLocationPing[]
 
   @@index([userProfileId, isActive])
+  @@index([seatId, isActive])
   @@index([positionId, isActive])
 }
 
-model PositionAreaPolicy {
+model RoleAreaPolicy {
   id                  String              @id @default(uuid()) @db.Uuid
-  positionCode        PositionCode
+  roleCode            RoleCode
+  branch              CommandRouteType?
   administrativeLevel AdministrativeLevel
   scopeMode           AreaScopeMode       @default(EXPLICIT)
   minimumAreas        Int                 @default(1)
@@ -704,7 +717,7 @@ model PositionAreaPolicy {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
-  @@unique([positionCode, administrativeLevel])
+  @@unique([roleCode, branch, administrativeLevel])
 }
 
 model PositionAreaScope {
@@ -716,7 +729,7 @@ model PositionAreaScope {
   validUntil           DateTime?
   createdAt            DateTime @default(now())
 
-  assignment PositionAssignment @relation(fields: [positionAssignmentId], references: [id], onDelete: Cascade)
+  assignment UserSeatAssignment @relation(fields: [positionAssignmentId], references: [id], onDelete: Cascade)
   area       AdministrativeArea @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   @@unique([positionAssignmentId, areaId, validFrom])
@@ -750,6 +763,8 @@ model AdministrativeArea {
 
   boundaries               AdministrativeAreaBoundary[]
   organizationCoverages    OrganizationAreaCoverage[]
+  directorateCoverages     DirectorateCoverage[]
+  bindaProfiles            BindaProfile[]
   positionScopes           PositionAreaScope[]
   directiveTargets         DirectiveTargetArea[]
   taskTargets              TaskTargetArea[]
@@ -840,6 +855,40 @@ model OrganizationAreaCoverage {
   @@index([areaId, validUntil])
 }
 
+model DirectorateProfile {
+  organizationUnitId String   @id @db.Uuid
+  code               String?  @unique @db.VarChar(80)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  organizationUnit OrganizationUnit     @relation(fields: [organizationUnitId], references: [id], onDelete: Cascade)
+  coverageAreas    DirectorateCoverage[]
+}
+
+model DirectorateCoverage {
+  id                  String   @id @default(uuid()) @db.Uuid
+  directorateUnitId   String   @db.Uuid
+  provinceAreaId      String   @db.Uuid
+  isPrimary           Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  directorate DirectorateProfile @relation(fields: [directorateUnitId], references: [organizationUnitId], onDelete: Cascade)
+  province    AdministrativeArea @relation(fields: [provinceAreaId], references: [id], onDelete: Restrict)
+
+  @@unique([directorateUnitId, provinceAreaId])
+  @@index([provinceAreaId])
+}
+
+model BindaProfile {
+  organizationUnitId String   @id @db.Uuid
+  provinceAreaId     String   @unique @db.Uuid
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  organizationUnit OrganizationUnit  @relation(fields: [organizationUnitId], references: [id], onDelete: Cascade)
+  province         AdministrativeArea @relation(fields: [provinceAreaId], references: [id], onDelete: Restrict)
+}
+
 /* =========================================================
  * FILE STORAGE
  * =======================================================*/
@@ -861,7 +910,7 @@ model FileAsset {
   createdAt             DateTime @default(now())
   deletedAt             DateTime?
 
-  createdByAssignment PositionAssignment? @relation(fields: [createdByAssignmentId], references: [id], onDelete: SetNull)
+  createdByAssignment UserSeatAssignment? @relation(fields: [createdByAssignmentId], references: [id], onDelete: SetNull)
 
   whatsAppMedia       WhatsAppMessageMedia[]
   taskAttachments     TaskAttachment[]
@@ -889,7 +938,7 @@ model Directive {
   deletedAt             DateTime?
 
   ownerUnit          OrganizationUnit  @relation("DirectiveOwnerUnit", fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment @relation("DirectiveCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("DirectiveCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   versions DirectiveVersion[]
 
@@ -912,7 +961,7 @@ model DirectiveVersion {
   createdAt             DateTime       @default(now())
 
   directive           Directive          @relation(fields: [directiveId], references: [id], onDelete: Cascade)
-  createdByAssignment PositionAssignment @relation("DirectiveVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("DirectiveVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   targetAreas DirectiveTargetArea[]
   recipients DirectiveRecipient[]
@@ -921,6 +970,7 @@ model DirectiveVersion {
 
   @@unique([directiveId, versionNumber])
   @@index([classification, commandDate])
+  @@index([commandDate])
 }
 
 model DirectiveTargetArea {
@@ -939,6 +989,7 @@ model DirectiveRecipient {
   id                 String          @id @default(uuid()) @db.Uuid
   directiveVersionId String          @db.Uuid
   targetUnitId       String?         @db.Uuid
+  targetSeatId       String?         @db.Uuid
   targetPositionId   String?         @db.Uuid
   status             RecipientStatus @default(SENT)
   sentAt             DateTime        @default(now())
@@ -949,9 +1000,11 @@ model DirectiveRecipient {
 
   directiveVersion DirectiveVersion @relation(fields: [directiveVersionId], references: [id], onDelete: Cascade)
   targetUnit       OrganizationUnit? @relation("DirectiveRecipientUnit", fields: [targetUnitId], references: [id], onDelete: Restrict)
-  targetPosition   Position?         @relation("DirectiveRecipientPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
+  targetSeat       OrganizationRoleSeat? @relation("DirectiveRecipientSeat", fields: [targetSeatId], references: [id], onDelete: Restrict)
+  targetPosition   Position?             @relation("DirectiveRecipientPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
 
   @@index([targetUnitId, status])
+  @@index([targetSeatId, status])
   @@index([targetPositionId, status])
 }
 
@@ -968,7 +1021,7 @@ model UukStr {
 
   directiveVersion    DirectiveVersion  @relation(fields: [directiveVersionId], references: [id], onDelete: Restrict)
   ownerUnit           OrganizationUnit  @relation("UukOwnerUnit", fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment @relation("UukCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("UukCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   versions UukStrVersion[]
 
@@ -985,7 +1038,7 @@ model UukStrVersion {
   createdAt             DateTime @default(now())
 
   uukStr              UukStr             @relation(fields: [uukStrId], references: [id], onDelete: Cascade)
-  createdByAssignment PositionAssignment @relation("UukVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("UukVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   sections UukStrSection[]
   tasks    Task[]
@@ -1032,7 +1085,6 @@ model Task {
   createdByAssignmentId String       @db.Uuid
   title                 String       @db.VarChar(300)
   description           String       @db.Text
-  classification        Classification
   priority              PriorityLevel @default(NORMAL)
   dueDate               DateTime?
   status                TaskStatus    @default(DRAFT)
@@ -1045,7 +1097,7 @@ model Task {
   directiveVersion    DirectiveVersion?  @relation(fields: [directiveVersionId], references: [id], onDelete: Restrict)
   uukStrVersion       UukStrVersion?     @relation(fields: [uukStrVersionId], references: [id], onDelete: Restrict)
   ownerUnit           OrganizationUnit   @relation("TaskOwnerUnit", fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment @relation("TaskCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("TaskCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   targetAreas  TaskTargetArea[]
   assignments  TaskAssignment[]
@@ -1084,8 +1136,8 @@ model TaskAssignment {
   assignmentNote        String?              @db.Text
 
   task            Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  assigner        PositionAssignment @relation("TaskAssignedBy", fields: [assignerAssignmentId], references: [id], onDelete: Restrict)
-  assignee        PositionAssignment @relation("TaskAssignedTo", fields: [assigneeAssignmentId], references: [id], onDelete: Restrict)
+  assigner        UserSeatAssignment @relation("TaskAssignedBy", fields: [assignerAssignmentId], references: [id], onDelete: Restrict)
+  assignee        UserSeatAssignment @relation("TaskAssignedTo", fields: [assigneeAssignmentId], references: [id], onDelete: Restrict)
   reassignedFrom  TaskAssignment?  @relation("TaskReassignment", fields: [reassignedFromId], references: [id], onDelete: Restrict)
   reassignedTo    TaskAssignment?  @relation("TaskReassignment")
 
@@ -1107,7 +1159,7 @@ model TaskProgressLog {
   createdAt             DateTime             @default(now())
 
   taskAssignment      TaskAssignment     @relation(fields: [taskAssignmentId], references: [id], onDelete: Cascade)
-  createdByAssignment PositionAssignment @relation(fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation(fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([taskAssignmentId, createdAt])
 }
@@ -1140,7 +1192,7 @@ model Jaring {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
-  createdByAssignment PositionAssignment @relation("JaringCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("JaringCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   caretakerAssignments JaringCaretakerAssignment[]
   areaCoverages        JaringAreaCoverage[]
@@ -1161,7 +1213,7 @@ model JaringCaretakerAssignment {
   createdAt                DateTime @default(now())
 
   jaring                 Jaring             @relation(fields: [jaringId], references: [id], onDelete: Restrict)
-  fieldOfficerAssignment PositionAssignment @relation(fields: [fieldOfficerAssignmentId], references: [id], onDelete: Restrict)
+  fieldOfficerAssignment UserSeatAssignment @relation(fields: [fieldOfficerAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([jaringId, isActive])
   @@index([fieldOfficerAssignmentId, isActive])
@@ -1211,7 +1263,7 @@ model WhatsAppMessage {
 
   integrationChannel             IntegrationChannel   @relation(fields: [integrationChannelId], references: [id], onDelete: Restrict)
   jaring                         Jaring?              @relation(fields: [jaringId], references: [id], onDelete: SetNull)
-  routedToFieldOfficerAssignment PositionAssignment? @relation("WhatsAppRoutedTo", fields: [routedToFieldOfficerAssignmentId], references: [id], onDelete: SetNull)
+  routedToFieldOfficerAssignment UserSeatAssignment? @relation("WhatsAppRoutedTo", fields: [routedToFieldOfficerAssignmentId], references: [id], onDelete: SetNull)
   resolvedArea                   AdministrativeArea?  @relation("WhatsAppResolvedArea", fields: [resolvedAreaId], references: [id], onDelete: Restrict)
 
   media            WhatsAppMessageMedia[]
@@ -1261,7 +1313,7 @@ model WhatsAppRoutingLog {
   createdAt             DateTime @default(now())
 
   message            WhatsAppMessage     @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  routedToAssignment PositionAssignment? @relation(fields: [routedToAssignmentId], references: [id], onDelete: SetNull)
+  routedToAssignment UserSeatAssignment? @relation(fields: [routedToAssignmentId], references: [id], onDelete: SetNull)
 
   @@index([messageId, createdAt])
 }
@@ -1281,7 +1333,7 @@ model Baket {
   updatedAt                        DateTime    @updatedAt
   deletedAt                        DateTime?
 
-  createdByFieldOfficerAssignment PositionAssignment @relation("BaketCreatedBy", fields: [createdByFieldOfficerAssignmentId], references: [id], onDelete: Restrict)
+  createdByFieldOfficerAssignment UserSeatAssignment @relation("BaketCreatedBy", fields: [createdByFieldOfficerAssignmentId], references: [id], onDelete: Restrict)
   taskAssignment                  TaskAssignment?     @relation(fields: [taskAssignmentId], references: [id], onDelete: Restrict)
   primaryJaring                   Jaring?             @relation("BaketPrimaryJaring", fields: [primaryJaringId], references: [id], onDelete: SetNull)
 
@@ -1324,7 +1376,7 @@ model BaketVersion {
 
   baket               Baket               @relation(fields: [baketId], references: [id], onDelete: Cascade)
   eventArea           AdministrativeArea? @relation(fields: [eventAreaId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment  @relation("BaketVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment  @relation("BaketVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   verification          BaketVerification?
   coverageChecks        BaketCoverageCheck[]
@@ -1378,7 +1430,7 @@ model BaketRevisionRequest {
   baket                   Baket              @relation(fields: [baketId], references: [id], onDelete: Cascade)
   requestedAgainstVersion BaketVersion       @relation("BaketRevisionRequestedAgainst", fields: [requestedAgainstVersionId], references: [id], onDelete: Restrict)
   resolvedByVersion       BaketVersion?      @relation("BaketRevisionResolvedBy", fields: [resolvedByVersionId], references: [id], onDelete: Restrict)
-  requestedByAssignment   PositionAssignment @relation(fields: [requestedByAssignmentId], references: [id], onDelete: Restrict)
+  requestedByAssignment   UserSeatAssignment @relation(fields: [requestedByAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([baketId, status])
   @@index([requestedAgainstVersionId])
@@ -1399,7 +1451,7 @@ model BaketVerification {
   updatedAt              DateTime               @updatedAt
 
   baketVersion         BaketVersion       @relation(fields: [baketVersionId], references: [id], onDelete: Restrict)
-  verifiedByAssignment PositionAssignment @relation(fields: [verifiedByAssignmentId], references: [id], onDelete: Restrict)
+  verifiedByAssignment UserSeatAssignment @relation(fields: [verifiedByAssignmentId], references: [id], onDelete: Restrict)
 
   checks          BaketVerificationCheck[]
   crossReferences BaketVerificationCrossReference[]
@@ -1422,7 +1474,7 @@ model BaketCoverageCheck {
 
   baketVersion       BaketVersion        @relation(fields: [baketVersionId], references: [id], onDelete: Cascade)
   area               AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  positionAssignment PositionAssignment? @relation(fields: [positionAssignmentId], references: [id], onDelete: Restrict)
+  positionAssignment UserSeatAssignment? @relation(fields: [positionAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([baketVersionId, scopeType])
   @@index([areaId, checkedAt])
@@ -1472,7 +1524,7 @@ model AnalysisCase {
   updatedAt             DateTime       @updatedAt
 
   ownerUnit           OrganizationUnit  @relation(fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment @relation("AnalysisCaseCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("AnalysisCaseCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   sources  AnalysisSourceVerification[]
   versions AnalysisVersion[]
@@ -1506,8 +1558,8 @@ model AnalysisVersion {
   createdAt               DateTime @default(now())
 
   analysisCase          AnalysisCase       @relation(fields: [analysisCaseId], references: [id], onDelete: Cascade)
-  createdByAssignment   PositionAssignment @relation("AnalysisVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
-  validatedByAssignment PositionAssignment? @relation("AnalysisVersionValidatedBy", fields: [validatedByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment   UserSeatAssignment @relation("AnalysisVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  validatedByAssignment UserSeatAssignment? @relation("AnalysisVersionValidatedBy", fields: [validatedByAssignmentId], references: [id], onDelete: Restrict)
 
   entities       AnalysisEntity[]
   relationships  AnalysisRelationship[]
@@ -1617,7 +1669,6 @@ model IntelligenceProduct {
   productTypeId         String        @db.Uuid
   ownerUnitId           String        @db.Uuid
   createdByAssignmentId String        @db.Uuid
-  classification        Classification
   productNumber         String        @unique @db.VarChar(150)
   title                 String        @db.VarChar(300)
   status                ProductStatus @default(DRAFT)
@@ -1630,7 +1681,7 @@ model IntelligenceProduct {
 
   productType        ProductTypeDefinition @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
   ownerUnit          OrganizationUnit      @relation(fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment    @relation("ProductCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment    @relation("ProductCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   versions ProductVersion[]
 
@@ -1656,7 +1707,7 @@ model ProductVersion {
 
   product             IntelligenceProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
   template            ProductTemplate      @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment   @relation("ProductVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment   @relation("ProductVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   sourceVerifications ProductSourceVerification[]
   sourceAnalyses      ProductSourceAnalysis[]
@@ -1722,7 +1773,8 @@ model ProductApprovalStep {
   workflowId            String             @db.Uuid
   stepNumber            Int
   stage                 ApprovalStage
-  targetPositionId      String             @db.Uuid
+  targetSeatId          String             @db.Uuid
+  targetPositionId      String?            @db.Uuid
   status                ApprovalStepStatus @default(WAITING)
   decision              ApprovalDecision?
   decisionNote          String?            @db.Text
@@ -1732,11 +1784,13 @@ model ProductApprovalStep {
   decidedByAssignmentId String?            @db.Uuid
 
   workflow            ProductApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  targetPosition      Position                @relation("ApprovalTargetPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
-  decidedByAssignment PositionAssignment?     @relation("ApprovalDecidedBy", fields: [decidedByAssignmentId], references: [id], onDelete: Restrict)
+  targetSeat          OrganizationRoleSeat    @relation("ApprovalTargetSeat", fields: [targetSeatId], references: [id], onDelete: Restrict)
+  targetPosition      Position?               @relation("ApprovalTargetPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
+  decidedByAssignment UserSeatAssignment?     @relation("ApprovalDecidedBy", fields: [decidedByAssignmentId], references: [id], onDelete: Restrict)
   events              ProductApprovalEvent[]
 
   @@unique([workflowId, stepNumber])
+  @@index([targetSeatId, status])
   @@index([targetPositionId, status])
 }
 
@@ -1745,9 +1799,9 @@ model ProductDistribution {
   productVersionId     String             @db.Uuid
   sentByAssignmentId   String             @db.Uuid
   targetUnitId         String?            @db.Uuid
+  targetSeatId         String?            @db.Uuid
   targetPositionId     String?            @db.Uuid
   targetUserProfileId  String?            @db.Uuid
-  classification       Classification
   status               DistributionStatus @default(QUEUED)
   sentAt               DateTime?
   deliveredAt          DateTime?
@@ -1756,8 +1810,9 @@ model ProductDistribution {
   failureReason        String?            @db.Text
 
   productVersion   ProductVersion     @relation(fields: [productVersionId], references: [id], onDelete: Restrict)
-  sentByAssignment PositionAssignment @relation("DistributionSentBy", fields: [sentByAssignmentId], references: [id], onDelete: Restrict)
+  sentByAssignment UserSeatAssignment @relation("DistributionSentBy", fields: [sentByAssignmentId], references: [id], onDelete: Restrict)
   targetUnit       OrganizationUnit?  @relation("DistributionTargetUnit", fields: [targetUnitId], references: [id], onDelete: Restrict)
+  targetSeat       OrganizationRoleSeat? @relation("DistributionTargetSeat", fields: [targetSeatId], references: [id], onDelete: Restrict)
   targetPosition   Position?          @relation("DistributionTargetPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
   targetUser       UserProfile?       @relation("DistributionTargetUser", fields: [targetUserProfileId], references: [id], onDelete: Restrict)
 
@@ -1791,7 +1846,7 @@ model EmergencyIncident {
   resolvedAt             DateTime?
 
   area                 AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  reportedByAssignment PositionAssignment  @relation("EmergencyReportedBy", fields: [reportedByAssignmentId], references: [id], onDelete: Restrict)
+  reportedByAssignment UserSeatAssignment  @relation("EmergencyReportedBy", fields: [reportedByAssignmentId], references: [id], onDelete: Restrict)
 
   attachments EmergencyAttachment[]
   alerts      Alert[]
@@ -1822,15 +1877,17 @@ model Alert {
   locationPoint      Unsupported("geometry(Point,4326)")?
   sourceBaketId      String?       @db.Uuid
   sourceIncidentId   String?       @db.Uuid
+  assignedSeatId     String?       @db.Uuid
   assignedPositionId String?       @db.Uuid
   createdAt          DateTime      @default(now())
   acknowledgedAt     DateTime?
   resolvedAt         DateTime?
 
-  area             AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  sourceBaket      Baket?              @relation(fields: [sourceBaketId], references: [id], onDelete: SetNull)
-  sourceIncident   EmergencyIncident?  @relation(fields: [sourceIncidentId], references: [id], onDelete: SetNull)
-  assignedPosition Position?           @relation("AlertAssignedPosition", fields: [assignedPositionId], references: [id], onDelete: SetNull)
+  area           AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  sourceBaket    Baket?              @relation(fields: [sourceBaketId], references: [id], onDelete: SetNull)
+  sourceIncident EmergencyIncident?  @relation(fields: [sourceIncidentId], references: [id], onDelete: SetNull)
+  assignedSeat   OrganizationRoleSeat? @relation("AlertAssignedSeat", fields: [assignedSeatId], references: [id], onDelete: SetNull)
+  assignedPosition Position?          @relation("AlertAssignedPosition", fields: [assignedPositionId], references: [id], onDelete: SetNull)
 
   @@index([status, severity])
   @@index([areaId, createdAt])
@@ -1850,7 +1907,7 @@ model PersonnelLocationPing {
   receivedAt           DateTime             @default(now())
   isStealth            Boolean              @default(false)
 
-  positionAssignment PositionAssignment @relation(fields: [positionAssignmentId], references: [id], onDelete: Restrict)
+  positionAssignment UserSeatAssignment @relation(fields: [positionAssignmentId], references: [id], onDelete: Restrict)
   area               AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   @@index([positionAssignmentId, capturedAt])
@@ -1887,7 +1944,7 @@ model AuditLog {
   createdAt          DateTime    @default(now())
 
   actorUser       UserProfile?        @relation("AuditActor", fields: [actorUserProfileId], references: [id], onDelete: SetNull)
-  actorAssignment PositionAssignment? @relation("AuditAssignment", fields: [actorAssignmentId], references: [id], onDelete: SetNull)
+  actorAssignment UserSeatAssignment? @relation("AuditAssignment", fields: [actorAssignmentId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId, createdAt])
   @@index([actorUserProfileId, createdAt])

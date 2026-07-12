@@ -420,13 +420,6 @@ export class DirectiveService {
             ],
           }
         : {}),
-      ...(query.classification
-        ? {
-            versions: {
-              some: { classification: query.classification },
-            },
-          }
-        : {}),
       ...(query.from || query.to
         ? {
             versions: {
@@ -897,7 +890,7 @@ export class DirectiveService {
         const notifiedProfiles = new Set<string>();
 
         for (const recipient of version.recipients) {
-          const profiles = await tx.positionAssignment.findMany({
+          const profiles = await tx.userSeatAssignment.findMany({
             where: {
               isActive: true,
               validUntil: null,

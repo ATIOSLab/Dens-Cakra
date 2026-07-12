@@ -281,7 +281,7 @@ export type DirectiveVersionWhereInput = {
   changeReason?: Prisma.StringNullableFilter<"DirectiveVersion"> | string | null
   createdAt?: Prisma.DateTimeFilter<"DirectiveVersion"> | Date | string
   directive?: Prisma.XOR<Prisma.DirectiveScalarRelationFilter, Prisma.DirectiveWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   targetAreas?: Prisma.DirectiveTargetAreaListRelationFilter
   recipients?: Prisma.DirectiveRecipientListRelationFilter
   uukStrs?: Prisma.UukStrListRelationFilter
@@ -303,7 +303,7 @@ export type DirectiveVersionOrderByWithRelationInput = {
   changeReason?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   directive?: Prisma.DirectiveOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   targetAreas?: Prisma.DirectiveTargetAreaOrderByRelationAggregateInput
   recipients?: Prisma.DirectiveRecipientOrderByRelationAggregateInput
   uukStrs?: Prisma.UukStrOrderByRelationAggregateInput
@@ -329,7 +329,7 @@ export type DirectiveVersionWhereUniqueInput = Prisma.AtLeast<{
   changeReason?: Prisma.StringNullableFilter<"DirectiveVersion"> | string | null
   createdAt?: Prisma.DateTimeFilter<"DirectiveVersion"> | Date | string
   directive?: Prisma.XOR<Prisma.DirectiveScalarRelationFilter, Prisma.DirectiveWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   targetAreas?: Prisma.DirectiveTargetAreaListRelationFilter
   recipients?: Prisma.DirectiveRecipientListRelationFilter
   uukStrs?: Prisma.UukStrListRelationFilter
@@ -389,7 +389,7 @@ export type DirectiveVersionCreateInput = {
   changeReason?: string | null
   createdAt?: Date | string
   directive: Prisma.DirectiveCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
   targetAreas?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutDirectiveVersionInput
   recipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutDirectiveVersionInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutDirectiveVersionInput
@@ -429,7 +429,7 @@ export type DirectiveVersionUpdateInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   directive?: Prisma.DirectiveUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
   targetAreas?: Prisma.DirectiveTargetAreaUpdateManyWithoutDirectiveVersionNestedInput
   recipients?: Prisma.DirectiveRecipientUpdateManyWithoutDirectiveVersionNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutDirectiveVersionNestedInput
@@ -824,7 +824,7 @@ export type DirectiveVersionCreateWithoutDirectiveInput = {
   commandDescription: string
   changeReason?: string | null
   createdAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
   targetAreas?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutDirectiveVersionInput
   recipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutDirectiveVersionInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutDirectiveVersionInput
@@ -889,7 +889,7 @@ export type DirectiveVersionCreateWithoutTargetAreasInput = {
   changeReason?: string | null
   createdAt?: Date | string
   directive: Prisma.DirectiveCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
   recipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutDirectiveVersionInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutDirectiveVersionInput
   tasks?: Prisma.TaskCreateNestedManyWithoutDirectiveVersionInput
@@ -943,7 +943,7 @@ export type DirectiveVersionUpdateWithoutTargetAreasInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   directive?: Prisma.DirectiveUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
   recipients?: Prisma.DirectiveRecipientUpdateManyWithoutDirectiveVersionNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutDirectiveVersionNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutDirectiveVersionNestedInput
@@ -981,7 +981,7 @@ export type DirectiveVersionCreateWithoutRecipientsInput = {
   changeReason?: string | null
   createdAt?: Date | string
   directive: Prisma.DirectiveCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
   targetAreas?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutDirectiveVersionInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutDirectiveVersionInput
   tasks?: Prisma.TaskCreateNestedManyWithoutDirectiveVersionInput
@@ -1035,7 +1035,7 @@ export type DirectiveVersionUpdateWithoutRecipientsInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   directive?: Prisma.DirectiveUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
   targetAreas?: Prisma.DirectiveTargetAreaUpdateManyWithoutDirectiveVersionNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutDirectiveVersionNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutDirectiveVersionNestedInput
@@ -1073,7 +1073,7 @@ export type DirectiveVersionCreateWithoutUukStrsInput = {
   changeReason?: string | null
   createdAt?: Date | string
   directive: Prisma.DirectiveCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
   targetAreas?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutDirectiveVersionInput
   recipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutDirectiveVersionInput
   tasks?: Prisma.TaskCreateNestedManyWithoutDirectiveVersionInput
@@ -1127,7 +1127,7 @@ export type DirectiveVersionUpdateWithoutUukStrsInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   directive?: Prisma.DirectiveUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
   targetAreas?: Prisma.DirectiveTargetAreaUpdateManyWithoutDirectiveVersionNestedInput
   recipients?: Prisma.DirectiveRecipientUpdateManyWithoutDirectiveVersionNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutDirectiveVersionNestedInput
@@ -1165,7 +1165,7 @@ export type DirectiveVersionCreateWithoutTasksInput = {
   changeReason?: string | null
   createdAt?: Date | string
   directive: Prisma.DirectiveCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutDirectiveVersionsCreatedInput
   targetAreas?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutDirectiveVersionInput
   recipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutDirectiveVersionInput
   uukStrs?: Prisma.UukStrCreateNestedManyWithoutDirectiveVersionInput
@@ -1219,7 +1219,7 @@ export type DirectiveVersionUpdateWithoutTasksInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   directive?: Prisma.DirectiveUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
   targetAreas?: Prisma.DirectiveTargetAreaUpdateManyWithoutDirectiveVersionNestedInput
   recipients?: Prisma.DirectiveRecipientUpdateManyWithoutDirectiveVersionNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutDirectiveVersionNestedInput
@@ -1339,7 +1339,7 @@ export type DirectiveVersionUpdateWithoutDirectiveInput = {
   commandDescription?: Prisma.StringFieldUpdateOperationsInput | string
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutDirectiveVersionsCreatedNestedInput
   targetAreas?: Prisma.DirectiveTargetAreaUpdateManyWithoutDirectiveVersionNestedInput
   recipients?: Prisma.DirectiveRecipientUpdateManyWithoutDirectiveVersionNestedInput
   uukStrs?: Prisma.UukStrUpdateManyWithoutDirectiveVersionNestedInput
@@ -1453,7 +1453,7 @@ export type DirectiveVersionSelect<ExtArgs extends runtime.Types.Extensions.Inte
   changeReason?: boolean
   createdAt?: boolean
   directive?: boolean | Prisma.DirectiveDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   targetAreas?: boolean | Prisma.DirectiveVersion$targetAreasArgs<ExtArgs>
   recipients?: boolean | Prisma.DirectiveVersion$recipientsArgs<ExtArgs>
   uukStrs?: boolean | Prisma.DirectiveVersion$uukStrsArgs<ExtArgs>
@@ -1476,7 +1476,7 @@ export type DirectiveVersionSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   changeReason?: boolean
   createdAt?: boolean
   directive?: boolean | Prisma.DirectiveDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["directiveVersion"]>
 
 export type DirectiveVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1494,7 +1494,7 @@ export type DirectiveVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   changeReason?: boolean
   createdAt?: boolean
   directive?: boolean | Prisma.DirectiveDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["directiveVersion"]>
 
 export type DirectiveVersionSelectScalar = {
@@ -1516,7 +1516,7 @@ export type DirectiveVersionSelectScalar = {
 export type DirectiveVersionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "directiveId" | "versionNumber" | "classification" | "commandSource" | "commandIssuer" | "commandDate" | "dueDate" | "strategicIssue" | "commandDescription" | "createdByAssignmentId" | "changeReason" | "createdAt", ExtArgs["result"]["directiveVersion"]>
 export type DirectiveVersionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directive?: boolean | Prisma.DirectiveDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   targetAreas?: boolean | Prisma.DirectiveVersion$targetAreasArgs<ExtArgs>
   recipients?: boolean | Prisma.DirectiveVersion$recipientsArgs<ExtArgs>
   uukStrs?: boolean | Prisma.DirectiveVersion$uukStrsArgs<ExtArgs>
@@ -1525,18 +1525,18 @@ export type DirectiveVersionInclude<ExtArgs extends runtime.Types.Extensions.Int
 }
 export type DirectiveVersionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directive?: boolean | Prisma.DirectiveDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type DirectiveVersionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directive?: boolean | Prisma.DirectiveDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $DirectiveVersionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DirectiveVersion"
   objects: {
     directive: Prisma.$DirectivePayload<ExtArgs>
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     targetAreas: Prisma.$DirectiveTargetAreaPayload<ExtArgs>[]
     recipients: Prisma.$DirectiveRecipientPayload<ExtArgs>[]
     uukStrs: Prisma.$UukStrPayload<ExtArgs>[]
@@ -1951,7 +1951,7 @@ readonly fields: DirectiveVersionFieldRefs;
 export interface Prisma__DirectiveVersionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   directive<T extends Prisma.DirectiveDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DirectiveDefaultArgs<ExtArgs>>): Prisma.Prisma__DirectiveClient<runtime.Types.Result.GetResult<Prisma.$DirectivePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   targetAreas<T extends Prisma.DirectiveVersion$targetAreasArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DirectiveVersion$targetAreasArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DirectiveTargetAreaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   recipients<T extends Prisma.DirectiveVersion$recipientsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DirectiveVersion$recipientsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DirectiveRecipientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   uukStrs<T extends Prisma.DirectiveVersion$uukStrsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DirectiveVersion$uukStrsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UukStrPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>

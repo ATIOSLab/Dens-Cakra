@@ -1,4 +1,4 @@
-import { UukCreatePage } from "@/features/uuk-str/pages";
+import { UukCreatePage } from "../_components/uuk-pages";
 
 export const dynamic = "force-dynamic";
 

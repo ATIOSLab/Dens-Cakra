@@ -694,7 +694,7 @@ export class WhatsappBotRuntimeService
     });
   }
 
-  private async disconnectChannel(channelId: string, logout: boolean) {
+  async disconnectChannel(channelId: string, logout: boolean) {
     const runtime = this.runtimes.get(channelId);
     if (!runtime) {
       return;

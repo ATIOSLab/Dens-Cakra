@@ -231,7 +231,7 @@ export type BaketVerificationWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"BaketVerification"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BaketVerification"> | Date | string
   baketVersion?: Prisma.XOR<Prisma.BaketVersionScalarRelationFilter, Prisma.BaketVersionWhereInput>
-  verifiedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  verifiedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   checks?: Prisma.BaketVerificationCheckListRelationFilter
   crossReferences?: Prisma.BaketVerificationCrossReferenceListRelationFilter
   productSources?: Prisma.ProductSourceVerificationListRelationFilter
@@ -251,7 +251,7 @@ export type BaketVerificationOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   baketVersion?: Prisma.BaketVersionOrderByWithRelationInput
-  verifiedByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  verifiedByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   checks?: Prisma.BaketVerificationCheckOrderByRelationAggregateInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceOrderByRelationAggregateInput
   productSources?: Prisma.ProductSourceVerificationOrderByRelationAggregateInput
@@ -274,7 +274,7 @@ export type BaketVerificationWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"BaketVerification"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"BaketVerification"> | Date | string
   baketVersion?: Prisma.XOR<Prisma.BaketVersionScalarRelationFilter, Prisma.BaketVersionWhereInput>
-  verifiedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  verifiedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   checks?: Prisma.BaketVerificationCheckListRelationFilter
   crossReferences?: Prisma.BaketVerificationCrossReferenceListRelationFilter
   productSources?: Prisma.ProductSourceVerificationListRelationFilter
@@ -326,7 +326,7 @@ export type BaketVerificationCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   baketVersion: Prisma.BaketVersionCreateNestedOneWithoutVerificationInput
-  verifiedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutVerificationsInput
+  verifiedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutVerificationsInput
   checks?: Prisma.BaketVerificationCheckCreateNestedManyWithoutVerificationInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutVerificationInput
   productSources?: Prisma.ProductSourceVerificationCreateNestedManyWithoutVerificationInput
@@ -362,7 +362,7 @@ export type BaketVerificationUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baketVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutVerificationNestedInput
-  verifiedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
+  verifiedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
   checks?: Prisma.BaketVerificationCheckUpdateManyWithoutVerificationNestedInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutVerificationNestedInput
   productSources?: Prisma.ProductSourceVerificationUpdateManyWithoutVerificationNestedInput
@@ -718,7 +718,7 @@ export type BaketVerificationCreateWithoutBaketVersionInput = {
   completedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  verifiedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutVerificationsInput
+  verifiedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutVerificationsInput
   checks?: Prisma.BaketVerificationCheckCreateNestedManyWithoutVerificationInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutVerificationInput
   productSources?: Prisma.ProductSourceVerificationCreateNestedManyWithoutVerificationInput
@@ -768,7 +768,7 @@ export type BaketVerificationUpdateWithoutBaketVersionInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  verifiedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
+  verifiedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
   checks?: Prisma.BaketVerificationCheckUpdateManyWithoutVerificationNestedInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutVerificationNestedInput
   productSources?: Prisma.ProductSourceVerificationUpdateManyWithoutVerificationNestedInput
@@ -803,7 +803,7 @@ export type BaketVerificationCreateWithoutChecksInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   baketVersion: Prisma.BaketVersionCreateNestedOneWithoutVerificationInput
-  verifiedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutVerificationsInput
+  verifiedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutVerificationsInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutVerificationInput
   productSources?: Prisma.ProductSourceVerificationCreateNestedManyWithoutVerificationInput
   analysisSources?: Prisma.AnalysisSourceVerificationCreateNestedManyWithoutVerificationInput
@@ -853,7 +853,7 @@ export type BaketVerificationUpdateWithoutChecksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baketVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutVerificationNestedInput
-  verifiedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
+  verifiedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutVerificationNestedInput
   productSources?: Prisma.ProductSourceVerificationUpdateManyWithoutVerificationNestedInput
   analysisSources?: Prisma.AnalysisSourceVerificationUpdateManyWithoutVerificationNestedInput
@@ -887,7 +887,7 @@ export type BaketVerificationCreateWithoutCrossReferencesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   baketVersion: Prisma.BaketVersionCreateNestedOneWithoutVerificationInput
-  verifiedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutVerificationsInput
+  verifiedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutVerificationsInput
   checks?: Prisma.BaketVerificationCheckCreateNestedManyWithoutVerificationInput
   productSources?: Prisma.ProductSourceVerificationCreateNestedManyWithoutVerificationInput
   analysisSources?: Prisma.AnalysisSourceVerificationCreateNestedManyWithoutVerificationInput
@@ -937,7 +937,7 @@ export type BaketVerificationUpdateWithoutCrossReferencesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baketVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutVerificationNestedInput
-  verifiedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
+  verifiedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
   checks?: Prisma.BaketVerificationCheckUpdateManyWithoutVerificationNestedInput
   productSources?: Prisma.ProductSourceVerificationUpdateManyWithoutVerificationNestedInput
   analysisSources?: Prisma.AnalysisSourceVerificationUpdateManyWithoutVerificationNestedInput
@@ -971,7 +971,7 @@ export type BaketVerificationCreateWithoutAnalysisSourcesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   baketVersion: Prisma.BaketVersionCreateNestedOneWithoutVerificationInput
-  verifiedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutVerificationsInput
+  verifiedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutVerificationsInput
   checks?: Prisma.BaketVerificationCheckCreateNestedManyWithoutVerificationInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutVerificationInput
   productSources?: Prisma.ProductSourceVerificationCreateNestedManyWithoutVerificationInput
@@ -1021,7 +1021,7 @@ export type BaketVerificationUpdateWithoutAnalysisSourcesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baketVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutVerificationNestedInput
-  verifiedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
+  verifiedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
   checks?: Prisma.BaketVerificationCheckUpdateManyWithoutVerificationNestedInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutVerificationNestedInput
   productSources?: Prisma.ProductSourceVerificationUpdateManyWithoutVerificationNestedInput
@@ -1055,7 +1055,7 @@ export type BaketVerificationCreateWithoutProductSourcesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   baketVersion: Prisma.BaketVersionCreateNestedOneWithoutVerificationInput
-  verifiedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutVerificationsInput
+  verifiedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutVerificationsInput
   checks?: Prisma.BaketVerificationCheckCreateNestedManyWithoutVerificationInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutVerificationInput
   analysisSources?: Prisma.AnalysisSourceVerificationCreateNestedManyWithoutVerificationInput
@@ -1105,7 +1105,7 @@ export type BaketVerificationUpdateWithoutProductSourcesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baketVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutVerificationNestedInput
-  verifiedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
+  verifiedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutVerificationsNestedInput
   checks?: Prisma.BaketVerificationCheckUpdateManyWithoutVerificationNestedInput
   crossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutVerificationNestedInput
   analysisSources?: Prisma.AnalysisSourceVerificationUpdateManyWithoutVerificationNestedInput
@@ -1259,7 +1259,7 @@ export type BaketVerificationSelect<ExtArgs extends runtime.Types.Extensions.Int
   createdAt?: boolean
   updatedAt?: boolean
   baketVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
-  verifiedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  verifiedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   checks?: boolean | Prisma.BaketVerification$checksArgs<ExtArgs>
   crossReferences?: boolean | Prisma.BaketVerification$crossReferencesArgs<ExtArgs>
   productSources?: boolean | Prisma.BaketVerification$productSourcesArgs<ExtArgs>
@@ -1280,7 +1280,7 @@ export type BaketVerificationSelectCreateManyAndReturn<ExtArgs extends runtime.T
   createdAt?: boolean
   updatedAt?: boolean
   baketVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
-  verifiedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  verifiedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["baketVerification"]>
 
 export type BaketVerificationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1296,7 +1296,7 @@ export type BaketVerificationSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   createdAt?: boolean
   updatedAt?: boolean
   baketVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
-  verifiedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  verifiedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["baketVerification"]>
 
 export type BaketVerificationSelectScalar = {
@@ -1316,7 +1316,7 @@ export type BaketVerificationSelectScalar = {
 export type BaketVerificationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "baketVersionId" | "verifiedByAssignmentId" | "status" | "sourceReliability" | "informationCredibility" | "summary" | "startedAt" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["baketVerification"]>
 export type BaketVerificationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   baketVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
-  verifiedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  verifiedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   checks?: boolean | Prisma.BaketVerification$checksArgs<ExtArgs>
   crossReferences?: boolean | Prisma.BaketVerification$crossReferencesArgs<ExtArgs>
   productSources?: boolean | Prisma.BaketVerification$productSourcesArgs<ExtArgs>
@@ -1325,18 +1325,18 @@ export type BaketVerificationInclude<ExtArgs extends runtime.Types.Extensions.In
 }
 export type BaketVerificationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   baketVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
-  verifiedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  verifiedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type BaketVerificationIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   baketVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
-  verifiedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  verifiedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $BaketVerificationPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "BaketVerification"
   objects: {
     baketVersion: Prisma.$BaketVersionPayload<ExtArgs>
-    verifiedByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    verifiedByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     checks: Prisma.$BaketVerificationCheckPayload<ExtArgs>[]
     crossReferences: Prisma.$BaketVerificationCrossReferencePayload<ExtArgs>[]
     productSources: Prisma.$ProductSourceVerificationPayload<ExtArgs>[]
@@ -1749,7 +1749,7 @@ readonly fields: BaketVerificationFieldRefs;
 export interface Prisma__BaketVerificationClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   baketVersion<T extends Prisma.BaketVersionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVersionDefaultArgs<ExtArgs>>): Prisma.Prisma__BaketVersionClient<runtime.Types.Result.GetResult<Prisma.$BaketVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  verifiedByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  verifiedByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   checks<T extends Prisma.BaketVerification$checksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVerification$checksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketVerificationCheckPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   crossReferences<T extends Prisma.BaketVerification$crossReferencesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVerification$crossReferencesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketVerificationCrossReferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   productSources<T extends Prisma.BaketVerification$productSourcesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVerification$productSourcesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductSourceVerificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>

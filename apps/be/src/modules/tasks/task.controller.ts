@@ -41,7 +41,7 @@ export class TaskController {
     operationId: 'apiTask001',
     contractId: 'API-TASK-001',
     summary: 'Daftar tugas',
-    permission: 'task.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async list(
     @Query() query: TaskQuery,
@@ -55,7 +55,7 @@ export class TaskController {
     operationId: 'apiTask002',
     contractId: 'API-TASK-002',
     summary: 'Buat tugas',
-    permission: 'task.create',
+    roles: ['regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
     successStatus: 201,
     idempotent: true,
   })
@@ -71,7 +71,7 @@ export class TaskController {
     operationId: 'apiTask003',
     contractId: 'API-TASK-003',
     summary: 'Buat child task',
-    permission: 'task.create',
+    roles: ['regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
     successStatus: 201,
     idempotent: true,
   })
@@ -88,7 +88,7 @@ export class TaskController {
     operationId: 'apiTask004',
     contractId: 'API-TASK-004',
     summary: 'Detail tugas',
-    permission: 'task.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async get(
     @Param('taskId', ParseUUIDPipe) taskId: string,
@@ -102,7 +102,7 @@ export class TaskController {
     operationId: 'apiTask005',
     contractId: 'API-TASK-005',
     summary: 'Ubah draft tugas',
-    permission: 'task.update',
+    roles: ['regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
   })
   async update(
     @Param('taskId', ParseUUIDPipe) taskId: string,
@@ -117,7 +117,7 @@ export class TaskController {
     operationId: 'apiTask006',
     contractId: 'API-TASK-006',
     summary: 'Ganti target area tugas',
-    permission: 'task.update',
+    roles: ['regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
     idempotent: true,
   })
   async targets(
@@ -133,7 +133,7 @@ export class TaskController {
     operationId: 'apiTask007',
     contractId: 'API-TASK-007',
     summary: 'Assign tugas',
-    permission: 'task.assign',
+    roles: ['regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
     successStatus: 201,
     idempotent: true,
   })
@@ -150,7 +150,7 @@ export class TaskController {
     operationId: 'apiTask008',
     contractId: 'API-TASK-008',
     summary: 'Daftar assignment tugas',
-    permission: 'task.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async assignments(
     @Param('taskId', ParseUUIDPipe) taskId: string,
@@ -164,7 +164,7 @@ export class TaskController {
     operationId: 'apiTask009',
     contractId: 'API-TASK-009',
     summary: 'Detail task assignment',
-    permission: 'task.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async assignment(
     @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
@@ -178,7 +178,7 @@ export class TaskController {
     operationId: 'apiTask010',
     contractId: 'API-TASK-010',
     summary: 'Tandai tugas dibaca',
-    permission: 'task.execute',
+    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
     idempotent: true,
   })
   async read(
@@ -193,7 +193,7 @@ export class TaskController {
     operationId: 'apiTask011',
     contractId: 'API-TASK-011',
     summary: 'Acknowledge tugas',
-    permission: 'task.execute',
+    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
     idempotent: true,
   })
   async acknowledge(
@@ -211,7 +211,7 @@ export class TaskController {
     operationId: 'apiTask012',
     contractId: 'API-TASK-012',
     summary: 'Mulai tugas',
-    permission: 'task.execute',
+    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
     idempotent: true,
   })
   async start(
@@ -227,7 +227,7 @@ export class TaskController {
     operationId: 'apiTask013',
     contractId: 'API-TASK-013',
     summary: 'Update progres tugas',
-    permission: 'task.execute',
+    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
     idempotent: true,
   })
   async progress(
@@ -245,7 +245,7 @@ export class TaskController {
     operationId: 'apiTask014',
     contractId: 'API-TASK-014',
     summary: 'Selesaikan tugas',
-    permission: 'task.execute',
+    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
     idempotent: true,
   })
   async complete(
@@ -263,7 +263,7 @@ export class TaskController {
     operationId: 'apiTask015',
     contractId: 'API-TASK-015',
     summary: 'Alihkan assignment',
-    permission: 'task.reassign',
+    roles: ['regional_commander', 'field_coordinator'],
     successStatus: 201,
     idempotent: true,
   })
@@ -282,7 +282,7 @@ export class TaskController {
     operationId: 'apiTask016',
     contractId: 'API-TASK-016',
     summary: 'Batalkan tugas',
-    permission: 'task.cancel',
+    roles: ['regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
     idempotent: true,
   })
   async cancel(
@@ -298,7 +298,7 @@ export class TaskController {
     operationId: 'apiTask017',
     contractId: 'API-TASK-017',
     summary: 'Hierarki cascade tugas',
-    permission: 'task.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async cascade(
     @Param('taskId', ParseUUIDPipe) taskId: string,
@@ -312,7 +312,7 @@ export class TaskController {
     operationId: 'apiTask018',
     contractId: 'API-TASK-018',
     summary: 'Ringkasan progres tugas',
-    permission: 'task.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async summary(
     @Param('taskId', ParseUUIDPipe) taskId: string,

@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  ArrayUnique,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -65,4 +66,28 @@ export class ReplaceOrganizationCoverageDto {
   @Type(() => CoverageAreaDto)
   areas!: CoverageAreaDto[];
   @IsString() @MinLength(2) @MaxLength(1000) reason!: string;
+}
+
+export class RegionalMasterQueryDto {
+  @IsOptional() @IsUUID() provinceAreaId?: string;
+}
+
+export class CreateBindaMasterDto {
+  @IsString() @MinLength(2) @MaxLength(80) code!: string;
+  @IsString() @MinLength(2) @MaxLength(180) name!: string;
+  @IsUUID() provinceAreaId!: string;
+  @IsOptional() @IsUUID() parentUnitId?: string;
+}
+
+export class CreateDirectorateMasterDto {
+  @IsString() @MinLength(2) @MaxLength(80) code!: string;
+  @IsString() @MinLength(2) @MaxLength(180) name!: string;
+  @IsOptional() @IsString() @MaxLength(80) profileCode?: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique()
+  @IsUUID(undefined, { each: true })
+  provinceAreaIds!: string[];
+  @IsUUID() primaryProvinceAreaId!: string;
+  @IsOptional() @IsUUID() parentUnitId?: string;
 }

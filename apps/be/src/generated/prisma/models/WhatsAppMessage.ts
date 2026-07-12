@@ -378,7 +378,7 @@ export type WhatsAppMessageWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"WhatsAppMessage"> | Date | string
   integrationChannel?: Prisma.XOR<Prisma.IntegrationChannelScalarRelationFilter, Prisma.IntegrationChannelWhereInput>
   jaring?: Prisma.XOR<Prisma.JaringNullableScalarRelationFilter, Prisma.JaringWhereInput> | null
-  routedToFieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  routedToFieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   resolvedArea?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
   media?: Prisma.WhatsAppMessageMediaListRelationFilter
   routingLogs?: Prisma.WhatsAppRoutingLogListRelationFilter
@@ -413,7 +413,7 @@ export type WhatsAppMessageOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   integrationChannel?: Prisma.IntegrationChannelOrderByWithRelationInput
   jaring?: Prisma.JaringOrderByWithRelationInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   resolvedArea?: Prisma.AdministrativeAreaOrderByWithRelationInput
   media?: Prisma.WhatsAppMessageMediaOrderByRelationAggregateInput
   routingLogs?: Prisma.WhatsAppRoutingLogOrderByRelationAggregateInput
@@ -452,7 +452,7 @@ export type WhatsAppMessageWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"WhatsAppMessage"> | Date | string
   integrationChannel?: Prisma.XOR<Prisma.IntegrationChannelScalarRelationFilter, Prisma.IntegrationChannelWhereInput>
   jaring?: Prisma.XOR<Prisma.JaringNullableScalarRelationFilter, Prisma.JaringWhereInput> | null
-  routedToFieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  routedToFieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   resolvedArea?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
   media?: Prisma.WhatsAppMessageMediaListRelationFilter
   routingLogs?: Prisma.WhatsAppRoutingLogListRelationFilter
@@ -545,7 +545,7 @@ export type WhatsAppMessageCreateInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
@@ -607,7 +607,7 @@ export type WhatsAppMessageUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
@@ -1215,7 +1215,7 @@ export type WhatsAppMessageCreateWithoutResolvedAreaInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
@@ -1300,7 +1300,7 @@ export type WhatsAppMessageCreateWithoutJaringInput = {
   processedAt?: Date | string | null
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
@@ -1387,7 +1387,7 @@ export type WhatsAppMessageCreateWithoutValidationIssuesInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
@@ -1463,7 +1463,7 @@ export type WhatsAppMessageUpdateWithoutValidationIssuesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
@@ -1523,7 +1523,7 @@ export type WhatsAppMessageCreateWithoutMediaInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
@@ -1599,7 +1599,7 @@ export type WhatsAppMessageUpdateWithoutMediaInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
@@ -1659,7 +1659,7 @@ export type WhatsAppMessageCreateWithoutRoutingLogsInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
@@ -1735,7 +1735,7 @@ export type WhatsAppMessageUpdateWithoutRoutingLogsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
@@ -1795,7 +1795,7 @@ export type WhatsAppMessageCreateWithoutBaketLinksInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
@@ -1871,7 +1871,7 @@ export type WhatsAppMessageUpdateWithoutBaketLinksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
@@ -1930,7 +1930,7 @@ export type WhatsAppMessageCreateWithoutIntegrationChannelInput = {
   processedAt?: Date | string | null
   createdAt?: Date | string
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
@@ -2155,7 +2155,7 @@ export type WhatsAppMessageUpdateWithoutResolvedAreaInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
@@ -2266,7 +2266,7 @@ export type WhatsAppMessageUpdateWithoutJaringInput = {
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
@@ -2378,7 +2378,7 @@ export type WhatsAppMessageUpdateWithoutIntegrationChannelInput = {
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
@@ -2655,7 +2655,7 @@ export type $WhatsAppMessagePayload<ExtArgs extends runtime.Types.Extensions.Int
   objects: {
     integrationChannel: Prisma.$IntegrationChannelPayload<ExtArgs>
     jaring: Prisma.$JaringPayload<ExtArgs> | null
-    routedToFieldOfficerAssignment: Prisma.$PositionAssignmentPayload<ExtArgs> | null
+    routedToFieldOfficerAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs> | null
     resolvedArea: Prisma.$AdministrativeAreaPayload<ExtArgs> | null
     media: Prisma.$WhatsAppMessageMediaPayload<ExtArgs>[]
     routingLogs: Prisma.$WhatsAppRoutingLogPayload<ExtArgs>[]
@@ -3083,7 +3083,7 @@ export interface Prisma__WhatsAppMessageClient<T, Null = never, ExtArgs extends 
   readonly [Symbol.toStringTag]: "PrismaPromise"
   integrationChannel<T extends Prisma.IntegrationChannelDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntegrationChannelDefaultArgs<ExtArgs>>): Prisma.Prisma__IntegrationChannelClient<runtime.Types.Result.GetResult<Prisma.$IntegrationChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   jaring<T extends Prisma.WhatsAppMessage$jaringArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$jaringArgs<ExtArgs>>): Prisma.Prisma__JaringClient<runtime.Types.Result.GetResult<Prisma.$JaringPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  routedToFieldOfficerAssignment<T extends Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  routedToFieldOfficerAssignment<T extends Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   resolvedArea<T extends Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs>>): Prisma.Prisma__AdministrativeAreaClient<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   media<T extends Prisma.WhatsAppMessage$mediaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$mediaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppMessageMediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   routingLogs<T extends Prisma.WhatsAppMessage$routingLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$routingLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppRoutingLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -3566,18 +3566,18 @@ export type WhatsAppMessage$jaringArgs<ExtArgs extends runtime.Types.Extensions.
  */
 export type WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**

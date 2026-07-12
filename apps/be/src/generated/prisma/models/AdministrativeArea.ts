@@ -282,6 +282,8 @@ export type AdministrativeAreaWhereInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureListRelationFilter
   boundaries?: Prisma.AdministrativeAreaBoundaryListRelationFilter
   organizationCoverages?: Prisma.OrganizationAreaCoverageListRelationFilter
+  directorateCoverages?: Prisma.DirectorateCoverageListRelationFilter
+  bindaProfiles?: Prisma.BindaProfileListRelationFilter
   positionScopes?: Prisma.PositionAreaScopeListRelationFilter
   directiveTargets?: Prisma.DirectiveTargetAreaListRelationFilter
   taskTargets?: Prisma.TaskTargetAreaListRelationFilter
@@ -313,6 +315,8 @@ export type AdministrativeAreaOrderByWithRelationInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureOrderByRelationAggregateInput
   boundaries?: Prisma.AdministrativeAreaBoundaryOrderByRelationAggregateInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageOrderByRelationAggregateInput
+  directorateCoverages?: Prisma.DirectorateCoverageOrderByRelationAggregateInput
+  bindaProfiles?: Prisma.BindaProfileOrderByRelationAggregateInput
   positionScopes?: Prisma.PositionAreaScopeOrderByRelationAggregateInput
   directiveTargets?: Prisma.DirectiveTargetAreaOrderByRelationAggregateInput
   taskTargets?: Prisma.TaskTargetAreaOrderByRelationAggregateInput
@@ -348,6 +352,8 @@ export type AdministrativeAreaWhereUniqueInput = Prisma.AtLeast<{
   descendantLinks?: Prisma.AdministrativeAreaClosureListRelationFilter
   boundaries?: Prisma.AdministrativeAreaBoundaryListRelationFilter
   organizationCoverages?: Prisma.OrganizationAreaCoverageListRelationFilter
+  directorateCoverages?: Prisma.DirectorateCoverageListRelationFilter
+  bindaProfiles?: Prisma.BindaProfileListRelationFilter
   positionScopes?: Prisma.PositionAreaScopeListRelationFilter
   directiveTargets?: Prisma.DirectiveTargetAreaListRelationFilter
   taskTargets?: Prisma.TaskTargetAreaListRelationFilter
@@ -416,6 +422,8 @@ export type AdministrativeAreaCreateInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -446,6 +454,8 @@ export type AdministrativeAreaUncheckedCreateInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -476,6 +486,8 @@ export type AdministrativeAreaUpdateInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -506,6 +518,8 @@ export type AdministrativeAreaUncheckedUpdateInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -773,6 +787,34 @@ export type AdministrativeAreaUpdateOneRequiredWithoutOrganizationCoveragesNeste
   update?: Prisma.XOR<Prisma.XOR<Prisma.AdministrativeAreaUpdateToOneWithWhereWithoutOrganizationCoveragesInput, Prisma.AdministrativeAreaUpdateWithoutOrganizationCoveragesInput>, Prisma.AdministrativeAreaUncheckedUpdateWithoutOrganizationCoveragesInput>
 }
 
+export type AdministrativeAreaCreateNestedOneWithoutDirectorateCoveragesInput = {
+  create?: Prisma.XOR<Prisma.AdministrativeAreaCreateWithoutDirectorateCoveragesInput, Prisma.AdministrativeAreaUncheckedCreateWithoutDirectorateCoveragesInput>
+  connectOrCreate?: Prisma.AdministrativeAreaCreateOrConnectWithoutDirectorateCoveragesInput
+  connect?: Prisma.AdministrativeAreaWhereUniqueInput
+}
+
+export type AdministrativeAreaUpdateOneRequiredWithoutDirectorateCoveragesNestedInput = {
+  create?: Prisma.XOR<Prisma.AdministrativeAreaCreateWithoutDirectorateCoveragesInput, Prisma.AdministrativeAreaUncheckedCreateWithoutDirectorateCoveragesInput>
+  connectOrCreate?: Prisma.AdministrativeAreaCreateOrConnectWithoutDirectorateCoveragesInput
+  upsert?: Prisma.AdministrativeAreaUpsertWithoutDirectorateCoveragesInput
+  connect?: Prisma.AdministrativeAreaWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AdministrativeAreaUpdateToOneWithWhereWithoutDirectorateCoveragesInput, Prisma.AdministrativeAreaUpdateWithoutDirectorateCoveragesInput>, Prisma.AdministrativeAreaUncheckedUpdateWithoutDirectorateCoveragesInput>
+}
+
+export type AdministrativeAreaCreateNestedOneWithoutBindaProfilesInput = {
+  create?: Prisma.XOR<Prisma.AdministrativeAreaCreateWithoutBindaProfilesInput, Prisma.AdministrativeAreaUncheckedCreateWithoutBindaProfilesInput>
+  connectOrCreate?: Prisma.AdministrativeAreaCreateOrConnectWithoutBindaProfilesInput
+  connect?: Prisma.AdministrativeAreaWhereUniqueInput
+}
+
+export type AdministrativeAreaUpdateOneRequiredWithoutBindaProfilesNestedInput = {
+  create?: Prisma.XOR<Prisma.AdministrativeAreaCreateWithoutBindaProfilesInput, Prisma.AdministrativeAreaUncheckedCreateWithoutBindaProfilesInput>
+  connectOrCreate?: Prisma.AdministrativeAreaCreateOrConnectWithoutBindaProfilesInput
+  upsert?: Prisma.AdministrativeAreaUpsertWithoutBindaProfilesInput
+  connect?: Prisma.AdministrativeAreaWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AdministrativeAreaUpdateToOneWithWhereWithoutBindaProfilesInput, Prisma.AdministrativeAreaUpdateWithoutBindaProfilesInput>, Prisma.AdministrativeAreaUncheckedUpdateWithoutBindaProfilesInput>
+}
+
 export type AdministrativeAreaCreateNestedOneWithoutDirectiveTargetsInput = {
   create?: Prisma.XOR<Prisma.AdministrativeAreaCreateWithoutDirectiveTargetsInput, Prisma.AdministrativeAreaUncheckedCreateWithoutDirectiveTargetsInput>
   connectOrCreate?: Prisma.AdministrativeAreaCreateOrConnectWithoutDirectiveTargetsInput
@@ -923,6 +965,8 @@ export type AdministrativeAreaCreateWithoutPositionScopesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
   jaringCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutAreaInput
@@ -952,6 +996,8 @@ export type AdministrativeAreaUncheckedCreateWithoutPositionScopesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   jaringCoverages?: Prisma.JaringAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
@@ -997,6 +1043,8 @@ export type AdministrativeAreaUpdateWithoutPositionScopesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
   jaringCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutAreaNestedInput
@@ -1026,6 +1074,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutPositionScopesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   jaringCoverages?: Prisma.JaringAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
@@ -1054,6 +1104,8 @@ export type AdministrativeAreaCreateWithoutChildrenInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -1083,6 +1135,8 @@ export type AdministrativeAreaUncheckedCreateWithoutChildrenInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -1117,6 +1171,8 @@ export type AdministrativeAreaCreateWithoutParentInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -1146,6 +1202,8 @@ export type AdministrativeAreaUncheckedCreateWithoutParentInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -1196,6 +1254,8 @@ export type AdministrativeAreaUpdateWithoutChildrenInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -1225,6 +1285,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutChildrenInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -1288,6 +1350,8 @@ export type AdministrativeAreaCreateWithoutAncestorLinksInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -1317,6 +1381,8 @@ export type AdministrativeAreaUncheckedCreateWithoutAncestorLinksInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -1351,6 +1417,8 @@ export type AdministrativeAreaCreateWithoutDescendantLinksInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutAncestorInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -1380,6 +1448,8 @@ export type AdministrativeAreaUncheckedCreateWithoutDescendantLinksInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutAncestorInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -1425,6 +1495,8 @@ export type AdministrativeAreaUpdateWithoutAncestorLinksInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -1454,6 +1526,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutAncestorLinksInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -1494,6 +1568,8 @@ export type AdministrativeAreaUpdateWithoutDescendantLinksInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutAncestorNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -1523,6 +1599,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutDescendantLinksInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutAncestorNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -1552,6 +1630,8 @@ export type AdministrativeAreaCreateWithoutBoundariesInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -1581,6 +1661,8 @@ export type AdministrativeAreaUncheckedCreateWithoutBoundariesInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -1626,6 +1708,8 @@ export type AdministrativeAreaUpdateWithoutBoundariesInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -1655,6 +1739,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutBoundariesInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -1684,6 +1770,8 @@ export type AdministrativeAreaCreateWithoutOrganizationCoveragesInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -1713,6 +1801,8 @@ export type AdministrativeAreaUncheckedCreateWithoutOrganizationCoveragesInput =
   ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutAncestorInput
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -1758,6 +1848,8 @@ export type AdministrativeAreaUpdateWithoutOrganizationCoveragesInput = {
   ancestorLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -1787,6 +1879,288 @@ export type AdministrativeAreaUncheckedUpdateWithoutOrganizationCoveragesInput =
   ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutAncestorNestedInput
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
+  positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
+  directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
+  taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
+  jaringCoverages?: Prisma.JaringAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  resolvedWhatsAppMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutResolvedAreaNestedInput
+  baketVersions?: Prisma.BaketVersionUncheckedUpdateManyWithoutEventAreaNestedInput
+  baketCoverageChecks?: Prisma.BaketCoverageCheckUncheckedUpdateManyWithoutAreaNestedInput
+  emergencyIncidents?: Prisma.EmergencyIncidentUncheckedUpdateManyWithoutAreaNestedInput
+  alerts?: Prisma.AlertUncheckedUpdateManyWithoutAreaNestedInput
+  personnelLocationPings?: Prisma.PersonnelLocationPingUncheckedUpdateManyWithoutAreaNestedInput
+}
+
+export type AdministrativeAreaCreateWithoutDirectorateCoveragesInput = {
+  id?: string
+  code: string
+  officialCode?: string | null
+  name: string
+  level: $Enums.AdministrativeLevel
+  centroidLatitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  centroidLongitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent?: Prisma.AdministrativeAreaCreateNestedOneWithoutChildrenInput
+  children?: Prisma.AdministrativeAreaCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
+  boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
+  organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
+  positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
+  directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
+  taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
+  jaringCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutAreaInput
+  resolvedWhatsAppMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutResolvedAreaInput
+  baketVersions?: Prisma.BaketVersionCreateNestedManyWithoutEventAreaInput
+  baketCoverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutAreaInput
+  emergencyIncidents?: Prisma.EmergencyIncidentCreateNestedManyWithoutAreaInput
+  alerts?: Prisma.AlertCreateNestedManyWithoutAreaInput
+  personnelLocationPings?: Prisma.PersonnelLocationPingCreateNestedManyWithoutAreaInput
+}
+
+export type AdministrativeAreaUncheckedCreateWithoutDirectorateCoveragesInput = {
+  id?: string
+  code: string
+  officialCode?: string | null
+  name: string
+  level: $Enums.AdministrativeLevel
+  parentId?: string | null
+  centroidLatitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  centroidLongitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  children?: Prisma.AdministrativeAreaUncheckedCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
+  boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
+  organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
+  positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
+  directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
+  taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
+  jaringCoverages?: Prisma.JaringAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  resolvedWhatsAppMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutResolvedAreaInput
+  baketVersions?: Prisma.BaketVersionUncheckedCreateNestedManyWithoutEventAreaInput
+  baketCoverageChecks?: Prisma.BaketCoverageCheckUncheckedCreateNestedManyWithoutAreaInput
+  emergencyIncidents?: Prisma.EmergencyIncidentUncheckedCreateNestedManyWithoutAreaInput
+  alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAreaInput
+  personnelLocationPings?: Prisma.PersonnelLocationPingUncheckedCreateNestedManyWithoutAreaInput
+}
+
+export type AdministrativeAreaCreateOrConnectWithoutDirectorateCoveragesInput = {
+  where: Prisma.AdministrativeAreaWhereUniqueInput
+  create: Prisma.XOR<Prisma.AdministrativeAreaCreateWithoutDirectorateCoveragesInput, Prisma.AdministrativeAreaUncheckedCreateWithoutDirectorateCoveragesInput>
+}
+
+export type AdministrativeAreaUpsertWithoutDirectorateCoveragesInput = {
+  update: Prisma.XOR<Prisma.AdministrativeAreaUpdateWithoutDirectorateCoveragesInput, Prisma.AdministrativeAreaUncheckedUpdateWithoutDirectorateCoveragesInput>
+  create: Prisma.XOR<Prisma.AdministrativeAreaCreateWithoutDirectorateCoveragesInput, Prisma.AdministrativeAreaUncheckedCreateWithoutDirectorateCoveragesInput>
+  where?: Prisma.AdministrativeAreaWhereInput
+}
+
+export type AdministrativeAreaUpdateToOneWithWhereWithoutDirectorateCoveragesInput = {
+  where?: Prisma.AdministrativeAreaWhereInput
+  data: Prisma.XOR<Prisma.AdministrativeAreaUpdateWithoutDirectorateCoveragesInput, Prisma.AdministrativeAreaUncheckedUpdateWithoutDirectorateCoveragesInput>
+}
+
+export type AdministrativeAreaUpdateWithoutDirectorateCoveragesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  officialCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  level?: Prisma.EnumAdministrativeLevelFieldUpdateOperationsInput | $Enums.AdministrativeLevel
+  centroidLatitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  centroidLongitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.AdministrativeAreaUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.AdministrativeAreaUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
+  boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
+  organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
+  positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
+  directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
+  taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
+  jaringCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutAreaNestedInput
+  resolvedWhatsAppMessages?: Prisma.WhatsAppMessageUpdateManyWithoutResolvedAreaNestedInput
+  baketVersions?: Prisma.BaketVersionUpdateManyWithoutEventAreaNestedInput
+  baketCoverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutAreaNestedInput
+  emergencyIncidents?: Prisma.EmergencyIncidentUpdateManyWithoutAreaNestedInput
+  alerts?: Prisma.AlertUpdateManyWithoutAreaNestedInput
+  personnelLocationPings?: Prisma.PersonnelLocationPingUpdateManyWithoutAreaNestedInput
+}
+
+export type AdministrativeAreaUncheckedUpdateWithoutDirectorateCoveragesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  officialCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  level?: Prisma.EnumAdministrativeLevelFieldUpdateOperationsInput | $Enums.AdministrativeLevel
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  centroidLatitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  centroidLongitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  children?: Prisma.AdministrativeAreaUncheckedUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
+  boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
+  organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
+  positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
+  directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
+  taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
+  jaringCoverages?: Prisma.JaringAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  resolvedWhatsAppMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutResolvedAreaNestedInput
+  baketVersions?: Prisma.BaketVersionUncheckedUpdateManyWithoutEventAreaNestedInput
+  baketCoverageChecks?: Prisma.BaketCoverageCheckUncheckedUpdateManyWithoutAreaNestedInput
+  emergencyIncidents?: Prisma.EmergencyIncidentUncheckedUpdateManyWithoutAreaNestedInput
+  alerts?: Prisma.AlertUncheckedUpdateManyWithoutAreaNestedInput
+  personnelLocationPings?: Prisma.PersonnelLocationPingUncheckedUpdateManyWithoutAreaNestedInput
+}
+
+export type AdministrativeAreaCreateWithoutBindaProfilesInput = {
+  id?: string
+  code: string
+  officialCode?: string | null
+  name: string
+  level: $Enums.AdministrativeLevel
+  centroidLatitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  centroidLongitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent?: Prisma.AdministrativeAreaCreateNestedOneWithoutChildrenInput
+  children?: Prisma.AdministrativeAreaCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
+  boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
+  organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
+  directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
+  taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
+  jaringCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutAreaInput
+  resolvedWhatsAppMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutResolvedAreaInput
+  baketVersions?: Prisma.BaketVersionCreateNestedManyWithoutEventAreaInput
+  baketCoverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutAreaInput
+  emergencyIncidents?: Prisma.EmergencyIncidentCreateNestedManyWithoutAreaInput
+  alerts?: Prisma.AlertCreateNestedManyWithoutAreaInput
+  personnelLocationPings?: Prisma.PersonnelLocationPingCreateNestedManyWithoutAreaInput
+}
+
+export type AdministrativeAreaUncheckedCreateWithoutBindaProfilesInput = {
+  id?: string
+  code: string
+  officialCode?: string | null
+  name: string
+  level: $Enums.AdministrativeLevel
+  parentId?: string | null
+  centroidLatitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  centroidLongitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  isActive?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  children?: Prisma.AdministrativeAreaUncheckedCreateNestedManyWithoutParentInput
+  ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutAncestorInput
+  descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
+  boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
+  organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
+  directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
+  taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
+  jaringCoverages?: Prisma.JaringAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  resolvedWhatsAppMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutResolvedAreaInput
+  baketVersions?: Prisma.BaketVersionUncheckedCreateNestedManyWithoutEventAreaInput
+  baketCoverageChecks?: Prisma.BaketCoverageCheckUncheckedCreateNestedManyWithoutAreaInput
+  emergencyIncidents?: Prisma.EmergencyIncidentUncheckedCreateNestedManyWithoutAreaInput
+  alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAreaInput
+  personnelLocationPings?: Prisma.PersonnelLocationPingUncheckedCreateNestedManyWithoutAreaInput
+}
+
+export type AdministrativeAreaCreateOrConnectWithoutBindaProfilesInput = {
+  where: Prisma.AdministrativeAreaWhereUniqueInput
+  create: Prisma.XOR<Prisma.AdministrativeAreaCreateWithoutBindaProfilesInput, Prisma.AdministrativeAreaUncheckedCreateWithoutBindaProfilesInput>
+}
+
+export type AdministrativeAreaUpsertWithoutBindaProfilesInput = {
+  update: Prisma.XOR<Prisma.AdministrativeAreaUpdateWithoutBindaProfilesInput, Prisma.AdministrativeAreaUncheckedUpdateWithoutBindaProfilesInput>
+  create: Prisma.XOR<Prisma.AdministrativeAreaCreateWithoutBindaProfilesInput, Prisma.AdministrativeAreaUncheckedCreateWithoutBindaProfilesInput>
+  where?: Prisma.AdministrativeAreaWhereInput
+}
+
+export type AdministrativeAreaUpdateToOneWithWhereWithoutBindaProfilesInput = {
+  where?: Prisma.AdministrativeAreaWhereInput
+  data: Prisma.XOR<Prisma.AdministrativeAreaUpdateWithoutBindaProfilesInput, Prisma.AdministrativeAreaUncheckedUpdateWithoutBindaProfilesInput>
+}
+
+export type AdministrativeAreaUpdateWithoutBindaProfilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  officialCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  level?: Prisma.EnumAdministrativeLevelFieldUpdateOperationsInput | $Enums.AdministrativeLevel
+  centroidLatitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  centroidLongitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.AdministrativeAreaUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.AdministrativeAreaUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
+  boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
+  organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
+  directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
+  taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
+  jaringCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutAreaNestedInput
+  resolvedWhatsAppMessages?: Prisma.WhatsAppMessageUpdateManyWithoutResolvedAreaNestedInput
+  baketVersions?: Prisma.BaketVersionUpdateManyWithoutEventAreaNestedInput
+  baketCoverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutAreaNestedInput
+  emergencyIncidents?: Prisma.EmergencyIncidentUpdateManyWithoutAreaNestedInput
+  alerts?: Prisma.AlertUpdateManyWithoutAreaNestedInput
+  personnelLocationPings?: Prisma.PersonnelLocationPingUpdateManyWithoutAreaNestedInput
+}
+
+export type AdministrativeAreaUncheckedUpdateWithoutBindaProfilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  officialCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  level?: Prisma.EnumAdministrativeLevelFieldUpdateOperationsInput | $Enums.AdministrativeLevel
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  centroidLatitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  centroidLongitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  children?: Prisma.AdministrativeAreaUncheckedUpdateManyWithoutParentNestedInput
+  ancestorLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutAncestorNestedInput
+  descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
+  boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
+  organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -1817,6 +2191,8 @@ export type AdministrativeAreaCreateWithoutDirectiveTargetsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
   jaringCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutAreaInput
@@ -1846,6 +2222,8 @@ export type AdministrativeAreaUncheckedCreateWithoutDirectiveTargetsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   jaringCoverages?: Prisma.JaringAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
@@ -1891,6 +2269,8 @@ export type AdministrativeAreaUpdateWithoutDirectiveTargetsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
   jaringCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutAreaNestedInput
@@ -1920,6 +2300,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutDirectiveTargetsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   jaringCoverages?: Prisma.JaringAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
@@ -1949,6 +2331,8 @@ export type AdministrativeAreaCreateWithoutTaskTargetsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   jaringCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutAreaInput
@@ -1978,6 +2362,8 @@ export type AdministrativeAreaUncheckedCreateWithoutTaskTargetsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   jaringCoverages?: Prisma.JaringAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
@@ -2023,6 +2409,8 @@ export type AdministrativeAreaUpdateWithoutTaskTargetsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   jaringCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutAreaNestedInput
@@ -2052,6 +2440,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutTaskTargetsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   jaringCoverages?: Prisma.JaringAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
@@ -2081,6 +2471,8 @@ export type AdministrativeAreaCreateWithoutJaringCoveragesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -2110,6 +2502,8 @@ export type AdministrativeAreaUncheckedCreateWithoutJaringCoveragesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -2155,6 +2549,8 @@ export type AdministrativeAreaUpdateWithoutJaringCoveragesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -2184,6 +2580,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutJaringCoveragesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -2213,6 +2611,8 @@ export type AdministrativeAreaCreateWithoutResolvedWhatsAppMessagesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -2242,6 +2642,8 @@ export type AdministrativeAreaUncheckedCreateWithoutResolvedWhatsAppMessagesInpu
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -2287,6 +2689,8 @@ export type AdministrativeAreaUpdateWithoutResolvedWhatsAppMessagesInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -2316,6 +2720,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutResolvedWhatsAppMessagesInpu
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -2345,6 +2751,8 @@ export type AdministrativeAreaCreateWithoutBaketVersionsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -2374,6 +2782,8 @@ export type AdministrativeAreaUncheckedCreateWithoutBaketVersionsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -2419,6 +2829,8 @@ export type AdministrativeAreaUpdateWithoutBaketVersionsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -2448,6 +2860,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutBaketVersionsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -2477,6 +2891,8 @@ export type AdministrativeAreaCreateWithoutBaketCoverageChecksInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -2506,6 +2922,8 @@ export type AdministrativeAreaUncheckedCreateWithoutBaketCoverageChecksInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -2551,6 +2969,8 @@ export type AdministrativeAreaUpdateWithoutBaketCoverageChecksInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -2580,6 +3000,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutBaketCoverageChecksInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -2609,6 +3031,8 @@ export type AdministrativeAreaCreateWithoutEmergencyIncidentsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -2638,6 +3062,8 @@ export type AdministrativeAreaUncheckedCreateWithoutEmergencyIncidentsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -2683,6 +3109,8 @@ export type AdministrativeAreaUpdateWithoutEmergencyIncidentsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -2712,6 +3140,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutEmergencyIncidentsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -2741,6 +3171,8 @@ export type AdministrativeAreaCreateWithoutAlertsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -2770,6 +3202,8 @@ export type AdministrativeAreaUncheckedCreateWithoutAlertsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -2815,6 +3249,8 @@ export type AdministrativeAreaUpdateWithoutAlertsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -2844,6 +3280,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutAlertsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -2873,6 +3311,8 @@ export type AdministrativeAreaCreateWithoutPersonnelLocationPingsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaCreateNestedManyWithoutAreaInput
@@ -2902,6 +3342,8 @@ export type AdministrativeAreaUncheckedCreateWithoutPersonnelLocationPingsInput 
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedCreateNestedManyWithoutDescendantInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedCreateNestedManyWithoutAreaInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedCreateNestedManyWithoutAreaInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedCreateNestedManyWithoutProvinceInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedCreateNestedManyWithoutProvinceInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedCreateNestedManyWithoutAreaInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedCreateNestedManyWithoutAreaInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedCreateNestedManyWithoutAreaInput
@@ -2947,6 +3389,8 @@ export type AdministrativeAreaUpdateWithoutPersonnelLocationPingsInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -2976,6 +3420,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutPersonnelLocationPingsInput 
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -3018,6 +3464,8 @@ export type AdministrativeAreaUpdateWithoutParentInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUpdateManyWithoutAreaNestedInput
@@ -3047,6 +3495,8 @@ export type AdministrativeAreaUncheckedUpdateWithoutParentInput = {
   descendantLinks?: Prisma.AdministrativeAreaClosureUncheckedUpdateManyWithoutDescendantNestedInput
   boundaries?: Prisma.AdministrativeAreaBoundaryUncheckedUpdateManyWithoutAreaNestedInput
   organizationCoverages?: Prisma.OrganizationAreaCoverageUncheckedUpdateManyWithoutAreaNestedInput
+  directorateCoverages?: Prisma.DirectorateCoverageUncheckedUpdateManyWithoutProvinceNestedInput
+  bindaProfiles?: Prisma.BindaProfileUncheckedUpdateManyWithoutProvinceNestedInput
   positionScopes?: Prisma.PositionAreaScopeUncheckedUpdateManyWithoutAreaNestedInput
   directiveTargets?: Prisma.DirectiveTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
   taskTargets?: Prisma.TaskTargetAreaUncheckedUpdateManyWithoutAreaNestedInput
@@ -3084,6 +3534,8 @@ export type AdministrativeAreaCountOutputType = {
   descendantLinks: number
   boundaries: number
   organizationCoverages: number
+  directorateCoverages: number
+  bindaProfiles: number
   positionScopes: number
   directiveTargets: number
   taskTargets: number
@@ -3102,6 +3554,8 @@ export type AdministrativeAreaCountOutputTypeSelect<ExtArgs extends runtime.Type
   descendantLinks?: boolean | AdministrativeAreaCountOutputTypeCountDescendantLinksArgs
   boundaries?: boolean | AdministrativeAreaCountOutputTypeCountBoundariesArgs
   organizationCoverages?: boolean | AdministrativeAreaCountOutputTypeCountOrganizationCoveragesArgs
+  directorateCoverages?: boolean | AdministrativeAreaCountOutputTypeCountDirectorateCoveragesArgs
+  bindaProfiles?: boolean | AdministrativeAreaCountOutputTypeCountBindaProfilesArgs
   positionScopes?: boolean | AdministrativeAreaCountOutputTypeCountPositionScopesArgs
   directiveTargets?: boolean | AdministrativeAreaCountOutputTypeCountDirectiveTargetsArgs
   taskTargets?: boolean | AdministrativeAreaCountOutputTypeCountTaskTargetsArgs
@@ -3157,6 +3611,20 @@ export type AdministrativeAreaCountOutputTypeCountBoundariesArgs<ExtArgs extends
  */
 export type AdministrativeAreaCountOutputTypeCountOrganizationCoveragesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.OrganizationAreaCoverageWhereInput
+}
+
+/**
+ * AdministrativeAreaCountOutputType without action
+ */
+export type AdministrativeAreaCountOutputTypeCountDirectorateCoveragesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DirectorateCoverageWhereInput
+}
+
+/**
+ * AdministrativeAreaCountOutputType without action
+ */
+export type AdministrativeAreaCountOutputTypeCountBindaProfilesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BindaProfileWhereInput
 }
 
 /**
@@ -3249,6 +3717,8 @@ export type AdministrativeAreaSelect<ExtArgs extends runtime.Types.Extensions.In
   descendantLinks?: boolean | Prisma.AdministrativeArea$descendantLinksArgs<ExtArgs>
   boundaries?: boolean | Prisma.AdministrativeArea$boundariesArgs<ExtArgs>
   organizationCoverages?: boolean | Prisma.AdministrativeArea$organizationCoveragesArgs<ExtArgs>
+  directorateCoverages?: boolean | Prisma.AdministrativeArea$directorateCoveragesArgs<ExtArgs>
+  bindaProfiles?: boolean | Prisma.AdministrativeArea$bindaProfilesArgs<ExtArgs>
   positionScopes?: boolean | Prisma.AdministrativeArea$positionScopesArgs<ExtArgs>
   directiveTargets?: boolean | Prisma.AdministrativeArea$directiveTargetsArgs<ExtArgs>
   taskTargets?: boolean | Prisma.AdministrativeArea$taskTargetsArgs<ExtArgs>
@@ -3317,6 +3787,8 @@ export type AdministrativeAreaInclude<ExtArgs extends runtime.Types.Extensions.I
   descendantLinks?: boolean | Prisma.AdministrativeArea$descendantLinksArgs<ExtArgs>
   boundaries?: boolean | Prisma.AdministrativeArea$boundariesArgs<ExtArgs>
   organizationCoverages?: boolean | Prisma.AdministrativeArea$organizationCoveragesArgs<ExtArgs>
+  directorateCoverages?: boolean | Prisma.AdministrativeArea$directorateCoveragesArgs<ExtArgs>
+  bindaProfiles?: boolean | Prisma.AdministrativeArea$bindaProfilesArgs<ExtArgs>
   positionScopes?: boolean | Prisma.AdministrativeArea$positionScopesArgs<ExtArgs>
   directiveTargets?: boolean | Prisma.AdministrativeArea$directiveTargetsArgs<ExtArgs>
   taskTargets?: boolean | Prisma.AdministrativeArea$taskTargetsArgs<ExtArgs>
@@ -3345,6 +3817,8 @@ export type $AdministrativeAreaPayload<ExtArgs extends runtime.Types.Extensions.
     descendantLinks: Prisma.$AdministrativeAreaClosurePayload<ExtArgs>[]
     boundaries: Prisma.$AdministrativeAreaBoundaryPayload<ExtArgs>[]
     organizationCoverages: Prisma.$OrganizationAreaCoveragePayload<ExtArgs>[]
+    directorateCoverages: Prisma.$DirectorateCoveragePayload<ExtArgs>[]
+    bindaProfiles: Prisma.$BindaProfilePayload<ExtArgs>[]
     positionScopes: Prisma.$PositionAreaScopePayload<ExtArgs>[]
     directiveTargets: Prisma.$DirectiveTargetAreaPayload<ExtArgs>[]
     taskTargets: Prisma.$TaskTargetAreaPayload<ExtArgs>[]
@@ -3769,6 +4243,8 @@ export interface Prisma__AdministrativeAreaClient<T, Null = never, ExtArgs exten
   descendantLinks<T extends Prisma.AdministrativeArea$descendantLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AdministrativeArea$descendantLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaClosurePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   boundaries<T extends Prisma.AdministrativeArea$boundariesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AdministrativeArea$boundariesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaBoundaryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   organizationCoverages<T extends Prisma.AdministrativeArea$organizationCoveragesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AdministrativeArea$organizationCoveragesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrganizationAreaCoveragePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  directorateCoverages<T extends Prisma.AdministrativeArea$directorateCoveragesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AdministrativeArea$directorateCoveragesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DirectorateCoveragePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  bindaProfiles<T extends Prisma.AdministrativeArea$bindaProfilesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AdministrativeArea$bindaProfilesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BindaProfilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   positionScopes<T extends Prisma.AdministrativeArea$positionScopesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AdministrativeArea$positionScopesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PositionAreaScopePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   directiveTargets<T extends Prisma.AdministrativeArea$directiveTargetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AdministrativeArea$directiveTargetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DirectiveTargetAreaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   taskTargets<T extends Prisma.AdministrativeArea$taskTargetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AdministrativeArea$taskTargetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskTargetAreaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4357,6 +4833,54 @@ export type AdministrativeArea$organizationCoveragesArgs<ExtArgs extends runtime
   take?: number
   skip?: number
   distinct?: Prisma.OrganizationAreaCoverageScalarFieldEnum | Prisma.OrganizationAreaCoverageScalarFieldEnum[]
+}
+
+/**
+ * AdministrativeArea.directorateCoverages
+ */
+export type AdministrativeArea$directorateCoveragesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DirectorateCoverage
+   */
+  select?: Prisma.DirectorateCoverageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DirectorateCoverage
+   */
+  omit?: Prisma.DirectorateCoverageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DirectorateCoverageInclude<ExtArgs> | null
+  where?: Prisma.DirectorateCoverageWhereInput
+  orderBy?: Prisma.DirectorateCoverageOrderByWithRelationInput | Prisma.DirectorateCoverageOrderByWithRelationInput[]
+  cursor?: Prisma.DirectorateCoverageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DirectorateCoverageScalarFieldEnum | Prisma.DirectorateCoverageScalarFieldEnum[]
+}
+
+/**
+ * AdministrativeArea.bindaProfiles
+ */
+export type AdministrativeArea$bindaProfilesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BindaProfile
+   */
+  select?: Prisma.BindaProfileSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BindaProfile
+   */
+  omit?: Prisma.BindaProfileOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BindaProfileInclude<ExtArgs> | null
+  where?: Prisma.BindaProfileWhereInput
+  orderBy?: Prisma.BindaProfileOrderByWithRelationInput | Prisma.BindaProfileOrderByWithRelationInput[]
+  cursor?: Prisma.BindaProfileWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BindaProfileScalarFieldEnum | Prisma.BindaProfileScalarFieldEnum[]
 }
 
 /**

@@ -277,8 +277,8 @@ export type AnalysisVersionWhereInput = {
   validatedAt?: Prisma.DateTimeNullableFilter<"AnalysisVersion"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"AnalysisVersion"> | Date | string
   analysisCase?: Prisma.XOR<Prisma.AnalysisCaseScalarRelationFilter, Prisma.AnalysisCaseWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
-  validatedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
+  validatedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   entities?: Prisma.AnalysisEntityListRelationFilter
   relationships?: Prisma.AnalysisRelationshipListRelationFilter
   productSources?: Prisma.ProductSourceAnalysisListRelationFilter
@@ -299,8 +299,8 @@ export type AnalysisVersionOrderByWithRelationInput = {
   validatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   analysisCase?: Prisma.AnalysisCaseOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
-  validatedByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   entities?: Prisma.AnalysisEntityOrderByRelationAggregateInput
   relationships?: Prisma.AnalysisRelationshipOrderByRelationAggregateInput
   productSources?: Prisma.ProductSourceAnalysisOrderByRelationAggregateInput
@@ -325,8 +325,8 @@ export type AnalysisVersionWhereUniqueInput = Prisma.AtLeast<{
   validatedAt?: Prisma.DateTimeNullableFilter<"AnalysisVersion"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"AnalysisVersion"> | Date | string
   analysisCase?: Prisma.XOR<Prisma.AnalysisCaseScalarRelationFilter, Prisma.AnalysisCaseWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
-  validatedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
+  validatedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   entities?: Prisma.AnalysisEntityListRelationFilter
   relationships?: Prisma.AnalysisRelationshipListRelationFilter
   productSources?: Prisma.ProductSourceAnalysisListRelationFilter
@@ -384,8 +384,8 @@ export type AnalysisVersionCreateInput = {
   validatedAt?: Date | string | null
   createdAt?: Date | string
   analysisCase: Prisma.AnalysisCaseCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
-  validatedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
   entities?: Prisma.AnalysisEntityCreateNestedManyWithoutAnalysisVersionInput
   relationships?: Prisma.AnalysisRelationshipCreateNestedManyWithoutAnalysisVersionInput
   productSources?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutAnalysisVersionInput
@@ -422,8 +422,8 @@ export type AnalysisVersionUpdateInput = {
   validatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   analysisCase?: Prisma.AnalysisCaseUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
-  validatedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
   entities?: Prisma.AnalysisEntityUpdateManyWithoutAnalysisVersionNestedInput
   relationships?: Prisma.AnalysisRelationshipUpdateManyWithoutAnalysisVersionNestedInput
   productSources?: Prisma.ProductSourceAnalysisUpdateManyWithoutAnalysisVersionNestedInput
@@ -747,7 +747,7 @@ export type AnalysisVersionCreateWithoutCreatedByAssignmentInput = {
   validatedAt?: Date | string | null
   createdAt?: Date | string
   analysisCase: Prisma.AnalysisCaseCreateNestedOneWithoutVersionsInput
-  validatedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
   entities?: Prisma.AnalysisEntityCreateNestedManyWithoutAnalysisVersionInput
   relationships?: Prisma.AnalysisRelationshipCreateNestedManyWithoutAnalysisVersionInput
   productSources?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutAnalysisVersionInput
@@ -793,7 +793,7 @@ export type AnalysisVersionCreateWithoutValidatedByAssignmentInput = {
   validatedAt?: Date | string | null
   createdAt?: Date | string
   analysisCase: Prisma.AnalysisCaseCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
   entities?: Prisma.AnalysisEntityCreateNestedManyWithoutAnalysisVersionInput
   relationships?: Prisma.AnalysisRelationshipCreateNestedManyWithoutAnalysisVersionInput
   productSources?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutAnalysisVersionInput
@@ -889,8 +889,8 @@ export type AnalysisVersionCreateWithoutAnalysisCaseInput = {
   aiDraft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   validatedAt?: Date | string | null
   createdAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
-  validatedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
   entities?: Prisma.AnalysisEntityCreateNestedManyWithoutAnalysisVersionInput
   relationships?: Prisma.AnalysisRelationshipCreateNestedManyWithoutAnalysisVersionInput
   productSources?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutAnalysisVersionInput
@@ -952,8 +952,8 @@ export type AnalysisVersionCreateWithoutEntitiesInput = {
   validatedAt?: Date | string | null
   createdAt?: Date | string
   analysisCase: Prisma.AnalysisCaseCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
-  validatedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
   relationships?: Prisma.AnalysisRelationshipCreateNestedManyWithoutAnalysisVersionInput
   productSources?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutAnalysisVersionInput
 }
@@ -1004,8 +1004,8 @@ export type AnalysisVersionUpdateWithoutEntitiesInput = {
   validatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   analysisCase?: Prisma.AnalysisCaseUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
-  validatedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
   relationships?: Prisma.AnalysisRelationshipUpdateManyWithoutAnalysisVersionNestedInput
   productSources?: Prisma.ProductSourceAnalysisUpdateManyWithoutAnalysisVersionNestedInput
 }
@@ -1040,8 +1040,8 @@ export type AnalysisVersionCreateWithoutRelationshipsInput = {
   validatedAt?: Date | string | null
   createdAt?: Date | string
   analysisCase: Prisma.AnalysisCaseCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
-  validatedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
   entities?: Prisma.AnalysisEntityCreateNestedManyWithoutAnalysisVersionInput
   productSources?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutAnalysisVersionInput
 }
@@ -1092,8 +1092,8 @@ export type AnalysisVersionUpdateWithoutRelationshipsInput = {
   validatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   analysisCase?: Prisma.AnalysisCaseUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
-  validatedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
   entities?: Prisma.AnalysisEntityUpdateManyWithoutAnalysisVersionNestedInput
   productSources?: Prisma.ProductSourceAnalysisUpdateManyWithoutAnalysisVersionNestedInput
 }
@@ -1128,8 +1128,8 @@ export type AnalysisVersionCreateWithoutProductSourcesInput = {
   validatedAt?: Date | string | null
   createdAt?: Date | string
   analysisCase: Prisma.AnalysisCaseCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
-  validatedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsCreatedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisVersionsValidatedInput
   entities?: Prisma.AnalysisEntityCreateNestedManyWithoutAnalysisVersionInput
   relationships?: Prisma.AnalysisRelationshipCreateNestedManyWithoutAnalysisVersionInput
 }
@@ -1180,8 +1180,8 @@ export type AnalysisVersionUpdateWithoutProductSourcesInput = {
   validatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   analysisCase?: Prisma.AnalysisCaseUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
-  validatedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
   entities?: Prisma.AnalysisEntityUpdateManyWithoutAnalysisVersionNestedInput
   relationships?: Prisma.AnalysisRelationshipUpdateManyWithoutAnalysisVersionNestedInput
 }
@@ -1246,7 +1246,7 @@ export type AnalysisVersionUpdateWithoutCreatedByAssignmentInput = {
   validatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   analysisCase?: Prisma.AnalysisCaseUpdateOneRequiredWithoutVersionsNestedInput
-  validatedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
   entities?: Prisma.AnalysisEntityUpdateManyWithoutAnalysisVersionNestedInput
   relationships?: Prisma.AnalysisRelationshipUpdateManyWithoutAnalysisVersionNestedInput
   productSources?: Prisma.ProductSourceAnalysisUpdateManyWithoutAnalysisVersionNestedInput
@@ -1297,7 +1297,7 @@ export type AnalysisVersionUpdateWithoutValidatedByAssignmentInput = {
   validatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   analysisCase?: Prisma.AnalysisCaseUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
   entities?: Prisma.AnalysisEntityUpdateManyWithoutAnalysisVersionNestedInput
   relationships?: Prisma.AnalysisRelationshipUpdateManyWithoutAnalysisVersionNestedInput
   productSources?: Prisma.ProductSourceAnalysisUpdateManyWithoutAnalysisVersionNestedInput
@@ -1362,8 +1362,8 @@ export type AnalysisVersionUpdateWithoutAnalysisCaseInput = {
   aiDraft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   validatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
-  validatedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisVersionsCreatedNestedInput
+  validatedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutAnalysisVersionsValidatedNestedInput
   entities?: Prisma.AnalysisEntityUpdateManyWithoutAnalysisVersionNestedInput
   relationships?: Prisma.AnalysisRelationshipUpdateManyWithoutAnalysisVersionNestedInput
   productSources?: Prisma.ProductSourceAnalysisUpdateManyWithoutAnalysisVersionNestedInput
@@ -1466,7 +1466,7 @@ export type AnalysisVersionSelect<ExtArgs extends runtime.Types.Extensions.Inter
   validatedAt?: boolean
   createdAt?: boolean
   analysisCase?: boolean | Prisma.AnalysisCaseDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   validatedByAssignment?: boolean | Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs>
   entities?: boolean | Prisma.AnalysisVersion$entitiesArgs<ExtArgs>
   relationships?: boolean | Prisma.AnalysisVersion$relationshipsArgs<ExtArgs>
@@ -1489,7 +1489,7 @@ export type AnalysisVersionSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   validatedAt?: boolean
   createdAt?: boolean
   analysisCase?: boolean | Prisma.AnalysisCaseDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   validatedByAssignment?: boolean | Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs>
 }, ExtArgs["result"]["analysisVersion"]>
 
@@ -1508,7 +1508,7 @@ export type AnalysisVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   validatedAt?: boolean
   createdAt?: boolean
   analysisCase?: boolean | Prisma.AnalysisCaseDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   validatedByAssignment?: boolean | Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs>
 }, ExtArgs["result"]["analysisVersion"]>
 
@@ -1531,7 +1531,7 @@ export type AnalysisVersionSelectScalar = {
 export type AnalysisVersionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "analysisCaseId" | "versionNumber" | "indications" | "analysis" | "impact" | "efforts" | "recommendations" | "aiDraft" | "createdByAssignmentId" | "validatedByAssignmentId" | "validatedAt" | "createdAt", ExtArgs["result"]["analysisVersion"]>
 export type AnalysisVersionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   analysisCase?: boolean | Prisma.AnalysisCaseDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   validatedByAssignment?: boolean | Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs>
   entities?: boolean | Prisma.AnalysisVersion$entitiesArgs<ExtArgs>
   relationships?: boolean | Prisma.AnalysisVersion$relationshipsArgs<ExtArgs>
@@ -1540,12 +1540,12 @@ export type AnalysisVersionInclude<ExtArgs extends runtime.Types.Extensions.Inte
 }
 export type AnalysisVersionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   analysisCase?: boolean | Prisma.AnalysisCaseDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   validatedByAssignment?: boolean | Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs>
 }
 export type AnalysisVersionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   analysisCase?: boolean | Prisma.AnalysisCaseDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   validatedByAssignment?: boolean | Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs>
 }
 
@@ -1553,8 +1553,8 @@ export type $AnalysisVersionPayload<ExtArgs extends runtime.Types.Extensions.Int
   name: "AnalysisVersion"
   objects: {
     analysisCase: Prisma.$AnalysisCasePayload<ExtArgs>
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
-    validatedByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs> | null
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
+    validatedByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs> | null
     entities: Prisma.$AnalysisEntityPayload<ExtArgs>[]
     relationships: Prisma.$AnalysisRelationshipPayload<ExtArgs>[]
     productSources: Prisma.$ProductSourceAnalysisPayload<ExtArgs>[]
@@ -1968,8 +1968,8 @@ readonly fields: AnalysisVersionFieldRefs;
 export interface Prisma__AnalysisVersionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   analysisCase<T extends Prisma.AnalysisCaseDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AnalysisCaseDefaultArgs<ExtArgs>>): Prisma.Prisma__AnalysisCaseClient<runtime.Types.Result.GetResult<Prisma.$AnalysisCasePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  validatedByAssignment<T extends Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  validatedByAssignment<T extends Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AnalysisVersion$validatedByAssignmentArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   entities<T extends Prisma.AnalysisVersion$entitiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AnalysisVersion$entitiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AnalysisEntityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   relationships<T extends Prisma.AnalysisVersion$relationshipsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AnalysisVersion$relationshipsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AnalysisRelationshipPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   productSources<T extends Prisma.AnalysisVersion$productSourcesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AnalysisVersion$productSourcesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductSourceAnalysisPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2420,18 +2420,18 @@ export type AnalysisVersionDeleteManyArgs<ExtArgs extends runtime.Types.Extensio
  */
 export type AnalysisVersion$validatedByAssignmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**

@@ -29,7 +29,7 @@ export class NotificationController {
     operationId: 'apiNot001',
     contractId: 'API-NOT-001',
     summary: 'Notifikasi pengguna',
-    permission: 'notification.read-own',
+    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async list(
     @CurrentAccessContext() context: AuthorizationContext,
@@ -43,7 +43,7 @@ export class NotificationController {
     operationId: 'apiNot002',
     contractId: 'API-NOT-002',
     summary: 'Jumlah unread',
-    permission: 'notification.read-own',
+    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async unread(@CurrentAccessContext() context: AuthorizationContext) {
     return apiResult(await this.notificationService.unread(context));
@@ -54,7 +54,7 @@ export class NotificationController {
     operationId: 'apiNot003',
     contractId: 'API-NOT-003',
     summary: 'Tandai satu notifikasi dibaca',
-    permission: 'notification.read-own',
+    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
     idempotent: true,
   })
   async read(
@@ -69,7 +69,7 @@ export class NotificationController {
     operationId: 'apiNot004',
     contractId: 'API-NOT-004',
     summary: 'Tandai semua dibaca',
-    permission: 'notification.read-own',
+    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
     idempotent: true,
   })
   async readAll(

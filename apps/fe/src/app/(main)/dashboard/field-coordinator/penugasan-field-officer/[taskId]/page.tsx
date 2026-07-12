@@ -1,4 +1,4 @@
-import { FieldCoordinatorFieldOfficerAssignmentDetailPage } from "@/features/tasks/pages";
+import { FieldCoordinatorFieldOfficerAssignmentDetailPage } from "@/app/(main)/dashboard/_components/tasks/task-pages";
 
 export const dynamic = "force-dynamic";
 

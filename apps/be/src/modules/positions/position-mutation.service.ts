@@ -171,9 +171,10 @@ export class PositionMutationService {
       );
     }
     const assignment = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.positionAssignment.create({
+      const created = await tx.userSeatAssignment.create({
         data: {
           userProfileId: input.userProfileId,
+          seatId: input.positionId,
           positionId: input.positionId,
           isPrimary: input.isPrimary,
           validFrom,
@@ -200,7 +201,7 @@ export class PositionMutationService {
     reason: string,
     actor: AuthorizationContext,
   ) {
-    const assignment = await this.prisma.positionAssignment.findUniqueOrThrow({
+    const assignment = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id },
     });
     if (validUntil <= assignment.validFrom) {
@@ -215,7 +216,7 @@ export class PositionMutationService {
         where: { positionAssignmentId: id, validUntil: null },
         data: { validUntil },
       });
-      await tx.positionAssignment.update({
+      await tx.userSeatAssignment.update({
         where: { id },
         data: { isActive: false, validUntil },
       });
@@ -246,11 +247,11 @@ export class PositionMutationService {
       );
     }
     await this.prisma.$transaction(async (tx) => {
-      await tx.positionAssignment.updateMany({
+      await tx.userSeatAssignment.updateMany({
         where: { userProfileId: assignment.userProfileId, isPrimary: true },
         data: { isPrimary: false },
       });
-      await tx.positionAssignment.update({
+      await tx.userSeatAssignment.update({
         where: { id },
         data: { isPrimary: true },
       });
@@ -269,8 +270,12 @@ export class PositionMutationService {
 
   async validateScopes(id: string, areaIds: string[]) {
     const assignment = await this.positionQuery.assignment(id);
-    const policy = await this.prisma.positionAreaPolicy.findMany({
-      where: { positionCode: assignment.position.code, isActive: true },
+    const policy = await this.prisma.roleAreaPolicy.findMany({
+      where: {
+        roleCode: assignment.position.role.code,
+        branch: assignment.position.branch,
+        isActive: true,
+      },
     });
     const areas = await this.prisma.administrativeArea.findMany({
       where: { id: { in: areaIds }, isActive: true },

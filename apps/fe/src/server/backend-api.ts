@@ -25,7 +25,8 @@ type BackendRequestOptions = {
 
 function buildUrl(path: string, query?: BackendRequestOptions["query"]) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const url = new URL(`${getBackendInternalUrl()}${normalizedPath}`);
+  const apiPath = normalizedPath.startsWith("/api/v1") ? normalizedPath : `/api/v1${normalizedPath}`;
+  const url = new URL(`${getBackendInternalUrl()}${apiPath}`);
 
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value === null || value === undefined || value === "") {

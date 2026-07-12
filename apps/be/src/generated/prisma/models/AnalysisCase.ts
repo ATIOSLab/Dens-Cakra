@@ -257,7 +257,7 @@ export type AnalysisCaseWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"AnalysisCase"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AnalysisCase"> | Date | string
   ownerUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   sources?: Prisma.AnalysisSourceVerificationListRelationFilter
   versions?: Prisma.AnalysisVersionListRelationFilter
 }
@@ -274,7 +274,7 @@ export type AnalysisCaseOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   ownerUnit?: Prisma.OrganizationUnitOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   sources?: Prisma.AnalysisSourceVerificationOrderByRelationAggregateInput
   versions?: Prisma.AnalysisVersionOrderByRelationAggregateInput
 }
@@ -294,7 +294,7 @@ export type AnalysisCaseWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"AnalysisCase"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AnalysisCase"> | Date | string
   ownerUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   sources?: Prisma.AnalysisSourceVerificationListRelationFilter
   versions?: Prisma.AnalysisVersionListRelationFilter
 }, "id">
@@ -343,7 +343,7 @@ export type AnalysisCaseCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutAnalysisCasesInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisCasesCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisCasesCreatedInput
   sources?: Prisma.AnalysisSourceVerificationCreateNestedManyWithoutAnalysisCaseInput
   versions?: Prisma.AnalysisVersionCreateNestedManyWithoutAnalysisCaseInput
 }
@@ -373,7 +373,7 @@ export type AnalysisCaseUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutAnalysisCasesNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisCasesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisCasesCreatedNestedInput
   sources?: Prisma.AnalysisSourceVerificationUpdateManyWithoutAnalysisCaseNestedInput
   versions?: Prisma.AnalysisVersionUpdateManyWithoutAnalysisCaseNestedInput
 }
@@ -617,7 +617,7 @@ export type AnalysisCaseCreateWithoutOwnerUnitInput = {
   currentVersionNumber?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisCasesCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisCasesCreatedInput
   sources?: Prisma.AnalysisSourceVerificationCreateNestedManyWithoutAnalysisCaseInput
   versions?: Prisma.AnalysisVersionCreateNestedManyWithoutAnalysisCaseInput
 }
@@ -742,7 +742,7 @@ export type AnalysisCaseCreateWithoutSourcesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutAnalysisCasesInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisCasesCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisCasesCreatedInput
   versions?: Prisma.AnalysisVersionCreateNestedManyWithoutAnalysisCaseInput
 }
 
@@ -786,7 +786,7 @@ export type AnalysisCaseUpdateWithoutSourcesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutAnalysisCasesNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisCasesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisCasesCreatedNestedInput
   versions?: Prisma.AnalysisVersionUpdateManyWithoutAnalysisCaseNestedInput
 }
 
@@ -814,7 +814,7 @@ export type AnalysisCaseCreateWithoutVersionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutAnalysisCasesInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutAnalysisCasesCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutAnalysisCasesCreatedInput
   sources?: Prisma.AnalysisSourceVerificationCreateNestedManyWithoutAnalysisCaseInput
 }
 
@@ -858,7 +858,7 @@ export type AnalysisCaseUpdateWithoutVersionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutAnalysisCasesNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisCasesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisCasesCreatedNestedInput
   sources?: Prisma.AnalysisSourceVerificationUpdateManyWithoutAnalysisCaseNestedInput
 }
 
@@ -897,7 +897,7 @@ export type AnalysisCaseUpdateWithoutOwnerUnitInput = {
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutAnalysisCasesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutAnalysisCasesCreatedNestedInput
   sources?: Prisma.AnalysisSourceVerificationUpdateManyWithoutAnalysisCaseNestedInput
   versions?: Prisma.AnalysisVersionUpdateManyWithoutAnalysisCaseNestedInput
 }
@@ -1032,7 +1032,7 @@ export type AnalysisCaseSelect<ExtArgs extends runtime.Types.Extensions.Internal
   createdAt?: boolean
   updatedAt?: boolean
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   sources?: boolean | Prisma.AnalysisCase$sourcesArgs<ExtArgs>
   versions?: boolean | Prisma.AnalysisCase$versionsArgs<ExtArgs>
   _count?: boolean | Prisma.AnalysisCaseCountOutputTypeDefaultArgs<ExtArgs>
@@ -1050,7 +1050,7 @@ export type AnalysisCaseSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   createdAt?: boolean
   updatedAt?: boolean
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["analysisCase"]>
 
 export type AnalysisCaseSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1065,7 +1065,7 @@ export type AnalysisCaseSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   createdAt?: boolean
   updatedAt?: boolean
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["analysisCase"]>
 
 export type AnalysisCaseSelectScalar = {
@@ -1084,25 +1084,25 @@ export type AnalysisCaseSelectScalar = {
 export type AnalysisCaseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ownerUnitId" | "createdByAssignmentId" | "title" | "status" | "periodStart" | "periodEnd" | "currentVersionNumber" | "createdAt" | "updatedAt", ExtArgs["result"]["analysisCase"]>
 export type AnalysisCaseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   sources?: boolean | Prisma.AnalysisCase$sourcesArgs<ExtArgs>
   versions?: boolean | Prisma.AnalysisCase$versionsArgs<ExtArgs>
   _count?: boolean | Prisma.AnalysisCaseCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AnalysisCaseIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type AnalysisCaseIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $AnalysisCasePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AnalysisCase"
   objects: {
     ownerUnit: Prisma.$OrganizationUnitPayload<ExtArgs>
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     sources: Prisma.$AnalysisSourceVerificationPayload<ExtArgs>[]
     versions: Prisma.$AnalysisVersionPayload<ExtArgs>[]
   }
@@ -1512,7 +1512,7 @@ readonly fields: AnalysisCaseFieldRefs;
 export interface Prisma__AnalysisCaseClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   ownerUnit<T extends Prisma.OrganizationUnitDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnitDefaultArgs<ExtArgs>>): Prisma.Prisma__OrganizationUnitClient<runtime.Types.Result.GetResult<Prisma.$OrganizationUnitPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   sources<T extends Prisma.AnalysisCase$sourcesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AnalysisCase$sourcesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AnalysisSourceVerificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   versions<T extends Prisma.AnalysisCase$versionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AnalysisCase$versionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AnalysisVersionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**

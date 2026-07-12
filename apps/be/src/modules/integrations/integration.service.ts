@@ -109,6 +109,9 @@ export class IntegrationService {
       lastDisconnectedAt: channel.botState?.lastDisconnectedAt ?? null,
       lastError: channel.botState?.lastError ?? null,
       senderNumbers,
+      userId: typeof config.userId === 'string' ? config.userId : null,
+      coordinatorName: null as string | null,
+      coordinatorRegion: null as string | null,
     };
   }
 
@@ -160,7 +163,41 @@ export class IntegrationService {
       },
     });
 
-    return channels.map((channel) => this.whatsappControlView(channel));
+    const views = channels.map((channel) => this.whatsappControlView(channel));
+    const userIds = views.map((v) => v.userId).filter(Boolean) as string[];
+    
+    if (userIds.length > 0) {
+      const users = await this.prisma.userProfile.findMany({
+        where: { id: { in: userIds } },
+        include: {
+          positionAssignments: {
+            where: { isActive: true },
+            include: {
+              seat: {
+                include: {
+                  organizationUnit: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const userMap = new Map(users.map((u) => [u.id, u]));
+
+      for (const view of views) {
+        if (view.userId && userMap.has(view.userId)) {
+          const user = userMap.get(view.userId);
+          if (user) {
+            view['coordinatorName'] = user.fullName;
+            const activeSeat = user.positionAssignments?.find(pa => pa.isActive)?.seat;
+            view['coordinatorRegion'] = activeSeat?.organizationUnit?.name || null;
+          }
+        }
+      }
+    }
+
+    return views;
   }
 
   async create(body: CreateIntegrationDto, context: AuthorizationContext) {
@@ -397,6 +434,8 @@ export class IntegrationService {
         receivedAt: true,
         processedAt: true,
         success: true,
+
+
         errorMessage: true,
       },
     });
@@ -419,5 +458,22 @@ export class IntegrationService {
       requestedById: context.primaryAssignmentId,
       correlationId: id,
     });
+  }
+
+  async remove(id: string, context: AuthorizationContext) {
+    const channel = await this.prisma.integrationChannel.findUniqueOrThrow({
+      where: { id },
+    });
+    
+    if (channel.channelType.includes('WHATSAPP') || channel.channelType.includes('WA')) {
+      await this.whatsappBotRuntime.disconnectChannel(id, false);
+    }
+    
+    await this.prisma.integrationChannel.delete({
+      where: { id },
+    });
+    
+    await this.audit(context, 'INTEGRATION.DELETE', id);
+    return { success: true, message: 'Channel berhasil dihapus' };
   }
 }

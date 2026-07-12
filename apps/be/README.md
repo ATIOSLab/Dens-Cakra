@@ -43,7 +43,6 @@ npm run start:dev
 ## Main Endpoints
 
 - `GET /v1/health`
-- `GET /v1/auth/me`
 - `GET /v1/access/roles`
 - `GET /v1/access/me`
 - `GET /api/auth/*` and `POST /api/auth/*` from Better Auth

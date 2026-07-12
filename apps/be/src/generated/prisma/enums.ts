@@ -120,16 +120,6 @@ export const AreaScopeMode = {
 export type AreaScopeMode = (typeof AreaScopeMode)[keyof typeof AreaScopeMode]
 
 
-export const Classification = {
-  SANGAT_RAHASIA: 'SANGAT_RAHASIA',
-  RAHASIA: 'RAHASIA',
-  TERBATAS: 'TERBATAS',
-  BIASA: 'BIASA'
-} as const
-
-export type Classification = (typeof Classification)[keyof typeof Classification]
-
-
 export const PriorityLevel = {
   LOW: 'LOW',
   NORMAL: 'NORMAL',
@@ -138,6 +128,16 @@ export const PriorityLevel = {
 } as const
 
 export type PriorityLevel = (typeof PriorityLevel)[keyof typeof PriorityLevel]
+
+
+export const Classification = {
+  SANGAT_RAHASIA: 'SANGAT_RAHASIA',
+  RAHASIA: 'RAHASIA',
+  TERBATAS: 'TERBATAS',
+  BIASA: 'BIASA'
+} as const
+
+export type Classification = (typeof Classification)[keyof typeof Classification]
 
 
 export const DirectiveStatus = {

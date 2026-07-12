@@ -2,30 +2,13 @@ import {
   AdministrativeLevel,
   AreaScopeMode,
   IntegrationStatus,
+  CommandRouteType,
   PositionCode,
   RoleCode,
 } from '../generated/prisma/client.js';
 import { AUTH_ROLE_TO_DOMAIN_ROLE } from '../common/constants/auth-role.js';
 import { SYSTEM_ROLE_CATALOG } from '../common/constants/system-role.js';
-import {
-  DOMAIN_PERMISSION_CODES,
-  DOMAIN_ROLE_PERMISSIONS,
-} from '../common/permissions/domain-permissions.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
-
-const permissionSeeds = DOMAIN_PERMISSION_CODES.map(
-  (code) =>
-    [
-      code,
-      code
-        .split('.')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' '),
-    ] as const,
-);
-
-const rolePermissionMap: Record<RoleCode, readonly string[]> =
-  DOMAIN_ROLE_PERMISSIONS;
 
 const positionAreaPolicies = [
   {
@@ -203,7 +186,7 @@ const verificationCheckCodes = [
   'CROSS_REFERENCE',
 ] as const;
 
-async function seedRolesAndPermissions() {
+async function seedRoles() {
   for (const role of SYSTEM_ROLE_CATALOG) {
     await prisma.role.upsert({
       where: {
@@ -222,90 +205,35 @@ async function seedRolesAndPermissions() {
       },
     });
   }
-
-  for (const [code, name] of permissionSeeds) {
-    await prisma.permission.upsert({
-      where: {
-        code,
-      },
-      update: {
-        name,
-      },
-      create: {
-        code,
-        name,
-        description: name,
-      },
-    });
-  }
-
-  const roles = await prisma.role.findMany({
-    select: {
-      id: true,
-      code: true,
-    },
-  });
-
-  const permissions = await prisma.permission.findMany({
-    select: {
-      id: true,
-      code: true,
-    },
-  });
-
-  const roleIdByCode = new Map(roles.map((item) => [item.code, item.id]));
-  const permissionIdByCode = new Map(
-    permissions.map((item) => [item.code, item.id]),
-  );
-
-  for (const [roleCode, permissionCodes] of Object.entries(rolePermissionMap)) {
-    const roleId = roleIdByCode.get(roleCode as RoleCode);
-
-    if (!roleId) {
-      continue;
-    }
-
-    for (const permissionCode of permissionCodes) {
-      const permissionId = permissionIdByCode.get(permissionCode);
-
-      if (!permissionId) {
-        continue;
-      }
-
-      await prisma.rolePermission.upsert({
-        where: {
-          roleId_permissionId: {
-            roleId,
-            permissionId,
-          },
-        },
-        update: {},
-        create: {
-          roleId,
-          permissionId,
-        },
-      });
-    }
-  }
 }
 
 async function seedPositionAreaPolicies() {
   for (const policy of positionAreaPolicies) {
-    await prisma.positionAreaPolicy.upsert({
+    const mapped = mapRoleAreaPolicy(policy.positionCode);
+    const existing = await prisma.roleAreaPolicy.findFirst({
       where: {
-        positionCode_administrativeLevel: {
-          positionCode: policy.positionCode,
-          administrativeLevel: policy.administrativeLevel,
+        roleCode: mapped.roleCode,
+        administrativeLevel: policy.administrativeLevel,
+        ...(mapped.branch ? { branch: mapped.branch } : { branch: null }),
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      await prisma.roleAreaPolicy.update({
+        where: { id: existing.id },
+        data: {
+          scopeMode: policy.scopeMode,
+          minimumAreas: policy.minimumAreas,
+          maximumAreas: policy.maximumAreas,
+          isActive: true,
         },
-      },
-      update: {
-        scopeMode: policy.scopeMode,
-        minimumAreas: policy.minimumAreas,
-        maximumAreas: policy.maximumAreas,
-        isActive: true,
-      },
-      create: {
-        positionCode: policy.positionCode,
+      });
+      continue;
+    }
+    await prisma.roleAreaPolicy.create({
+      data: {
+        roleCode: mapped.roleCode,
+        ...(mapped.branch ? { branch: mapped.branch } : {}),
         administrativeLevel: policy.administrativeLevel,
         scopeMode: policy.scopeMode,
         minimumAreas: policy.minimumAreas,
@@ -313,6 +241,32 @@ async function seedPositionAreaPolicies() {
         isActive: true,
       },
     });
+  }
+}
+
+function mapRoleAreaPolicy(positionCode: PositionCode): {
+  roleCode: RoleCode;
+  branch: CommandRouteType | null;
+} {
+  switch (positionCode) {
+    case PositionCode.DEPUTI_II:
+      return { roleCode: RoleCode.EXECUTIVE, branch: null };
+    case PositionCode.DIREKTUR_WILAYAH:
+      return { roleCode: RoleCode.REGIONAL_COMMANDER, branch: CommandRouteType.DIRECTORATE };
+    case PositionCode.KABINDA:
+      return { roleCode: RoleCode.REGIONAL_COMMANDER, branch: CommandRouteType.BINDA };
+    case PositionCode.KASUBDIT:
+      return { roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER, branch: CommandRouteType.DIRECTORATE };
+    case PositionCode.KABAGOPS:
+      return { roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER, branch: CommandRouteType.BINDA };
+    case PositionCode.STAF_SUBDIT:
+      return { roleCode: RoleCode.FIELD_COORDINATOR, branch: CommandRouteType.DIRECTORATE };
+    case PositionCode.KORWIL:
+      return { roleCode: RoleCode.FIELD_COORDINATOR, branch: CommandRouteType.BINDA };
+    case PositionCode.PETUGAS_ORGANIK:
+      return { roleCode: RoleCode.FIELD_OFFICER, branch: null };
+    case PositionCode.ADMIN:
+      return { roleCode: RoleCode.ADMIN_SYSTEM, branch: null };
   }
 }
 
@@ -521,7 +475,7 @@ async function seedSystemSettingsAndIntegration() {
 }
 
 async function seedMaster() {
-  await seedRolesAndPermissions();
+  await seedRoles();
   await seedPositionAreaPolicies();
   await seedCountryRoot();
   await seedProductTypesAndTemplates();

@@ -248,7 +248,7 @@ export type BaketWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Baket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Baket"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Baket"> | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByFieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   taskAssignment?: Prisma.XOR<Prisma.TaskAssignmentNullableScalarRelationFilter, Prisma.TaskAssignmentWhereInput> | null
   primaryJaring?: Prisma.XOR<Prisma.JaringNullableScalarRelationFilter, Prisma.JaringWhereInput> | null
   versions?: Prisma.BaketVersionListRelationFilter
@@ -267,7 +267,7 @@ export type BaketOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   taskAssignment?: Prisma.TaskAssignmentOrderByWithRelationInput
   primaryJaring?: Prisma.JaringOrderByWithRelationInput
   versions?: Prisma.BaketVersionOrderByRelationAggregateInput
@@ -289,7 +289,7 @@ export type BaketWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Baket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Baket"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Baket"> | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByFieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   taskAssignment?: Prisma.XOR<Prisma.TaskAssignmentNullableScalarRelationFilter, Prisma.TaskAssignmentWhereInput> | null
   primaryJaring?: Prisma.XOR<Prisma.JaringNullableScalarRelationFilter, Prisma.JaringWhereInput> | null
   versions?: Prisma.BaketVersionListRelationFilter
@@ -337,7 +337,7 @@ export type BaketCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
@@ -369,7 +369,7 @@ export type BaketUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
@@ -759,7 +759,7 @@ export type BaketCreateWithoutTaskAssignmentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
@@ -815,7 +815,7 @@ export type BaketCreateWithoutPrimaryJaringInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
@@ -871,7 +871,7 @@ export type BaketCreateWithoutVersionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
@@ -917,7 +917,7 @@ export type BaketUpdateWithoutVersionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
@@ -947,7 +947,7 @@ export type BaketCreateWithoutRevisionRequestsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
@@ -993,7 +993,7 @@ export type BaketUpdateWithoutRevisionRequestsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
@@ -1023,7 +1023,7 @@ export type BaketCreateWithoutRelatedCrossReferencesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
@@ -1069,7 +1069,7 @@ export type BaketUpdateWithoutRelatedCrossReferencesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
@@ -1099,7 +1099,7 @@ export type BaketCreateWithoutAlertsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
@@ -1145,7 +1145,7 @@ export type BaketUpdateWithoutAlertsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
@@ -1238,7 +1238,7 @@ export type BaketUpdateWithoutTaskAssignmentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
@@ -1290,7 +1290,7 @@ export type BaketUpdateWithoutPrimaryJaringInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
@@ -1392,7 +1392,7 @@ export type BaketSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   createdAt?: boolean
   updatedAt?: boolean
   deletedAt?: boolean
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
   versions?: boolean | Prisma.Baket$versionsArgs<ExtArgs>
@@ -1412,7 +1412,7 @@ export type BaketSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   createdAt?: boolean
   updatedAt?: boolean
   deletedAt?: boolean
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
 }, ExtArgs["result"]["baket"]>
@@ -1427,7 +1427,7 @@ export type BaketSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   createdAt?: boolean
   updatedAt?: boolean
   deletedAt?: boolean
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
 }, ExtArgs["result"]["baket"]>
@@ -1446,7 +1446,7 @@ export type BaketSelectScalar = {
 
 export type BaketOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdByFieldOfficerAssignmentId" | "taskAssignmentId" | "primaryJaringId" | "status" | "currentVersionNumber" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["baket"]>
 export type BaketInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
   versions?: boolean | Prisma.Baket$versionsArgs<ExtArgs>
@@ -1456,12 +1456,12 @@ export type BaketInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   _count?: boolean | Prisma.BaketCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BaketIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
 }
 export type BaketIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
 }
@@ -1469,7 +1469,7 @@ export type BaketIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
 export type $BaketPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Baket"
   objects: {
-    createdByFieldOfficerAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByFieldOfficerAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     taskAssignment: Prisma.$TaskAssignmentPayload<ExtArgs> | null
     primaryJaring: Prisma.$JaringPayload<ExtArgs> | null
     versions: Prisma.$BaketVersionPayload<ExtArgs>[]
@@ -1881,7 +1881,7 @@ readonly fields: BaketFieldRefs;
  */
 export interface Prisma__BaketClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  createdByFieldOfficerAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByFieldOfficerAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   taskAssignment<T extends Prisma.Baket$taskAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$taskAssignmentArgs<ExtArgs>>): Prisma.Prisma__TaskAssignmentClient<runtime.Types.Result.GetResult<Prisma.$TaskAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   primaryJaring<T extends Prisma.Baket$primaryJaringArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$primaryJaringArgs<ExtArgs>>): Prisma.Prisma__JaringClient<runtime.Types.Result.GetResult<Prisma.$JaringPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   versions<T extends Prisma.Baket$versionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$versionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketVersionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>

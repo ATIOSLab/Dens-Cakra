@@ -1,39 +1,25 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayUnique,
-  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
-  IsString,
   Max,
-  MaxLength,
   Min,
 } from 'class-validator';
 import {
   AreaScopeMode,
-  PositionCode,
+  CommandRouteType,
+  RoleCode,
 } from '../../../generated/prisma/client.js';
 
 export class RoleListQueryDto {
   @IsOptional() @Type(() => Boolean) @IsBoolean() isActive?: boolean;
 }
 
-export class PermissionListQueryDto {
-  @IsOptional() @IsString() @MaxLength(100) search?: string;
-  @IsOptional() @IsString() @MaxLength(80) module?: string;
-}
-
-export class ReplaceRolePermissionsDto {
-  @IsArray()
-  @ArrayUnique()
-  @IsString({ each: true })
-  permissionCodes!: string[];
-}
-
 export class AreaPolicyQueryDto {
-  @IsOptional() @IsEnum(PositionCode) positionCode?: PositionCode;
+  @IsOptional() @IsEnum(RoleCode) roleCode?: RoleCode;
+  @IsOptional() @IsEnum(CommandRouteType) branch?: CommandRouteType;
   @IsOptional() @Type(() => Boolean) @IsBoolean() isActive?: boolean;
 }
 

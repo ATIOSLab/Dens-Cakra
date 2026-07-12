@@ -28,6 +28,7 @@ export type DirectiveRecipientMinAggregateOutputType = {
   id: string | null
   directiveVersionId: string | null
   targetUnitId: string | null
+  targetSeatId: string | null
   targetPositionId: string | null
   status: $Enums.RecipientStatus | null
   sentAt: Date | null
@@ -41,6 +42,7 @@ export type DirectiveRecipientMaxAggregateOutputType = {
   id: string | null
   directiveVersionId: string | null
   targetUnitId: string | null
+  targetSeatId: string | null
   targetPositionId: string | null
   status: $Enums.RecipientStatus | null
   sentAt: Date | null
@@ -54,6 +56,7 @@ export type DirectiveRecipientCountAggregateOutputType = {
   id: number
   directiveVersionId: number
   targetUnitId: number
+  targetSeatId: number
   targetPositionId: number
   status: number
   sentAt: number
@@ -69,6 +72,7 @@ export type DirectiveRecipientMinAggregateInputType = {
   id?: true
   directiveVersionId?: true
   targetUnitId?: true
+  targetSeatId?: true
   targetPositionId?: true
   status?: true
   sentAt?: true
@@ -82,6 +86,7 @@ export type DirectiveRecipientMaxAggregateInputType = {
   id?: true
   directiveVersionId?: true
   targetUnitId?: true
+  targetSeatId?: true
   targetPositionId?: true
   status?: true
   sentAt?: true
@@ -95,6 +100,7 @@ export type DirectiveRecipientCountAggregateInputType = {
   id?: true
   directiveVersionId?: true
   targetUnitId?: true
+  targetSeatId?: true
   targetPositionId?: true
   status?: true
   sentAt?: true
@@ -181,6 +187,7 @@ export type DirectiveRecipientGroupByOutputType = {
   id: string
   directiveVersionId: string
   targetUnitId: string | null
+  targetSeatId: string | null
   targetPositionId: string | null
   status: $Enums.RecipientStatus
   sentAt: Date
@@ -215,6 +222,7 @@ export type DirectiveRecipientWhereInput = {
   id?: Prisma.UuidFilter<"DirectiveRecipient"> | string
   directiveVersionId?: Prisma.UuidFilter<"DirectiveRecipient"> | string
   targetUnitId?: Prisma.UuidNullableFilter<"DirectiveRecipient"> | string | null
+  targetSeatId?: Prisma.UuidNullableFilter<"DirectiveRecipient"> | string | null
   targetPositionId?: Prisma.UuidNullableFilter<"DirectiveRecipient"> | string | null
   status?: Prisma.EnumRecipientStatusFilter<"DirectiveRecipient"> | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFilter<"DirectiveRecipient"> | Date | string
@@ -224,6 +232,7 @@ export type DirectiveRecipientWhereInput = {
   failureReason?: Prisma.StringNullableFilter<"DirectiveRecipient"> | string | null
   directiveVersion?: Prisma.XOR<Prisma.DirectiveVersionScalarRelationFilter, Prisma.DirectiveVersionWhereInput>
   targetUnit?: Prisma.XOR<Prisma.OrganizationUnitNullableScalarRelationFilter, Prisma.OrganizationUnitWhereInput> | null
+  targetSeat?: Prisma.XOR<Prisma.OrganizationRoleSeatNullableScalarRelationFilter, Prisma.OrganizationRoleSeatWhereInput> | null
   targetPosition?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
 }
 
@@ -231,6 +240,7 @@ export type DirectiveRecipientOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   directiveVersionId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrderInput | Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
@@ -240,6 +250,7 @@ export type DirectiveRecipientOrderByWithRelationInput = {
   failureReason?: Prisma.SortOrderInput | Prisma.SortOrder
   directiveVersion?: Prisma.DirectiveVersionOrderByWithRelationInput
   targetUnit?: Prisma.OrganizationUnitOrderByWithRelationInput
+  targetSeat?: Prisma.OrganizationRoleSeatOrderByWithRelationInput
   targetPosition?: Prisma.PositionOrderByWithRelationInput
 }
 
@@ -250,6 +261,7 @@ export type DirectiveRecipientWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.DirectiveRecipientWhereInput | Prisma.DirectiveRecipientWhereInput[]
   directiveVersionId?: Prisma.UuidFilter<"DirectiveRecipient"> | string
   targetUnitId?: Prisma.UuidNullableFilter<"DirectiveRecipient"> | string | null
+  targetSeatId?: Prisma.UuidNullableFilter<"DirectiveRecipient"> | string | null
   targetPositionId?: Prisma.UuidNullableFilter<"DirectiveRecipient"> | string | null
   status?: Prisma.EnumRecipientStatusFilter<"DirectiveRecipient"> | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFilter<"DirectiveRecipient"> | Date | string
@@ -259,6 +271,7 @@ export type DirectiveRecipientWhereUniqueInput = Prisma.AtLeast<{
   failureReason?: Prisma.StringNullableFilter<"DirectiveRecipient"> | string | null
   directiveVersion?: Prisma.XOR<Prisma.DirectiveVersionScalarRelationFilter, Prisma.DirectiveVersionWhereInput>
   targetUnit?: Prisma.XOR<Prisma.OrganizationUnitNullableScalarRelationFilter, Prisma.OrganizationUnitWhereInput> | null
+  targetSeat?: Prisma.XOR<Prisma.OrganizationRoleSeatNullableScalarRelationFilter, Prisma.OrganizationRoleSeatWhereInput> | null
   targetPosition?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
 }, "id">
 
@@ -266,6 +279,7 @@ export type DirectiveRecipientOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   directiveVersionId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrderInput | Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
@@ -285,6 +299,7 @@ export type DirectiveRecipientScalarWhereWithAggregatesInput = {
   id?: Prisma.UuidWithAggregatesFilter<"DirectiveRecipient"> | string
   directiveVersionId?: Prisma.UuidWithAggregatesFilter<"DirectiveRecipient"> | string
   targetUnitId?: Prisma.UuidNullableWithAggregatesFilter<"DirectiveRecipient"> | string | null
+  targetSeatId?: Prisma.UuidNullableWithAggregatesFilter<"DirectiveRecipient"> | string | null
   targetPositionId?: Prisma.UuidNullableWithAggregatesFilter<"DirectiveRecipient"> | string | null
   status?: Prisma.EnumRecipientStatusWithAggregatesFilter<"DirectiveRecipient"> | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeWithAggregatesFilter<"DirectiveRecipient"> | Date | string
@@ -304,6 +319,7 @@ export type DirectiveRecipientCreateInput = {
   failureReason?: string | null
   directiveVersion: Prisma.DirectiveVersionCreateNestedOneWithoutRecipientsInput
   targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutDirectiveRecipientsInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutDirectiveRecipientsInput
   targetPosition?: Prisma.PositionCreateNestedOneWithoutDirectiveRecipientsInput
 }
 
@@ -311,6 +327,7 @@ export type DirectiveRecipientUncheckedCreateInput = {
   id?: string
   directiveVersionId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   status?: $Enums.RecipientStatus
   sentAt?: Date | string
@@ -330,6 +347,7 @@ export type DirectiveRecipientUpdateInput = {
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   directiveVersion?: Prisma.DirectiveVersionUpdateOneRequiredWithoutRecipientsNestedInput
   targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutDirectiveRecipientsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutDirectiveRecipientsNestedInput
   targetPosition?: Prisma.PositionUpdateOneWithoutDirectiveRecipientsNestedInput
 }
 
@@ -337,6 +355,7 @@ export type DirectiveRecipientUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   directiveVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -350,6 +369,7 @@ export type DirectiveRecipientCreateManyInput = {
   id?: string
   directiveVersionId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   status?: $Enums.RecipientStatus
   sentAt?: Date | string
@@ -373,6 +393,7 @@ export type DirectiveRecipientUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   directiveVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -396,6 +417,7 @@ export type DirectiveRecipientCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   directiveVersionId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
   targetPositionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
@@ -409,6 +431,7 @@ export type DirectiveRecipientMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   directiveVersionId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
   targetPositionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
@@ -422,6 +445,7 @@ export type DirectiveRecipientMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   directiveVersionId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
   targetPositionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
@@ -515,6 +539,48 @@ export type DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInpu
   deleteMany?: Prisma.DirectiveRecipientScalarWhereInput | Prisma.DirectiveRecipientScalarWhereInput[]
 }
 
+export type DirectiveRecipientCreateNestedManyWithoutTargetSeatInput = {
+  create?: Prisma.XOR<Prisma.DirectiveRecipientCreateWithoutTargetSeatInput, Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput> | Prisma.DirectiveRecipientCreateWithoutTargetSeatInput[] | Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.DirectiveRecipientCreateOrConnectWithoutTargetSeatInput | Prisma.DirectiveRecipientCreateOrConnectWithoutTargetSeatInput[]
+  createMany?: Prisma.DirectiveRecipientCreateManyTargetSeatInputEnvelope
+  connect?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+}
+
+export type DirectiveRecipientUncheckedCreateNestedManyWithoutTargetSeatInput = {
+  create?: Prisma.XOR<Prisma.DirectiveRecipientCreateWithoutTargetSeatInput, Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput> | Prisma.DirectiveRecipientCreateWithoutTargetSeatInput[] | Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.DirectiveRecipientCreateOrConnectWithoutTargetSeatInput | Prisma.DirectiveRecipientCreateOrConnectWithoutTargetSeatInput[]
+  createMany?: Prisma.DirectiveRecipientCreateManyTargetSeatInputEnvelope
+  connect?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+}
+
+export type DirectiveRecipientUpdateManyWithoutTargetSeatNestedInput = {
+  create?: Prisma.XOR<Prisma.DirectiveRecipientCreateWithoutTargetSeatInput, Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput> | Prisma.DirectiveRecipientCreateWithoutTargetSeatInput[] | Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.DirectiveRecipientCreateOrConnectWithoutTargetSeatInput | Prisma.DirectiveRecipientCreateOrConnectWithoutTargetSeatInput[]
+  upsert?: Prisma.DirectiveRecipientUpsertWithWhereUniqueWithoutTargetSeatInput | Prisma.DirectiveRecipientUpsertWithWhereUniqueWithoutTargetSeatInput[]
+  createMany?: Prisma.DirectiveRecipientCreateManyTargetSeatInputEnvelope
+  set?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+  disconnect?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+  delete?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+  connect?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+  update?: Prisma.DirectiveRecipientUpdateWithWhereUniqueWithoutTargetSeatInput | Prisma.DirectiveRecipientUpdateWithWhereUniqueWithoutTargetSeatInput[]
+  updateMany?: Prisma.DirectiveRecipientUpdateManyWithWhereWithoutTargetSeatInput | Prisma.DirectiveRecipientUpdateManyWithWhereWithoutTargetSeatInput[]
+  deleteMany?: Prisma.DirectiveRecipientScalarWhereInput | Prisma.DirectiveRecipientScalarWhereInput[]
+}
+
+export type DirectiveRecipientUncheckedUpdateManyWithoutTargetSeatNestedInput = {
+  create?: Prisma.XOR<Prisma.DirectiveRecipientCreateWithoutTargetSeatInput, Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput> | Prisma.DirectiveRecipientCreateWithoutTargetSeatInput[] | Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.DirectiveRecipientCreateOrConnectWithoutTargetSeatInput | Prisma.DirectiveRecipientCreateOrConnectWithoutTargetSeatInput[]
+  upsert?: Prisma.DirectiveRecipientUpsertWithWhereUniqueWithoutTargetSeatInput | Prisma.DirectiveRecipientUpsertWithWhereUniqueWithoutTargetSeatInput[]
+  createMany?: Prisma.DirectiveRecipientCreateManyTargetSeatInputEnvelope
+  set?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+  disconnect?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+  delete?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+  connect?: Prisma.DirectiveRecipientWhereUniqueInput | Prisma.DirectiveRecipientWhereUniqueInput[]
+  update?: Prisma.DirectiveRecipientUpdateWithWhereUniqueWithoutTargetSeatInput | Prisma.DirectiveRecipientUpdateWithWhereUniqueWithoutTargetSeatInput[]
+  updateMany?: Prisma.DirectiveRecipientUpdateManyWithWhereWithoutTargetSeatInput | Prisma.DirectiveRecipientUpdateManyWithWhereWithoutTargetSeatInput[]
+  deleteMany?: Prisma.DirectiveRecipientScalarWhereInput | Prisma.DirectiveRecipientScalarWhereInput[]
+}
+
 export type DirectiveRecipientCreateNestedManyWithoutDirectiveVersionInput = {
   create?: Prisma.XOR<Prisma.DirectiveRecipientCreateWithoutDirectiveVersionInput, Prisma.DirectiveRecipientUncheckedCreateWithoutDirectiveVersionInput> | Prisma.DirectiveRecipientCreateWithoutDirectiveVersionInput[] | Prisma.DirectiveRecipientUncheckedCreateWithoutDirectiveVersionInput[]
   connectOrCreate?: Prisma.DirectiveRecipientCreateOrConnectWithoutDirectiveVersionInput | Prisma.DirectiveRecipientCreateOrConnectWithoutDirectiveVersionInput[]
@@ -570,12 +636,14 @@ export type DirectiveRecipientCreateWithoutTargetUnitInput = {
   acknowledgedAt?: Date | string | null
   failureReason?: string | null
   directiveVersion: Prisma.DirectiveVersionCreateNestedOneWithoutRecipientsInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutDirectiveRecipientsInput
   targetPosition?: Prisma.PositionCreateNestedOneWithoutDirectiveRecipientsInput
 }
 
 export type DirectiveRecipientUncheckedCreateWithoutTargetUnitInput = {
   id?: string
   directiveVersionId: string
+  targetSeatId?: string | null
   targetPositionId?: string | null
   status?: $Enums.RecipientStatus
   sentAt?: Date | string
@@ -618,6 +686,7 @@ export type DirectiveRecipientScalarWhereInput = {
   id?: Prisma.UuidFilter<"DirectiveRecipient"> | string
   directiveVersionId?: Prisma.UuidFilter<"DirectiveRecipient"> | string
   targetUnitId?: Prisma.UuidNullableFilter<"DirectiveRecipient"> | string | null
+  targetSeatId?: Prisma.UuidNullableFilter<"DirectiveRecipient"> | string | null
   targetPositionId?: Prisma.UuidNullableFilter<"DirectiveRecipient"> | string | null
   status?: Prisma.EnumRecipientStatusFilter<"DirectiveRecipient"> | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFilter<"DirectiveRecipient"> | Date | string
@@ -637,12 +706,14 @@ export type DirectiveRecipientCreateWithoutTargetPositionInput = {
   failureReason?: string | null
   directiveVersion: Prisma.DirectiveVersionCreateNestedOneWithoutRecipientsInput
   targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutDirectiveRecipientsInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutDirectiveRecipientsInput
 }
 
 export type DirectiveRecipientUncheckedCreateWithoutTargetPositionInput = {
   id?: string
   directiveVersionId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   status?: $Enums.RecipientStatus
   sentAt?: Date | string
   deliveredAt?: Date | string | null
@@ -677,6 +748,58 @@ export type DirectiveRecipientUpdateManyWithWhereWithoutTargetPositionInput = {
   data: Prisma.XOR<Prisma.DirectiveRecipientUpdateManyMutationInput, Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionInput>
 }
 
+export type DirectiveRecipientCreateWithoutTargetSeatInput = {
+  id?: string
+  status?: $Enums.RecipientStatus
+  sentAt?: Date | string
+  deliveredAt?: Date | string | null
+  readAt?: Date | string | null
+  acknowledgedAt?: Date | string | null
+  failureReason?: string | null
+  directiveVersion: Prisma.DirectiveVersionCreateNestedOneWithoutRecipientsInput
+  targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutDirectiveRecipientsInput
+  targetPosition?: Prisma.PositionCreateNestedOneWithoutDirectiveRecipientsInput
+}
+
+export type DirectiveRecipientUncheckedCreateWithoutTargetSeatInput = {
+  id?: string
+  directiveVersionId: string
+  targetUnitId?: string | null
+  targetPositionId?: string | null
+  status?: $Enums.RecipientStatus
+  sentAt?: Date | string
+  deliveredAt?: Date | string | null
+  readAt?: Date | string | null
+  acknowledgedAt?: Date | string | null
+  failureReason?: string | null
+}
+
+export type DirectiveRecipientCreateOrConnectWithoutTargetSeatInput = {
+  where: Prisma.DirectiveRecipientWhereUniqueInput
+  create: Prisma.XOR<Prisma.DirectiveRecipientCreateWithoutTargetSeatInput, Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput>
+}
+
+export type DirectiveRecipientCreateManyTargetSeatInputEnvelope = {
+  data: Prisma.DirectiveRecipientCreateManyTargetSeatInput | Prisma.DirectiveRecipientCreateManyTargetSeatInput[]
+  skipDuplicates?: boolean
+}
+
+export type DirectiveRecipientUpsertWithWhereUniqueWithoutTargetSeatInput = {
+  where: Prisma.DirectiveRecipientWhereUniqueInput
+  update: Prisma.XOR<Prisma.DirectiveRecipientUpdateWithoutTargetSeatInput, Prisma.DirectiveRecipientUncheckedUpdateWithoutTargetSeatInput>
+  create: Prisma.XOR<Prisma.DirectiveRecipientCreateWithoutTargetSeatInput, Prisma.DirectiveRecipientUncheckedCreateWithoutTargetSeatInput>
+}
+
+export type DirectiveRecipientUpdateWithWhereUniqueWithoutTargetSeatInput = {
+  where: Prisma.DirectiveRecipientWhereUniqueInput
+  data: Prisma.XOR<Prisma.DirectiveRecipientUpdateWithoutTargetSeatInput, Prisma.DirectiveRecipientUncheckedUpdateWithoutTargetSeatInput>
+}
+
+export type DirectiveRecipientUpdateManyWithWhereWithoutTargetSeatInput = {
+  where: Prisma.DirectiveRecipientScalarWhereInput
+  data: Prisma.XOR<Prisma.DirectiveRecipientUpdateManyMutationInput, Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetSeatInput>
+}
+
 export type DirectiveRecipientCreateWithoutDirectiveVersionInput = {
   id?: string
   status?: $Enums.RecipientStatus
@@ -686,12 +809,14 @@ export type DirectiveRecipientCreateWithoutDirectiveVersionInput = {
   acknowledgedAt?: Date | string | null
   failureReason?: string | null
   targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutDirectiveRecipientsInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutDirectiveRecipientsInput
   targetPosition?: Prisma.PositionCreateNestedOneWithoutDirectiveRecipientsInput
 }
 
 export type DirectiveRecipientUncheckedCreateWithoutDirectiveVersionInput = {
   id?: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   status?: $Enums.RecipientStatus
   sentAt?: Date | string
@@ -730,6 +855,7 @@ export type DirectiveRecipientUpdateManyWithWhereWithoutDirectiveVersionInput = 
 export type DirectiveRecipientCreateManyTargetUnitInput = {
   id?: string
   directiveVersionId: string
+  targetSeatId?: string | null
   targetPositionId?: string | null
   status?: $Enums.RecipientStatus
   sentAt?: Date | string
@@ -748,12 +874,14 @@ export type DirectiveRecipientUpdateWithoutTargetUnitInput = {
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   directiveVersion?: Prisma.DirectiveVersionUpdateOneRequiredWithoutRecipientsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutDirectiveRecipientsNestedInput
   targetPosition?: Prisma.PositionUpdateOneWithoutDirectiveRecipientsNestedInput
 }
 
 export type DirectiveRecipientUncheckedUpdateWithoutTargetUnitInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   directiveVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -766,6 +894,7 @@ export type DirectiveRecipientUncheckedUpdateWithoutTargetUnitInput = {
 export type DirectiveRecipientUncheckedUpdateManyWithoutTargetUnitInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   directiveVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -779,6 +908,7 @@ export type DirectiveRecipientCreateManyTargetPositionInput = {
   id?: string
   directiveVersionId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   status?: $Enums.RecipientStatus
   sentAt?: Date | string
   deliveredAt?: Date | string | null
@@ -797,12 +927,14 @@ export type DirectiveRecipientUpdateWithoutTargetPositionInput = {
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   directiveVersion?: Prisma.DirectiveVersionUpdateOneRequiredWithoutRecipientsNestedInput
   targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutDirectiveRecipientsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutDirectiveRecipientsNestedInput
 }
 
 export type DirectiveRecipientUncheckedUpdateWithoutTargetPositionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   directiveVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -815,6 +947,59 @@ export type DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   directiveVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
+  sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  readAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type DirectiveRecipientCreateManyTargetSeatInput = {
+  id?: string
+  directiveVersionId: string
+  targetUnitId?: string | null
+  targetPositionId?: string | null
+  status?: $Enums.RecipientStatus
+  sentAt?: Date | string
+  deliveredAt?: Date | string | null
+  readAt?: Date | string | null
+  acknowledgedAt?: Date | string | null
+  failureReason?: string | null
+}
+
+export type DirectiveRecipientUpdateWithoutTargetSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
+  sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  readAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directiveVersion?: Prisma.DirectiveVersionUpdateOneRequiredWithoutRecipientsNestedInput
+  targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutDirectiveRecipientsNestedInput
+  targetPosition?: Prisma.PositionUpdateOneWithoutDirectiveRecipientsNestedInput
+}
+
+export type DirectiveRecipientUncheckedUpdateWithoutTargetSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  directiveVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
+  sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  readAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type DirectiveRecipientUncheckedUpdateManyWithoutTargetSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  directiveVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -826,6 +1011,7 @@ export type DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionInput = {
 export type DirectiveRecipientCreateManyDirectiveVersionInput = {
   id?: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   status?: $Enums.RecipientStatus
   sentAt?: Date | string
@@ -844,12 +1030,14 @@ export type DirectiveRecipientUpdateWithoutDirectiveVersionInput = {
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutDirectiveRecipientsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutDirectiveRecipientsNestedInput
   targetPosition?: Prisma.PositionUpdateOneWithoutDirectiveRecipientsNestedInput
 }
 
 export type DirectiveRecipientUncheckedUpdateWithoutDirectiveVersionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -862,6 +1050,7 @@ export type DirectiveRecipientUncheckedUpdateWithoutDirectiveVersionInput = {
 export type DirectiveRecipientUncheckedUpdateManyWithoutDirectiveVersionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRecipientStatusFieldUpdateOperationsInput | $Enums.RecipientStatus
   sentAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -877,6 +1066,7 @@ export type DirectiveRecipientSelect<ExtArgs extends runtime.Types.Extensions.In
   id?: boolean
   directiveVersionId?: boolean
   targetUnitId?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   status?: boolean
   sentAt?: boolean
@@ -886,6 +1076,7 @@ export type DirectiveRecipientSelect<ExtArgs extends runtime.Types.Extensions.In
   failureReason?: boolean
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.DirectiveRecipient$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.DirectiveRecipient$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.DirectiveRecipient$targetPositionArgs<ExtArgs>
 }, ExtArgs["result"]["directiveRecipient"]>
 
@@ -893,6 +1084,7 @@ export type DirectiveRecipientSelectCreateManyAndReturn<ExtArgs extends runtime.
   id?: boolean
   directiveVersionId?: boolean
   targetUnitId?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   status?: boolean
   sentAt?: boolean
@@ -902,6 +1094,7 @@ export type DirectiveRecipientSelectCreateManyAndReturn<ExtArgs extends runtime.
   failureReason?: boolean
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.DirectiveRecipient$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.DirectiveRecipient$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.DirectiveRecipient$targetPositionArgs<ExtArgs>
 }, ExtArgs["result"]["directiveRecipient"]>
 
@@ -909,6 +1102,7 @@ export type DirectiveRecipientSelectUpdateManyAndReturn<ExtArgs extends runtime.
   id?: boolean
   directiveVersionId?: boolean
   targetUnitId?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   status?: boolean
   sentAt?: boolean
@@ -918,6 +1112,7 @@ export type DirectiveRecipientSelectUpdateManyAndReturn<ExtArgs extends runtime.
   failureReason?: boolean
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.DirectiveRecipient$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.DirectiveRecipient$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.DirectiveRecipient$targetPositionArgs<ExtArgs>
 }, ExtArgs["result"]["directiveRecipient"]>
 
@@ -925,6 +1120,7 @@ export type DirectiveRecipientSelectScalar = {
   id?: boolean
   directiveVersionId?: boolean
   targetUnitId?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   status?: boolean
   sentAt?: boolean
@@ -934,20 +1130,23 @@ export type DirectiveRecipientSelectScalar = {
   failureReason?: boolean
 }
 
-export type DirectiveRecipientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "directiveVersionId" | "targetUnitId" | "targetPositionId" | "status" | "sentAt" | "deliveredAt" | "readAt" | "acknowledgedAt" | "failureReason", ExtArgs["result"]["directiveRecipient"]>
+export type DirectiveRecipientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "directiveVersionId" | "targetUnitId" | "targetSeatId" | "targetPositionId" | "status" | "sentAt" | "deliveredAt" | "readAt" | "acknowledgedAt" | "failureReason", ExtArgs["result"]["directiveRecipient"]>
 export type DirectiveRecipientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.DirectiveRecipient$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.DirectiveRecipient$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.DirectiveRecipient$targetPositionArgs<ExtArgs>
 }
 export type DirectiveRecipientIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.DirectiveRecipient$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.DirectiveRecipient$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.DirectiveRecipient$targetPositionArgs<ExtArgs>
 }
 export type DirectiveRecipientIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.DirectiveRecipient$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.DirectiveRecipient$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.DirectiveRecipient$targetPositionArgs<ExtArgs>
 }
 
@@ -956,12 +1155,14 @@ export type $DirectiveRecipientPayload<ExtArgs extends runtime.Types.Extensions.
   objects: {
     directiveVersion: Prisma.$DirectiveVersionPayload<ExtArgs>
     targetUnit: Prisma.$OrganizationUnitPayload<ExtArgs> | null
+    targetSeat: Prisma.$OrganizationRoleSeatPayload<ExtArgs> | null
     targetPosition: Prisma.$PositionPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     directiveVersionId: string
     targetUnitId: string | null
+    targetSeatId: string | null
     targetPositionId: string | null
     status: $Enums.RecipientStatus
     sentAt: Date
@@ -1365,6 +1566,7 @@ export interface Prisma__DirectiveRecipientClient<T, Null = never, ExtArgs exten
   readonly [Symbol.toStringTag]: "PrismaPromise"
   directiveVersion<T extends Prisma.DirectiveVersionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DirectiveVersionDefaultArgs<ExtArgs>>): Prisma.Prisma__DirectiveVersionClient<runtime.Types.Result.GetResult<Prisma.$DirectiveVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   targetUnit<T extends Prisma.DirectiveRecipient$targetUnitArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DirectiveRecipient$targetUnitArgs<ExtArgs>>): Prisma.Prisma__OrganizationUnitClient<runtime.Types.Result.GetResult<Prisma.$OrganizationUnitPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  targetSeat<T extends Prisma.DirectiveRecipient$targetSeatArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DirectiveRecipient$targetSeatArgs<ExtArgs>>): Prisma.Prisma__OrganizationRoleSeatClient<runtime.Types.Result.GetResult<Prisma.$OrganizationRoleSeatPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   targetPosition<T extends Prisma.DirectiveRecipient$targetPositionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DirectiveRecipient$targetPositionArgs<ExtArgs>>): Prisma.Prisma__PositionClient<runtime.Types.Result.GetResult<Prisma.$PositionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1398,6 +1600,7 @@ export interface DirectiveRecipientFieldRefs {
   readonly id: Prisma.FieldRef<"DirectiveRecipient", 'String'>
   readonly directiveVersionId: Prisma.FieldRef<"DirectiveRecipient", 'String'>
   readonly targetUnitId: Prisma.FieldRef<"DirectiveRecipient", 'String'>
+  readonly targetSeatId: Prisma.FieldRef<"DirectiveRecipient", 'String'>
   readonly targetPositionId: Prisma.FieldRef<"DirectiveRecipient", 'String'>
   readonly status: Prisma.FieldRef<"DirectiveRecipient", 'RecipientStatus'>
   readonly sentAt: Prisma.FieldRef<"DirectiveRecipient", 'DateTime'>
@@ -1822,6 +2025,25 @@ export type DirectiveRecipient$targetUnitArgs<ExtArgs extends runtime.Types.Exte
    */
   include?: Prisma.OrganizationUnitInclude<ExtArgs> | null
   where?: Prisma.OrganizationUnitWhereInput
+}
+
+/**
+ * DirectiveRecipient.targetSeat
+ */
+export type DirectiveRecipient$targetSeatArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrganizationRoleSeat
+   */
+  select?: Prisma.OrganizationRoleSeatSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OrganizationRoleSeat
+   */
+  omit?: Prisma.OrganizationRoleSeatOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrganizationRoleSeatInclude<ExtArgs> | null
+  where?: Prisma.OrganizationRoleSeatWhereInput
 }
 
 /**

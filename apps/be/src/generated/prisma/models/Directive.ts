@@ -249,7 +249,7 @@ export type DirectiveWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Directive"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Directive"> | Date | string | null
   ownerUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   versions?: Prisma.DirectiveVersionListRelationFilter
 }
 
@@ -264,7 +264,7 @@ export type DirectiveOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerUnit?: Prisma.OrganizationUnitOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   versions?: Prisma.DirectiveVersionOrderByRelationAggregateInput
 }
 
@@ -282,7 +282,7 @@ export type DirectiveWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Directive"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Directive"> | Date | string | null
   ownerUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   versions?: Prisma.DirectiveVersionListRelationFilter
 }, "id" | "commandNumber">
 
@@ -327,7 +327,7 @@ export type DirectiveCreateInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutDirectivesInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutDirectivesCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutDirectivesCreatedInput
   versions?: Prisma.DirectiveVersionCreateNestedManyWithoutDirectiveInput
 }
 
@@ -353,7 +353,7 @@ export type DirectiveUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutDirectivesNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutDirectivesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutDirectivesCreatedNestedInput
   versions?: Prisma.DirectiveVersionUpdateManyWithoutDirectiveNestedInput
 }
 
@@ -573,7 +573,7 @@ export type DirectiveCreateWithoutOwnerUnitInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutDirectivesCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutDirectivesCreatedInput
   versions?: Prisma.DirectiveVersionCreateNestedManyWithoutDirectiveInput
 }
 
@@ -689,7 +689,7 @@ export type DirectiveCreateWithoutVersionsInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutDirectivesInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutDirectivesCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutDirectivesCreatedInput
 }
 
 export type DirectiveUncheckedCreateWithoutVersionsInput = {
@@ -729,7 +729,7 @@ export type DirectiveUpdateWithoutVersionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutDirectivesNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutDirectivesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutDirectivesCreatedNestedInput
 }
 
 export type DirectiveUncheckedUpdateWithoutVersionsInput = {
@@ -763,7 +763,7 @@ export type DirectiveUpdateWithoutOwnerUnitInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutDirectivesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutDirectivesCreatedNestedInput
   versions?: Prisma.DirectiveVersionUpdateManyWithoutDirectiveNestedInput
 }
 
@@ -878,7 +878,7 @@ export type DirectiveSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   updatedAt?: boolean
   deletedAt?: boolean
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   versions?: boolean | Prisma.Directive$versionsArgs<ExtArgs>
   _count?: boolean | Prisma.DirectiveCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["directive"]>
@@ -894,7 +894,7 @@ export type DirectiveSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   updatedAt?: boolean
   deletedAt?: boolean
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["directive"]>
 
 export type DirectiveSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -908,7 +908,7 @@ export type DirectiveSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   updatedAt?: boolean
   deletedAt?: boolean
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["directive"]>
 
 export type DirectiveSelectScalar = {
@@ -926,24 +926,24 @@ export type DirectiveSelectScalar = {
 export type DirectiveOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "commandNumber" | "ownerUnitId" | "createdByAssignmentId" | "status" | "currentVersionNumber" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["directive"]>
 export type DirectiveInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   versions?: boolean | Prisma.Directive$versionsArgs<ExtArgs>
   _count?: boolean | Prisma.DirectiveCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type DirectiveIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type DirectiveIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $DirectivePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Directive"
   objects: {
     ownerUnit: Prisma.$OrganizationUnitPayload<ExtArgs>
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     versions: Prisma.$DirectiveVersionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1351,7 +1351,7 @@ readonly fields: DirectiveFieldRefs;
 export interface Prisma__DirectiveClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   ownerUnit<T extends Prisma.OrganizationUnitDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnitDefaultArgs<ExtArgs>>): Prisma.Prisma__OrganizationUnitClient<runtime.Types.Result.GetResult<Prisma.$OrganizationUnitPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   versions<T extends Prisma.Directive$versionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Directive$versionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DirectiveVersionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.

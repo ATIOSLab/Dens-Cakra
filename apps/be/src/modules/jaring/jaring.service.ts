@@ -112,7 +112,7 @@ export class JaringService {
   }
 
   async create(body: CreateJaringDto, context: AuthorizationContext) {
-    const officer = await this.prisma.positionAssignment.findUniqueOrThrow({
+    const officer = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: body.fieldOfficerAssignmentId },
       include: { position: true },
     });

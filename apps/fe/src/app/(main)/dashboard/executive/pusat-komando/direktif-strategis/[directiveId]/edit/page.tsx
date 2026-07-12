@@ -1,4 +1,4 @@
-import { DirectiveStrategicEditAliasPage } from "@/features/directives/pages";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -8,5 +8,5 @@ type PageProps = {
 
 export default async function Page({ params }: PageProps) {
   const routeParams = (await params) ?? {};
-  DirectiveStrategicEditAliasPage({ directiveId: routeParams.directiveId });
+  redirect(`/dashboard/executive/pusat-komando/direktif/${routeParams.directiveId}/edit`);
 }

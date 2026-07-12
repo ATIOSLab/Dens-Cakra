@@ -16,7 +16,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 import {
-  Classification,
   PriorityLevel,
   TaskStatus,
 } from '../../generated/prisma/client.js';
@@ -44,7 +43,6 @@ export class CreateTaskDto {
   @IsUUID() ownerUnitId!: string;
   @IsString() @MaxLength(300) title!: string;
   @IsString() @MaxLength(10000) description!: string;
-  @IsEnum(Classification) classification!: Classification;
   @IsEnum(PriorityLevel) priority!: PriorityLevel;
   @IsOptional() @IsDateString() dueDate?: string;
   @IsArray()

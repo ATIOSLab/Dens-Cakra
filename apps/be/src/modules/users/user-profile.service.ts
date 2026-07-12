@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { auth } from '../../lib/auth.js';
 import {
@@ -7,7 +8,12 @@ import {
 import { ApiException } from '../../common/api/api-exception.js';
 import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
-import { Prisma, UserProfileStatus } from '../../generated/prisma/client.js';
+import {
+  CommandRouteType,
+  Prisma,
+  RoleCode,
+  UserProfileStatus,
+} from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   ArchiveUserDto,
@@ -24,52 +30,20 @@ export class UserProfileService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(query: UserProfileListQueryDto) {
-    const where: Prisma.UserProfileWhereInput = {
-      ...(query.includeArchived ? {} : { deletedAt: null }),
-      ...(query.status ? { status: query.status } : {}),
-      ...(query.search
-        ? {
-            OR: [
-              { username: { contains: query.search, mode: 'insensitive' } },
-              { fullName: { contains: query.search, mode: 'insensitive' } },
-              {
-                authUser: {
-                  email: { contains: query.search, mode: 'insensitive' },
-                },
-              },
-            ],
-          }
-        : {}),
-      ...(query.roleCode || query.positionCode || query.unitId || query.areaId
-        ? {
-            positionAssignments: {
-              some: {
-                isPrimary: true,
-                isActive: true,
-                validUntil: null,
-                ...(query.positionCode
-                  ? { position: { code: query.positionCode } }
-                  : {}),
-                ...(query.roleCode
-                  ? { position: { role: { code: query.roleCode } } }
-                  : {}),
-                ...(query.unitId
-                  ? { position: { organizationUnitId: query.unitId } }
-                  : {}),
-                ...(query.areaId
-                  ? {
-                      areaScopes: {
-                        some: { areaId: query.areaId, validUntil: null },
-                      },
-                    }
-                  : {}),
-              },
-            },
-          }
-        : {}),
-    };
+    const accessibleAreaIds = query.areaId
+      ? await this.resolveAreaFilterIds(query.areaId)
+      : null;
+    const where = this.buildListWhere(query, accessibleAreaIds);
+    const facetWhere = this.buildListWhere(
+      {
+        ...query,
+        status: undefined,
+      },
+      accessibleAreaIds,
+    );
     const skip = (query.page - 1) * query.limit;
-    const [items, total] = await Promise.all([
+    const [items, total, statusCounts, lockedCount, unlockedCount] =
+      await Promise.all([
       this.prisma.userProfile.findMany({
         where,
         skip,
@@ -82,6 +56,7 @@ export class UserProfileService {
           positionAssignments: {
             where: { isPrimary: true, isActive: true, validUntil: null },
             include: {
+              seat: { include: { organizationUnit: true, role: true } },
               position: { include: { role: true, organizationUnit: true } },
               areaScopes: {
                 where: { validUntil: null },
@@ -92,7 +67,49 @@ export class UserProfileService {
         },
       }),
       this.prisma.userProfile.count({ where }),
+      this.prisma.userProfile.groupBy({
+        by: ['status'],
+        where: facetWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.userProfile.count({
+        where: {
+          ...facetWhere,
+          operationalLockedAt: { not: null },
+          OR: [
+            { operationalLockedUntil: null },
+            { operationalLockedUntil: { gt: new Date() } },
+          ],
+        },
+      }),
+      this.prisma.userProfile.count({
+        where: {
+          ...facetWhere,
+          OR: [
+            { operationalLockedAt: null },
+            { operationalLockedUntil: { lte: new Date() } },
+          ],
+        },
+      }),
     ]);
+
+    const statusFacets = Object.values(UserProfileStatus).reduce<
+      Record<UserProfileStatus, number>
+    >(
+      (accumulator, status) => {
+        accumulator[status] =
+          statusCounts.find((entry) => entry.status === status)?._count._all ??
+          0;
+        return accumulator;
+      },
+      {
+        [UserProfileStatus.PENDING]: 0,
+        [UserProfileStatus.ACTIVE]: 0,
+        [UserProfileStatus.SUSPENDED]: 0,
+        [UserProfileStatus.ARCHIVED]: 0,
+      },
+    );
+
     return {
       items,
       pagination: {
@@ -100,6 +117,13 @@ export class UserProfileService {
         limit: query.limit,
         total,
         totalPages: Math.ceil(total / query.limit),
+      },
+      facets: {
+        status: statusFacets,
+        security: {
+          locked: lockedCount,
+          unlocked: unlockedCount,
+        },
       },
     };
   }
@@ -113,17 +137,13 @@ export class UserProfileService {
         422,
       );
     }
-    const position = await this.prisma.position.findUnique({
-      where: { id: input.assignment.positionId },
-      include: { role: true },
+    const blueprint = await this.resolveSeatBlueprint({
+      client: this.prisma,
+      roleCode: expectedRole,
+      organizationUnitId: input.assignment.organizationUnitId,
+      branch: input.assignment.branch ?? null,
+      positionId: input.assignment.positionId,
     });
-    if (!position?.isActive || position.role.code !== expectedRole) {
-      throw new ApiException(
-        'ROLE_POSITION_MISMATCH',
-        'Role does not match the selected active position.',
-        422,
-      );
-    }
     const areas = await this.prisma.administrativeArea.findMany({
       where: { id: { in: input.areaScopeIds }, isActive: true },
       select: { id: true },
@@ -136,18 +156,24 @@ export class UserProfileService {
       );
     }
 
+    const effectivePassword =
+      input.auth.password ?? this.generateTemporaryPassword();
+    const generatedTempPassword = input.auth.password
+      ? null
+      : effectivePassword;
+
     let authUserId: string | undefined;
     try {
       const created = await auth.api.createUser({
         body: {
           name: input.auth.name,
           email: input.auth.email,
-          password: input.auth.password,
+          password: effectivePassword,
           role: input.auth.role as AuthRole,
         },
       });
       authUserId = created.user.id;
-      return await this.prisma.$transaction(async (tx) => {
+      const provisionedUser = await this.prisma.$transaction(async (tx) => {
         const profile = await tx.userProfile.update({
           where: { authUserId },
           data: {
@@ -160,10 +186,11 @@ export class UserProfileService {
             isActive: false,
           },
         });
-        const assignment = await tx.positionAssignment.create({
+        const assignment = await tx.userSeatAssignment.create({
           data: {
             userProfileId: profile.id,
-            positionId: position.id,
+            seatId: blueprint.seat.id,
+            positionId: blueprint.position.id,
             isPrimary: true,
             validFrom: new Date(input.assignment.validFrom),
             areaScopes: {
@@ -196,6 +223,10 @@ export class UserProfileService {
         });
         return this.detail(profile.id, tx);
       });
+      return {
+        userProfile: provisionedUser,
+        generatedTempPassword,
+      };
     } catch (error) {
       if (authUserId) {
         await this.prisma.user
@@ -237,6 +268,7 @@ export class UserProfileService {
         positionAssignments: {
           orderBy: { validFrom: 'desc' },
           include: {
+            seat: { include: { organizationUnit: true, role: true } },
             position: { include: { role: true, organizationUnit: true } },
             areaScopes: { include: { area: true } },
           },
@@ -269,7 +301,7 @@ export class UserProfileService {
 
   async activate(id: string, reason: string, actor: AuthorizationContext) {
     const profile = await this.ensureExists(id);
-    const assignment = await this.prisma.positionAssignment.findFirst({
+    const assignment = await this.prisma.userSeatAssignment.findFirst({
       where: {
         userProfileId: id,
         isPrimary: true,
@@ -363,7 +395,7 @@ export class UserProfileService {
     const profile = await this.ensureExists(id);
     const effectiveAt = new Date(input.effectiveAt);
     await this.prisma.$transaction(async (tx) => {
-      const assignments = await tx.positionAssignment.findMany({
+      const assignments = await tx.userSeatAssignment.findMany({
         where: { userProfileId: id, isActive: true },
         select: { id: true },
       });
@@ -374,7 +406,7 @@ export class UserProfileService {
         },
         data: { validUntil: effectiveAt },
       });
-      await tx.positionAssignment.updateMany({
+      await tx.userSeatAssignment.updateMany({
         where: { userProfileId: id, isActive: true },
         data: { isActive: false, validUntil: effectiveAt },
       });
@@ -462,7 +494,7 @@ export class UserProfileService {
       );
     const effectiveAt = new Date(input.effectiveAt);
     const assignment = await this.prisma.$transaction(async (tx) => {
-      const old = await tx.positionAssignment.findFirst({
+      const old = await tx.userSeatAssignment.findFirst({
         where: {
           userProfileId: id,
           isPrimary: true,
@@ -475,14 +507,22 @@ export class UserProfileService {
           where: { positionAssignmentId: old.id, validUntil: null },
           data: { validUntil: effectiveAt },
         });
-        await tx.positionAssignment.update({
+        await tx.userSeatAssignment.update({
           where: { id: old.id },
           data: { isActive: false, isPrimary: false, validUntil: effectiveAt },
         });
       }
-      const created = await tx.positionAssignment.create({
+      const seatBlueprint = await this.resolveSeatBlueprint({
+        client: tx,
+        roleCode: position.role.code as RoleCode,
+        organizationUnitId: position.organizationUnitId,
+        branch: position.branch ?? null,
+        positionId: position.id,
+      });
+      const created = await tx.userSeatAssignment.create({
         data: {
           userProfileId: id,
+          seatId: seatBlueprint.seat.id,
           positionId: position.id,
           validFrom: effectiveAt,
           isPrimary: true,
@@ -517,7 +557,7 @@ export class UserProfileService {
       });
       return created;
     });
-    return this.prisma.positionAssignment.findUniqueOrThrow({
+    return this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: assignment.id },
       include: {
         position: { include: { role: true, organizationUnit: true } },
@@ -527,7 +567,7 @@ export class UserProfileService {
   }
 
   assignments(id: string, activeOnly: boolean) {
-    return this.prisma.positionAssignment.findMany({
+    return this.prisma.userSeatAssignment.findMany({
       where: { userProfileId: id, ...(activeOnly ? { isActive: true } : {}) },
       orderBy: { validFrom: 'desc' },
       include: {
@@ -550,6 +590,195 @@ export class UserProfileService {
     return profile;
   }
 
+  private buildListWhere(
+    query: UserProfileListQueryDto,
+    areaIds: string[] | null,
+  ): Prisma.UserProfileWhereInput {
+    return {
+      ...(query.includeArchived ? {} : { deletedAt: null }),
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.search
+        ? {
+            OR: [
+              { username: { contains: query.search, mode: 'insensitive' } },
+              { fullName: { contains: query.search, mode: 'insensitive' } },
+              {
+                authUser: {
+                  email: { contains: query.search, mode: 'insensitive' },
+                },
+              },
+            ],
+          }
+        : {}),
+      ...(query.roleCode ||
+      query.branch ||
+      query.positionCode ||
+      query.unitId ||
+      areaIds?.length
+        ? {
+            positionAssignments: {
+              some: {
+                isPrimary: true,
+                isActive: true,
+                validUntil: null,
+                ...(query.branch ? { seat: { branch: query.branch } } : {}),
+                ...(query.positionCode
+                  ? { position: { code: query.positionCode } }
+                  : {}),
+                ...(query.roleCode
+                  ? { position: { role: { code: query.roleCode } } }
+                  : {}),
+                ...(query.unitId
+                  ? { seat: { organizationUnitId: query.unitId } }
+                  : {}),
+                ...(areaIds?.length
+                  ? {
+                      areaScopes: {
+                        some: {
+                          areaId: { in: areaIds },
+                          validUntil: null,
+                        },
+                      },
+                    }
+                  : {}),
+              },
+            },
+          }
+        : {}),
+    };
+  }
+
+  private async resolveAreaFilterIds(areaId: string) {
+    const descendants = await this.prisma.administrativeAreaClosure.findMany({
+      where: { ancestorId: areaId },
+      select: { descendantId: true },
+    });
+
+    return [...new Set([areaId, ...descendants.map((entry) => entry.descendantId)])];
+  }
+
+  private generateTemporaryPassword() {
+    return `Dc-${randomBytes(12).toString('base64url')}`;
+  }
+
+  private async resolveSeatBlueprint(input: {
+    client: Prisma.TransactionClient | PrismaService;
+    roleCode: RoleCode;
+    organizationUnitId: string;
+    branch: CommandRouteType | null;
+    positionId?: string;
+  }) {
+    const unit = await input.client.organizationUnit.findUniqueOrThrow({
+      where: { id: input.organizationUnitId },
+      select: { id: true, type: true, branch: true, isActive: true },
+    });
+
+    if (!unit.isActive) {
+      throw new ApiException(
+        'UNIT_NOT_ACTIVE',
+        'Target organization unit is not active.',
+        422,
+      );
+    }
+
+    if (input.branch && unit.branch && unit.branch !== input.branch) {
+      throw new ApiException(
+        'BRANCH_UNIT_MISMATCH',
+        'Selected branch does not match the organization unit branch.',
+        422,
+      );
+    }
+
+    if (
+      !input.branch &&
+      input.roleCode !== RoleCode.ADMIN_SYSTEM &&
+      input.roleCode !== RoleCode.EXECUTIVE
+    ) {
+      throw new ApiException(
+        'BRANCH_REQUIRED',
+        'Operational roles require a branch.',
+        422,
+      );
+    }
+
+    const position = input.positionId
+      ? await input.client.position.findUnique({
+          where: { id: input.positionId },
+          include: { role: true },
+        })
+      : await input.client.position.findFirst({
+          where: {
+            organizationUnitId: input.organizationUnitId,
+            role: { code: input.roleCode },
+            branch: input.branch,
+            isActive: true,
+          },
+          include: { role: true },
+          orderBy: { createdAt: 'asc' },
+        });
+
+    if (!position || !position.isActive) {
+      throw new ApiException(
+        'POSITION_NOT_ACTIVE',
+        'Target position is not active.',
+        422,
+      );
+    }
+
+    if (position.role.code !== input.roleCode) {
+      throw new ApiException(
+        'ROLE_POSITION_MISMATCH',
+        'Role does not match the selected active position.',
+        422,
+      );
+    }
+
+    if (position.organizationUnitId !== input.organizationUnitId) {
+      throw new ApiException(
+        'POSITION_UNIT_MISMATCH',
+        'Position does not belong to the selected organization unit.',
+        422,
+      );
+    }
+
+    if ((position.branch ?? null) !== input.branch) {
+      throw new ApiException(
+        'POSITION_BRANCH_MISMATCH',
+        'Position branch does not match the selected branch.',
+        422,
+      );
+    }
+
+    const existingSeat = await input.client.organizationRoleSeat.findFirst({
+      where: {
+        organizationUnitId: position.organizationUnitId,
+        roleId: position.roleId,
+        ...(position.branch ? { branch: position.branch } : { branch: null }),
+      },
+      select: { id: true },
+    });
+
+    const seat = existingSeat
+      ? await input.client.organizationRoleSeat.update({
+          where: { id: existingSeat.id },
+          data: {
+            positionId: position.id,
+            isActive: true,
+          },
+        })
+      : await input.client.organizationRoleSeat.create({
+          data: {
+            organizationUnitId: position.organizationUnitId,
+            roleId: position.roleId,
+            ...(position.branch ? { branch: position.branch } : {}),
+            positionId: position.id,
+            isActive: true,
+          },
+        });
+
+    return { unit, position, seat };
+  }
+
   private audit(
     actor: AuthorizationContext,
     action: string,
@@ -570,3 +799,4 @@ export class UserProfileService {
     });
   }
 }
+

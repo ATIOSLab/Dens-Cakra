@@ -1,7 +1,7 @@
-import { DirectiveAliasListPage } from "@/features/directives/pages";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default function Page() {
-  DirectiveAliasListPage();
+  redirect("/dashboard/executive/pusat-komando/direktif-strategis");
 }

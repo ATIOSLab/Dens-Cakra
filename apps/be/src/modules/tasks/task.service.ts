@@ -291,7 +291,7 @@ export class TaskService {
   }
 
   private async loadAssignmentTarget(assignmentId: string) {
-    return this.prisma.positionAssignment.findFirstOrThrow({
+    return this.prisma.userSeatAssignment.findFirstOrThrow({
       where: {
         id: assignmentId,
         isActive: true,
@@ -745,7 +745,6 @@ export class TaskService {
         createdByAssignmentId: context.primaryAssignmentId,
         title: body.title,
         description: body.description,
-        classification: body.classification,
         priority: body.priority,
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         targetAreas: {

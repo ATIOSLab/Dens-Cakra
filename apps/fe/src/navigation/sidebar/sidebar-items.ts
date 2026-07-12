@@ -425,20 +425,6 @@ export const sidebarItems: NavGroup[] = [
         roles: ADMIN_SYSTEM_ROLE,
       },
       {
-        id: "admin-system-roles",
-        title: "Role & Hak Akses",
-        url: "/dashboard/admin-system/role-hak-akses",
-        icon: FileSearch,
-        roles: ADMIN_SYSTEM_ROLE,
-      },
-      {
-        id: "admin-system-positions",
-        title: "Jabatan & Reporting Line",
-        url: "/dashboard/admin-system/jabatan-reporting-line",
-        icon: ScrollText,
-        roles: ADMIN_SYSTEM_ROLE,
-      },
-      {
         id: "admin-system-wa-center",
         title: "Integrasi WA Center",
         url: "/dashboard/admin-system/integrasi-wa-center",

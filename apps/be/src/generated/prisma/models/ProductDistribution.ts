@@ -29,9 +29,9 @@ export type ProductDistributionMinAggregateOutputType = {
   productVersionId: string | null
   sentByAssignmentId: string | null
   targetUnitId: string | null
+  targetSeatId: string | null
   targetPositionId: string | null
   targetUserProfileId: string | null
-  classification: $Enums.Classification | null
   status: $Enums.DistributionStatus | null
   sentAt: Date | null
   deliveredAt: Date | null
@@ -45,9 +45,9 @@ export type ProductDistributionMaxAggregateOutputType = {
   productVersionId: string | null
   sentByAssignmentId: string | null
   targetUnitId: string | null
+  targetSeatId: string | null
   targetPositionId: string | null
   targetUserProfileId: string | null
-  classification: $Enums.Classification | null
   status: $Enums.DistributionStatus | null
   sentAt: Date | null
   deliveredAt: Date | null
@@ -61,9 +61,9 @@ export type ProductDistributionCountAggregateOutputType = {
   productVersionId: number
   sentByAssignmentId: number
   targetUnitId: number
+  targetSeatId: number
   targetPositionId: number
   targetUserProfileId: number
-  classification: number
   status: number
   sentAt: number
   deliveredAt: number
@@ -79,9 +79,9 @@ export type ProductDistributionMinAggregateInputType = {
   productVersionId?: true
   sentByAssignmentId?: true
   targetUnitId?: true
+  targetSeatId?: true
   targetPositionId?: true
   targetUserProfileId?: true
-  classification?: true
   status?: true
   sentAt?: true
   deliveredAt?: true
@@ -95,9 +95,9 @@ export type ProductDistributionMaxAggregateInputType = {
   productVersionId?: true
   sentByAssignmentId?: true
   targetUnitId?: true
+  targetSeatId?: true
   targetPositionId?: true
   targetUserProfileId?: true
-  classification?: true
   status?: true
   sentAt?: true
   deliveredAt?: true
@@ -111,9 +111,9 @@ export type ProductDistributionCountAggregateInputType = {
   productVersionId?: true
   sentByAssignmentId?: true
   targetUnitId?: true
+  targetSeatId?: true
   targetPositionId?: true
   targetUserProfileId?: true
-  classification?: true
   status?: true
   sentAt?: true
   deliveredAt?: true
@@ -200,9 +200,9 @@ export type ProductDistributionGroupByOutputType = {
   productVersionId: string
   sentByAssignmentId: string
   targetUnitId: string | null
+  targetSeatId: string | null
   targetPositionId: string | null
   targetUserProfileId: string | null
-  classification: $Enums.Classification
   status: $Enums.DistributionStatus
   sentAt: Date | null
   deliveredAt: Date | null
@@ -237,9 +237,9 @@ export type ProductDistributionWhereInput = {
   productVersionId?: Prisma.UuidFilter<"ProductDistribution"> | string
   sentByAssignmentId?: Prisma.UuidFilter<"ProductDistribution"> | string
   targetUnitId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
+  targetSeatId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
   targetPositionId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
   targetUserProfileId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
-  classification?: Prisma.EnumClassificationFilter<"ProductDistribution"> | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFilter<"ProductDistribution"> | $Enums.DistributionStatus
   sentAt?: Prisma.DateTimeNullableFilter<"ProductDistribution"> | Date | string | null
   deliveredAt?: Prisma.DateTimeNullableFilter<"ProductDistribution"> | Date | string | null
@@ -247,8 +247,9 @@ export type ProductDistributionWhereInput = {
   revokedAt?: Prisma.DateTimeNullableFilter<"ProductDistribution"> | Date | string | null
   failureReason?: Prisma.StringNullableFilter<"ProductDistribution"> | string | null
   productVersion?: Prisma.XOR<Prisma.ProductVersionScalarRelationFilter, Prisma.ProductVersionWhereInput>
-  sentByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  sentByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   targetUnit?: Prisma.XOR<Prisma.OrganizationUnitNullableScalarRelationFilter, Prisma.OrganizationUnitWhereInput> | null
+  targetSeat?: Prisma.XOR<Prisma.OrganizationRoleSeatNullableScalarRelationFilter, Prisma.OrganizationRoleSeatWhereInput> | null
   targetPosition?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
   targetUser?: Prisma.XOR<Prisma.UserProfileNullableScalarRelationFilter, Prisma.UserProfileWhereInput> | null
 }
@@ -258,9 +259,9 @@ export type ProductDistributionOrderByWithRelationInput = {
   productVersionId?: Prisma.SortOrder
   sentByAssignmentId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrderInput | Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetUserProfileId?: Prisma.SortOrderInput | Prisma.SortOrder
-  classification?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrderInput | Prisma.SortOrder
   deliveredAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -268,8 +269,9 @@ export type ProductDistributionOrderByWithRelationInput = {
   revokedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   failureReason?: Prisma.SortOrderInput | Prisma.SortOrder
   productVersion?: Prisma.ProductVersionOrderByWithRelationInput
-  sentByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  sentByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   targetUnit?: Prisma.OrganizationUnitOrderByWithRelationInput
+  targetSeat?: Prisma.OrganizationRoleSeatOrderByWithRelationInput
   targetPosition?: Prisma.PositionOrderByWithRelationInput
   targetUser?: Prisma.UserProfileOrderByWithRelationInput
 }
@@ -282,9 +284,9 @@ export type ProductDistributionWhereUniqueInput = Prisma.AtLeast<{
   productVersionId?: Prisma.UuidFilter<"ProductDistribution"> | string
   sentByAssignmentId?: Prisma.UuidFilter<"ProductDistribution"> | string
   targetUnitId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
+  targetSeatId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
   targetPositionId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
   targetUserProfileId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
-  classification?: Prisma.EnumClassificationFilter<"ProductDistribution"> | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFilter<"ProductDistribution"> | $Enums.DistributionStatus
   sentAt?: Prisma.DateTimeNullableFilter<"ProductDistribution"> | Date | string | null
   deliveredAt?: Prisma.DateTimeNullableFilter<"ProductDistribution"> | Date | string | null
@@ -292,8 +294,9 @@ export type ProductDistributionWhereUniqueInput = Prisma.AtLeast<{
   revokedAt?: Prisma.DateTimeNullableFilter<"ProductDistribution"> | Date | string | null
   failureReason?: Prisma.StringNullableFilter<"ProductDistribution"> | string | null
   productVersion?: Prisma.XOR<Prisma.ProductVersionScalarRelationFilter, Prisma.ProductVersionWhereInput>
-  sentByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  sentByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   targetUnit?: Prisma.XOR<Prisma.OrganizationUnitNullableScalarRelationFilter, Prisma.OrganizationUnitWhereInput> | null
+  targetSeat?: Prisma.XOR<Prisma.OrganizationRoleSeatNullableScalarRelationFilter, Prisma.OrganizationRoleSeatWhereInput> | null
   targetPosition?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
   targetUser?: Prisma.XOR<Prisma.UserProfileNullableScalarRelationFilter, Prisma.UserProfileWhereInput> | null
 }, "id">
@@ -303,9 +306,9 @@ export type ProductDistributionOrderByWithAggregationInput = {
   productVersionId?: Prisma.SortOrder
   sentByAssignmentId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrderInput | Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetUserProfileId?: Prisma.SortOrderInput | Prisma.SortOrder
-  classification?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrderInput | Prisma.SortOrder
   deliveredAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -325,9 +328,9 @@ export type ProductDistributionScalarWhereWithAggregatesInput = {
   productVersionId?: Prisma.UuidWithAggregatesFilter<"ProductDistribution"> | string
   sentByAssignmentId?: Prisma.UuidWithAggregatesFilter<"ProductDistribution"> | string
   targetUnitId?: Prisma.UuidNullableWithAggregatesFilter<"ProductDistribution"> | string | null
+  targetSeatId?: Prisma.UuidNullableWithAggregatesFilter<"ProductDistribution"> | string | null
   targetPositionId?: Prisma.UuidNullableWithAggregatesFilter<"ProductDistribution"> | string | null
   targetUserProfileId?: Prisma.UuidNullableWithAggregatesFilter<"ProductDistribution"> | string | null
-  classification?: Prisma.EnumClassificationWithAggregatesFilter<"ProductDistribution"> | $Enums.Classification
   status?: Prisma.EnumDistributionStatusWithAggregatesFilter<"ProductDistribution"> | $Enums.DistributionStatus
   sentAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ProductDistribution"> | Date | string | null
   deliveredAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ProductDistribution"> | Date | string | null
@@ -338,7 +341,6 @@ export type ProductDistributionScalarWhereWithAggregatesInput = {
 
 export type ProductDistributionCreateInput = {
   id?: string
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -346,8 +348,9 @@ export type ProductDistributionCreateInput = {
   revokedAt?: Date | string | null
   failureReason?: string | null
   productVersion: Prisma.ProductVersionCreateNestedOneWithoutDistributionsInput
-  sentByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductDistributionsSentInput
+  sentByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductDistributionsSentInput
   targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutProductDistributionsInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutProductDistributionsInput
   targetPosition?: Prisma.PositionCreateNestedOneWithoutProductDistributionsInput
   targetUser?: Prisma.UserProfileCreateNestedOneWithoutReceivedDistributionsInput
 }
@@ -357,9 +360,9 @@ export type ProductDistributionUncheckedCreateInput = {
   productVersionId: string
   sentByAssignmentId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -370,7 +373,6 @@ export type ProductDistributionUncheckedCreateInput = {
 
 export type ProductDistributionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -378,8 +380,9 @@ export type ProductDistributionUpdateInput = {
   revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productVersion?: Prisma.ProductVersionUpdateOneRequiredWithoutDistributionsNestedInput
-  sentByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
+  sentByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
   targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutProductDistributionsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutProductDistributionsNestedInput
   targetPosition?: Prisma.PositionUpdateOneWithoutProductDistributionsNestedInput
   targetUser?: Prisma.UserProfileUpdateOneWithoutReceivedDistributionsNestedInput
 }
@@ -389,9 +392,9 @@ export type ProductDistributionUncheckedUpdateInput = {
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -405,9 +408,9 @@ export type ProductDistributionCreateManyInput = {
   productVersionId: string
   sentByAssignmentId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -418,7 +421,6 @@ export type ProductDistributionCreateManyInput = {
 
 export type ProductDistributionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -432,9 +434,9 @@ export type ProductDistributionUncheckedUpdateManyInput = {
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -458,9 +460,9 @@ export type ProductDistributionCountOrderByAggregateInput = {
   productVersionId?: Prisma.SortOrder
   sentByAssignmentId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
   targetPositionId?: Prisma.SortOrder
   targetUserProfileId?: Prisma.SortOrder
-  classification?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   deliveredAt?: Prisma.SortOrder
@@ -474,9 +476,9 @@ export type ProductDistributionMaxOrderByAggregateInput = {
   productVersionId?: Prisma.SortOrder
   sentByAssignmentId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
   targetPositionId?: Prisma.SortOrder
   targetUserProfileId?: Prisma.SortOrder
-  classification?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   deliveredAt?: Prisma.SortOrder
@@ -490,9 +492,9 @@ export type ProductDistributionMinOrderByAggregateInput = {
   productVersionId?: Prisma.SortOrder
   sentByAssignmentId?: Prisma.SortOrder
   targetUnitId?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
   targetPositionId?: Prisma.SortOrder
   targetUserProfileId?: Prisma.SortOrder
-  classification?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sentAt?: Prisma.SortOrder
   deliveredAt?: Prisma.SortOrder
@@ -627,6 +629,48 @@ export type ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInp
   deleteMany?: Prisma.ProductDistributionScalarWhereInput | Prisma.ProductDistributionScalarWhereInput[]
 }
 
+export type ProductDistributionCreateNestedManyWithoutTargetSeatInput = {
+  create?: Prisma.XOR<Prisma.ProductDistributionCreateWithoutTargetSeatInput, Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput> | Prisma.ProductDistributionCreateWithoutTargetSeatInput[] | Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.ProductDistributionCreateOrConnectWithoutTargetSeatInput | Prisma.ProductDistributionCreateOrConnectWithoutTargetSeatInput[]
+  createMany?: Prisma.ProductDistributionCreateManyTargetSeatInputEnvelope
+  connect?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+}
+
+export type ProductDistributionUncheckedCreateNestedManyWithoutTargetSeatInput = {
+  create?: Prisma.XOR<Prisma.ProductDistributionCreateWithoutTargetSeatInput, Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput> | Prisma.ProductDistributionCreateWithoutTargetSeatInput[] | Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.ProductDistributionCreateOrConnectWithoutTargetSeatInput | Prisma.ProductDistributionCreateOrConnectWithoutTargetSeatInput[]
+  createMany?: Prisma.ProductDistributionCreateManyTargetSeatInputEnvelope
+  connect?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+}
+
+export type ProductDistributionUpdateManyWithoutTargetSeatNestedInput = {
+  create?: Prisma.XOR<Prisma.ProductDistributionCreateWithoutTargetSeatInput, Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput> | Prisma.ProductDistributionCreateWithoutTargetSeatInput[] | Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.ProductDistributionCreateOrConnectWithoutTargetSeatInput | Prisma.ProductDistributionCreateOrConnectWithoutTargetSeatInput[]
+  upsert?: Prisma.ProductDistributionUpsertWithWhereUniqueWithoutTargetSeatInput | Prisma.ProductDistributionUpsertWithWhereUniqueWithoutTargetSeatInput[]
+  createMany?: Prisma.ProductDistributionCreateManyTargetSeatInputEnvelope
+  set?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+  disconnect?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+  delete?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+  connect?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+  update?: Prisma.ProductDistributionUpdateWithWhereUniqueWithoutTargetSeatInput | Prisma.ProductDistributionUpdateWithWhereUniqueWithoutTargetSeatInput[]
+  updateMany?: Prisma.ProductDistributionUpdateManyWithWhereWithoutTargetSeatInput | Prisma.ProductDistributionUpdateManyWithWhereWithoutTargetSeatInput[]
+  deleteMany?: Prisma.ProductDistributionScalarWhereInput | Prisma.ProductDistributionScalarWhereInput[]
+}
+
+export type ProductDistributionUncheckedUpdateManyWithoutTargetSeatNestedInput = {
+  create?: Prisma.XOR<Prisma.ProductDistributionCreateWithoutTargetSeatInput, Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput> | Prisma.ProductDistributionCreateWithoutTargetSeatInput[] | Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.ProductDistributionCreateOrConnectWithoutTargetSeatInput | Prisma.ProductDistributionCreateOrConnectWithoutTargetSeatInput[]
+  upsert?: Prisma.ProductDistributionUpsertWithWhereUniqueWithoutTargetSeatInput | Prisma.ProductDistributionUpsertWithWhereUniqueWithoutTargetSeatInput[]
+  createMany?: Prisma.ProductDistributionCreateManyTargetSeatInputEnvelope
+  set?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+  disconnect?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+  delete?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+  connect?: Prisma.ProductDistributionWhereUniqueInput | Prisma.ProductDistributionWhereUniqueInput[]
+  update?: Prisma.ProductDistributionUpdateWithWhereUniqueWithoutTargetSeatInput | Prisma.ProductDistributionUpdateWithWhereUniqueWithoutTargetSeatInput[]
+  updateMany?: Prisma.ProductDistributionUpdateManyWithWhereWithoutTargetSeatInput | Prisma.ProductDistributionUpdateManyWithWhereWithoutTargetSeatInput[]
+  deleteMany?: Prisma.ProductDistributionScalarWhereInput | Prisma.ProductDistributionScalarWhereInput[]
+}
+
 export type ProductDistributionCreateNestedManyWithoutSentByAssignmentInput = {
   create?: Prisma.XOR<Prisma.ProductDistributionCreateWithoutSentByAssignmentInput, Prisma.ProductDistributionUncheckedCreateWithoutSentByAssignmentInput> | Prisma.ProductDistributionCreateWithoutSentByAssignmentInput[] | Prisma.ProductDistributionUncheckedCreateWithoutSentByAssignmentInput[]
   connectOrCreate?: Prisma.ProductDistributionCreateOrConnectWithoutSentByAssignmentInput | Prisma.ProductDistributionCreateOrConnectWithoutSentByAssignmentInput[]
@@ -717,7 +761,6 @@ export type EnumDistributionStatusFieldUpdateOperationsInput = {
 
 export type ProductDistributionCreateWithoutTargetUserInput = {
   id?: string
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -725,8 +768,9 @@ export type ProductDistributionCreateWithoutTargetUserInput = {
   revokedAt?: Date | string | null
   failureReason?: string | null
   productVersion: Prisma.ProductVersionCreateNestedOneWithoutDistributionsInput
-  sentByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductDistributionsSentInput
+  sentByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductDistributionsSentInput
   targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutProductDistributionsInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutProductDistributionsInput
   targetPosition?: Prisma.PositionCreateNestedOneWithoutProductDistributionsInput
 }
 
@@ -735,8 +779,8 @@ export type ProductDistributionUncheckedCreateWithoutTargetUserInput = {
   productVersionId: string
   sentByAssignmentId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -779,9 +823,9 @@ export type ProductDistributionScalarWhereInput = {
   productVersionId?: Prisma.UuidFilter<"ProductDistribution"> | string
   sentByAssignmentId?: Prisma.UuidFilter<"ProductDistribution"> | string
   targetUnitId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
+  targetSeatId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
   targetPositionId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
   targetUserProfileId?: Prisma.UuidNullableFilter<"ProductDistribution"> | string | null
-  classification?: Prisma.EnumClassificationFilter<"ProductDistribution"> | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFilter<"ProductDistribution"> | $Enums.DistributionStatus
   sentAt?: Prisma.DateTimeNullableFilter<"ProductDistribution"> | Date | string | null
   deliveredAt?: Prisma.DateTimeNullableFilter<"ProductDistribution"> | Date | string | null
@@ -792,7 +836,6 @@ export type ProductDistributionScalarWhereInput = {
 
 export type ProductDistributionCreateWithoutTargetUnitInput = {
   id?: string
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -800,7 +843,8 @@ export type ProductDistributionCreateWithoutTargetUnitInput = {
   revokedAt?: Date | string | null
   failureReason?: string | null
   productVersion: Prisma.ProductVersionCreateNestedOneWithoutDistributionsInput
-  sentByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductDistributionsSentInput
+  sentByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductDistributionsSentInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutProductDistributionsInput
   targetPosition?: Prisma.PositionCreateNestedOneWithoutProductDistributionsInput
   targetUser?: Prisma.UserProfileCreateNestedOneWithoutReceivedDistributionsInput
 }
@@ -809,9 +853,9 @@ export type ProductDistributionUncheckedCreateWithoutTargetUnitInput = {
   id?: string
   productVersionId: string
   sentByAssignmentId: string
+  targetSeatId?: string | null
   targetPositionId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -848,7 +892,6 @@ export type ProductDistributionUpdateManyWithWhereWithoutTargetUnitInput = {
 
 export type ProductDistributionCreateWithoutTargetPositionInput = {
   id?: string
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -856,8 +899,9 @@ export type ProductDistributionCreateWithoutTargetPositionInput = {
   revokedAt?: Date | string | null
   failureReason?: string | null
   productVersion: Prisma.ProductVersionCreateNestedOneWithoutDistributionsInput
-  sentByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductDistributionsSentInput
+  sentByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductDistributionsSentInput
   targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutProductDistributionsInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutProductDistributionsInput
   targetUser?: Prisma.UserProfileCreateNestedOneWithoutReceivedDistributionsInput
 }
 
@@ -866,8 +910,8 @@ export type ProductDistributionUncheckedCreateWithoutTargetPositionInput = {
   productVersionId: string
   sentByAssignmentId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -902,9 +946,64 @@ export type ProductDistributionUpdateManyWithWhereWithoutTargetPositionInput = {
   data: Prisma.XOR<Prisma.ProductDistributionUpdateManyMutationInput, Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionInput>
 }
 
+export type ProductDistributionCreateWithoutTargetSeatInput = {
+  id?: string
+  status?: $Enums.DistributionStatus
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  readAt?: Date | string | null
+  revokedAt?: Date | string | null
+  failureReason?: string | null
+  productVersion: Prisma.ProductVersionCreateNestedOneWithoutDistributionsInput
+  sentByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductDistributionsSentInput
+  targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutProductDistributionsInput
+  targetPosition?: Prisma.PositionCreateNestedOneWithoutProductDistributionsInput
+  targetUser?: Prisma.UserProfileCreateNestedOneWithoutReceivedDistributionsInput
+}
+
+export type ProductDistributionUncheckedCreateWithoutTargetSeatInput = {
+  id?: string
+  productVersionId: string
+  sentByAssignmentId: string
+  targetUnitId?: string | null
+  targetPositionId?: string | null
+  targetUserProfileId?: string | null
+  status?: $Enums.DistributionStatus
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  readAt?: Date | string | null
+  revokedAt?: Date | string | null
+  failureReason?: string | null
+}
+
+export type ProductDistributionCreateOrConnectWithoutTargetSeatInput = {
+  where: Prisma.ProductDistributionWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProductDistributionCreateWithoutTargetSeatInput, Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput>
+}
+
+export type ProductDistributionCreateManyTargetSeatInputEnvelope = {
+  data: Prisma.ProductDistributionCreateManyTargetSeatInput | Prisma.ProductDistributionCreateManyTargetSeatInput[]
+  skipDuplicates?: boolean
+}
+
+export type ProductDistributionUpsertWithWhereUniqueWithoutTargetSeatInput = {
+  where: Prisma.ProductDistributionWhereUniqueInput
+  update: Prisma.XOR<Prisma.ProductDistributionUpdateWithoutTargetSeatInput, Prisma.ProductDistributionUncheckedUpdateWithoutTargetSeatInput>
+  create: Prisma.XOR<Prisma.ProductDistributionCreateWithoutTargetSeatInput, Prisma.ProductDistributionUncheckedCreateWithoutTargetSeatInput>
+}
+
+export type ProductDistributionUpdateWithWhereUniqueWithoutTargetSeatInput = {
+  where: Prisma.ProductDistributionWhereUniqueInput
+  data: Prisma.XOR<Prisma.ProductDistributionUpdateWithoutTargetSeatInput, Prisma.ProductDistributionUncheckedUpdateWithoutTargetSeatInput>
+}
+
+export type ProductDistributionUpdateManyWithWhereWithoutTargetSeatInput = {
+  where: Prisma.ProductDistributionScalarWhereInput
+  data: Prisma.XOR<Prisma.ProductDistributionUpdateManyMutationInput, Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetSeatInput>
+}
+
 export type ProductDistributionCreateWithoutSentByAssignmentInput = {
   id?: string
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -913,6 +1012,7 @@ export type ProductDistributionCreateWithoutSentByAssignmentInput = {
   failureReason?: string | null
   productVersion: Prisma.ProductVersionCreateNestedOneWithoutDistributionsInput
   targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutProductDistributionsInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutProductDistributionsInput
   targetPosition?: Prisma.PositionCreateNestedOneWithoutProductDistributionsInput
   targetUser?: Prisma.UserProfileCreateNestedOneWithoutReceivedDistributionsInput
 }
@@ -921,9 +1021,9 @@ export type ProductDistributionUncheckedCreateWithoutSentByAssignmentInput = {
   id?: string
   productVersionId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -960,15 +1060,15 @@ export type ProductDistributionUpdateManyWithWhereWithoutSentByAssignmentInput =
 
 export type ProductDistributionCreateWithoutProductVersionInput = {
   id?: string
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
   readAt?: Date | string | null
   revokedAt?: Date | string | null
   failureReason?: string | null
-  sentByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductDistributionsSentInput
+  sentByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductDistributionsSentInput
   targetUnit?: Prisma.OrganizationUnitCreateNestedOneWithoutProductDistributionsInput
+  targetSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutProductDistributionsInput
   targetPosition?: Prisma.PositionCreateNestedOneWithoutProductDistributionsInput
   targetUser?: Prisma.UserProfileCreateNestedOneWithoutReceivedDistributionsInput
 }
@@ -977,9 +1077,9 @@ export type ProductDistributionUncheckedCreateWithoutProductVersionInput = {
   id?: string
   sentByAssignmentId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -1019,8 +1119,8 @@ export type ProductDistributionCreateManyTargetUserInput = {
   productVersionId: string
   sentByAssignmentId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -1031,7 +1131,6 @@ export type ProductDistributionCreateManyTargetUserInput = {
 
 export type ProductDistributionUpdateWithoutTargetUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1039,8 +1138,9 @@ export type ProductDistributionUpdateWithoutTargetUserInput = {
   revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productVersion?: Prisma.ProductVersionUpdateOneRequiredWithoutDistributionsNestedInput
-  sentByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
+  sentByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
   targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutProductDistributionsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutProductDistributionsNestedInput
   targetPosition?: Prisma.PositionUpdateOneWithoutProductDistributionsNestedInput
 }
 
@@ -1049,8 +1149,8 @@ export type ProductDistributionUncheckedUpdateWithoutTargetUserInput = {
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1064,8 +1164,8 @@ export type ProductDistributionUncheckedUpdateManyWithoutTargetUserInput = {
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1078,9 +1178,9 @@ export type ProductDistributionCreateManyTargetUnitInput = {
   id?: string
   productVersionId: string
   sentByAssignmentId: string
+  targetSeatId?: string | null
   targetPositionId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -1091,7 +1191,6 @@ export type ProductDistributionCreateManyTargetUnitInput = {
 
 export type ProductDistributionUpdateWithoutTargetUnitInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1099,7 +1198,8 @@ export type ProductDistributionUpdateWithoutTargetUnitInput = {
   revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productVersion?: Prisma.ProductVersionUpdateOneRequiredWithoutDistributionsNestedInput
-  sentByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
+  sentByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutProductDistributionsNestedInput
   targetPosition?: Prisma.PositionUpdateOneWithoutProductDistributionsNestedInput
   targetUser?: Prisma.UserProfileUpdateOneWithoutReceivedDistributionsNestedInput
 }
@@ -1108,9 +1208,9 @@ export type ProductDistributionUncheckedUpdateWithoutTargetUnitInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1123,9 +1223,9 @@ export type ProductDistributionUncheckedUpdateManyWithoutTargetUnitInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1139,8 +1239,8 @@ export type ProductDistributionCreateManyTargetPositionInput = {
   productVersionId: string
   sentByAssignmentId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -1151,7 +1251,6 @@ export type ProductDistributionCreateManyTargetPositionInput = {
 
 export type ProductDistributionUpdateWithoutTargetPositionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1159,8 +1258,9 @@ export type ProductDistributionUpdateWithoutTargetPositionInput = {
   revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productVersion?: Prisma.ProductVersionUpdateOneRequiredWithoutDistributionsNestedInput
-  sentByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
+  sentByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
   targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutProductDistributionsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutProductDistributionsNestedInput
   targetUser?: Prisma.UserProfileUpdateOneWithoutReceivedDistributionsNestedInput
 }
 
@@ -1169,8 +1269,8 @@ export type ProductDistributionUncheckedUpdateWithoutTargetPositionInput = {
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1184,8 +1284,68 @@ export type ProductDistributionUncheckedUpdateManyWithoutTargetPositionInput = {
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  readAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type ProductDistributionCreateManyTargetSeatInput = {
+  id?: string
+  productVersionId: string
+  sentByAssignmentId: string
+  targetUnitId?: string | null
+  targetPositionId?: string | null
+  targetUserProfileId?: string | null
+  status?: $Enums.DistributionStatus
+  sentAt?: Date | string | null
+  deliveredAt?: Date | string | null
+  readAt?: Date | string | null
+  revokedAt?: Date | string | null
+  failureReason?: string | null
+}
+
+export type ProductDistributionUpdateWithoutTargetSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  readAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  productVersion?: Prisma.ProductVersionUpdateOneRequiredWithoutDistributionsNestedInput
+  sentByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
+  targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutProductDistributionsNestedInput
+  targetPosition?: Prisma.PositionUpdateOneWithoutProductDistributionsNestedInput
+  targetUser?: Prisma.UserProfileUpdateOneWithoutReceivedDistributionsNestedInput
+}
+
+export type ProductDistributionUncheckedUpdateWithoutTargetSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
+  sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  readAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type ProductDistributionUncheckedUpdateManyWithoutTargetSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
+  sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1198,9 +1358,9 @@ export type ProductDistributionCreateManySentByAssignmentInput = {
   id?: string
   productVersionId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -1211,7 +1371,6 @@ export type ProductDistributionCreateManySentByAssignmentInput = {
 
 export type ProductDistributionUpdateWithoutSentByAssignmentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1220,6 +1379,7 @@ export type ProductDistributionUpdateWithoutSentByAssignmentInput = {
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productVersion?: Prisma.ProductVersionUpdateOneRequiredWithoutDistributionsNestedInput
   targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutProductDistributionsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutProductDistributionsNestedInput
   targetPosition?: Prisma.PositionUpdateOneWithoutProductDistributionsNestedInput
   targetUser?: Prisma.UserProfileUpdateOneWithoutReceivedDistributionsNestedInput
 }
@@ -1228,9 +1388,9 @@ export type ProductDistributionUncheckedUpdateWithoutSentByAssignmentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1243,9 +1403,9 @@ export type ProductDistributionUncheckedUpdateManyWithoutSentByAssignmentInput =
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productVersionId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1258,9 +1418,9 @@ export type ProductDistributionCreateManyProductVersionInput = {
   id?: string
   sentByAssignmentId: string
   targetUnitId?: string | null
+  targetSeatId?: string | null
   targetPositionId?: string | null
   targetUserProfileId?: string | null
-  classification: $Enums.Classification
   status?: $Enums.DistributionStatus
   sentAt?: Date | string | null
   deliveredAt?: Date | string | null
@@ -1271,15 +1431,15 @@ export type ProductDistributionCreateManyProductVersionInput = {
 
 export type ProductDistributionUpdateWithoutProductVersionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   readAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   revokedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   failureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sentByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
+  sentByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductDistributionsSentNestedInput
   targetUnit?: Prisma.OrganizationUnitUpdateOneWithoutProductDistributionsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutProductDistributionsNestedInput
   targetPosition?: Prisma.PositionUpdateOneWithoutProductDistributionsNestedInput
   targetUser?: Prisma.UserProfileUpdateOneWithoutReceivedDistributionsNestedInput
 }
@@ -1288,9 +1448,9 @@ export type ProductDistributionUncheckedUpdateWithoutProductVersionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1303,9 +1463,9 @@ export type ProductDistributionUncheckedUpdateManyWithoutProductVersionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   sentByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   targetUnitId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetUserProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   status?: Prisma.EnumDistributionStatusFieldUpdateOperationsInput | $Enums.DistributionStatus
   sentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1321,9 +1481,9 @@ export type ProductDistributionSelect<ExtArgs extends runtime.Types.Extensions.I
   productVersionId?: boolean
   sentByAssignmentId?: boolean
   targetUnitId?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   targetUserProfileId?: boolean
-  classification?: boolean
   status?: boolean
   sentAt?: boolean
   deliveredAt?: boolean
@@ -1331,8 +1491,9 @@ export type ProductDistributionSelect<ExtArgs extends runtime.Types.Extensions.I
   revokedAt?: boolean
   failureReason?: boolean
   productVersion?: boolean | Prisma.ProductVersionDefaultArgs<ExtArgs>
-  sentByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  sentByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.ProductDistribution$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.ProductDistribution$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.ProductDistribution$targetPositionArgs<ExtArgs>
   targetUser?: boolean | Prisma.ProductDistribution$targetUserArgs<ExtArgs>
 }, ExtArgs["result"]["productDistribution"]>
@@ -1342,9 +1503,9 @@ export type ProductDistributionSelectCreateManyAndReturn<ExtArgs extends runtime
   productVersionId?: boolean
   sentByAssignmentId?: boolean
   targetUnitId?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   targetUserProfileId?: boolean
-  classification?: boolean
   status?: boolean
   sentAt?: boolean
   deliveredAt?: boolean
@@ -1352,8 +1513,9 @@ export type ProductDistributionSelectCreateManyAndReturn<ExtArgs extends runtime
   revokedAt?: boolean
   failureReason?: boolean
   productVersion?: boolean | Prisma.ProductVersionDefaultArgs<ExtArgs>
-  sentByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  sentByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.ProductDistribution$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.ProductDistribution$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.ProductDistribution$targetPositionArgs<ExtArgs>
   targetUser?: boolean | Prisma.ProductDistribution$targetUserArgs<ExtArgs>
 }, ExtArgs["result"]["productDistribution"]>
@@ -1363,9 +1525,9 @@ export type ProductDistributionSelectUpdateManyAndReturn<ExtArgs extends runtime
   productVersionId?: boolean
   sentByAssignmentId?: boolean
   targetUnitId?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   targetUserProfileId?: boolean
-  classification?: boolean
   status?: boolean
   sentAt?: boolean
   deliveredAt?: boolean
@@ -1373,8 +1535,9 @@ export type ProductDistributionSelectUpdateManyAndReturn<ExtArgs extends runtime
   revokedAt?: boolean
   failureReason?: boolean
   productVersion?: boolean | Prisma.ProductVersionDefaultArgs<ExtArgs>
-  sentByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  sentByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.ProductDistribution$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.ProductDistribution$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.ProductDistribution$targetPositionArgs<ExtArgs>
   targetUser?: boolean | Prisma.ProductDistribution$targetUserArgs<ExtArgs>
 }, ExtArgs["result"]["productDistribution"]>
@@ -1384,9 +1547,9 @@ export type ProductDistributionSelectScalar = {
   productVersionId?: boolean
   sentByAssignmentId?: boolean
   targetUnitId?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   targetUserProfileId?: boolean
-  classification?: boolean
   status?: boolean
   sentAt?: boolean
   deliveredAt?: boolean
@@ -1395,25 +1558,28 @@ export type ProductDistributionSelectScalar = {
   failureReason?: boolean
 }
 
-export type ProductDistributionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productVersionId" | "sentByAssignmentId" | "targetUnitId" | "targetPositionId" | "targetUserProfileId" | "classification" | "status" | "sentAt" | "deliveredAt" | "readAt" | "revokedAt" | "failureReason", ExtArgs["result"]["productDistribution"]>
+export type ProductDistributionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productVersionId" | "sentByAssignmentId" | "targetUnitId" | "targetSeatId" | "targetPositionId" | "targetUserProfileId" | "status" | "sentAt" | "deliveredAt" | "readAt" | "revokedAt" | "failureReason", ExtArgs["result"]["productDistribution"]>
 export type ProductDistributionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   productVersion?: boolean | Prisma.ProductVersionDefaultArgs<ExtArgs>
-  sentByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  sentByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.ProductDistribution$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.ProductDistribution$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.ProductDistribution$targetPositionArgs<ExtArgs>
   targetUser?: boolean | Prisma.ProductDistribution$targetUserArgs<ExtArgs>
 }
 export type ProductDistributionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   productVersion?: boolean | Prisma.ProductVersionDefaultArgs<ExtArgs>
-  sentByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  sentByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.ProductDistribution$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.ProductDistribution$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.ProductDistribution$targetPositionArgs<ExtArgs>
   targetUser?: boolean | Prisma.ProductDistribution$targetUserArgs<ExtArgs>
 }
 export type ProductDistributionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   productVersion?: boolean | Prisma.ProductVersionDefaultArgs<ExtArgs>
-  sentByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  sentByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   targetUnit?: boolean | Prisma.ProductDistribution$targetUnitArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.ProductDistribution$targetSeatArgs<ExtArgs>
   targetPosition?: boolean | Prisma.ProductDistribution$targetPositionArgs<ExtArgs>
   targetUser?: boolean | Prisma.ProductDistribution$targetUserArgs<ExtArgs>
 }
@@ -1422,8 +1588,9 @@ export type $ProductDistributionPayload<ExtArgs extends runtime.Types.Extensions
   name: "ProductDistribution"
   objects: {
     productVersion: Prisma.$ProductVersionPayload<ExtArgs>
-    sentByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    sentByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     targetUnit: Prisma.$OrganizationUnitPayload<ExtArgs> | null
+    targetSeat: Prisma.$OrganizationRoleSeatPayload<ExtArgs> | null
     targetPosition: Prisma.$PositionPayload<ExtArgs> | null
     targetUser: Prisma.$UserProfilePayload<ExtArgs> | null
   }
@@ -1432,9 +1599,9 @@ export type $ProductDistributionPayload<ExtArgs extends runtime.Types.Extensions
     productVersionId: string
     sentByAssignmentId: string
     targetUnitId: string | null
+    targetSeatId: string | null
     targetPositionId: string | null
     targetUserProfileId: string | null
-    classification: $Enums.Classification
     status: $Enums.DistributionStatus
     sentAt: Date | null
     deliveredAt: Date | null
@@ -1836,8 +2003,9 @@ readonly fields: ProductDistributionFieldRefs;
 export interface Prisma__ProductDistributionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   productVersion<T extends Prisma.ProductVersionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductVersionDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductVersionClient<runtime.Types.Result.GetResult<Prisma.$ProductVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  sentByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  sentByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   targetUnit<T extends Prisma.ProductDistribution$targetUnitArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDistribution$targetUnitArgs<ExtArgs>>): Prisma.Prisma__OrganizationUnitClient<runtime.Types.Result.GetResult<Prisma.$OrganizationUnitPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  targetSeat<T extends Prisma.ProductDistribution$targetSeatArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDistribution$targetSeatArgs<ExtArgs>>): Prisma.Prisma__OrganizationRoleSeatClient<runtime.Types.Result.GetResult<Prisma.$OrganizationRoleSeatPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   targetPosition<T extends Prisma.ProductDistribution$targetPositionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDistribution$targetPositionArgs<ExtArgs>>): Prisma.Prisma__PositionClient<runtime.Types.Result.GetResult<Prisma.$PositionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   targetUser<T extends Prisma.ProductDistribution$targetUserArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDistribution$targetUserArgs<ExtArgs>>): Prisma.Prisma__UserProfileClient<runtime.Types.Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
@@ -1873,9 +2041,9 @@ export interface ProductDistributionFieldRefs {
   readonly productVersionId: Prisma.FieldRef<"ProductDistribution", 'String'>
   readonly sentByAssignmentId: Prisma.FieldRef<"ProductDistribution", 'String'>
   readonly targetUnitId: Prisma.FieldRef<"ProductDistribution", 'String'>
+  readonly targetSeatId: Prisma.FieldRef<"ProductDistribution", 'String'>
   readonly targetPositionId: Prisma.FieldRef<"ProductDistribution", 'String'>
   readonly targetUserProfileId: Prisma.FieldRef<"ProductDistribution", 'String'>
-  readonly classification: Prisma.FieldRef<"ProductDistribution", 'Classification'>
   readonly status: Prisma.FieldRef<"ProductDistribution", 'DistributionStatus'>
   readonly sentAt: Prisma.FieldRef<"ProductDistribution", 'DateTime'>
   readonly deliveredAt: Prisma.FieldRef<"ProductDistribution", 'DateTime'>
@@ -2299,6 +2467,25 @@ export type ProductDistribution$targetUnitArgs<ExtArgs extends runtime.Types.Ext
    */
   include?: Prisma.OrganizationUnitInclude<ExtArgs> | null
   where?: Prisma.OrganizationUnitWhereInput
+}
+
+/**
+ * ProductDistribution.targetSeat
+ */
+export type ProductDistribution$targetSeatArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrganizationRoleSeat
+   */
+  select?: Prisma.OrganizationRoleSeatSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OrganizationRoleSeat
+   */
+  omit?: Prisma.OrganizationRoleSeatOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrganizationRoleSeatInclude<ExtArgs> | null
+  where?: Prisma.OrganizationRoleSeatWhereInput
 }
 
 /**

@@ -292,7 +292,7 @@ export type FileAssetWhereInput = {
   createdByAssignmentId?: Prisma.UuidNullableFilter<"FileAsset"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FileAsset"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"FileAsset"> | Date | string | null
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   whatsAppMedia?: Prisma.WhatsAppMessageMediaListRelationFilter
   taskAttachments?: Prisma.TaskAttachmentListRelationFilter
   baketAttachments?: Prisma.BaketVersionAttachmentListRelationFilter
@@ -317,7 +317,7 @@ export type FileAssetOrderByWithRelationInput = {
   createdByAssignmentId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaOrderByRelationAggregateInput
   taskAttachments?: Prisma.TaskAttachmentOrderByRelationAggregateInput
   baketAttachments?: Prisma.BaketVersionAttachmentOrderByRelationAggregateInput
@@ -345,7 +345,7 @@ export type FileAssetWhereUniqueInput = Prisma.AtLeast<{
   createdByAssignmentId?: Prisma.UuidNullableFilter<"FileAsset"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FileAsset"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"FileAsset"> | Date | string | null
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   whatsAppMedia?: Prisma.WhatsAppMessageMediaListRelationFilter
   taskAttachments?: Prisma.TaskAttachmentListRelationFilter
   baketAttachments?: Prisma.BaketVersionAttachmentListRelationFilter
@@ -413,7 +413,7 @@ export type FileAssetCreateInput = {
   retentionUntil?: Date | string | null
   createdAt?: Date | string
   deletedAt?: Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutFilesCreatedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutFilesCreatedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutFileInput
   taskAttachments?: Prisma.TaskAttachmentCreateNestedManyWithoutFileInput
   baketAttachments?: Prisma.BaketVersionAttachmentCreateNestedManyWithoutFileInput
@@ -461,7 +461,7 @@ export type FileAssetUpdateInput = {
   retentionUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutFilesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutFilesCreatedNestedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaUpdateManyWithoutFileNestedInput
   taskAttachments?: Prisma.TaskAttachmentUpdateManyWithoutFileNestedInput
   baketAttachments?: Prisma.BaketVersionAttachmentUpdateManyWithoutFileNestedInput
@@ -879,7 +879,7 @@ export type FileAssetCreateWithoutTaskAttachmentsInput = {
   retentionUntil?: Date | string | null
   createdAt?: Date | string
   deletedAt?: Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutFilesCreatedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutFilesCreatedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutFileInput
   baketAttachments?: Prisma.BaketVersionAttachmentCreateNestedManyWithoutFileInput
   productAttachments?: Prisma.ProductAttachmentCreateNestedManyWithoutFileInput
@@ -941,7 +941,7 @@ export type FileAssetUpdateWithoutTaskAttachmentsInput = {
   retentionUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutFilesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutFilesCreatedNestedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaUpdateManyWithoutFileNestedInput
   baketAttachments?: Prisma.BaketVersionAttachmentUpdateManyWithoutFileNestedInput
   productAttachments?: Prisma.ProductAttachmentUpdateManyWithoutFileNestedInput
@@ -987,7 +987,7 @@ export type FileAssetCreateWithoutWhatsAppMediaInput = {
   retentionUntil?: Date | string | null
   createdAt?: Date | string
   deletedAt?: Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutFilesCreatedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutFilesCreatedInput
   taskAttachments?: Prisma.TaskAttachmentCreateNestedManyWithoutFileInput
   baketAttachments?: Prisma.BaketVersionAttachmentCreateNestedManyWithoutFileInput
   productAttachments?: Prisma.ProductAttachmentCreateNestedManyWithoutFileInput
@@ -1049,7 +1049,7 @@ export type FileAssetUpdateWithoutWhatsAppMediaInput = {
   retentionUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutFilesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutFilesCreatedNestedInput
   taskAttachments?: Prisma.TaskAttachmentUpdateManyWithoutFileNestedInput
   baketAttachments?: Prisma.BaketVersionAttachmentUpdateManyWithoutFileNestedInput
   productAttachments?: Prisma.ProductAttachmentUpdateManyWithoutFileNestedInput
@@ -1095,7 +1095,7 @@ export type FileAssetCreateWithoutBaketAttachmentsInput = {
   retentionUntil?: Date | string | null
   createdAt?: Date | string
   deletedAt?: Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutFilesCreatedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutFilesCreatedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutFileInput
   taskAttachments?: Prisma.TaskAttachmentCreateNestedManyWithoutFileInput
   productAttachments?: Prisma.ProductAttachmentCreateNestedManyWithoutFileInput
@@ -1157,7 +1157,7 @@ export type FileAssetUpdateWithoutBaketAttachmentsInput = {
   retentionUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutFilesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutFilesCreatedNestedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaUpdateManyWithoutFileNestedInput
   taskAttachments?: Prisma.TaskAttachmentUpdateManyWithoutFileNestedInput
   productAttachments?: Prisma.ProductAttachmentUpdateManyWithoutFileNestedInput
@@ -1203,7 +1203,7 @@ export type FileAssetCreateWithoutProductAttachmentsInput = {
   retentionUntil?: Date | string | null
   createdAt?: Date | string
   deletedAt?: Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutFilesCreatedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutFilesCreatedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutFileInput
   taskAttachments?: Prisma.TaskAttachmentCreateNestedManyWithoutFileInput
   baketAttachments?: Prisma.BaketVersionAttachmentCreateNestedManyWithoutFileInput
@@ -1265,7 +1265,7 @@ export type FileAssetUpdateWithoutProductAttachmentsInput = {
   retentionUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutFilesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutFilesCreatedNestedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaUpdateManyWithoutFileNestedInput
   taskAttachments?: Prisma.TaskAttachmentUpdateManyWithoutFileNestedInput
   baketAttachments?: Prisma.BaketVersionAttachmentUpdateManyWithoutFileNestedInput
@@ -1311,7 +1311,7 @@ export type FileAssetCreateWithoutEmergencyAttachmentsInput = {
   retentionUntil?: Date | string | null
   createdAt?: Date | string
   deletedAt?: Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutFilesCreatedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutFilesCreatedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutFileInput
   taskAttachments?: Prisma.TaskAttachmentCreateNestedManyWithoutFileInput
   baketAttachments?: Prisma.BaketVersionAttachmentCreateNestedManyWithoutFileInput
@@ -1373,7 +1373,7 @@ export type FileAssetUpdateWithoutEmergencyAttachmentsInput = {
   retentionUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutFilesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutFilesCreatedNestedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaUpdateManyWithoutFileNestedInput
   taskAttachments?: Prisma.TaskAttachmentUpdateManyWithoutFileNestedInput
   baketAttachments?: Prisma.BaketVersionAttachmentUpdateManyWithoutFileNestedInput
@@ -1419,7 +1419,7 @@ export type FileAssetCreateWithoutUploadReservationInput = {
   retentionUntil?: Date | string | null
   createdAt?: Date | string
   deletedAt?: Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutFilesCreatedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutFilesCreatedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutFileInput
   taskAttachments?: Prisma.TaskAttachmentCreateNestedManyWithoutFileInput
   baketAttachments?: Prisma.BaketVersionAttachmentCreateNestedManyWithoutFileInput
@@ -1481,7 +1481,7 @@ export type FileAssetUpdateWithoutUploadReservationInput = {
   retentionUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutFilesCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutFilesCreatedNestedInput
   whatsAppMedia?: Prisma.WhatsAppMessageMediaUpdateManyWithoutFileNestedInput
   taskAttachments?: Prisma.TaskAttachmentUpdateManyWithoutFileNestedInput
   baketAttachments?: Prisma.BaketVersionAttachmentUpdateManyWithoutFileNestedInput
@@ -1762,7 +1762,7 @@ export type FileAssetIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type $FileAssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "FileAsset"
   objects: {
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs> | null
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs> | null
     whatsAppMedia: Prisma.$WhatsAppMessageMediaPayload<ExtArgs>[]
     taskAttachments: Prisma.$TaskAttachmentPayload<ExtArgs>[]
     baketAttachments: Prisma.$BaketVersionAttachmentPayload<ExtArgs>[]
@@ -2180,7 +2180,7 @@ readonly fields: FileAssetFieldRefs;
  */
 export interface Prisma__FileAssetClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  createdByAssignment<T extends Prisma.FileAsset$createdByAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FileAsset$createdByAssignmentArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.FileAsset$createdByAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FileAsset$createdByAssignmentArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   whatsAppMedia<T extends Prisma.FileAsset$whatsAppMediaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FileAsset$whatsAppMediaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppMessageMediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   taskAttachments<T extends Prisma.FileAsset$taskAttachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FileAsset$taskAttachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskAttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   baketAttachments<T extends Prisma.FileAsset$baketAttachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FileAsset$baketAttachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketVersionAttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2636,18 +2636,18 @@ export type FileAssetDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Int
  */
 export type FileAsset$createdByAssignmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**

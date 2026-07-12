@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -38,7 +39,7 @@ export class IntegrationController {
     operationId: 'apiInt001',
     contractId: 'API-INT-001',
     summary: 'Daftar channel integrasi',
-    permission: 'integration.read',
+    roles: ['admin_system', 'field_coordinator'],
   })
   async list(@Query() query: IntegrationQuery) {
     return apiResult(await this.integrationService.list(query));
@@ -49,7 +50,7 @@ export class IntegrationController {
     operationId: 'apiInt011',
     contractId: 'API-INT-011',
     summary: 'Ringkasan kontrol WhatsApp',
-    permission: 'integration.read',
+    roles: ['admin_system', 'field_coordinator'],
   })
   async whatsappControl() {
     return apiResult(await this.integrationService.whatsappControl());
@@ -60,7 +61,7 @@ export class IntegrationController {
     operationId: 'apiInt002',
     contractId: 'API-INT-002',
     summary: 'Buat channel',
-    permission: 'integration.manage',
+    roles: ['admin_system', 'field_coordinator'],
     successStatus: 201,
     idempotent: true,
   })
@@ -76,7 +77,7 @@ export class IntegrationController {
     operationId: 'apiInt003',
     contractId: 'API-INT-003',
     summary: 'Detail channel',
-    permission: 'integration.read',
+    roles: ['admin_system', 'field_coordinator'],
   })
   async detail(@Param('channelId', ParseUUIDPipe) id: string) {
     return apiResult(await this.integrationService.detail(id));
@@ -87,7 +88,7 @@ export class IntegrationController {
     operationId: 'apiInt004',
     contractId: 'API-INT-004',
     summary: 'Ubah channel',
-    permission: 'integration.manage',
+    roles: ['admin_system', 'field_coordinator'],
   })
   async update(
     @Param('channelId', ParseUUIDPipe) id: string,
@@ -102,7 +103,7 @@ export class IntegrationController {
     operationId: 'apiInt012',
     contractId: 'API-INT-012',
     summary: 'Ubah bot dan nomor pengirim WhatsApp',
-    permission: 'integration.manage',
+    roles: ['admin_system', 'field_coordinator'],
   })
   async updateWhatsappControl(
     @Param('channelId', ParseUUIDPipe) id: string,
@@ -119,7 +120,7 @@ export class IntegrationController {
     operationId: 'apiInt013',
     contractId: 'API-INT-013',
     summary: 'Minta QR atau pairing code WhatsApp baru',
-    permission: 'integration.manage',
+    roles: ['admin_system', 'field_coordinator'],
     idempotent: true,
   })
   async requestWhatsappQr(
@@ -136,7 +137,7 @@ export class IntegrationController {
     operationId: 'apiInt005',
     contractId: 'API-INT-005',
     summary: 'Aktifkan channel',
-    permission: 'integration.manage',
+    roles: ['admin_system', 'field_coordinator'],
     idempotent: true,
   })
   async activate(
@@ -152,7 +153,7 @@ export class IntegrationController {
     operationId: 'apiInt006',
     contractId: 'API-INT-006',
     summary: 'Nonaktifkan channel',
-    permission: 'integration.manage',
+    roles: ['admin_system', 'field_coordinator'],
     idempotent: true,
   })
   async deactivate(
@@ -170,7 +171,7 @@ export class IntegrationController {
     operationId: 'apiInt007',
     contractId: 'API-INT-007',
     summary: 'Tes koneksi',
-    permission: 'integration.manage',
+    roles: ['admin_system', 'field_coordinator'],
     idempotent: true,
   })
   async test(
@@ -186,7 +187,7 @@ export class IntegrationController {
     operationId: 'apiInt008',
     contractId: 'API-INT-008',
     summary: 'Daftar webhook event',
-    permission: 'integration.read',
+    roles: ['admin_system', 'field_coordinator'],
   })
   async events(
     @Param('channelId', ParseUUIDPipe) id: string,
@@ -200,7 +201,7 @@ export class IntegrationController {
     operationId: 'apiInt009',
     contractId: 'API-INT-009',
     summary: 'Detail webhook event',
-    permission: 'integration.read',
+    roles: ['admin_system', 'field_coordinator'],
   })
   async event(@Param('eventId', ParseUUIDPipe) id: string) {
     return apiResult(await this.integrationService.event(id));
@@ -211,7 +212,7 @@ export class IntegrationController {
     operationId: 'apiInt010',
     contractId: 'API-INT-010',
     summary: 'Retry event gagal',
-    permission: 'integration.retry',
+    roles: ['admin_system'],
     successStatus: 202,
     idempotent: true,
   })
@@ -221,5 +222,19 @@ export class IntegrationController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.integrationService.retry(id, body, context));
+  }
+
+  @Delete('integration-channels/:channelId')
+  @ApiContract({
+    operationId: 'apiInt014',
+    contractId: 'API-INT-014',
+    summary: 'Hapus channel',
+    roles: ['admin_system', 'field_coordinator'],
+  })
+  async remove(
+    @Param('channelId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.integrationService.remove(id, context));
   }
 }

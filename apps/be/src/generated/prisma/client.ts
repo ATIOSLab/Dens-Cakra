@@ -72,16 +72,6 @@ export type UserProfile = Prisma.UserProfileModel
  */
 export type Role = Prisma.RoleModel
 /**
- * Model Permission
- * 
- */
-export type Permission = Prisma.PermissionModel
-/**
- * Model RolePermission
- * 
- */
-export type RolePermission = Prisma.RolePermissionModel
-/**
  * Model OrganizationUnit
  * 
  */
@@ -97,15 +87,20 @@ export type OrganizationUnitClosure = Prisma.OrganizationUnitClosureModel
  */
 export type Position = Prisma.PositionModel
 /**
- * Model PositionAssignment
+ * Model OrganizationRoleSeat
  * 
  */
-export type PositionAssignment = Prisma.PositionAssignmentModel
+export type OrganizationRoleSeat = Prisma.OrganizationRoleSeatModel
 /**
- * Model PositionAreaPolicy
+ * Model UserSeatAssignment
  * 
  */
-export type PositionAreaPolicy = Prisma.PositionAreaPolicyModel
+export type UserSeatAssignment = Prisma.UserSeatAssignmentModel
+/**
+ * Model RoleAreaPolicy
+ * 
+ */
+export type RoleAreaPolicy = Prisma.RoleAreaPolicyModel
 /**
  * Model PositionAreaScope
  * 
@@ -136,6 +131,21 @@ export type AdministrativeAreaBoundary = Prisma.AdministrativeAreaBoundaryModel
  * 
  */
 export type OrganizationAreaCoverage = Prisma.OrganizationAreaCoverageModel
+/**
+ * Model DirectorateProfile
+ * 
+ */
+export type DirectorateProfile = Prisma.DirectorateProfileModel
+/**
+ * Model DirectorateCoverage
+ * 
+ */
+export type DirectorateCoverage = Prisma.DirectorateCoverageModel
+/**
+ * Model BindaProfile
+ * 
+ */
+export type BindaProfile = Prisma.BindaProfileModel
 /**
  * Model FileAsset
  * 

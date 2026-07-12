@@ -39,7 +39,6 @@ export type IntelligenceProductMinAggregateOutputType = {
   productTypeId: string | null
   ownerUnitId: string | null
   createdByAssignmentId: string | null
-  classification: $Enums.Classification | null
   productNumber: string | null
   title: string | null
   status: $Enums.ProductStatus | null
@@ -56,7 +55,6 @@ export type IntelligenceProductMaxAggregateOutputType = {
   productTypeId: string | null
   ownerUnitId: string | null
   createdByAssignmentId: string | null
-  classification: $Enums.Classification | null
   productNumber: string | null
   title: string | null
   status: $Enums.ProductStatus | null
@@ -73,7 +71,6 @@ export type IntelligenceProductCountAggregateOutputType = {
   productTypeId: number
   ownerUnitId: number
   createdByAssignmentId: number
-  classification: number
   productNumber: number
   title: number
   status: number
@@ -100,7 +97,6 @@ export type IntelligenceProductMinAggregateInputType = {
   productTypeId?: true
   ownerUnitId?: true
   createdByAssignmentId?: true
-  classification?: true
   productNumber?: true
   title?: true
   status?: true
@@ -117,7 +113,6 @@ export type IntelligenceProductMaxAggregateInputType = {
   productTypeId?: true
   ownerUnitId?: true
   createdByAssignmentId?: true
-  classification?: true
   productNumber?: true
   title?: true
   status?: true
@@ -134,7 +129,6 @@ export type IntelligenceProductCountAggregateInputType = {
   productTypeId?: true
   ownerUnitId?: true
   createdByAssignmentId?: true
-  classification?: true
   productNumber?: true
   title?: true
   status?: true
@@ -238,7 +232,6 @@ export type IntelligenceProductGroupByOutputType = {
   productTypeId: string
   ownerUnitId: string
   createdByAssignmentId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status: $Enums.ProductStatus
@@ -278,7 +271,6 @@ export type IntelligenceProductWhereInput = {
   productTypeId?: Prisma.UuidFilter<"IntelligenceProduct"> | string
   ownerUnitId?: Prisma.UuidFilter<"IntelligenceProduct"> | string
   createdByAssignmentId?: Prisma.UuidFilter<"IntelligenceProduct"> | string
-  classification?: Prisma.EnumClassificationFilter<"IntelligenceProduct"> | $Enums.Classification
   productNumber?: Prisma.StringFilter<"IntelligenceProduct"> | string
   title?: Prisma.StringFilter<"IntelligenceProduct"> | string
   status?: Prisma.EnumProductStatusFilter<"IntelligenceProduct"> | $Enums.ProductStatus
@@ -290,7 +282,7 @@ export type IntelligenceProductWhereInput = {
   deletedAt?: Prisma.DateTimeNullableFilter<"IntelligenceProduct"> | Date | string | null
   productType?: Prisma.XOR<Prisma.ProductTypeDefinitionScalarRelationFilter, Prisma.ProductTypeDefinitionWhereInput>
   ownerUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   versions?: Prisma.ProductVersionListRelationFilter
 }
 
@@ -299,7 +291,6 @@ export type IntelligenceProductOrderByWithRelationInput = {
   productTypeId?: Prisma.SortOrder
   ownerUnitId?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
-  classification?: Prisma.SortOrder
   productNumber?: Prisma.SortOrder
   title?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -311,7 +302,7 @@ export type IntelligenceProductOrderByWithRelationInput = {
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   productType?: Prisma.ProductTypeDefinitionOrderByWithRelationInput
   ownerUnit?: Prisma.OrganizationUnitOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   versions?: Prisma.ProductVersionOrderByRelationAggregateInput
 }
 
@@ -324,7 +315,6 @@ export type IntelligenceProductWhereUniqueInput = Prisma.AtLeast<{
   productTypeId?: Prisma.UuidFilter<"IntelligenceProduct"> | string
   ownerUnitId?: Prisma.UuidFilter<"IntelligenceProduct"> | string
   createdByAssignmentId?: Prisma.UuidFilter<"IntelligenceProduct"> | string
-  classification?: Prisma.EnumClassificationFilter<"IntelligenceProduct"> | $Enums.Classification
   title?: Prisma.StringFilter<"IntelligenceProduct"> | string
   status?: Prisma.EnumProductStatusFilter<"IntelligenceProduct"> | $Enums.ProductStatus
   currentVersionNumber?: Prisma.IntFilter<"IntelligenceProduct"> | number
@@ -335,7 +325,7 @@ export type IntelligenceProductWhereUniqueInput = Prisma.AtLeast<{
   deletedAt?: Prisma.DateTimeNullableFilter<"IntelligenceProduct"> | Date | string | null
   productType?: Prisma.XOR<Prisma.ProductTypeDefinitionScalarRelationFilter, Prisma.ProductTypeDefinitionWhereInput>
   ownerUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   versions?: Prisma.ProductVersionListRelationFilter
 }, "id" | "productNumber">
 
@@ -344,7 +334,6 @@ export type IntelligenceProductOrderByWithAggregationInput = {
   productTypeId?: Prisma.SortOrder
   ownerUnitId?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
-  classification?: Prisma.SortOrder
   productNumber?: Prisma.SortOrder
   title?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -369,7 +358,6 @@ export type IntelligenceProductScalarWhereWithAggregatesInput = {
   productTypeId?: Prisma.UuidWithAggregatesFilter<"IntelligenceProduct"> | string
   ownerUnitId?: Prisma.UuidWithAggregatesFilter<"IntelligenceProduct"> | string
   createdByAssignmentId?: Prisma.UuidWithAggregatesFilter<"IntelligenceProduct"> | string
-  classification?: Prisma.EnumClassificationWithAggregatesFilter<"IntelligenceProduct"> | $Enums.Classification
   productNumber?: Prisma.StringWithAggregatesFilter<"IntelligenceProduct"> | string
   title?: Prisma.StringWithAggregatesFilter<"IntelligenceProduct"> | string
   status?: Prisma.EnumProductStatusWithAggregatesFilter<"IntelligenceProduct"> | $Enums.ProductStatus
@@ -383,7 +371,6 @@ export type IntelligenceProductScalarWhereWithAggregatesInput = {
 
 export type IntelligenceProductCreateInput = {
   id?: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -395,7 +382,7 @@ export type IntelligenceProductCreateInput = {
   deletedAt?: Date | string | null
   productType: Prisma.ProductTypeDefinitionCreateNestedOneWithoutProductsInput
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutIntelligenceProductsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductsCreatedInput
   versions?: Prisma.ProductVersionCreateNestedManyWithoutProductInput
 }
 
@@ -404,7 +391,6 @@ export type IntelligenceProductUncheckedCreateInput = {
   productTypeId: string
   ownerUnitId: string
   createdByAssignmentId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -419,7 +405,6 @@ export type IntelligenceProductUncheckedCreateInput = {
 
 export type IntelligenceProductUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -431,7 +416,7 @@ export type IntelligenceProductUpdateInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   productType?: Prisma.ProductTypeDefinitionUpdateOneRequiredWithoutProductsNestedInput
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutIntelligenceProductsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductsCreatedNestedInput
   versions?: Prisma.ProductVersionUpdateManyWithoutProductNestedInput
 }
 
@@ -440,7 +425,6 @@ export type IntelligenceProductUncheckedUpdateInput = {
   productTypeId?: Prisma.StringFieldUpdateOperationsInput | string
   ownerUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -458,7 +442,6 @@ export type IntelligenceProductCreateManyInput = {
   productTypeId: string
   ownerUnitId: string
   createdByAssignmentId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -472,7 +455,6 @@ export type IntelligenceProductCreateManyInput = {
 
 export type IntelligenceProductUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -489,7 +471,6 @@ export type IntelligenceProductUncheckedUpdateManyInput = {
   productTypeId?: Prisma.StringFieldUpdateOperationsInput | string
   ownerUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -516,7 +497,6 @@ export type IntelligenceProductCountOrderByAggregateInput = {
   productTypeId?: Prisma.SortOrder
   ownerUnitId?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
-  classification?: Prisma.SortOrder
   productNumber?: Prisma.SortOrder
   title?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -537,7 +517,6 @@ export type IntelligenceProductMaxOrderByAggregateInput = {
   productTypeId?: Prisma.SortOrder
   ownerUnitId?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
-  classification?: Prisma.SortOrder
   productNumber?: Prisma.SortOrder
   title?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -554,7 +533,6 @@ export type IntelligenceProductMinOrderByAggregateInput = {
   productTypeId?: Prisma.SortOrder
   ownerUnitId?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
-  classification?: Prisma.SortOrder
   productNumber?: Prisma.SortOrder
   title?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -721,7 +699,6 @@ export type IntelligenceProductUpdateOneRequiredWithoutVersionsNestedInput = {
 
 export type IntelligenceProductCreateWithoutOwnerUnitInput = {
   id?: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -732,7 +709,7 @@ export type IntelligenceProductCreateWithoutOwnerUnitInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   productType: Prisma.ProductTypeDefinitionCreateNestedOneWithoutProductsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductsCreatedInput
   versions?: Prisma.ProductVersionCreateNestedManyWithoutProductInput
 }
 
@@ -740,7 +717,6 @@ export type IntelligenceProductUncheckedCreateWithoutOwnerUnitInput = {
   id?: string
   productTypeId: string
   createdByAssignmentId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -787,7 +763,6 @@ export type IntelligenceProductScalarWhereInput = {
   productTypeId?: Prisma.UuidFilter<"IntelligenceProduct"> | string
   ownerUnitId?: Prisma.UuidFilter<"IntelligenceProduct"> | string
   createdByAssignmentId?: Prisma.UuidFilter<"IntelligenceProduct"> | string
-  classification?: Prisma.EnumClassificationFilter<"IntelligenceProduct"> | $Enums.Classification
   productNumber?: Prisma.StringFilter<"IntelligenceProduct"> | string
   title?: Prisma.StringFilter<"IntelligenceProduct"> | string
   status?: Prisma.EnumProductStatusFilter<"IntelligenceProduct"> | $Enums.ProductStatus
@@ -801,7 +776,6 @@ export type IntelligenceProductScalarWhereInput = {
 
 export type IntelligenceProductCreateWithoutCreatedByAssignmentInput = {
   id?: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -820,7 +794,6 @@ export type IntelligenceProductUncheckedCreateWithoutCreatedByAssignmentInput = 
   id?: string
   productTypeId: string
   ownerUnitId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -861,7 +834,6 @@ export type IntelligenceProductUpdateManyWithWhereWithoutCreatedByAssignmentInpu
 
 export type IntelligenceProductCreateWithoutProductTypeInput = {
   id?: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -872,7 +844,7 @@ export type IntelligenceProductCreateWithoutProductTypeInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutIntelligenceProductsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductsCreatedInput
   versions?: Prisma.ProductVersionCreateNestedManyWithoutProductInput
 }
 
@@ -880,7 +852,6 @@ export type IntelligenceProductUncheckedCreateWithoutProductTypeInput = {
   id?: string
   ownerUnitId: string
   createdByAssignmentId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -921,7 +892,6 @@ export type IntelligenceProductUpdateManyWithWhereWithoutProductTypeInput = {
 
 export type IntelligenceProductCreateWithoutVersionsInput = {
   id?: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -933,7 +903,7 @@ export type IntelligenceProductCreateWithoutVersionsInput = {
   deletedAt?: Date | string | null
   productType: Prisma.ProductTypeDefinitionCreateNestedOneWithoutProductsInput
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutIntelligenceProductsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductsCreatedInput
 }
 
 export type IntelligenceProductUncheckedCreateWithoutVersionsInput = {
@@ -941,7 +911,6 @@ export type IntelligenceProductUncheckedCreateWithoutVersionsInput = {
   productTypeId: string
   ownerUnitId: string
   createdByAssignmentId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -971,7 +940,6 @@ export type IntelligenceProductUpdateToOneWithWhereWithoutVersionsInput = {
 
 export type IntelligenceProductUpdateWithoutVersionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -983,7 +951,7 @@ export type IntelligenceProductUpdateWithoutVersionsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   productType?: Prisma.ProductTypeDefinitionUpdateOneRequiredWithoutProductsNestedInput
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutIntelligenceProductsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductsCreatedNestedInput
 }
 
 export type IntelligenceProductUncheckedUpdateWithoutVersionsInput = {
@@ -991,7 +959,6 @@ export type IntelligenceProductUncheckedUpdateWithoutVersionsInput = {
   productTypeId?: Prisma.StringFieldUpdateOperationsInput | string
   ownerUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1007,7 +974,6 @@ export type IntelligenceProductCreateManyOwnerUnitInput = {
   id?: string
   productTypeId: string
   createdByAssignmentId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -1021,7 +987,6 @@ export type IntelligenceProductCreateManyOwnerUnitInput = {
 
 export type IntelligenceProductUpdateWithoutOwnerUnitInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1032,7 +997,7 @@ export type IntelligenceProductUpdateWithoutOwnerUnitInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   productType?: Prisma.ProductTypeDefinitionUpdateOneRequiredWithoutProductsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductsCreatedNestedInput
   versions?: Prisma.ProductVersionUpdateManyWithoutProductNestedInput
 }
 
@@ -1040,7 +1005,6 @@ export type IntelligenceProductUncheckedUpdateWithoutOwnerUnitInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productTypeId?: Prisma.StringFieldUpdateOperationsInput | string
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1057,7 +1021,6 @@ export type IntelligenceProductUncheckedUpdateManyWithoutOwnerUnitInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productTypeId?: Prisma.StringFieldUpdateOperationsInput | string
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1073,7 +1036,6 @@ export type IntelligenceProductCreateManyCreatedByAssignmentInput = {
   id?: string
   productTypeId: string
   ownerUnitId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -1087,7 +1049,6 @@ export type IntelligenceProductCreateManyCreatedByAssignmentInput = {
 
 export type IntelligenceProductUpdateWithoutCreatedByAssignmentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1106,7 +1067,6 @@ export type IntelligenceProductUncheckedUpdateWithoutCreatedByAssignmentInput = 
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productTypeId?: Prisma.StringFieldUpdateOperationsInput | string
   ownerUnitId?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1123,7 +1083,6 @@ export type IntelligenceProductUncheckedUpdateManyWithoutCreatedByAssignmentInpu
   id?: Prisma.StringFieldUpdateOperationsInput | string
   productTypeId?: Prisma.StringFieldUpdateOperationsInput | string
   ownerUnitId?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1139,7 +1098,6 @@ export type IntelligenceProductCreateManyProductTypeInput = {
   id?: string
   ownerUnitId: string
   createdByAssignmentId: string
-  classification: $Enums.Classification
   productNumber: string
   title: string
   status?: $Enums.ProductStatus
@@ -1153,7 +1111,6 @@ export type IntelligenceProductCreateManyProductTypeInput = {
 
 export type IntelligenceProductUpdateWithoutProductTypeInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1164,7 +1121,7 @@ export type IntelligenceProductUpdateWithoutProductTypeInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutIntelligenceProductsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductsCreatedNestedInput
   versions?: Prisma.ProductVersionUpdateManyWithoutProductNestedInput
 }
 
@@ -1172,7 +1129,6 @@ export type IntelligenceProductUncheckedUpdateWithoutProductTypeInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ownerUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1189,7 +1145,6 @@ export type IntelligenceProductUncheckedUpdateManyWithoutProductTypeInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ownerUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
-  classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
   productNumber?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumProductStatusFieldUpdateOperationsInput | $Enums.ProductStatus
@@ -1237,7 +1192,6 @@ export type IntelligenceProductSelect<ExtArgs extends runtime.Types.Extensions.I
   productTypeId?: boolean
   ownerUnitId?: boolean
   createdByAssignmentId?: boolean
-  classification?: boolean
   productNumber?: boolean
   title?: boolean
   status?: boolean
@@ -1249,7 +1203,7 @@ export type IntelligenceProductSelect<ExtArgs extends runtime.Types.Extensions.I
   deletedAt?: boolean
   productType?: boolean | Prisma.ProductTypeDefinitionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   versions?: boolean | Prisma.IntelligenceProduct$versionsArgs<ExtArgs>
   _count?: boolean | Prisma.IntelligenceProductCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["intelligenceProduct"]>
@@ -1259,7 +1213,6 @@ export type IntelligenceProductSelectCreateManyAndReturn<ExtArgs extends runtime
   productTypeId?: boolean
   ownerUnitId?: boolean
   createdByAssignmentId?: boolean
-  classification?: boolean
   productNumber?: boolean
   title?: boolean
   status?: boolean
@@ -1271,7 +1224,7 @@ export type IntelligenceProductSelectCreateManyAndReturn<ExtArgs extends runtime
   deletedAt?: boolean
   productType?: boolean | Prisma.ProductTypeDefinitionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["intelligenceProduct"]>
 
 export type IntelligenceProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1279,7 +1232,6 @@ export type IntelligenceProductSelectUpdateManyAndReturn<ExtArgs extends runtime
   productTypeId?: boolean
   ownerUnitId?: boolean
   createdByAssignmentId?: boolean
-  classification?: boolean
   productNumber?: boolean
   title?: boolean
   status?: boolean
@@ -1291,7 +1243,7 @@ export type IntelligenceProductSelectUpdateManyAndReturn<ExtArgs extends runtime
   deletedAt?: boolean
   productType?: boolean | Prisma.ProductTypeDefinitionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["intelligenceProduct"]>
 
 export type IntelligenceProductSelectScalar = {
@@ -1299,7 +1251,6 @@ export type IntelligenceProductSelectScalar = {
   productTypeId?: boolean
   ownerUnitId?: boolean
   createdByAssignmentId?: boolean
-  classification?: boolean
   productNumber?: boolean
   title?: boolean
   status?: boolean
@@ -1311,23 +1262,23 @@ export type IntelligenceProductSelectScalar = {
   deletedAt?: boolean
 }
 
-export type IntelligenceProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productTypeId" | "ownerUnitId" | "createdByAssignmentId" | "classification" | "productNumber" | "title" | "status" | "currentVersionNumber" | "periodStart" | "periodEnd" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["intelligenceProduct"]>
+export type IntelligenceProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productTypeId" | "ownerUnitId" | "createdByAssignmentId" | "productNumber" | "title" | "status" | "currentVersionNumber" | "periodStart" | "periodEnd" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["intelligenceProduct"]>
 export type IntelligenceProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   productType?: boolean | Prisma.ProductTypeDefinitionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   versions?: boolean | Prisma.IntelligenceProduct$versionsArgs<ExtArgs>
   _count?: boolean | Prisma.IntelligenceProductCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type IntelligenceProductIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   productType?: boolean | Prisma.ProductTypeDefinitionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type IntelligenceProductIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   productType?: boolean | Prisma.ProductTypeDefinitionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $IntelligenceProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1335,7 +1286,7 @@ export type $IntelligenceProductPayload<ExtArgs extends runtime.Types.Extensions
   objects: {
     productType: Prisma.$ProductTypeDefinitionPayload<ExtArgs>
     ownerUnit: Prisma.$OrganizationUnitPayload<ExtArgs>
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     versions: Prisma.$ProductVersionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1343,7 +1294,6 @@ export type $IntelligenceProductPayload<ExtArgs extends runtime.Types.Extensions
     productTypeId: string
     ownerUnitId: string
     createdByAssignmentId: string
-    classification: $Enums.Classification
     productNumber: string
     title: string
     status: $Enums.ProductStatus
@@ -1749,7 +1699,7 @@ export interface Prisma__IntelligenceProductClient<T, Null = never, ExtArgs exte
   readonly [Symbol.toStringTag]: "PrismaPromise"
   productType<T extends Prisma.ProductTypeDefinitionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductTypeDefinitionDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductTypeDefinitionClient<runtime.Types.Result.GetResult<Prisma.$ProductTypeDefinitionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   ownerUnit<T extends Prisma.OrganizationUnitDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnitDefaultArgs<ExtArgs>>): Prisma.Prisma__OrganizationUnitClient<runtime.Types.Result.GetResult<Prisma.$OrganizationUnitPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   versions<T extends Prisma.IntelligenceProduct$versionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntelligenceProduct$versionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductVersionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1784,7 +1734,6 @@ export interface IntelligenceProductFieldRefs {
   readonly productTypeId: Prisma.FieldRef<"IntelligenceProduct", 'String'>
   readonly ownerUnitId: Prisma.FieldRef<"IntelligenceProduct", 'String'>
   readonly createdByAssignmentId: Prisma.FieldRef<"IntelligenceProduct", 'String'>
-  readonly classification: Prisma.FieldRef<"IntelligenceProduct", 'Classification'>
   readonly productNumber: Prisma.FieldRef<"IntelligenceProduct", 'String'>
   readonly title: Prisma.FieldRef<"IntelligenceProduct", 'String'>
   readonly status: Prisma.FieldRef<"IntelligenceProduct", 'ProductStatus'>

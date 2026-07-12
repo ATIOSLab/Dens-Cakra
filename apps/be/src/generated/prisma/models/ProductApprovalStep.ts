@@ -39,6 +39,7 @@ export type ProductApprovalStepMinAggregateOutputType = {
   workflowId: string | null
   stepNumber: number | null
   stage: $Enums.ApprovalStage | null
+  targetSeatId: string | null
   targetPositionId: string | null
   status: $Enums.ApprovalStepStatus | null
   decision: $Enums.ApprovalDecision | null
@@ -54,6 +55,7 @@ export type ProductApprovalStepMaxAggregateOutputType = {
   workflowId: string | null
   stepNumber: number | null
   stage: $Enums.ApprovalStage | null
+  targetSeatId: string | null
   targetPositionId: string | null
   status: $Enums.ApprovalStepStatus | null
   decision: $Enums.ApprovalDecision | null
@@ -69,6 +71,7 @@ export type ProductApprovalStepCountAggregateOutputType = {
   workflowId: number
   stepNumber: number
   stage: number
+  targetSeatId: number
   targetPositionId: number
   status: number
   decision: number
@@ -94,6 +97,7 @@ export type ProductApprovalStepMinAggregateInputType = {
   workflowId?: true
   stepNumber?: true
   stage?: true
+  targetSeatId?: true
   targetPositionId?: true
   status?: true
   decision?: true
@@ -109,6 +113,7 @@ export type ProductApprovalStepMaxAggregateInputType = {
   workflowId?: true
   stepNumber?: true
   stage?: true
+  targetSeatId?: true
   targetPositionId?: true
   status?: true
   decision?: true
@@ -124,6 +129,7 @@ export type ProductApprovalStepCountAggregateInputType = {
   workflowId?: true
   stepNumber?: true
   stage?: true
+  targetSeatId?: true
   targetPositionId?: true
   status?: true
   decision?: true
@@ -226,7 +232,8 @@ export type ProductApprovalStepGroupByOutputType = {
   workflowId: string
   stepNumber: number
   stage: $Enums.ApprovalStage
-  targetPositionId: string
+  targetSeatId: string
+  targetPositionId: string | null
   status: $Enums.ApprovalStepStatus
   decision: $Enums.ApprovalDecision | null
   decisionNote: string | null
@@ -264,7 +271,8 @@ export type ProductApprovalStepWhereInput = {
   workflowId?: Prisma.UuidFilter<"ProductApprovalStep"> | string
   stepNumber?: Prisma.IntFilter<"ProductApprovalStep"> | number
   stage?: Prisma.EnumApprovalStageFilter<"ProductApprovalStep"> | $Enums.ApprovalStage
-  targetPositionId?: Prisma.UuidFilter<"ProductApprovalStep"> | string
+  targetSeatId?: Prisma.UuidFilter<"ProductApprovalStep"> | string
+  targetPositionId?: Prisma.UuidNullableFilter<"ProductApprovalStep"> | string | null
   status?: Prisma.EnumApprovalStepStatusFilter<"ProductApprovalStep"> | $Enums.ApprovalStepStatus
   decision?: Prisma.EnumApprovalDecisionNullableFilter<"ProductApprovalStep"> | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.StringNullableFilter<"ProductApprovalStep"> | string | null
@@ -273,8 +281,9 @@ export type ProductApprovalStepWhereInput = {
   decidedAt?: Prisma.DateTimeNullableFilter<"ProductApprovalStep"> | Date | string | null
   decidedByAssignmentId?: Prisma.UuidNullableFilter<"ProductApprovalStep"> | string | null
   workflow?: Prisma.XOR<Prisma.ProductApprovalWorkflowScalarRelationFilter, Prisma.ProductApprovalWorkflowWhereInput>
-  targetPosition?: Prisma.XOR<Prisma.PositionScalarRelationFilter, Prisma.PositionWhereInput>
-  decidedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  targetSeat?: Prisma.XOR<Prisma.OrganizationRoleSeatScalarRelationFilter, Prisma.OrganizationRoleSeatWhereInput>
+  targetPosition?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
+  decidedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   events?: Prisma.ProductApprovalEventListRelationFilter
 }
 
@@ -283,7 +292,8 @@ export type ProductApprovalStepOrderByWithRelationInput = {
   workflowId?: Prisma.SortOrder
   stepNumber?: Prisma.SortOrder
   stage?: Prisma.SortOrder
-  targetPositionId?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
+  targetPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   decision?: Prisma.SortOrderInput | Prisma.SortOrder
   decisionNote?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -292,8 +302,9 @@ export type ProductApprovalStepOrderByWithRelationInput = {
   decidedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   decidedByAssignmentId?: Prisma.SortOrderInput | Prisma.SortOrder
   workflow?: Prisma.ProductApprovalWorkflowOrderByWithRelationInput
+  targetSeat?: Prisma.OrganizationRoleSeatOrderByWithRelationInput
   targetPosition?: Prisma.PositionOrderByWithRelationInput
-  decidedByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   events?: Prisma.ProductApprovalEventOrderByRelationAggregateInput
 }
 
@@ -306,7 +317,8 @@ export type ProductApprovalStepWhereUniqueInput = Prisma.AtLeast<{
   workflowId?: Prisma.UuidFilter<"ProductApprovalStep"> | string
   stepNumber?: Prisma.IntFilter<"ProductApprovalStep"> | number
   stage?: Prisma.EnumApprovalStageFilter<"ProductApprovalStep"> | $Enums.ApprovalStage
-  targetPositionId?: Prisma.UuidFilter<"ProductApprovalStep"> | string
+  targetSeatId?: Prisma.UuidFilter<"ProductApprovalStep"> | string
+  targetPositionId?: Prisma.UuidNullableFilter<"ProductApprovalStep"> | string | null
   status?: Prisma.EnumApprovalStepStatusFilter<"ProductApprovalStep"> | $Enums.ApprovalStepStatus
   decision?: Prisma.EnumApprovalDecisionNullableFilter<"ProductApprovalStep"> | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.StringNullableFilter<"ProductApprovalStep"> | string | null
@@ -315,8 +327,9 @@ export type ProductApprovalStepWhereUniqueInput = Prisma.AtLeast<{
   decidedAt?: Prisma.DateTimeNullableFilter<"ProductApprovalStep"> | Date | string | null
   decidedByAssignmentId?: Prisma.UuidNullableFilter<"ProductApprovalStep"> | string | null
   workflow?: Prisma.XOR<Prisma.ProductApprovalWorkflowScalarRelationFilter, Prisma.ProductApprovalWorkflowWhereInput>
-  targetPosition?: Prisma.XOR<Prisma.PositionScalarRelationFilter, Prisma.PositionWhereInput>
-  decidedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  targetSeat?: Prisma.XOR<Prisma.OrganizationRoleSeatScalarRelationFilter, Prisma.OrganizationRoleSeatWhereInput>
+  targetPosition?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
+  decidedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   events?: Prisma.ProductApprovalEventListRelationFilter
 }, "id" | "workflowId_stepNumber">
 
@@ -325,7 +338,8 @@ export type ProductApprovalStepOrderByWithAggregationInput = {
   workflowId?: Prisma.SortOrder
   stepNumber?: Prisma.SortOrder
   stage?: Prisma.SortOrder
-  targetPositionId?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
+  targetPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   decision?: Prisma.SortOrderInput | Prisma.SortOrder
   decisionNote?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -348,7 +362,8 @@ export type ProductApprovalStepScalarWhereWithAggregatesInput = {
   workflowId?: Prisma.UuidWithAggregatesFilter<"ProductApprovalStep"> | string
   stepNumber?: Prisma.IntWithAggregatesFilter<"ProductApprovalStep"> | number
   stage?: Prisma.EnumApprovalStageWithAggregatesFilter<"ProductApprovalStep"> | $Enums.ApprovalStage
-  targetPositionId?: Prisma.UuidWithAggregatesFilter<"ProductApprovalStep"> | string
+  targetSeatId?: Prisma.UuidWithAggregatesFilter<"ProductApprovalStep"> | string
+  targetPositionId?: Prisma.UuidNullableWithAggregatesFilter<"ProductApprovalStep"> | string | null
   status?: Prisma.EnumApprovalStepStatusWithAggregatesFilter<"ProductApprovalStep"> | $Enums.ApprovalStepStatus
   decision?: Prisma.EnumApprovalDecisionNullableWithAggregatesFilter<"ProductApprovalStep"> | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.StringNullableWithAggregatesFilter<"ProductApprovalStep"> | string | null
@@ -369,8 +384,9 @@ export type ProductApprovalStepCreateInput = {
   activatedAt?: Date | string | null
   decidedAt?: Date | string | null
   workflow: Prisma.ProductApprovalWorkflowCreateNestedOneWithoutStepsInput
-  targetPosition: Prisma.PositionCreateNestedOneWithoutApprovalStepsInput
-  decidedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutApprovalDecisionsInput
+  targetSeat: Prisma.OrganizationRoleSeatCreateNestedOneWithoutApprovalStepsInput
+  targetPosition?: Prisma.PositionCreateNestedOneWithoutApprovalStepsInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutApprovalDecisionsInput
   events?: Prisma.ProductApprovalEventCreateNestedManyWithoutStepInput
 }
 
@@ -379,7 +395,8 @@ export type ProductApprovalStepUncheckedCreateInput = {
   workflowId: string
   stepNumber: number
   stage: $Enums.ApprovalStage
-  targetPositionId: string
+  targetSeatId: string
+  targetPositionId?: string | null
   status?: $Enums.ApprovalStepStatus
   decision?: $Enums.ApprovalDecision | null
   decisionNote?: string | null
@@ -401,8 +418,9 @@ export type ProductApprovalStepUpdateInput = {
   activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workflow?: Prisma.ProductApprovalWorkflowUpdateOneRequiredWithoutStepsNestedInput
-  targetPosition?: Prisma.PositionUpdateOneRequiredWithoutApprovalStepsNestedInput
-  decidedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutApprovalDecisionsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneRequiredWithoutApprovalStepsNestedInput
+  targetPosition?: Prisma.PositionUpdateOneWithoutApprovalStepsNestedInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutApprovalDecisionsNestedInput
   events?: Prisma.ProductApprovalEventUpdateManyWithoutStepNestedInput
 }
 
@@ -411,7 +429,8 @@ export type ProductApprovalStepUncheckedUpdateInput = {
   workflowId?: Prisma.StringFieldUpdateOperationsInput | string
   stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
   stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
-  targetPositionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
   decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -427,7 +446,8 @@ export type ProductApprovalStepCreateManyInput = {
   workflowId: string
   stepNumber: number
   stage: $Enums.ApprovalStage
-  targetPositionId: string
+  targetSeatId: string
+  targetPositionId?: string | null
   status?: $Enums.ApprovalStepStatus
   decision?: $Enums.ApprovalDecision | null
   decisionNote?: string | null
@@ -454,7 +474,8 @@ export type ProductApprovalStepUncheckedUpdateManyInput = {
   workflowId?: Prisma.StringFieldUpdateOperationsInput | string
   stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
   stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
-  targetPositionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
   decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -484,6 +505,7 @@ export type ProductApprovalStepCountOrderByAggregateInput = {
   workflowId?: Prisma.SortOrder
   stepNumber?: Prisma.SortOrder
   stage?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
   targetPositionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   decision?: Prisma.SortOrder
@@ -503,6 +525,7 @@ export type ProductApprovalStepMaxOrderByAggregateInput = {
   workflowId?: Prisma.SortOrder
   stepNumber?: Prisma.SortOrder
   stage?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
   targetPositionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   decision?: Prisma.SortOrder
@@ -518,6 +541,7 @@ export type ProductApprovalStepMinOrderByAggregateInput = {
   workflowId?: Prisma.SortOrder
   stepNumber?: Prisma.SortOrder
   stage?: Prisma.SortOrder
+  targetSeatId?: Prisma.SortOrder
   targetPositionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   decision?: Prisma.SortOrder
@@ -576,6 +600,48 @@ export type ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInp
   connect?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
   update?: Prisma.ProductApprovalStepUpdateWithWhereUniqueWithoutTargetPositionInput | Prisma.ProductApprovalStepUpdateWithWhereUniqueWithoutTargetPositionInput[]
   updateMany?: Prisma.ProductApprovalStepUpdateManyWithWhereWithoutTargetPositionInput | Prisma.ProductApprovalStepUpdateManyWithWhereWithoutTargetPositionInput[]
+  deleteMany?: Prisma.ProductApprovalStepScalarWhereInput | Prisma.ProductApprovalStepScalarWhereInput[]
+}
+
+export type ProductApprovalStepCreateNestedManyWithoutTargetSeatInput = {
+  create?: Prisma.XOR<Prisma.ProductApprovalStepCreateWithoutTargetSeatInput, Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput> | Prisma.ProductApprovalStepCreateWithoutTargetSeatInput[] | Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.ProductApprovalStepCreateOrConnectWithoutTargetSeatInput | Prisma.ProductApprovalStepCreateOrConnectWithoutTargetSeatInput[]
+  createMany?: Prisma.ProductApprovalStepCreateManyTargetSeatInputEnvelope
+  connect?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+}
+
+export type ProductApprovalStepUncheckedCreateNestedManyWithoutTargetSeatInput = {
+  create?: Prisma.XOR<Prisma.ProductApprovalStepCreateWithoutTargetSeatInput, Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput> | Prisma.ProductApprovalStepCreateWithoutTargetSeatInput[] | Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.ProductApprovalStepCreateOrConnectWithoutTargetSeatInput | Prisma.ProductApprovalStepCreateOrConnectWithoutTargetSeatInput[]
+  createMany?: Prisma.ProductApprovalStepCreateManyTargetSeatInputEnvelope
+  connect?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+}
+
+export type ProductApprovalStepUpdateManyWithoutTargetSeatNestedInput = {
+  create?: Prisma.XOR<Prisma.ProductApprovalStepCreateWithoutTargetSeatInput, Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput> | Prisma.ProductApprovalStepCreateWithoutTargetSeatInput[] | Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.ProductApprovalStepCreateOrConnectWithoutTargetSeatInput | Prisma.ProductApprovalStepCreateOrConnectWithoutTargetSeatInput[]
+  upsert?: Prisma.ProductApprovalStepUpsertWithWhereUniqueWithoutTargetSeatInput | Prisma.ProductApprovalStepUpsertWithWhereUniqueWithoutTargetSeatInput[]
+  createMany?: Prisma.ProductApprovalStepCreateManyTargetSeatInputEnvelope
+  set?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+  disconnect?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+  delete?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+  connect?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+  update?: Prisma.ProductApprovalStepUpdateWithWhereUniqueWithoutTargetSeatInput | Prisma.ProductApprovalStepUpdateWithWhereUniqueWithoutTargetSeatInput[]
+  updateMany?: Prisma.ProductApprovalStepUpdateManyWithWhereWithoutTargetSeatInput | Prisma.ProductApprovalStepUpdateManyWithWhereWithoutTargetSeatInput[]
+  deleteMany?: Prisma.ProductApprovalStepScalarWhereInput | Prisma.ProductApprovalStepScalarWhereInput[]
+}
+
+export type ProductApprovalStepUncheckedUpdateManyWithoutTargetSeatNestedInput = {
+  create?: Prisma.XOR<Prisma.ProductApprovalStepCreateWithoutTargetSeatInput, Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput> | Prisma.ProductApprovalStepCreateWithoutTargetSeatInput[] | Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput[]
+  connectOrCreate?: Prisma.ProductApprovalStepCreateOrConnectWithoutTargetSeatInput | Prisma.ProductApprovalStepCreateOrConnectWithoutTargetSeatInput[]
+  upsert?: Prisma.ProductApprovalStepUpsertWithWhereUniqueWithoutTargetSeatInput | Prisma.ProductApprovalStepUpsertWithWhereUniqueWithoutTargetSeatInput[]
+  createMany?: Prisma.ProductApprovalStepCreateManyTargetSeatInputEnvelope
+  set?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+  disconnect?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+  delete?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+  connect?: Prisma.ProductApprovalStepWhereUniqueInput | Prisma.ProductApprovalStepWhereUniqueInput[]
+  update?: Prisma.ProductApprovalStepUpdateWithWhereUniqueWithoutTargetSeatInput | Prisma.ProductApprovalStepUpdateWithWhereUniqueWithoutTargetSeatInput[]
+  updateMany?: Prisma.ProductApprovalStepUpdateManyWithWhereWithoutTargetSeatInput | Prisma.ProductApprovalStepUpdateManyWithWhereWithoutTargetSeatInput[]
   deleteMany?: Prisma.ProductApprovalStepScalarWhereInput | Prisma.ProductApprovalStepScalarWhereInput[]
 }
 
@@ -702,7 +768,8 @@ export type ProductApprovalStepCreateWithoutTargetPositionInput = {
   activatedAt?: Date | string | null
   decidedAt?: Date | string | null
   workflow: Prisma.ProductApprovalWorkflowCreateNestedOneWithoutStepsInput
-  decidedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutApprovalDecisionsInput
+  targetSeat: Prisma.OrganizationRoleSeatCreateNestedOneWithoutApprovalStepsInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutApprovalDecisionsInput
   events?: Prisma.ProductApprovalEventCreateNestedManyWithoutStepInput
 }
 
@@ -711,6 +778,7 @@ export type ProductApprovalStepUncheckedCreateWithoutTargetPositionInput = {
   workflowId: string
   stepNumber: number
   stage: $Enums.ApprovalStage
+  targetSeatId: string
   status?: $Enums.ApprovalStepStatus
   decision?: $Enums.ApprovalDecision | null
   decisionNote?: string | null
@@ -755,7 +823,8 @@ export type ProductApprovalStepScalarWhereInput = {
   workflowId?: Prisma.UuidFilter<"ProductApprovalStep"> | string
   stepNumber?: Prisma.IntFilter<"ProductApprovalStep"> | number
   stage?: Prisma.EnumApprovalStageFilter<"ProductApprovalStep"> | $Enums.ApprovalStage
-  targetPositionId?: Prisma.UuidFilter<"ProductApprovalStep"> | string
+  targetSeatId?: Prisma.UuidFilter<"ProductApprovalStep"> | string
+  targetPositionId?: Prisma.UuidNullableFilter<"ProductApprovalStep"> | string | null
   status?: Prisma.EnumApprovalStepStatusFilter<"ProductApprovalStep"> | $Enums.ApprovalStepStatus
   decision?: Prisma.EnumApprovalDecisionNullableFilter<"ProductApprovalStep"> | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.StringNullableFilter<"ProductApprovalStep"> | string | null
@@ -763,6 +832,64 @@ export type ProductApprovalStepScalarWhereInput = {
   activatedAt?: Prisma.DateTimeNullableFilter<"ProductApprovalStep"> | Date | string | null
   decidedAt?: Prisma.DateTimeNullableFilter<"ProductApprovalStep"> | Date | string | null
   decidedByAssignmentId?: Prisma.UuidNullableFilter<"ProductApprovalStep"> | string | null
+}
+
+export type ProductApprovalStepCreateWithoutTargetSeatInput = {
+  id?: string
+  stepNumber: number
+  stage: $Enums.ApprovalStage
+  status?: $Enums.ApprovalStepStatus
+  decision?: $Enums.ApprovalDecision | null
+  decisionNote?: string | null
+  dueAt?: Date | string | null
+  activatedAt?: Date | string | null
+  decidedAt?: Date | string | null
+  workflow: Prisma.ProductApprovalWorkflowCreateNestedOneWithoutStepsInput
+  targetPosition?: Prisma.PositionCreateNestedOneWithoutApprovalStepsInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutApprovalDecisionsInput
+  events?: Prisma.ProductApprovalEventCreateNestedManyWithoutStepInput
+}
+
+export type ProductApprovalStepUncheckedCreateWithoutTargetSeatInput = {
+  id?: string
+  workflowId: string
+  stepNumber: number
+  stage: $Enums.ApprovalStage
+  targetPositionId?: string | null
+  status?: $Enums.ApprovalStepStatus
+  decision?: $Enums.ApprovalDecision | null
+  decisionNote?: string | null
+  dueAt?: Date | string | null
+  activatedAt?: Date | string | null
+  decidedAt?: Date | string | null
+  decidedByAssignmentId?: string | null
+  events?: Prisma.ProductApprovalEventUncheckedCreateNestedManyWithoutStepInput
+}
+
+export type ProductApprovalStepCreateOrConnectWithoutTargetSeatInput = {
+  where: Prisma.ProductApprovalStepWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProductApprovalStepCreateWithoutTargetSeatInput, Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput>
+}
+
+export type ProductApprovalStepCreateManyTargetSeatInputEnvelope = {
+  data: Prisma.ProductApprovalStepCreateManyTargetSeatInput | Prisma.ProductApprovalStepCreateManyTargetSeatInput[]
+  skipDuplicates?: boolean
+}
+
+export type ProductApprovalStepUpsertWithWhereUniqueWithoutTargetSeatInput = {
+  where: Prisma.ProductApprovalStepWhereUniqueInput
+  update: Prisma.XOR<Prisma.ProductApprovalStepUpdateWithoutTargetSeatInput, Prisma.ProductApprovalStepUncheckedUpdateWithoutTargetSeatInput>
+  create: Prisma.XOR<Prisma.ProductApprovalStepCreateWithoutTargetSeatInput, Prisma.ProductApprovalStepUncheckedCreateWithoutTargetSeatInput>
+}
+
+export type ProductApprovalStepUpdateWithWhereUniqueWithoutTargetSeatInput = {
+  where: Prisma.ProductApprovalStepWhereUniqueInput
+  data: Prisma.XOR<Prisma.ProductApprovalStepUpdateWithoutTargetSeatInput, Prisma.ProductApprovalStepUncheckedUpdateWithoutTargetSeatInput>
+}
+
+export type ProductApprovalStepUpdateManyWithWhereWithoutTargetSeatInput = {
+  where: Prisma.ProductApprovalStepScalarWhereInput
+  data: Prisma.XOR<Prisma.ProductApprovalStepUpdateManyMutationInput, Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetSeatInput>
 }
 
 export type ProductApprovalStepCreateWithoutDecidedByAssignmentInput = {
@@ -776,7 +903,8 @@ export type ProductApprovalStepCreateWithoutDecidedByAssignmentInput = {
   activatedAt?: Date | string | null
   decidedAt?: Date | string | null
   workflow: Prisma.ProductApprovalWorkflowCreateNestedOneWithoutStepsInput
-  targetPosition: Prisma.PositionCreateNestedOneWithoutApprovalStepsInput
+  targetSeat: Prisma.OrganizationRoleSeatCreateNestedOneWithoutApprovalStepsInput
+  targetPosition?: Prisma.PositionCreateNestedOneWithoutApprovalStepsInput
   events?: Prisma.ProductApprovalEventCreateNestedManyWithoutStepInput
 }
 
@@ -785,7 +913,8 @@ export type ProductApprovalStepUncheckedCreateWithoutDecidedByAssignmentInput = 
   workflowId: string
   stepNumber: number
   stage: $Enums.ApprovalStage
-  targetPositionId: string
+  targetSeatId: string
+  targetPositionId?: string | null
   status?: $Enums.ApprovalStepStatus
   decision?: $Enums.ApprovalDecision | null
   decisionNote?: string | null
@@ -831,8 +960,9 @@ export type ProductApprovalStepCreateWithoutWorkflowInput = {
   dueAt?: Date | string | null
   activatedAt?: Date | string | null
   decidedAt?: Date | string | null
-  targetPosition: Prisma.PositionCreateNestedOneWithoutApprovalStepsInput
-  decidedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutApprovalDecisionsInput
+  targetSeat: Prisma.OrganizationRoleSeatCreateNestedOneWithoutApprovalStepsInput
+  targetPosition?: Prisma.PositionCreateNestedOneWithoutApprovalStepsInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutApprovalDecisionsInput
   events?: Prisma.ProductApprovalEventCreateNestedManyWithoutStepInput
 }
 
@@ -840,7 +970,8 @@ export type ProductApprovalStepUncheckedCreateWithoutWorkflowInput = {
   id?: string
   stepNumber: number
   stage: $Enums.ApprovalStage
-  targetPositionId: string
+  targetSeatId: string
+  targetPositionId?: string | null
   status?: $Enums.ApprovalStepStatus
   decision?: $Enums.ApprovalDecision | null
   decisionNote?: string | null
@@ -888,8 +1019,9 @@ export type ProductApprovalStepCreateWithoutEventsInput = {
   activatedAt?: Date | string | null
   decidedAt?: Date | string | null
   workflow: Prisma.ProductApprovalWorkflowCreateNestedOneWithoutStepsInput
-  targetPosition: Prisma.PositionCreateNestedOneWithoutApprovalStepsInput
-  decidedByAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutApprovalDecisionsInput
+  targetSeat: Prisma.OrganizationRoleSeatCreateNestedOneWithoutApprovalStepsInput
+  targetPosition?: Prisma.PositionCreateNestedOneWithoutApprovalStepsInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutApprovalDecisionsInput
 }
 
 export type ProductApprovalStepUncheckedCreateWithoutEventsInput = {
@@ -897,7 +1029,8 @@ export type ProductApprovalStepUncheckedCreateWithoutEventsInput = {
   workflowId: string
   stepNumber: number
   stage: $Enums.ApprovalStage
-  targetPositionId: string
+  targetSeatId: string
+  targetPositionId?: string | null
   status?: $Enums.ApprovalStepStatus
   decision?: $Enums.ApprovalDecision | null
   decisionNote?: string | null
@@ -934,8 +1067,9 @@ export type ProductApprovalStepUpdateWithoutEventsInput = {
   activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workflow?: Prisma.ProductApprovalWorkflowUpdateOneRequiredWithoutStepsNestedInput
-  targetPosition?: Prisma.PositionUpdateOneRequiredWithoutApprovalStepsNestedInput
-  decidedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutApprovalDecisionsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneRequiredWithoutApprovalStepsNestedInput
+  targetPosition?: Prisma.PositionUpdateOneWithoutApprovalStepsNestedInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutApprovalDecisionsNestedInput
 }
 
 export type ProductApprovalStepUncheckedUpdateWithoutEventsInput = {
@@ -943,7 +1077,8 @@ export type ProductApprovalStepUncheckedUpdateWithoutEventsInput = {
   workflowId?: Prisma.StringFieldUpdateOperationsInput | string
   stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
   stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
-  targetPositionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
   decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -958,6 +1093,7 @@ export type ProductApprovalStepCreateManyTargetPositionInput = {
   workflowId: string
   stepNumber: number
   stage: $Enums.ApprovalStage
+  targetSeatId: string
   status?: $Enums.ApprovalStepStatus
   decision?: $Enums.ApprovalDecision | null
   decisionNote?: string | null
@@ -978,7 +1114,8 @@ export type ProductApprovalStepUpdateWithoutTargetPositionInput = {
   activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workflow?: Prisma.ProductApprovalWorkflowUpdateOneRequiredWithoutStepsNestedInput
-  decidedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutApprovalDecisionsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneRequiredWithoutApprovalStepsNestedInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutApprovalDecisionsNestedInput
   events?: Prisma.ProductApprovalEventUpdateManyWithoutStepNestedInput
 }
 
@@ -987,6 +1124,7 @@ export type ProductApprovalStepUncheckedUpdateWithoutTargetPositionInput = {
   workflowId?: Prisma.StringFieldUpdateOperationsInput | string
   stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
   stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
+  targetSeatId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
   decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1002,6 +1140,69 @@ export type ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionInput = {
   workflowId?: Prisma.StringFieldUpdateOperationsInput | string
   stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
   stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
+  targetSeatId?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
+  decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
+  decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decidedByAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type ProductApprovalStepCreateManyTargetSeatInput = {
+  id?: string
+  workflowId: string
+  stepNumber: number
+  stage: $Enums.ApprovalStage
+  targetPositionId?: string | null
+  status?: $Enums.ApprovalStepStatus
+  decision?: $Enums.ApprovalDecision | null
+  decisionNote?: string | null
+  dueAt?: Date | string | null
+  activatedAt?: Date | string | null
+  decidedAt?: Date | string | null
+  decidedByAssignmentId?: string | null
+}
+
+export type ProductApprovalStepUpdateWithoutTargetSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
+  status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
+  decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
+  decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  workflow?: Prisma.ProductApprovalWorkflowUpdateOneRequiredWithoutStepsNestedInput
+  targetPosition?: Prisma.PositionUpdateOneWithoutApprovalStepsNestedInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutApprovalDecisionsNestedInput
+  events?: Prisma.ProductApprovalEventUpdateManyWithoutStepNestedInput
+}
+
+export type ProductApprovalStepUncheckedUpdateWithoutTargetSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workflowId?: Prisma.StringFieldUpdateOperationsInput | string
+  stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
+  decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
+  decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decidedByAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  events?: Prisma.ProductApprovalEventUncheckedUpdateManyWithoutStepNestedInput
+}
+
+export type ProductApprovalStepUncheckedUpdateManyWithoutTargetSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workflowId?: Prisma.StringFieldUpdateOperationsInput | string
+  stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
   decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1016,7 +1217,8 @@ export type ProductApprovalStepCreateManyDecidedByAssignmentInput = {
   workflowId: string
   stepNumber: number
   stage: $Enums.ApprovalStage
-  targetPositionId: string
+  targetSeatId: string
+  targetPositionId?: string | null
   status?: $Enums.ApprovalStepStatus
   decision?: $Enums.ApprovalDecision | null
   decisionNote?: string | null
@@ -1036,7 +1238,8 @@ export type ProductApprovalStepUpdateWithoutDecidedByAssignmentInput = {
   activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   workflow?: Prisma.ProductApprovalWorkflowUpdateOneRequiredWithoutStepsNestedInput
-  targetPosition?: Prisma.PositionUpdateOneRequiredWithoutApprovalStepsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneRequiredWithoutApprovalStepsNestedInput
+  targetPosition?: Prisma.PositionUpdateOneWithoutApprovalStepsNestedInput
   events?: Prisma.ProductApprovalEventUpdateManyWithoutStepNestedInput
 }
 
@@ -1045,7 +1248,8 @@ export type ProductApprovalStepUncheckedUpdateWithoutDecidedByAssignmentInput = 
   workflowId?: Prisma.StringFieldUpdateOperationsInput | string
   stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
   stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
-  targetPositionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
   decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1060,7 +1264,8 @@ export type ProductApprovalStepUncheckedUpdateManyWithoutDecidedByAssignmentInpu
   workflowId?: Prisma.StringFieldUpdateOperationsInput | string
   stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
   stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
-  targetPositionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
   decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1073,7 +1278,8 @@ export type ProductApprovalStepCreateManyWorkflowInput = {
   id?: string
   stepNumber: number
   stage: $Enums.ApprovalStage
-  targetPositionId: string
+  targetSeatId: string
+  targetPositionId?: string | null
   status?: $Enums.ApprovalStepStatus
   decision?: $Enums.ApprovalDecision | null
   decisionNote?: string | null
@@ -1093,8 +1299,9 @@ export type ProductApprovalStepUpdateWithoutWorkflowInput = {
   dueAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  targetPosition?: Prisma.PositionUpdateOneRequiredWithoutApprovalStepsNestedInput
-  decidedByAssignment?: Prisma.PositionAssignmentUpdateOneWithoutApprovalDecisionsNestedInput
+  targetSeat?: Prisma.OrganizationRoleSeatUpdateOneRequiredWithoutApprovalStepsNestedInput
+  targetPosition?: Prisma.PositionUpdateOneWithoutApprovalStepsNestedInput
+  decidedByAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutApprovalDecisionsNestedInput
   events?: Prisma.ProductApprovalEventUpdateManyWithoutStepNestedInput
 }
 
@@ -1102,7 +1309,8 @@ export type ProductApprovalStepUncheckedUpdateWithoutWorkflowInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
   stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
-  targetPositionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
   decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1117,7 +1325,8 @@ export type ProductApprovalStepUncheckedUpdateManyWithoutWorkflowInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   stepNumber?: Prisma.IntFieldUpdateOperationsInput | number
   stage?: Prisma.EnumApprovalStageFieldUpdateOperationsInput | $Enums.ApprovalStage
-  targetPositionId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetSeatId?: Prisma.StringFieldUpdateOperationsInput | string
+  targetPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumApprovalStepStatusFieldUpdateOperationsInput | $Enums.ApprovalStepStatus
   decision?: Prisma.NullableEnumApprovalDecisionFieldUpdateOperationsInput | $Enums.ApprovalDecision | null
   decisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1163,6 +1372,7 @@ export type ProductApprovalStepSelect<ExtArgs extends runtime.Types.Extensions.I
   workflowId?: boolean
   stepNumber?: boolean
   stage?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   status?: boolean
   decision?: boolean
@@ -1172,7 +1382,8 @@ export type ProductApprovalStepSelect<ExtArgs extends runtime.Types.Extensions.I
   decidedAt?: boolean
   decidedByAssignmentId?: boolean
   workflow?: boolean | Prisma.ProductApprovalWorkflowDefaultArgs<ExtArgs>
-  targetPosition?: boolean | Prisma.PositionDefaultArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.OrganizationRoleSeatDefaultArgs<ExtArgs>
+  targetPosition?: boolean | Prisma.ProductApprovalStep$targetPositionArgs<ExtArgs>
   decidedByAssignment?: boolean | Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs>
   events?: boolean | Prisma.ProductApprovalStep$eventsArgs<ExtArgs>
   _count?: boolean | Prisma.ProductApprovalStepCountOutputTypeDefaultArgs<ExtArgs>
@@ -1183,6 +1394,7 @@ export type ProductApprovalStepSelectCreateManyAndReturn<ExtArgs extends runtime
   workflowId?: boolean
   stepNumber?: boolean
   stage?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   status?: boolean
   decision?: boolean
@@ -1192,7 +1404,8 @@ export type ProductApprovalStepSelectCreateManyAndReturn<ExtArgs extends runtime
   decidedAt?: boolean
   decidedByAssignmentId?: boolean
   workflow?: boolean | Prisma.ProductApprovalWorkflowDefaultArgs<ExtArgs>
-  targetPosition?: boolean | Prisma.PositionDefaultArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.OrganizationRoleSeatDefaultArgs<ExtArgs>
+  targetPosition?: boolean | Prisma.ProductApprovalStep$targetPositionArgs<ExtArgs>
   decidedByAssignment?: boolean | Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs>
 }, ExtArgs["result"]["productApprovalStep"]>
 
@@ -1201,6 +1414,7 @@ export type ProductApprovalStepSelectUpdateManyAndReturn<ExtArgs extends runtime
   workflowId?: boolean
   stepNumber?: boolean
   stage?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   status?: boolean
   decision?: boolean
@@ -1210,7 +1424,8 @@ export type ProductApprovalStepSelectUpdateManyAndReturn<ExtArgs extends runtime
   decidedAt?: boolean
   decidedByAssignmentId?: boolean
   workflow?: boolean | Prisma.ProductApprovalWorkflowDefaultArgs<ExtArgs>
-  targetPosition?: boolean | Prisma.PositionDefaultArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.OrganizationRoleSeatDefaultArgs<ExtArgs>
+  targetPosition?: boolean | Prisma.ProductApprovalStep$targetPositionArgs<ExtArgs>
   decidedByAssignment?: boolean | Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs>
 }, ExtArgs["result"]["productApprovalStep"]>
 
@@ -1219,6 +1434,7 @@ export type ProductApprovalStepSelectScalar = {
   workflowId?: boolean
   stepNumber?: boolean
   stage?: boolean
+  targetSeatId?: boolean
   targetPositionId?: boolean
   status?: boolean
   decision?: boolean
@@ -1229,22 +1445,25 @@ export type ProductApprovalStepSelectScalar = {
   decidedByAssignmentId?: boolean
 }
 
-export type ProductApprovalStepOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workflowId" | "stepNumber" | "stage" | "targetPositionId" | "status" | "decision" | "decisionNote" | "dueAt" | "activatedAt" | "decidedAt" | "decidedByAssignmentId", ExtArgs["result"]["productApprovalStep"]>
+export type ProductApprovalStepOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workflowId" | "stepNumber" | "stage" | "targetSeatId" | "targetPositionId" | "status" | "decision" | "decisionNote" | "dueAt" | "activatedAt" | "decidedAt" | "decidedByAssignmentId", ExtArgs["result"]["productApprovalStep"]>
 export type ProductApprovalStepInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workflow?: boolean | Prisma.ProductApprovalWorkflowDefaultArgs<ExtArgs>
-  targetPosition?: boolean | Prisma.PositionDefaultArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.OrganizationRoleSeatDefaultArgs<ExtArgs>
+  targetPosition?: boolean | Prisma.ProductApprovalStep$targetPositionArgs<ExtArgs>
   decidedByAssignment?: boolean | Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs>
   events?: boolean | Prisma.ProductApprovalStep$eventsArgs<ExtArgs>
   _count?: boolean | Prisma.ProductApprovalStepCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProductApprovalStepIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workflow?: boolean | Prisma.ProductApprovalWorkflowDefaultArgs<ExtArgs>
-  targetPosition?: boolean | Prisma.PositionDefaultArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.OrganizationRoleSeatDefaultArgs<ExtArgs>
+  targetPosition?: boolean | Prisma.ProductApprovalStep$targetPositionArgs<ExtArgs>
   decidedByAssignment?: boolean | Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs>
 }
 export type ProductApprovalStepIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workflow?: boolean | Prisma.ProductApprovalWorkflowDefaultArgs<ExtArgs>
-  targetPosition?: boolean | Prisma.PositionDefaultArgs<ExtArgs>
+  targetSeat?: boolean | Prisma.OrganizationRoleSeatDefaultArgs<ExtArgs>
+  targetPosition?: boolean | Prisma.ProductApprovalStep$targetPositionArgs<ExtArgs>
   decidedByAssignment?: boolean | Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs>
 }
 
@@ -1252,8 +1471,9 @@ export type $ProductApprovalStepPayload<ExtArgs extends runtime.Types.Extensions
   name: "ProductApprovalStep"
   objects: {
     workflow: Prisma.$ProductApprovalWorkflowPayload<ExtArgs>
-    targetPosition: Prisma.$PositionPayload<ExtArgs>
-    decidedByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs> | null
+    targetSeat: Prisma.$OrganizationRoleSeatPayload<ExtArgs>
+    targetPosition: Prisma.$PositionPayload<ExtArgs> | null
+    decidedByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs> | null
     events: Prisma.$ProductApprovalEventPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1261,7 +1481,8 @@ export type $ProductApprovalStepPayload<ExtArgs extends runtime.Types.Extensions
     workflowId: string
     stepNumber: number
     stage: $Enums.ApprovalStage
-    targetPositionId: string
+    targetSeatId: string
+    targetPositionId: string | null
     status: $Enums.ApprovalStepStatus
     decision: $Enums.ApprovalDecision | null
     decisionNote: string | null
@@ -1664,8 +1885,9 @@ readonly fields: ProductApprovalStepFieldRefs;
 export interface Prisma__ProductApprovalStepClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   workflow<T extends Prisma.ProductApprovalWorkflowDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductApprovalWorkflowDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductApprovalWorkflowClient<runtime.Types.Result.GetResult<Prisma.$ProductApprovalWorkflowPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  targetPosition<T extends Prisma.PositionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionClient<runtime.Types.Result.GetResult<Prisma.$PositionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  decidedByAssignment<T extends Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  targetSeat<T extends Prisma.OrganizationRoleSeatDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationRoleSeatDefaultArgs<ExtArgs>>): Prisma.Prisma__OrganizationRoleSeatClient<runtime.Types.Result.GetResult<Prisma.$OrganizationRoleSeatPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  targetPosition<T extends Prisma.ProductApprovalStep$targetPositionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductApprovalStep$targetPositionArgs<ExtArgs>>): Prisma.Prisma__PositionClient<runtime.Types.Result.GetResult<Prisma.$PositionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  decidedByAssignment<T extends Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductApprovalStep$decidedByAssignmentArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   events<T extends Prisma.ProductApprovalStep$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductApprovalStep$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductApprovalEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1700,6 +1922,7 @@ export interface ProductApprovalStepFieldRefs {
   readonly workflowId: Prisma.FieldRef<"ProductApprovalStep", 'String'>
   readonly stepNumber: Prisma.FieldRef<"ProductApprovalStep", 'Int'>
   readonly stage: Prisma.FieldRef<"ProductApprovalStep", 'ApprovalStage'>
+  readonly targetSeatId: Prisma.FieldRef<"ProductApprovalStep", 'String'>
   readonly targetPositionId: Prisma.FieldRef<"ProductApprovalStep", 'String'>
   readonly status: Prisma.FieldRef<"ProductApprovalStep", 'ApprovalStepStatus'>
   readonly decision: Prisma.FieldRef<"ProductApprovalStep", 'ApprovalDecision'>
@@ -2109,22 +2332,41 @@ export type ProductApprovalStepDeleteManyArgs<ExtArgs extends runtime.Types.Exte
 }
 
 /**
+ * ProductApprovalStep.targetPosition
+ */
+export type ProductApprovalStep$targetPositionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Position
+   */
+  select?: Prisma.PositionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Position
+   */
+  omit?: Prisma.PositionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PositionInclude<ExtArgs> | null
+  where?: Prisma.PositionWhereInput
+}
+
+/**
  * ProductApprovalStep.decidedByAssignment
  */
 export type ProductApprovalStep$decidedByAssignmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**

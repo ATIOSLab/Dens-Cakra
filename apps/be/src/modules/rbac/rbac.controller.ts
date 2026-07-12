@@ -1,9 +1,9 @@
 import {
-  Body,
   Controller,
   Get,
   Param,
   ParseUUIDPipe,
+  Body,
   Put,
   Query,
   UseGuards,
@@ -17,8 +17,6 @@ import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   AreaPolicyQueryDto,
-  PermissionListQueryDto,
-  ReplaceRolePermissionsDto,
   RoleListQueryDto,
   UpdateAreaPolicyDto,
 } from './dto/rbac.dto.js';
@@ -35,7 +33,7 @@ export class RbacController {
     operationId: 'apiRbac001',
     contractId: 'API-RBAC-001',
     summary: 'Daftar role domain',
-    permission: 'role.read',
+    roles: ['admin_system'],
   })
   async roles(@Query() query: RoleListQueryDto) {
     return apiResult(await this.rbac.roles(query));
@@ -45,48 +43,19 @@ export class RbacController {
   @ApiContract({
     operationId: 'apiRbac002',
     contractId: 'API-RBAC-002',
-    summary: 'Detail role dan permission',
-    permission: 'role.read',
+    summary: 'Detail role domain',
+    roles: ['admin_system'],
   })
   async role(@Param('roleId', ParseUUIDPipe) id: string) {
     return apiResult(await this.rbac.role(id));
   }
 
-  @Put('roles/:roleId/permissions')
+  @Get('position-area-policies')
   @ApiContract({
     operationId: 'apiRbac003',
     contractId: 'API-RBAC-003',
-    summary: 'Ganti permission role',
-    permission: 'role.permission.manage',
-    idempotent: true,
-  })
-  async replace(
-    @Param('roleId', ParseUUIDPipe) id: string,
-    @Body() body: ReplaceRolePermissionsDto,
-    @CurrentAccessContext() actor: AuthorizationContext,
-  ) {
-    return apiResult(
-      await this.rbac.replacePermissions(id, body.permissionCodes, actor),
-    );
-  }
-
-  @Get('permissions')
-  @ApiContract({
-    operationId: 'apiRbac004',
-    contractId: 'API-RBAC-004',
-    summary: 'Daftar permission catalog',
-    permission: 'permission.read',
-  })
-  async permissions(@Query() query: PermissionListQueryDto) {
-    return apiResult(await this.rbac.permissions(query));
-  }
-
-  @Get('position-area-policies')
-  @ApiContract({
-    operationId: 'apiRbac005',
-    contractId: 'API-RBAC-005',
     summary: 'Daftar kebijakan level wilayah per posisi',
-    permission: 'area.policy.read',
+    roles: ['admin_system'],
   })
   async policies(@Query() query: AreaPolicyQueryDto) {
     return apiResult(await this.rbac.policies(query));
@@ -94,10 +63,10 @@ export class RbacController {
 
   @Put('position-area-policies/:policyId')
   @ApiContract({
-    operationId: 'apiRbac006',
-    contractId: 'API-RBAC-006',
+    operationId: 'apiRbac004',
+    contractId: 'API-RBAC-004',
     summary: 'Ubah policy area posisi',
-    permission: 'area.policy.manage',
+    roles: ['admin_system'],
     idempotent: true,
   })
   async updatePolicy(

@@ -42,7 +42,7 @@ export class DirectiveController {
     operationId: 'apiDir001',
     contractId: 'API-DIR-001',
     summary: 'Daftar direktif',
-    permission: 'directive.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
   })
   async list(
     @Query() query: DirectiveQuery,
@@ -56,7 +56,7 @@ export class DirectiveController {
     operationId: 'apiDir002',
     contractId: 'API-DIR-002',
     summary: 'Buat directive dan versi awal',
-    permission: 'directive.create',
+    roles: ['executive'],
     successStatus: 201,
     idempotent: true,
   })
@@ -72,7 +72,7 @@ export class DirectiveController {
     operationId: 'apiDir003',
     contractId: 'API-DIR-003',
     summary: 'Detail directive current version',
-    permission: 'directive.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
   })
   async get(
     @Param('directiveId', ParseUUIDPipe) directiveId: string,
@@ -86,7 +86,7 @@ export class DirectiveController {
     operationId: 'apiDir004',
     contractId: 'API-DIR-004',
     summary: 'Riwayat versi directive',
-    permission: 'directive.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
   })
   async versions(
     @Param('directiveId', ParseUUIDPipe) directiveId: string,
@@ -100,7 +100,7 @@ export class DirectiveController {
     operationId: 'apiDir005',
     contractId: 'API-DIR-005',
     summary: 'Buat versi revisi',
-    permission: 'directive.update',
+    roles: ['executive'],
     successStatus: 201,
     idempotent: true,
   })
@@ -119,7 +119,7 @@ export class DirectiveController {
     operationId: 'apiDir006',
     contractId: 'API-DIR-006',
     summary: 'Detail versi directive',
-    permission: 'directive.read',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
   })
   async getVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
@@ -133,7 +133,7 @@ export class DirectiveController {
     operationId: 'apiDir007',
     contractId: 'API-DIR-007',
     summary: 'Edit versi draft',
-    permission: 'directive.update',
+    roles: ['executive'],
   })
   async updateVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
@@ -150,7 +150,7 @@ export class DirectiveController {
     operationId: 'apiDir008',
     contractId: 'API-DIR-008',
     summary: 'Ganti target area draft',
-    permission: 'directive.update',
+    roles: ['executive'],
     idempotent: true,
   })
   async replaceAreas(
@@ -168,7 +168,7 @@ export class DirectiveController {
     operationId: 'apiDir009',
     contractId: 'API-DIR-009',
     summary: 'Ganti penerima draft',
-    permission: 'directive.update',
+    roles: ['executive'],
     idempotent: true,
   })
   async replaceRecipients(
@@ -186,7 +186,7 @@ export class DirectiveController {
     operationId: 'apiDir010',
     contractId: 'API-DIR-010',
     summary: 'Publish directive',
-    permission: 'directive.publish',
+    roles: ['executive'],
     idempotent: true,
   })
   async publish(
@@ -204,7 +204,7 @@ export class DirectiveController {
     operationId: 'apiDir011',
     contractId: 'API-DIR-011',
     summary: 'Distribusikan directive',
-    permission: 'directive.distribute',
+    roles: ['executive'],
     idempotent: true,
   })
   async distribute(
@@ -222,7 +222,7 @@ export class DirectiveController {
     operationId: 'apiDir012',
     contractId: 'API-DIR-012',
     summary: 'Acknowledgement penerima',
-    permission: 'directive.acknowledge',
+    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
     idempotent: true,
   })
   async acknowledge(
@@ -240,7 +240,7 @@ export class DirectiveController {
     operationId: 'apiDir013',
     contractId: 'API-DIR-013',
     summary: 'Tracking pelaksanaan direktif',
-    permission: 'directive.track',
+    roles: ['executive', 'regional_commander'],
   })
   async tracking(
     @Param('directiveId', ParseUUIDPipe) directiveId: string,
@@ -265,7 +265,7 @@ export class DirectiveController {
     operationId: 'apiDir014',
     contractId: 'API-DIR-014',
     summary: 'Batalkan directive',
-    permission: 'directive.cancel',
+    roles: ['executive'],
     idempotent: true,
   })
   async cancel(

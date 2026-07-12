@@ -33,7 +33,7 @@ export class FileController {
     operationId: 'apiFile001',
     contractId: 'API-FILE-001',
     summary: 'Minta signed upload URL',
-    permission: 'file.create',
+    roles: ['admin_system', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
     successStatus: 201,
     idempotent: true,
   })
@@ -48,7 +48,7 @@ export class FileController {
     operationId: 'apiFile002',
     contractId: 'API-FILE-002',
     summary: 'Konfirmasi upload selesai',
-    permission: 'file.create',
+    roles: ['admin_system', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
     successStatus: 201,
     idempotent: true,
   })
@@ -63,7 +63,7 @@ export class FileController {
     operationId: 'apiFile003',
     contractId: 'API-FILE-003',
     summary: 'Metadata file',
-    permission: 'file.read',
+    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async metadata(@Param('fileId', ParseUUIDPipe) id: string) {
     return apiResult(await this.files.metadata(id));
@@ -73,7 +73,7 @@ export class FileController {
     operationId: 'apiFile004',
     contractId: 'API-FILE-004',
     summary: 'Signed download/view URL',
-    permission: 'file.read',
+    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
   })
   async access(
     @Param('fileId', ParseUUIDPipe) id: string,
@@ -90,7 +90,7 @@ export class FileController {
     operationId: 'apiFile005',
     contractId: 'API-FILE-005',
     summary: 'Soft delete file tidak terpakai',
-    permission: 'file.delete',
+    roles: ['admin_system'],
     successStatus: 204,
     idempotent: true,
   })

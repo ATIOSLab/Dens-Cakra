@@ -61,7 +61,7 @@ export class PositionQueryService {
     return this.prisma.position.findUniqueOrThrow({
       where: { id },
       include: {
-        role: { include: { permissions: { include: { permission: true } } } },
+        role: true,
         organizationUnit: true,
         reportsTo: true,
         subordinates: true,
@@ -130,7 +130,7 @@ export class PositionQueryService {
       ...(query.roleCode ? { role: { code: query.roleCode } } : {}),
       ...(query.positionCode ? { code: query.positionCode } : {}),
     };
-    const where: Prisma.PositionAssignmentWhereInput = {
+    const where: Prisma.UserSeatAssignmentWhereInput = {
       ...(query.userProfileId ? { userProfileId: query.userProfileId } : {}),
       ...(positionIds.length === 1 ? { positionId: positionIds[0] } : {}),
       ...(positionIds.length > 1 ? { positionId: { in: positionIds } } : {}),
@@ -144,7 +144,7 @@ export class PositionQueryService {
         : {}),
     };
     const [items, total] = await Promise.all([
-      this.prisma.positionAssignment.findMany({
+      this.prisma.userSeatAssignment.findMany({
         where,
         skip: (query.page - 1) * query.limit,
         take: query.limit,
@@ -155,7 +155,7 @@ export class PositionQueryService {
           areaScopes: { where: { validUntil: null }, include: { area: true } },
         },
       }),
-      this.prisma.positionAssignment.count({ where }),
+      this.prisma.userSeatAssignment.count({ where }),
     ]);
     return {
       items,
@@ -169,7 +169,7 @@ export class PositionQueryService {
   }
 
   assignment(id: string) {
-    return this.prisma.positionAssignment.findUniqueOrThrow({
+    return this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id },
       include: {
         userProfile: { include: { authUser: true } },

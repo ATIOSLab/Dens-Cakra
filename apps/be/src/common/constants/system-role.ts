@@ -44,6 +44,6 @@ export const SYSTEM_ROLE_CATALOG = [
     key: SYSTEM_ROLES.ADMIN_SYSTEM,
     label: 'Admin System',
     summary:
-      'Mengelola organisasi, pengguna, permission, reporting line, integrasi WA Center, keamanan, dan konfigurasi sistem.',
+      'Mengelola organisasi, pengguna, reporting line, integrasi WA Center, keamanan, dan konfigurasi sistem.',
   },
 ] as const;

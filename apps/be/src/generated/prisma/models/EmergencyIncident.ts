@@ -329,7 +329,7 @@ export type EmergencyIncidentWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"EmergencyIncident"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableFilter<"EmergencyIncident"> | Date | string | null
   area?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
-  reportedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  reportedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   attachments?: Prisma.EmergencyAttachmentListRelationFilter
   alerts?: Prisma.AlertListRelationFilter
 }
@@ -354,7 +354,7 @@ export type EmergencyIncidentOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   area?: Prisma.AdministrativeAreaOrderByWithRelationInput
-  reportedByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  reportedByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   attachments?: Prisma.EmergencyAttachmentOrderByRelationAggregateInput
   alerts?: Prisma.AlertOrderByRelationAggregateInput
 }
@@ -382,7 +382,7 @@ export type EmergencyIncidentWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"EmergencyIncident"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableFilter<"EmergencyIncident"> | Date | string | null
   area?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
-  reportedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  reportedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   attachments?: Prisma.EmergencyAttachmentListRelationFilter
   alerts?: Prisma.AlertListRelationFilter
 }, "id">
@@ -455,7 +455,7 @@ export type EmergencyIncidentCreateInput = {
   updatedAt?: Date | string
   resolvedAt?: Date | string | null
   area?: Prisma.AdministrativeAreaCreateNestedOneWithoutEmergencyIncidentsInput
-  reportedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutEmergencyReportsCreatedInput
+  reportedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutEmergencyReportsCreatedInput
   attachments?: Prisma.EmergencyAttachmentCreateNestedManyWithoutIncidentInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceIncidentInput
 }
@@ -501,7 +501,7 @@ export type EmergencyIncidentUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   area?: Prisma.AdministrativeAreaUpdateOneWithoutEmergencyIncidentsNestedInput
-  reportedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutEmergencyReportsCreatedNestedInput
+  reportedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutEmergencyReportsCreatedNestedInput
   attachments?: Prisma.EmergencyAttachmentUpdateManyWithoutIncidentNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceIncidentNestedInput
 }
@@ -918,7 +918,7 @@ export type EmergencyIncidentCreateWithoutAreaInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   resolvedAt?: Date | string | null
-  reportedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutEmergencyReportsCreatedInput
+  reportedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutEmergencyReportsCreatedInput
   attachments?: Prisma.EmergencyAttachmentCreateNestedManyWithoutIncidentInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceIncidentInput
 }
@@ -989,7 +989,7 @@ export type EmergencyIncidentCreateWithoutAttachmentsInput = {
   updatedAt?: Date | string
   resolvedAt?: Date | string | null
   area?: Prisma.AdministrativeAreaCreateNestedOneWithoutEmergencyIncidentsInput
-  reportedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutEmergencyReportsCreatedInput
+  reportedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutEmergencyReportsCreatedInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceIncidentInput
 }
 
@@ -1049,7 +1049,7 @@ export type EmergencyIncidentUpdateWithoutAttachmentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   area?: Prisma.AdministrativeAreaUpdateOneWithoutEmergencyIncidentsNestedInput
-  reportedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutEmergencyReportsCreatedNestedInput
+  reportedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutEmergencyReportsCreatedNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceIncidentNestedInput
 }
 
@@ -1093,7 +1093,7 @@ export type EmergencyIncidentCreateWithoutAlertsInput = {
   updatedAt?: Date | string
   resolvedAt?: Date | string | null
   area?: Prisma.AdministrativeAreaCreateNestedOneWithoutEmergencyIncidentsInput
-  reportedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutEmergencyReportsCreatedInput
+  reportedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutEmergencyReportsCreatedInput
   attachments?: Prisma.EmergencyAttachmentCreateNestedManyWithoutIncidentInput
 }
 
@@ -1153,7 +1153,7 @@ export type EmergencyIncidentUpdateWithoutAlertsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   area?: Prisma.AdministrativeAreaUpdateOneWithoutEmergencyIncidentsNestedInput
-  reportedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutEmergencyReportsCreatedNestedInput
+  reportedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutEmergencyReportsCreatedNestedInput
   attachments?: Prisma.EmergencyAttachmentUpdateManyWithoutIncidentNestedInput
 }
 
@@ -1300,7 +1300,7 @@ export type EmergencyIncidentUpdateWithoutAreaInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  reportedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutEmergencyReportsCreatedNestedInput
+  reportedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutEmergencyReportsCreatedNestedInput
   attachments?: Prisma.EmergencyAttachmentUpdateManyWithoutIncidentNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceIncidentNestedInput
 }
@@ -1407,7 +1407,7 @@ export type EmergencyIncidentSelect<ExtArgs extends runtime.Types.Extensions.Int
   updatedAt?: boolean
   resolvedAt?: boolean
   area?: boolean | Prisma.EmergencyIncident$areaArgs<ExtArgs>
-  reportedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  reportedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   attachments?: boolean | Prisma.EmergencyIncident$attachmentsArgs<ExtArgs>
   alerts?: boolean | Prisma.EmergencyIncident$alertsArgs<ExtArgs>
   _count?: boolean | Prisma.EmergencyIncidentCountOutputTypeDefaultArgs<ExtArgs>
@@ -1433,7 +1433,7 @@ export type EmergencyIncidentSelectCreateManyAndReturn<ExtArgs extends runtime.T
   updatedAt?: boolean
   resolvedAt?: boolean
   area?: boolean | Prisma.EmergencyIncident$areaArgs<ExtArgs>
-  reportedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  reportedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["emergencyIncident"]>
 
 export type EmergencyIncidentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1456,7 +1456,7 @@ export type EmergencyIncidentSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   updatedAt?: boolean
   resolvedAt?: boolean
   area?: boolean | Prisma.EmergencyIncident$areaArgs<ExtArgs>
-  reportedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  reportedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["emergencyIncident"]>
 
 export type EmergencyIncidentSelectScalar = {
@@ -1483,25 +1483,25 @@ export type EmergencyIncidentSelectScalar = {
 export type EmergencyIncidentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "status" | "severity" | "areaId" | "latitude" | "longitude" | "gpsAccuracyMeters" | "locationCapturedAt" | "coordinateSource" | "areaResolutionMethod" | "situation" | "actionTaken" | "needs" | "reportedByAssignmentId" | "createdAt" | "updatedAt" | "resolvedAt", ExtArgs["result"]["emergencyIncident"]>
 export type EmergencyIncidentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   area?: boolean | Prisma.EmergencyIncident$areaArgs<ExtArgs>
-  reportedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  reportedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   attachments?: boolean | Prisma.EmergencyIncident$attachmentsArgs<ExtArgs>
   alerts?: boolean | Prisma.EmergencyIncident$alertsArgs<ExtArgs>
   _count?: boolean | Prisma.EmergencyIncidentCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type EmergencyIncidentIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   area?: boolean | Prisma.EmergencyIncident$areaArgs<ExtArgs>
-  reportedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  reportedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type EmergencyIncidentIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   area?: boolean | Prisma.EmergencyIncident$areaArgs<ExtArgs>
-  reportedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  reportedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $EmergencyIncidentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "EmergencyIncident"
   objects: {
     area: Prisma.$AdministrativeAreaPayload<ExtArgs> | null
-    reportedByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    reportedByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     attachments: Prisma.$EmergencyAttachmentPayload<ExtArgs>[]
     alerts: Prisma.$AlertPayload<ExtArgs>[]
   }
@@ -1919,7 +1919,7 @@ readonly fields: EmergencyIncidentFieldRefs;
 export interface Prisma__EmergencyIncidentClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   area<T extends Prisma.EmergencyIncident$areaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmergencyIncident$areaArgs<ExtArgs>>): Prisma.Prisma__AdministrativeAreaClient<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  reportedByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  reportedByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   attachments<T extends Prisma.EmergencyIncident$attachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmergencyIncident$attachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmergencyAttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   alerts<T extends Prisma.EmergencyIncident$alertsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EmergencyIncident$alertsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AlertPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**

@@ -22,7 +22,6 @@ type AuthorizationInput = {
   authUserId: string;
   authRole?: string | null;
   allowedRoles?: readonly SystemRole[];
-  requiredPermissions?: readonly string[];
 };
 
 const SYSTEM_ROLE_SET = new Set<SystemRole>(Object.values(SYSTEM_ROLES));
@@ -94,15 +93,6 @@ export class AuthorizationService {
                     role: {
                       select: {
                         code: true,
-                        permissions: {
-                          select: {
-                            permission: {
-                              select: {
-                                code: true,
-                              },
-                            },
-                          },
-                        },
                       },
                     },
                     organizationUnit: {
@@ -269,22 +259,6 @@ export class AuthorizationService {
         reportsTo: primaryAssignment.position.reportsTo,
       });
 
-    const permissions = primaryAssignment.position.role.permissions.map(
-      (rolePermission) => rolePermission.permission.code,
-    );
-
-    if (input.requiredPermissions?.length) {
-      const permissionSet = new Set(permissions);
-
-      for (const requiredPermission of input.requiredPermissions) {
-        if (!permissionSet.has(requiredPermission)) {
-          throw new ForbiddenException(
-            `Missing required permission: ${requiredPermission}.`,
-          );
-        }
-      }
-    }
-
     return {
       authUserId: authUser.id,
       authRole: coarseRole,
@@ -299,7 +273,6 @@ export class AuthorizationService {
       organizationUnitName: primaryAssignment.position.organizationUnit.name,
       organizationUnitType: primaryAssignment.position.organizationUnit.type,
       commandRouteType,
-      permissions,
       areaScopes: primaryAssignment.areaScopes.map((scope) => ({
         areaId: scope.area.id,
         code: scope.area.code,

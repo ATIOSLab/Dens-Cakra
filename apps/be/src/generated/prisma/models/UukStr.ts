@@ -250,7 +250,7 @@ export type UukStrWhereInput = {
   deletedAt?: Prisma.DateTimeNullableFilter<"UukStr"> | Date | string | null
   directiveVersion?: Prisma.XOR<Prisma.DirectiveVersionScalarRelationFilter, Prisma.DirectiveVersionWhereInput>
   ownerUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   versions?: Prisma.UukStrVersionListRelationFilter
 }
 
@@ -266,7 +266,7 @@ export type UukStrOrderByWithRelationInput = {
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   directiveVersion?: Prisma.DirectiveVersionOrderByWithRelationInput
   ownerUnit?: Prisma.OrganizationUnitOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   versions?: Prisma.UukStrVersionOrderByRelationAggregateInput
 }
 
@@ -285,7 +285,7 @@ export type UukStrWhereUniqueInput = Prisma.AtLeast<{
   deletedAt?: Prisma.DateTimeNullableFilter<"UukStr"> | Date | string | null
   directiveVersion?: Prisma.XOR<Prisma.DirectiveVersionScalarRelationFilter, Prisma.DirectiveVersionWhereInput>
   ownerUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   versions?: Prisma.UukStrVersionListRelationFilter
 }, "id">
 
@@ -330,7 +330,7 @@ export type UukStrCreateInput = {
   deletedAt?: Date | string | null
   directiveVersion: Prisma.DirectiveVersionCreateNestedOneWithoutUukStrsInput
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutUukStrsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutUukStrsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutUukStrsCreatedInput
   versions?: Prisma.UukStrVersionCreateNestedManyWithoutUukStrInput
 }
 
@@ -356,7 +356,7 @@ export type UukStrUpdateInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   directiveVersion?: Prisma.DirectiveVersionUpdateOneRequiredWithoutUukStrsNestedInput
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutUukStrsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutUukStrsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutUukStrsCreatedNestedInput
   versions?: Prisma.UukStrVersionUpdateManyWithoutUukStrNestedInput
 }
 
@@ -617,7 +617,7 @@ export type UukStrCreateWithoutOwnerUnitInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   directiveVersion: Prisma.DirectiveVersionCreateNestedOneWithoutUukStrsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutUukStrsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutUukStrsCreatedInput
   versions?: Prisma.UukStrVersionCreateNestedManyWithoutUukStrInput
 }
 
@@ -732,7 +732,7 @@ export type UukStrCreateWithoutDirectiveVersionInput = {
   updatedAt?: Date | string
   deletedAt?: Date | string | null
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutUukStrsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutUukStrsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutUukStrsCreatedInput
   versions?: Prisma.UukStrVersionCreateNestedManyWithoutUukStrInput
 }
 
@@ -783,7 +783,7 @@ export type UukStrCreateWithoutVersionsInput = {
   deletedAt?: Date | string | null
   directiveVersion: Prisma.DirectiveVersionCreateNestedOneWithoutUukStrsInput
   ownerUnit: Prisma.OrganizationUnitCreateNestedOneWithoutUukStrsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutUukStrsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutUukStrsCreatedInput
 }
 
 export type UukStrUncheckedCreateWithoutVersionsInput = {
@@ -823,7 +823,7 @@ export type UukStrUpdateWithoutVersionsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   directiveVersion?: Prisma.DirectiveVersionUpdateOneRequiredWithoutUukStrsNestedInput
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutUukStrsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutUukStrsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutUukStrsCreatedNestedInput
 }
 
 export type UukStrUncheckedUpdateWithoutVersionsInput = {
@@ -857,7 +857,7 @@ export type UukStrUpdateWithoutOwnerUnitInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   directiveVersion?: Prisma.DirectiveVersionUpdateOneRequiredWithoutUukStrsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutUukStrsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutUukStrsCreatedNestedInput
   versions?: Prisma.UukStrVersionUpdateManyWithoutUukStrNestedInput
 }
 
@@ -949,7 +949,7 @@ export type UukStrUpdateWithoutDirectiveVersionInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ownerUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutUukStrsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutUukStrsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutUukStrsCreatedNestedInput
   versions?: Prisma.UukStrVersionUpdateManyWithoutUukStrNestedInput
 }
 
@@ -1019,7 +1019,7 @@ export type UukStrSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   deletedAt?: boolean
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   versions?: boolean | Prisma.UukStr$versionsArgs<ExtArgs>
   _count?: boolean | Prisma.UukStrCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["uukStr"]>
@@ -1036,7 +1036,7 @@ export type UukStrSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   deletedAt?: boolean
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["uukStr"]>
 
 export type UukStrSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1051,7 +1051,7 @@ export type UukStrSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   deletedAt?: boolean
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["uukStr"]>
 
 export type UukStrSelectScalar = {
@@ -1070,19 +1070,19 @@ export type UukStrOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
 export type UukStrInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   versions?: boolean | Prisma.UukStr$versionsArgs<ExtArgs>
   _count?: boolean | Prisma.UukStrCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UukStrIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type UukStrIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directiveVersion?: boolean | Prisma.DirectiveVersionDefaultArgs<ExtArgs>
   ownerUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $UukStrPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1090,7 +1090,7 @@ export type $UukStrPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   objects: {
     directiveVersion: Prisma.$DirectiveVersionPayload<ExtArgs>
     ownerUnit: Prisma.$OrganizationUnitPayload<ExtArgs>
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     versions: Prisma.$UukStrVersionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1499,7 +1499,7 @@ export interface Prisma__UukStrClient<T, Null = never, ExtArgs extends runtime.T
   readonly [Symbol.toStringTag]: "PrismaPromise"
   directiveVersion<T extends Prisma.DirectiveVersionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DirectiveVersionDefaultArgs<ExtArgs>>): Prisma.Prisma__DirectiveVersionClient<runtime.Types.Result.GetResult<Prisma.$DirectiveVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   ownerUnit<T extends Prisma.OrganizationUnitDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnitDefaultArgs<ExtArgs>>): Prisma.Prisma__OrganizationUnitClient<runtime.Types.Result.GetResult<Prisma.$OrganizationUnitPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   versions<T extends Prisma.UukStr$versionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UukStr$versionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UukStrVersionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.

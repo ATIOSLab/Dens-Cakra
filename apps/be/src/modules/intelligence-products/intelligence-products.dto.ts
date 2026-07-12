@@ -19,7 +19,6 @@ import {
   ApprovalStage,
   ApprovalStepStatus,
   AlertSeverity,
-  Classification,
   CommandRouteType,
   DistributionStatus,
   ProductStatus,
@@ -92,7 +91,6 @@ export class ProductQuery {
   @IsOptional() @IsEnum(ProductStatus) status?: ProductStatus;
   @IsOptional() @IsUUID() productTypeId?: string;
   @IsOptional() @IsUUID() ownerUnitId?: string;
-  @IsOptional() @IsEnum(Classification) classification?: Classification;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() periodFrom?: string;
   @IsOptional() @IsDateString() periodTo?: string;
@@ -126,7 +124,6 @@ export class ProductVersionPayloadDto {
 export class CreateProductDto {
   @IsUUID() productTypeId!: string;
   @IsUUID() ownerUnitId!: string;
-  @IsEnum(Classification) classification!: Classification;
   @IsString() @MaxLength(150) productNumber!: string;
   @IsString() @MaxLength(300) title!: string;
   @IsOptional() @IsDateString() periodStart?: string;
@@ -185,7 +182,6 @@ export class ApprovalInboxQuery {
   @IsOptional() @IsEnum(ApprovalStage) stage?: ApprovalStage;
   @IsOptional() @IsEnum(ApprovalStepStatus) status?: ApprovalStepStatus;
   @IsOptional() @IsEnum(CommandRouteType) routeType?: CommandRouteType;
-  @IsOptional() @IsEnum(Classification) classification?: Classification;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
@@ -249,7 +245,6 @@ export class CreateDistributionDto {
   @ValidateNested({ each: true })
   @Type(() => DistributionTargetDto)
   targets!: DistributionTargetDto[];
-  @IsEnum(Classification) classification!: Classification;
   @IsOptional() @IsString() message?: string;
 }
 
@@ -271,7 +266,6 @@ export class DashboardQuery {
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
   @IsOptional() @IsUUID() ownerUnitId?: string;
-  @IsOptional() @IsEnum(Classification) classificationMax?: Classification;
 }
 
 export class DashboardTrendQuery extends DashboardQuery {
