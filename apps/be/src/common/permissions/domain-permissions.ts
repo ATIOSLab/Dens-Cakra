@@ -263,6 +263,8 @@ export const DOMAIN_ROLE_PERMISSIONS: Record<
       'uuk.read',
       'jaring.read',
       'baket.read',
+      'integration.read',
+      'integration.manage',
       'file.create',
       'file.read',
       'notification.read-own',

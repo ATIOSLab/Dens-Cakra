@@ -457,6 +457,8 @@ export const ModelName = {
   Notification: 'Notification',
   AuditLog: 'AuditLog',
   IntegrationChannel: 'IntegrationChannel',
+  WhatsAppBotChannelState: 'WhatsAppBotChannelState',
+  WhatsAppSenderNumber: 'WhatsAppSenderNumber',
   IntegrationWebhookEvent: 'IntegrationWebhookEvent',
   SystemSetting: 'SystemSetting',
   ApiIdempotencyRecord: 'ApiIdempotencyRecord',
@@ -479,7 +481,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "userProfile" | "role" | "permission" | "rolePermission" | "organizationUnit" | "organizationUnitClosure" | "position" | "positionAssignment" | "positionAreaPolicy" | "positionAreaScope" | "administrativeArea" | "administrativeAreaClosure" | "administrativeAreaDataSource" | "administrativeAreaBoundary" | "organizationAreaCoverage" | "fileAsset" | "directive" | "directiveVersion" | "directiveTargetArea" | "directiveRecipient" | "uukStr" | "uukStrVersion" | "uukStrSection" | "uukStrSectionItem" | "task" | "taskTargetArea" | "taskAssignment" | "taskProgressLog" | "taskAttachment" | "jaring" | "jaringCaretakerAssignment" | "jaringAreaCoverage" | "whatsAppMessage" | "whatsAppValidationIssue" | "whatsAppMessageMedia" | "whatsAppRoutingLog" | "baket" | "baketVersion" | "baketVersionSourceMessage" | "baketVersionAttachment" | "baketRevisionRequest" | "baketVerification" | "baketCoverageCheck" | "baketVerificationCheck" | "baketVerificationCrossReference" | "analysisCase" | "analysisSourceVerification" | "analysisVersion" | "analysisEntity" | "analysisRelationship" | "productTypeDefinition" | "productTemplate" | "productTemplateSection" | "productTemplateField" | "intelligenceProduct" | "productVersion" | "productSourceVerification" | "productSourceAnalysis" | "productAttachment" | "productApprovalWorkflow" | "productApprovalStep" | "productDistribution" | "emergencyIncident" | "emergencyAttachment" | "alert" | "personnelLocationPing" | "notification" | "auditLog" | "integrationChannel" | "integrationWebhookEvent" | "systemSetting" | "apiIdempotencyRecord" | "asyncJob" | "outboxEvent" | "fileUploadReservation" | "productApprovalEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "userProfile" | "role" | "permission" | "rolePermission" | "organizationUnit" | "organizationUnitClosure" | "position" | "positionAssignment" | "positionAreaPolicy" | "positionAreaScope" | "administrativeArea" | "administrativeAreaClosure" | "administrativeAreaDataSource" | "administrativeAreaBoundary" | "organizationAreaCoverage" | "fileAsset" | "directive" | "directiveVersion" | "directiveTargetArea" | "directiveRecipient" | "uukStr" | "uukStrVersion" | "uukStrSection" | "uukStrSectionItem" | "task" | "taskTargetArea" | "taskAssignment" | "taskProgressLog" | "taskAttachment" | "jaring" | "jaringCaretakerAssignment" | "jaringAreaCoverage" | "whatsAppMessage" | "whatsAppValidationIssue" | "whatsAppMessageMedia" | "whatsAppRoutingLog" | "baket" | "baketVersion" | "baketVersionSourceMessage" | "baketVersionAttachment" | "baketRevisionRequest" | "baketVerification" | "baketCoverageCheck" | "baketVerificationCheck" | "baketVerificationCrossReference" | "analysisCase" | "analysisSourceVerification" | "analysisVersion" | "analysisEntity" | "analysisRelationship" | "productTypeDefinition" | "productTemplate" | "productTemplateSection" | "productTemplateField" | "intelligenceProduct" | "productVersion" | "productSourceVerification" | "productSourceAnalysis" | "productAttachment" | "productApprovalWorkflow" | "productApprovalStep" | "productDistribution" | "emergencyIncident" | "emergencyAttachment" | "alert" | "personnelLocationPing" | "notification" | "auditLog" | "integrationChannel" | "whatsAppBotChannelState" | "whatsAppSenderNumber" | "integrationWebhookEvent" | "systemSetting" | "apiIdempotencyRecord" | "asyncJob" | "outboxEvent" | "fileUploadReservation" | "productApprovalEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5853,6 +5855,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    WhatsAppBotChannelState: {
+      payload: Prisma.$WhatsAppBotChannelStatePayload<ExtArgs>
+      fields: Prisma.WhatsAppBotChannelStateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WhatsAppBotChannelStateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WhatsAppBotChannelStateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload>
+        }
+        findFirst: {
+          args: Prisma.WhatsAppBotChannelStateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WhatsAppBotChannelStateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload>
+        }
+        findMany: {
+          args: Prisma.WhatsAppBotChannelStateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload>[]
+        }
+        create: {
+          args: Prisma.WhatsAppBotChannelStateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload>
+        }
+        createMany: {
+          args: Prisma.WhatsAppBotChannelStateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WhatsAppBotChannelStateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload>[]
+        }
+        delete: {
+          args: Prisma.WhatsAppBotChannelStateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload>
+        }
+        update: {
+          args: Prisma.WhatsAppBotChannelStateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload>
+        }
+        deleteMany: {
+          args: Prisma.WhatsAppBotChannelStateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WhatsAppBotChannelStateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WhatsAppBotChannelStateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload>[]
+        }
+        upsert: {
+          args: Prisma.WhatsAppBotChannelStateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppBotChannelStatePayload>
+        }
+        aggregate: {
+          args: Prisma.WhatsAppBotChannelStateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWhatsAppBotChannelState>
+        }
+        groupBy: {
+          args: Prisma.WhatsAppBotChannelStateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhatsAppBotChannelStateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WhatsAppBotChannelStateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhatsAppBotChannelStateCountAggregateOutputType> | number
+        }
+      }
+    }
+    WhatsAppSenderNumber: {
+      payload: Prisma.$WhatsAppSenderNumberPayload<ExtArgs>
+      fields: Prisma.WhatsAppSenderNumberFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WhatsAppSenderNumberFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WhatsAppSenderNumberFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload>
+        }
+        findFirst: {
+          args: Prisma.WhatsAppSenderNumberFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WhatsAppSenderNumberFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload>
+        }
+        findMany: {
+          args: Prisma.WhatsAppSenderNumberFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload>[]
+        }
+        create: {
+          args: Prisma.WhatsAppSenderNumberCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload>
+        }
+        createMany: {
+          args: Prisma.WhatsAppSenderNumberCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WhatsAppSenderNumberCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload>[]
+        }
+        delete: {
+          args: Prisma.WhatsAppSenderNumberDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload>
+        }
+        update: {
+          args: Prisma.WhatsAppSenderNumberUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload>
+        }
+        deleteMany: {
+          args: Prisma.WhatsAppSenderNumberDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WhatsAppSenderNumberUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WhatsAppSenderNumberUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload>[]
+        }
+        upsert: {
+          args: Prisma.WhatsAppSenderNumberUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppSenderNumberPayload>
+        }
+        aggregate: {
+          args: Prisma.WhatsAppSenderNumberAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWhatsAppSenderNumber>
+        }
+        groupBy: {
+          args: Prisma.WhatsAppSenderNumberGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhatsAppSenderNumberGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WhatsAppSenderNumberCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhatsAppSenderNumberCountAggregateOutputType> | number
+        }
+      }
+    }
     IntegrationWebhookEvent: {
       payload: Prisma.$IntegrationWebhookEventPayload<ExtArgs>
       fields: Prisma.IntegrationWebhookEventFieldRefs
@@ -7480,6 +7630,40 @@ export const IntegrationChannelScalarFieldEnum = {
 export type IntegrationChannelScalarFieldEnum = (typeof IntegrationChannelScalarFieldEnum)[keyof typeof IntegrationChannelScalarFieldEnum]
 
 
+export const WhatsAppBotChannelStateScalarFieldEnum = {
+  id: 'id',
+  integrationChannelId: 'integrationChannelId',
+  connectionStatus: 'connectionStatus',
+  qrCodeText: 'qrCodeText',
+  qrCodeDataUrl: 'qrCodeDataUrl',
+  pairingCode: 'pairingCode',
+  authStatePath: 'authStatePath',
+  botPhoneNumber: 'botPhoneNumber',
+  sessionJid: 'sessionJid',
+  lastConnectedAt: 'lastConnectedAt',
+  lastDisconnectedAt: 'lastDisconnectedAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WhatsAppBotChannelStateScalarFieldEnum = (typeof WhatsAppBotChannelStateScalarFieldEnum)[keyof typeof WhatsAppBotChannelStateScalarFieldEnum]
+
+
+export const WhatsAppSenderNumberScalarFieldEnum = {
+  id: 'id',
+  integrationChannelId: 'integrationChannelId',
+  phoneNumber: 'phoneNumber',
+  label: 'label',
+  isPrimary: 'isPrimary',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WhatsAppSenderNumberScalarFieldEnum = (typeof WhatsAppSenderNumberScalarFieldEnum)[keyof typeof WhatsAppSenderNumberScalarFieldEnum]
+
+
 export const IntegrationWebhookEventScalarFieldEnum = {
   id: 'id',
   channelId: 'channelId',
@@ -8365,6 +8549,20 @@ export type ListEnumIntegrationStatusFieldRefInput<$PrismaModel> = FieldRefInput
 
 
 /**
+ * Reference to a field of type 'WhatsAppBotConnectionStatus'
+ */
+export type EnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WhatsAppBotConnectionStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'WhatsAppBotConnectionStatus[]'
+ */
+export type ListEnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WhatsAppBotConnectionStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'IdempotencyStatus'
  */
 export type EnumIdempotencyStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'IdempotencyStatus'>
@@ -8616,6 +8814,8 @@ export type GlobalOmitConfig = {
   notification?: Prisma.NotificationOmit
   auditLog?: Prisma.AuditLogOmit
   integrationChannel?: Prisma.IntegrationChannelOmit
+  whatsAppBotChannelState?: Prisma.WhatsAppBotChannelStateOmit
+  whatsAppSenderNumber?: Prisma.WhatsAppSenderNumberOmit
   integrationWebhookEvent?: Prisma.IntegrationWebhookEventOmit
   systemSetting?: Prisma.SystemSettingOmit
   apiIdempotencyRecord?: Prisma.ApiIdempotencyRecordOmit

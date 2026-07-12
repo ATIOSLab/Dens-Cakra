@@ -369,6 +369,15 @@ enum IntegrationStatus {
   ERROR
 }
 
+enum WhatsAppBotConnectionStatus {
+  DISCONNECTED
+  CONNECTING
+  QR_READY
+  PAIRING_CODE_READY
+  CONNECTED
+  ERROR
+}
+
 enum FileLifecycleStatus {
   PENDING_UPLOAD
   UPLOADED
@@ -1897,6 +1906,45 @@ model IntegrationChannel {
 
   whatsAppMessages WhatsAppMessage[]
   webhookEvents    IntegrationWebhookEvent[]
+  botState         WhatsAppBotChannelState?
+  senderNumbers    WhatsAppSenderNumber[]
+}
+
+model WhatsAppBotChannelState {
+  id                   String                       @id @default(uuid()) @db.Uuid
+  integrationChannelId String                       @unique @db.Uuid
+  connectionStatus     WhatsAppBotConnectionStatus  @default(DISCONNECTED)
+  qrCodeText           String?                      @db.Text
+  qrCodeDataUrl        String?                      @db.Text
+  pairingCode          String?                      @db.VarChar(64)
+  authStatePath        String?                      @db.VarChar(300)
+  botPhoneNumber       String?                      @db.VarChar(30)
+  sessionJid           String?                      @db.VarChar(120)
+  lastConnectedAt      DateTime?
+  lastDisconnectedAt   DateTime?
+  lastError            String?                      @db.Text
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+
+  integrationChannel IntegrationChannel @relation(fields: [integrationChannelId], references: [id], onDelete: Cascade)
+
+  @@index([connectionStatus, updatedAt])
+}
+
+model WhatsAppSenderNumber {
+  id                   String   @id @default(uuid()) @db.Uuid
+  integrationChannelId String   @db.Uuid
+  phoneNumber          String   @db.VarChar(30)
+  label                String?  @db.VarChar(120)
+  isPrimary            Boolean  @default(false)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  integrationChannel IntegrationChannel @relation(fields: [integrationChannelId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationChannelId, phoneNumber])
+  @@index([integrationChannelId, isActive])
 }
 
 model IntegrationWebhookEvent {

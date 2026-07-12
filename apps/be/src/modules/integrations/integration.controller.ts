@@ -22,6 +22,7 @@ import {
   ReasonDto,
   TestIntegrationDto,
   UpdateIntegrationDto,
+  UpdateWhatsappControlDto,
   WebhookQuery,
 } from './integration.dto.js';
 import { IntegrationService } from './integration.service.js';
@@ -41,6 +42,17 @@ export class IntegrationController {
   })
   async list(@Query() query: IntegrationQuery) {
     return apiResult(await this.integrationService.list(query));
+  }
+
+  @Get('integration-channels/whatsapp-control')
+  @ApiContract({
+    operationId: 'apiInt011',
+    contractId: 'API-INT-011',
+    summary: 'Ringkasan kontrol WhatsApp',
+    permission: 'integration.read',
+  })
+  async whatsappControl() {
+    return apiResult(await this.integrationService.whatsappControl());
   }
 
   @Post('integration-channels')
@@ -83,6 +95,40 @@ export class IntegrationController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.integrationService.update(id, body, context));
+  }
+
+  @Patch('integration-channels/whatsapp-control/:channelId')
+  @ApiContract({
+    operationId: 'apiInt012',
+    contractId: 'API-INT-012',
+    summary: 'Ubah bot dan nomor pengirim WhatsApp',
+    permission: 'integration.manage',
+  })
+  async updateWhatsappControl(
+    @Param('channelId', ParseUUIDPipe) id: string,
+    @Body() body: UpdateWhatsappControlDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.integrationService.updateWhatsappControl(id, body, context),
+    );
+  }
+
+  @Post('integration-channels/whatsapp-control/:channelId/request-qr')
+  @ApiContract({
+    operationId: 'apiInt013',
+    contractId: 'API-INT-013',
+    summary: 'Minta QR atau pairing code WhatsApp baru',
+    permission: 'integration.manage',
+    idempotent: true,
+  })
+  async requestWhatsappQr(
+    @Param('channelId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.integrationService.requestWhatsappQr(id, context),
+    );
   }
 
   @Post('integration-channels/:channelId/activate')

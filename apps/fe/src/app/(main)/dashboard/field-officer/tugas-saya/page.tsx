@@ -1,7 +1,5 @@
-import { FieldOfficerTaskListPage } from "@/features/tasks/pages";
+import { FieldOfficerOperationsPage } from "@/features/field-ops/field-officer-operations-page";
 
-export const dynamic = "force-dynamic";
-
-export default async function Page() {
-  return <FieldOfficerTaskListPage />;
+export default function Page() {
+  return <FieldOfficerOperationsPage view="tasks" />;
 }

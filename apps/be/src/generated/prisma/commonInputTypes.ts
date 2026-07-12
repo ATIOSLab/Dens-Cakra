@@ -1204,6 +1204,23 @@ export type EnumIntegrationStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumIntegrationStatusFilter<$PrismaModel>
 }
 
+export type EnumWhatsAppBotConnectionStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.WhatsAppBotConnectionStatus | Prisma.EnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WhatsAppBotConnectionStatus[] | Prisma.ListEnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WhatsAppBotConnectionStatus[] | Prisma.ListEnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWhatsAppBotConnectionStatusFilter<$PrismaModel> | $Enums.WhatsAppBotConnectionStatus
+}
+
+export type EnumWhatsAppBotConnectionStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.WhatsAppBotConnectionStatus | Prisma.EnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WhatsAppBotConnectionStatus[] | Prisma.ListEnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WhatsAppBotConnectionStatus[] | Prisma.ListEnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWhatsAppBotConnectionStatusWithAggregatesFilter<$PrismaModel> | $Enums.WhatsAppBotConnectionStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumWhatsAppBotConnectionStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumWhatsAppBotConnectionStatusFilter<$PrismaModel>
+}
+
 export type BoolNullableFilter<$PrismaModel = never> = {
   equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
   not?: Prisma.NestedBoolNullableFilter<$PrismaModel> | boolean | null
@@ -2428,6 +2445,23 @@ export type NestedEnumIntegrationStatusWithAggregatesFilter<$PrismaModel = never
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumIntegrationStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumIntegrationStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumWhatsAppBotConnectionStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.WhatsAppBotConnectionStatus | Prisma.EnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WhatsAppBotConnectionStatus[] | Prisma.ListEnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WhatsAppBotConnectionStatus[] | Prisma.ListEnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWhatsAppBotConnectionStatusFilter<$PrismaModel> | $Enums.WhatsAppBotConnectionStatus
+}
+
+export type NestedEnumWhatsAppBotConnectionStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.WhatsAppBotConnectionStatus | Prisma.EnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WhatsAppBotConnectionStatus[] | Prisma.ListEnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WhatsAppBotConnectionStatus[] | Prisma.ListEnumWhatsAppBotConnectionStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWhatsAppBotConnectionStatusWithAggregatesFilter<$PrismaModel> | $Enums.WhatsAppBotConnectionStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumWhatsAppBotConnectionStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumWhatsAppBotConnectionStatusFilter<$PrismaModel>
 }
 
 export type NestedBoolNullableFilter<$PrismaModel = never> = {

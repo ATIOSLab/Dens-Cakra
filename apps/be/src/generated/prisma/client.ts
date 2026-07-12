@@ -407,6 +407,16 @@ export type AuditLog = Prisma.AuditLogModel
  */
 export type IntegrationChannel = Prisma.IntegrationChannelModel
 /**
+ * Model WhatsAppBotChannelState
+ * 
+ */
+export type WhatsAppBotChannelState = Prisma.WhatsAppBotChannelStateModel
+/**
+ * Model WhatsAppSenderNumber
+ * 
+ */
+export type WhatsAppSenderNumber = Prisma.WhatsAppSenderNumberModel
+/**
  * Model IntegrationWebhookEvent
  * 
  */

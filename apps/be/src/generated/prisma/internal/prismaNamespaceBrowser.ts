@@ -124,6 +124,8 @@ export const ModelName = {
   Notification: 'Notification',
   AuditLog: 'AuditLog',
   IntegrationChannel: 'IntegrationChannel',
+  WhatsAppBotChannelState: 'WhatsAppBotChannelState',
+  WhatsAppSenderNumber: 'WhatsAppSenderNumber',
   IntegrationWebhookEvent: 'IntegrationWebhookEvent',
   SystemSetting: 'SystemSetting',
   ApiIdempotencyRecord: 'ApiIdempotencyRecord',
@@ -1217,6 +1219,40 @@ export const IntegrationChannelScalarFieldEnum = {
 } as const
 
 export type IntegrationChannelScalarFieldEnum = (typeof IntegrationChannelScalarFieldEnum)[keyof typeof IntegrationChannelScalarFieldEnum]
+
+
+export const WhatsAppBotChannelStateScalarFieldEnum = {
+  id: 'id',
+  integrationChannelId: 'integrationChannelId',
+  connectionStatus: 'connectionStatus',
+  qrCodeText: 'qrCodeText',
+  qrCodeDataUrl: 'qrCodeDataUrl',
+  pairingCode: 'pairingCode',
+  authStatePath: 'authStatePath',
+  botPhoneNumber: 'botPhoneNumber',
+  sessionJid: 'sessionJid',
+  lastConnectedAt: 'lastConnectedAt',
+  lastDisconnectedAt: 'lastDisconnectedAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WhatsAppBotChannelStateScalarFieldEnum = (typeof WhatsAppBotChannelStateScalarFieldEnum)[keyof typeof WhatsAppBotChannelStateScalarFieldEnum]
+
+
+export const WhatsAppSenderNumberScalarFieldEnum = {
+  id: 'id',
+  integrationChannelId: 'integrationChannelId',
+  phoneNumber: 'phoneNumber',
+  label: 'label',
+  isPrimary: 'isPrimary',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WhatsAppSenderNumberScalarFieldEnum = (typeof WhatsAppSenderNumberScalarFieldEnum)[keyof typeof WhatsAppSenderNumberScalarFieldEnum]
 
 
 export const IntegrationWebhookEventScalarFieldEnum = {

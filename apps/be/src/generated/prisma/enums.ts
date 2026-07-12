@@ -490,6 +490,18 @@ export const IntegrationStatus = {
 export type IntegrationStatus = (typeof IntegrationStatus)[keyof typeof IntegrationStatus]
 
 
+export const WhatsAppBotConnectionStatus = {
+  DISCONNECTED: 'DISCONNECTED',
+  CONNECTING: 'CONNECTING',
+  QR_READY: 'QR_READY',
+  PAIRING_CODE_READY: 'PAIRING_CODE_READY',
+  CONNECTED: 'CONNECTED',
+  ERROR: 'ERROR'
+} as const
+
+export type WhatsAppBotConnectionStatus = (typeof WhatsAppBotConnectionStatus)[keyof typeof WhatsAppBotConnectionStatus]
+
+
 export const FileLifecycleStatus = {
   PENDING_UPLOAD: 'PENDING_UPLOAD',
   UPLOADED: 'UPLOADED',
