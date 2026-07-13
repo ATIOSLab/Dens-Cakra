@@ -1,5 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PositionCode, Prisma } from '../../generated/prisma/client.js';
+import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AssignmentListQueryDto,
@@ -8,10 +11,150 @@ import type {
 
 @Injectable()
 export class PositionQueryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly domainScope: DomainScopeService,
+  ) {}
 
-  async list(query: PositionListQueryDto) {
+  async commandNetwork(context: AuthorizationContext) {
+    const scope = await this.domainScope.resolve(context);
+    const now = new Date();
+    const [positions, assignments, jaring] = await Promise.all([
+      this.prisma.position.findMany({
+        where: { id: { in: scope.positionIds }, isActive: true },
+        orderBy: [{ organizationUnit: { name: 'asc' } }, { seatCode: 'asc' }],
+        select: {
+          id: true,
+          seatCode: true,
+          code: true,
+          title: true,
+          reportsToPositionId: true,
+          organizationUnit: {
+            select: { id: true, code: true, name: true, type: true },
+          },
+          role: { select: { id: true, code: true, name: true } },
+        },
+      }),
+      this.prisma.userSeatAssignment.findMany({
+        where: {
+          id: { in: scope.assignmentIds },
+          isActive: true,
+          OR: [{ validUntil: null }, { validUntil: { gt: now } }],
+        },
+        orderBy: [
+          { position: { organizationUnit: { name: 'asc' } } },
+          { validFrom: 'asc' },
+        ],
+        select: {
+          id: true,
+          isPrimary: true,
+          validFrom: true,
+          userProfile: {
+            select: { id: true, username: true, fullName: true },
+          },
+          position: {
+            select: {
+              id: true,
+              seatCode: true,
+              code: true,
+              title: true,
+              reportsToPositionId: true,
+              organizationUnit: {
+                select: { id: true, code: true, name: true, type: true },
+              },
+              role: { select: { id: true, code: true, name: true } },
+            },
+          },
+          areaScopes: {
+            where: { validUntil: null },
+            orderBy: [{ isPrimary: 'desc' }, { validFrom: 'asc' }],
+            select: {
+              isPrimary: true,
+              area: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  level: true,
+                  parentId: true,
+                  centroidLatitude: true,
+                  centroidLongitude: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.jaring.findMany({
+        where: {
+          deletedAt: null,
+          caretakerAssignments: {
+            some: {
+              fieldOfficerAssignmentId: { in: scope.assignmentIds },
+              isActive: true,
+              OR: [{ validUntil: null }, { validUntil: { gt: now } }],
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          code: true,
+          aliasName: true,
+          status: true,
+          createdAt: true,
+          cluster: { select: { id: true, code: true, name: true } },
+          caretakerAssignments: {
+            where: {
+              fieldOfficerAssignmentId: { in: scope.assignmentIds },
+              isActive: true,
+              OR: [{ validUntil: null }, { validUntil: { gt: now } }],
+            },
+            select: {
+              fieldOfficerAssignmentId: true,
+              validFrom: true,
+              fieldOfficerAssignment: {
+                select: {
+                  userProfile: { select: { fullName: true } },
+                  position: { select: { title: true } },
+                },
+              },
+            },
+          },
+          areaCoverages: {
+            where: { OR: [{ validUntil: null }, { validUntil: { gt: now } }] },
+            select: {
+              isPrimary: true,
+              area: {
+                select: { id: true, code: true, name: true, level: true },
+              },
+            },
+          },
+          _count: { select: { messages: true, primaryBakets: true } },
+        },
+      }),
+    ]);
+
+    return {
+      command: {
+        organizationUnitId: scope.organizationUnitId,
+        positionId: context.positionId,
+        assignmentId: context.primaryAssignmentId,
+        commandRouteType: scope.commandRouteType,
+      },
+      positions,
+      assignments,
+      jaring,
+    };
+  }
+
+  async list(query: PositionListQueryDto, context?: AuthorizationContext) {
+    const scope =
+      context && context.authRole !== SYSTEM_ROLES.ADMIN_SYSTEM
+        ? await this.domainScope.resolve(context)
+        : null;
     const where: Prisma.PositionWhereInput = {
+      ...(scope ? { id: { in: scope.positionIds } } : {}),
       ...(query.search
         ? {
             OR: [
@@ -57,7 +200,13 @@ export class PositionQueryService {
     };
   }
 
-  detail(id: string) {
+  async detail(id: string, context?: AuthorizationContext) {
+    if (context && context.authRole !== SYSTEM_ROLES.ADMIN_SYSTEM) {
+      const scope = await this.domainScope.resolve(context);
+      if (!scope.positionIds.includes(id)) {
+        throw new NotFoundException('Resource not found.');
+      }
+    }
     return this.prisma.position.findUniqueOrThrow({
       where: { id },
       include: {
@@ -76,7 +225,18 @@ export class PositionQueryService {
     });
   }
 
-  subordinates(id: string, recursive: boolean, depth?: number) {
+  async subordinates(
+    id: string,
+    recursive: boolean,
+    depth?: number,
+    context?: AuthorizationContext,
+  ) {
+    if (context && context.authRole !== SYSTEM_ROLES.ADMIN_SYSTEM) {
+      const scope = await this.domainScope.resolve(context);
+      if (!scope.positionIds.includes(id)) {
+        throw new NotFoundException('Resource not found.');
+      }
+    }
     if (!recursive) {
       return this.prisma.position.findMany({
         where: { reportsToPositionId: id, isActive: true },
@@ -120,10 +280,21 @@ export class PositionQueryService {
     `);
   }
 
-  async assignments(query: AssignmentListQueryDto) {
+  async assignments(
+    query: AssignmentListQueryDto,
+    context?: AuthorizationContext,
+  ) {
+    const scope =
+      context && context.authRole !== SYSTEM_ROLES.ADMIN_SYSTEM
+        ? await this.domainScope.resolve(context)
+        : null;
     const validAt = query.validAt ? new Date(query.validAt) : null;
     const positionIds = Array.from(
-      new Set([query.positionId, ...(query.positionIds ?? [])].filter((value): value is string => Boolean(value))),
+      new Set(
+        [query.positionId, ...(query.positionIds ?? [])].filter(
+          (value): value is string => Boolean(value),
+        ),
+      ),
     );
     const positionFilter: Prisma.PositionWhereInput = {
       ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
@@ -131,10 +302,13 @@ export class PositionQueryService {
       ...(query.positionCode ? { code: query.positionCode } : {}),
     };
     const where: Prisma.UserSeatAssignmentWhereInput = {
+      ...(scope ? { id: { in: scope.assignmentIds } } : {}),
       ...(query.userProfileId ? { userProfileId: query.userProfileId } : {}),
       ...(positionIds.length === 1 ? { positionId: positionIds[0] } : {}),
       ...(positionIds.length > 1 ? { positionId: { in: positionIds } } : {}),
-      ...(Object.keys(positionFilter).length > 0 ? { position: positionFilter } : {}),
+      ...(Object.keys(positionFilter).length > 0
+        ? { position: positionFilter }
+        : {}),
       ...(query.isActive === undefined ? {} : { isActive: query.isActive }),
       ...(validAt
         ? {
@@ -168,7 +342,13 @@ export class PositionQueryService {
     };
   }
 
-  assignment(id: string) {
+  async assignment(id: string, context?: AuthorizationContext) {
+    if (context && context.authRole !== SYSTEM_ROLES.ADMIN_SYSTEM) {
+      const scope = await this.domainScope.resolve(context);
+      if (!scope.assignmentIds.includes(id)) {
+        throw new NotFoundException('Resource not found.');
+      }
+    }
     return this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id },
       include: {

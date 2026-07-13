@@ -43,7 +43,8 @@ export class SpatialRepository {
         ON area."id" = boundary."areaId"
       WHERE boundary."isActive" = true
         AND boundary."effectiveUntil" IS NULL
-        AND ST_Intersects(boundary."boundary", ${point})
+        AND boundary."qualityStatus" <> 'INVALID'
+        AND ST_Covers(boundary."boundary", ${point})
         ${levelFilter}
       ORDER BY
         CASE area."level"
@@ -141,7 +142,8 @@ export class SpatialRepository {
           WHERE boundary."areaId" = ${areaId}
             AND boundary."isActive" = true
             AND boundary."effectiveUntil" IS NULL
-            AND ST_Intersects(boundary."boundary", ${point})
+            AND boundary."qualityStatus" <> 'INVALID'
+            AND ST_Covers(boundary."boundary", ${point})
         ) AS "matches"
       `,
     );

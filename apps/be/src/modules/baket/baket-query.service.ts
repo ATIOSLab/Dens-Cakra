@@ -5,11 +5,44 @@ import {
   SourceReliability,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
+import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { BaketStatus, type Prisma } from '../../generated/prisma/client.js';
 import type { BaketQuery, VerificationQuery } from './baket.dto.js';
+
+const publicFileSelect = {
+  id: true,
+  storageKey: true,
+  originalName: true,
+  mimeType: true,
+  fileType: true,
+  checksumSha256: true,
+  lifecycleStatus: true,
+  scanResult: true,
+  scannedAt: true,
+  quarantineReason: true,
+  retentionUntil: true,
+  createdByAssignmentId: true,
+  createdAt: true,
+  deletedAt: true,
+} satisfies Prisma.FileAssetSelect;
+
+const administrativeAreaInclude = {
+  parent: {
+    include: {
+      parent: {
+        include: { parent: true },
+      },
+    },
+  },
+} satisfies Prisma.AdministrativeAreaInclude;
 
 @Injectable()
 export class BaketQueryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scope: DomainScopeService,
+  ) {}
 
   baketDetail(baketId: string) {
     return this.prisma.baket.findFirstOrThrow({
@@ -25,11 +58,13 @@ export class BaketQueryService {
             assigner: { include: { userProfile: true, position: true } },
           },
         },
-        primaryJaring: true,
+        primaryJaring: { include: { cluster: true } },
+        reportCategory: true,
+        jaringCluster: true,
         versions: {
           orderBy: { versionNumber: 'desc' },
           include: {
-            eventArea: true,
+            eventArea: { include: administrativeAreaInclude },
             createdByAssignment: {
               include: { userProfile: true, position: true },
             },
@@ -37,7 +72,11 @@ export class BaketQueryService {
               include: {
                 message: {
                   include: {
-                    jaring: true,
+                    jaring: { include: { cluster: true } },
+                    category: true,
+                    media: {
+                      include: { file: { select: publicFileSelect } },
+                    },
                     resolvedArea: true,
                     validationIssues: true,
                   },
@@ -45,11 +84,10 @@ export class BaketQueryService {
               },
             },
             attachments: {
-              include: { file: true },
+              include: { file: { select: publicFileSelect } },
             },
             verification: {
               include: {
-                checks: true,
                 crossReferences: true,
               },
             },
@@ -83,7 +121,7 @@ export class BaketQueryService {
       where: { id: versionId },
       include: {
         baket: true,
-        eventArea: true,
+        eventArea: { include: administrativeAreaInclude },
         createdByAssignment: {
           include: { userProfile: true, position: true },
         },
@@ -91,7 +129,11 @@ export class BaketQueryService {
           include: {
             message: {
               include: {
-                jaring: true,
+                jaring: { include: { cluster: true } },
+                category: true,
+                media: {
+                  include: { file: { select: publicFileSelect } },
+                },
                 resolvedArea: true,
                 validationIssues: true,
               },
@@ -99,11 +141,10 @@ export class BaketQueryService {
           },
         },
         attachments: {
-          include: { file: true },
+          include: { file: { select: publicFileSelect } },
         },
         verification: {
           include: {
-            checks: true,
             crossReferences: {
               include: { relatedBaket: true },
             },
@@ -128,7 +169,7 @@ export class BaketQueryService {
         baketVersion: {
           include: {
             baket: true,
-            eventArea: true,
+            eventArea: { include: administrativeAreaInclude },
             sourceMessages: {
               include: { message: true },
             },
@@ -137,7 +178,6 @@ export class BaketQueryService {
         verifiedByAssignment: {
           include: { userProfile: true, position: true },
         },
-        checks: true,
         crossReferences: {
           include: { relatedBaket: true },
         },
@@ -145,103 +185,144 @@ export class BaketQueryService {
     });
   }
 
-  list(query: BaketQuery) {
-    return this.prisma.baket.findMany({
-      where: {
-        deletedAt: null,
-        ...(query.status ? { status: query.status } : {}),
-        ...(query.urgency
-          ? {
-              versions: {
-                some: { urgency: query.urgency },
-              },
-            }
-          : {}),
-        ...(query.createdByAssignmentId
-          ? { createdByFieldOfficerAssignmentId: query.createdByAssignmentId }
-          : {}),
-        ...(query.taskAssignmentId
-          ? { taskAssignmentId: query.taskAssignmentId }
-          : {}),
-        ...(query.jaringId ? { primaryJaringId: query.jaringId } : {}),
-        ...(query.areaId
-          ? {
-              versions: {
-                some: {
-                  OR: [
-                    { eventAreaId: query.areaId },
-                    {
-                      eventArea: {
-                        ancestorLinks: {
-                          some: { ancestorId: query.areaId },
-                        },
+  async list(query: BaketQuery, context: AuthorizationContext) {
+    const requestedStatuses = query.statuses
+      ?.split(',')
+      .map((status) => status.trim())
+      .filter((status): status is BaketStatus =>
+        Object.values(BaketStatus).includes(status as BaketStatus),
+      );
+    const intakeStatuses = [
+      BaketStatus.SENT_TO_OIM,
+      BaketStatus.UNDER_VERIFICATION,
+      BaketStatus.NEEDS_DEVELOPMENT,
+      BaketStatus.VERIFIED,
+      BaketStatus.REJECTED,
+    ];
+    const where: Prisma.BaketWhereInput = {
+      AND: [await this.scope.baketWhere(context)],
+      deletedAt: null,
+      ...(query.status
+        ? { status: query.status }
+        : requestedStatuses?.length
+          ? { status: { in: requestedStatuses } }
+          : context.roleCode === 'OPERATIONAL_INTELLIGENCE_MANAGER'
+            ? { status: { in: intakeStatuses } }
+            : {}),
+      ...(query.urgency
+        ? {
+            versions: {
+              some: { urgency: query.urgency },
+            },
+          }
+        : {}),
+      ...(query.createdByAssignmentId
+        ? { createdByFieldOfficerAssignmentId: query.createdByAssignmentId }
+        : {}),
+      ...(query.taskAssignmentId
+        ? { taskAssignmentId: query.taskAssignmentId }
+        : {}),
+      ...(query.jaringId ? { primaryJaringId: query.jaringId } : {}),
+      ...(query.categoryId ? { reportCategoryId: query.categoryId } : {}),
+      ...(query.jaringClusterId
+        ? { jaringClusterId: query.jaringClusterId }
+        : {}),
+      ...(query.areaId
+        ? {
+            versions: {
+              some: {
+                OR: [
+                  { eventAreaId: query.areaId },
+                  {
+                    eventArea: {
+                      ancestorLinks: {
+                        some: { ancestorId: query.areaId },
                       },
                     },
-                  ],
-                },
+                  },
+                ],
               },
-            }
-          : {}),
-        ...(query.coverageStatus
-          ? {
-              versions: {
-                some: {
-                  coverageValidationStatus: query.coverageStatus,
-                },
+            },
+          }
+        : {}),
+      ...(query.coverageStatus
+        ? {
+            versions: {
+              some: {
+                coverageValidationStatus: query.coverageStatus,
               },
-            }
-          : {}),
-        ...(query.from || query.to
-          ? {
-              versions: {
-                some: {
-                  ...(query.from
-                    ? { createdAt: { gte: new Date(query.from) } }
-                    : {}),
-                  ...(query.to
-                    ? { createdAt: { lte: new Date(query.to) } }
-                    : {}),
-                },
+            },
+          }
+        : {}),
+      ...(query.from || query.to
+        ? {
+            versions: {
+              some: {
+                ...(query.from
+                  ? { createdAt: { gte: new Date(query.from) } }
+                  : {}),
+                ...(query.to ? { createdAt: { lte: new Date(query.to) } } : {}),
               },
-            }
-          : {}),
-        ...(query.search
-          ? {
-              versions: {
-                some: {
-                  OR: [
-                    {
-                      title: { contains: query.search, mode: 'insensitive' },
+            },
+          }
+        : {}),
+      ...(query.search
+        ? {
+            versions: {
+              some: {
+                OR: [
+                  {
+                    title: { contains: query.search, mode: 'insensitive' },
+                  },
+                  {
+                    originalContent: {
+                      contains: query.search,
+                      mode: 'insensitive',
                     },
-                    {
-                      originalContent: {
-                        contains: query.search,
-                        mode: 'insensitive',
-                      },
-                    },
-                  ],
-                },
+                  },
+                ],
               },
-            }
-          : {}),
-      },
-      take: query.limit,
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        primaryJaring: true,
-        taskAssignment: {
-          include: { task: true },
-        },
-        versions: {
-          orderBy: { versionNumber: 'desc' },
-          take: 1,
-          include: {
-            eventArea: true,
-            verification: true,
+            },
+          }
+        : {}),
+    };
+    const [items, total] = await Promise.all([
+      this.prisma.baket.findMany({
+        where,
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          createdByFieldOfficerAssignment: {
+            include: { userProfile: true, position: true },
+          },
+          primaryJaring: { include: { cluster: true } },
+          reportCategory: true,
+          jaringCluster: true,
+          taskAssignment: {
+            include: { task: true },
+          },
+          versions: {
+            orderBy: { versionNumber: 'desc' },
+            take: 1,
+            include: {
+              eventArea: { include: administrativeAreaInclude },
+              verification: true,
+            },
           },
         },
+      }),
+      this.prisma.baket.count({ where }),
+    ]);
+    return {
+      items,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / query.limit)),
       },
-    });
+    };
   }
 
   versions(baketId: string) {
@@ -249,7 +330,7 @@ export class BaketQueryService {
       where: { baketId },
       orderBy: { versionNumber: 'desc' },
       include: {
-        eventArea: true,
+        eventArea: { include: administrativeAreaInclude },
         verification: true,
         coverageChecks: true,
       },
@@ -377,9 +458,14 @@ export class BaketQueryService {
     });
   }
 
-  listVerifications(query: VerificationQuery) {
+  async listVerifications(
+    query: VerificationQuery,
+    context: AuthorizationContext,
+  ) {
+    const baketScope = await this.scope.baketWhere(context);
     return this.prisma.baketVerification.findMany({
       where: {
+        baketVersion: { baket: baketScope },
         ...(query.status ? { status: query.status } : {}),
         ...(query.verifiedByAssignmentId
           ? { verifiedByAssignmentId: query.verifiedByAssignmentId }
@@ -418,13 +504,12 @@ export class BaketQueryService {
         baketVersion: {
           include: {
             baket: true,
-            eventArea: true,
+            eventArea: { include: administrativeAreaInclude },
           },
         },
         verifiedByAssignment: {
           include: { userProfile: true, position: true },
         },
-        checks: true,
       },
     });
   }

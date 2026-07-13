@@ -25,7 +25,6 @@ import type {
   NeedsDevelopmentDto,
   RejectVerificationDto,
   ReplaceAttachmentsDto,
-  ReplaceChecksDto,
   ReplaceCrossReferencesDto,
   ReplaceMessagesDto,
   ResolveAreaDto,
@@ -33,6 +32,7 @@ import type {
   ResubmitDto,
   RevisionRequestQuery,
   UpdateVerificationDto,
+  UpdateBaketMetadataDto,
   ValidateCoverageDto,
   VerificationQuery,
 } from './baket.dto.js';
@@ -40,6 +40,7 @@ import { BaketCoverageService } from './baket-coverage.service.js';
 import { BaketQueryService } from './baket-query.service.js';
 import { BaketVerificationService } from './baket-verification.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
 
 @Injectable()
 export class BaketService {
@@ -48,6 +49,7 @@ export class BaketService {
     private readonly baketQuery: BaketQueryService,
     private readonly baketCoverage: BaketCoverageService,
     private readonly baketVerification: BaketVerificationService,
+    private readonly scope: DomainScopeService,
   ) {}
 
   private ensureCoordinatePair(latitude?: number, longitude?: number) {
@@ -81,7 +83,10 @@ export class BaketService {
     });
   }
 
-  private async getEditableVersion(versionId: string) {
+  private async getEditableVersion(
+    versionId: string,
+    context: AuthorizationContext,
+  ) {
     const version = await this.prisma.baketVersion.findUniqueOrThrow({
       where: { id: versionId },
       include: { baket: true },
@@ -101,11 +106,18 @@ export class BaketService {
         409,
       );
     }
+    if (
+      context.positionCode === PositionCode.PETUGAS_ORGANIK &&
+      version.baket.createdByFieldOfficerAssignmentId !==
+        context.primaryAssignmentId
+    ) {
+      throw new ApiException('BAKET_NOT_FOUND', 'Baket tidak ditemukan.', 404);
+    }
     return version;
   }
 
-  list(query: BaketQuery) {
-    return this.baketQuery.list(query);
+  list(query: BaketQuery, context: AuthorizationContext) {
+    return this.baketQuery.list(query, context);
   }
 
   async create(body: CreateBaketDto, context: AuthorizationContext) {
@@ -127,6 +139,32 @@ export class BaketService {
       );
     }
     this.ensureCoordinatePair(body.version.latitude, body.version.longitude);
+
+    const [category, primaryJaring] = await Promise.all([
+      this.prisma.reportCategory.findFirst({
+        where: { id: body.reportCategoryId, isActive: true },
+      }),
+      body.primaryJaringId
+        ? this.prisma.jaring.findFirst({
+            where: { id: body.primaryJaringId, deletedAt: null },
+            include: { cluster: true },
+          })
+        : Promise.resolve(null),
+    ]);
+    if (!category) {
+      throw new ApiException(
+        'REPORT_CATEGORY_NOT_FOUND',
+        'Kategori laporan tidak aktif atau tidak ditemukan.',
+        422,
+      );
+    }
+    if (body.primaryJaringId && !primaryJaring) {
+      throw new ApiException(
+        'JARING_NOT_FOUND',
+        'Jaring tidak ditemukan.',
+        404,
+      );
+    }
 
     const baket = await this.prisma.$transaction(async (tx) => {
       if (body.attachments?.length) {
@@ -155,6 +193,8 @@ export class BaketService {
           createdByFieldOfficerAssignmentId: context.primaryAssignmentId,
           taskAssignmentId: body.taskAssignmentId,
           primaryJaringId: body.primaryJaringId,
+          reportCategoryId: category.id,
+          jaringClusterId: primaryJaring?.clusterId,
           versions: {
             create: {
               versionNumber: 1,
@@ -202,11 +242,76 @@ export class BaketService {
     return this.baketQuery.baketDetail(baket.id);
   }
 
-  get(baketId: string) {
+  async get(baketId: string, context: AuthorizationContext) {
+    await this.scope.assertBaket(context, baketId);
     return this.baketQuery.baketDetail(baketId);
   }
 
-  versions(baketId: string) {
+  async updateMetadata(
+    baketId: string,
+    body: UpdateBaketMetadataDto,
+    context: AuthorizationContext,
+  ) {
+    const baket = await this.prisma.baket.findFirst({
+      where: {
+        id: baketId,
+        deletedAt: null,
+        createdByFieldOfficerAssignmentId: context.primaryAssignmentId,
+        status: {
+          in: [
+            BaketStatus.DRAFT,
+            BaketStatus.READY_TO_SEND,
+            BaketStatus.NEEDS_DEVELOPMENT,
+          ],
+        },
+      },
+    });
+    if (!baket) {
+      throw new ApiException('BAKET_NOT_FOUND', 'Baket tidak ditemukan.', 404);
+    }
+    const category = await this.prisma.reportCategory.findFirst({
+      where: { id: body.reportCategoryId, isActive: true },
+    });
+    if (!category) {
+      throw new ApiException(
+        'REPORT_CATEGORY_NOT_FOUND',
+        'Kategori laporan tidak aktif atau tidak ditemukan.',
+        422,
+      );
+    }
+    if (body.taskAssignmentId) {
+      const taskAssignment = await this.prisma.taskAssignment.findFirst({
+        where: {
+          id: body.taskAssignmentId,
+          assigneeAssignmentId: context.primaryAssignmentId,
+        },
+      });
+      if (!taskAssignment) {
+        throw new ApiException(
+          'TASK_ASSIGNMENT_NOT_FOUND',
+          'Tugas terkait tidak ditemukan pada assignment Field Officer.',
+          404,
+        );
+      }
+    }
+    await this.prisma.baket.update({
+      where: { id: baketId },
+      data: {
+        reportCategoryId: category.id,
+        ...(body.taskAssignmentId !== undefined
+          ? { taskAssignmentId: body.taskAssignmentId }
+          : {}),
+      },
+    });
+    await this.audit(context, 'BAKET.METADATA.UPDATE', 'Baket', baketId, {
+      reportCategoryId: category.id,
+      taskAssignmentId: body.taskAssignmentId,
+    });
+    return this.baketQuery.baketDetail(baketId);
+  }
+
+  async versions(baketId: string, context: AuthorizationContext) {
+    await this.scope.assertBaket(context, baketId);
     return this.baketQuery.versions(baketId);
   }
 
@@ -299,7 +404,12 @@ export class BaketService {
     return this.baketQuery.baketVersionDetail(version.id);
   }
 
-  getVersion(versionId: string) {
+  async getVersion(versionId: string, context: AuthorizationContext) {
+    const version = await this.prisma.baketVersion.findUniqueOrThrow({
+      where: { id: versionId },
+      select: { baketId: true },
+    });
+    await this.scope.assertBaket(context, version.baketId);
     return this.baketQuery.baketVersionDetail(versionId);
   }
 
@@ -309,7 +419,7 @@ export class BaketService {
     context: AuthorizationContext,
   ) {
     this.ensureCoordinatePair(body.latitude, body.longitude);
-    const version = await this.getEditableVersion(versionId);
+    const version = await this.getEditableVersion(versionId, context);
     await this.prisma.baketVersion.update({
       where: { id: versionId },
       data: {
@@ -357,7 +467,7 @@ export class BaketService {
         404,
       );
     }
-    await this.getEditableVersion(version.id);
+    await this.getEditableVersion(version.id, context);
     await this.prisma.$transaction(async (tx) => {
       await tx.baketVersionSourceMessage.deleteMany({
         where: { baketVersionId: version.id },
@@ -391,7 +501,7 @@ export class BaketService {
         404,
       );
     }
-    await this.getEditableVersion(version.id);
+    await this.getEditableVersion(version.id, context);
     const files = await this.prisma.fileAsset.findMany({
       where: { id: { in: body.attachments.map((item) => item.fileId) } },
     });
@@ -431,7 +541,7 @@ export class BaketService {
     _body: ResolveAreaDto,
     context: AuthorizationContext,
   ) {
-    await this.getEditableVersion(versionId);
+    await this.getEditableVersion(versionId, context);
     const resolution =
       await this.baketCoverage.resolveAreaForVersion(versionId);
     await this.audit(context, 'BAKET.RESOLVE_AREA', 'BaketVersion', versionId);
@@ -443,7 +553,7 @@ export class BaketService {
     body: ManualAreaOverrideDto,
     context: AuthorizationContext,
   ) {
-    const version = await this.getEditableVersion(versionId);
+    const version = await this.getEditableVersion(versionId, context);
     await this.baketCoverage.ensurePointInsideArea(
       body.eventAreaId,
       version.latitude,
@@ -477,7 +587,7 @@ export class BaketService {
     body: ValidateCoverageDto,
     context: AuthorizationContext,
   ) {
-    await this.getEditableVersion(versionId);
+    await this.getEditableVersion(versionId, context);
     const result = await this.baketCoverage.validateCoverageForVersion(
       versionId,
       body.scopeTypes,
@@ -521,7 +631,7 @@ export class BaketService {
         404,
       );
     }
-    await this.getEditableVersion(currentVersion.id);
+    await this.getEditableVersion(currentVersion.id, context);
     if (
       currentVersion.sourceMessages.length === 0 &&
       baket.taskAssignmentId === null
@@ -730,16 +840,18 @@ export class BaketService {
     return this.baketQuery.revisionRequestDetail(requestId);
   }
 
-  timeline(baketId: string) {
+  async timeline(baketId: string, context: AuthorizationContext) {
+    await this.scope.assertBaket(context, baketId);
     return this.baketQuery.timeline(baketId);
   }
 
-  traceability(baketId: string) {
+  async traceability(baketId: string, context: AuthorizationContext) {
+    await this.scope.assertBaket(context, baketId);
     return this.baketQuery.traceability(baketId);
   }
 
-  listVerifications(query: VerificationQuery) {
-    return this.baketQuery.listVerifications(query);
+  listVerifications(query: VerificationQuery, context: AuthorizationContext) {
+    return this.baketQuery.listVerifications(query, context);
   }
 
   async createVerification(
@@ -764,8 +876,11 @@ export class BaketService {
     return result.detail;
   }
 
-  getVerification(verificationId: string) {
-    return this.baketQuery.verificationDetail(verificationId);
+  async getVerification(verificationId: string, context: AuthorizationContext) {
+    const verification =
+      await this.baketQuery.verificationDetail(verificationId);
+    await this.scope.assertBaket(context, verification.baketVersion.baketId);
+    return verification;
   }
 
   async startVerification(
@@ -799,24 +914,6 @@ export class BaketService {
       verificationId,
     );
     return detail;
-  }
-
-  async replaceChecks(
-    verificationId: string,
-    body: ReplaceChecksDto,
-    context: AuthorizationContext,
-  ) {
-    const checks = await this.baketVerification.replaceChecks(
-      verificationId,
-      body,
-    );
-    await this.audit(
-      context,
-      'VERIFICATION.CHECKS.REPLACE',
-      'BaketVerification',
-      verificationId,
-    );
-    return checks;
   }
 
   async replaceCrossReferences(

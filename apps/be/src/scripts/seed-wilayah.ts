@@ -250,6 +250,10 @@ function normalizePolygons(parsedPath: unknown) {
     return [] as number[][][];
   }
 
+  if (Array.isArray(parsedPath[0]) && typeof parsedPath[0][0] === 'number') {
+    return [parsedPath as number[][]];
+  }
+
   if (
     Array.isArray(parsedPath[0]) &&
     Array.isArray(parsedPath[0][0]) &&

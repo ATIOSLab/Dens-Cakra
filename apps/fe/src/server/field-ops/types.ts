@@ -69,6 +69,8 @@ export type FieldOfficerIncoming = {
   jaringId: string;
   jaringCode: string;
   jaringAlias: string;
+  clusterId: string | null;
+  clusterName: string | null;
   senderPhone: string;
   title: string | null;
   content: string | null;
@@ -103,6 +105,9 @@ export type FieldOfficerBaket = {
   currentVersionId: string | null;
   currentVersionTitle: string | null;
   summary: string | null;
+  categoryName: string | null;
+  clusterName: string | null;
+  urgency: string | null;
 };
 
 export type FieldOfficerLocation = {
@@ -125,6 +130,7 @@ export type FieldOfficerWorkspace = {
   jaringClusters: JaringCluster[];
   reportCategories: ReportCategory[];
   incoming: FieldOfficerIncoming[];
+  baketCandidates: FieldOfficerIncoming[];
   tasks: FieldOfficerTask[];
   bakets: FieldOfficerBaket[];
   latestLocation: FieldOfficerLocation | null;

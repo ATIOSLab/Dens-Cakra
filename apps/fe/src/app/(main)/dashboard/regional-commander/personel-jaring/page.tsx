@@ -1,18 +1,7 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { PersonelJaringPage } from "./_components/personel-jaring-page";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function Page({ params, searchParams }: PageProps) {
-  return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/regional-commander/personel-jaring"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
-    />
-  );
+export default async function Page() {
+  return <PersonelJaringPage />;
 }

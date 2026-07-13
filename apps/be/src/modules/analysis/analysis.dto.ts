@@ -20,6 +20,7 @@ import {
 } from '../../generated/prisma/client.js';
 
 export class AnalysisQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(AnalysisStatus) status?: AnalysisStatus;
   @IsOptional() @IsUUID() ownerUnitId?: string;
@@ -27,7 +28,7 @@ export class AnalysisQuery {
 }
 
 export class CreateAnalysisCaseDto {
-  @IsUUID() ownerUnitId!: string;
+  @IsOptional() @IsUUID() ownerUnitId?: string;
   @IsString() @MaxLength(300) title!: string;
   @IsOptional() @IsDateString() periodStart?: string;
   @IsOptional() @IsDateString() periodEnd?: string;
@@ -57,10 +58,15 @@ export class CreateAnalysisVersionDto {
   @IsOptional() @IsString() impact?: string;
   @IsOptional() @IsString() efforts?: string;
   @IsOptional() @IsString() recommendations?: string;
-  @IsOptional() aiDraft?: Record<string, unknown>;
 }
 
 export class UpdateAnalysisVersionDto extends CreateAnalysisVersionDto {}
+
+export class FinalizeAnalysisDto extends CreateAnalysisVersionDto {}
+
+export class SubmitAnalysisReviewDto {
+  @IsOptional() @IsString() note?: string;
+}
 
 export class AnalysisEntityDto {
   @IsEnum(IntelEntityType) entityType!: IntelEntityType;

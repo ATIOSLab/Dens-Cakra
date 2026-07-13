@@ -33,7 +33,12 @@ export class FileController {
     operationId: 'apiFile001',
     contractId: 'API-FILE-001',
     summary: 'Minta signed upload URL',
-    roles: ['admin_system', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
     successStatus: 201,
     idempotent: true,
   })
@@ -48,7 +53,12 @@ export class FileController {
     operationId: 'apiFile002',
     contractId: 'API-FILE-002',
     summary: 'Konfirmasi upload selesai',
-    roles: ['admin_system', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
     successStatus: 201,
     idempotent: true,
   })
@@ -63,7 +73,14 @@ export class FileController {
     operationId: 'apiFile003',
     contractId: 'API-FILE-003',
     summary: 'Metadata file',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async metadata(@Param('fileId', ParseUUIDPipe) id: string) {
     return apiResult(await this.files.metadata(id));
@@ -73,7 +90,14 @@ export class FileController {
     operationId: 'apiFile004',
     contractId: 'API-FILE-004',
     summary: 'Signed download/view URL',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async access(
     @Param('fileId', ParseUUIDPipe) id: string,

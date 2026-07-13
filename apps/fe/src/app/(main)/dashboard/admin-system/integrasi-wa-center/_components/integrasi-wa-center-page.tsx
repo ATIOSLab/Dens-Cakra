@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState, useMemo } from "react";
 import { Activity, Bot, QrCode, Save, Plus, Check, CheckCircle2, ChevronsUpDown, Trash2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -42,7 +42,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import type { WhatsappControlChannel } from "@/server/field-ops/types";
-import type { UserListItem } from "../../pengguna/_components/pengguna-types";
+import type { UserListItem, AreaSearchResult, CommandRouteType } from "../../pengguna/_components/pengguna-types";
+
+type CoordinatorAreaOption = AreaSearchResult & {
+  branch: CommandRouteType | null;
+  label: string;
+};
 
 function tone(status: string) {
   const normalized = status.toUpperCase();
@@ -93,49 +98,116 @@ export function AdminWaCenterPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
+  const [selectedArea, setSelectedArea] = useState<CoordinatorAreaOption | null>(null);
   
-  const [userQuery, setUserQuery] = useState("");
-  const [userResults, setUserResults] = useState<UserListItem[]>([]);
-  const deferredUserQuery = useDeferredValue(userQuery);
+  const [areaQuery, setAreaQuery] = useState("");
+  const [allCoordinatorAreas, setAllCoordinatorAreas] = useState<CoordinatorAreaOption[]>([]);
+  const deferredAreaQuery = useDeferredValue(areaQuery);
   const [comboOpen, setComboOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    async function loadUsers() {
-      const queryStr = deferredUserQuery.trim();
-      if (queryStr.length === 1) {
-        setUserResults([]);
-        return;
-      }
+    async function loadAvailableAreas() {
       try {
-        const results = await apiBrowserFetch<UserListItem[]>("/user-profiles", {
-          query: {
-            search: queryStr || undefined,
-            roleCode: "FIELD_COORDINATOR",
-            page: 1,
-            limit: 50,
-          },
-        });
-        if (!cancelled) {
-          setUserResults(results);
+        let allUsers: UserListItem[] = [];
+        let page = 1;
+        let hasMore = true;
+        
+        while (hasMore && !cancelled) {
+          const users = await apiBrowserFetch<UserListItem[]>("/user-profiles", {
+            query: {
+              roleCode: "FIELD_COORDINATOR",
+              limit: 100,
+              page: page,
+            },
+          });
+          
+          if (users.length > 0) {
+            allUsers = [...allUsers, ...users];
+          }
+          
+          if (users.length < 100) {
+            hasMore = false;
+          } else {
+            page++;
+          }
         }
-      } catch {
+        
         if (!cancelled) {
-          setUserResults([]);
+          const optionMap = new Map<string, CoordinatorAreaOption>();
+          allUsers.forEach(user => {
+            user.positionAssignments?.forEach(assignment => {
+              const branch = assignment.seat?.branch || assignment.position?.branch || null;
+              assignment.areaScopes?.forEach(scope => {
+                if (scope.area) {
+                  const key = `${scope.area.id}-${branch || 'default'}`;
+                  if (!optionMap.has(key)) {
+                    let branchLabel = "";
+                    if (branch === "BINDA") branchLabel = "Binda";
+                    if (branch === "DIRECTORATE") branchLabel = "Direktorat";
+                    
+                    const label = branchLabel ? `${scope.area.name} (${branchLabel})` : scope.area.name;
+                    
+                    optionMap.set(key, {
+                      ...scope.area,
+                      branch,
+                      label
+                    });
+                  }
+                }
+              });
+            });
+          });
+          
+          const sortedOptions = Array.from(optionMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+          setAllCoordinatorAreas(sortedOptions);
         }
+      } catch (err) {
+        console.error("Failed to load areas", err);
       }
     }
-    void loadUsers();
+    void loadAvailableAreas();
     return () => {
       cancelled = true;
     };
-  }, [deferredUserQuery]);
+  }, []);
+
+  const areaQueryStr = deferredAreaQuery.trim().toLowerCase();
+  const areaResults = useMemo(() => {
+    if (!areaQueryStr) return allCoordinatorAreas;
+    return allCoordinatorAreas.filter(a => a.label.toLowerCase().includes(areaQueryStr));
+  }, [allCoordinatorAreas, areaQueryStr]);
 
   const handleCreate = async () => {
-    if (!selectedUser) return;
+    if (!selectedArea) return;
     try {
       setBusyKey("create");
+      
+      const users = await apiBrowserFetch<UserListItem[]>("/user-profiles", {
+        query: {
+          areaId: selectedArea.id,
+          roleCode: "FIELD_COORDINATOR",
+          limit: 10,
+        },
+      });
+
+      let selectedUser = null;
+      if (selectedArea.branch) {
+         selectedUser = users.find(u => 
+           u.positionAssignments.some(pa => 
+             (pa.seat?.branch === selectedArea.branch || pa.position?.branch === selectedArea.branch) &&
+             pa.areaScopes.some(s => s.area?.id === selectedArea.id)
+           )
+         );
+      }
+      if (!selectedUser) {
+        selectedUser = users[0];
+      }
+
+      if (!selectedUser) {
+        throw new Error(`Tidak ada Field Coordinator di wilayah ${selectedArea.name}.`);
+      }
+
       const codeBase = (selectedUser.username || selectedUser.id.split("-")[0]).toUpperCase();
       const nameBase = selectedUser.fullName || selectedUser.username || selectedUser.authUser.name || "User";
       
@@ -155,7 +227,7 @@ export function AdminWaCenterPage() {
         throw new Error((body as { message?: string }).message || "Gagal membuat kanal WhatsApp.");
       }
       setIsAddOpen(false);
-      setSelectedUser(null);
+      setSelectedArea(null);
       await loadChannels();
       
       // Auto request QR setelah ditambahkan
@@ -322,52 +394,52 @@ export function AdminWaCenterPage() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label className="text-white">Field Coordinator (User)</Label>
+                    <Label className="text-white">Wilayah (Field Coordinator)</Label>
                     <Popover open={comboOpen} onOpenChange={setComboOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           role="combobox"
                           aria-expanded={comboOpen}
-                          className="w-full justify-between border-white/20 bg-black/20 text-white hover:bg-black/40 hover:text-white"
+                          className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white font-normal"
                         >
-                          {selectedUser
-                            ? `${selectedUser.fullName || selectedUser.username}`
-                            : "Pilih user..."}
-                          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                          {selectedArea 
+                            ? selectedArea.label 
+                            : "Pilih wilayah..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-[380px] p-0 border-white/20 bg-[var(--dc-surface)]">
                         <Command className="bg-transparent text-white" shouldFilter={false}>
                           <CommandInput
-                            placeholder="Cari user..."
-                            value={userQuery}
-                            onValueChange={setUserQuery}
+                            placeholder="Cari wilayah..."
+                            value={areaQuery}
+                            onValueChange={setAreaQuery}
                           />
                           <CommandList>
                             <CommandEmpty className="py-4 text-center text-sm text-white/60">
-                              {deferredUserQuery.length === 1
-                                ? "Ketik minimal 2 karakter untuk mencari"
-                                : "Tidak ada user yang ditemukan."}
+                              Tidak ada wilayah yang ditemukan.
                             </CommandEmpty>
                             <CommandGroup>
-                              {userResults.map((user) => (
+                              {areaResults.map((area) => (
                                 <CommandItem
-                                  key={user.id}
-                                  value={user.id}
+                                  key={`${area.id}-${area.branch || 'default'}`}
+                                  value={area.label}
                                   onSelect={() => {
-                                    setSelectedUser(user);
+                                    setSelectedArea(area);
                                     setComboOpen(false);
                                   }}
-                                  className="text-white aria-selected:bg-white/10 aria-selected:text-white"
+                                  className="text-white/80 focus:bg-white/10"
                                 >
                                   <Check
                                     className={cn(
-                                      "mr-2 size-4",
-                                      selectedUser?.id === user.id ? "opacity-100" : "opacity-0",
+                                      "mr-2 h-4 w-4",
+                                      selectedArea?.id === area.id && selectedArea?.branch === area.branch ? "opacity-100" : "opacity-0"
                                     )}
                                   />
-                                  {user.fullName || user.username} ({user.username})
+                                  <span>
+                                    {area.label} {area.parent ? `(${area.parent.name})` : ""}
+                                  </span>
                                 </CommandItem>
                               ))}
                             </CommandGroup>
@@ -387,7 +459,7 @@ export function AdminWaCenterPage() {
                   </Button>
                   <Button
                     className="bg-cyan-400 text-slate-950 hover:bg-cyan-300"
-                    disabled={!selectedUser || busyKey === "create"}
+                    disabled={!selectedArea || busyKey === "create"}
                     onClick={() => void handleCreate()}
                   >
                     Simpan

@@ -2,10 +2,8 @@ import {
   BellRing,
   BrainCircuit,
   ChartColumn,
-  CheckCheck,
   ClipboardList,
   Command,
-  FileSearch,
   FileText,
   Inbox,
   LayoutDashboard,
@@ -139,13 +137,6 @@ export const sidebarItems: NavGroup[] = [
         roles: EXECUTIVE_ROLE,
       },
       {
-        id: "executive-approval",
-        title: "Persetujuan Eksekutif",
-        url: "/dashboard/executive/persetujuan-eksekutif",
-        icon: CheckCheck,
-        roles: EXECUTIVE_ROLE,
-      },
-      {
         id: "executive-performance",
         title: "Kinerja & Evaluasi",
         url: "/dashboard/executive/kinerja-evaluasi",
@@ -195,13 +186,6 @@ export const sidebarItems: NavGroup[] = [
         roles: REGIONAL_COMMANDER_ROLE,
       },
       {
-        id: "regional-approval",
-        title: "Persetujuan Regional",
-        url: "/dashboard/regional-commander/persetujuan-regional",
-        icon: CheckCheck,
-        roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
         id: "regional-map-warning",
         title: "Peta & Peringatan Dini",
         url: "/dashboard/regional-commander/peta-peringatan-dini",
@@ -244,13 +228,6 @@ export const sidebarItems: NavGroup[] = [
         roles: OIM_ROLE,
       },
       {
-        id: "oim-verification",
-        title: "Verifikasi & Neraca Penilaian",
-        url: "/dashboard/oim/verifikasi-neraca-penilaian",
-        icon: ShieldCheck,
-        roles: OIM_ROLE,
-      },
-      {
         id: "oim-analysis",
         title: "Analisis Intelijen",
         url: "/dashboard/oim/analisis-intelijen",
@@ -276,13 +253,6 @@ export const sidebarItems: NavGroup[] = [
             roles: OIM_ROLE,
           },
         ],
-      },
-      {
-        id: "oim-approval-submission",
-        title: "Pengajuan Persetujuan",
-        url: "/dashboard/oim/pengajuan-persetujuan",
-        icon: Send,
-        roles: OIM_ROLE,
       },
       {
         id: "oim-field-monitoring",

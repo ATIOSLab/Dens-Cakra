@@ -39,7 +39,12 @@ export class UukController {
     operationId: 'apiUuk001',
     contractId: 'API-UUK-001',
     summary: 'Daftar UUK/STR',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async list(
     @Query() query: UukQuery,
@@ -69,7 +74,12 @@ export class UukController {
     operationId: 'apiUuk003',
     contractId: 'API-UUK-003',
     summary: 'Detail UUK/STR',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async get(
     @Param('uukStrId', ParseUUIDPipe) uukStrId: string,
@@ -83,7 +93,12 @@ export class UukController {
     operationId: 'apiUuk004',
     contractId: 'API-UUK-004',
     summary: 'Riwayat versi UUK/STR',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async versions(
     @Param('uukStrId', ParseUUIDPipe) uukStrId: string,
@@ -116,7 +131,12 @@ export class UukController {
     operationId: 'apiUuk006',
     contractId: 'API-UUK-006',
     summary: 'Detail versi UUK/STR',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async getVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,

@@ -79,9 +79,7 @@ function compactCode(value: string) {
 
 function pickPrimaryArea(node: AssignmentNode) {
   return (
-    node.areaScopes.find((area) => area.isPrimary) ??
-    node.areaScopes[0] ??
-    null
+    node.areaScopes.find((area) => area.isPrimary) ?? node.areaScopes[0] ?? null
   );
 }
 
@@ -118,7 +116,8 @@ function buildDirectiveSeed(
 ) {
   const primaryArea = pickPrimaryArea(chain.regionalCommander);
   const branchLabel = titleCaseBranch(chain.regionalCommander.branch);
-  const areaLabel = primaryArea?.areaName ?? chain.regionalCommander.organizationUnitName;
+  const areaLabel =
+    primaryArea?.areaName ?? chain.regionalCommander.organizationUnitName;
   const commandSuffix = String(sequence + 1).padStart(3, '0');
 
   return {
@@ -147,7 +146,8 @@ function buildUukSections(
   commandDate: Date,
 ): UukSectionSeed[] {
   const primaryArea = pickPrimaryArea(chain.regionalCommander);
-  const areaLabel = primaryArea?.areaName ?? chain.regionalCommander.organizationUnitName;
+  const areaLabel =
+    primaryArea?.areaName ?? chain.regionalCommander.organizationUnitName;
   const branchLabel = titleCaseBranch(chain.regionalCommander.branch);
   const coordinatorNames = chain.fieldCoordinators
     .slice(0, 3)
@@ -189,12 +189,14 @@ function buildUukSections(
         {
           itemCode: '1',
           orderNumber: 1,
-          content: 'Identifikasi perubahan situasi lapangan, aktor menonjol, dan indikator eskalasi cepat.',
+          content:
+            'Identifikasi perubahan situasi lapangan, aktor menonjol, dan indikator eskalasi cepat.',
         },
         {
           itemCode: '2',
           orderNumber: 2,
-          content: 'Laporkan kebutuhan klarifikasi yang memerlukan dukungan lintas sektor atau lintas wilayah.',
+          content:
+            'Laporkan kebutuhan klarifikasi yang memerlukan dukungan lintas sektor atau lintas wilayah.',
         },
       ],
     },
@@ -205,12 +207,14 @@ function buildUukSections(
         {
           itemCode: '1',
           orderNumber: 1,
-          content: 'Field Coordinator membagi titik pantau ke Field Officer sesuai area scope aktif masing-masing.',
+          content:
+            'Field Coordinator membagi titik pantau ke Field Officer sesuai area scope aktif masing-masing.',
         },
         {
           itemCode: '2',
           orderNumber: 2,
-          content: 'Field Officer mengirim update awal, perkembangan lapangan, dan penutupan tugas secara bertahap.',
+          content:
+            'Field Officer mengirim update awal, perkembangan lapangan, dan penutupan tugas secara bertahap.',
         },
       ],
     },
@@ -237,7 +241,8 @@ function buildUukSections(
         {
           itemCode: '2',
           orderNumber: 2,
-          content: 'Task diteruskan ke field officer secara berjenjang tanpa memutus relasi sumber STR dan area target.',
+          content:
+            'Task diteruskan ke field officer secara berjenjang tanpa memutus relasi sumber STR dan area target.',
         },
       ],
     },
@@ -248,7 +253,8 @@ function buildUukSections(
         {
           itemCode: '1',
           orderNumber: 1,
-          content: 'Setiap assignment wajib memiliki tenggat, catatan penugasan, dan status progres yang dapat ditelusuri.',
+          content:
+            'Setiap assignment wajib memiliki tenggat, catatan penugasan, dan status progres yang dapat ditelusuri.',
         },
       ],
     },
@@ -259,7 +265,8 @@ function buildUukSections(
         {
           itemCode: '1',
           orderNumber: 1,
-          content: 'Prioritaskan area primer, pertahankan ritme update lapangan, dan eskalasi dini bila ada perubahan signifikan.',
+          content:
+            'Prioritaskan area primer, pertahankan ritme update lapangan, dan eskalasi dini bila ada perubahan signifikan.',
         },
       ],
     },
@@ -395,7 +402,9 @@ function buildChains(assignments: AssignmentNode[]) {
   );
 
   if (!executive) {
-    throw new Error('Executive assignment not found. Run seed-role-accounts first.');
+    throw new Error(
+      'Executive assignment not found. Run seed-role-accounts first.',
+    );
   }
 
   const regionalCommanders = assignments
@@ -421,7 +430,9 @@ function buildChains(assignments: AssignmentNode[]) {
     }
 
     const coordinators = (byReportsTo.get(oim.positionId) ?? [])
-      .filter((assignment) => assignment.roleCode === RoleCode.FIELD_COORDINATOR)
+      .filter(
+        (assignment) => assignment.roleCode === RoleCode.FIELD_COORDINATOR,
+      )
       .sort((left, right) =>
         (pickPrimaryArea(left)?.areaCode ?? left.positionTitle).localeCompare(
           pickPrimaryArea(right)?.areaCode ?? right.positionTitle,
@@ -430,9 +441,13 @@ function buildChains(assignments: AssignmentNode[]) {
       .map((coordinator) => ({
         coordinator,
         fieldOfficers: (byReportsTo.get(coordinator.positionId) ?? [])
-          .filter((assignment) => assignment.roleCode === RoleCode.FIELD_OFFICER)
+          .filter(
+            (assignment) => assignment.roleCode === RoleCode.FIELD_OFFICER,
+          )
           .sort((left, right) =>
-            (pickPrimaryArea(left)?.areaCode ?? left.positionTitle).localeCompare(
+            (
+              pickPrimaryArea(left)?.areaCode ?? left.positionTitle
+            ).localeCompare(
               pickPrimaryArea(right)?.areaCode ?? right.positionTitle,
             ),
           ),
@@ -702,10 +717,13 @@ async function upsertTask(
   uukStrVersionId: string,
   sequence: number,
 ) {
-  const primaryArea = pickPrimaryArea(coordinator) ?? pickPrimaryArea(chain.regionalCommander);
+  const primaryArea =
+    pickPrimaryArea(coordinator) ?? pickPrimaryArea(chain.regionalCommander);
 
   if (!primaryArea) {
-    throw new Error(`Primary area missing for coordinator ${coordinator.positionTitle}.`);
+    throw new Error(
+      `Primary area missing for coordinator ${coordinator.positionTitle}.`,
+    );
   }
 
   const title = `${SEED_TAG} Tugas Lapangan ${primaryArea.areaName} ${compactCode(coordinator.organizationUnitCode)}`;
@@ -717,7 +735,9 @@ async function upsertTask(
   const dueDate = addDays(directiveBaseDate, 10 + (sequence % 7));
   const stage = pickTaskStage(sequence);
   const priority = pickTaskPriority(sequence);
-  const areaIds = Array.from(new Set(coordinator.areaScopes.map((area) => area.areaId)));
+  const areaIds = Array.from(
+    new Set(coordinator.areaScopes.map((area) => area.areaId)),
+  );
 
   const existing = await prisma.task.findFirst({
     where: {
@@ -946,7 +966,8 @@ async function upsertTaskAssignment(params: {
   ) {
     progressSteps.push({
       status: TaskAssignmentStatus.IN_PROGRESS,
-      progressPercent: params.status === TaskAssignmentStatus.COMPLETED ? 80 : 55,
+      progressPercent:
+        params.status === TaskAssignmentStatus.COMPLETED ? 80 : 55,
       offsetDays: -2,
     });
   }
@@ -1020,8 +1041,12 @@ async function seedStrHierarchy() {
   console.log(`- directives: ${directiveCount}`);
   console.log(`- uuk/strs: ${uukCount}`);
   console.log(`- tasks: ${taskCount}`);
-  console.log(`- OIM -> Field Coordinator assignments: ${coordinatorAssignmentCount}`);
-  console.log(`- Field Coordinator -> Field Officer assignments: ${officerAssignmentCount}`);
+  console.log(
+    `- OIM -> Field Coordinator assignments: ${coordinatorAssignmentCount}`,
+  );
+  console.log(
+    `- Field Coordinator -> Field Officer assignments: ${officerAssignmentCount}`,
+  );
 }
 
 void seedStrHierarchy()

@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { PagedResponse } from "@/lib/api/types";
 import { backendApi } from "@/server/backend-api";
 
 import type {
@@ -66,6 +67,13 @@ type MessageRecord = {
     id: string;
     name: string;
   } | null;
+  jaring?: {
+    id: string;
+    code: string;
+    aliasName?: string | null;
+    clusterId?: string | null;
+    cluster?: { id: string; name: string } | null;
+  } | null;
   receivedAt: string;
   locationCapturedAt?: string | null;
   processedAt?: string | null;
@@ -129,10 +137,13 @@ type BaketRecord = {
   status: string;
   createdAt: string;
   primaryJaringId?: string | null;
+  reportCategory?: { name: string } | null;
+  jaringCluster?: { name: string } | null;
   versions?: Array<{
     id: string;
     title: string;
     fieldOfficerNote?: string | null;
+    urgency?: string | null;
   }>;
 };
 
@@ -185,8 +196,13 @@ async function getAccess(cookie: string) {
   };
 }
 
-function mapTask(record: TaskRecord, assignmentId: string): FieldOfficerTask | null {
-  const assignment = record.assignments?.find((item) => item.assigneeAssignmentId === assignmentId);
+function mapTask(
+  record: TaskRecord,
+  assignmentId: string,
+): FieldOfficerTask | null {
+  const assignment = record.assignments?.find(
+    (item) => item.assigneeAssignmentId === assignmentId,
+  );
 
   if (!assignment) {
     return null;
@@ -209,26 +225,37 @@ function mapTask(record: TaskRecord, assignmentId: string): FieldOfficerTask | n
     taskStatus: record.status,
     assignmentStatus: assignment.status,
     sourceLabel,
-    targetAreas: (record.targetAreas ?? []).map((item) => item.area?.name).filter(Boolean) as string[],
+    targetAreas: (record.targetAreas ?? [])
+      .map((item) => item.area?.name)
+      .filter(Boolean) as string[],
     assignerName: assignment.assigner?.userProfile?.fullName ?? null,
     progressSummary:
-      assignment.progressPercent !== null && assignment.progressPercent !== undefined
+      assignment.progressPercent !== null &&
+      assignment.progressPercent !== undefined
         ? `${assignment.progressPercent}%`
         : assignment.status,
   };
 }
 
-function mapIncoming(record: MessageRecord, jaring: FieldOfficerJaring): FieldOfficerIncoming {
+function mapIncoming(
+  record: MessageRecord,
+  jaring: FieldOfficerJaring,
+): FieldOfficerIncoming {
   const rawPayload = asRecord(record.rawPayload);
   const photoMessageId = asString(rawPayload?.photoMessageId);
   const photoCaption = asString(rawPayload?.photoCaption);
-  const photoFileId = record.media?.find((item) => item.fileId || item.file?.id)?.fileId ?? record.media?.find((item) => item.file?.id)?.file?.id ?? null;
+  const photoFileId =
+    record.media?.find((item) => item.fileId || item.file?.id)?.fileId ??
+    record.media?.find((item) => item.file?.id)?.file?.id ??
+    null;
 
   return {
     id: record.id,
     jaringId: jaring.id,
     jaringCode: jaring.code,
     jaringAlias: jaring.aliasName,
+    clusterId: jaring.clusterId,
+    clusterName: jaring.clusterName,
     senderPhone: record.senderPhone,
     title: record.title ?? null,
     content: record.content ?? null,
@@ -237,10 +264,14 @@ function mapIncoming(record: MessageRecord, jaring: FieldOfficerJaring): FieldOf
     categoryId: record.categoryId ?? record.category?.id ?? null,
     categoryName: record.category?.name ?? null,
     receivedAt: record.receivedAt,
-    eventDateTime: asString(rawPayload?.eventDateTime) ?? record.locationCapturedAt ?? null,
+    eventDateTime:
+      asString(rawPayload?.eventDateTime) ?? record.locationCapturedAt ?? null,
     gpsSharedAt: asString(rawPayload?.gpsSharedAt),
     processedAt: record.processedAt ?? null,
-    reportTimestamp: asString(rawPayload?.timestamp) ?? record.processedAt ?? record.receivedAt,
+    reportTimestamp:
+      asString(rawPayload?.timestamp) ??
+      record.processedAt ??
+      record.receivedAt,
     areaName: record.resolvedArea?.name ?? null,
     latitude: asNumber(record.latitude),
     longitude: asNumber(record.longitude),
@@ -254,22 +285,41 @@ function mapIncoming(record: MessageRecord, jaring: FieldOfficerJaring): FieldOf
   };
 }
 
-export async function getFieldOfficerWorkspace(cookie: string): Promise<FieldOfficerWorkspace> {
+export async function getFieldOfficerWorkspace(
+  cookie: string,
+): Promise<FieldOfficerWorkspace> {
   const access = await getAccess(cookie);
   const assignmentId = access.context.primaryAssignmentId;
 
-  const [allJaring, jaringClusters, reportCategories, tasks, ownBakets, latestLocation] = await Promise.all([
+  const [
+    allJaring,
+    jaringClusters,
+    reportCategories,
+    messages,
+    tasks,
+    baketResponse,
+    latestLocation,
+  ] = await Promise.all([
     backendApi<JaringRecord[]>("/jaring", {
       cookie,
       query: { limit: 100 },
     }),
-    backendApi<Array<JaringCluster & { _count?: { jaring?: number } }>>("/jaring/clusters", {
+    backendApi<Array<JaringCluster & { _count?: { jaring?: number } }>>(
+      "/jaring/clusters",
+      {
+        cookie,
+        query: { limit: 200 },
+      },
+    ),
+    backendApi<
+      Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>
+    >("/jaring/report-categories", {
       cookie,
       query: { limit: 200 },
     }),
-    backendApi<Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>>("/jaring/report-categories", {
+    backendApi<MessageRecord[]>("/whatsapp-messages", {
       cookie,
-      query: { limit: 200 },
+      query: { limit: 100 },
     }),
     backendApi<TaskRecord[]>("/tasks", {
       cookie,
@@ -278,15 +328,21 @@ export async function getFieldOfficerWorkspace(cookie: string): Promise<FieldOff
         limit: 50,
       },
     }),
-    backendApi<BaketRecord[]>("/bakets", {
+    backendApi<BaketRecord[] | PagedResponse<BaketRecord>>("/bakets", {
       cookie,
       query: {
         createdByAssignmentId: assignmentId,
         limit: 50,
       },
     }),
-    backendApi<LocationRecord>("/personnel-location-pings/me/latest", { cookie }).catch(() => null),
+    backendApi<LocationRecord>("/personnel-location-pings/me/latest", {
+      cookie,
+    }).catch(() => null),
   ]);
+
+  const ownBakets = Array.isArray(baketResponse)
+    ? baketResponse
+    : (baketResponse.items ?? []);
 
   const jaring = allJaring
     .filter((item) =>
@@ -303,30 +359,24 @@ export async function getFieldOfficerWorkspace(cookie: string): Promise<FieldOff
       clusterName: item.cluster?.name ?? null,
       status: item.status,
       notes: item.notes ?? null,
-      areaNames: (item.areaCoverages ?? []).map((coverage) => coverage.area?.name).filter(Boolean) as string[],
+      areaNames: (item.areaCoverages ?? [])
+        .map((coverage) => coverage.area?.name)
+        .filter(Boolean) as string[],
       areaIds: (item.areaCoverages ?? []).map((coverage) => coverage.areaId),
       messageCount: item._count?.messages ?? 0,
       baketCount: item._count?.primaryBakets ?? 0,
     }));
 
-  const incomingGroups = await Promise.all(
-    jaring.map(async (item) => {
-      const messages = await backendApi<MessageRecord[]>(`/jaring/${item.id}/messages`, { cookie }).catch((error) => {
-        console.error("[field-ops] failed to load jaring messages", {
-          jaringId: item.id,
-          jaringCode: item.code,
-          error,
-        });
-        return [];
-      });
-      return messages.map((message) => mapIncoming(message, item));
-    }),
-  );
-
   const baketIndex = new Map<string, FieldOfficerJaring>();
   for (const item of jaring) {
     baketIndex.set(item.id, item);
   }
+  const mappedMessages = messages.flatMap((message) => {
+    const sourceJaring = message.jaring?.id
+      ? baketIndex.get(message.jaring.id)
+      : undefined;
+    return sourceJaring ? [mapIncoming(message, sourceJaring)] : [];
+  });
 
   return {
     context: access.context,
@@ -348,9 +398,20 @@ export async function getFieldOfficerWorkspace(cookie: string): Promise<FieldOff
       isActive: category.isActive,
       messageCount: category._count?.whatsAppMessages ?? category.messageCount,
     })),
-    incoming: incomingGroups
-      .flat()
-      .filter((item) => item.status !== "SPAM")
+    incoming: mappedMessages
+      .filter(
+        (item) =>
+          !["READY_FOR_BAKET", "PROCESSED", "SPAM", "DUPLICATE"].includes(
+            item.status,
+          ),
+      )
+      .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt)),
+    baketCandidates: mappedMessages
+      .filter(
+        (item) =>
+          item.status === "READY_FOR_BAKET" &&
+          item.validationSummary === "VALID",
+      )
       .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt)),
     tasks: tasks
       .map((record) => mapTask(record, assignmentId))
@@ -360,11 +421,18 @@ export async function getFieldOfficerWorkspace(cookie: string): Promise<FieldOff
       status: item.status,
       createdAt: item.createdAt,
       primaryJaringId: item.primaryJaringId ?? null,
-      primaryJaringCode: item.primaryJaringId ? baketIndex.get(item.primaryJaringId)?.code ?? null : null,
-      primaryJaringAlias: item.primaryJaringId ? baketIndex.get(item.primaryJaringId)?.aliasName ?? null : null,
+      primaryJaringCode: item.primaryJaringId
+        ? (baketIndex.get(item.primaryJaringId)?.code ?? null)
+        : null,
+      primaryJaringAlias: item.primaryJaringId
+        ? (baketIndex.get(item.primaryJaringId)?.aliasName ?? null)
+        : null,
       currentVersionId: item.versions?.[0]?.id ?? null,
       currentVersionTitle: item.versions?.[0]?.title ?? null,
       summary: item.versions?.[0]?.fieldOfficerNote ?? null,
+      categoryName: item.reportCategory?.name ?? null,
+      clusterName: item.jaringCluster?.name ?? null,
+      urgency: item.versions?.[0]?.urgency ?? null,
     })),
     latestLocation: latestLocation
       ? {
@@ -429,7 +497,10 @@ export async function updateFieldOfficerJaringStatus(
   });
 }
 
-export async function validateIncomingMessage(cookie: string, messageId: string) {
+export async function validateIncomingMessage(
+  cookie: string,
+  messageId: string,
+) {
   return backendApi(`/whatsapp-messages/${messageId}/validate`, {
     cookie,
     method: "POST",
@@ -437,7 +508,11 @@ export async function validateIncomingMessage(cookie: string, messageId: string)
   });
 }
 
-export async function assignIncomingMessageCategory(cookie: string, messageId: string, categoryId: string) {
+export async function assignIncomingMessageCategory(
+  cookie: string,
+  messageId: string,
+  categoryId: string,
+) {
   return backendApi(`/whatsapp-messages/${messageId}/category`, {
     cookie,
     method: "PATCH",
@@ -445,10 +520,23 @@ export async function assignIncomingMessageCategory(cookie: string, messageId: s
   });
 }
 
-export async function createBaketFromMessage(cookie: string, messageId: string) {
+export async function createBaketFromMessage(
+  cookie: string,
+  messageId: string,
+  body: {
+    categoryId: string;
+    urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+    title?: string;
+    normalizedContent?: string;
+    fieldOfficerNote?: string;
+    taskAssignmentId?: string;
+    eventTime?: string;
+  },
+) {
   return backendApi(`/whatsapp-messages/${messageId}/create-baket`, {
     cookie,
     method: "POST",
+    body,
     idempotent: true,
   });
 }
@@ -466,8 +554,43 @@ export async function submitBaket(cookie: string, baketId: string) {
   return backendApi(`/bakets/${baketId}/submit`, {
     cookie,
     method: "POST",
-    body: { confirmation: "FIELD_OFFICER_SUBMIT" },
+    body: { confirmation: "SUBMIT" },
     idempotent: true,
+  });
+}
+
+export async function updateBaketDraft(
+  cookie: string,
+  baketId: string,
+  body: {
+    versionId: string;
+    reportCategoryId: string;
+    taskAssignmentId?: string | null;
+    title: string;
+    normalizedContent?: string;
+    eventTime?: string;
+    urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+    fieldOfficerNote?: string;
+  },
+) {
+  await backendApi(`/bakets/${baketId}`, {
+    cookie,
+    method: "PATCH",
+    body: {
+      reportCategoryId: body.reportCategoryId,
+      taskAssignmentId: body.taskAssignmentId,
+    },
+  });
+  return backendApi(`/baket-versions/${body.versionId}`, {
+    cookie,
+    method: "PATCH",
+    body: {
+      title: body.title,
+      normalizedContent: body.normalizedContent,
+      eventTime: body.eventTime,
+      urgency: body.urgency,
+      fieldOfficerNote: body.fieldOfficerNote,
+    },
   });
 }
 
@@ -536,9 +659,12 @@ export async function createOwnLocationPing(
 }
 
 export async function getWhatsappControlChannels(cookie: string) {
-  return backendApi<WhatsappControlChannel[]>("/integration-channels/whatsapp-control", {
-    cookie,
-  });
+  return backendApi<WhatsappControlChannel[]>(
+    "/integration-channels/whatsapp-control",
+    {
+      cookie,
+    },
+  );
 }
 
 export async function createWhatsappControlChannel(
@@ -591,11 +717,14 @@ export async function activateWhatsappControlChannel(
   mode: "activate" | "deactivate" | "test" | "request-qr",
 ) {
   if (mode === "request-qr") {
-    return backendApi(`/integration-channels/whatsapp-control/${channelId}/request-qr`, {
-      cookie,
-      method: "POST",
-      idempotent: true,
-    });
+    return backendApi(
+      `/integration-channels/whatsapp-control/${channelId}/request-qr`,
+      {
+        cookie,
+        method: "POST",
+        idempotent: true,
+      },
+    );
   }
 
   if (mode === "test") {
@@ -610,7 +739,9 @@ export async function activateWhatsappControlChannel(
   return backendApi(`/integration-channels/${channelId}/${mode}`, {
     cookie,
     method: "POST",
-    body: { reason: `Requested from field coordinator control desk (${mode}).` },
+    body: {
+      reason: `Requested from field coordinator control desk (${mode}).`,
+    },
     idempotent: true,
   });
 }
@@ -624,4 +755,3 @@ export async function removeWhatsappControlChannel(
     method: "DELETE",
   });
 }
-

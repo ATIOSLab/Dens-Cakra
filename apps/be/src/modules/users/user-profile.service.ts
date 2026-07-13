@@ -44,54 +44,54 @@ export class UserProfileService {
     const skip = (query.page - 1) * query.limit;
     const [items, total, statusCounts, lockedCount, unlockedCount] =
       await Promise.all([
-      this.prisma.userProfile.findMany({
-        where,
-        skip,
-        take: query.limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          authUser: {
-            select: { id: true, email: true, role: true, banned: true },
-          },
-          positionAssignments: {
-            where: { isPrimary: true, isActive: true, validUntil: null },
-            include: {
-              seat: { include: { organizationUnit: true, role: true } },
-              position: { include: { role: true, organizationUnit: true } },
-              areaScopes: {
-                where: { validUntil: null },
-                include: { area: true },
+        this.prisma.userProfile.findMany({
+          where,
+          skip,
+          take: query.limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            authUser: {
+              select: { id: true, email: true, role: true, banned: true },
+            },
+            positionAssignments: {
+              where: { isPrimary: true, isActive: true, validUntil: null },
+              include: {
+                seat: { include: { organizationUnit: true, role: true } },
+                position: { include: { role: true, organizationUnit: true } },
+                areaScopes: {
+                  where: { validUntil: null },
+                  include: { area: true },
+                },
               },
             },
           },
-        },
-      }),
-      this.prisma.userProfile.count({ where }),
-      this.prisma.userProfile.groupBy({
-        by: ['status'],
-        where: facetWhere,
-        _count: { _all: true },
-      }),
-      this.prisma.userProfile.count({
-        where: {
-          ...facetWhere,
-          operationalLockedAt: { not: null },
-          OR: [
-            { operationalLockedUntil: null },
-            { operationalLockedUntil: { gt: new Date() } },
-          ],
-        },
-      }),
-      this.prisma.userProfile.count({
-        where: {
-          ...facetWhere,
-          OR: [
-            { operationalLockedAt: null },
-            { operationalLockedUntil: { lte: new Date() } },
-          ],
-        },
-      }),
-    ]);
+        }),
+        this.prisma.userProfile.count({ where }),
+        this.prisma.userProfile.groupBy({
+          by: ['status'],
+          where: facetWhere,
+          _count: { _all: true },
+        }),
+        this.prisma.userProfile.count({
+          where: {
+            ...facetWhere,
+            operationalLockedAt: { not: null },
+            OR: [
+              { operationalLockedUntil: null },
+              { operationalLockedUntil: { gt: new Date() } },
+            ],
+          },
+        }),
+        this.prisma.userProfile.count({
+          where: {
+            ...facetWhere,
+            OR: [
+              { operationalLockedAt: null },
+              { operationalLockedUntil: { lte: new Date() } },
+            ],
+          },
+        }),
+      ]);
 
     const statusFacets = Object.values(UserProfileStatus).reduce<
       Record<UserProfileStatus, number>
@@ -514,7 +514,7 @@ export class UserProfileService {
       }
       const seatBlueprint = await this.resolveSeatBlueprint({
         client: tx,
-        roleCode: position.role.code as RoleCode,
+        roleCode: position.role.code,
         organizationUnitId: position.organizationUnitId,
         branch: position.branch ?? null,
         positionId: position.id,
@@ -654,7 +654,9 @@ export class UserProfileService {
       select: { descendantId: true },
     });
 
-    return [...new Set([areaId, ...descendants.map((entry) => entry.descendantId)])];
+    return [
+      ...new Set([areaId, ...descendants.map((entry) => entry.descendantId)]),
+    ];
   }
 
   private generateTemporaryPassword() {
@@ -799,4 +801,3 @@ export class UserProfileService {
     });
   }
 }
-

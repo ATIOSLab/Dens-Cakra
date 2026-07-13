@@ -42,7 +42,12 @@ export class DirectiveController {
     operationId: 'apiDir001',
     contractId: 'API-DIR-001',
     summary: 'Daftar direktif',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async list(
     @Query() query: DirectiveQuery,
@@ -72,7 +77,12 @@ export class DirectiveController {
     operationId: 'apiDir003',
     contractId: 'API-DIR-003',
     summary: 'Detail directive current version',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async get(
     @Param('directiveId', ParseUUIDPipe) directiveId: string,
@@ -86,13 +96,20 @@ export class DirectiveController {
     operationId: 'apiDir004',
     contractId: 'API-DIR-004',
     summary: 'Riwayat versi directive',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async versions(
     @Param('directiveId', ParseUUIDPipe) directiveId: string,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.directiveService.versions(directiveId, context));
+    return apiResult(
+      await this.directiveService.versions(directiveId, context),
+    );
   }
 
   @Post('directives/:directiveId/versions')
@@ -119,13 +136,20 @@ export class DirectiveController {
     operationId: 'apiDir006',
     contractId: 'API-DIR-006',
     summary: 'Detail versi directive',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async getVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.directiveService.getVersion(versionId, context));
+    return apiResult(
+      await this.directiveService.getVersion(versionId, context),
+    );
   }
 
   @Patch('directive-versions/:versionId')
@@ -222,7 +246,12 @@ export class DirectiveController {
     operationId: 'apiDir012',
     contractId: 'API-DIR-012',
     summary: 'Acknowledgement penerima',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
     idempotent: true,
   })
   async acknowledge(

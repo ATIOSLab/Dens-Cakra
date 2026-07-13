@@ -24,17 +24,20 @@ import {
   PriorityLevel,
   RevisionRequestStatus,
   SourceReliability,
-  VerificationCheckStatus,
   VerificationStatus,
 } from '../../generated/prisma/client.js';
 
 export class BaketQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(BaketStatus) status?: BaketStatus;
+  @IsOptional() @IsString() statuses?: string;
   @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
   @IsOptional() @IsUUID() createdByAssignmentId?: string;
   @IsOptional() @IsUUID() taskAssignmentId?: string;
   @IsOptional() @IsUUID() jaringId?: string;
+  @IsOptional() @IsUUID() categoryId?: string;
+  @IsOptional() @IsUUID() jaringClusterId?: string;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
@@ -61,6 +64,7 @@ export class BaketAttachmentDto {
 }
 
 export class CreateBaketDto {
+  @IsUUID() reportCategoryId!: string;
   @IsOptional() @IsUUID() taskAssignmentId?: string;
   @IsOptional() @IsUUID() primaryJaringId?: string;
   @IsOptional()
@@ -75,6 +79,11 @@ export class CreateBaketDto {
   @ValidateNested({ each: true })
   @Type(() => BaketAttachmentDto)
   attachments?: BaketAttachmentDto[];
+}
+
+export class UpdateBaketMetadataDto {
+  @IsUUID() reportCategoryId!: string;
+  @IsOptional() @IsUUID() taskAssignmentId?: string | null;
 }
 
 export class BaketPatchDto {
@@ -179,21 +188,6 @@ export class UpdateVerificationDto {
   @IsEnum(InformationCredibility)
   informationCredibility?: InformationCredibility;
   @IsOptional() @IsString() summary?: string;
-}
-
-export class VerificationCheckDto {
-  @IsString() @MaxLength(80) code!: string;
-  @IsString() @MaxLength(200) label!: string;
-  @IsEnum(VerificationCheckStatus) status!: VerificationCheckStatus;
-  @IsOptional() @IsString() note?: string;
-}
-
-export class ReplaceChecksDto {
-  @IsArray()
-  @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => VerificationCheckDto)
-  checks!: VerificationCheckDto[];
 }
 
 export class CrossReferenceDto {

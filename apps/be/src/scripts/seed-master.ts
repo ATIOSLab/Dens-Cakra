@@ -133,41 +133,47 @@ const positionAreaPolicies = [
 ] as const;
 
 const productTypeSeeds = [
-  ['JURNAL_INFORMASI', 'Jurnal Informasi', '1', ['Items']],
+  ['JURNAL_INFORMASI', 'Jurnal Informasi', '1', 'JI', ['Items']],
   [
     'LAPORAN_INFORMASI',
     'Laporan Informasi',
     '2',
+    'LI',
     ['Fakta', 'Catatan', 'Lampiran'],
   ],
   [
     'LAPORAN_INTELIJEN',
     'Laporan Intelijen',
     '4',
+    'LAPINTEL',
     ['Indikasi', 'Analisis', 'Dampak', 'Upaya', 'Saran Tindak'],
   ],
   [
     'BASIC_DESCRIPTIVE_INTELLIGENCE',
     'Basic Descriptive Intelligence',
     '6',
+    'BDI',
     ['Pendahuluan', 'Kedalaman', 'Anteseden', 'Spot Intelijen', 'Pustaka'],
   ],
   [
     'LAPORAN_HARIAN_INTELIJEN',
     'Laporan Harian Intelijen',
     '8',
+    'LHI',
     ['Situasi Dalam Negeri', 'Situasi Luar Negeri'],
   ],
   [
     'LAPORAN_INTELIJEN_KHUSUS',
     'Laporan Intelijen Khusus',
     '9',
+    'LAPINTELSUS',
     ['Indikasi', 'Analisis', 'Dampak', 'Upaya', 'Saran Tindak'],
   ],
   [
     'PERKIRAAN_INTELIJEN_SITUASI',
     'Perkiraan Intelijen Situasi',
     '20',
+    'PIS',
     ['Indikasi', 'Analisis', 'Upaya', 'Saran Tindak'],
   ],
 ] as const;
@@ -252,17 +258,35 @@ function mapRoleAreaPolicy(positionCode: PositionCode): {
     case PositionCode.DEPUTI_II:
       return { roleCode: RoleCode.EXECUTIVE, branch: null };
     case PositionCode.DIREKTUR_WILAYAH:
-      return { roleCode: RoleCode.REGIONAL_COMMANDER, branch: CommandRouteType.DIRECTORATE };
+      return {
+        roleCode: RoleCode.REGIONAL_COMMANDER,
+        branch: CommandRouteType.DIRECTORATE,
+      };
     case PositionCode.KABINDA:
-      return { roleCode: RoleCode.REGIONAL_COMMANDER, branch: CommandRouteType.BINDA };
+      return {
+        roleCode: RoleCode.REGIONAL_COMMANDER,
+        branch: CommandRouteType.BINDA,
+      };
     case PositionCode.KASUBDIT:
-      return { roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER, branch: CommandRouteType.DIRECTORATE };
+      return {
+        roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+        branch: CommandRouteType.DIRECTORATE,
+      };
     case PositionCode.KABAGOPS:
-      return { roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER, branch: CommandRouteType.BINDA };
+      return {
+        roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+        branch: CommandRouteType.BINDA,
+      };
     case PositionCode.STAF_SUBDIT:
-      return { roleCode: RoleCode.FIELD_COORDINATOR, branch: CommandRouteType.DIRECTORATE };
+      return {
+        roleCode: RoleCode.FIELD_COORDINATOR,
+        branch: CommandRouteType.DIRECTORATE,
+      };
     case PositionCode.KORWIL:
-      return { roleCode: RoleCode.FIELD_COORDINATOR, branch: CommandRouteType.BINDA };
+      return {
+        roleCode: RoleCode.FIELD_COORDINATOR,
+        branch: CommandRouteType.BINDA,
+      };
     case PositionCode.PETUGAS_ORGANIK:
       return { roleCode: RoleCode.FIELD_OFFICER, branch: null };
     case PositionCode.ADMIN:
@@ -310,7 +334,7 @@ async function seedCountryRoot() {
 }
 
 async function seedProductTypesAndTemplates() {
-  for (const [code, name, formatNo, sections] of productTypeSeeds) {
+  for (const [code, name, formatNo, numberCode, sections] of productTypeSeeds) {
     const productType = await prisma.productTypeDefinition.upsert({
       where: {
         code,
@@ -318,12 +342,14 @@ async function seedProductTypesAndTemplates() {
       update: {
         name,
         formatNo,
+        numberCode,
         isActive: true,
       },
       create: {
         code,
         name,
         formatNo,
+        numberCode,
         description: `Seeded from DENS CAKRA v1.1 baseline for ${name}.`,
         isActive: true,
       },
@@ -338,13 +364,13 @@ async function seedProductTypesAndTemplates() {
       },
       update: {
         name: `${name} Template v1`,
-        isActive: true,
+        isActive: false,
       },
       create: {
         productTypeId: productType.id,
         versionNumber: 1,
         name: `${name} Template v1`,
-        isActive: true,
+        isActive: false,
       },
     });
 
@@ -396,6 +422,97 @@ async function seedProductTypesAndTemplates() {
           orderNumber: 1,
         },
       });
+    }
+
+    const officialSections = [
+      ...sections,
+      ...([
+        'LAPORAN_INTELIJEN',
+        'LAPORAN_INTELIJEN_KHUSUS',
+        'PERKIRAAN_INTELIJEN_SITUASI',
+      ].includes(code)
+        ? ['Lampiran']
+        : []),
+    ].map((title) => (title === 'Pustaka' ? 'Daftar Pustaka' : title));
+    const officialTemplate = await prisma.productTemplate.upsert({
+      where: {
+        productTypeId_versionNumber: {
+          productTypeId: productType.id,
+          versionNumber: 2,
+        },
+      },
+      update: { name: `${name} Format Resmi v2`, isActive: true },
+      create: {
+        productTypeId: productType.id,
+        versionNumber: 2,
+        name: `${name} Format Resmi v2`,
+        isActive: true,
+      },
+    });
+
+    for (const [index, sectionTitle] of officialSections.entries()) {
+      const sectionCode = sectionTitle
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_|_$/g, '');
+      const isJournalRows =
+        code === 'JURNAL_INFORMASI' && sectionTitle === 'Items';
+      const section = await prisma.productTemplateSection.upsert({
+        where: {
+          templateId_code: {
+            templateId: officialTemplate.id,
+            code: sectionCode,
+          },
+        },
+        update: {
+          title: sectionTitle,
+          orderNumber: index + 1,
+          isRepeatable: isJournalRows,
+        },
+        create: {
+          templateId: officialTemplate.id,
+          code: sectionCode,
+          title: sectionTitle,
+          orderNumber: index + 1,
+          isRepeatable: isJournalRows,
+        },
+      });
+      const fields = isJournalRows
+        ? ([
+            ['NO_URUT', 'Nomor Urut', 'NUMBER', true],
+            ['PERMASALAHAN_AGENDA', 'Permasalahan dan Agenda', 'TEXT', true],
+            ['DAERAH_KEJADIAN', 'Daerah Kejadian', 'TEXT', true],
+            ['MATERI_SUMBER', 'Materi Informasi dan Sumber', 'TEXT', true],
+          ] as const)
+        : ([
+            [
+              'CONTENT',
+              code === 'LAPORAN_HARIAN_INTELIJEN'
+                ? `${sectionTitle} (uraian 5W+1H)`
+                : sectionTitle,
+              'RICH_TEXT',
+              sectionTitle !== 'Lampiran',
+            ],
+          ] as const);
+      for (const [fieldIndex, field] of fields.entries()) {
+        await prisma.productTemplateField.upsert({
+          where: { sectionId_code: { sectionId: section.id, code: field[0] } },
+          update: {
+            label: field[1],
+            dataType: field[2],
+            isRequired: field[3],
+            orderNumber: fieldIndex + 1,
+          },
+          create: {
+            sectionId: section.id,
+            code: field[0],
+            label: field[1],
+            dataType: field[2],
+            isRequired: field[3],
+            orderNumber: fieldIndex + 1,
+          },
+        });
+      }
     }
   }
 }

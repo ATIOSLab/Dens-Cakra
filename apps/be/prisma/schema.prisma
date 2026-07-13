@@ -179,6 +179,7 @@ enum WhatsAppMessageStatus {
   UNKNOWN_SENDER
   ROUTED
   UNDER_REVIEW
+  READY_FOR_BAKET
   PROCESSED
   DUPLICATE
   SPAM
@@ -1231,6 +1232,7 @@ model JaringCluster {
   updatedAt   DateTime @updatedAt
 
   jaring Jaring[]
+  bakets Baket[]
 
   @@index([isActive, name])
 }
@@ -1245,6 +1247,7 @@ model ReportCategory {
   updatedAt   DateTime @updatedAt
 
   whatsAppMessages WhatsAppMessage[]
+  bakets           Baket[]
 
   @@index([isActive, name])
 }
@@ -1307,6 +1310,7 @@ model WhatsAppMessage {
   contentChecksum                  String?                              @db.VarChar(64)
   receivedAt                       DateTime
   processedAt                      DateTime?
+  convertedBaketId                 String?                              @unique @db.Uuid
   createdAt                        DateTime                             @default(now())
 
   integrationChannel             IntegrationChannel  @relation(fields: [integrationChannelId], references: [id], onDelete: Restrict)
@@ -1314,6 +1318,7 @@ model WhatsAppMessage {
   category                       ReportCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   routedToFieldOfficerAssignment UserSeatAssignment? @relation("WhatsAppRoutedTo", fields: [routedToFieldOfficerAssignmentId], references: [id], onDelete: SetNull)
   resolvedArea                   AdministrativeArea? @relation("WhatsAppResolvedArea", fields: [resolvedAreaId], references: [id], onDelete: Restrict)
+  convertedBaket                 Baket?              @relation("WhatsAppConvertedBaket", fields: [convertedBaketId], references: [id], onDelete: SetNull)
 
   media            WhatsAppMessageMedia[]
   routingLogs      WhatsAppRoutingLog[]
@@ -1379,6 +1384,8 @@ model Baket {
   createdByFieldOfficerAssignmentId String      @db.Uuid
   taskAssignmentId                  String?     @db.Uuid
   primaryJaringId                   String?     @db.Uuid
+  reportCategoryId                  String?     @db.Uuid
+  jaringClusterId                   String?     @db.Uuid
   status                            BaketStatus @default(DRAFT)
   currentVersionNumber              Int         @default(1)
   createdAt                         DateTime    @default(now())
@@ -1388,14 +1395,19 @@ model Baket {
   createdByFieldOfficerAssignment UserSeatAssignment @relation("BaketCreatedBy", fields: [createdByFieldOfficerAssignmentId], references: [id], onDelete: Restrict)
   taskAssignment                  TaskAssignment?    @relation(fields: [taskAssignmentId], references: [id], onDelete: Restrict)
   primaryJaring                   Jaring?            @relation("BaketPrimaryJaring", fields: [primaryJaringId], references: [id], onDelete: SetNull)
+  reportCategory                  ReportCategory?    @relation(fields: [reportCategoryId], references: [id], onDelete: SetNull)
+  jaringCluster                   JaringCluster?     @relation(fields: [jaringClusterId], references: [id], onDelete: SetNull)
 
-  versions               BaketVersion[]
-  revisionRequests       BaketRevisionRequest[]
-  relatedCrossReferences BaketVerificationCrossReference[] @relation("RelatedBaketCrossReference")
-  alerts                 Alert[]
+  versions                BaketVersion[]
+  revisionRequests        BaketRevisionRequest[]
+  relatedCrossReferences  BaketVerificationCrossReference[] @relation("RelatedBaketCrossReference")
+  alerts                  Alert[]
+  convertedSourceMessages WhatsAppMessage[]                 @relation("WhatsAppConvertedBaket")
 
   @@index([createdByFieldOfficerAssignmentId, status])
   @@index([taskAssignmentId])
+  @@index([reportCategoryId, status])
+  @@index([jaringClusterId, status])
 }
 
 model BaketVersion {
@@ -1665,13 +1677,29 @@ model ProductTypeDefinition {
   code        String   @unique @db.VarChar(80)
   name        String   @db.VarChar(180)
   formatNo    String?  @db.VarChar(30)
+  numberCode  String   @unique @db.VarChar(20)
   description String?  @db.Text
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  templates ProductTemplate[]
-  products  IntelligenceProduct[]
+  templates       ProductTemplate[]
+  products        IntelligenceProduct[]
+  numberSequences ProductNumberSequence[]
+}
+
+model ProductNumberSequence {
+  id            String   @id @default(uuid()) @db.Uuid
+  productTypeId String   @db.Uuid
+  year          Int
+  lastNumber    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  productType ProductTypeDefinition @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([productTypeId, year])
+  @@index([year])
 }
 
 model ProductTemplate {
@@ -1721,18 +1749,19 @@ model ProductTemplateField {
 }
 
 model IntelligenceProduct {
-  id                    String        @id @default(uuid()) @db.Uuid
-  productTypeId         String        @db.Uuid
-  ownerUnitId           String        @db.Uuid
-  createdByAssignmentId String        @db.Uuid
-  productNumber         String        @unique @db.VarChar(150)
-  title                 String        @db.VarChar(300)
-  status                ProductStatus @default(DRAFT)
-  currentVersionNumber  Int           @default(1)
+  id                    String         @id @default(uuid()) @db.Uuid
+  productTypeId         String         @db.Uuid
+  ownerUnitId           String         @db.Uuid
+  createdByAssignmentId String         @db.Uuid
+  productNumber         String         @unique @db.VarChar(150)
+  classification        Classification
+  title                 String         @db.VarChar(300)
+  status                ProductStatus  @default(DRAFT)
+  currentVersionNumber  Int            @default(1)
   periodStart           DateTime?
   periodEnd             DateTime?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
   deletedAt             DateTime?
 
   productType         ProductTypeDefinition @relation(fields: [productTypeId], references: [id], onDelete: Restrict)

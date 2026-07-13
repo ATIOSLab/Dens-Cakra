@@ -21,6 +21,7 @@ import type { AuthorizationContext } from '../../common/types/authorization-cont
 import {
   DuplicateDto,
   AssignCategoryDto,
+  CreateBaketFromMessageDto,
   LinkDto,
   MessageQuery,
   ReasonDto,
@@ -59,8 +60,11 @@ export class WhatsAppController {
     summary: 'Daftar pesan WhatsApp',
     roles: ['field_officer'],
   })
-  async list(@Query() query: MessageQuery) {
-    return apiResult(await this.whatsAppService.list(query));
+  async list(
+    @Query() query: MessageQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.whatsAppService.list(query, context));
   }
 
   @Get('whatsapp-messages/:messageId')
@@ -71,8 +75,11 @@ export class WhatsAppController {
     summary: 'Detail pesan WhatsApp',
     roles: ['field_officer'],
   })
-  async get(@Param('messageId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.whatsAppService.get(id));
+  async get(
+    @Param('messageId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.whatsAppService.get(id, context));
   }
 
   @Post('whatsapp-messages/:messageId/link-jaring')
@@ -87,8 +94,9 @@ export class WhatsAppController {
   async link(
     @Param('messageId', ParseUUIDPipe) id: string,
     @Body() body: LinkDto,
+    @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.whatsAppService.link(id, body));
+    return apiResult(await this.whatsAppService.link(id, body, context));
   }
 
   @Patch('whatsapp-messages/:messageId/category')
@@ -102,8 +110,11 @@ export class WhatsAppController {
   async assignCategory(
     @Param('messageId', ParseUUIDPipe) id: string,
     @Body() body: AssignCategoryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.whatsAppService.assignCategory(id, body));
+    return apiResult(
+      await this.whatsAppService.assignCategory(id, body, context),
+    );
   }
 
   @Post('whatsapp-messages/:messageId/validate')
@@ -115,8 +126,11 @@ export class WhatsAppController {
     roles: ['field_officer'],
     idempotent: true,
   })
-  async validate(@Param('messageId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.whatsAppService.validate(id));
+  async validate(
+    @Param('messageId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.whatsAppService.validate(id, context));
   }
 
   @Post('whatsapp-messages/:messageId/resolve-area')
@@ -131,8 +145,9 @@ export class WhatsAppController {
   async resolve(
     @Param('messageId', ParseUUIDPipe) id: string,
     @Body() body: ResolveDto,
+    @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.whatsAppService.resolve(id, body));
+    return apiResult(await this.whatsAppService.resolve(id, body, context));
   }
 
   @Post('whatsapp-messages/:messageId/route')
@@ -163,8 +178,9 @@ export class WhatsAppController {
   async spam(
     @Param('messageId', ParseUUIDPipe) id: string,
     @Body() body: ReasonDto,
+    @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.whatsAppService.spam(id, body));
+    return apiResult(await this.whatsAppService.spam(id, body, context));
   }
 
   @Post('whatsapp-messages/:messageId/mark-duplicate')
@@ -179,8 +195,9 @@ export class WhatsAppController {
   async duplicate(
     @Param('messageId', ParseUUIDPipe) id: string,
     @Body() body: DuplicateDto,
+    @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.whatsAppService.duplicate(id, body));
+    return apiResult(await this.whatsAppService.duplicate(id, body, context));
   }
 
   @Get('whatsapp-messages/:messageId/routing-logs')
@@ -191,8 +208,11 @@ export class WhatsAppController {
     summary: 'Routing logs pesan',
     roles: ['field_officer'],
   })
-  async logs(@Param('messageId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.whatsAppService.logs(id));
+  async logs(
+    @Param('messageId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.whatsAppService.logs(id, context));
   }
 
   @Post('whatsapp-messages/:messageId/create-baket')
@@ -207,9 +227,10 @@ export class WhatsAppController {
   })
   async createBaket(
     @Param('messageId', ParseUUIDPipe) id: string,
+    @Body() body: CreateBaketFromMessageDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.whatsAppService.createBaket(id, context));
+    return apiResult(await this.whatsAppService.createBaket(id, body, context));
   }
 
   @Get('whatsapp-inbox/summary')
@@ -220,7 +241,7 @@ export class WhatsAppController {
     summary: 'Ringkasan inbox WhatsApp',
     roles: ['field_officer'],
   })
-  async summary() {
-    return apiResult(await this.whatsAppService.summary());
+  async summary(@CurrentAccessContext() context: AuthorizationContext) {
+    return apiResult(await this.whatsAppService.summary(context));
   }
 }

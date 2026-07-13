@@ -27,7 +27,10 @@ export class CreateJaringDto {
   @IsString() @MaxLength(30) whatsappNumber!: string;
   @IsOptional() @IsUUID() clusterId?: string;
   @IsUUID() fieldOfficerAssignmentId!: string;
-  @IsArray() @ArrayMinSize(1) @IsUUID(undefined, { each: true }) areaIds!: string[];
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID(undefined, { each: true })
+  areaIds!: string[];
   @IsOptional() @IsString() @MaxLength(3000) notes?: string;
 }
 

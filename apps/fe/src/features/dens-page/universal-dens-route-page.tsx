@@ -1,4 +1,6 @@
 import { ComingSoonPage } from "@/app/(main)/dashboard/coming-soon/page";
+import type { OimView } from "@/app/(main)/dashboard/oim/_components/oim-types";
+import { OimWorkspacePage } from "@/app/(main)/dashboard/oim/_components/oim-workspace-page";
 
 type UniversalDensRoutePageProps = {
   routePattern: string;
@@ -10,15 +12,45 @@ function buildDescription(routePattern: string) {
   return `Halaman ${routePattern} sedang dinonaktifkan sementara dan akan digantikan pada implementasi berikutnya.`;
 }
 
-export function UniversalDensRoutePage({
-  routePattern,
-}: UniversalDensRoutePageProps) {
-  return (
-    <ComingSoonPage
-      title="Coming Soon"
-      description={buildDescription(routePattern)}
-    />
-  );
+function resolveOimView(route: string): OimView | null {
+  if (!route.startsWith("/dashboard/oim") || route.includes("/direktif-tugas")) return null;
+  if (route === "/dashboard/oim") return "dashboard";
+  if (route.includes("/laporan-masuk/[baketId]/versions/")) return "report-version";
+  if (route.includes("/laporan-masuk/[baketId]")) return "report-detail";
+  if (route.endsWith("/laporan-masuk")) return "reports";
+  if (route.includes("/verifikasi-neraca-penilaian/[verificationId]")) return "verification-detail";
+  if (route.endsWith("/verifikasi-neraca-penilaian")) return "verification";
+  if (route.includes("/analisis-intelijen/[caseId]/versions/")) return "analysis-version";
+  if (route.includes("/analisis-intelijen/[caseId]/edit")) return "analysis-edit";
+  if (route.includes("/analisis-intelijen/[caseId]")) return "analysis-detail";
+  if (route.endsWith("/analisis-intelijen/baru")) return "analysis-new";
+  if (route.endsWith("/analisis-intelijen")) return "analysis";
+  if (route.includes("/produk-intelijen/daftar-produk/[productId]/versions/")) return "product-version";
+  if (route.includes("/produk-intelijen/daftar-produk/[productId]/edit")) return "product-edit";
+  if (route.includes("/produk-intelijen/daftar-produk/[productId]")) return "product-detail";
+  if (route.endsWith("/produk-intelijen/daftar-produk")) return "product-list";
+  if (route.includes("/produk-intelijen/buat-produk/[productId]/edit")) return "product-edit";
+  if (route.includes("/produk-intelijen/buat-produk")) return "product-new";
+  if (route.endsWith("/produk-intelijen")) return "products";
+  if (route.includes("/pengajuan-persetujuan/workflow/")) return "workflow-detail";
+  if (route.includes("/pengajuan-persetujuan/[productId]")) return "approval-detail";
+  if (route.endsWith("/pengajuan-persetujuan")) return "approval";
+  if (route.includes("/monitoring-lapangan/tugas/")) return "monitoring-task";
+  if (route.includes("/monitoring-lapangan/baket/")) return "monitoring-report";
+  if (route.includes("/monitoring-lapangan/personel/")) return "monitoring-personnel";
+  if (route.endsWith("/monitoring-lapangan")) return "monitoring";
+  if (route.includes("/peta-situasi/baket/")) return "map-report";
+  if (route.includes("/peta-situasi/alert/")) return "map-alert";
+  if (route.endsWith("/peta-situasi")) return "map";
+  return null;
+}
+
+export function UniversalDensRoutePage({ routePattern, params = {}, searchParams = {} }: UniversalDensRoutePageProps) {
+  const oimView = resolveOimView(routePattern);
+  if (oimView) {
+    return <OimWorkspacePage view={oimView} params={params} searchParams={searchParams} />;
+  }
+  return <ComingSoonPage title="Coming Soon" description={buildDescription(routePattern)} />;
 }
 
 export default UniversalDensRoutePage;

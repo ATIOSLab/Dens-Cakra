@@ -20,6 +20,7 @@ import {
   ApprovalStage,
   ApprovalStepStatus,
   AlertSeverity,
+  Classification,
   CommandRouteType,
   DistributionStatus,
   ProductStatus,
@@ -33,12 +34,14 @@ export class CreateProductTypeDto {
   @IsString() @MaxLength(80) code!: string;
   @IsString() @MaxLength(180) name!: string;
   @IsOptional() @IsString() @MaxLength(30) formatNo?: string;
+  @IsString() @MaxLength(20) numberCode!: string;
   @IsOptional() @IsString() description?: string;
 }
 
 export class UpdateProductTypeDto {
   @IsOptional() @IsString() @MaxLength(180) name?: string;
   @IsOptional() @IsString() @MaxLength(30) formatNo?: string;
+  @IsOptional() @IsString() @MaxLength(20) numberCode?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @Type(() => Boolean) @IsBoolean() isActive?: boolean;
 }
@@ -90,6 +93,7 @@ export class ProductQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(ProductStatus) status?: ProductStatus;
+  @IsOptional() @IsEnum(Classification) classification?: Classification;
   @IsOptional() @IsUUID() productTypeId?: string;
   @IsOptional() @IsUUID() ownerUnitId?: string;
   @IsOptional() @IsUUID() areaId?: string;
@@ -111,9 +115,13 @@ export class ProductVersionPayloadDto {
   @IsOptional() @IsString() routingCc?: string;
   @IsOptional() @IsString() @MaxLength(500) subject?: string;
   @IsObject() content!: Record<string, unknown>;
-  @IsOptional() @IsArray() @IsUUID('4', { each: true })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
   sourceVerificationIds?: string[];
-  @IsOptional() @IsArray() @IsUUID('4', { each: true })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
   sourceAnalysisVersionIds?: string[];
   @IsOptional()
   @IsArray()
@@ -124,12 +132,24 @@ export class ProductVersionPayloadDto {
 
 export class CreateProductDto {
   @IsUUID() productTypeId!: string;
-  @IsUUID() ownerUnitId!: string;
-  @IsString() @MaxLength(150) productNumber!: string;
+  @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsString() @MaxLength(150) productNumber?: string;
+  @IsEnum(Classification) classification!: Classification;
   @IsString() @MaxLength(300) title!: string;
   @IsOptional() @IsDateString() periodStart?: string;
   @IsOptional() @IsDateString() periodEnd?: string;
-  @ValidateNested() @Type(() => ProductVersionPayloadDto) version!: ProductVersionPayloadDto;
+  @ValidateNested()
+  @Type(() => ProductVersionPayloadDto)
+  version!: ProductVersionPayloadDto;
+}
+
+export class UpdateProductDto {
+  @IsOptional() @IsString() @MaxLength(300) title?: string;
+  @IsOptional() @IsDateString() periodStart?: string;
+  @IsOptional() @IsDateString() periodEnd?: string;
+  @IsOptional() @IsEnum(Classification) classification?: Classification;
+  @IsOptional() @IsString() @MaxLength(150) productNumber?: string;
+  @IsOptional() @IsString() @MaxLength(2000) changeReason?: string;
 }
 
 export class ProductVersionListQuery {
@@ -140,7 +160,9 @@ export class ProductVersionListQuery {
 export class CreateProductRevisionDto {
   @IsUUID() basedOnVersionId!: string;
   @IsString() changeReason!: string;
-  @ValidateNested() @Type(() => ProductVersionPayloadDto) patch!: ProductVersionPayloadDto;
+  @ValidateNested()
+  @Type(() => ProductVersionPayloadDto)
+  patch!: ProductVersionPayloadDto;
 }
 
 export class UpdateProductVersionDto {
@@ -152,12 +174,16 @@ export class UpdateProductVersionDto {
 }
 
 export class ReplaceSourceVerificationsDto {
-  @IsArray() @ArrayMinSize(1) @IsUUID('4', { each: true })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
   verificationIds!: string[];
 }
 
 export class ReplaceSourceAnalysesDto {
-  @IsArray() @ArrayMinSize(1) @IsUUID('4', { each: true })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
   analysisVersionIds!: string[];
 }
 
@@ -191,7 +217,7 @@ export class ApprovalInboxQuery {
 export class CreateApprovalWorkflowDto {
   @IsEnum(CommandRouteType) routeType!: CommandRouteType;
   @IsUUID() regionalTargetPositionId!: string;
-  @IsUUID() executiveTargetPositionId!: string;
+  @IsOptional() @IsUUID() executiveTargetPositionId?: string;
 }
 
 export class ApprovalWorkflowQuery {
@@ -204,7 +230,9 @@ export class DecisionNoteDto {
 
 export class RequestRevisionDto {
   @IsString() note!: string;
-  @IsArray() @ArrayMinSize(1) @IsString({ each: true })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
   requiredChanges!: string[];
 }
 
@@ -333,7 +361,10 @@ export class CreateEmergencyIncidentDto {
   @IsString() situation!: string;
   @IsOptional() @IsString() actionTaken?: string;
   @IsOptional() @IsString() needs?: string;
-  @IsOptional() @IsArray() @IsUUID('4', { each: true }) attachmentFileIds?: string[];
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  attachmentFileIds?: string[];
 }
 
 export class UpdateEmergencyIncidentDto {

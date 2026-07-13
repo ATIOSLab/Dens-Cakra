@@ -7,6 +7,7 @@ import {
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateJaringClusterDto,
@@ -25,7 +26,10 @@ import type {
 
 @Injectable()
 export class JaringService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly domainScope: DomainScopeService,
+  ) {}
 
   private clusterCode(value: string) {
     const normalized = value
@@ -122,10 +126,18 @@ export class JaringService {
     return this.detail(id);
   }
 
-  async list(query: JaringQuery) {
+  async list(query: JaringQuery, context: AuthorizationContext) {
+    const scope = await this.domainScope.resolve(context);
     return this.prisma.jaring.findMany({
       where: {
         deletedAt: null,
+        caretakerAssignments: {
+          some: {
+            fieldOfficerAssignmentId: { in: scope.assignmentIds },
+            isActive: true,
+            OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+          },
+        },
         ...(query.status ? { status: query.status } : {}),
         ...(query.search
           ? {
@@ -195,7 +207,8 @@ export class JaringService {
     return this.detail(jaring.id);
   }
 
-  async get(id: string) {
+  async get(id: string, context: AuthorizationContext) {
+    await this.domainScope.assertJaring(context, id);
     return this.detail(id);
   }
 
@@ -450,7 +463,8 @@ export class JaringService {
     return this.status(id, JaringStatus.ARCHIVED, body.reason, context);
   }
 
-  async caretakers(id: string) {
+  async caretakers(id: string, context: AuthorizationContext) {
+    await this.domainScope.assertJaring(context, id);
     return this.prisma.jaringCaretakerAssignment.findMany({
       where: { jaringId: id },
       orderBy: { validFrom: 'desc' },
@@ -482,7 +496,8 @@ export class JaringService {
     return this.detail(id);
   }
 
-  async coverages(id: string) {
+  async coverages(id: string, context?: AuthorizationContext) {
+    if (context) await this.domainScope.assertJaring(context, id);
     return this.prisma.jaringAreaCoverage.findMany({
       where: { jaringId: id, validUntil: null },
       include: { area: true },
@@ -543,7 +558,8 @@ export class JaringService {
     });
   }
 
-  async bakets(id: string) {
+  async bakets(id: string, context: AuthorizationContext) {
+    await this.domainScope.assertJaring(context, id);
     return this.prisma.baket.findMany({
       where: { primaryJaringId: id, deletedAt: null },
       orderBy: { createdAt: 'desc' },

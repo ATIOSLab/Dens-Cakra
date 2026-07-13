@@ -7,12 +7,12 @@ import {
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
 import type {
   CompleteVerificationDto,
   CreateVerificationDto,
   NeedsDevelopmentDto,
   RejectVerificationDto,
-  ReplaceChecksDto,
   ReplaceCrossReferencesDto,
   UpdateVerificationDto,
 } from './baket.dto.js';
@@ -23,6 +23,7 @@ export class BaketVerificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly baketQuery: BaketQueryService,
+    private readonly scope: DomainScopeService,
   ) {}
 
   async createVerification(
@@ -44,6 +45,17 @@ export class BaketVerificationService {
         'Baket must be sent to OIM before canonical verification can be created.',
         409,
       );
+    }
+    await this.scope.assertBaket(context, version.baketId);
+    const existing = await this.prisma.baketVerification.findUnique({
+      where: { baketVersionId: versionId },
+    });
+    if (existing) {
+      return {
+        verificationId: existing.id,
+        baketId: version.baketId,
+        detail: await this.baketQuery.verificationDetail(existing.id),
+      };
     }
     const verification = await this.prisma.$transaction(async (tx) => {
       const created = await tx.baketVerification.create({
@@ -112,34 +124,6 @@ export class BaketVerificationService {
     return this.baketQuery.verificationDetail(verificationId);
   }
 
-  async replaceChecks(verificationId: string, body: ReplaceChecksDto) {
-    const verification = await this.prisma.baketVerification.findUniqueOrThrow({
-      where: { id: verificationId },
-    });
-    if (verification.status !== VerificationStatus.IN_PROGRESS) {
-      throw new ApiException(
-        'VERIFICATION_CHECKS_IMMUTABLE',
-        'Verification checks can only be replaced while in progress.',
-        409,
-      );
-    }
-    await this.prisma.$transaction(async (tx) => {
-      await tx.baketVerificationCheck.deleteMany({
-        where: { verificationId },
-      });
-      await tx.baketVerificationCheck.createMany({
-        data: body.checks.map((check) => ({
-          verificationId,
-          code: check.code,
-          label: check.label,
-          status: check.status,
-          note: check.note,
-        })),
-      });
-    });
-    return (await this.baketQuery.verificationDetail(verificationId)).checks;
-  }
-
   async replaceCrossReferences(
     verificationId: string,
     body: ReplaceCrossReferencesDto,
@@ -198,12 +182,11 @@ export class BaketVerificationService {
     if (
       verification.status !== VerificationStatus.IN_PROGRESS ||
       !verification.sourceReliability ||
-      !verification.informationCredibility ||
-      verification.checks.length === 0
+      !verification.informationCredibility
     ) {
       throw new ApiException(
         'VERIFICATION_INCOMPLETE',
-        'Verification requires scores and checks before completion.',
+        'Verification requires source reliability and information credibility scores before completion.',
         422,
       );
     }
@@ -231,6 +214,13 @@ export class BaketVerificationService {
   ) {
     const verification =
       await this.baketQuery.verificationDetail(verificationId);
+    if (verification.status !== VerificationStatus.IN_PROGRESS) {
+      throw new ApiException(
+        'VERIFICATION_IMMUTABLE',
+        'Only an in-progress verification can be completed.',
+        409,
+      );
+    }
     const request = await this.prisma.$transaction(async (tx) => {
       await tx.baketVerification.update({
         where: { id: verificationId },
@@ -267,6 +257,13 @@ export class BaketVerificationService {
   ) {
     const verification =
       await this.baketQuery.verificationDetail(verificationId);
+    if (verification.status !== VerificationStatus.IN_PROGRESS) {
+      throw new ApiException(
+        'VERIFICATION_IMMUTABLE',
+        'Only an in-progress verification can be completed.',
+        409,
+      );
+    }
     await this.prisma.$transaction(async (tx) => {
       await tx.baketVerification.update({
         where: { id: verificationId },
@@ -292,13 +289,29 @@ export class BaketVerificationService {
       verification.sourceReliability,
       verification.informationCredibility,
     );
+    const reliabilityText = {
+      A: 'sumber sepenuhnya dapat dipercaya',
+      B: 'sumber biasanya dapat dipercaya',
+      C: 'sumber cukup dapat dipercaya',
+      D: 'keandalan sumber diragukan',
+      E: 'sumber tidak dapat dipercaya',
+      F: 'keandalan sumber belum dapat dinilai',
+    }[verification.sourceReliability ?? 'F'];
+    const credibilityText = {
+      ONE: 'informasi dikonfirmasi sumber lain',
+      TWO: 'informasi sangat mungkin benar',
+      THREE: 'informasi mungkin benar',
+      FOUR: 'kebenaran informasi diragukan',
+      FIVE: 'informasi tidak mungkin benar',
+      SIX: 'kebenaran informasi belum dapat dinilai',
+    }[verification.informationCredibility ?? 'SIX'];
     return {
       verificationId,
       sourceReliability: verification.sourceReliability,
       informationCredibility: verification.informationCredibility,
       matrixLabel,
       interpretation: matrixLabel
-        ? `Neraca penilaian ${matrixLabel} menunjukkan kombinasi keandalan sumber dan kredibilitas informasi.`
+        ? `Neraca ${matrixLabel}: ${reliabilityText}; ${credibilityText}.`
         : 'Neraca penilaian belum lengkap.',
     };
   }

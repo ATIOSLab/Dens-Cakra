@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -16,12 +17,36 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Map, MapControls, MapMarker, MarkerContent, MarkerPopup } from "@/components/ui/map";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Map,
+  MapControls,
+  MapMarker,
+  MarkerContent,
+  MarkerPopup,
+} from "@/components/ui/map";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { FieldOfficerWorkspace } from "@/server/field-ops/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type {
+  FieldOfficerIncoming,
+  FieldOfficerTask,
+  FieldOfficerWorkspace,
+  ReportCategory,
+} from "@/server/field-ops/types";
 import { LeafletLocationPreview } from "./leaflet-location-preview";
 
 type FieldOfficerView = "overview" | "tasks" | "jaring" | "incoming" | "baket" | "reports" | "map" | "alert";
@@ -42,20 +67,36 @@ function formatDateTime(value?: string | null) {
 function statusTone(status: string) {
   const value = status.toUpperCase();
 
-  if (value.includes("COMPLETED") || value.includes("ACTIVE") || value.includes("VALID")) {
-    return "border-[var(--dc-success)]/35 bg-[var(--dc-success-soft)] text-[var(--dc-success)]";
+  if (
+    value.includes("COMPLETED") ||
+    value.includes("ACTIVE") ||
+    value.includes("VALID")
+  ) {
+    return "bg-emerald-500/15 text-emerald-200 border-emerald-400/35";
   }
 
-  if (value.includes("IN_PROGRESS") || value.includes("ROUTED") || value.includes("READY")) {
-    return "border-[var(--dc-primary)]/35 bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]";
+  if (
+    value.includes("IN_PROGRESS") ||
+    value.includes("ROUTED") ||
+    value.includes("READY")
+  ) {
+    return "bg-cyan-500/15 text-cyan-200 border-cyan-400/35";
   }
 
-  if (value.includes("DRAFT") || value.includes("RECEIVED") || value.includes("ASSIGNED")) {
-    return "border-[var(--dc-warning)]/35 bg-[var(--dc-warning-soft)] text-[var(--dc-warning)]";
+  if (
+    value.includes("DRAFT") ||
+    value.includes("RECEIVED") ||
+    value.includes("ASSIGNED")
+  ) {
+    return "bg-amber-500/15 text-amber-100 border-amber-300/35";
   }
 
-  if (value.includes("INACTIVE") || value.includes("ARCHIVED") || value.includes("ERROR")) {
-    return "border-[var(--dc-danger)]/35 bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]";
+  if (
+    value.includes("INACTIVE") ||
+    value.includes("ARCHIVED") ||
+    value.includes("ERROR")
+  ) {
+    return "bg-red-500/15 text-red-200 border-red-400/35";
   }
 
   return "border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] text-[var(--dc-text-secondary)]";
@@ -83,13 +124,24 @@ function nextTaskAction(status: string) {
   return null;
 }
 
-export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView }) {
-  const [workspace, setWorkspace] = useState<FieldOfficerWorkspace | null>(null);
+export function FieldOfficerOperationsPage({
+  view,
+}: {
+  view: FieldOfficerView;
+}) {
+  const [workspace, setWorkspace] = useState<FieldOfficerWorkspace | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState<string | null>(null);
-  const [forwardedAssignments, setForwardedAssignments] = useState<string[]>([]);
+  const [baketTab, setBaketTab] = useState(
+    view === "reports" ? "sent" : "ready",
+  );
+  const [forwardedAssignments, setForwardedAssignments] = useState<string[]>(
+    [],
+  );
   const [jaringForm, setJaringForm] = useState({
     code: "",
     aliasName: "",
@@ -116,17 +168,28 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   const loadWorkspace = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/field-officer/workspace", { cache: "no-store" });
-      const body = (await response.json()) as FieldOfficerWorkspace | { message?: string };
+      const response = await fetch("/api/field-officer/workspace", {
+        cache: "no-store",
+      });
+      const body = (await response.json()) as
+        FieldOfficerWorkspace | { message?: string };
 
       if (!response.ok) {
-        throw new Error("message" in body ? body.message : "Gagal memuat workspace field officer.");
+        throw new Error(
+          "message" in body
+            ? body.message
+            : "Gagal memuat workspace field officer.",
+        );
       }
 
       setWorkspace(body as FieldOfficerWorkspace);
       setError(null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Gagal memuat workspace field officer.");
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Gagal memuat workspace field officer.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -142,12 +205,36 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     }
 
     return {
-      activeTasks: workspace.tasks.filter((item) => item.assignmentStatus !== "COMPLETED").length,
-      activeJaring: workspace.jaring.filter((item) => item.status === "ACTIVE").length,
-      pendingIncoming: workspace.incoming.filter((item) => item.validationSummary !== "VALID").length,
-      draftBakets: workspace.bakets.filter((item) => item.status === "DRAFT" || item.status === "READY_TO_SEND").length,
+      activeTasks: workspace.tasks.filter(
+        (item) => item.assignmentStatus !== "COMPLETED",
+      ).length,
+      activeJaring: workspace.jaring.filter((item) => item.status === "ACTIVE")
+        .length,
+      pendingIncoming: workspace.incoming.filter(
+        (item) => item.validationSummary !== "VALID",
+      ).length,
+      readyToSendBakets: workspace.bakets.filter(
+        (item) => item.status === "DRAFT" || item.status === "READY_TO_SEND",
+      ).length,
     };
   }, [workspace]);
+
+  const readyToSendBakets = useMemo(
+    () =>
+      workspace?.bakets.filter(
+        (item) =>
+          item.status === "DRAFT" || item.status === "READY_TO_SEND",
+      ) ?? [],
+    [workspace],
+  );
+  const submittedBakets = useMemo(
+    () =>
+      workspace?.bakets.filter(
+        (item) =>
+          item.status !== "DRAFT" && item.status !== "READY_TO_SEND",
+      ) ?? [],
+    [workspace],
+  );
 
   const runAction = async (key: string, callback: () => Promise<void>) => {
     try {
@@ -158,7 +245,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       setError(null);
     } catch (actionError) {
       setActionNotice(null);
-      setError(actionError instanceof Error ? actionError.message : "Aksi gagal dijalankan.");
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "Aksi gagal dijalankan.",
+      );
     } finally {
       setIsBusy(null);
     }
@@ -188,7 +279,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
           whatsappNumber: jaringForm.whatsappNumber,
           clusterId: jaringForm.clusterId || undefined,
           notes: jaringForm.notes,
-          areaIds: [jaringForm.areaId || workspace.context.areaScopes[0]?.areaId].filter(Boolean),
+          areaIds: [
+            jaringForm.areaId || workspace.context.areaScopes[0]?.areaId,
+          ].filter(Boolean),
           fieldOfficerAssignmentId: workspace.context.primaryAssignmentId,
         }),
       });
@@ -214,11 +307,14 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     nextStatus: "READ" | "ACKNOWLEDGED" | "IN_PROGRESS" | "COMPLETED",
   ) => {
     await runAction(`task:${assignmentId}:${nextStatus}`, async () => {
-      const response = await fetch(`/api/field-officer/task-assignments/${assignmentId}/status`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ nextStatus }),
-      });
+      const response = await fetch(
+        `/api/field-officer/task-assignments/${assignmentId}/status`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ nextStatus }),
+        },
+      );
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
@@ -229,19 +325,26 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   const validateIncoming = async (messageId: string) => {
     await runAction(`validate:${messageId}`, async () => {
-      const response = await fetch(`/api/field-officer/incoming/${messageId}/validate`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `/api/field-officer/incoming/${messageId}/validate`,
+        {
+          method: "POST",
+        },
+      );
       const body = (await response.json().catch(() => null)) as
         | { validationSummary?: string; title?: string | null }
         | { message?: string }
         | null;
 
       if (!response.ok) {
-        throw new Error((body && "message" in body ? body.message : null) || "Gagal memvalidasi laporan.");
+        throw new Error(
+          (body && "message" in body ? body.message : null) ||
+            "Gagal memvalidasi laporan.",
+        );
       }
 
-      const result = body && "validationSummary" in body ? body.validationSummary : null;
+      const result =
+        body && "validationSummary" in body ? body.validationSummary : null;
       setActionNotice(
         result === "VALID"
           ? "Validasi berhasil. Laporan sudah lengkap dan siap dibuat menjadi Baket."
@@ -250,38 +353,48 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     });
   };
 
-  const assignCategory = async (messageId: string, categoryId: string) => {
-    await runAction(`category:${messageId}`, async () => {
-      const response = await fetch(`/api/field-officer/incoming/${messageId}/category`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ categoryId }),
-      });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(body?.message || "Gagal menyimpan kategori laporan.");
-      }
-    });
-  };
-
-  const createBaket = async (messageId: string) => {
+  const createBaket = async (
+    messageId: string,
+    payload: {
+      categoryId: string;
+      urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+      title?: string;
+      normalizedContent?: string;
+      fieldOfficerNote?: string;
+      taskAssignmentId?: string;
+      eventTime?: string;
+    },
+  ) => {
     await runAction(`baket:${messageId}`, async () => {
-      const response = await fetch(`/api/field-officer/incoming/${messageId}/baket`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `/api/field-officer/incoming/${messageId}/baket`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
         throw new Error(body.message || "Gagal membuat baket.");
       }
+
+      setBaketTab("ready-to-send");
+      setActionNotice(
+        "Baket berhasil dibuat dan siap dikirim. Tekan Kirim ke OIM agar masuk ke Laporan Masuk OIM.",
+      );
     });
   };
 
   const deleteIncoming = async (messageId: string) => {
     await runAction(`delete:${messageId}`, async () => {
-      const response = await fetch(`/api/field-officer/incoming/${messageId}/delete`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `/api/field-officer/incoming/${messageId}/delete`,
+        {
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
@@ -292,27 +405,41 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   const submitBaket = async (baketId: string) => {
     await runAction(`submit:${baketId}`, async () => {
-      const response = await fetch(`/api/field-officer/baket/${baketId}/submit`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `/api/field-officer/baket/${baketId}/submit`,
+        {
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
         throw new Error(body.message || "Gagal mengirim baket.");
       }
+
+      setActionNotice(
+        "Baket berhasil dikirim ke OIM dan sudah masuk ke antrean Laporan Masuk.",
+      );
+      setBaketTab("sent");
     });
   };
 
-  const changeJaringStatus = async (jaringId: string, action: "activate" | "deactivate" | "archive") => {
+  const changeJaringStatus = async (
+    jaringId: string,
+    action: "activate" | "deactivate" | "archive",
+  ) => {
     await runAction(`jaring:${jaringId}:${action}`, async () => {
-      const response = await fetch(`/api/field-officer/jaring/${jaringId}/status`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          action,
-          reason: `Status diubah dari workspace field officer ke mode ${action}.`,
-        }),
-      });
+      const response = await fetch(
+        `/api/field-officer/jaring/${jaringId}/status`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action,
+            reason: `Status diubah dari workspace field officer ke mode ${action}.`,
+          }),
+        },
+      );
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
@@ -332,12 +459,14 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     }
 
     await runAction("location:publish", async () => {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-        });
-      });
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+          });
+        },
+      );
 
       const response = await fetch("/api/field-officer/live-location", {
         method: "POST",
@@ -363,7 +492,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       return [];
     }
 
-    const incomingPoints = workspace.incoming
+    const incomingPoints = [...workspace.incoming, ...workspace.baketCandidates]
       .filter((item) => item.latitude !== null && item.longitude !== null)
       .map((item) => ({
         id: item.id,
@@ -395,8 +524,12 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       return [106.8456, -6.2088] as [number, number];
     }
 
-    const lng = mapPoints.reduce((sum, item) => sum + item.longitude, 0) / mapPoints.length;
-    const lat = mapPoints.reduce((sum, item) => sum + item.latitude, 0) / mapPoints.length;
+    const lng =
+      mapPoints.reduce((sum, item) => sum + item.longitude, 0) /
+      mapPoints.length;
+    const lat =
+      mapPoints.reduce((sum, item) => sum + item.latitude, 0) /
+      mapPoints.length;
 
     return [lng, lat] as [number, number];
   }, [mapPoints]);
@@ -423,7 +556,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       <Alert className="border-[var(--dc-danger)]/30 bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]">
         <AlertTriangle className="size-4" />
         <AlertTitle>Workspace tidak tersedia</AlertTitle>
-        <AlertDescription>{error || "Data field officer belum dapat dibaca."}</AlertDescription>
+        <AlertDescription>
+          {error || "Data field officer belum dapat dibaca."}
+        </AlertDescription>
       </Alert>
     );
   }
@@ -434,23 +569,33 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)] text-[var(--dc-text-primary)]">
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="border-[var(--dc-primary)]/30 bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]">
+              <Badge className="bg-cyan-400/15 text-cyan-100">
                 Field Officer Live Workspace
               </Badge>
-              <Badge variant="outline" className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]">
+              <Badge
+                variant="outline"
+                className="border-white/15 text-white/70"
+              >
                 {workspace.profile.role}
               </Badge>
             </div>
             <CardTitle>{workspace.profile.name}</CardTitle>
-            <CardDescription>
-              {workspace.context.positionTitle} • {workspace.context.organizationUnitName}
+            <CardDescription className="text-white/65">
+              {workspace.context.positionTitle} •{" "}
+              {workspace.context.organizationUnitName}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard label="Tugas Aktif" value={metrics.activeTasks} />
             <MetricCard label="Jaring Aktif" value={metrics.activeJaring} />
-            <MetricCard label="Laporan Pending" value={metrics.pendingIncoming} />
-            <MetricCard label="Draft Baket" value={metrics.draftBakets} />
+            <MetricCard
+              label="Laporan Pending"
+              value={metrics.pendingIncoming}
+            />
+            <MetricCard
+              label="Baket Siap Dikirim"
+              value={metrics.readyToSendBakets}
+            />
           </CardContent>
         </Card>
         <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
@@ -464,7 +609,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                 <Badge
                   key={item.areaId}
                   variant="outline"
-                  className="border-[var(--dc-primary)]/30 bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]"
+                  className="border-white/15 bg-white/5 text-white/80"
                 >
                   {item.name}
                 </Badge>
@@ -496,41 +641,52 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
           <CardHeader>
             <CardTitle>Tugas Saya</CardTitle>
-            <CardDescription>
-              Update status eksekusi lapangan dan tandai assignment yang perlu diteruskan ke coordinator.
+            <CardDescription className="text-white/65">
+              Update status eksekusi lapangan dan tandai assignment yang perlu
+              diteruskan ke coordinator.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {workspace.tasks.map((task) => {
               const action = nextTaskAction(task.assignmentStatus);
-              const forwarded = forwardedAssignments.includes(task.assignmentId);
+              const forwarded = forwardedAssignments.includes(
+                task.assignmentId,
+              );
 
               return (
                 <div
                   key={task.assignmentId}
-                  className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4"
+                  className="rounded-xl border border-white/10 bg-black/15 p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className={statusTone(task.assignmentStatus)}>{task.assignmentStatus}</Badge>
+                        <Badge className={statusTone(task.assignmentStatus)}>
+                          {task.assignmentStatus}
+                        </Badge>
                         <Badge
                           variant="outline"
-                          className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                          className="border-white/15 text-white/70"
                         >
                           {task.priority}
                         </Badge>
                         {forwarded ? (
-                          <Badge className="border-[var(--dc-info)]/30 bg-[var(--dc-info-soft)] text-[var(--dc-info)]">
+                          <Badge className="bg-fuchsia-500/15 text-fuchsia-100">
                             Ditandai untuk diteruskan
                           </Badge>
                         ) : null}
                       </div>
-                      <h3 className="font-semibold text-[var(--dc-text-primary)] text-lg">{task.title}</h3>
-                      <p className="text-[var(--dc-text-secondary)] text-sm">{task.description}</p>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[var(--dc-text-muted)] text-xs">
+                      <h3 className="font-semibold text-lg text-white">
+                        {task.title}
+                      </h3>
+                      <p className="text-sm text-white/70">
+                        {task.description}
+                      </p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/55">
                         <span>Due: {formatDateTime(task.dueDate)}</span>
-                        <span>Target: {task.targetAreas.join(", ") || "-"}</span>
+                        <span>
+                          Target: {task.targetAreas.join(", ") || "-"}
+                        </span>
                         <span>Sumber: {task.sourceLabel || "-"}</span>
                         <span>Pengirim: {task.assignerName || "-"}</span>
                       </div>
@@ -539,9 +695,17 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       {action ? (
                         <Button
                           size="sm"
-                          className="bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
-                          disabled={isBusy === `task:${task.assignmentId}:${action.nextStatus}`}
-                          onClick={() => void updateTaskStatus(task.assignmentId, action.nextStatus)}
+                          className="bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                          disabled={
+                            isBusy ===
+                            `task:${task.assignmentId}:${action.nextStatus}`
+                          }
+                          onClick={() =>
+                            void updateTaskStatus(
+                              task.assignmentId,
+                              action.nextStatus,
+                            )
+                          }
                         >
                           {action.label}
                         </Button>
@@ -568,30 +732,51 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
           <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
             <CardHeader>
               <CardTitle>Registrasi Jaring Baru</CardTitle>
-              <CardDescription>
-                FO tetap memegang ownership data Jaring. Nomor bot pusat dikelola coordinator.
+              <CardDescription className="text-white/65">
+                FO tetap memegang ownership data Jaring. Nomor bot pusat
+                dikelola coordinator.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Input
                 placeholder="Kode Jaring"
                 value={jaringForm.code}
-                onChange={(event) => setJaringForm((current) => ({ ...current, code: event.target.value }))}
+                onChange={(event) =>
+                  setJaringForm((current) => ({
+                    ...current,
+                    code: event.target.value,
+                  }))
+                }
               />
               <Input
                 placeholder="Alias / Nama sandi"
                 value={jaringForm.aliasName}
-                onChange={(event) => setJaringForm((current) => ({ ...current, aliasName: event.target.value }))}
+                onChange={(event) =>
+                  setJaringForm((current) => ({
+                    ...current,
+                    aliasName: event.target.value,
+                  }))
+                }
               />
               <Input
                 placeholder="Nomor WhatsApp"
                 value={jaringForm.whatsappNumber}
-                onChange={(event) => setJaringForm((current) => ({ ...current, whatsappNumber: event.target.value }))}
+                onChange={(event) =>
+                  setJaringForm((current) => ({
+                    ...current,
+                    whatsappNumber: event.target.value,
+                  }))
+                }
               />
               <select
                 className="flex h-10 w-full rounded-md border border-[var(--dc-border-subtle)] bg-background/40 px-3 text-sm text-[var(--dc-text-primary)]"
                 value={jaringForm.clusterId}
-                onChange={(event) => setJaringForm((current) => ({ ...current, clusterId: event.target.value }))}
+                onChange={(event) =>
+                  setJaringForm((current) => ({
+                    ...current,
+                    clusterId: event.target.value,
+                  }))
+                }
               >
                 <option value="">Pilih cluster jaring</option>
                 {workspace.jaringClusters.map((cluster) => (
@@ -603,7 +788,12 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               <select
                 className="flex h-10 w-full rounded-md border border-[var(--dc-border-subtle)] bg-background/40 px-3 text-sm text-[var(--dc-text-primary)]"
                 value={jaringForm.areaId}
-                onChange={(event) => setJaringForm((current) => ({ ...current, areaId: event.target.value }))}
+                onChange={(event) =>
+                  setJaringForm((current) => ({
+                    ...current,
+                    areaId: event.target.value,
+                  }))
+                }
               >
                 <option value="">Pilih area utama</option>
                 {workspace.context.areaScopes.map((area) => (
@@ -615,7 +805,12 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               <Textarea
                 placeholder="Catatan pembinaan"
                 value={jaringForm.notes}
-                onChange={(event) => setJaringForm((current) => ({ ...current, notes: event.target.value }))}
+                onChange={(event) =>
+                  setJaringForm((current) => ({
+                    ...current,
+                    notes: event.target.value,
+                  }))
+                }
               />
               <Button
                 className="w-full bg-[var(--dc-success)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-success)]/90"
@@ -630,31 +825,46 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
           <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
             <CardHeader>
               <CardTitle>Jaring Binaan</CardTitle>
-              <CardDescription>Status aktif, volume laporan, dan aksi pemeliharaan dasar per Jaring.</CardDescription>
+              <CardDescription className="text-white/65">
+                Status aktif, volume laporan, dan aksi pemeliharaan dasar per
+                Jaring.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3">
               {workspace.jaring.map((jaring) => (
                 <div
                   key={jaring.id}
-                  className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4"
+                  className="rounded-xl border border-white/10 bg-black/15 p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className={statusTone(jaring.status)}>{jaring.status}</Badge>
+                        <Badge className={statusTone(jaring.status)}>
+                          {jaring.status}
+                        </Badge>
                         <Badge
                           variant="outline"
-                          className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                          className="border-white/15 text-white/70"
                         >
                           {jaring.code}
                         </Badge>
                       </div>
-                      <h3 className="font-semibold text-[var(--dc-text-primary)]">{jaring.aliasName}</h3>
-                      <p className="text-[var(--dc-text-secondary)] text-sm">{jaring.whatsappNumber}</p>
-                      <p className="text-[var(--dc-primary)] text-sm">{jaring.clusterName || "Belum ada cluster"}</p>
-                      <p className="text-[var(--dc-text-muted)] text-sm">{jaring.areaNames.join(", ") || "-"}</p>
-                      {jaring.notes ? <p className="text-[var(--dc-text-secondary)] text-sm">{jaring.notes}</p> : null}
-                      <div className="flex gap-4 text-[var(--dc-text-muted)] text-xs">
+                      <h3 className="font-semibold text-white">
+                        {jaring.aliasName}
+                      </h3>
+                      <p className="text-sm text-white/70">
+                        {jaring.whatsappNumber}
+                      </p>
+                      <p className="text-sm text-cyan-200">
+                        {jaring.clusterName || "Belum ada cluster"}
+                      </p>
+                      <p className="text-sm text-white/55">
+                        {jaring.areaNames.join(", ") || "-"}
+                      </p>
+                      {jaring.notes ? (
+                        <p className="text-sm text-white/65">{jaring.notes}</p>
+                      ) : null}
+                      <div className="flex gap-4 text-xs text-white/50">
                         <span>{jaring.messageCount} pesan</span>
                         <span>{jaring.baketCount} baket</span>
                       </div>
@@ -665,7 +875,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                           size="sm"
                           className="bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                           disabled={isBusy === `jaring:${jaring.id}:activate`}
-                          onClick={() => void changeJaringStatus(jaring.id, "activate")}
+                          onClick={() =>
+                            void changeJaringStatus(jaring.id, "activate")
+                          }
                         >
                           Aktifkan
                         </Button>
@@ -675,7 +887,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                           variant="outline"
                           className="border-[var(--dc-border-subtle)] bg-transparent text-[var(--dc-text-primary)] hover:bg-[var(--dc-surface-hover)]"
                           disabled={isBusy === `jaring:${jaring.id}:deactivate`}
-                          onClick={() => void changeJaringStatus(jaring.id, "deactivate")}
+                          onClick={() =>
+                            void changeJaringStatus(jaring.id, "deactivate")
+                          }
                         >
                           Nonaktifkan
                         </Button>
@@ -685,7 +899,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         variant="outline"
                         className="border-[var(--dc-danger)]/40 bg-transparent text-[var(--dc-danger)] hover:bg-[var(--dc-danger-soft)]"
                         disabled={isBusy === `jaring:${jaring.id}:archive`}
-                        onClick={() => void changeJaringStatus(jaring.id, "archive")}
+                        onClick={() =>
+                          void changeJaringStatus(jaring.id, "archive")
+                        }
                       >
                         Arsipkan
                       </Button>
@@ -702,53 +918,59 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
           <CardHeader>
             <CardTitle>Kotak Masuk Jaring</CardTitle>
-            <CardDescription>
-              Validasi struktur pesan dan konversi cepat ke Baket menggunakan kontrak backend merge.
+            <CardDescription className="text-white/65">
+              Validasi judul, isi, foto, GPS, waktu, Jaring, dan sumber.
+              Kategori serta urgency diisi saat membuat Baket.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {workspace.incoming.map((message) => (
               <div
                 key={message.id}
-                className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4"
+                className="rounded-xl border border-white/10 bg-black/15 p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge className={statusTone(message.status)}>{message.status}</Badge>
+                      <Badge className={statusTone(message.status)}>
+                        {message.status}
+                      </Badge>
                       <Badge
                         variant="outline"
-                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                        className="border-white/15 text-white/70"
                       >
                         {message.validationSummary}
                       </Badge>
                       <Badge
                         variant="outline"
-                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                        className="border-white/15 text-white/70"
                       >
                         {message.jaringCode}
                       </Badge>
-                      <Badge
-                        variant="outline"
-                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
-                      >
-                        {message.categoryName ?? "Belum ada kategori"}
-                      </Badge>
                     </div>
-                    <h3 className="font-semibold text-[var(--dc-text-primary)]">
+                    <h3 className="font-semibold text-white">
                       {message.title || message.jaringAlias}
                     </h3>
-                    <p className="text-[var(--dc-text-secondary)] text-sm">
+                    <p className="text-sm text-white/70">
                       {message.content || "Pesan belum memiliki isi teks."}
                     </p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[var(--dc-text-muted)] text-xs">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/55">
                       <span>Masuk: {formatDateTime(message.receivedAt)}</span>
-                      <span>Kejadian: {formatDateTime(message.eventDateTime)}</span>
-                      <span>GPS dibagikan: {formatDateTime(message.gpsSharedAt)}</span>
-                      <span>Timestamp: {formatDateTime(message.reportTimestamp)}</span>
+                      <span>
+                        Kejadian: {formatDateTime(message.eventDateTime)}
+                      </span>
+                      <span>
+                        GPS dibagikan: {formatDateTime(message.gpsSharedAt)}
+                      </span>
+                      <span>
+                        Timestamp: {formatDateTime(message.reportTimestamp)}
+                      </span>
                       <span>Pengirim: {message.senderPhone}</span>
                       <span>Area: {message.areaName || "-"}</span>
-                      <span>Bukti: {message.hasPhoto ? "Foto diterima" : "Belum ada foto"}</span>
+                      <span>
+                        Bukti:{" "}
+                        {message.hasPhoto ? "Foto diterima" : "Belum ada foto"}
+                      </span>
                     </div>
                     {message.hasPhoto ? (
                       <div className="rounded-lg border border-[var(--dc-success)]/25 bg-[var(--dc-success-soft)] p-3 text-[var(--dc-success)] text-sm">
@@ -760,34 +982,43 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                             className="mt-2 max-h-64 w-full max-w-md rounded-lg border border-[var(--dc-border-subtle)] object-cover"
                           />
                         ) : (
-                          <p className="mt-2 text-[var(--dc-text-secondary)] text-xs">
-                            Foto diterima oleh bot, tetapi file visual belum tersedia di storage. Kiriman lama sebelum
-                            patch hanya punya metadata WA.
+                          <p className="mt-2 text-xs text-emerald-100/75">
+                            Foto diterima oleh bot, tetapi file visual belum
+                            tersedia di storage. Kiriman lama sebelum patch
+                            hanya punya metadata WA.
                           </p>
                         )}
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[var(--dc-text-secondary)] text-xs">
                           <span>Media DB: {message.mediaCount}</span>
                           <span>File: {message.photoFileId || "-"}</span>
                           <span>WA ID: {message.photoMessageId || "-"}</span>
-                          {message.photoCaption ? <span>Caption: {message.photoCaption}</span> : null}
+                          {message.photoCaption ? (
+                            <span>Caption: {message.photoCaption}</span>
+                          ) : null}
                         </div>
                       </div>
                     ) : null}
                     {message.latitude !== null && message.longitude !== null ? (
-                      <div className="grid gap-3 rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] p-3 md:grid-cols-[minmax(0,1fr)_14rem]">
-                        <div className="space-y-1 text-[var(--dc-text-secondary)] text-sm">
-                          <p className="font-medium text-[var(--dc-text-primary)]">Lokasi kejadian</p>
-                          <p className="font-mono text-xs">
-                            {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)}
+                      <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-3 md:grid-cols-[minmax(0,1fr)_14rem]">
+                        <div className="space-y-1 text-sm text-white/70">
+                          <p className="font-medium text-white">
+                            Lokasi kejadian
                           </p>
-                          <p className="text-[var(--dc-text-muted)] text-xs">
-                            Akurasi: {message.gpsAccuracyMeters !== null ? `${message.gpsAccuracyMeters} m` : "-"}
+                          <p className="font-mono text-xs">
+                            {message.latitude.toFixed(7)},{" "}
+                            {message.longitude.toFixed(7)}
+                          </p>
+                          <p className="text-xs text-white/55">
+                            Akurasi:{" "}
+                            {message.gpsAccuracyMeters !== null
+                              ? `${message.gpsAccuracyMeters} m`
+                              : "-"}
                           </p>
                           <Button
                             asChild
                             size="sm"
                             variant="outline"
-                            className="mt-2 border-[var(--dc-border-subtle)] bg-transparent text-[var(--dc-text-primary)] hover:bg-[var(--dc-surface-hover)]"
+                            className="mt-2 border-white/15 bg-transparent text-white hover:bg-white/10"
                           >
                             <a
                               href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
@@ -812,24 +1043,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         </a>
                       </div>
                     ) : null}
-                    <div className="max-w-xs">
-                      <Select
-                        value={message.categoryId ?? undefined}
-                        onValueChange={(categoryId) => void assignCategory(message.id, categoryId)}
-                        disabled={isBusy === `category:${message.id}` || workspace.reportCategories.length === 0}
-                      >
-                        <SelectTrigger className="border-[var(--dc-border-subtle)] bg-background/40 text-[var(--dc-text-primary)]">
-                          <SelectValue placeholder="Pilih kategori laporan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {workspace.reportCategories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
                   <div className="flex flex-col gap-2">
                     <Button
@@ -852,21 +1065,13 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                     </Button>
                     <Button
                       size="sm"
-                      className="bg-[var(--dc-success)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-success)]/90"
-                      disabled={isBusy === `baket:${message.id}`}
-                      onClick={() => void createBaket(message.id)}
-                    >
-                      Buat Baket
-                    </Button>
-                    <Button
-                      size="sm"
                       variant="outline"
                       className="border-[var(--dc-danger)]/40 bg-transparent text-[var(--dc-danger)] hover:bg-[var(--dc-danger-soft)]"
                       disabled={isBusy === `delete:${message.id}`}
                       onClick={() => void deleteIncoming(message.id)}
                     >
                       <Trash2 className="mr-2 size-4" />
-                      Hapus
+                      Tolak
                     </Button>
                   </div>
                 </div>
@@ -879,59 +1084,164 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       {(view === "overview" || view === "baket" || view === "reports") && (
         <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
           <CardHeader>
-            <CardTitle>{view === "reports" ? "Laporan Saya" : "Buat Baket & Draft"}</CardTitle>
-            <CardDescription>Draft dan histori baket hasil validasi laporan Jaring.</CardDescription>
+            <CardTitle>
+              {view === "reports" ? "Laporan Saya" : "Buat Baket"}
+            </CardTitle>
+            <CardDescription className="text-white/65">
+              Bentuk Baket dari laporan Jaring, kirim ke OIM, dan pantau
+              statusnya.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3">
-            {workspace.bakets.map((baket) => (
-              <div
-                key={baket.id}
-                className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4"
+          <CardContent>
+            <Tabs value={baketTab} onValueChange={setBaketTab}>
+              <TabsList>
+                <TabsTrigger value="ready">
+                  Siap Dibuat ({workspace.baketCandidates.length})
+                </TabsTrigger>
+                <TabsTrigger value="ready-to-send">
+                  Siap Dikirim ({readyToSendBakets.length})
+                </TabsTrigger>
+                <TabsTrigger value="sent">
+                  Terkirim ({submittedBakets.length})
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="ready" className="grid gap-4 pt-3">
+                {workspace.baketCandidates.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-white/15 p-6 text-sm text-white/55">
+                    Belum ada pesan valid yang menunggu pembentukan Baket.
+                  </p>
+                ) : null}
+                {workspace.baketCandidates.map((message) => (
+                  <BaketCandidateForm
+                    key={message.id}
+                    message={message}
+                    categories={workspace.reportCategories}
+                    tasks={workspace.tasks}
+                    busy={isBusy === `baket:${message.id}`}
+                    onCreate={(payload) => createBaket(message.id, payload)}
+                  />
+                ))}
+              </TabsContent>
+              <TabsContent
+                value="ready-to-send"
+                className="grid gap-3 pt-3"
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge className={statusTone(baket.status)}>{baket.status}</Badge>
-                      <Badge
-                        variant="outline"
-                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
-                      >
-                        {baket.id}
-                      </Badge>
-                    </div>
-                    <h3 className="font-semibold text-[var(--dc-text-primary)]">
-                      {baket.currentVersionTitle || "Tanpa judul versi aktif"}
-                    </h3>
-                    <p className="text-[var(--dc-text-secondary)] text-sm">
-                      Jaring: {baket.primaryJaringAlias || baket.primaryJaringCode || "-"}
-                    </p>
-                    <p className="text-[var(--dc-text-muted)] text-sm">
-                      {baket.summary || "Ringkasan field officer belum ditambahkan."}
-                    </p>
-                    <p className="text-[var(--dc-text-muted)] text-xs">Dibuat: {formatDateTime(baket.createdAt)}</p>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {baket.status === "DRAFT" || baket.status === "READY_TO_SEND" ? (
+                {readyToSendBakets.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-white/15 p-6 text-sm text-white/55">
+                    Belum ada Baket yang menunggu pengiriman ke OIM.
+                  </p>
+                ) : null}
+                {readyToSendBakets.map((baket) => (
+                  <div
+                    key={baket.id}
+                    className="rounded-xl border border-white/10 bg-black/15 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={statusTone(baket.status)}>
+                            SIAP DIKIRIM
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="border-white/15 text-white/70"
+                          >
+                            {baket.categoryName || "Kategori legacy"}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="border-white/15 text-white/70"
+                          >
+                            {baket.clusterName || "Klaster legacy"}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="border-white/15 text-white/70"
+                          >
+                            {baket.urgency || "-"}
+                          </Badge>
+                        </div>
+                        <h3 className="font-semibold text-white">
+                          {baket.currentVersionTitle ||
+                            "Tanpa judul versi aktif"}
+                        </h3>
+                        <p className="text-sm text-white/70">
+                          Jaring:{" "}
+                          {baket.primaryJaringAlias ||
+                            baket.primaryJaringCode ||
+                            "-"}
+                        </p>
+                        <p className="text-sm text-white/55">
+                          {baket.summary ||
+                            "Catatan Field Officer belum ditambahkan."}
+                        </p>
+                        <p className="text-xs text-white/45">
+                          Dibuat: {formatDateTime(baket.createdAt)}
+                        </p>
+                      </div>
                       <Button
                         size="sm"
                         className="bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                         disabled={isBusy === `submit:${baket.id}`}
                         onClick={() => void submitBaket(baket.id)}
                       >
+                        <Send className="mr-2 size-4" />
                         Kirim ke OIM
                       </Button>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
-                      >
-                        Riwayat terkunci sesuai status
-                      </Badge>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                ))}
+              </TabsContent>
+              <TabsContent value="sent" className="grid gap-3 pt-3">
+                {submittedBakets.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-white/15 p-6 text-sm text-white/55">
+                    Belum ada Baket yang telah dikirim ke OIM.
+                  </p>
+                ) : null}
+                {submittedBakets.map((baket) => (
+                  <div
+                    key={baket.id}
+                    className="rounded-xl border border-white/10 bg-black/15 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={statusTone(baket.status)}>
+                            {baket.status}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="border-white/15 text-white/70"
+                          >
+                            {baket.categoryName || "Kategori legacy"}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="border-white/15 text-white/70"
+                          >
+                            {baket.urgency || "-"}
+                          </Badge>
+                        </div>
+                        <h3 className="font-semibold text-white">
+                          {baket.currentVersionTitle ||
+                            "Tanpa judul versi aktif"}
+                        </h3>
+                        <p className="text-sm text-white/55">
+                          Dikirim ke OIM · data terkunci dan hanya dapat dilihat.
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link
+                          href={`/dashboard/field-officer/buat-baket/${baket.id}`}
+                        >
+                          Lihat Baket
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       )}
@@ -947,7 +1257,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               <div className="dc-map-shell">
                 <Map className="h-[28rem]" center={mapCenter} zoom={7}>
                   {mapPoints.map((point) => (
-                    <MapMarker key={point.id} longitude={point.longitude} latitude={point.latitude}>
+                    <MapMarker
+                      key={point.id}
+                      longitude={point.longitude}
+                      latitude={point.latitude}
+                    >
                       <MarkerContent>
                         <div
                           className={`flex size-4 items-center justify-center rounded-full border-2 ${
@@ -960,9 +1274,12 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       <MarkerPopup>
                         <div className="space-y-1 text-sm">
                           <p className="font-semibold">{point.title}</p>
-                          <p className="text-muted-foreground">{point.subtitle}</p>
+                          <p className="text-muted-foreground">
+                            {point.subtitle}
+                          </p>
                           <p className="font-mono text-xs">
-                            {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}
+                            {point.latitude.toFixed(5)},{" "}
+                            {point.longitude.toFixed(5)}
                           </p>
                         </div>
                       </MarkerPopup>
@@ -977,8 +1294,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
           <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
             <CardHeader>
               <CardTitle>Live Location</CardTitle>
-              <CardDescription>
-                Ping GPS dikirim ke endpoint `personnel-location-pings` milik baseline merge.
+              <CardDescription className="text-white/65">
+                Ping GPS dikirim ke endpoint `personnel-location-pings` milik
+                baseline merge.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -986,8 +1304,8 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                 <div className="flex items-center gap-3">
                   <Crosshair className="size-5 text-[var(--dc-primary)]" />
                   <div>
-                    <p className="font-semibold text-[var(--dc-text-primary)]">Posisi terbaru</p>
-                    <p className="text-[var(--dc-text-secondary)] text-sm">
+                    <p className="font-semibold text-white">Posisi terbaru</p>
+                    <p className="text-sm text-white/65">
                       {workspace.latestLocation
                         ? formatDateTime(workspace.latestLocation.capturedAt)
                         : "Belum ada ping aktif."}
@@ -997,15 +1315,16 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                 {workspace.latestLocation ? (
                   <div className="mt-3 space-y-1 text-[var(--dc-text-secondary)] text-sm">
                     <p>
-                      <span className="text-[var(--dc-text-muted)]">Koordinat:</span>{" "}
-                      {workspace.latestLocation.latitude.toFixed(5)}, {workspace.latestLocation.longitude.toFixed(5)}
+                      <span className="text-white/45">Koordinat:</span>{" "}
+                      {workspace.latestLocation.latitude.toFixed(5)},{" "}
+                      {workspace.latestLocation.longitude.toFixed(5)}
                     </p>
                     <p>
                       <span className="text-[var(--dc-text-muted)]">Akurasi:</span>{" "}
                       {workspace.latestLocation.gpsAccuracyMeters ?? "-"} m
                     </p>
                     <p>
-                      <span className="text-[var(--dc-text-muted)]">Area:</span>{" "}
+                      <span className="text-white/45">Area:</span>{" "}
                       {workspace.latestLocation.areaName || "-"}
                     </p>
                   </div>
@@ -1031,8 +1350,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               <Radio className="size-5" />
               Panic & Emergency Flow
             </CardTitle>
-            <CardDescription className="text-[var(--dc-text-secondary)]">
-              Tombol darurat tetap berpusat pada pengiriman lokasi dan eskalasi ke coordinator/regional.
+            <CardDescription className="text-red-100/75">
+              Tombol darurat tetap berpusat pada pengiriman lokasi dan eskalasi
+              ke coordinator/regional.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 xl:grid-cols-3">
@@ -1069,9 +1389,223 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
 function MetricCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4">
-      <p className="text-[var(--dc-text-muted)] text-xs uppercase tracking-[0.22em]">{label}</p>
-      <p className="mt-2 font-mono font-semibold text-3xl text-[var(--dc-text-primary)]">{value}</p>
+    <div className="rounded-xl border border-white/10 bg-black/15 p-4">
+      <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+        {label}
+      </p>
+      <p className="mt-2 font-mono text-3xl font-semibold text-white">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function BaketCandidateForm({
+  message,
+  categories,
+  tasks,
+  busy,
+  onCreate,
+}: {
+  message: FieldOfficerIncoming;
+  categories: ReportCategory[];
+  tasks: FieldOfficerTask[];
+  busy: boolean;
+  onCreate: (payload: {
+    categoryId: string;
+    urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+    title?: string;
+    normalizedContent?: string;
+    fieldOfficerNote?: string;
+    taskAssignmentId?: string;
+    eventTime?: string;
+  }) => Promise<void>;
+}) {
+  const [categoryId, setCategoryId] = useState("");
+  const [urgency, setUrgency] = useState<"LOW" | "NORMAL" | "HIGH" | "URGENT">(
+    "NORMAL",
+  );
+  const [urgencyConfirmed, setUrgencyConfirmed] = useState(false);
+  const [title, setTitle] = useState(message.title || "");
+  const [normalizedContent, setNormalizedContent] = useState(
+    message.content || "",
+  );
+  const [fieldOfficerNote, setFieldOfficerNote] = useState("");
+  const [taskAssignmentId, setTaskAssignmentId] = useState("");
+  const [eventTime, setEventTime] = useState(
+    message.eventDateTime
+      ? new Date(message.eventDateTime).toISOString().slice(0, 16)
+      : "",
+  );
+  const canCreate = Boolean(
+    categoryId && urgencyConfirmed && title.trim() && normalizedContent.trim(),
+  );
+
+  return (
+    <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className={statusTone(message.status)}>{message.status}</Badge>
+        <Badge variant="outline" className="border-white/15 text-white/70">
+          {message.jaringCode}
+        </Badge>
+        <Badge variant="outline" className="border-cyan-400/30 text-cyan-100">
+          Klaster: {message.clusterName || "Belum terpetakan"}
+        </Badge>
+      </div>
+      <div className="mt-3 grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-3">
+          <div>
+            <p className="font-semibold text-white">Sumber pesan Jaring</p>
+            <p className="text-sm text-white/65">{message.content}</p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/50">
+              <span>Pengirim: {message.senderPhone}</span>
+              <span>Masuk: {formatDateTime(message.receivedAt)}</span>
+              <span>Kejadian: {formatDateTime(message.eventDateTime)}</span>
+              <span>Area: {message.areaName || "-"}</span>
+              <span>
+                Foto: {message.hasPhoto ? "tersedia" : "tidak tersedia"}
+              </span>
+            </div>
+          </div>
+          {message.photoUrl ? (
+            <img
+              src={message.photoUrl}
+              alt={`Evidence ${message.title || message.jaringAlias}`}
+              className="max-h-56 w-full max-w-md rounded-lg border border-white/10 object-cover"
+            />
+          ) : null}
+          {message.latitude !== null && message.longitude !== null ? (
+            <p className="font-mono text-xs text-white/60">
+              GPS {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)}{" "}
+              · akurasi {message.gpsAccuracyMeters ?? "-"} m
+            </p>
+          ) : null}
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="grid gap-1 text-sm text-white/70">
+              Kategori laporan <span className="text-red-300">wajib</span>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger className="border-white/15 bg-black/20 text-white">
+                  <SelectValue placeholder="Pilih kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories
+                    .filter((item) => item.isActive)
+                    .map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="grid gap-1 text-sm text-white/70">
+              Tingkat urgency <span className="text-red-300">wajib</span>
+              <Select
+                value={urgency}
+                onValueChange={(value) => {
+                  setUrgency(value as typeof urgency);
+                  setUrgencyConfirmed(false);
+                }}
+              >
+                <SelectTrigger className="border-white/15 bg-black/20 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LOW">LOW</SelectItem>
+                  <SelectItem value="NORMAL">NORMAL</SelectItem>
+                  <SelectItem value="HIGH">HIGH</SelectItem>
+                  <SelectItem value="URGENT">URGENT</SelectItem>
+                </SelectContent>
+              </Select>
+            </label>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-white/70">
+            <input
+              type="checkbox"
+              checked={urgencyConfirmed}
+              onChange={(event) => setUrgencyConfirmed(event.target.checked)}
+              className="size-4 accent-emerald-400"
+            />
+            Saya mengonfirmasi urgency {urgency} sebagai keputusan Field
+            Officer.
+          </label>
+        </div>
+        <div className="grid content-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+          <label className="grid gap-1 text-sm text-white/70">
+            Judul Baket
+            <Input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="border-white/15 bg-black/20 text-white"
+            />
+          </label>
+          <label className="grid gap-1 text-sm text-white/70">
+            Isi normalisasi
+            <Textarea
+              value={normalizedContent}
+              onChange={(event) => setNormalizedContent(event.target.value)}
+              className="min-h-28 border-white/15 bg-black/20 text-white"
+            />
+          </label>
+          <label className="grid gap-1 text-sm text-white/70">
+            Waktu kejadian
+            <Input
+              type="datetime-local"
+              value={eventTime}
+              onChange={(event) => setEventTime(event.target.value)}
+              className="border-white/15 bg-black/20 text-white"
+            />
+          </label>
+          <label className="grid gap-1 text-sm text-white/70">
+            Tugas terkait (opsional)
+            <Select
+              value={taskAssignmentId || "none"}
+              onValueChange={(value) =>
+                setTaskAssignmentId(value === "none" ? "" : value)
+              }
+            >
+              <SelectTrigger className="border-white/15 bg-black/20 text-white">
+                <SelectValue placeholder="Tanpa tugas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Tanpa tugas</SelectItem>
+                {tasks.map((task) => (
+                  <SelectItem key={task.assignmentId} value={task.assignmentId}>
+                    {task.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          <label className="grid gap-1 text-sm text-white/70">
+            Catatan Field Officer
+            <Textarea
+              value={fieldOfficerNote}
+              onChange={(event) => setFieldOfficerNote(event.target.value)}
+              className="border-white/15 bg-black/20 text-white"
+            />
+          </label>
+          <Button
+            disabled={!canCreate || busy}
+            className="bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+            onClick={() =>
+              void onCreate({
+                categoryId,
+                urgency,
+                title: title.trim(),
+                normalizedContent: normalizedContent.trim(),
+                fieldOfficerNote: fieldOfficerNote.trim() || undefined,
+                taskAssignmentId: taskAssignmentId || undefined,
+                eventTime: eventTime
+                  ? new Date(eventTime).toISOString()
+                  : undefined,
+              })
+            }
+          >
+            {busy ? "Membuat Baket..." : "Buat Baket"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

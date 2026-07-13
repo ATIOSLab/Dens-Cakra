@@ -41,7 +41,9 @@ export class IntegrationService {
       'algorithm' in config &&
       (config as { algorithm?: unknown }).algorithm === 'aes-256-gcm'
     ) {
-      return this.vault.decrypt<Record<string, unknown>>(config as EncryptedValue);
+      return this.vault.decrypt<Record<string, unknown>>(
+        config as EncryptedValue,
+      );
     }
 
     return (config as Record<string, unknown> | null) ?? {};
@@ -90,18 +92,14 @@ export class IntegrationService {
       lastHealthAt: channel.lastHealthAt,
       updatedAt: channel.updatedAt,
       webhookConfigured: Boolean(config.webhookSecret),
-      provider:
-        typeof config.provider === 'string' ? config.provider : null,
-      botLabel:
-        typeof config.botLabel === 'string' ? config.botLabel : null,
-      pairingMethod:
-        config.pairingMethod === 'code' ? 'code' : 'qr',
+      provider: typeof config.provider === 'string' ? config.provider : null,
+      botLabel: typeof config.botLabel === 'string' ? config.botLabel : null,
+      pairingMethod: config.pairingMethod === 'code' ? 'code' : 'qr',
       botPhoneNumber:
         typeof config.botPhoneNumber === 'string'
           ? config.botPhoneNumber
-          : channel.botState?.botPhoneNumber ?? null,
-      connectionStatus:
-        channel.botState?.connectionStatus ?? 'DISCONNECTED',
+          : (channel.botState?.botPhoneNumber ?? null),
+      connectionStatus: channel.botState?.connectionStatus ?? 'DISCONNECTED',
       qrCodeDataUrl: channel.botState?.qrCodeDataUrl ?? null,
       pairingCode: channel.botState?.pairingCode ?? null,
       sessionJid: channel.botState?.sessionJid ?? null,
@@ -165,7 +163,7 @@ export class IntegrationService {
 
     const views = channels.map((channel) => this.whatsappControlView(channel));
     const userIds = views.map((v) => v.userId).filter(Boolean) as string[];
-    
+
     if (userIds.length > 0) {
       const users = await this.prisma.userProfile.findMany({
         where: { id: { in: userIds } },
@@ -190,8 +188,11 @@ export class IntegrationService {
           const user = userMap.get(view.userId);
           if (user) {
             view['coordinatorName'] = user.fullName;
-            const activeSeat = user.positionAssignments?.find(pa => pa.isActive)?.seat;
-            view['coordinatorRegion'] = activeSeat?.organizationUnit?.name || null;
+            const activeSeat = user.positionAssignments?.find(
+              (pa) => pa.isActive,
+            )?.seat;
+            view['coordinatorRegion'] =
+              activeSeat?.organizationUnit?.name || null;
           }
         }
       }
@@ -435,7 +436,6 @@ export class IntegrationService {
         processedAt: true,
         success: true,
 
-
         errorMessage: true,
       },
     });
@@ -464,15 +464,18 @@ export class IntegrationService {
     const channel = await this.prisma.integrationChannel.findUniqueOrThrow({
       where: { id },
     });
-    
-    if (channel.channelType.includes('WHATSAPP') || channel.channelType.includes('WA')) {
+
+    if (
+      channel.channelType.includes('WHATSAPP') ||
+      channel.channelType.includes('WA')
+    ) {
       await this.whatsappBotRuntime.deleteChannelSession(id);
     }
-    
+
     await this.prisma.integrationChannel.delete({
       where: { id },
     });
-    
+
     await this.audit(context, 'INTEGRATION.DELETE', id);
     return { success: true, message: 'Channel berhasil dihapus' };
   }
