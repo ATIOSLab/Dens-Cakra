@@ -93,7 +93,12 @@ export function NavMain({ items }: NavMainProps) {
   };
 
   const isSubItemActive = (url: string) => {
-    return path === url;
+    if (path === url) return true;
+    const isDashboardHome = /^\/dashboard\/[^\/]+$/.test(url);
+    if (isDashboardHome) {
+      return path === url;
+    }
+    return url !== "/" && path.startsWith(url + "/");
   };
 
   const isSubmenuOpen = (item: NavMainParentItem) => {
@@ -157,7 +162,12 @@ function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
   return (
     <SidebarMenuItem>
       {item.disabled ? (
-        <SidebarMenuButton aria-disabled tooltip={item.title} isActive={isActive} className="cursor-not-allowed opacity-80">
+        <SidebarMenuButton
+          aria-disabled
+          tooltip={item.title}
+          isActive={isActive}
+          className="cursor-not-allowed opacity-80"
+        >
           {content}
         </SidebarMenuButton>
       ) : (
@@ -255,7 +265,11 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: Na
               return (
                 <SidebarMenuSubItem key={subItem.id}>
                   {subItem.disabled ? (
-                    <SidebarMenuSubButton aria-disabled isActive={isSubItemActive(subItem.url)} className="cursor-not-allowed opacity-80">
+                    <SidebarMenuSubButton
+                      aria-disabled
+                      isActive={isSubItemActive(subItem.url)}
+                      className="cursor-not-allowed opacity-80"
+                    >
                       {SubIcon && <SubIcon />}
                       <span>{subItem.title}</span>
                     </SidebarMenuSubButton>

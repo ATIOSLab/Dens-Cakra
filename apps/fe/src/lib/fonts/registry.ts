@@ -3,6 +3,7 @@ import {
   Figtree,
   Geist,
   Geist_Mono,
+  IBM_Plex_Mono,
   Inter,
   JetBrains_Mono,
   Lora,
@@ -49,6 +50,12 @@ const outfit = Outfit({
 const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-ibm-plex-mono",
 });
 
 const dmSans = DM_Sans({
@@ -151,6 +158,10 @@ export const fontRegistry = {
   geistMono: {
     label: "Geist Mono",
     font: geistMono,
+  },
+  ibmPlexMono: {
+    label: "IBM Plex Mono",
+    font: ibmPlexMono,
   },
   geistPixelSquare: {
     label: "Geist Pixel Square",

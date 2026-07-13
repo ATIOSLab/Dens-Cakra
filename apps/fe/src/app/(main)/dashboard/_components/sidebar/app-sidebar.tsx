@@ -43,10 +43,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link prefetch={false} href={homeUrl}>
-                <span className="flex size-5 items-center justify-center rounded-md bg-primary font-semibold text-[11px] text-primary-foreground">
+                <span className="flex size-7 items-center justify-center rounded-md border border-[var(--sidebar-active-border)] bg-[var(--sidebar-active)] font-semibold text-[11px] text-[var(--sidebar-text)] shadow-[inset_0_0_0_1px_rgba(255,255,255,.04)]">
                   DC
                 </span>
-                <span className="font-semibold text-base">DENS CAKRA</span>
+                <span className="font-semibold text-[var(--sidebar-text)] text-base tracking-wide">DENS CAKRA</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

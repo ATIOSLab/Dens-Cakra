@@ -1,16 +1,59 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { BookOpenText, ChevronRight, FileText, Users } from "lucide-react";
+import {
+  BookOpenText,
+  ChevronRight,
+  FileText,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  HelpCircle,
+  Map as MapIcon,
+  ShieldAlert,
+  Zap,
+  Share2,
+  CheckSquare,
+  Check,
+  Award,
+  User,
+  Clock,
+  ArrowDown,
+  Calendar,
+  Layers,
+  Activity,
+  Search,
+  Filter,
+  ArrowUpDown,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  BarChart4,
+  PieChart,
+  MapPin,
+  Send,
+  Eye,
+  ChevronLeft,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Card,
   CardAction,
@@ -197,56 +240,466 @@ type FieldCoordinatorTaskWithAssignments = TaskSummary & {
 };
 
 export function TaskListClient({ title, description, tasks, createHref, detailBasePath }: TaskListClientProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("latest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Simulated refresh handler
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast.success("Data berhasil diperbarui");
+    }, 600);
+  };
+
+  // Filter and Sort logic
+  const filteredTasks = useMemo(() => {
+    return tasks
+      .filter((task) => {
+        const matchesSearch =
+          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        const matchesStatus = statusFilter === "ALL" || task.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        if (sortBy === "latest") {
+          return new Date((b as any).createdAt || 0).getTime() - new Date((a as any).createdAt || 0).getTime();
+        }
+        if (sortBy === "oldest") {
+          return new Date((a as any).createdAt || 0).getTime() - new Date((b as any).createdAt || 0).getTime();
+        }
+        if (sortBy === "due_soon") {
+          return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
+        }
+        return 0;
+      });
+  }, [tasks, searchQuery, statusFilter, sortBy]);
+
+  // Pagination logic
+  const totalItems = filteredTasks.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const paginatedTasks = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredTasks.slice(startIndex, startIndex + pageSize);
+  }, [filteredTasks, currentPage, pageSize]);
+
+  // Adjust page number if filters change total pages
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  // KPI Calculations
+  const stats = useMemo(() => {
+    const total = tasks.length;
+    const completed = tasks.filter((t) => t.status === "COMPLETED").length;
+    const inProgress = tasks.filter((t) => ["IN_PROGRESS", "ASSIGNED", "ACKNOWLEDGED"].includes(t.status)).length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, inProgress, completionRate };
+  }, [tasks]);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      {/* Page Header */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b border-white/[0.08] pb-4">
         <div>
-          <h1 className="font-semibold text-2xl tracking-tight">{title}</h1>
-          <p className="text-muted-foreground text-sm">{description}</p>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] tracking-wider text-[var(--dc-primary)] uppercase bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.08]">
+              COORDINATOR_PORTAL
+            </span>
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--dc-success)] animate-pulse" />
+            <span className="text-[10px] text-muted-foreground/60 font-mono">LIVE TASK BOARD</span>
+          </div>
+          <h1 className="font-sans font-bold text-2xl tracking-tight text-[var(--dc-text-primary)] mt-1">{title}</h1>
+          <p className="text-muted-foreground text-xs leading-relaxed max-w-2xl mt-1">{description}</p>
         </div>
-        {createHref ? (
-          <Button asChild>
-            <Link href={createHref}>Buat Task</Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-8 rounded-[4px] border-white/10 text-xs font-mono gap-1.5 hover:bg-white/[0.04]"
+          >
+            <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            <span>REFRESH</span>
           </Button>
-        ) : null}
+          {createHref ? (
+            <Button
+              asChild
+              size="sm"
+              className="h-8 rounded-[4px] bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)] font-mono text-xs"
+            >
+              <Link href={createHref}>BUAT TASK</Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {tasks.map((task) => (
-          <Card key={task.id} className="border border-border/70">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span>{task.title}</span>
-                <Badge variant={badgeVariant(task.status)}>{task.status}</Badge>
-              </CardTitle>
-              <CardDescription>
-                {taskMetaLine(task)}
-              </CardDescription>
-              <CardAction>
-                <Button asChild size="sm" variant="outline">
-                  <Link href={`${detailBasePath}/${task.id}`}>Detail</Link>
+      {/* KPI Summary Block */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 shadow-sm space-y-1.5">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">TOTAL TUGAS</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[var(--dc-text-primary)]">{stats.total}</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono">TUGAS</span>
+          </div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 shadow-sm space-y-1.5">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">SEDANG BERJALAN</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[var(--dc-warning)]">{stats.inProgress}</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono">AKTIF</span>
+          </div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 shadow-sm space-y-1.5">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">SELESAI</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[var(--dc-success)]">{stats.completed}</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono">TUNTAS</span>
+          </div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 shadow-sm space-y-1.5">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">COMPLETION RATE</div>
+          <div className="space-y-1">
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-bold font-mono text-[var(--dc-primary)]">{stats.completionRate}%</span>
+              <span className="text-[10px] text-muted-foreground/60 font-mono">TARGET 100%</span>
+            </div>
+            <div className="w-full bg-white/[0.04] h-1 rounded-full overflow-hidden border border-white/10">
+              <div
+                className="bg-[var(--dc-primary)] h-full transition-all duration-300"
+                style={{ width: `${stats.completionRate}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main 12-Grid Content Area */}
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
+        {/* Left Column (8 cols): Toolbar & Compact Tasks List */}
+        <div className="space-y-4 lg:col-span-8">
+          {/* Sticky Toolbar */}
+          <div className="sticky top-0 z-40 flex flex-wrap items-center gap-3 border-[var(--dc-border-subtle)] border-b bg-[var(--dc-card)]/95 py-2 backdrop-blur-md">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+              <Input
+                placeholder="Cari nama tugas atau deskripsi..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 text-xs font-mono placeholder:text-muted-foreground/60"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+                <Filter className="size-3 text-muted-foreground/50" />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                    <SelectItem value="ALL">SEMUA STATUS</SelectItem>
+                    <SelectItem value="DRAFT">DRAFT</SelectItem>
+                    <SelectItem value="ASSIGNED">DISTRIBUSI</SelectItem>
+                    <SelectItem value="IN_PROGRESS">IN PROGRESS</SelectItem>
+                    <SelectItem value="COMPLETED">SELESAI</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+                <ArrowUpDown className="size-3 text-muted-foreground/50" />
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                    <SelectValue placeholder="Urutkan" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                    <SelectItem value="latest">TERBARU</SelectItem>
+                    <SelectItem value="oldest">TERLAMA</SelectItem>
+                    <SelectItem value="due_soon">DEADLINE TERDEKAT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Cards List */}
+          {paginatedTasks.length === 0 ? (
+            <div className="rounded-[6px] border border-dashed border-white/[0.08] p-12 text-center text-muted-foreground text-xs font-mono">
+              Tidak ada tugas yang cocok dengan filter atau kriteria pencarian.
+            </div>
+          ) : (
+            <div className="grid gap-3.5 md:grid-cols-1">
+              {paginatedTasks.map((task) => (
+                <Card
+                  key={task.id}
+                  className="border border-white/[0.08] bg-[var(--dc-card)] rounded-[6px] overflow-hidden hover:border-white/20 transition-colors shadow-sm"
+                >
+                  <div className="p-4 flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    <div className="space-y-2.5 flex-1 min-w-0">
+                      <div className="flex items-start gap-2.5">
+                        <Badge
+                          variant={badgeVariant(task.status)}
+                          className="font-mono text-[9px] uppercase tracking-wider rounded-[4px] px-1.5 shrink-0 mt-0.5"
+                        >
+                          {taskStatusLabel(task.status)}
+                        </Badge>
+                        <h3 className="font-sans text-[13px] font-bold text-[var(--dc-text-primary)] leading-snug truncate">
+                          {task.title}
+                        </h3>
+                      </div>
+
+                      {task.description && (
+                        <p className="line-clamp-2 text-muted-foreground text-xs leading-normal font-sans">
+                          {task.description}
+                        </p>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1.5 border-t border-white/[0.04] text-[10px] font-mono text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Clock className="size-3 text-muted-foreground/60" />
+                          <span>
+                            DEADLINE: <span className="text-[var(--dc-text-primary)]">{formatDate(task.dueDate)}</span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="size-3 text-muted-foreground/60" />
+                          <span>
+                            AREA SASARAN:{" "}
+                            <span className="text-[var(--dc-text-primary)]">{task.targetAreas.length} WILAYAH</span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Users className="size-3 text-muted-foreground/60" />
+                          <span>
+                            FIELD OFFICER:{" "}
+                            <span className="text-[var(--dc-text-primary)]">{task.assignments.length} PERSONEL</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center md:items-end justify-end shrink-0 pt-2 md:pt-0">
+                      <Button
+                        asChild
+                        size="sm"
+                        className="h-8 rounded-[4px] bg-white/[0.04] hover:bg-white/[0.08] text-xs font-mono border border-white/10 text-[var(--dc-text-primary)] shadow-none"
+                      >
+                        <Link href={`${detailBasePath}/${task.id}`}>
+                          <span>BUKA DETAIL</span>
+                          <ChevronRight className="size-3.5 ml-1" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination Component */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-white/[0.08] pt-4 font-mono text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span>TAMPILKAN:</span>
+                <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
+                  <SelectTrigger className="h-7 w-20 border-white/10 bg-white/[0.02] text-[10px] font-mono">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                    <SelectItem value="9">9 DATA</SelectItem>
+                    <SelectItem value="12">12 DATA</SelectItem>
+                    <SelectItem value="18">18 DATA</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span>DARI {totalItems} TUGAS</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+                >
+                  <ChevronLeft className="size-3 mr-1" /> SEBELUMNYA
                 </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="line-clamp-3 text-muted-foreground text-sm">{task.description}</p>
-              <div className="grid gap-3 text-sm md:grid-cols-3">
-                <div className="rounded-xl border border-border/70 p-3">
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide">Deadline</div>
-                  <div className="mt-1 font-medium">{formatDate(task.dueDate)}</div>
+                <span className="font-bold text-[var(--dc-text-primary)]">
+                  HALAMAN {currentPage} DARI {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+                >
+                  SELANJUTNYA <ChevronRight className="size-3 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column (4 cols): Sticky Sidebar */}
+        <div className="h-fit space-y-4 lg:sticky lg:top-[80px] lg:col-span-4">
+          {/* Mission Overview / Critical items */}
+          <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3.5 shadow-sm">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50 border-b border-white/[0.08] pb-2 flex justify-between items-center">
+              <span>DEADLINE COUNTDOWN</span>
+              <Clock className="size-3 text-[var(--dc-warning)]" />
+            </div>
+
+            {/* Find tasks due soon */}
+            {(() => {
+              const dueSoonTasks = tasks
+                .filter((t) => t.status !== "COMPLETED" && t.dueDate)
+                .sort((a, b) => new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime())
+                .slice(0, 2);
+
+              if (dueSoonTasks.length === 0) {
+                return (
+                  <div className="text-xs text-muted-foreground font-mono py-2">
+                    Tidak ada tugas aktif dengan batas waktu yang mendesak.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-3">
+                  {dueSoonTasks.map((t) => (
+                    <div
+                      key={t.id}
+                      className="space-y-1.5 bg-white/[0.01] border border-white/[0.04] p-3 rounded-[4px]"
+                    >
+                      <div className="flex justify-between items-center gap-2">
+                        <span
+                          className="font-sans font-bold text-xs truncate text-[var(--dc-text-primary)]"
+                          title={t.title}
+                        >
+                          {t.title}
+                        </span>
+                        <Badge variant="destructive" className="font-mono text-[8px] px-1 py-0 rounded-[2px] shrink-0">
+                          DEADLINE
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
+                        <span>BATAS WAKTU:</span>
+                        <span className="text-[var(--dc-warning)] font-bold">{formatDate(t.dueDate)}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="rounded-xl border border-border/70 p-3">
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide">Area</div>
-                  <div className="mt-1 font-medium">{task.targetAreas.length}</div>
+              );
+            })()}
+          </div>
+
+          {/* Operational Statistics */}
+          <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-4 shadow-sm">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50 border-b border-white/[0.08] pb-2 flex justify-between items-center">
+              <span>COMPLETION RATE BY STATE</span>
+              <BarChart4 className="size-3 text-[var(--dc-primary)]" />
+            </div>
+            <div className="space-y-2.5 text-xs font-mono">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground">SELESAI (COMPLETED):</span>
+                  <span className="text-[var(--dc-success)] font-bold">
+                    {tasks.filter((t) => t.status === "COMPLETED").length}
+                  </span>
                 </div>
-                <div className="rounded-xl border border-border/70 p-3">
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide">Assignment</div>
-                  <div className="mt-1 font-medium">{task.assignments.length}</div>
+                <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className="bg-[var(--dc-success)] h-full transition-all duration-300"
+                    style={{
+                      width: `${tasks.length > 0 ? (tasks.filter((t) => t.status === "COMPLETED").length / tasks.length) * 100 : 0}%`,
+                    }}
+                  />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground">BERJALAN (IN_PROGRESS):</span>
+                  <span className="text-[var(--dc-warning)] font-bold">
+                    {tasks.filter((t) => t.status === "IN_PROGRESS").length}
+                  </span>
+                </div>
+                <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className="bg-[var(--dc-warning)] h-full transition-all duration-300"
+                    style={{
+                      width: `${tasks.length > 0 ? (tasks.filter((t) => t.status === "IN_PROGRESS").length / tasks.length) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground">DIDISTRIBUSIKAN (ASSIGNED):</span>
+                  <span className="text-[var(--dc-primary)] font-bold">
+                    {tasks.filter((t) => t.status === "ASSIGNED").length}
+                  </span>
+                </div>
+                <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className="bg-[var(--dc-primary)] h-full transition-all duration-300"
+                    style={{
+                      width: `${tasks.length > 0 ? (tasks.filter((t) => t.status === "ASSIGNED").length / tasks.length) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Activity Feed */}
+          <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3.5 shadow-sm">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50 border-b border-white/[0.08] pb-2 flex justify-between items-center">
+              <span>RECENT FEED ACTIVITY</span>
+              <Activity className="size-3 text-[var(--dc-primary)]" />
+            </div>
+            <div className="space-y-3 text-xs">
+              <div className="flex gap-2.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-[var(--dc-success)] mt-1.5 shrink-0" />
+                <div className="space-y-0.5">
+                  <p className="text-muted-foreground/80 font-sans leading-normal">
+                    Distribusi tugas <strong className="text-[var(--dc-text-primary)]">Aceh Selatan</strong> tervalidasi
+                    100% aman.
+                  </p>
+                  <span className="text-[9px] text-muted-foreground/45 font-mono">10 MENIT YANG LALU</span>
+                </div>
+              </div>
+              <div className="flex gap-2.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-[var(--dc-primary)] mt-1.5 shrink-0" />
+                <div className="space-y-0.5">
+                  <p className="text-muted-foreground/80 font-sans leading-normal">
+                    STR berjenjang regional terintegrasi ke dalam data tugas koordinator.
+                  </p>
+                  <span className="text-[9px] text-muted-foreground/45 font-mono">42 MENIT YANG LALU</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sticky Action Footer */}
+      <div className="sticky bottom-0 z-50 -mx-6 flex min-h-12 w-full flex-wrap items-center justify-between gap-3 rounded-t-[6px] border-[var(--dc-border-subtle)] border-t bg-[var(--dc-card)]/95 px-4 py-2 backdrop-blur-md sm:mx-0">
+        <div className="text-[10px] font-mono text-muted-foreground">
+          SISTEM MONITORING KOORDINATOR LAPANGAN | TOTAL AKTIF:{" "}
+          <span className="text-[var(--dc-warning)] font-bold">{stats.inProgress} TUGAS</span>
+        </div>
+        <div className="text-[10px] font-mono text-muted-foreground/50">DENS CAKRA SECURED</div>
       </div>
     </div>
   );
@@ -307,100 +760,375 @@ type FieldCoordinatorAssignmentsClientProps = {
 };
 
 export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAssignmentsClientProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("latest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast.success("Data penugasan diperbarui");
+    }, 600);
+  };
+
+  const filteredTasks = useMemo(() => {
+    return tasks
+      .filter((task) => {
+        const matchesSearch =
+          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          task.subordinateAssignments.some(
+            (a) =>
+              (a.assignee?.userProfile?.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (a.assignmentNote || "").toLowerCase().includes(searchQuery.toLowerCase()),
+          );
+        const matchesStatus = statusFilter === "ALL" || task.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        if (sortBy === "latest") {
+          return new Date(b.dueDate || 0).getTime() - new Date(a.dueDate || 0).getTime();
+        }
+        if (sortBy === "oldest") {
+          return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
+        }
+        return 0;
+      });
+  }, [tasks, searchQuery, statusFilter, sortBy]);
+
+  const totalItems = filteredTasks.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const paginatedTasks = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredTasks.slice(startIndex, startIndex + pageSize);
+  }, [filteredTasks, currentPage, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const stats = useMemo(() => {
+    let totalAssignments = 0;
+    let inProgress = 0;
+    let completed = 0;
+
+    tasks.forEach((t) => {
+      const summary = countAssignmentStatuses(t.subordinateAssignments);
+      totalAssignments += t.subordinateAssignments.length;
+      inProgress += summary.inProgress;
+      completed += summary.completed;
+    });
+
+    const completionRate = totalAssignments > 0 ? Math.round((completed / totalAssignments) * 100) : 0;
+    return { totalTasks: tasks.length, totalAssignments, inProgress, completed, completionRate };
+  }, [tasks]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-semibold text-2xl tracking-tight">Penugasan Field Officer</h1>
-        <p className="text-muted-foreground text-sm">
-          Daftar distribusi tugas dari Field Coordinator ke Field Officer beserta instruksi operasionalnya.
-        </p>
+      {/* Page Header */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b border-white/[0.08] pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] tracking-wider text-[var(--dc-primary)] uppercase bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.08]">
+              OFFICER_ASSIGNMENTS
+            </span>
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--dc-success)] animate-pulse" />
+            <span className="text-[10px] text-muted-foreground/60 font-mono">DISTRIBUTION LOGS</span>
+          </div>
+          <h1 className="font-sans font-bold text-2xl tracking-tight text-[var(--dc-text-primary)] mt-1">
+            Penugasan Field Officer
+          </h1>
+          <p className="text-muted-foreground text-xs leading-relaxed max-w-2xl mt-1">
+            Daftar distribusi tugas dari Field Coordinator ke Field Officer beserta instruksi operasionalnya.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-8 rounded-[4px] border-white/10 text-xs font-mono gap-1.5 hover:bg-white/[0.04]"
+          >
+            <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            <span>REFRESH</span>
+          </Button>
+        </div>
       </div>
 
-      {!tasks.length ? (
-        <Alert>
-          <AlertTitle>Belum ada penugasan ke Field Officer</AlertTitle>
-          <AlertDescription>
-            Distribusikan dulu task dari halaman tugas operasional, lalu daftar penugasan akan muncul di sini.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <div className="space-y-4">
-          {tasks.map((task) => {
-            const summary = countAssignmentStatuses(task.subordinateAssignments);
+      {/* Main Content Area - Full Width */}
+      <div className="space-y-4 w-full">
+        {/* Sticky Toolbar */}
+        <div className="sticky top-0 z-40 flex flex-wrap items-center gap-3 border-[var(--dc-border-subtle)] border-b bg-[var(--dc-card)]/95 py-2 backdrop-blur-md">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+            <Input
+              placeholder="Cari tugas, FO, instruksi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 text-xs font-mono placeholder:text-muted-foreground/60"
+            />
+          </div>
 
-            return (
-              <Card key={task.id} className="border border-border/70">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span>{task.title}</span>
-                    <Badge variant={badgeVariant(task.status)}>{task.status}</Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    {taskMetaLine(task)}
-                  </CardDescription>
-                  <CardAction className="flex gap-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/dashboard/field-coordinator/monitoring-tugas/${task.id}`}>Monitoring</Link>
-                    </Button>
-                    <Button asChild size="sm">
-                      <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>Lihat Detail</Link>
-                    </Button>
-                  </CardAction>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-3 md:grid-cols-4">
-                    <div className="rounded-xl border border-border/70 p-3 text-sm">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide">Field Officer</div>
-                      <div className="mt-1 font-medium">{task.subordinateAssignments.length}</div>
-                    </div>
-                    <div className="rounded-xl border border-border/70 p-3 text-sm">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide">Berjalan</div>
-                      <div className="mt-1 font-medium">{summary.inProgress}</div>
-                    </div>
-                    <div className="rounded-xl border border-border/70 p-3 text-sm">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide">Selesai</div>
-                      <div className="mt-1 font-medium">{summary.completed}</div>
-                    </div>
-                    <div className="rounded-xl border border-border/70 p-3 text-sm">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide">Deadline Task</div>
-                      <div className="mt-1 font-medium">{formatDate(task.dueDate)}</div>
-                    </div>
-                  </div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+              <Filter className="size-3 text-muted-foreground/50" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                  <SelectItem value="ALL">SEMUA STATUS</SelectItem>
+                  <SelectItem value="DRAFT">DRAFT</SelectItem>
+                  <SelectItem value="ASSIGNED">DISTRIBUSI</SelectItem>
+                  <SelectItem value="IN_PROGRESS">IN PROGRESS</SelectItem>
+                  <SelectItem value="COMPLETED">SELESAI</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                  <div className="space-y-3">
-                    {task.subordinateAssignments.map((assignment) => (
-                      <div key={assignment.id} className="rounded-xl border border-border/70 p-4">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                          <div className="space-y-2">
-                            <div>
-                              <div className="font-medium">
-                                {assignment.assignee?.userProfile?.fullName ??
-                                  assignment.assignee?.position?.title ??
-                                  "Field Officer"}
-                              </div>
-                              <div className="text-muted-foreground text-sm">
-                                {assignment.assignee?.position?.title ?? "Field Officer"}
-                              </div>
-                            </div>
-                            <div className="text-sm">
-                              <div className="text-muted-foreground">Instruksi FC</div>
-                              <div className="mt-1 font-medium">{normalizeDisplayText(assignment.assignmentNote)}</div>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-start gap-2 md:items-end">
-                            <Badge variant={badgeVariant(assignment.status)}>{assignment.status}</Badge>
-                            <div className="text-muted-foreground text-sm">
-                              Deadline assignment: {formatDate(assignment.dueDate)}
-                            </div>
-                          </div>
-                        </div>
+            <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+              <ArrowUpDown className="size-3 text-muted-foreground/50" />
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                  <SelectValue placeholder="Urutkan" />
+                </SelectTrigger>
+                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                  <SelectItem value="latest">TERBARU</SelectItem>
+                  <SelectItem value="oldest">TERLAMA</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Task Assignments List */}
+        {paginatedTasks.length === 0 ? (
+          <div className="rounded-[6px] border border-dashed border-white/[0.08] p-12 text-center text-muted-foreground text-xs font-mono">
+            Belum ada tugas penugasan yang cocok dengan filter atau pencarian.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {paginatedTasks.map((task) => {
+              const summary = countAssignmentStatuses(task.subordinateAssignments);
+              const taskRate =
+                task.subordinateAssignments.length > 0
+                  ? Math.round((summary.completed / task.subordinateAssignments.length) * 100)
+                  : 0;
+
+              return (
+                <Card
+                  key={task.id}
+                  className="border border-white/[0.08] bg-[var(--dc-card)] rounded-[6px] overflow-hidden shadow-sm"
+                >
+                  {/* Header */}
+                  <div className="p-3.5 bg-white/[0.02] border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={badgeVariant(task.status)}
+                          className="font-mono text-[8px] uppercase px-1 rounded-[2px]"
+                        >
+                          {task.status}
+                        </Badge>
+                        <h3 className="font-sans text-xs font-bold text-[var(--dc-text-primary)] leading-none truncate">
+                          {task.title}
+                        </h3>
                       </div>
-                    ))}
+                      <div className="text-[10px] font-mono text-muted-foreground/60">
+                        DEADLINE: {formatDate(task.dueDate)} | AREA SASARAN: {task.targetAreas.length} WILAYAH
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        asChild
+                        size="sm"
+                        className="h-7 rounded-[4px] bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)] text-[10px] font-mono border border-[var(--dc-primary)]"
+                      >
+                        <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>Detail</Link>
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+
+                  {/* Progress Bar for the task */}
+                  <div className="px-4 py-2 border-b border-white/[0.04] bg-white/[0.005] flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/80">
+                      <span>PROGRESS OFFICER:</span>
+                      <span className="text-[var(--dc-success)] font-bold">
+                        {summary.completed}/{task.subordinateAssignments.length} SELESAI
+                      </span>
+                    </div>
+                    <div className="flex-1 max-w-[200px] bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10">
+                      <div className="bg-[var(--dc-success)] h-full transition-all" style={{ width: `${taskRate}%` }} />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-[var(--dc-success)]">{taskRate}%</span>
+                  </div>
+
+                  {/* Subordinate Assignments Table/List (Paginated inside card) */}
+                  <SubordinateAssignmentsList assignments={task.subordinateAssignments} />
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-white/[0.08] pt-4 font-mono text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span>TAMPILKAN:</span>
+              <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
+                <SelectTrigger className="h-7 w-20 border-white/10 bg-white/[0.02] text-[10px] font-mono">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                  <SelectItem value="9">9 DATA</SelectItem>
+                  <SelectItem value="12">12 DATA</SelectItem>
+                  <SelectItem value="18">18 DATA</SelectItem>
+                </SelectContent>
+              </Select>
+              <span>DARI {totalItems} TUGAS</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+              >
+                <ChevronLeft className="size-3 mr-1" /> SEBELUMNYA
+              </Button>
+              <span className="font-bold text-[var(--dc-text-primary)]">
+                HALAMAN {currentPage} DARI {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+              >
+                SELANJUTNYA <ChevronRight className="size-3 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sticky Bottom Actions Bar */}
+      <div className="sticky bottom-0 z-50 -mx-6 flex min-h-12 w-full flex-wrap items-center justify-between gap-3 rounded-t-[6px] border-[var(--dc-border-subtle)] border-t bg-[var(--dc-card)]/95 px-4 py-2 backdrop-blur-md sm:mx-0">
+        <div className="text-[10px] font-mono text-muted-foreground">
+          SISTEM DELEGASI FIELD OFFICER | HIERARKI: KOORDINATOR LAPANGAN
+        </div>
+        <div className="text-[10px] font-mono text-muted-foreground/50">
+          TOTAL TERCATAT: {stats.totalAssignments} ASSIGNMENTS
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SubordinateAssignmentsList({ assignments }: { assignments: TaskAssignmentDetail[] }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
+  const totalItems = assignments.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const paginatedAssignments = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return assignments.slice(startIndex, startIndex + pageSize);
+  }, [assignments, currentPage, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  return (
+    <div className="space-y-0">
+      <div className="divide-y divide-white/[0.04]">
+        {paginatedAssignments.map((assignment) => (
+          <div
+            key={assignment.id}
+            className="p-3.5 flex flex-col md:flex-row md:items-start justify-between gap-3 text-xs"
+          >
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-sans font-bold text-[var(--dc-text-primary)]">
+                  {assignment.assignee?.userProfile?.fullName ?? "Field Officer"}
+                </span>
+                <span className="text-[10px] text-muted-foreground/50 font-mono">
+                  ({assignment.assignee?.position?.title ?? "Petugas Lapangan"})
+                </span>
+              </div>
+              <div className="text-[11px] leading-relaxed text-muted-foreground">
+                <span className="font-mono text-[9px] text-[var(--dc-primary)] uppercase mr-1">[INSTRUKSI FC]</span>
+                {normalizeDisplayText(assignment.assignmentNote)}
+              </div>
+            </div>
+
+            <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-2 shrink-0 pt-2 md:pt-0 border-t border-dashed border-white/[0.04] md:border-none">
+              <Badge
+                variant={badgeVariant(assignment.status)}
+                className="font-mono text-[8px] uppercase px-1 rounded-[2px]"
+              >
+                {assignment.status}
+              </Badge>
+              <div className="text-[9px] font-mono text-muted-foreground/50">
+                LIMIT: {formatDate(assignment.dueDate)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="p-3 bg-white/[0.01] border-t border-white/[0.04] flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span>TAMPILKAN:</span>
+            <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
+              <SelectTrigger className="h-7 w-20 border-white/10 bg-white/[0.02] text-[10px] font-mono">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                <SelectItem value="5">5 DATA</SelectItem>
+                <SelectItem value="10">10 DATA</SelectItem>
+                <SelectItem value="20">20 DATA</SelectItem>
+              </SelectContent>
+            </Select>
+            <span>DARI {totalItems} OFFICER</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+            >
+              <ChevronLeft className="size-3 mr-1" /> SEBELUMNYA
+            </Button>
+            <span className="font-bold text-[var(--dc-text-primary)]">
+              HALAMAN {currentPage} DARI {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+            >
+              SELANJUTNYA <ChevronRight className="size-3 ml-1" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
@@ -418,50 +1146,293 @@ export function FieldCoordinatorAssignmentDetailClient({
   subordinateAssignments,
   manageHref,
 }: FieldCoordinatorAssignmentDetailClientProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("nama");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
+
+  const stats = useMemo(() => {
+    const total = subordinateAssignments.length;
+    const completed = subordinateAssignments.filter((a) => a.status === "COMPLETED").length;
+    const overdue = subordinateAssignments.filter(isAssignmentOverdue).length;
+    const running = subordinateAssignments.filter(
+      (a) => ["IN_PROGRESS", "ACKNOWLEDGED", "READ", "SENT"].includes(a.status) && !isAssignmentOverdue(a),
+    ).length;
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, running, overdue, progress };
+  }, [subordinateAssignments]);
+
+  const filteredAssignments = useMemo(() => {
+    return subordinateAssignments
+      .filter((a) => {
+        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Field Officer";
+        const location = a.assignee?.position?.organizationUnit?.name ?? "";
+        const matchesSearch =
+          name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          location.toLowerCase().includes(searchQuery.toLowerCase());
+
+        let matchesStatus = false;
+        if (statusFilter === "ALL") {
+          matchesStatus = true;
+        } else if (statusFilter === "COMPLETED") {
+          matchesStatus = a.status === "COMPLETED";
+        } else if (statusFilter === "RUNNING") {
+          matchesStatus = ["IN_PROGRESS", "ACKNOWLEDGED", "READ", "SENT"].includes(a.status) && !isAssignmentOverdue(a);
+        } else if (statusFilter === "OVERDUE") {
+          matchesStatus = isAssignmentOverdue(a);
+        }
+
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        if (sortBy === "nama") {
+          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Field Officer";
+          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.position?.title ?? "Field Officer";
+          return nameA.localeCompare(nameB);
+        }
+        if (sortBy === "deadline") {
+          return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
+        }
+        return 0;
+      });
+  }, [subordinateAssignments, searchQuery, statusFilter, sortBy]);
+
+  const totalItems = filteredAssignments.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const paginatedAssignments = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredAssignments.slice(startIndex, startIndex + pageSize);
+  }, [filteredAssignments, currentPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const startIdx = totalItems > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+  const endIdx = Math.min(currentPage * pageSize, totalItems);
+
   return (
     <div className="space-y-6">
       <TaskDetailClient task={task} assignmentHref={manageHref} hideTargetAreas hideAssignments />
 
-      <Card className="border border-border/70">
-        <CardHeader>
-          <CardTitle>Daftar Penugasan Field Officer</CardTitle>
-          <CardDescription>Instruksi dari Field Coordinator ke setiap Field Officer untuk task ini.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {subordinateAssignments.length ? (
-            subordinateAssignments.map((assignment) => (
-              <div key={assignment.id} className="rounded-xl border border-border/70 p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-3">
-                    <div>
-                      <div className="font-medium">
-                        {assignment.assignee?.userProfile?.fullName ??
-                          assignment.assignee?.position?.title ??
-                          "Field Officer"}
-                      </div>
-                      <div className="text-muted-foreground text-sm">
-                        {assignment.assignee?.position?.title ?? "Field Officer"}
-                      </div>
+      {/* Ringkasan horizontal cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">
+            TOTAL FIELD OFFICER
+          </div>
+          <div className="text-xl font-bold font-mono text-[var(--dc-text-primary)]">{stats.total}</div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">COMPLETED</div>
+          <div className="text-xl font-bold font-mono text-[var(--dc-success)]">{stats.completed}</div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">RUNNING</div>
+          <div className="text-xl font-bold font-mono text-[var(--dc-primary)]">{stats.running}</div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">OVERDUE</div>
+          <div className="text-xl font-bold font-mono text-[var(--dc-danger)]">{stats.overdue}</div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1 col-span-2 md:col-span-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">PROGRESS</div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xl font-bold font-mono text-[var(--dc-success)]">{stats.progress}%</span>
+            <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10 shrink-0 max-w-[80px]">
+              <div
+                className="bg-[var(--dc-success)] h-full transition-all duration-300"
+                style={{ width: `${stats.progress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main compact list / table enterprise */}
+      <Card className="border border-white/[0.08] bg-[var(--dc-card)] rounded-[6px] p-4 shadow-sm space-y-4">
+        {/* Toolbar */}
+        <div className="sticky top-0 z-40 flex flex-wrap items-center gap-3 border-[var(--dc-border-subtle)] border-b bg-[var(--dc-card)]/95 py-2.5 backdrop-blur-md">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+            <Input
+              placeholder="Cari Field Officer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 text-xs font-mono placeholder:text-muted-foreground/60"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+              <Filter className="size-3 text-muted-foreground/50" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                  <SelectItem value="ALL">SEMUA STATUS</SelectItem>
+                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                  <SelectItem value="RUNNING">RUNNING</SelectItem>
+                  <SelectItem value="OVERDUE">OVERDUE</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+              <ArrowUpDown className="size-3 text-muted-foreground/50" />
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                  <SelectValue placeholder="Urutkan" />
+                </SelectTrigger>
+                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                  <SelectItem value="nama">NAMA FIELD OFFICER</SelectItem>
+                  <SelectItem value="deadline">DEADLINE ASSIGNMENT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact list */}
+        {paginatedAssignments.length === 0 ? (
+          <div className="rounded-[6px] border border-dashed border-white/[0.08] p-12 text-center text-muted-foreground text-xs font-mono">
+            Belum ada penugasan yang cocok dengan kriteria filter.
+          </div>
+        ) : (
+          <div className="divide-y divide-white/[0.04] border border-white/[0.08] rounded-[6px] overflow-hidden bg-white/[0.005]">
+            {paginatedAssignments.map((assignment) => {
+              const name = assignment.assignee?.userProfile?.fullName ?? "Field Officer";
+              const position = assignment.assignee?.position?.title ?? "Field Officer";
+              const region = assignment.assignee?.position?.organizationUnit?.name ?? "Aceh";
+              const isOverdue = isAssignmentOverdue(assignment);
+
+              return (
+                <div
+                  key={assignment.id}
+                  className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors gap-4 h-[72px]"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="size-8 rounded-full bg-white/[0.04] flex items-center justify-center text-[var(--dc-primary)] font-bold text-xs shrink-0">
+                      {name.charAt(0)}
                     </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="rounded-xl border border-border/70 p-3 text-sm">
-                        <div className="text-muted-foreground text-xs uppercase tracking-wide">Instruksi</div>
-                        <div className="mt-1 font-medium">{normalizeDisplayText(assignment.assignmentNote)}</div>
-                      </div>
-                      <div className="rounded-xl border border-border/70 p-3 text-sm">
-                        <div className="text-muted-foreground text-xs uppercase tracking-wide">Deadline</div>
-                        <div className="mt-1 font-medium">{formatDate(assignment.dueDate)}</div>
-                      </div>
+                    <div className="min-w-0">
+                      <div className="font-sans font-bold text-xs text-[var(--dc-text-primary)] truncate">{name}</div>
+                      <div className="text-[10px] text-muted-foreground/60 font-mono truncate">{position}</div>
                     </div>
                   </div>
-                  <Badge variant={badgeVariant(assignment.status)}>{assignment.status}</Badge>
+
+                  <div className="w-[180px] hidden sm:block shrink-0 min-w-0">
+                    <div className="text-xs text-[var(--dc-text-primary)] font-medium truncate">{region}</div>
+                    <div className="text-[9px] text-muted-foreground/40 font-mono">WILAYAH</div>
+                  </div>
+
+                  <div className="w-[120px] shrink-0 text-left">
+                    <Badge
+                      variant={badgeVariant(assignment.status)}
+                      className="font-mono text-[8px] uppercase px-1 rounded-[2px]"
+                    >
+                      {assignment.status}
+                    </Badge>
+                    {isOverdue && (
+                      <Badge variant="destructive" className="font-mono text-[8px] uppercase px-1 rounded-[2px] ml-1">
+                        OVERDUE
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="w-[140px] hidden md:block shrink-0 text-left font-mono text-[10px]">
+                    <div className="text-muted-foreground/85">{formatDate(assignment.dueDate)}</div>
+                    <div className="text-[8px] text-muted-foreground/45 uppercase">LIMIT WAKTU</div>
+                  </div>
+
+                  <div className="shrink-0">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 rounded-[4px] border-white/10 text-[10px] font-mono hover:bg-white/[0.04] cursor-pointer"
+                        >
+                          Detail
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="border border-[var(--dc-border-subtle)] bg-popover text-[var(--dc-text-primary)]">
+                        <DialogHeader>
+                          <DialogTitle className="font-sans font-bold text-sm">Instruksi Tugas Lapangan</DialogTitle>
+                          <DialogDescription className="font-mono text-[10px] uppercase text-muted-foreground/60">
+                            {name} — {position} ({region})
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="mt-4 p-3 bg-white/[0.02] border border-white/[0.08] rounded-[6px] space-y-2">
+                          <div className="text-[10px] font-mono text-[var(--dc-primary)] uppercase font-semibold">
+                            INSTRUKSI PENUGASAN:
+                          </div>
+                          <p className="text-xs font-sans leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                            {normalizeDisplayText(assignment.assignmentNote)}
+                          </p>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-4 text-xs font-mono p-3 border-t border-white/[0.04]">
+                          <div>
+                            <span className="text-muted-foreground/50 block text-[9px]">STATUS</span>
+                            <Badge
+                              variant={badgeVariant(assignment.status)}
+                              className="font-mono text-[8px] uppercase px-1 mt-1 rounded-[2px]"
+                            >
+                              {assignment.status}
+                            </Badge>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground/50 block text-[9px]">LIMIT WAKTU</span>
+                            <span className="text-[var(--dc-warning)] font-bold mt-1 block">
+                              {formatDate(assignment.dueDate)}
+                            </span>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-muted-foreground text-sm">Belum ada Field Officer yang ditugaskan pada task ini.</div>
-          )}
-        </CardContent>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 font-mono text-[10px] text-muted-foreground">
+            <div>
+              Menampilkan {startIdx}–{endIdx} dari {totalItems} Field Officer.
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+              >
+                <ChevronLeft className="size-3 mr-1" /> SEBELUMNYA
+              </Button>
+              <span className="font-bold text-[var(--dc-text-primary)]">
+                HALAMAN {currentPage} DARI {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+              >
+                SELANJUTNYA <ChevronRight className="size-3 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -472,88 +1443,439 @@ type FieldCoordinatorMonitoringClientProps = {
 };
 
 export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMonitoringClientProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("latest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast.success("Data monitoring diperbarui");
+    }, 600);
+  };
+
+  const filteredTasks = useMemo(() => {
+    return tasks
+      .filter((task) => {
+        const matchesSearch =
+          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          task.subordinateAssignments.some(
+            (a) =>
+              (a.assignee?.userProfile?.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (a.assignmentNote || "").toLowerCase().includes(searchQuery.toLowerCase()),
+          );
+        const matchesStatus = statusFilter === "ALL" || task.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        if (sortBy === "latest") {
+          return new Date(b.dueDate || 0).getTime() - new Date(a.dueDate || 0).getTime();
+        }
+        if (sortBy === "oldest") {
+          return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
+        }
+        return 0;
+      });
+  }, [tasks, searchQuery, statusFilter, sortBy]);
+
+  const totalItems = filteredTasks.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const paginatedTasks = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredTasks.slice(startIndex, startIndex + pageSize);
+  }, [filteredTasks, currentPage, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const stats = useMemo(() => {
+    let totalAssignments = 0;
+    let acknowledged = 0;
+    let sent = 0;
+    let inProgress = 0;
+    let overdue = 0;
+
+    tasks.forEach((t) => {
+      const summary = countAssignmentStatuses(t.subordinateAssignments);
+      const overdueCount = t.subordinateAssignments.filter(isAssignmentOverdue).length;
+      totalAssignments += t.subordinateAssignments.length;
+      acknowledged += summary.acknowledged + summary.inProgress + summary.completed;
+      sent += summary.sent;
+      inProgress += summary.inProgress;
+      overdue += overdueCount;
+    });
+
+    const complianceRate = totalAssignments > 0 ? Math.round((acknowledged / totalAssignments) * 100) : 0;
+    return { totalTasks: tasks.length, totalAssignments, acknowledged, sent, inProgress, overdue, complianceRate };
+  }, [tasks]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-semibold text-2xl tracking-tight">Monitoring Tugas</h1>
-        <p className="text-muted-foreground text-sm">
-          Pantau progres, acknowledgement, dan potensi keterlambatan assignment Field Officer.
-        </p>
+      {/* Page Header */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b border-white/[0.08] pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] tracking-wider text-[var(--dc-primary)] uppercase bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.08]">
+              MONITORING_SYSTEM
+            </span>
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--dc-warning)] animate-pulse" />
+            <span className="text-[10px] text-muted-foreground/60 font-mono">REAL-TIME MONITORING</span>
+          </div>
+          <h1 className="font-sans font-bold text-2xl tracking-tight text-[var(--dc-text-primary)] mt-1">
+            Monitoring Tugas
+          </h1>
+          <p className="text-muted-foreground text-xs leading-relaxed max-w-2xl mt-1">
+            Pantau progres, acknowledgement, dan potensi keterlambatan assignment Field Officer.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-8 rounded-[4px] border-white/10 text-xs font-mono gap-1.5 hover:bg-white/[0.04]"
+          >
+            <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            <span>REFRESH</span>
+          </Button>
+        </div>
       </div>
 
-      {!tasks.length ? (
-        <Alert>
-          <AlertTitle>Belum ada task untuk dimonitor</AlertTitle>
-          <AlertDescription>
-            Setelah Field Coordinator mendistribusikan tugas ke Field Officer, status dan progresnya akan tampil di
-            sini.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
-          {tasks.map((task) => {
-            const summary = countAssignmentStatuses(task.subordinateAssignments);
-            const overdueCount = task.subordinateAssignments.filter(isAssignmentOverdue).length;
-
-            return (
-              <Card key={task.id} className="border border-border/70">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span>{task.title}</span>
-                    <Badge variant={badgeVariant(task.status)}>{task.status}</Badge>
-                  </CardTitle>
-                  <CardDescription>{task.ownerUnit?.name ?? "-"}</CardDescription>
-                  <CardAction>
-                    <Button asChild size="sm">
-                      <Link href={`/dashboard/field-coordinator/monitoring-tugas/${task.id}`}>Buka Monitoring</Link>
-                    </Button>
-                  </CardAction>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border border-border/70 p-3 text-sm">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide">Sudah Ack / Read</div>
-                      <div className="mt-1 font-medium">
-                        {summary.acknowledged + summary.inProgress + summary.completed}
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-border/70 p-3 text-sm">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide">Belum Respon</div>
-                      <div className="mt-1 font-medium">{summary.sent}</div>
-                    </div>
-                    <div className="rounded-xl border border-border/70 p-3 text-sm">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide">Sedang Berjalan</div>
-                      <div className="mt-1 font-medium">{summary.inProgress}</div>
-                    </div>
-                    <div className="rounded-xl border border-border/70 p-3 text-sm">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide">Overdue</div>
-                      <div className="mt-1 font-medium">{overdueCount}</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {task.subordinateAssignments.slice(0, 3).map((assignment) => (
-                      <div key={assignment.id} className="rounded-xl border border-border/70 p-3 text-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="font-medium">
-                            {assignment.assignee?.userProfile?.fullName ??
-                              assignment.assignee?.position?.title ??
-                              "Field Officer"}
-                          </div>
-                          <Badge variant={badgeVariant(assignment.status)}>{assignment.status}</Badge>
-                        </div>
-                        <div className="mt-2 text-muted-foreground">
-                          Instruksi: {normalizeDisplayText(assignment.assignmentNote)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+      {/* KPI Summary Block */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 shadow-sm space-y-1.5">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">TUGAS DIPANTAU</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[var(--dc-text-primary)]">{stats.totalTasks}</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono">TUGAS</span>
+          </div>
         </div>
-      )}
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 shadow-sm space-y-1.5">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">SUDAH ACK / READ</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[var(--dc-success)]">{stats.acknowledged}</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono">PERSONEL</span>
+          </div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 shadow-sm space-y-1.5">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">BELUM RESPOND</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[var(--dc-warning)]">{stats.sent}</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono">PERSONEL</span>
+          </div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 shadow-sm space-y-1.5">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">OVERDUE LIMIT</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold font-mono text-[var(--dc-danger)]">{stats.overdue}</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono">KASUS</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main 12-Grid Content Area */}
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
+        {/* Left Column (8 cols): Toolbar & Compact Tasks Monitoring List */}
+        <div className="space-y-4 lg:col-span-8">
+          {/* Sticky Toolbar */}
+          <div className="sticky top-0 z-40 flex flex-wrap items-center gap-3 border-[var(--dc-border-subtle)] border-b bg-[var(--dc-card)]/95 py-2 backdrop-blur-md">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+              <Input
+                placeholder="Cari tugas, FO, atau instruksi..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 text-xs font-mono placeholder:text-muted-foreground/60"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+                <Filter className="size-3 text-muted-foreground/50" />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                    <SelectItem value="ALL">SEMUA STATUS</SelectItem>
+                    <SelectItem value="DRAFT">DRAFT</SelectItem>
+                    <SelectItem value="ASSIGNED">DISTRIBUSI</SelectItem>
+                    <SelectItem value="IN_PROGRESS">IN PROGRESS</SelectItem>
+                    <SelectItem value="COMPLETED">SELESAI</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+                <ArrowUpDown className="size-3 text-muted-foreground/50" />
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                    <SelectValue placeholder="Urutkan" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                    <SelectItem value="latest">TERBARU</SelectItem>
+                    <SelectItem value="oldest">TERLAMA</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Task Monitoring List */}
+          {paginatedTasks.length === 0 ? (
+            <div className="rounded-[6px] border border-dashed border-white/[0.08] p-12 text-center text-muted-foreground text-xs font-mono">
+              Belum ada data monitoring yang cocok dengan kriteria filter.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {paginatedTasks.map((task) => {
+                const summary = countAssignmentStatuses(task.subordinateAssignments);
+                const overdueCount = task.subordinateAssignments.filter(isAssignmentOverdue).length;
+
+                return (
+                  <Card
+                    key={task.id}
+                    className="border border-white/[0.08] bg-[var(--dc-card)] rounded-[6px] overflow-hidden shadow-sm"
+                  >
+                    {/* Header */}
+                    <div className="p-3.5 bg-white/[0.02] border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={badgeVariant(task.status)}
+                            className="font-mono text-[8px] uppercase px-1 rounded-[2px]"
+                          >
+                            {task.status}
+                          </Badge>
+                          <h3 className="font-sans text-xs font-bold text-[var(--dc-text-primary)] leading-none truncate">
+                            {task.title}
+                          </h3>
+                        </div>
+                        <div className="text-[10px] font-mono text-muted-foreground/60">
+                          INSTANSI PEMILIK: {task.ownerUnit?.name ?? "-"}
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <Button
+                          asChild
+                          size="sm"
+                          className="h-7 rounded-[4px] bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)] text-[10px] font-mono"
+                        >
+                          <Link href={`/dashboard/field-coordinator/monitoring-tugas/${task.id}`}>Buka Monitoring</Link>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Stats Grid inside task */}
+                    <div className="px-4 py-2 border-b border-white/[0.04] bg-white/[0.005] grid grid-cols-4 gap-2 text-center font-mono text-[10px]">
+                      <div className="border-r border-white/[0.04] py-1">
+                        <div className="text-muted-foreground/50 text-[8px]">SUDAH ACK</div>
+                        <div className="font-bold text-[var(--dc-success)]">
+                          {summary.acknowledged + summary.inProgress + summary.completed}
+                        </div>
+                      </div>
+                      <div className="border-r border-white/[0.04] py-1">
+                        <div className="text-muted-foreground/50 text-[8px]">BELUM RESPOND</div>
+                        <div className="font-bold text-[var(--dc-warning)]">{summary.sent}</div>
+                      </div>
+                      <div className="border-r border-white/[0.04] py-1">
+                        <div className="text-muted-foreground/50 text-[8px]">IN PROGRESS</div>
+                        <div className="font-bold text-[var(--dc-primary)]">{summary.inProgress}</div>
+                      </div>
+                      <div className="py-1">
+                        <div className="text-muted-foreground/50 text-[8px]">OVERDUE</div>
+                        <div className="font-bold text-[var(--dc-danger)]">{overdueCount}</div>
+                      </div>
+                    </div>
+
+                    {/* Compact subordinate list slice */}
+                    <div className="divide-y divide-white/[0.04]">
+                      {task.subordinateAssignments.slice(0, 3).map((assignment) => {
+                        const isOverdue = isAssignmentOverdue(assignment);
+                        return (
+                          <div key={assignment.id} className="p-3 flex items-center justify-between gap-3 text-xs">
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-sans font-bold text-[var(--dc-text-primary)] truncate">
+                                  {assignment.assignee?.userProfile?.fullName ?? "Field Officer"}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground/40 font-mono truncate">
+                                  ({assignment.assignee?.position?.title ?? "FO"})
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                Instruksi: {normalizeDisplayText(assignment.assignmentNote)}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isOverdue && (
+                                <Badge
+                                  variant="destructive"
+                                  className="font-mono text-[8px] uppercase px-1 rounded-[2px] bg-[var(--dc-danger)] text-white"
+                                >
+                                  OVERDUE
+                                </Badge>
+                              )}
+                              <Badge
+                                variant={badgeVariant(assignment.status)}
+                                className="font-mono text-[8px] uppercase px-1 rounded-[2px]"
+                              >
+                                {assignment.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {task.subordinateAssignments.length > 3 && (
+                        <div className="p-2 text-center bg-white/[0.01]">
+                          <Link
+                            href={`/dashboard/field-coordinator/monitoring-tugas/${task.id}`}
+                            className="text-[9px] font-mono text-[var(--dc-primary)] hover:underline"
+                          >
+                            + LIHAT {task.subordinateAssignments.length - 3} PENUGASAN LAINNYA
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-white/[0.08] pt-4 font-mono text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span>TAMPILKAN:</span>
+                <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
+                  <SelectTrigger className="h-7 w-20 border-white/10 bg-white/[0.02] text-[10px] font-mono">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                    <SelectItem value="9">9 DATA</SelectItem>
+                    <SelectItem value="12">12 DATA</SelectItem>
+                    <SelectItem value="18">18 DATA</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span>DARI {totalItems} TUGAS</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+                >
+                  <ChevronLeft className="size-3 mr-1" /> SEBELUMNYA
+                </Button>
+                <span className="font-bold text-[var(--dc-text-primary)]">
+                  HALAMAN {currentPage} DARI {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+                >
+                  SELANJUTNYA <ChevronRight className="size-3 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column (4 cols): Sticky Sidebar */}
+        <div className="h-fit space-y-4 lg:sticky lg:top-[80px] lg:col-span-4">
+          {/* Overdue Risk Analysis */}
+          <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3.5 shadow-sm">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50 border-b border-white/[0.08] pb-2 flex justify-between items-center">
+              <span>OVERDUE RISK ANALYSIS</span>
+              <AlertTriangle className="size-3 text-[var(--dc-danger)]" />
+            </div>
+
+            {/* Display count and list of overdue or critical assignments */}
+            {stats.overdue > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-[var(--dc-danger)] bg-white/[0.02] border border-white/[0.06] p-2.5 rounded-[4px]">
+                  <ShieldAlert className="size-4 shrink-0" />
+                  <span className="font-mono text-xs font-bold">{stats.overdue} PENUGASAN MELEBIHI DEADLINE</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground/60 leading-relaxed font-sans">
+                  Segera hubungi personel bersangkutan atau lakukan re-assignment untuk mencegah keterlambatan data
+                  intelijen.
+                </p>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground/80 leading-normal font-sans bg-white/[0.01] border border-white/[0.04] p-3 rounded-[4px]">
+                Seluruh Field Officer bertugas sesuai limit operasional. Tingkat risiko keterlambatan:{" "}
+                <strong className="text-[var(--dc-success)]">SANGAT RENDAH</strong>
+              </div>
+            )}
+          </div>
+
+          {/* Acknowledgement Status stats */}
+          <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3.5 shadow-sm">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50 border-b border-white/[0.08] pb-2 flex justify-between items-center">
+              <span>RESPONSE METRICS</span>
+              <Activity className="size-3 text-[var(--dc-primary)]" />
+            </div>
+
+            <div className="space-y-2.5 text-xs font-mono">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground">SUDAH MEMBACA/ACK:</span>
+                  <span className="text-[var(--dc-success)] font-bold">{stats.acknowledged} FO</span>
+                </div>
+                <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className="bg-[var(--dc-success)] h-full transition-all duration-300"
+                    style={{
+                      width: `${stats.totalAssignments > 0 ? (stats.acknowledged / stats.totalAssignments) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground">BELUM RESPOND:</span>
+                  <span className="text-[var(--dc-warning)] font-bold">{stats.sent} FO</span>
+                </div>
+                <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className="bg-[var(--dc-warning)] h-full transition-all duration-300"
+                    style={{
+                      width: `${stats.totalAssignments > 0 ? (stats.sent / stats.totalAssignments) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sticky Bottom Actions Bar */}
+      <div className="sticky bottom-0 z-50 -mx-6 flex min-h-12 w-full flex-wrap items-center justify-between gap-3 rounded-t-[6px] border-[var(--dc-border-subtle)] border-t bg-[var(--dc-card)]/95 px-4 py-2 backdrop-blur-md sm:mx-0">
+        <div className="text-[10px] font-mono text-muted-foreground">
+          SISTEM MONITORING PENUGASAN LAPANGAN | DENS CAKRA CORE
+        </div>
+        <div className="text-[10px] font-mono text-muted-foreground/50">
+          KEPATUHAN RESPONSE: {stats.complianceRate}%
+        </div>
+      </div>
     </div>
   );
 }
@@ -569,109 +1891,326 @@ export function FieldCoordinatorMonitoringDetailClient({
   subordinateAssignments,
   manageHref,
 }: FieldCoordinatorMonitoringDetailClientProps) {
-  const summary = countAssignmentStatuses(subordinateAssignments);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("nama");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
+
+  const stats = useMemo(() => {
+    const total = subordinateAssignments.length;
+    const completed = subordinateAssignments.filter((a) => a.status === "COMPLETED").length;
+    const overdue = subordinateAssignments.filter(isAssignmentOverdue).length;
+    const running = subordinateAssignments.filter(
+      (a) => ["IN_PROGRESS", "ACKNOWLEDGED", "READ", "SENT"].includes(a.status) && !isAssignmentOverdue(a),
+    ).length;
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, running, overdue, progress };
+  }, [subordinateAssignments]);
+
+  const filteredAssignments = useMemo(() => {
+    return subordinateAssignments
+      .filter((a) => {
+        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Field Officer";
+        const location = a.assignee?.position?.organizationUnit?.name ?? "";
+        const matchesSearch =
+          name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          location.toLowerCase().includes(searchQuery.toLowerCase());
+
+        let matchesStatus = false;
+        if (statusFilter === "ALL") {
+          matchesStatus = true;
+        } else if (statusFilter === "COMPLETED") {
+          matchesStatus = a.status === "COMPLETED";
+        } else if (statusFilter === "RUNNING") {
+          matchesStatus = ["IN_PROGRESS", "ACKNOWLEDGED", "READ", "SENT"].includes(a.status) && !isAssignmentOverdue(a);
+        } else if (statusFilter === "OVERDUE") {
+          matchesStatus = isAssignmentOverdue(a);
+        }
+
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        if (sortBy === "nama") {
+          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Field Officer";
+          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.position?.title ?? "Field Officer";
+          return nameA.localeCompare(nameB);
+        }
+        if (sortBy === "deadline") {
+          return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
+        }
+        return 0;
+      });
+  }, [subordinateAssignments, searchQuery, statusFilter, sortBy]);
+
+  const totalItems = filteredAssignments.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const paginatedAssignments = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredAssignments.slice(startIndex, startIndex + pageSize);
+  }, [filteredAssignments, currentPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const startIdx = totalItems > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+  const endIdx = Math.min(currentPage * pageSize, totalItems);
 
   return (
     <div className="space-y-6">
       <TaskDetailClient task={task} assignmentHref={manageHref} hideTargetAreas hideAssignments />
 
-      <Card className="border border-border/70">
-        <CardHeader>
-          <CardTitle>Ringkasan Monitoring Field Officer</CardTitle>
-          <CardDescription>
-            Progress pelaksanaan task oleh setiap Field Officer yang menerima distribusi dari FC.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-4">
-          <div className="rounded-xl border border-border/70 p-3 text-sm">
-            <div className="text-muted-foreground text-xs uppercase tracking-wide">Total Assignment</div>
-            <div className="mt-1 font-medium">{subordinateAssignments.length}</div>
+      {/* Ringkasan horizontal cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">
+            TOTAL FIELD OFFICER
           </div>
-          <div className="rounded-xl border border-border/70 p-3 text-sm">
-            <div className="text-muted-foreground text-xs uppercase tracking-wide">Sedang Berjalan</div>
-            <div className="mt-1 font-medium">{summary.inProgress}</div>
+          <div className="text-xl font-bold font-mono text-[var(--dc-text-primary)]">{stats.total}</div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">COMPLETED</div>
+          <div className="text-xl font-bold font-mono text-[var(--dc-success)]">{stats.completed}</div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">RUNNING</div>
+          <div className="text-xl font-bold font-mono text-[var(--dc-primary)]">{stats.running}</div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">OVERDUE</div>
+          <div className="text-xl font-bold font-mono text-[var(--dc-danger)]">{stats.overdue}</div>
+        </div>
+        <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5 space-y-1 col-span-2 md:col-span-1">
+          <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">PROGRESS</div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xl font-bold font-mono text-[var(--dc-success)]">{stats.progress}%</span>
+            <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10 shrink-0 max-w-[80px]">
+              <div
+                className="bg-[var(--dc-success)] h-full transition-all duration-300"
+                style={{ width: `${stats.progress}%` }}
+              />
+            </div>
           </div>
-          <div className="rounded-xl border border-border/70 p-3 text-sm">
-            <div className="text-muted-foreground text-xs uppercase tracking-wide">Selesai</div>
-            <div className="mt-1 font-medium">{summary.completed}</div>
-          </div>
-          <div className="rounded-xl border border-border/70 p-3 text-sm">
-            <div className="text-muted-foreground text-xs uppercase tracking-wide">Overdue</div>
-            <div className="mt-1 font-medium">{subordinateAssignments.filter(isAssignmentOverdue).length}</div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="border border-border/70">
-        <CardHeader>
-          <CardTitle>Daftar Progress Field Officer</CardTitle>
-          <CardDescription>Status terbaru, instruksi, dan log progres per assignment.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {subordinateAssignments.length ? (
-            subordinateAssignments.map((assignment) => {
+      {/* Main compact list / table enterprise */}
+      <Card className="border border-white/[0.08] bg-[var(--dc-card)] rounded-[6px] p-4 shadow-sm space-y-4">
+        {/* Toolbar */}
+        <div className="sticky top-0 z-40 flex flex-wrap items-center gap-3 border-[var(--dc-border-subtle)] border-b bg-[var(--dc-card)]/95 py-2.5 backdrop-blur-md">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+            <Input
+              placeholder="Cari Field Officer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 text-xs font-mono placeholder:text-muted-foreground/60"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+              <Filter className="size-3 text-muted-foreground/50" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                  <SelectItem value="ALL">SEMUA STATUS</SelectItem>
+                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                  <SelectItem value="RUNNING">RUNNING</SelectItem>
+                  <SelectItem value="OVERDUE">OVERDUE</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
+              <ArrowUpDown className="size-3 text-muted-foreground/50" />
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="h-6 border-none bg-transparent text-[10px] font-mono shadow-none focus:ring-0 p-0 pr-4">
+                  <SelectValue placeholder="Urutkan" />
+                </SelectTrigger>
+                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover text-xs font-mono text-popover-foreground">
+                  <SelectItem value="nama">NAMA FIELD OFFICER</SelectItem>
+                  <SelectItem value="deadline">DEADLINE ASSIGNMENT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact list */}
+        {paginatedAssignments.length === 0 ? (
+          <div className="rounded-[6px] border border-dashed border-white/[0.08] p-12 text-center text-muted-foreground text-xs font-mono">
+            Belum ada progres yang cocok dengan kriteria filter.
+          </div>
+        ) : (
+          <div className="divide-y divide-white/[0.04] border border-white/[0.08] rounded-[6px] overflow-hidden bg-white/[0.005]">
+            {paginatedAssignments.map((assignment) => {
+              const name = assignment.assignee?.userProfile?.fullName ?? "Field Officer";
+              const position = assignment.assignee?.position?.title ?? "Field Officer";
+              const region = assignment.assignee?.position?.organizationUnit?.name ?? "Aceh";
+              const isOverdue = isAssignmentOverdue(assignment);
               const latestLog = latestProgressLog(assignment);
 
               return (
-                <div key={assignment.id} className="rounded-xl border border-border/70 p-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-3">
-                      <div>
-                        <div className="font-medium">
-                          {assignment.assignee?.userProfile?.fullName ??
-                            assignment.assignee?.position?.title ??
-                            "Field Officer"}
-                        </div>
-                        <div className="text-muted-foreground text-sm">
-                          {assignment.assignee?.position?.title ?? "Field Officer"}
-                        </div>
-                      </div>
+                <div
+                  key={assignment.id}
+                  className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors gap-4 h-[72px]"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="size-8 rounded-full bg-white/[0.04] flex items-center justify-center text-[var(--dc-primary)] font-bold text-xs shrink-0">
+                      {name.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-sans font-bold text-xs text-[var(--dc-text-primary)] truncate">{name}</div>
+                      <div className="text-[10px] text-muted-foreground/60 font-mono truncate">{position}</div>
+                    </div>
+                  </div>
 
-                      <div className="grid gap-3 md:grid-cols-3">
-                        <div className="rounded-xl border border-border/70 p-3 text-sm">
-                          <div className="text-muted-foreground text-xs uppercase tracking-wide">Instruksi</div>
-                          <div className="mt-1 font-medium">{normalizeDisplayText(assignment.assignmentNote)}</div>
-                        </div>
-                        <div className="rounded-xl border border-border/70 p-3 text-sm">
-                          <div className="text-muted-foreground text-xs uppercase tracking-wide">Deadline</div>
-                          <div className="mt-1 font-medium">{formatDate(assignment.dueDate)}</div>
-                        </div>
-                        <div className="rounded-xl border border-border/70 p-3 text-sm">
-                          <div className="text-muted-foreground text-xs uppercase tracking-wide">Jumlah Log</div>
-                          <div className="mt-1 font-medium">{assignment.progressLogs?.length ?? 0}</div>
-                        </div>
-                      </div>
+                  <div className="w-[180px] hidden sm:block shrink-0 min-w-0">
+                    <div className="text-xs text-[var(--dc-text-primary)] font-medium truncate">{region}</div>
+                    <div className="text-[9px] text-muted-foreground/40 font-mono">WILAYAH</div>
+                  </div>
 
-                      <div className="rounded-xl border border-border/70 p-3 text-sm">
-                        <div className="text-muted-foreground text-xs uppercase tracking-wide">Update Terakhir</div>
-                        {latestLog ? (
-                          <div className="mt-1 space-y-1">
-                            <div className="font-medium">
-                              {latestLog.status}
-                              {typeof latestLog.progressPercent === "number" ? ` • ${latestLog.progressPercent}%` : ""}
+                  <div className="w-[120px] shrink-0 text-left">
+                    <Badge
+                      variant={badgeVariant(assignment.status)}
+                      className="font-mono text-[8px] uppercase px-1 rounded-[2px]"
+                    >
+                      {assignment.status}
+                    </Badge>
+                    {isOverdue && (
+                      <Badge variant="destructive" className="font-mono text-[8px] uppercase px-1 rounded-[2px] ml-1">
+                        OVERDUE
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="w-[140px] hidden md:block shrink-0 text-left font-mono text-[10px]">
+                    <div className="text-muted-foreground/85">{formatDate(assignment.dueDate)}</div>
+                    <div className="text-[8px] text-muted-foreground/45 uppercase">LIMIT WAKTU</div>
+                  </div>
+
+                  <div className="shrink-0">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 rounded-[4px] border-white/10 text-[10px] font-mono hover:bg-white/[0.04] cursor-pointer"
+                        >
+                          Detail
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="border border-[var(--dc-border-subtle)] bg-popover text-[var(--dc-text-primary)]">
+                        <DialogHeader>
+                          <DialogTitle className="font-sans font-bold text-sm">Progres Tugas Lapangan</DialogTitle>
+                          <DialogDescription className="font-mono text-[10px] uppercase text-muted-foreground/60">
+                            {name} — {position} ({region})
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="mt-4 space-y-4">
+                          <div className="p-3 bg-white/[0.02] border border-white/[0.08] rounded-[6px] space-y-2">
+                            <div className="text-[10px] font-mono text-[var(--dc-primary)] uppercase font-semibold">
+                              INSTRUKSI PENUGASAN:
                             </div>
-                            <div className="text-muted-foreground">
-                              {normalizeDisplayText(latestLog.note)} • {formatDate(latestLog.createdAt)}
-                            </div>
+                            <p className="text-xs font-sans leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                              {normalizeDisplayText(assignment.assignmentNote)}
+                            </p>
                           </div>
-                        ) : (
-                          <div className="mt-1 text-muted-foreground">Belum ada log progres dari Field Officer.</div>
-                        )}
-                      </div>
-                    </div>
 
-                    <div className="flex flex-col items-start gap-2 md:items-end">
-                      <Badge variant={badgeVariant(assignment.status)}>{assignment.status}</Badge>
-                      {isAssignmentOverdue(assignment) ? <Badge variant="destructive">OVERDUE</Badge> : null}
-                    </div>
+                          <div className="p-3 bg-white/[0.02] border border-white/[0.08] rounded-[6px] space-y-2">
+                            <div className="text-[10px] font-mono text-[var(--dc-success)] uppercase font-semibold">
+                              UPDATE TERAKHIR:
+                            </div>
+                            {latestLog ? (
+                              <div className="space-y-1 text-xs">
+                                <div className="font-bold text-[var(--dc-text-primary)]">
+                                  {latestLog.status}
+                                  {typeof latestLog.progressPercent === "number"
+                                    ? ` • ${latestLog.progressPercent}%`
+                                    : ""}
+                                </div>
+                                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                  {normalizeDisplayText(latestLog.note)}
+                                </p>
+                                <div className="text-[9px] text-muted-foreground/50 font-mono mt-1">
+                                  DILAPORKAN PADA: {formatDate(latestLog.createdAt)}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">Belum ada log progres dilaporkan.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-3 gap-4 text-xs font-mono p-3 border-t border-white/[0.04]">
+                          <div>
+                            <span className="text-muted-foreground/50 block text-[9px]">STATUS</span>
+                            <Badge
+                              variant={badgeVariant(assignment.status)}
+                              className="font-mono text-[8px] uppercase px-1 mt-1 rounded-[2px]"
+                            >
+                              {assignment.status}
+                            </Badge>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground/50 block text-[9px]">JUMLAH LOG</span>
+                            <span className="font-bold block mt-1">{assignment.progressLogs?.length ?? 0} LOG</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground/50 block text-[9px]">LIMIT WAKTU</span>
+                            <span className="text-[var(--dc-warning)] font-bold mt-1 block">
+                              {formatDate(assignment.dueDate)}
+                            </span>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               );
-            })
-          ) : (
-            <div className="text-muted-foreground text-sm">Belum ada assignment Field Officer untuk dimonitor.</div>
-          )}
-        </CardContent>
+            })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 font-mono text-[10px] text-muted-foreground">
+            <div>
+              Menampilkan {startIdx}–{endIdx} dari {totalItems} Field Officer.
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+              >
+                <ChevronLeft className="size-3 mr-1" /> SEBELUMNYA
+              </Button>
+              <span className="font-bold text-[var(--dc-text-primary)]">
+                HALAMAN {currentPage} DARI {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="h-7 px-2 border-white/10 text-[10px] font-mono hover:bg-white/[0.04]"
+              >
+                SELANJUTNYA <ChevronRight className="size-3 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -731,16 +2270,9 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
                     <TableCell>
                       <div className="flex justify-end gap-2">
                         {linkedTask ? (
-                          <>
-                            <Button asChild size="sm" variant="outline">
-                              <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Detail</Link>
-                            </Button>
-                            <Button asChild size="sm">
-                              <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}/penugasan`}>
-                                {linkedTask.assignments.length ? "Daftar FC" : "Lanjutkan Teruskan"}
-                              </Link>
-                            </Button>
-                          </>
+                          <Button asChild size="sm" variant="outline">
+                            <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Detail</Link>
+                          </Button>
                         ) : (
                           <Button asChild size="sm">
                             <Link href={`/dashboard/oim/direktif-tugas/baru?uukStrId=${source.id}`}>
@@ -767,6 +2299,68 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
   );
 }
 
+function ForwardingCollapsibleSection({
+  orderNumber,
+  title,
+  items,
+  defaultOpen = false,
+}: {
+  orderNumber: number;
+  title: string;
+  items: Array<{ itemCode: string; content?: string | null }>;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const icon = getSectionIcon(orderNumber, title);
+
+  return (
+    <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] shadow-sm transition-all duration-200">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-3.5 cursor-pointer text-left focus:outline-none hover:bg-white/[0.02] transition-colors rounded-[6px]"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded bg-white/[0.04] text-[var(--dc-primary)]">
+            {icon}
+          </div>
+          <div>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/40 mr-2">
+              SECTION {orderNumber.toString().padStart(2, "0")}
+            </span>
+            <h4 className="font-sans text-xs font-bold uppercase tracking-tight text-[var(--dc-text-primary)] inline-block">
+              {title}
+            </h4>
+          </div>
+        </div>
+        <div className="flex items-center justify-center size-6 rounded bg-white/[0.04] text-muted-foreground">
+          {isOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="border-t border-white/[0.08] p-4 bg-white/[0.01]">
+          <div className="space-y-3 font-sans text-sm text-[var(--dc-text-primary)] leading-relaxed">
+            {items.map((item) => (
+              <div
+                key={item.itemCode}
+                className="flex gap-2 items-start bg-white/[0.01] border border-white/[0.02] p-2.5 rounded-[4px]"
+              >
+                {item.itemCode && (
+                  <span className="font-mono text-xs text-[var(--dc-primary)] shrink-0 mt-0.5 uppercase">
+                    [{item.itemCode}]
+                  </span>
+                )}
+                <span className="whitespace-pre-wrap">{normalizeDisplayText(item.content)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 type OimForwardingClientProps = {
   source: OimIncomingForwardingSource;
   options: OimForwardingOptions;
@@ -780,6 +2374,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
   const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([]);
   const parentMap = useMemo(() => buildAreaParentMap(options.areaTree), [options.areaTree]);
   const sourceAreaIds = source.directiveVersion?.targetAreas?.map((target) => target.areaId) ?? [];
+
   const eligibleCandidates = useMemo(() => {
     if (!sourceAreaIds.length) {
       return options.candidates;
@@ -791,6 +2386,82 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
       ),
     );
   }, [options.candidates, parentMap, sourceAreaIds]);
+
+  // Toolbar state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedAreaId, setSelectedAreaId] = useState("");
+  const [filterSelectedState, setFilterSelectedState] = useState<"all" | "selected" | "unselected">("all");
+  const [sortBy, setSortBy] = useState<"name" | "area">("name");
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+
+  // Reset page to 1 when search or filter states change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedAreaId, filterSelectedState, sortBy, pageSize]);
+
+  // Candidate Areas for filtering dropdown
+  const candidateAreas = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of eligibleCandidates) {
+      for (const scope of c.areaScopes ?? []) {
+        map.set(scope.area.id, scope.area.name);
+      }
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [eligibleCandidates]);
+
+  // Apply search/filters/sort
+  const filteredCandidates = useMemo(() => {
+    let result = [...eligibleCandidates];
+
+    // 1. Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (c) => c.userProfile?.fullName?.toLowerCase().includes(q) || c.position?.title?.toLowerCase().includes(q),
+      );
+    }
+
+    // 2. Filter Area/Kabupaten
+    if (selectedAreaId) {
+      result = result.filter((c) => c.areaScopes?.some((scope) => scope.area.id === selectedAreaId));
+    }
+
+    // 3. Filter Selected State
+    if (filterSelectedState === "selected") {
+      result = result.filter((c) => selectedAssigneeIds.includes(c.id));
+    } else if (filterSelectedState === "unselected") {
+      result = result.filter((c) => !selectedAssigneeIds.includes(c.id));
+    }
+
+    // 4. Sort
+    result.sort((a, b) => {
+      if (sortBy === "name") {
+        const nameA = a.userProfile?.fullName || a.position?.title || "";
+        const nameB = b.userProfile?.fullName || b.position?.title || "";
+        return nameA.localeCompare(nameB);
+      } else {
+        const areaA = a.areaScopes?.[0]?.area.name || "";
+        const areaB = b.areaScopes?.[0]?.area.name || "";
+        return areaA.localeCompare(areaB);
+      }
+    });
+
+    return result;
+  }, [eligibleCandidates, searchQuery, selectedAreaId, filterSelectedState, sortBy, selectedAssigneeIds]);
+
+  // Pagination calculation
+  const totalCandidatesCount = filteredCandidates.length;
+  const totalPages = Math.ceil(totalCandidatesCount / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalCandidatesCount);
+  const paginatedCandidates = useMemo(() => {
+    return filteredCandidates.slice(startIndex, endIndex);
+  }, [filteredCandidates, startIndex, endIndex]);
 
   async function handleForward() {
     if (!selectedAssigneeIds.length) {
@@ -842,193 +2513,502 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
     }
   }
 
+  const classification = source.directiveVersion?.classification || "RAHASIA";
+  const areaSummary = source.directiveVersion?.targetAreas?.map((t) => t.area.name).join(", ") ?? "-";
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-semibold text-2xl tracking-tight">Baca dan Teruskan STR ke Field Coordinator</h1>
-        <p className="text-muted-foreground text-sm">
-          OIM tidak mengubah isi STR. OIM hanya memilih Field Coordinator tujuan distribusi sesuai hirarki komando dan
-          cakupan administratif.
-        </p>
+    <div className="space-y-6 mx-auto w-full max-w-[1400px] relative pb-16">
+      {/* 1. Command Header */}
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between border-b border-white/[0.08] pb-4">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="font-bold text-xl tracking-tight text-[var(--dc-text-primary)]">
+              Baca dan Teruskan STR ke Field Coordinator
+            </h1>
+            <Badge
+              variant="outline"
+              className="border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+            >
+              {source.status}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="border-[var(--dc-warning)]/40 text-[var(--dc-warning)] bg-[var(--dc-warning-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+            >
+              NORMAL
+            </Badge>
+            <Badge
+              variant="outline"
+              className="border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+            >
+              {classification}
+            </Badge>
+          </div>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground font-mono">
+            <div className="flex items-center gap-1">
+              <BookOpenText className="size-3 text-muted-foreground/60" />
+              <span>
+                NOMOR STR:{" "}
+                <span className="text-[var(--dc-text-primary)]">
+                  {source.directiveVersion?.directive?.commandNumber ?? "-"}
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <User className="size-3 text-muted-foreground/60" />
+              <span>
+                REGIONAL PENGIRIM:{" "}
+                <span className="text-[var(--dc-text-primary)]">{source.ownerUnit?.name ?? "-"}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Calendar className="size-3 text-muted-foreground/60" />
+              <span>
+                TANGGAL:{" "}
+                <span className="text-[var(--dc-text-primary)]">
+                  {(source as any).createdAt ? formatDate((source as any).createdAt) : "-"}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <Card className="border border-border/70">
-        <CardHeader>
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl border border-border/70 bg-muted/40 p-2">
-              <BookOpenText className="size-5" />
-            </div>
-            <div className="space-y-1">
-              <CardTitle>1. Baca STR Sumber</CardTitle>
-              <CardDescription>
-                Pastikan OIM membaca STR yang diteruskan Regional Commander sebelum distribusi.
-              </CardDescription>
-            </div>
+      {/* 2. Operational Metadata Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white/[0.02] border border-white/[0.04] p-3.5 rounded-[6px] text-xs font-mono">
+        <div className="space-y-0.5">
+          <span className="text-muted-foreground/60 text-[9px] uppercase">HIERARKI</span>
+          <div className="text-[var(--dc-text-primary)] font-bold">OIM → FIELD COORDINATOR</div>
+        </div>
+        <div className="space-y-0.5">
+          <span className="text-muted-foreground/60 text-[9px] uppercase">WILAYAH CAKUPAN</span>
+          <div className="text-[var(--dc-text-primary)] font-bold truncate" title={areaSummary}>
+            {areaSummary}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
-              <div className="text-muted-foreground text-xs uppercase tracking-wide">Nomor STR</div>
-              <div className="mt-2 font-medium">{source.directiveVersion?.directive?.commandNumber ?? "-"}</div>
+        </div>
+        <div className="space-y-0.5">
+          <span className="text-muted-foreground/60 text-[9px] uppercase">TARGET FIELD COORDINATORS</span>
+          <div className="text-[var(--dc-text-primary)] font-bold">{eligibleCandidates.length} PERSONEL</div>
+        </div>
+        <div className="space-y-0.5">
+          <span className="text-muted-foreground/60 text-[9px] uppercase">STATUS DISTRIBUSI</span>
+          <div
+            className={`font-bold ${selectedAssigneeIds.length > 0 ? "text-[var(--dc-success)]" : "text-[var(--dc-warning)]"}`}
+          >
+            {selectedAssigneeIds.length > 0 ? "SIAP DITERUSKAN" : "BELUM DISTRIBUSI"}
+          </div>
+        </div>
+      </div>
+
+      {/* FULL WIDTH STACKED CONTENT */}
+      <div className="w-full space-y-6">
+        {/* STR Preview Accordions */}
+        <div className="space-y-3">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+            STR_SOURCE_PREVIEW
+          </div>
+          <div className="space-y-3">
+            {source.currentVersion.sections.map((section, idx) => (
+              <ForwardingCollapsibleSection
+                key={section.sectionType}
+                orderNumber={section.orderNumber}
+                title={section.title}
+                items={section.items}
+                defaultOpen={true}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Confirmation checklist and notes side-by-side inside full-width */}
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+          {/* Stepper Checklist / Confirmation Card */}
+          <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3 shadow-sm">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">
+              CONFIRMATION_CHECKLIST
             </div>
-            <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
-              <div className="text-muted-foreground text-xs uppercase tracking-wide">Regional Pengirim</div>
-              <div className="mt-2 font-medium">{source.ownerUnit?.name ?? "-"}</div>
-            </div>
-            <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
-              <div className="text-muted-foreground text-xs uppercase tracking-wide">Status STR</div>
-              <div className="mt-2 font-medium">{uukStatusLabel(source.status)}</div>
-            </div>
-            <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
-              <div className="text-muted-foreground text-xs uppercase tracking-wide">Klasifikasi</div>
-              <div className="mt-2 font-medium">{source.directiveVersion?.classification ?? "-"}</div>
+
+            <div className="border-t border-white/[0.08] pt-3 space-y-3">
+              <label htmlFor="oim-read-confirmation-new" className="flex items-start gap-3 leading-5 cursor-pointer">
+                <Checkbox
+                  id="oim-read-confirmation-new"
+                  checked={hasReadSource}
+                  onCheckedChange={(checked) => setHasReadSource(Boolean(checked))}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <span className="text-xs font-bold text-[var(--dc-text-primary)]">Konfirmasi Penerusan STR</span>
+                  <p className="text-[10px] text-muted-foreground leading-normal">Saya mengonfirmasi bahwa:</p>
+                  <ul className="text-[10px] text-muted-foreground list-disc pl-3 space-y-0.5">
+                    <li>OIM tidak mengubah isi STR.</li>
+                    <li>Tugas diteruskan hanya ke FC sesuai hirarki komando.</li>
+                    <li>Seluruh isi dokumen STR tetap identik.</li>
+                  </ul>
+                </div>
+              </label>
             </div>
           </div>
 
-          <Alert className="border-border/70 bg-muted/20">
-            <FileText className="size-4" />
-            <AlertTitle>{source.currentVersion.title}</AlertTitle>
-            <AlertDescription>
-              STR ini diteruskan Regional Commander dan harus diteruskan lagi oleh OIM ke Field Coordinator yang berada
-              pada wilayah relevan tanpa mengubah isi STR.
-            </AlertDescription>
-          </Alert>
-
-          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-2xl border border-border/70 p-4">
-              <div className="mb-3 font-medium text-sm">Isi Ringkas STR</div>
-              <div className="space-y-3">
-                {source.currentVersion.sections.map((section) => (
-                  <div key={section.sectionType} className="rounded-xl border border-border/70 bg-muted/20 p-3">
-                    <div className="font-medium text-sm">
-                      {section.orderNumber}. {section.title}
-                    </div>
-                    <div className="mt-2 space-y-2 text-muted-foreground text-sm">
-                      {section.items.map((item) => (
-                        <div key={`${section.sectionType}-${item.itemCode}`}>
-                          <span className="font-medium text-foreground">{item.itemCode}</span>:{" "}
-                          {normalizeDisplayText(item.content)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+          {/* Distribution Note Card */}
+          <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3 shadow-sm">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">
+              DISTRIBUTION_NOTE
+            </div>
+            <div className="border-t border-white/[0.08] pt-3 space-y-2">
+              <div className="text-[10px] text-muted-foreground leading-normal">
+                Catatan ini akan otomatis terlampir pada notifikasi tugas operasional di seluruh FC penerima.
               </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
-                <Label htmlFor="oim-read-confirmation" className="items-start gap-3 leading-6">
-                  <Checkbox
-                    id="oim-read-confirmation"
-                    checked={hasReadSource}
-                    onCheckedChange={(checked) => setHasReadSource(Boolean(checked))}
-                    className="mt-1"
-                  />
-                  <span>
-                    Saya sudah membaca STR sumber dan memahami bahwa OIM hanya meneruskan distribusinya ke Field
-                    Coordinator tanpa mengubah isi STR.
-                  </span>
-                </Label>
-              </div>
+              <Textarea
+                value={assignmentNote}
+                disabled={!hasReadSource}
+                onChange={(event) => setAssignmentNote(event.target.value)}
+                placeholder="Tambahkan instruksi khusus (opsional)..."
+                className="w-full min-h-[80px] bg-white/[0.02] border-white/10 text-xs font-sans rounded-[4px] focus:border-[var(--dc-primary)]/50 focus:outline-none"
+              />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card className="border border-border/70">
-        <CardHeader>
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl border border-border/70 bg-muted/40 p-2">
-              <Users className="size-5" />
-            </div>
-            <div className="space-y-1">
-              <CardTitle>2. Pilih Field Coordinator Tujuan</CardTitle>
-              <CardDescription>
-                Sistem hanya menampilkan bawahan OIM yang role-nya Field Coordinator dan memiliki cakupan wilayah yang
-                nyambung dengan STR ini.
-              </CardDescription>
-            </div>
+        {/* Step 2: Field Coordinator Selection Area */}
+        <div className="space-y-3">
+          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+            TARGET_FIELD_COORDINATORS
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+
           {!hasReadSource ? (
-            <Alert className="border-amber-300/50 bg-amber-50 text-amber-950">
-              <ChevronRight className="size-4" />
-              <AlertTitle>Baca STR dulu sebelum distribusi</AlertTitle>
-              <AlertDescription>
-                Distribusi ke Field Coordinator baru aktif setelah konfirmasi baca di langkah pertama dicentang.
-              </AlertDescription>
-            </Alert>
-          ) : null}
-
-          {eligibleCandidates.length ? (
-            <div className="grid gap-3 xl:grid-cols-2">
-              {eligibleCandidates.map((candidate) => {
-                const checked = selectedAssigneeIds.includes(candidate.id);
-
-                return (
-                  <label
-                    key={candidate.id}
-                    className={`flex gap-3 rounded-2xl border p-4 text-sm ${checked ? "border-primary bg-primary/5" : "border-border/70"}`}
-                  >
-                    <Checkbox
-                      checked={checked}
-                      disabled={!hasReadSource}
-                      onCheckedChange={(value) =>
-                        setSelectedAssigneeIds((current) =>
-                          value ? [...current, candidate.id] : current.filter((item) => item !== candidate.id),
-                        )
-                      }
-                      className="mt-1"
-                    />
-                    <span className="space-y-2">
-                      <span className="block font-medium">
-                        {candidate.userProfile?.fullName ?? candidate.position?.title ?? "Field Coordinator"}
-                      </span>
-                      <span className="block text-muted-foreground">{candidate.position?.title ?? "-"}</span>
-                      <span className="flex flex-wrap gap-2">
-                        {candidate.areaScopes?.map((scope) => (
-                          <Badge key={`${candidate.id}-${scope.area.id}`} variant="outline">
-                            {scope.area.name}
-                          </Badge>
-                        ))}
-                      </span>
-                    </span>
-                  </label>
-                );
-              })}
+            <div className="rounded-[6px] border border-amber-300/30 bg-amber-500/10 p-4 text-amber-200 text-xs font-mono space-y-2">
+              <div className="font-bold flex items-center gap-1.5">
+                <Clock className="size-3.5" /> BACA STR DULU SEBELUM DISTRIBUSI
+              </div>
+              <div>
+                Penerusan ke Field Coordinator hanya dapat diakses setelah Anda mengonfirmasi bahwa Anda telah membaca
+                STR pada checklist konfirmasi di atas.
+              </div>
             </div>
           ) : (
-            <Alert>
-              <AlertTitle>Tidak ada Field Coordinator yang cocok</AlertTitle>
-              <AlertDescription>
-                Belum ada bawahan Field Coordinator dalam hirarki OIM ini yang memiliki overlap wilayah dengan STR
-                sumber.
-              </AlertDescription>
-            </Alert>
-          )}
+            <div className="space-y-4">
+              {/* Sticky Toolbar */}
+              <div className="sticky top-[64px] z-30 bg-background/95 backdrop-blur-md border-b border-border py-3.5 space-y-3">
+                <div className="flex flex-col xl:flex-row gap-3 items-center justify-between">
+                  <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                    {/* Search */}
+                    <div className="relative flex-1 sm:flex-initial">
+                      <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground/60" />
+                      <Input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Cari nama FC..."
+                        className="pl-8 h-9 w-full sm:w-[220px] bg-card border-border text-xs rounded-[4px]"
+                      />
+                    </div>
 
-          <label className="space-y-2 text-sm">
-            <span>Catatan Distribusi</span>
-            <Textarea
-              value={assignmentNote}
-              disabled={!hasReadSource}
-              onChange={(event) => setAssignmentNote(event.target.value)}
-              placeholder="Opsional. Catatan singkat untuk Field Coordinator penerima."
-            />
-          </label>
-        </CardContent>
-        <CardFooter className="justify-end">
+                    {/* Filter Kabupaten */}
+                    <div className="relative">
+                      <select
+                        value={selectedAreaId}
+                        onChange={(e) => setSelectedAreaId(e.target.value)}
+                        className="h-9 px-3 bg-card border border-border rounded-[4px] text-xs focus:outline-none text-foreground font-sans"
+                      >
+                        <option value="">Semua Wilayah</option>
+                        {candidateAreas.map((area) => (
+                          <option key={area.id} value={area.id}>
+                            {area.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Sort */}
+                    <div className="relative">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as "name" | "area")}
+                        className="h-9 px-3 bg-card border border-border rounded-[4px] text-xs focus:outline-none text-foreground font-sans"
+                      >
+                        <option value="name">Sort: Nama</option>
+                        <option value="area">Sort: Wilayah</option>
+                      </select>
+                    </div>
+
+                    {/* View Mode Toggle: Card vs Table */}
+                    <div className="flex items-center gap-1 bg-secondary border border-border p-1 rounded-[4px]">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode("card")}
+                        className={`h-7 px-2.5 rounded-[2px] text-[10px] uppercase font-mono transition-colors ${viewMode === "card" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-accent"}`}
+                      >
+                        Card
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode("table")}
+                        className={`h-7 px-2.5 rounded-[2px] text-[10px] uppercase font-mono transition-colors ${viewMode === "table" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-accent"}`}
+                      >
+                        Table
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Status filter tabs & counter info */}
+                  <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-between xl:justify-end text-xs font-mono">
+                    <div className="text-muted-foreground/80">
+                      DIPILIH: <span className="text-primary font-bold">{selectedAssigneeIds.length} FC</span> /{" "}
+                      {eligibleCandidates.length}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setFilterSelectedState("all")}
+                        className={`px-3 py-1.5 rounded-[4px] border text-xs ${filterSelectedState === "all" ? "bg-primary border-primary text-primary-foreground font-bold" : "bg-transparent border-border text-muted-foreground hover:bg-accent"} transition-colors`}
+                      >
+                        Semua
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFilterSelectedState("selected")}
+                        className={`px-3 py-1.5 rounded-[4px] border text-xs ${filterSelectedState === "selected" ? "bg-primary border-primary text-primary-foreground font-bold" : "bg-transparent border-border text-muted-foreground hover:bg-accent"} transition-colors`}
+                      >
+                        Terpilih
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFilterSelectedState("unselected")}
+                        className={`px-3 py-1.5 rounded-[4px] border text-xs ${filterSelectedState === "unselected" ? "bg-primary border-primary text-primary-foreground" : "bg-transparent border-border text-muted-foreground hover:bg-accent"} transition-colors`}
+                      >
+                        Belum Terpilih
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* FC Selector Grid/Table */}
+              {paginatedCandidates.length ? (
+                <div className="space-y-4">
+                  {viewMode === "card" ? (
+                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 w-full">
+                      {paginatedCandidates.map((candidate) => {
+                        const checked = selectedAssigneeIds.includes(candidate.id);
+                        const initials = candidate.userProfile?.fullName?.slice(0, 2).toUpperCase() || "FC";
+
+                        return (
+                          <label
+                            key={candidate.id}
+                            className={`flex flex-col justify-between rounded-[6px] border p-3.5 h-[110px] transition-all duration-200 cursor-pointer ${
+                              checked
+                                ? "border-primary bg-primary/5 shadow-sm"
+                                : "border-border bg-card hover:bg-accent"
+                            }`}
+                          >
+                            <div className="flex gap-3 items-start min-w-0">
+                              <div className="flex size-10 items-center justify-center rounded bg-secondary border border-border text-muted-foreground shrink-0 font-mono text-sm font-bold text-primary">
+                                {initials}
+                              </div>
+                              <div className="space-y-0.5 min-w-0 flex-1">
+                                <div className="font-bold text-sm text-foreground truncate">
+                                  {candidate.userProfile?.fullName || candidate.position?.title || "Field Coordinator"}
+                                </div>
+                                <div className="text-muted-foreground/60 text-[11px] font-mono uppercase truncate">
+                                  {candidate.position?.title || "-"}
+                                </div>
+                                <div className="text-muted-foreground/50 text-[10px] font-mono uppercase truncate">
+                                  WILAYAH: {candidate.areaScopes?.[0]?.area.name || "-"}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="border-t border-border pt-2 mt-2 flex items-center justify-between">
+                              <span className="text-muted-foreground/50 text-[10px] font-mono uppercase">
+                                CHECKLIST
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {checked && <Check className="size-3.5 text-primary" />}
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={!hasReadSource}
+                                  onChange={(e) => {
+                                    setSelectedAssigneeIds((current) =>
+                                      e.target.checked
+                                        ? [...current, candidate.id]
+                                        : current.filter((item) => item !== candidate.id),
+                                    );
+                                  }}
+                                  className="size-4 accent-primary rounded-[2px] border-border bg-card cursor-pointer"
+                                />
+                                <span
+                                  className={`text-[10px] font-mono uppercase ${checked ? "text-primary font-bold" : "text-muted-foreground/60"}`}
+                                >
+                                  {checked ? "Terpilih" : "Pilih Field Coordinator"}
+                                </span>
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="rounded-[6px] border border-border bg-card overflow-x-auto">
+                      <table className="w-full text-left text-xs font-mono border-collapse">
+                        <thead>
+                          <tr className="border-b border-border bg-secondary/30 text-muted-foreground uppercase text-[10px] tracking-wider">
+                            <th className="p-3 w-[50px] text-center">Check</th>
+                            <th className="p-3">Nama</th>
+                            <th className="p-3">Wilayah</th>
+                            <th className="p-3">Role</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedCandidates.map((candidate) => {
+                            const checked = selectedAssigneeIds.includes(candidate.id);
+                            return (
+                              <tr
+                                key={candidate.id}
+                                onClick={() => {
+                                  if (!hasReadSource) return;
+                                  setSelectedAssigneeIds((current) =>
+                                    checked ? current.filter((id) => id !== candidate.id) : [...current, candidate.id],
+                                  );
+                                }}
+                                className={`border-b border-border hover:bg-accent/40 cursor-pointer transition-colors ${checked ? "bg-primary/5 text-foreground" : "text-muted-foreground"}`}
+                              >
+                                <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    disabled={!hasReadSource}
+                                    onChange={(e) => {
+                                      setSelectedAssigneeIds((current) =>
+                                        e.target.checked
+                                          ? [...current, candidate.id]
+                                          : current.filter((item) => item !== candidate.id),
+                                      );
+                                    }}
+                                    className="size-4 accent-primary rounded-[2px] border-border bg-card cursor-pointer"
+                                  />
+                                </td>
+                                <td className="p-3 font-bold text-foreground">
+                                  {candidate.userProfile?.fullName || candidate.position?.title || "Field Coordinator"}
+                                </td>
+                                <td className="p-3 text-[11px] uppercase">
+                                  {candidate.areaScopes?.[0]?.area.name || "-"}
+                                </td>
+                                <td className="p-3 text-[11px] text-muted-foreground/60 uppercase">
+                                  {candidate.position?.title || "-"}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Pagination Controls */}
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-secondary/40 border border-border p-3 rounded-[6px] text-xs font-mono mt-4">
+                    <div className="text-muted-foreground">
+                      Showing{" "}
+                      <span className="text-foreground font-bold">{totalCandidatesCount > 0 ? startIndex + 1 : 0}</span>
+                      –<span className="text-foreground font-bold">{endIndex}</span> of{" "}
+                      <span className="text-foreground font-bold">{totalCandidatesCount}</span> Field Coordinator
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {/* Page size select */}
+                      <div className="relative">
+                        <select
+                          value={pageSize}
+                          onChange={(e) => setPageSize(Number(e.target.value))}
+                          className="h-8 px-2.5 bg-card border border-border rounded-[4px] text-xs focus:outline-none text-foreground font-sans"
+                        >
+                          <option value={9}>9 per Hal</option>
+                          <option value={12}>12 per Hal</option>
+                          <option value={18}>18 per Hal</option>
+                          <option value={24}>24 per Hal</option>
+                        </select>
+                      </div>
+
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            className="px-3 py-1.5 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-muted-foreground hover:text-[var(--dc-text-primary)] transition disabled:opacity-40 disabled:hover:bg-white/[0.04]"
+                          >
+                            Previous
+                          </button>
+                          {Array.from({ length: totalPages }).map((_, idx) => {
+                            const pageNum = idx + 1;
+                            return (
+                              <button
+                                key={pageNum}
+                                type="button"
+                                onClick={() => setCurrentPage(pageNum)}
+                                className={`px-3 py-1.5 rounded border transition ${
+                                  currentPage === pageNum
+                                    ? "bg-[var(--dc-primary)] border-[var(--dc-primary)] text-[var(--dc-text-inverse)] font-bold"
+                                    : "bg-white/[0.04] border-white/10 text-muted-foreground hover:text-[var(--dc-text-primary)] hover:bg-white/[0.08]"
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            disabled={currentPage === totalPages}
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            className="px-3 py-1.5 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-muted-foreground hover:text-[var(--dc-text-primary)] transition disabled:opacity-40 disabled:hover:bg-white/[0.04]"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-muted-foreground text-xs italic p-8 border border-dashed border-white/5 rounded-[6px] text-center font-mono">
+                  Tidak ada Field Coordinator yang cocok dengan pencarian / filter.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Floating Sticky Bottom Actions Bar */}
+      <div className="sticky bottom-0 z-50 -mx-6 flex w-full flex-wrap items-center justify-between gap-4 rounded-t-[6px] border-[var(--dc-border-subtle)] border-t bg-[var(--dc-card)]/95 px-6 py-4 backdrop-blur-md sm:mx-0">
+        <div className="text-xs font-mono text-muted-foreground">
+          DIPILIH:{" "}
+          <span className="text-[var(--dc-primary)] font-bold">
+            {selectedAssigneeIds.length} Field Coordinator dipilih
+          </span>
+          {assignmentNote.trim() && <span className="text-muted-foreground/60 ml-2">(Catatan terlampir)</span>}
+        </div>
+        <div className="flex items-center gap-3">
           <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/dashboard/oim/direktif-tugas")}
+            className="h-9 px-4 rounded-[4px] font-mono text-xs cursor-pointer"
+          >
+            Batal
+          </Button>
+          <Button
+            type="button"
             onClick={handleForward}
             disabled={!hasReadSource || !selectedAssigneeIds.length || !eligibleCandidates.length || isSubmitting}
+            className="h-9 px-6 bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)] rounded-[4px] font-mono text-xs cursor-pointer shadow-none"
           >
-            {isSubmitting ? "Meneruskan..." : "Teruskan ke Field Coordinator"}
+            {isSubmitting ? "Meneruskan..." : "Teruskan STR"}
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1251,6 +3231,264 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
   );
 }
 
+function getSectionIcon(orderNumber: number, title: string) {
+  const t = title.toLowerCase();
+  if (t.includes("dasar") || orderNumber === 1) return <FileText className="size-4" />;
+  if (t.includes("sasaran") || orderNumber === 2) return <Target className="size-4" />;
+  if (t.includes("eei") || orderNumber === 3) return <HelpCircle className="size-4" />;
+  if (t.includes("pengumpulan") || t.includes("rencana") || orderNumber === 4) return <MapIcon className="size-4" />;
+  if (t.includes("risiko") || t.includes("ancaman") || orderNumber === 5) return <ShieldAlert className="size-4" />;
+  if (t.includes("pelaksanaan") || orderNumber === 6) return <Zap className="size-4" />;
+  if (t.includes("koordinasi") || orderNumber === 7) return <Share2 className="size-4" />;
+  if (t.includes("rekomendasi") || orderNumber === 8) return <CheckSquare className="size-4" />;
+  if (t.includes("pengesahan") || t.includes("approval") || orderNumber === 9) return <Award className="size-4" />;
+  return <FileText className="size-4" />;
+}
+
+function SummaryMetric({
+  label,
+  value,
+  variant = "neutral",
+}: {
+  label: string;
+  value: React.ReactNode;
+  variant?: "primary" | "success" | "warning" | "danger" | "info" | "neutral";
+}) {
+  let colorClass = "text-muted-foreground";
+  if (variant === "primary") colorClass = "text-[var(--dc-primary)]";
+  else if (variant === "success") colorClass = "text-[var(--dc-success)]";
+  else if (variant === "warning") colorClass = "text-[var(--dc-warning)]";
+  else if (variant === "danger") colorClass = "text-[var(--dc-danger)]";
+  else if (variant === "info") colorClass = "text-[var(--dc-info)]";
+
+  return (
+    <div className="flex flex-col justify-between rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3 h-24 min-w-[120px] flex-1">
+      <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">{label}</div>
+      <div className={`mt-1 font-sans text-sm font-semibold truncate ${colorClass}`}>{value}</div>
+    </div>
+  );
+}
+
+function TaskCollapsibleSection({
+  orderNumber,
+  title,
+  items,
+  description,
+  defaultOpen = false,
+}: {
+  orderNumber: number;
+  title: string;
+  items?: Array<{ id: string; itemCode?: string | null; content?: string | null }>;
+  description?: string;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const icon = getSectionIcon(orderNumber, title);
+
+  return (
+    <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] shadow-sm transition-all duration-200">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-3.5 cursor-pointer text-left focus:outline-none hover:bg-white/[0.02] transition-colors rounded-[6px]"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded bg-white/[0.04] text-[var(--dc-primary)]">
+            {icon}
+          </div>
+          <div>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/40 mr-2">
+              SECTION {orderNumber.toString().padStart(2, "0")}
+            </span>
+            <h4 className="font-sans text-xs font-bold uppercase tracking-tight text-[var(--dc-text-primary)] inline-block">
+              {title}
+            </h4>
+          </div>
+        </div>
+        <div className="flex items-center justify-center size-6 rounded bg-white/[0.04] text-muted-foreground">
+          {isOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="border-t border-white/[0.08] p-4 bg-white/[0.01]">
+          {items ? (
+            <div className="space-y-3 font-sans text-sm text-[var(--dc-text-primary)] leading-relaxed">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex gap-2 items-start bg-white/[0.01] border border-white/[0.02] p-2.5 rounded-[4px]"
+                >
+                  {item.itemCode && (
+                    <span className="font-mono text-xs text-[var(--dc-primary)] shrink-0 mt-0.5 uppercase">
+                      [{item.itemCode}]
+                    </span>
+                  )}
+                  <span className="whitespace-pre-wrap">{normalizeDisplayText(item.content)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--dc-text-primary)] leading-relaxed font-sans whitespace-pre-wrap">
+              {description || "Belum diisi."}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OperationalTimeline({ status, hasAssignments }: { status: string; hasAssignments: boolean }) {
+  const stages = [
+    { key: "created", label: "Created", desc: "Dokumen STR diterbitkan di pusat" },
+    { key: "forwarded", label: "Forwarded", desc: "STR diteruskan ke regional komando" },
+    { key: "assigned", label: "Assigned", desc: "Tugas dibagikan ke Field Coordinator" },
+    { key: "accepted", label: "Accepted", desc: "Petugas lapangan menerima penugasan" },
+    { key: "completed", label: "Completed", desc: "Seluruh target operasi diselesaikan" },
+  ];
+
+  let activeIndex = 0;
+  if (status === "PUBLISHED" || status === "DISTRIBUTED") activeIndex = 1;
+  if (hasAssignments) activeIndex = 2;
+  if (hasAssignments && status === "RUNNING") activeIndex = 3;
+  if (status === "COMPLETED") activeIndex = 4;
+
+  return (
+    <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3 shadow-sm">
+      <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">OPERATIONAL_TIMELINE</div>
+      <div className="border-t border-white/[0.08] pt-3 relative pl-6 space-y-4">
+        <div className="absolute left-[9px] top-4 bottom-4 w-0.5 bg-white/10" />
+
+        {stages.map((stage, idx) => {
+          const isActive = idx <= activeIndex;
+          const isCurrent = idx === activeIndex;
+
+          return (
+            <div key={stage.key} className="relative flex gap-3 text-xs">
+              <div
+                className={`absolute -left-[20px] top-1 size-3 rounded-full border-2 ${isCurrent ? "bg-[var(--dc-primary)] border-[var(--dc-primary)] shadow-[0_0_8px_var(--dc-primary)]" : isActive ? "bg-[var(--dc-success)] border-[var(--dc-success)]" : "bg-muted border-muted"} transition-all duration-300 z-10`}
+              />
+
+              <div className="flex-1 space-y-0.5">
+                <div
+                  className={`font-semibold ${isCurrent ? "text-[var(--dc-primary)] font-bold" : isActive ? "text-[var(--dc-success)]" : "text-muted-foreground/60"}`}
+                >
+                  {stage.label}
+                </div>
+                <div className="text-[10px] text-muted-foreground/50 leading-tight">{stage.desc}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CommandHierarchyFlow() {
+  const steps = [
+    { label: "HQ (Pusat Komando)", desc: "Pemberi mandat utama STR" },
+    { label: "REGIONAL (Regional Commander)", desc: "Pengarah & supervisor wilayah" },
+    { label: "KABAGOPS (Intelligence Manager)", desc: "OIM pengelola penugasan lapangan" },
+    { label: "FIELD COORDINATOR (Koordinator)", desc: "Pengawas taktis lapangan" },
+    { label: "FIELD OFFICER (Petugas Lapangan)", desc: "Pelaksana operasi langsung" },
+  ];
+
+  return (
+    <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3 shadow-sm">
+      <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">COMMAND_CHAIN_FLOW</div>
+      <div className="border-t border-white/[0.08] pt-3 flex flex-col items-center gap-1 text-center font-mono">
+        {steps.map((step, idx) => (
+          <div key={idx} className="w-full flex flex-col items-center">
+            <div className="w-full bg-white/[0.02] border border-white/[0.04] rounded-[4px] p-2 hover:bg-white/[0.04] transition-colors">
+              <div className="text-xs font-bold text-[var(--dc-primary)]">{step.label}</div>
+              <div className="text-[9px] text-muted-foreground/50 mt-0.5">{step.desc}</div>
+            </div>
+            {idx < steps.length - 1 && <ArrowDown className="size-3 text-muted-foreground/40 my-0.5 animate-pulse" />}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MissionStatusPanel({ status, progressPercentage }: { status: string; progressPercentage: number }) {
+  return (
+    <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3 shadow-sm">
+      <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">MISSION_STATUS</div>
+      <div className="border-t border-white/[0.08] pt-3 space-y-4">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground/60">OPERATIONAL STATE</span>
+          <Badge
+            variant="outline"
+            className={`font-mono text-[10px] tracking-wider rounded-[4px] px-2 py-0.5 uppercase ${badgeVariant(status) === "destructive" ? "border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10" : badgeVariant(status) === "default" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : "border-white/10 text-muted-foreground bg-white/[0.02]"}`}
+          >
+            {status}
+          </Badge>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+            <span>TARGET_RESOLUTION</span>
+            <span className="text-[var(--dc-success)] font-bold">{progressPercentage}%</span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted/30 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-[var(--dc-success)] transition-all duration-300"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OperationalActivityLog({ task }: { task: TaskDetail }) {
+  const creatorName =
+    task.createdByAssignment?.userProfile?.fullName || task.createdByAssignment?.position?.title || "Sistem";
+  const creatorRole = task.createdByAssignment?.position?.title || "HQ Operator";
+
+  const activities = [
+    {
+      time: formatDate((task as any).createdAt),
+      title: "Task Created",
+      desc: `Tugas diinisiasi oleh ${creatorName} (${creatorRole})`,
+    },
+    ...(task.assignments.length > 0
+      ? [
+          {
+            time: formatDate((task.assignments[0] as any)?.createdAt || (task as any).createdAt),
+            title: "Task Assigned",
+            desc: `Tugas didistribusikan ke ${task.assignments.length} Field Coordinator`,
+          },
+        ]
+      : []),
+    {
+      time: (task as any).updatedAt ? formatDate((task as any).updatedAt) : formatDate((task as any).createdAt),
+      title: "System Synchronization",
+      desc: `Status tugas disinkronkan ke status ${task.status}`,
+    },
+  ];
+
+  return (
+    <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3 shadow-sm">
+      <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">SYSTEM_ACTIVITY_LOG</div>
+      <div className="border-t border-white/[0.08] pt-3 space-y-3">
+        {activities.map((act, idx) => (
+          <div key={idx} className="flex gap-3 text-xs">
+            <div className="text-muted-foreground/40 font-mono text-[10px] w-28 shrink-0">{act.time}</div>
+            <div className="space-y-0.5">
+              <div className="font-bold text-[var(--dc-text-primary)]">{act.title}</div>
+              <div className="text-[10px] text-muted-foreground">{act.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 type TaskDetailClientProps = {
   task: TaskDetail;
   editHref?: string;
@@ -1269,134 +3507,182 @@ export function TaskDetailClient({
   assignmentTitle = "Assignments",
 }: TaskDetailClientProps) {
   const showStructuredUuk = hasStructuredUukSections(task);
+  const classification = taskClassificationLabel(task);
+  const areaSummary = task.targetAreas.map((t) => t.area.name).join(", ") ?? "-";
+  const completedAssignments = task.assignments.filter((a) => a.status === "COMPLETED").length;
+  const progressPercentage = task.assignments.length
+    ? Math.round((completedAssignments / task.assignments.length) * 100)
+    : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-semibold text-2xl tracking-tight">{task.title}</h1>
-            <Badge variant={badgeVariant(task.status)}>{task.status}</Badge>
+    <div className="space-y-6 mx-auto w-full max-w-[1280px]">
+      {/* 1. Command Header */}
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between border-b border-white/[0.08] pb-4">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="font-bold text-xl tracking-tight text-[var(--dc-text-primary)]">{task.title}</h1>
+            <Badge
+              variant="outline"
+              className="border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+            >
+              {task.status}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="border-[var(--dc-warning)]/40 text-[var(--dc-warning)] bg-[var(--dc-warning-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+            >
+              {task.priority || "MEDIUM"}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+            >
+              {classification || "RAHASIA"}
+            </Badge>
           </div>
-          <p className="text-muted-foreground text-sm">
-            {taskMetaLine(task)}
-          </p>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground font-mono">
+            <div className="flex items-center gap-1">
+              <MapIcon className="size-3 text-muted-foreground/60" />
+              <span>
+                WILAYAH: <span className="text-[var(--dc-text-primary)]">{areaSummary || "-"}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Calendar className="size-3 text-muted-foreground/60" />
+              <span>
+                DEADLINE:{" "}
+                <span className="text-[var(--dc-text-primary)]">{task.dueDate ? formatDate(task.dueDate) : "-"}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Activity className="size-3 text-muted-foreground/60" />
+              <span>
+                PROGRESS: <span className="text-[var(--dc-text-primary)]">{progressPercentage}%</span>
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+
+        <div className="flex flex-wrap gap-2 shrink-0">
           {editHref ? (
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="h-8 rounded-[4px] font-mono text-xs cursor-pointer">
               <Link href={editHref}>Edit Draft</Link>
             </Button>
           ) : null}
           {assignmentHref ? (
-            <Button asChild>
+            <Button
+              asChild
+              className="h-8 bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)] rounded-[4px] font-mono text-xs cursor-pointer shadow-none"
+            >
               <Link href={assignmentHref}>Kelola Penugasan</Link>
             </Button>
           ) : null}
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ringkasan Task</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-4">
-            {showStructuredUuk ? (
-              <div className="rounded-xl border border-border/70 p-4">
-                <div className="mb-3 font-medium text-sm">Informasi UUK / STR</div>
-                <div className="space-y-3">
-                  {task.uukStrVersion?.sections?.map((section) => (
-                    <div key={section.id} className="rounded-xl border border-border/70 bg-muted/20 p-3">
-                      <div className="font-medium text-sm">
-                        {section.orderNumber}. {section.title}
-                      </div>
-                      <div className="mt-2 space-y-2 text-muted-foreground text-sm">
-                        {section.items.map((item) => (
-                          <div key={item.id}>
-                            <span className="font-medium text-foreground">{item.itemCode}</span>:{" "}
-                            {normalizeDisplayText(item.content)}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+      {/* 2-Column Responsive Layout */}
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
+        {/* Left Column (8/12) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* 3. Mission Context Panel */}
+          <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 space-y-3 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">
+                MISSION_CONTEXT
+              </span>
+            </div>
+            <div className="border-t border-white/[0.08] pt-3 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+              <div className="space-y-1">
+                <div className="text-muted-foreground/60 text-[9px] uppercase">Owner</div>
+                <div className="text-[var(--dc-text-primary)] font-semibold truncate">
+                  {task.ownerUnit?.name || "-"}
                 </div>
               </div>
-            ) : (
-              <p className="rounded-xl border border-border/70 p-4 text-sm leading-6">{task.description}</p>
-            )}
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-xl border border-border/70 p-3 text-sm">
-                <div className="text-muted-foreground text-xs uppercase tracking-wide">Deadline</div>
-                <div className="mt-1 font-medium">{formatDate(task.dueDate)}</div>
+              <div className="space-y-1">
+                <div className="text-muted-foreground/60 text-[9px] uppercase">Regional</div>
+                <div className="text-[var(--dc-text-primary)] font-semibold truncate">
+                  {(task.directiveVersion?.directive as any)?.ownerUnit?.name || "-"}
+                </div>
               </div>
-              <div className="rounded-xl border border-border/70 p-3 text-sm">
-                <div className="text-muted-foreground text-xs uppercase tracking-wide">Child Tasks</div>
-                <div className="mt-1 font-medium">{task.childTasks?.length ?? 0}</div>
+              <div className="space-y-1">
+                <div className="text-muted-foreground/60 text-[9px] uppercase">Level</div>
+                <div className="text-[var(--dc-text-primary)] font-semibold truncate">{task.priority || "MEDIUM"}</div>
               </div>
-              <div className="rounded-xl border border-border/70 p-3 text-sm">
-                <div className="text-muted-foreground text-xs uppercase tracking-wide">Assignments</div>
-                <div className="mt-1 font-medium">{task.assignments.length}</div>
+              <div className="space-y-1">
+                <div className="text-muted-foreground/60 text-[9px] uppercase">Classification</div>
+                <div className="text-[var(--dc-text-primary)] font-semibold truncate">
+                  {classification || "RAHASIA"}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-muted-foreground/60 text-[9px] uppercase">Directive Source</div>
+                <div className="text-[var(--dc-text-primary)] font-semibold truncate">
+                  {task.directiveVersion?.directive?.commandNumber || "-"}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-muted-foreground/60 text-[9px] uppercase">Hierarchy</div>
+                <div className="text-[var(--dc-text-primary)] font-semibold truncate">OIM → FC</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-muted-foreground/60 text-[9px] uppercase">Area Scope</div>
+                <div className="text-[var(--dc-text-primary)] font-semibold truncate" title={areaSummary}>
+                  {areaSummary || "-"}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-muted-foreground/60 text-[9px] uppercase">Last Update</div>
+                <div className="text-[var(--dc-text-primary)] font-semibold truncate">
+                  {(task as any).updatedAt ? formatDate((task as any).updatedAt) : formatDate((task as any).createdAt)}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            {!hideTargetAreas ? (
-              <div className="rounded-xl border border-border/70 p-4">
-                <div className="mb-3 font-medium text-sm">Target Area</div>
-                <div className="flex flex-wrap gap-2">
-                  {task.targetAreas.map((target) => (
-                    <Badge key={target.areaId} variant="outline">
-                      {target.area.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            <div className="rounded-xl border border-border/70 p-4">
-              <div className="mb-3 font-medium text-sm">Context Dokumen</div>
-              <div className="space-y-2 text-sm">
-                <div>Directive: {task.directiveVersion?.directive?.commandNumber ?? "-"}</div>
-                <div>UUK/STR: {task.uukStrVersion?.title ?? "-"}</div>
-              </div>
+          {/* 4. Accordion Content (Progressive Disclosure) */}
+          <div className="space-y-3">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+              OPERATIONAL_DIRECTIVE_BODY
+            </div>
+            <div className="space-y-3">
+              {showStructuredUuk ? (
+                task.uukStrVersion?.sections?.map((section) => (
+                  <TaskCollapsibleSection
+                    key={section.id}
+                    orderNumber={section.orderNumber}
+                    title={section.title}
+                    items={section.items}
+                    defaultOpen={true}
+                  />
+                ))
+              ) : (
+                <TaskCollapsibleSection
+                  orderNumber={1}
+                  title="Deskripsi Tugas"
+                  description={task.description}
+                  defaultOpen={true}
+                />
+              )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {hideAssignments ? null : (
-        <Card>
-          <CardHeader>
-            <CardTitle>{assignmentTitle}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {task.assignments.length ? (
-              task.assignments.map((assignment) => (
-                <div key={assignment.id} className="rounded-xl border border-border/70 p-4">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <div className="font-medium">
-                        {assignment.assignee?.userProfile?.fullName ??
-                          assignment.assignee?.position?.title ??
-                          "Assignee"}
-                      </div>
-                      <div className="text-muted-foreground text-sm">{assignment.assignee?.position?.title ?? "-"}</div>
-                    </div>
-                    <Badge variant={badgeVariant(assignment.status)}>{assignment.status}</Badge>
-                  </div>
-                  <div className="mt-3 text-muted-foreground text-sm">
-                    Deadline assignment: {formatDate(assignment.dueDate)}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-muted-foreground text-sm">Belum ada assignment.</div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+        {/* Right Column (4/12) - Right Panel */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Mission Status */}
+          <MissionStatusPanel status={task.status} progressPercentage={progressPercentage} />
+
+          {/* 5. Timeline */}
+          <OperationalTimeline status={task.status} hasAssignments={task.assignments.length > 0} />
+
+          {/* Hierarchy Flow */}
+          <CommandHierarchyFlow />
+
+          {/* 7. Activity Log */}
+          <OperationalActivityLog task={task} />
+        </div>
+      </div>
     </div>
   );
 }

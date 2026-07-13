@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Crosshair, MapPin, Radio, RefreshCw, Send, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Crosshair,
+  MapPin,
+  Radio,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -14,15 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { FieldOfficerWorkspace } from "@/server/field-ops/types";
 import { LeafletLocationPreview } from "./leaflet-location-preview";
 
-type FieldOfficerView =
-  | "overview"
-  | "tasks"
-  | "jaring"
-  | "incoming"
-  | "baket"
-  | "reports"
-  | "map"
-  | "alert";
+type FieldOfficerView = "overview" | "tasks" | "jaring" | "incoming" | "baket" | "reports" | "map" | "alert";
 
 const FORWARDED_STORAGE_KEY = "dens-cakra-forwarded-assignments";
 
@@ -41,22 +43,22 @@ function statusTone(status: string) {
   const value = status.toUpperCase();
 
   if (value.includes("COMPLETED") || value.includes("ACTIVE") || value.includes("VALID")) {
-    return "bg-emerald-500/15 text-emerald-200 border-emerald-400/35";
+    return "border-[var(--dc-success)]/35 bg-[var(--dc-success-soft)] text-[var(--dc-success)]";
   }
 
   if (value.includes("IN_PROGRESS") || value.includes("ROUTED") || value.includes("READY")) {
-    return "bg-cyan-500/15 text-cyan-200 border-cyan-400/35";
+    return "border-[var(--dc-primary)]/35 bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]";
   }
 
   if (value.includes("DRAFT") || value.includes("RECEIVED") || value.includes("ASSIGNED")) {
-    return "bg-amber-500/15 text-amber-100 border-amber-300/35";
+    return "border-[var(--dc-warning)]/35 bg-[var(--dc-warning-soft)] text-[var(--dc-warning)]";
   }
 
   if (value.includes("INACTIVE") || value.includes("ARCHIVED") || value.includes("ERROR")) {
-    return "bg-red-500/15 text-red-200 border-red-400/35";
+    return "border-[var(--dc-danger)]/35 bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]";
   }
 
-  return "bg-white/10 text-white/80 border-white/15";
+  return "border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] text-[var(--dc-text-secondary)]";
 }
 
 function nextTaskAction(status: string) {
@@ -230,7 +232,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       const response = await fetch(`/api/field-officer/incoming/${messageId}/validate`, {
         method: "POST",
       });
-      const body = (await response.json().catch(() => null)) as { validationSummary?: string; title?: string | null } | { message?: string } | null;
+      const body = (await response.json().catch(() => null)) as
+        | { validationSummary?: string; title?: string | null }
+        | { message?: string }
+        | null;
 
       if (!response.ok) {
         throw new Error((body && "message" in body ? body.message : null) || "Gagal memvalidasi laporan.");
@@ -400,12 +405,12 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     return (
       <div className="grid gap-4 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={`loading-${index}`} className="border-white/10 bg-white/5">
+          <Card key={`loading-${index}`} className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
             <CardHeader>
-              <div className="h-4 w-28 animate-pulse rounded bg-white/10" />
+              <div className="h-4 w-28 animate-pulse rounded bg-[var(--dc-surface-hover)]" />
             </CardHeader>
             <CardContent>
-              <div className="h-8 w-20 animate-pulse rounded bg-white/10" />
+              <div className="h-8 w-20 animate-pulse rounded bg-[var(--dc-surface-hover)]" />
             </CardContent>
           </Card>
         ))}
@@ -415,7 +420,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   if (!workspace || !metrics) {
     return (
-      <Alert className="border-red-400/30 bg-red-500/10 text-red-100">
+      <Alert className="border-[var(--dc-danger)]/30 bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]">
         <AlertTriangle className="size-4" />
         <AlertTitle>Workspace tidak tersedia</AlertTitle>
         <AlertDescription>{error || "Data field officer belum dapat dibaca."}</AlertDescription>
@@ -426,16 +431,18 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   return (
     <div className="space-y-4">
       <section className="grid gap-3 xl:grid-cols-[1.4fr_0.6fr]">
-        <Card className="border-white/10 bg-[var(--dc-surface)] text-[var(--dc-text-primary)]">
+        <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)] text-[var(--dc-text-primary)]">
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-cyan-400/15 text-cyan-100">Field Officer Live Workspace</Badge>
-              <Badge variant="outline" className="border-white/15 text-white/70">
+              <Badge className="border-[var(--dc-primary)]/30 bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]">
+                Field Officer Live Workspace
+              </Badge>
+              <Badge variant="outline" className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]">
                 {workspace.profile.role}
               </Badge>
             </div>
             <CardTitle>{workspace.profile.name}</CardTitle>
-            <CardDescription className="text-white/65">
+            <CardDescription>
               {workspace.context.positionTitle} • {workspace.context.organizationUnitName}
             </CardDescription>
           </CardHeader>
@@ -446,17 +453,19 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
             <MetricCard label="Draft Baket" value={metrics.draftBakets} />
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
           <CardHeader>
             <CardTitle className="text-base">Scope Operasi</CardTitle>
-            <CardDescription className="text-white/65">
-              Area primer dan permission aktif yang dibawa dari baseline merge.
-            </CardDescription>
+            <CardDescription>Area primer dan permission aktif yang dibawa dari baseline merge.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-white/80">
+          <CardContent className="space-y-3 text-sm text-[var(--dc-text-secondary)]">
             <div className="flex flex-wrap gap-2">
               {workspace.context.areaScopes.map((item) => (
-                <Badge key={item.areaId} variant="outline" className="border-white/15 bg-white/5 text-white/80">
+                <Badge
+                  key={item.areaId}
+                  variant="outline"
+                  className="border-[var(--dc-primary)]/30 bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]"
+                >
                   {item.name}
                 </Badge>
               ))}
@@ -468,7 +477,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       </section>
 
       {error ? (
-        <Alert className="border-amber-400/30 bg-amber-500/10 text-amber-50">
+        <Alert className="border-[var(--dc-warning)]/30 bg-[var(--dc-warning-soft)] text-[var(--dc-warning)]">
           <AlertTriangle className="size-4" />
           <AlertTitle>Perlu perhatian</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -476,7 +485,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       ) : null}
 
       {actionNotice ? (
-        <Alert className="border-emerald-400/30 bg-emerald-500/10 text-emerald-50">
+        <Alert className="border-[var(--dc-success)]/30 bg-[var(--dc-success-soft)] text-[var(--dc-success)]">
           <CheckCircle2 className="size-4" />
           <AlertTitle>Aksi berhasil</AlertTitle>
           <AlertDescription>{actionNotice}</AlertDescription>
@@ -484,10 +493,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       ) : null}
 
       {(view === "overview" || view === "tasks") && (
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
           <CardHeader>
             <CardTitle>Tugas Saya</CardTitle>
-            <CardDescription className="text-white/65">
+            <CardDescription>
               Update status eksekusi lapangan dan tandai assignment yang perlu diteruskan ke coordinator.
             </CardDescription>
           </CardHeader>
@@ -497,21 +506,29 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               const forwarded = forwardedAssignments.includes(task.assignmentId);
 
               return (
-                <div key={task.assignmentId} className="rounded-xl border border-white/10 bg-black/15 p-4">
+                <div
+                  key={task.assignmentId}
+                  className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge className={statusTone(task.assignmentStatus)}>{task.assignmentStatus}</Badge>
-                        <Badge variant="outline" className="border-white/15 text-white/70">
+                        <Badge
+                          variant="outline"
+                          className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                        >
                           {task.priority}
                         </Badge>
                         {forwarded ? (
-                          <Badge className="bg-fuchsia-500/15 text-fuchsia-100">Ditandai untuk diteruskan</Badge>
+                          <Badge className="border-[var(--dc-info)]/30 bg-[var(--dc-info-soft)] text-[var(--dc-info)]">
+                            Ditandai untuk diteruskan
+                          </Badge>
                         ) : null}
                       </div>
-                      <h3 className="font-semibold text-lg text-white">{task.title}</h3>
-                      <p className="text-sm text-white/70">{task.description}</p>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/55">
+                      <h3 className="font-semibold text-[var(--dc-text-primary)] text-lg">{task.title}</h3>
+                      <p className="text-[var(--dc-text-secondary)] text-sm">{task.description}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[var(--dc-text-muted)] text-xs">
                         <span>Due: {formatDateTime(task.dueDate)}</span>
                         <span>Target: {task.targetAreas.join(", ") || "-"}</span>
                         <span>Sumber: {task.sourceLabel || "-"}</span>
@@ -522,7 +539,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       {action ? (
                         <Button
                           size="sm"
-                          className="bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                          className="bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                           disabled={isBusy === `task:${task.assignmentId}:${action.nextStatus}`}
                           onClick={() => void updateTaskStatus(task.assignmentId, action.nextStatus)}
                         >
@@ -532,7 +549,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-white/15 bg-transparent text-white hover:bg-white/10"
+                        className="border-[var(--dc-border-subtle)] bg-transparent text-[var(--dc-text-primary)] hover:bg-[var(--dc-surface-hover)]"
                         onClick={() => handleForwardToggle(task.assignmentId)}
                       >
                         {forwarded ? "Batalkan Forward" : "Tandai Forward"}
@@ -548,10 +565,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
       {(view === "overview" || view === "jaring") && (
         <section className="grid gap-4 xl:grid-cols-[0.7fr_1.3fr]">
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
             <CardHeader>
               <CardTitle>Registrasi Jaring Baru</CardTitle>
-              <CardDescription className="text-white/65">
+              <CardDescription>
                 FO tetap memegang ownership data Jaring. Nomor bot pusat dikelola coordinator.
               </CardDescription>
             </CardHeader>
@@ -572,7 +589,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                 onChange={(event) => setJaringForm((current) => ({ ...current, whatsappNumber: event.target.value }))}
               />
               <select
-                className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 text-sm text-white"
+                className="flex h-10 w-full rounded-md border border-[var(--dc-border-subtle)] bg-background/40 px-3 text-sm text-[var(--dc-text-primary)]"
                 value={jaringForm.clusterId}
                 onChange={(event) => setJaringForm((current) => ({ ...current, clusterId: event.target.value }))}
               >
@@ -584,7 +601,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                 ))}
               </select>
               <select
-                className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 text-sm text-white"
+                className="flex h-10 w-full rounded-md border border-[var(--dc-border-subtle)] bg-background/40 px-3 text-sm text-[var(--dc-text-primary)]"
                 value={jaringForm.areaId}
                 onChange={(event) => setJaringForm((current) => ({ ...current, areaId: event.target.value }))}
               >
@@ -601,7 +618,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                 onChange={(event) => setJaringForm((current) => ({ ...current, notes: event.target.value }))}
               />
               <Button
-                className="w-full bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+                className="w-full bg-[var(--dc-success)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-success)]/90"
                 disabled={isBusy === "jaring:create"}
                 onClick={() => void createJaring()}
               >
@@ -610,30 +627,34 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
             <CardHeader>
               <CardTitle>Jaring Binaan</CardTitle>
-              <CardDescription className="text-white/65">
-                Status aktif, volume laporan, dan aksi pemeliharaan dasar per Jaring.
-              </CardDescription>
+              <CardDescription>Status aktif, volume laporan, dan aksi pemeliharaan dasar per Jaring.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3">
               {workspace.jaring.map((jaring) => (
-                <div key={jaring.id} className="rounded-xl border border-white/10 bg-black/15 p-4">
+                <div
+                  key={jaring.id}
+                  className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge className={statusTone(jaring.status)}>{jaring.status}</Badge>
-                        <Badge variant="outline" className="border-white/15 text-white/70">
+                        <Badge
+                          variant="outline"
+                          className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                        >
                           {jaring.code}
                         </Badge>
                       </div>
-                      <h3 className="font-semibold text-white">{jaring.aliasName}</h3>
-                      <p className="text-sm text-white/70">{jaring.whatsappNumber}</p>
-                      <p className="text-sm text-cyan-200">{jaring.clusterName || "Belum ada cluster"}</p>
-                      <p className="text-sm text-white/55">{jaring.areaNames.join(", ") || "-"}</p>
-                      {jaring.notes ? <p className="text-sm text-white/65">{jaring.notes}</p> : null}
-                      <div className="flex gap-4 text-xs text-white/50">
+                      <h3 className="font-semibold text-[var(--dc-text-primary)]">{jaring.aliasName}</h3>
+                      <p className="text-[var(--dc-text-secondary)] text-sm">{jaring.whatsappNumber}</p>
+                      <p className="text-[var(--dc-primary)] text-sm">{jaring.clusterName || "Belum ada cluster"}</p>
+                      <p className="text-[var(--dc-text-muted)] text-sm">{jaring.areaNames.join(", ") || "-"}</p>
+                      {jaring.notes ? <p className="text-[var(--dc-text-secondary)] text-sm">{jaring.notes}</p> : null}
+                      <div className="flex gap-4 text-[var(--dc-text-muted)] text-xs">
                         <span>{jaring.messageCount} pesan</span>
                         <span>{jaring.baketCount} baket</span>
                       </div>
@@ -642,7 +663,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       {jaring.status !== "ACTIVE" ? (
                         <Button
                           size="sm"
-                          className="bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                          className="bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                           disabled={isBusy === `jaring:${jaring.id}:activate`}
                           onClick={() => void changeJaringStatus(jaring.id, "activate")}
                         >
@@ -652,7 +673,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-white/15 bg-transparent text-white hover:bg-white/10"
+                          className="border-[var(--dc-border-subtle)] bg-transparent text-[var(--dc-text-primary)] hover:bg-[var(--dc-surface-hover)]"
                           disabled={isBusy === `jaring:${jaring.id}:deactivate`}
                           onClick={() => void changeJaringStatus(jaring.id, "deactivate")}
                         >
@@ -662,7 +683,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-red-400/40 bg-transparent text-red-100 hover:bg-red-500/10"
+                        className="border-[var(--dc-danger)]/40 bg-transparent text-[var(--dc-danger)] hover:bg-[var(--dc-danger-soft)]"
                         disabled={isBusy === `jaring:${jaring.id}:archive`}
                         onClick={() => void changeJaringStatus(jaring.id, "archive")}
                       >
@@ -678,33 +699,49 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       )}
 
       {(view === "overview" || view === "incoming") && (
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
           <CardHeader>
             <CardTitle>Kotak Masuk Jaring</CardTitle>
-            <CardDescription className="text-white/65">
+            <CardDescription>
               Validasi struktur pesan dan konversi cepat ke Baket menggunakan kontrak backend merge.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {workspace.incoming.map((message) => (
-              <div key={message.id} className="rounded-xl border border-white/10 bg-black/15 p-4">
+              <div
+                key={message.id}
+                className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge className={statusTone(message.status)}>{message.status}</Badge>
-                      <Badge variant="outline" className="border-white/15 text-white/70">
+                      <Badge
+                        variant="outline"
+                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                      >
                         {message.validationSummary}
                       </Badge>
-                      <Badge variant="outline" className="border-white/15 text-white/70">
+                      <Badge
+                        variant="outline"
+                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                      >
                         {message.jaringCode}
                       </Badge>
-                      <Badge variant="outline" className="border-white/15 text-white/70">
+                      <Badge
+                        variant="outline"
+                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                      >
                         {message.categoryName ?? "Belum ada kategori"}
                       </Badge>
                     </div>
-                    <h3 className="font-semibold text-white">{message.title || message.jaringAlias}</h3>
-                    <p className="text-sm text-white/70">{message.content || "Pesan belum memiliki isi teks."}</p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/55">
+                    <h3 className="font-semibold text-[var(--dc-text-primary)]">
+                      {message.title || message.jaringAlias}
+                    </h3>
+                    <p className="text-[var(--dc-text-secondary)] text-sm">
+                      {message.content || "Pesan belum memiliki isi teks."}
+                    </p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[var(--dc-text-muted)] text-xs">
                       <span>Masuk: {formatDateTime(message.receivedAt)}</span>
                       <span>Kejadian: {formatDateTime(message.eventDateTime)}</span>
                       <span>GPS dibagikan: {formatDateTime(message.gpsSharedAt)}</span>
@@ -714,20 +751,21 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       <span>Bukti: {message.hasPhoto ? "Foto diterima" : "Belum ada foto"}</span>
                     </div>
                     {message.hasPhoto ? (
-                      <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-50">
+                      <div className="rounded-lg border border-[var(--dc-success)]/25 bg-[var(--dc-success-soft)] p-3 text-[var(--dc-success)] text-sm">
                         <p className="font-medium">Foto bukti</p>
                         {message.photoUrl ? (
                           <img
                             src={message.photoUrl}
                             alt={`Foto bukti ${message.title || message.jaringAlias}`}
-                            className="mt-2 max-h-64 w-full max-w-md rounded-lg border border-white/10 object-cover"
+                            className="mt-2 max-h-64 w-full max-w-md rounded-lg border border-[var(--dc-border-subtle)] object-cover"
                           />
                         ) : (
-                          <p className="mt-2 text-xs text-emerald-100/75">
-                            Foto diterima oleh bot, tetapi file visual belum tersedia di storage. Kiriman lama sebelum patch hanya punya metadata WA.
+                          <p className="mt-2 text-[var(--dc-text-secondary)] text-xs">
+                            Foto diterima oleh bot, tetapi file visual belum tersedia di storage. Kiriman lama sebelum
+                            patch hanya punya metadata WA.
                           </p>
                         )}
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-100/75">
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[var(--dc-text-secondary)] text-xs">
                           <span>Media DB: {message.mediaCount}</span>
                           <span>File: {message.photoFileId || "-"}</span>
                           <span>WA ID: {message.photoMessageId || "-"}</span>
@@ -736,16 +774,21 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       </div>
                     ) : null}
                     {message.latitude !== null && message.longitude !== null ? (
-                      <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-3 md:grid-cols-[minmax(0,1fr)_14rem]">
-                        <div className="space-y-1 text-sm text-white/70">
-                          <p className="font-medium text-white">Lokasi kejadian</p>
+                      <div className="grid gap-3 rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] p-3 md:grid-cols-[minmax(0,1fr)_14rem]">
+                        <div className="space-y-1 text-[var(--dc-text-secondary)] text-sm">
+                          <p className="font-medium text-[var(--dc-text-primary)]">Lokasi kejadian</p>
                           <p className="font-mono text-xs">
                             {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)}
                           </p>
-                          <p className="text-xs text-white/55">
+                          <p className="text-[var(--dc-text-muted)] text-xs">
                             Akurasi: {message.gpsAccuracyMeters !== null ? `${message.gpsAccuracyMeters} m` : "-"}
                           </p>
-                          <Button asChild size="sm" variant="outline" className="mt-2 border-white/15 bg-transparent text-white hover:bg-white/10">
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 border-[var(--dc-border-subtle)] bg-transparent text-[var(--dc-text-primary)] hover:bg-[var(--dc-surface-hover)]"
+                          >
                             <a
                               href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
                               rel="noreferrer"
@@ -775,7 +818,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         onValueChange={(categoryId) => void assignCategory(message.id, categoryId)}
                         disabled={isBusy === `category:${message.id}` || workspace.reportCategories.length === 0}
                       >
-                        <SelectTrigger className="border-white/15 bg-black/20 text-white">
+                        <SelectTrigger className="border-[var(--dc-border-subtle)] bg-background/40 text-[var(--dc-text-primary)]">
                           <SelectValue placeholder="Pilih kategori laporan" />
                         </SelectTrigger>
                         <SelectContent>
@@ -792,7 +835,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-white/15 bg-transparent text-white hover:bg-white/10"
+                      className="border-[var(--dc-border-subtle)] bg-transparent text-[var(--dc-text-primary)] hover:bg-[var(--dc-surface-hover)]"
                       disabled={isBusy === `validate:${message.id}`}
                       onClick={() => void validateIncoming(message.id)}
                     >
@@ -809,7 +852,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                     </Button>
                     <Button
                       size="sm"
-                      className="bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+                      className="bg-[var(--dc-success)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-success)]/90"
                       disabled={isBusy === `baket:${message.id}`}
                       onClick={() => void createBaket(message.id)}
                     >
@@ -818,7 +861,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-red-400/40 bg-transparent text-red-100 hover:bg-red-500/10"
+                      className="border-[var(--dc-danger)]/40 bg-transparent text-[var(--dc-danger)] hover:bg-[var(--dc-danger-soft)]"
                       disabled={isBusy === `delete:${message.id}`}
                       onClick={() => void deleteIncoming(message.id)}
                     >
@@ -834,43 +877,54 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       )}
 
       {(view === "overview" || view === "baket" || view === "reports") && (
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
           <CardHeader>
             <CardTitle>{view === "reports" ? "Laporan Saya" : "Buat Baket & Draft"}</CardTitle>
-            <CardDescription className="text-white/65">
-              Draft dan histori baket hasil validasi laporan Jaring.
-            </CardDescription>
+            <CardDescription>Draft dan histori baket hasil validasi laporan Jaring.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             {workspace.bakets.map((baket) => (
-              <div key={baket.id} className="rounded-xl border border-white/10 bg-black/15 p-4">
+              <div
+                key={baket.id}
+                className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge className={statusTone(baket.status)}>{baket.status}</Badge>
-                      <Badge variant="outline" className="border-white/15 text-white/70">
+                      <Badge
+                        variant="outline"
+                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                      >
                         {baket.id}
                       </Badge>
                     </div>
-                    <h3 className="font-semibold text-white">{baket.currentVersionTitle || "Tanpa judul versi aktif"}</h3>
-                    <p className="text-sm text-white/70">
+                    <h3 className="font-semibold text-[var(--dc-text-primary)]">
+                      {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                    </h3>
+                    <p className="text-[var(--dc-text-secondary)] text-sm">
                       Jaring: {baket.primaryJaringAlias || baket.primaryJaringCode || "-"}
                     </p>
-                    <p className="text-sm text-white/55">{baket.summary || "Ringkasan field officer belum ditambahkan."}</p>
-                    <p className="text-xs text-white/45">Dibuat: {formatDateTime(baket.createdAt)}</p>
+                    <p className="text-[var(--dc-text-muted)] text-sm">
+                      {baket.summary || "Ringkasan field officer belum ditambahkan."}
+                    </p>
+                    <p className="text-[var(--dc-text-muted)] text-xs">Dibuat: {formatDateTime(baket.createdAt)}</p>
                   </div>
                   <div className="flex flex-col gap-2">
-                    {(baket.status === "DRAFT" || baket.status === "READY_TO_SEND") ? (
+                    {baket.status === "DRAFT" || baket.status === "READY_TO_SEND" ? (
                       <Button
                         size="sm"
-                        className="bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                        className="bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                         disabled={isBusy === `submit:${baket.id}`}
                         onClick={() => void submitBaket(baket.id)}
                       >
                         Kirim ke OIM
                       </Button>
                     ) : (
-                      <Badge variant="outline" className="border-white/15 text-white/70">
+                      <Badge
+                        variant="outline"
+                        className="border-[var(--dc-border-subtle)] text-[var(--dc-text-secondary)]"
+                      >
                         Riwayat terkunci sesuai status
                       </Badge>
                     )}
@@ -884,12 +938,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
       {(view === "overview" || view === "map") && (
         <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
             <CardHeader>
               <CardTitle>Peta Tugas</CardTitle>
-              <CardDescription className="text-white/65">
-                Gabungan lokasi laporan Jaring dan ping lokasi terbaru petugas.
-              </CardDescription>
+              <CardDescription>Gabungan lokasi laporan Jaring dan ping lokasi terbaru petugas.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="dc-map-shell">
@@ -900,8 +952,8 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         <div
                           className={`flex size-4 items-center justify-center rounded-full border-2 ${
                             point.kind === "self"
-                              ? "border-cyan-100 bg-cyan-400"
-                              : "border-emerald-100 bg-emerald-400"
+                              ? "border-[var(--dc-text-inverse)] bg-[var(--dc-primary)]"
+                              : "border-[var(--dc-text-inverse)] bg-[var(--dc-success)]"
                           }`}
                         />
                       </MarkerContent>
@@ -922,42 +974,45 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
             <CardHeader>
               <CardTitle>Live Location</CardTitle>
-              <CardDescription className="text-white/65">
+              <CardDescription>
                 Ping GPS dikirim ke endpoint `personnel-location-pings` milik baseline merge.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="rounded-xl border border-white/10 bg-black/15 p-4">
+              <div className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4">
                 <div className="flex items-center gap-3">
-                  <Crosshair className="size-5 text-cyan-300" />
+                  <Crosshair className="size-5 text-[var(--dc-primary)]" />
                   <div>
-                    <p className="font-semibold text-white">Posisi terbaru</p>
-                    <p className="text-sm text-white/65">
-                      {workspace.latestLocation ? formatDateTime(workspace.latestLocation.capturedAt) : "Belum ada ping aktif."}
+                    <p className="font-semibold text-[var(--dc-text-primary)]">Posisi terbaru</p>
+                    <p className="text-[var(--dc-text-secondary)] text-sm">
+                      {workspace.latestLocation
+                        ? formatDateTime(workspace.latestLocation.capturedAt)
+                        : "Belum ada ping aktif."}
                     </p>
                   </div>
                 </div>
                 {workspace.latestLocation ? (
-                  <div className="mt-3 space-y-1 text-sm text-white/70">
+                  <div className="mt-3 space-y-1 text-[var(--dc-text-secondary)] text-sm">
                     <p>
-                      <span className="text-white/45">Koordinat:</span>{" "}
+                      <span className="text-[var(--dc-text-muted)]">Koordinat:</span>{" "}
                       {workspace.latestLocation.latitude.toFixed(5)}, {workspace.latestLocation.longitude.toFixed(5)}
                     </p>
                     <p>
-                      <span className="text-white/45">Akurasi:</span>{" "}
+                      <span className="text-[var(--dc-text-muted)]">Akurasi:</span>{" "}
                       {workspace.latestLocation.gpsAccuracyMeters ?? "-"} m
                     </p>
                     <p>
-                      <span className="text-white/45">Area:</span> {workspace.latestLocation.areaName || "-"}
+                      <span className="text-[var(--dc-text-muted)]">Area:</span>{" "}
+                      {workspace.latestLocation.areaName || "-"}
                     </p>
                   </div>
                 ) : null}
               </div>
               <Button
-                className="w-full bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                className="w-full bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                 disabled={isBusy === "location:publish"}
                 onClick={() => void publishOwnLocation()}
               >
@@ -970,35 +1025,35 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       )}
 
       {view === "alert" && (
-        <Card className="border-red-400/25 bg-red-500/10">
+        <Card className="border-[var(--dc-danger)]/25 bg-[var(--dc-danger-soft)]">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-100">
+            <CardTitle className="flex items-center gap-2 text-[var(--dc-danger)]">
               <Radio className="size-5" />
               Panic & Emergency Flow
             </CardTitle>
-            <CardDescription className="text-red-100/75">
+            <CardDescription className="text-[var(--dc-text-secondary)]">
               Tombol darurat tetap berpusat pada pengiriman lokasi dan eskalasi ke coordinator/regional.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 xl:grid-cols-3">
             <EmergencyStep
-              icon={<MapPin className="size-4 text-red-100" />}
+              icon={<MapPin className="size-4 text-[var(--dc-danger)]" />}
               title="1. Tangkap lokasi"
               description="Kirim ping lokasi terakhir dulu agar rantai komando menerima posisi paling aktual."
             />
             <EmergencyStep
-              icon={<ShieldCheck className="size-4 text-red-100" />}
+              icon={<ShieldCheck className="size-4 text-[var(--dc-danger)]" />}
               title="2. Aktifkan SOP"
               description="Coordinator memeriksa Jaring aktif, coverage area, dan kanal WhatsApp pusat yang sedang online."
             />
             <EmergencyStep
-              icon={<Send className="size-4 text-red-100" />}
+              icon={<Send className="size-4 text-[var(--dc-danger)]" />}
               title="3. Eskalasi"
               description="Laporan diteruskan ke regional atau posko menggunakan channel resmi di level coordinator."
             />
             <div className="xl:col-span-3">
               <Button
-                className="bg-red-500 text-white hover:bg-red-400"
+                className="bg-[var(--dc-danger)] text-white hover:bg-[var(--dc-danger)]/90"
                 disabled={isBusy === "location:publish"}
                 onClick={() => void publishOwnLocation()}
               >
@@ -1014,29 +1069,21 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
 function MetricCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/15 p-4">
-      <p className="text-xs uppercase tracking-[0.22em] text-white/45">{label}</p>
-      <p className="mt-2 font-mono text-3xl font-semibold text-white">{value}</p>
+    <div className="rounded-xl border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] p-4">
+      <p className="text-[var(--dc-text-muted)] text-xs uppercase tracking-[0.22em]">{label}</p>
+      <p className="mt-2 font-mono font-semibold text-3xl text-[var(--dc-text-primary)]">{value}</p>
     </div>
   );
 }
 
-function EmergencyStep({
-  description,
-  icon,
-  title,
-}: {
-  description: string;
-  icon: React.ReactNode;
-  title: string;
-}) {
+function EmergencyStep({ description, icon, title }: { description: string; icon: React.ReactNode; title: string }) {
   return (
-    <div className="rounded-xl border border-red-400/20 bg-black/20 p-4 text-red-50">
+    <div className="rounded-xl border border-[var(--dc-danger)]/25 bg-[var(--dc-card)] p-4 text-[var(--dc-text-primary)]">
       <div className="flex items-center gap-2">
         {icon}
         <p className="font-semibold">{title}</p>
       </div>
-      <p className="mt-2 text-sm text-red-100/80">{description}</p>
+      <p className="mt-2 text-[var(--dc-text-secondary)] text-sm">{description}</p>
     </div>
   );
 }

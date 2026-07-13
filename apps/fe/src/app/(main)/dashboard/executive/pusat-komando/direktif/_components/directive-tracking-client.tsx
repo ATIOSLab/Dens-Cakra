@@ -3,6 +3,7 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, Send, Inbox, ShieldCheck, Flag, ThumbsUp, Share2, GitMerge, FileText } from "lucide-react";
 import type {
   DirectiveDetail,
   DirectiveTracking,
@@ -78,23 +79,87 @@ function statusLabel(status: string) {
   }
 }
 
-function SummaryCard({
+type PremiumKpiCardProps = {
+  title: string;
+  value: string | number;
+  description: string;
+  icon: React.ReactNode;
+  variant?: "primary" | "success" | "warning" | "danger" | "info";
+  progress?: number;
+  className?: string;
+};
+
+function PremiumKpiCard({
   title,
   value,
   description,
-}: {
-  title: string;
-  value: number;
-  description: string;
-}) {
+  icon,
+  variant = "primary",
+  progress,
+  className = "",
+}: PremiumKpiCardProps) {
+  let colorClass = "text-[var(--dc-primary)]";
+  let borderLeftClass = "border-l-2 border-l-[var(--dc-primary)]";
+  let iconBgClass = "bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]";
+  let shadowClass = "drop-shadow-[0_0_8px_rgba(0,183,255,0.3)]";
+
+  if (variant === "success") {
+    colorClass = "text-[var(--dc-success)]";
+    borderLeftClass = "border-l-2 border-l-[var(--dc-success)]";
+    iconBgClass = "bg-[var(--dc-success-soft)] text-[var(--dc-success)]";
+    shadowClass = "drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]";
+  } else if (variant === "warning") {
+    colorClass = "text-[var(--dc-warning)]";
+    borderLeftClass = "border-l-2 border-l-[var(--dc-warning)]";
+    iconBgClass = "bg-[var(--dc-warning-soft)] text-[var(--dc-warning)]";
+    shadowClass = "drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]";
+  } else if (variant === "danger") {
+    colorClass = "text-[var(--dc-danger)]";
+    borderLeftClass = "border-l-2 border-l-[var(--dc-danger)]";
+    iconBgClass = "bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]";
+    shadowClass = "drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]";
+  } else if (variant === "info") {
+    colorClass = "text-[var(--dc-info)]";
+    borderLeftClass = "border-l-2 border-l-[var(--dc-info)]";
+    iconBgClass = "bg-[var(--dc-info-soft)] text-[var(--dc-info)]";
+    shadowClass = "drop-shadow-[0_0_8px_rgba(56,189,248,0.3)]";
+  }
+
   return (
-    <Card className="border border-border/70">
-      <CardContent className="pt-4">
-        <div className="text-muted-foreground text-[11px] uppercase tracking-wide">{title}</div>
-        <div className="mt-2 font-semibold text-3xl">{value}</div>
-        <div className="mt-1 text-muted-foreground text-xs">{description}</div>
-      </CardContent>
-    </Card>
+    <div className={`relative flex flex-col justify-between rounded-xl border border-[var(--dc-border-subtle)] ${borderLeftClass} bg-[var(--dc-card)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md min-h-[140px] ${className}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground line-clamp-1">
+          {title}
+        </div>
+        <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${iconBgClass}`}>
+          {icon}
+        </div>
+      </div>
+      <div className="mt-2 flex flex-col justify-end flex-1">
+        <div className={`text-3xl font-bold [font-family:var(--dc-font-metadata)] ${colorClass} ${shadowClass}`}>
+          {typeof value === "number" ? value.toLocaleString("id-ID") : value}
+        </div>
+        
+        {progress !== undefined ? (
+          <div className="mt-3 space-y-1">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+              <span>Progres</span>
+              <span className={colorClass}>{progress}%</span>
+            </div>
+            <div className="h-1 w-full rounded-full bg-muted/30 overflow-hidden">
+              <div
+                className={`h-full rounded-full bg-current ${colorClass}`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-2 text-[10px] text-muted-foreground leading-tight line-clamp-2">
+            {description}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -319,51 +384,82 @@ export function DirectiveTrackingClient({ directive, tracking }: DirectiveTracki
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <SummaryCard
+      <div className="flex flex-wrap gap-4 justify-start px-1">
+        <PremiumKpiCard
           title="Regional Sudah Baca"
           value={tracking.stageSummary.regional.readCount}
           description={`${tracking.stageSummary.regional.totalRecipients} penerima regional`}
+          icon={<Eye className="size-4" />}
+          variant="primary"
+          className="w-36 h-36 shrink-0"
         />
-        <SummaryCard
+        <PremiumKpiCard
           title="Regional Sudah Teruskan"
           value={tracking.stageSummary.regional.forwardedCount}
           description="Sudah membuat STR penerusan regional"
+          icon={<Send className="size-4" />}
+          variant="info"
+          className="w-36 h-36 shrink-0"
         />
-        <SummaryCard
+        <PremiumKpiCard
           title="OIM Sudah Buka"
           value={tracking.stageSummary.oim.readCount}
           description={`${tracking.stageSummary.oim.taskCount} task OIM terbentuk`}
+          icon={<Inbox className="size-4" />}
+          variant="primary"
+          className="w-36 h-36 shrink-0"
         />
-        <SummaryCard
+        <PremiumKpiCard
           title="FC Sudah Terima"
           value={tracking.stageSummary.fieldCoordinator.readCount}
           description={`${tracking.stageSummary.fieldCoordinator.totalAssignments} assignment FC`}
+          icon={<ShieldCheck className="size-4" />}
+          variant="info"
+          className="w-36 h-36 shrink-0"
         />
-        <SummaryCard
+        <PremiumKpiCard
           title="Korwil Selesai"
           value={tracking.stageSummary.korwil.completed}
           description={`${tracking.stageSummary.korwil.total} distribusi korwil / FO`}
+          icon={<Flag className="size-4" />}
+          variant="success"
+          className="w-36 h-36 shrink-0"
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
+      <div className="flex flex-wrap gap-4 justify-start px-1">
+        <PremiumKpiCard
           title="RC Ack"
           value={tracking.stageSummary.regional.acknowledgedCount}
           description="Regional commander sudah acknowledge"
+          icon={<ThumbsUp className="size-4" />}
+          variant="primary"
+          className="w-36 h-36 shrink-0"
         />
-        <SummaryCard
+        <PremiumKpiCard
           title="OIM → FC"
           value={tracking.stageSummary.oim.forwardedToFieldCoordinatorCount}
           description="Regional chain yang sudah diteruskan ke FC"
+          icon={<Share2 className="size-4" />}
+          variant="info"
+          className="w-36 h-36 shrink-0"
         />
-        <SummaryCard
+        <PremiumKpiCard
           title="FC → Korwil"
           value={tracking.stageSummary.fieldCoordinator.distributedCount}
           description="FC yang sudah membagikan lagi ke lapangan"
+          icon={<GitMerge className="size-4" />}
+          variant="info"
+          className="w-36 h-36 shrink-0"
         />
-        <SummaryCard title="Baket" value={tracking.baketCount} description="Total baket dari rantai direktif ini" />
+        <PremiumKpiCard
+          title="Baket"
+          value={tracking.baketCount}
+          description="Total baket dari rantai direktif ini"
+          icon={<FileText className="size-4" />}
+          variant="warning"
+          className="w-36 h-36 shrink-0"
+        />
       </div>
 
       <Card className="border border-border/70">

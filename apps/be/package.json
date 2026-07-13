@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "DEN CAKRA backend foundation with NestJS, Prisma, and Better Auth",
   "author": "",
-  "private": true,
+  "private": true,                    
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {
@@ -22,6 +22,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
+    "db:reset:postgis": "scripts\\reset-db-with-postgis.cmd",
     "prisma:studio": "prisma studio",
     "seed:admin": "npm run build && node dist/src/scripts/seed-admin.js",
     "seed:superadmin": "npm run build && node dist/src/scripts/seed-superadmin.js",
