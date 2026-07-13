@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsDateString,
+  IsEnum,
   IsInt,
   IsNumber,
   IsObject,
@@ -11,7 +12,10 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { WhatsAppMessageStatus } from '../../generated/prisma/client.js';
+import {
+  PriorityLevel,
+  WhatsAppMessageStatus,
+} from '../../generated/prisma/client.js';
 
 export class WebhookDto {
   @IsString() externalEventId!: string;
@@ -38,6 +42,16 @@ export class LinkDto {
 
 export class AssignCategoryDto {
   @IsUUID() categoryId!: string;
+}
+
+export class CreateBaketFromMessageDto {
+  @IsUUID() categoryId!: string;
+  @IsEnum(PriorityLevel) urgency!: PriorityLevel;
+  @IsOptional() @IsString() @MaxLength(300) title?: string;
+  @IsOptional() @IsString() normalizedContent?: string;
+  @IsOptional() @IsString() @MaxLength(3000) fieldOfficerNote?: string;
+  @IsOptional() @IsUUID() taskAssignmentId?: string;
+  @IsOptional() @IsDateString() eventTime?: string;
 }
 
 export class ResolveDto {

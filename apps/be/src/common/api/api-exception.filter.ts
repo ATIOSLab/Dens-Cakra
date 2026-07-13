@@ -3,6 +3,7 @@ import {
   Catch,
   HttpException,
   HttpStatus,
+  Logger,
   type ExceptionFilter,
 } from '@nestjs/common';
 import type { Response } from 'express';
@@ -24,6 +25,8 @@ const STATUS_CODES: Partial<Record<number, string>> = {
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(ApiExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
     const request = http.getRequest<AuthenticatedRequest>();
@@ -37,6 +40,19 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const rawResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
     const message = this.resolveMessage(exception, rawResponse, status);
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      const method = request.method ?? 'UNKNOWN';
+      const url = (request.originalUrl ?? request.url ?? 'unknown').split(
+        '?',
+        1,
+      )[0];
+      const error = exception instanceof Error ? exception : undefined;
+      this.logger.error(
+        `${method} ${url} failed: ${error?.message ?? String(exception)}`,
+        error?.stack,
+      );
+    }
 
     response.status(status).json({
       success: false,

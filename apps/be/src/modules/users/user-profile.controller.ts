@@ -199,7 +199,14 @@ export class UserProfileController {
     operationId: 'apiUsr011',
     contractId: 'API-USR-011',
     summary: 'Riwayat penugasan jabatan',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async assignments(
     @Param('userProfileId', ParseUUIDPipe) id: string,

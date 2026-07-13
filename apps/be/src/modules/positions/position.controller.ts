@@ -37,15 +37,41 @@ import { PositionService } from './position.service.js';
 @Controller()
 export class PositionController {
   constructor(private readonly positions: PositionService) {}
+
+  @Get('command-network')
+  @ApiContract({
+    operationId: 'apiPosCommand001',
+    contractId: 'API-POS-COMMAND-001',
+    summary: 'Personel, organisasi, wilayah, dan Jaring dalam hierarki komando',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
+  })
+  async commandNetwork(@CurrentAccessContext() context: AuthorizationContext) {
+    return apiResult(await this.positions.commandNetwork(context));
+  }
+
   @Get('positions')
   @ApiContract({
     operationId: 'apiPos001',
     contractId: 'API-POS-001',
     summary: 'Daftar seat/jabatan',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
-  async list(@Query() q: PositionListQueryDto) {
-    const r = await this.positions.list(q);
+  async list(
+    @Query() q: PositionListQueryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    const r = await this.positions.list(q, context);
     return apiResult(r.items, undefined, { pagination: r.pagination });
   }
   @Post('positions')
@@ -68,10 +94,19 @@ export class PositionController {
     operationId: 'apiPos003',
     contractId: 'API-POS-003',
     summary: 'Detail position',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
-  async detail(@Param('positionId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.positions.detail(id));
+  async detail(
+    @Param('positionId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.positions.detail(id, context));
   }
   @Patch('positions/:positionId')
   @ApiContract({
@@ -114,14 +149,21 @@ export class PositionController {
     operationId: 'apiPos006',
     contractId: 'API-POS-006',
     summary: 'Daftar bawahan langsung/berjenjang',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async subordinates(
     @Param('positionId', ParseUUIDPipe) id: string,
     @Query() q: SubordinateQueryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(
-      await this.positions.subordinates(id, q.recursive, q.depth),
+      await this.positions.subordinates(id, q.recursive, q.depth, context),
     );
   }
   @Get('positions/:positionId/reporting-chain')
@@ -129,7 +171,13 @@ export class PositionController {
     operationId: 'apiPos007',
     contractId: 'API-POS-007',
     summary: 'Rantai komando position',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async chain(@Param('positionId', ParseUUIDPipe) id: string) {
     return apiResult(await this.positions.reportingChain(id));
@@ -139,10 +187,20 @@ export class PositionController {
     operationId: 'apiAsg001',
     contractId: 'API-ASG-001',
     summary: 'Daftar assignment',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
-  async assignments(@Query() q: AssignmentListQueryDto) {
-    const r = await this.positions.assignments(q);
+  async assignments(
+    @Query() q: AssignmentListQueryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    const r = await this.positions.assignments(q, context);
     return apiResult(r.items, undefined, { pagination: r.pagination });
   }
   @Post('position-assignments')
@@ -165,10 +223,20 @@ export class PositionController {
     operationId: 'apiAsg003',
     contractId: 'API-ASG-003',
     summary: 'Detail assignment',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
-  async assignment(@Param('assignmentId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.positions.assignment(id));
+  async assignment(
+    @Param('assignmentId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.positions.assignment(id, context));
   }
   @Post('position-assignments/:assignmentId/close')
   @ApiContract({

@@ -154,12 +154,10 @@ export class UukService {
                       some: {
                         OR: [
                           {
-                            assigneeAssignmentId:
-                              context.primaryAssignmentId,
+                            assigneeAssignmentId: context.primaryAssignmentId,
                           },
                           {
-                            assignerAssignmentId:
-                              context.primaryAssignmentId,
+                            assignerAssignmentId: context.primaryAssignmentId,
                           },
                         ],
                       },
@@ -178,11 +176,7 @@ export class UukService {
     }
 
     return {
-      AND: [
-        { deletedAt: null },
-        extra,
-        { OR: visibilityBranches },
-      ],
+      AND: [{ deletedAt: null }, extra, { OR: visibilityBranches }],
     };
   }
 
@@ -272,7 +266,9 @@ export class UukService {
 
   private detail(id: string, context?: AuthorizationContext) {
     return this.prisma.uukStr.findFirstOrThrow({
-      where: context ? this.uukAccessWhere(context, { id }) : { id, deletedAt: null },
+      where: context
+        ? this.uukAccessWhere(context, { id })
+        : { id, deletedAt: null },
       include: {
         ownerUnit: true,
         directiveVersion: {
@@ -307,8 +303,12 @@ export class UukService {
                 ownerUnit: true,
                 assignments: {
                   include: {
-                    assigner: { include: { position: true, userProfile: true } },
-                    assignee: { include: { position: true, userProfile: true } },
+                    assigner: {
+                      include: { position: true, userProfile: true },
+                    },
+                    assignee: {
+                      include: { position: true, userProfile: true },
+                    },
                   },
                 },
                 targetAreas: { include: { area: true } },
@@ -525,31 +525,32 @@ export class UukService {
 
     this.validateSections(body.sections);
 
-    const directiveVersion = await this.prisma.directiveVersion.findFirstOrThrow({
-      where: {
-        id: body.directiveVersionId,
-        OR: [
-          {
-            directive: {
-              deletedAt: null,
-              ownerUnitId: context.organizationUnitId,
+    const directiveVersion =
+      await this.prisma.directiveVersion.findFirstOrThrow({
+        where: {
+          id: body.directiveVersionId,
+          OR: [
+            {
+              directive: {
+                deletedAt: null,
+                ownerUnitId: context.organizationUnitId,
+              },
             },
-          },
-          {
-            directive: {
-              deletedAt: null,
+            {
+              directive: {
+                deletedAt: null,
+              },
+              recipients: {
+                some: this.recipientScopeWhere(context),
+              },
             },
-            recipients: {
-              some: this.recipientScopeWhere(context),
-            },
-          },
-        ],
-      },
-      include: {
-        directive: true,
-        recipients: true,
-      },
-    });
+          ],
+        },
+        include: {
+          directive: true,
+          recipients: true,
+        },
+      });
 
     if (
       directiveVersion.directive.status === DirectiveStatus.CANCELLED ||

@@ -95,7 +95,10 @@ export class UpdateDirectiveVersionDto {
 }
 
 export class ReplaceAreasDto {
-  @IsArray() @ArrayMinSize(1) @IsUUID(undefined, { each: true }) areaIds!: string[];
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID(undefined, { each: true })
+  areaIds!: string[];
   @IsOptional() @IsUUID() primaryAreaId?: string;
 }
 

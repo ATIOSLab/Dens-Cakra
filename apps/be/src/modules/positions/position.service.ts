@@ -18,8 +18,8 @@ export class PositionService {
     private readonly positionMutation: PositionMutationService,
   ) {}
 
-  list(query: PositionListQueryDto) {
-    return this.positionQuery.list(query);
+  list(query: PositionListQueryDto, context?: AuthorizationContext) {
+    return this.positionQuery.list(query, context);
   }
 
   async create(input: CreatePositionDto, actor: AuthorizationContext) {
@@ -27,8 +27,8 @@ export class PositionService {
     return this.positionQuery.detail(id);
   }
 
-  detail(id: string) {
-    return this.positionQuery.detail(id);
+  detail(id: string, context?: AuthorizationContext) {
+    return this.positionQuery.detail(id, context);
   }
 
   async update(
@@ -55,16 +55,25 @@ export class PositionService {
     return this.positionQuery.detail(id);
   }
 
-  subordinates(id: string, recursive: boolean, depth?: number) {
-    return this.positionQuery.subordinates(id, recursive, depth);
+  subordinates(
+    id: string,
+    recursive: boolean,
+    depth?: number,
+    context?: AuthorizationContext,
+  ) {
+    return this.positionQuery.subordinates(id, recursive, depth, context);
   }
 
   reportingChain(id: string) {
     return this.positionQuery.reportingChain(id);
   }
 
-  assignments(query: AssignmentListQueryDto) {
-    return this.positionQuery.assignments(query);
+  commandNetwork(context: AuthorizationContext) {
+    return this.positionQuery.commandNetwork(context);
+  }
+
+  assignments(query: AssignmentListQueryDto, context?: AuthorizationContext) {
+    return this.positionQuery.assignments(query, context);
   }
 
   async createAssignment(
@@ -75,8 +84,8 @@ export class PositionService {
     return this.positionQuery.assignment(id);
   }
 
-  assignment(id: string) {
-    return this.positionQuery.assignment(id);
+  assignment(id: string, context?: AuthorizationContext) {
+    return this.positionQuery.assignment(id, context);
   }
 
   async closeAssignment(

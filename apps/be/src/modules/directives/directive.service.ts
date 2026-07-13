@@ -123,12 +123,10 @@ export class DirectiveService {
                       some: {
                         OR: [
                           {
-                            assigneeAssignmentId:
-                              context.primaryAssignmentId,
+                            assigneeAssignmentId: context.primaryAssignmentId,
                           },
                           {
-                            assignerAssignmentId:
-                              context.primaryAssignmentId,
+                            assignerAssignmentId: context.primaryAssignmentId,
                           },
                         ],
                       },
@@ -147,11 +145,7 @@ export class DirectiveService {
     }
 
     return {
-      AND: [
-        { deletedAt: null },
-        extra,
-        { OR: visibilityBranches },
-      ],
+      AND: [{ deletedAt: null }, extra, { OR: visibilityBranches }],
     };
   }
 
@@ -269,8 +263,12 @@ export class DirectiveService {
                 ownerUnit: true,
                 assignments: {
                   include: {
-                    assigner: { include: { position: true, userProfile: true } },
-                    assignee: { include: { position: true, userProfile: true } },
+                    assigner: {
+                      include: { position: true, userProfile: true },
+                    },
+                    assignee: {
+                      include: { position: true, userProfile: true },
+                    },
                   },
                 },
                 targetAreas: {
@@ -1422,8 +1420,7 @@ export class DirectiveService {
     }
 
     const orderedForwardings = [...version.uukStrs].sort(
-      (left, right) =>
-        right.updatedAt.getTime() - left.updatedAt.getTime(),
+      (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
     );
 
     const regionalChains = version.recipients.map((recipient: any) => {
@@ -1436,7 +1433,7 @@ export class DirectiveService {
           (item) => item.ownerUnitId === recipientUnitId,
         ) ?? null;
       const relatedTaskItems = forwarding
-        ? tasksByUukId.get(forwarding.id) ?? []
+        ? (tasksByUukId.get(forwarding.id) ?? [])
         : [];
       const fcAssignments = relatedTaskItems.flatMap(
         (task) => task.fieldCoordinatorAssignments ?? [],
@@ -1487,8 +1484,7 @@ export class DirectiveService {
               createdBy: {
                 assignmentId: forwarding.createdByAssignment?.id ?? null,
                 fullName:
-                  forwarding.createdByAssignment?.userProfile?.fullName ??
-                  null,
+                  forwarding.createdByAssignment?.userProfile?.fullName ?? null,
                 positionTitle:
                   forwarding.createdByAssignment?.position?.title ?? null,
                 organizationUnitName:
@@ -1601,9 +1597,8 @@ export class DirectiveService {
           totalForwardedRegionalStr: regionalChains.filter(
             (chain) => chain.forwarding,
           ).length,
-          readCount: regionalChains.filter(
-            (chain) => chain.oimStage.hasRead,
-          ).length,
+          readCount: regionalChains.filter((chain) => chain.oimStage.hasRead)
+            .length,
           taskCount: mappedTasks.length,
           forwardedToFieldCoordinatorCount: regionalChains.filter(
             (chain) => chain.oimStage.hasForwardedToFieldCoordinator,

@@ -1,18 +1,7 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function Page({ params, searchParams }: PageProps) {
-  return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/oim/verifikasi-neraca-penilaian"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
-    />
-  );
+export default function Page() {
+  redirect("/dashboard/oim/laporan-masuk?status=UNDER_VERIFICATION");
 }

@@ -16,6 +16,7 @@ import { CurrentAccessContext } from '../../common/decorators/current-access-con
 import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
 import {
   AreaHierarchyQueryDto,
   AreaListQueryDto,
@@ -37,13 +38,23 @@ import { AreaService } from './area.service.js';
 @UseGuards(SessionGuard, DomainAccessGuard)
 @Controller()
 export class AreaController {
-  constructor(private readonly areas: AreaService) {}
+  constructor(
+    private readonly areas: AreaService,
+    private readonly domainScope: DomainScopeService,
+  ) {}
   @Get('administrative-areas')
   @ApiContract({
     operationId: 'apiArea001',
     contractId: 'API-AREA-001',
     summary: 'Daftar/filter wilayah',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async list(@Query() q: AreaListQueryDto) {
     const r = await this.areas.list(q);
@@ -69,17 +80,41 @@ export class AreaController {
     operationId: 'apiArea002',
     contractId: 'API-AREA-002',
     summary: 'Cascading tree wilayah',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async tree(@Query() q: AreaTreeQueryDto) {
     return apiResult(await this.areas.tree(q));
+  }
+  @Get('administrative-areas/scoped-tree')
+  @ApiContract({
+    operationId: 'apiArea016',
+    contractId: 'API-AREA-016',
+    summary: 'Cascading tree wilayah sesuai scope pengguna',
+    roles: ['operational_intelligence_manager'],
+  })
+  async scopedTree(@CurrentAccessContext() context: AuthorizationContext) {
+    return apiResult(await this.domainScope.areaTree(context));
   }
   @Get('administrative-areas/search')
   @ApiContract({
     operationId: 'apiArea007',
     contractId: 'API-AREA-007',
     summary: 'Search wilayah berdasarkan nama/kode',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async search(@Query() q: AreaSearchQueryDto) {
     return apiResult(await this.areas.search(q));
@@ -89,7 +124,14 @@ export class AreaController {
     operationId: 'apiArea009',
     contractId: 'API-AREA-009',
     summary: 'Boundary berdasarkan viewport',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async viewport(@Query() q: ViewportBoundaryQueryDto) {
     return apiResult(await this.areas.viewport(q));
@@ -109,7 +151,14 @@ export class AreaController {
     operationId: 'apiArea003',
     contractId: 'API-AREA-003',
     summary: 'Detail wilayah',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async detail(@Param('areaId', ParseUUIDPipe) id: string) {
     return apiResult(await this.areas.detail(id));
@@ -133,7 +182,14 @@ export class AreaController {
     operationId: 'apiArea004',
     contractId: 'API-AREA-004',
     summary: 'Anak wilayah untuk cascading filter',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async children(
     @Param('areaId', ParseUUIDPipe) id: string,
@@ -146,7 +202,14 @@ export class AreaController {
     operationId: 'apiArea005',
     contractId: 'API-AREA-005',
     summary: 'Breadcrumb administratif',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async ancestors(
     @Param('areaId', ParseUUIDPipe) id: string,
@@ -159,7 +222,14 @@ export class AreaController {
     operationId: 'apiArea006',
     contractId: 'API-AREA-006',
     summary: 'Turunan wilayah',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async descendants(
     @Param('areaId', ParseUUIDPipe) id: string,
@@ -172,7 +242,14 @@ export class AreaController {
     operationId: 'apiArea008',
     contractId: 'API-AREA-008',
     summary: 'Ambil boundary GeoJSON',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async boundary(
     @Param('areaId', ParseUUIDPipe) id: string,

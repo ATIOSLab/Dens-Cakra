@@ -58,13 +58,16 @@ export class AssignmentListQueryDto {
   @IsOptional() @IsUUID() userProfileId?: string;
   @IsOptional() @IsUUID() positionId?: string;
   @Transform(({ value }) => {
-      if (Array.isArray(value)) {
-        return value;
-      }
+    if (Array.isArray(value)) {
+      return value;
+    }
 
-      return value ? [value] : undefined;
+    return value ? [value] : undefined;
   })
-  @IsOptional() @IsArray() @IsUUID(undefined, { each: true }) positionIds?: string[];
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  positionIds?: string[];
   @IsOptional() @IsUUID() unitId?: string;
   @IsOptional() @IsEnum(RoleCode) roleCode?: RoleCode;
   @IsOptional() @IsEnum(PositionCode) positionCode?: PositionCode;
@@ -108,5 +111,8 @@ export class ReplaceAssignmentScopesDto extends ReasonDto {
 }
 
 export class ValidateAssignmentScopesDto {
-  @IsArray() @ArrayMinSize(1) @IsUUID(undefined, { each: true }) areaIds!: string[];
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID(undefined, { each: true })
+  areaIds!: string[];
 }

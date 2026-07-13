@@ -3,11 +3,13 @@ import { AnalysisStatus, Prisma } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
 import type {
   AnalysisQuery,
   ArchiveAnalysisDto,
   CreateAnalysisCaseDto,
   CreateAnalysisVersionDto,
+  FinalizeAnalysisDto,
   ReplaceEntitiesDto,
   ReplaceRelationshipsDto,
   ReplaceSourcesDto,
@@ -18,7 +20,10 @@ import type {
 
 @Injectable()
 export class AnalysisService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scope: DomainScopeService,
+  ) {}
 
   private ensurePeriodOrder(periodStart?: string, periodEnd?: string) {
     if (
@@ -66,7 +71,27 @@ export class AnalysisService {
             verification: {
               include: {
                 baketVersion: {
-                  include: { baket: true, eventArea: true },
+                  include: {
+                    eventArea: {
+                      include: {
+                        parent: {
+                          include: {
+                            parent: { include: { parent: true } },
+                          },
+                        },
+                      },
+                    },
+                    baket: {
+                      include: {
+                        createdByFieldOfficerAssignment: {
+                          include: {
+                            userProfile: { include: { authUser: true } },
+                            position: true,
+                          },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -117,7 +142,9 @@ export class AnalysisService {
       include: { analysisCase: true },
     });
     if (
+      version.validatedAt !== null ||
       version.analysisCase.status === AnalysisStatus.ARCHIVED ||
+      version.analysisCase.status === AnalysisStatus.VALIDATED ||
       version.versionNumber !== version.analysisCase.currentVersionNumber
     ) {
       throw new ApiException(
@@ -129,62 +156,93 @@ export class AnalysisService {
     return version;
   }
 
-  async list(query: AnalysisQuery) {
-    return this.prisma.analysisCase.findMany({
-      where: {
-        ...(query.status ? { status: query.status } : {}),
-        ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
-        ...(query.search
-          ? {
-              OR: [
-                { title: { contains: query.search, mode: 'insensitive' } },
-                {
-                  versions: {
-                    some: {
-                      OR: [
-                        {
-                          indications: {
-                            contains: query.search,
-                            mode: 'insensitive',
-                          },
+  private async assertVersionScope(
+    context: AuthorizationContext,
+    versionId: string,
+  ) {
+    const version = await this.prisma.analysisVersion.findUniqueOrThrow({
+      where: { id: versionId },
+      select: { analysisCaseId: true },
+    });
+    await this.scope.assertAnalysis(context, version.analysisCaseId);
+  }
+
+  async list(query: AnalysisQuery, context: AuthorizationContext) {
+    const where: Prisma.AnalysisCaseWhereInput = {
+      ...this.scope.analysisWhere(context),
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
+      ...(query.search
+        ? {
+            OR: [
+              { title: { contains: query.search, mode: 'insensitive' } },
+              {
+                versions: {
+                  some: {
+                    OR: [
+                      {
+                        indications: {
+                          contains: query.search,
+                          mode: 'insensitive',
                         },
-                        {
-                          analysis: {
-                            contains: query.search,
-                            mode: 'insensitive',
-                          },
+                      },
+                      {
+                        analysis: {
+                          contains: query.search,
+                          mode: 'insensitive',
                         },
-                      ],
-                    },
+                      },
+                    ],
                   },
                 },
-              ],
-            }
-          : {}),
-      },
-      take: query.limit,
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        ownerUnit: true,
-        versions: {
-          orderBy: { versionNumber: 'desc' },
-          take: 1,
+              },
+            ],
+          }
+        : {}),
+    };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.analysisCase.findMany({
+        where,
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          ownerUnit: true,
+          versions: {
+            orderBy: { versionNumber: 'desc' },
+            take: 1,
+          },
+          _count: {
+            select: { sources: true, versions: true },
+          },
         },
-        _count: {
-          select: { sources: true, versions: true },
-        },
+      }),
+      this.prisma.analysisCase.count({ where }),
+    ]);
+    return {
+      items,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
       },
-    });
+    };
   }
 
   async create(body: CreateAnalysisCaseDto, context: AuthorizationContext) {
     this.ensurePeriodOrder(body.periodStart, body.periodEnd);
     const analysisCase = await this.prisma.$transaction(async (tx) => {
       if (body.verificationIds?.length) {
+        const baketWhere = await this.scope.baketWhere(context);
         const verifications = await tx.baketVerification.findMany({
-          where: { id: { in: body.verificationIds } },
+          where: {
+            id: { in: body.verificationIds },
+            baketVersion: { baket: baketWhere },
+          },
         });
         if (
+          verifications.length !== body.verificationIds.length ||
           verifications.some(
             (verification) => verification.status !== 'VERIFIED',
           )
@@ -199,7 +257,7 @@ export class AnalysisService {
 
       return tx.analysisCase.create({
         data: {
-          ownerUnitId: body.ownerUnitId,
+          ownerUnitId: context.organizationUnitId,
           createdByAssignmentId: context.primaryAssignmentId,
           title: body.title,
           periodStart: body.periodStart ? new Date(body.periodStart) : null,
@@ -230,7 +288,71 @@ export class AnalysisService {
     return this.caseDetail(analysisCase.id);
   }
 
-  async get(caseId: string) {
+  async get(caseId: string, context: AuthorizationContext) {
+    await this.scope.assertAnalysis(context, caseId);
+    return this.caseDetail(caseId);
+  }
+
+  async finalize(
+    caseId: string,
+    body: FinalizeAnalysisDto,
+    context: AuthorizationContext,
+  ) {
+    await this.scope.assertAnalysis(context, caseId);
+    const analysisCase = await this.prisma.analysisCase.findUniqueOrThrow({
+      where: { id: caseId },
+      include: { _count: { select: { sources: true } } },
+    });
+    if (analysisCase.status === AnalysisStatus.VALIDATED) {
+      return this.caseDetail(caseId);
+    }
+    if (
+      analysisCase.status !== AnalysisStatus.DRAFT &&
+      analysisCase.status !== AnalysisStatus.IN_REVIEW
+    ) {
+      throw new ApiException(
+        'ANALYSIS_NOT_FINALIZABLE',
+        'Only an active draft analysis can be finalized.',
+        409,
+      );
+    }
+    if (analysisCase._count.sources === 0) {
+      throw new ApiException(
+        'ANALYSIS_SOURCE_REQUIRED',
+        'At least one verified Baket is required before finalization.',
+        422,
+      );
+    }
+
+    const version = await this.prisma.analysisVersion.findUniqueOrThrow({
+      where: {
+        analysisCaseId_versionNumber: {
+          analysisCaseId: caseId,
+          versionNumber: analysisCase.currentVersionNumber,
+        },
+      },
+    });
+    await this.prisma.$transaction([
+      this.prisma.analysisVersion.update({
+        where: { id: version.id },
+        data: {
+          indications: body.indications,
+          analysis: body.analysis,
+          impact: body.impact,
+          efforts: body.efforts,
+          recommendations: body.recommendations,
+          validatedByAssignmentId: context.primaryAssignmentId,
+          validatedAt: new Date(),
+        },
+      }),
+      this.prisma.analysisCase.update({
+        where: { id: caseId },
+        data: { status: AnalysisStatus.VALIDATED },
+      }),
+    ]);
+    await this.audit(context, 'ANALYSIS.FINALIZE', 'AnalysisCase', caseId, {
+      versionId: version.id,
+    });
     return this.caseDetail(caseId);
   }
 
@@ -239,6 +361,7 @@ export class AnalysisService {
     body: UpdateAnalysisCaseDto,
     context: AuthorizationContext,
   ) {
+    await this.scope.assertAnalysis(context, caseId);
     this.ensurePeriodOrder(body.periodStart, body.periodEnd);
     const analysisCase = await this.prisma.analysisCase.findUniqueOrThrow({
       where: { id: caseId },
@@ -269,8 +392,13 @@ export class AnalysisService {
     body: ReplaceSourcesDto,
     context: AuthorizationContext,
   ) {
+    await this.scope.assertAnalysis(context, caseId);
+    const baketWhere = await this.scope.baketWhere(context);
     const verifications = await this.prisma.baketVerification.findMany({
-      where: { id: { in: body.verificationIds } },
+      where: {
+        id: { in: body.verificationIds },
+        baketVersion: { baket: baketWhere },
+      },
     });
     if (
       verifications.some((verification) => verification.status !== 'VERIFIED')
@@ -301,7 +429,8 @@ export class AnalysisService {
     return (await this.caseDetail(caseId)).sources;
   }
 
-  async versions(caseId: string) {
+  async versions(caseId: string, context: AuthorizationContext) {
+    await this.scope.assertAnalysis(context, caseId);
     return this.prisma.analysisVersion.findMany({
       where: { analysisCaseId: caseId },
       orderBy: { versionNumber: 'desc' },
@@ -323,6 +452,7 @@ export class AnalysisService {
     body: CreateAnalysisVersionDto,
     context: AuthorizationContext,
   ) {
+    await this.scope.assertAnalysis(context, caseId);
     const analysisCase = await this.prisma.analysisCase.findUniqueOrThrow({
       where: { id: caseId },
     });
@@ -355,11 +485,6 @@ export class AnalysisService {
           impact: body.impact ?? baseVersion.impact,
           efforts: body.efforts ?? baseVersion.efforts,
           recommendations: body.recommendations ?? baseVersion.recommendations,
-          ...(body.aiDraft
-            ? { aiDraft: body.aiDraft as Prisma.InputJsonValue }
-            : baseVersion.aiDraft !== null
-              ? { aiDraft: baseVersion.aiDraft }
-              : {}),
           createdByAssignmentId: context.primaryAssignmentId,
           entities: {
             create: baseVersion.entities.map((entity) => ({
@@ -393,7 +518,8 @@ export class AnalysisService {
     return this.versionDetail(version.id);
   }
 
-  async getVersion(versionId: string) {
+  async getVersion(versionId: string, context: AuthorizationContext) {
+    await this.assertVersionScope(context, versionId);
     return this.versionDetail(versionId);
   }
 
@@ -402,6 +528,7 @@ export class AnalysisService {
     body: UpdateAnalysisVersionDto,
     context: AuthorizationContext,
   ) {
+    await this.assertVersionScope(context, versionId);
     await this.getEditableVersion(versionId);
     await this.prisma.analysisVersion.update({
       where: { id: versionId },
@@ -411,9 +538,6 @@ export class AnalysisService {
         impact: body.impact,
         efforts: body.efforts,
         recommendations: body.recommendations,
-        ...(body.aiDraft
-          ? { aiDraft: body.aiDraft as Prisma.InputJsonValue }
-          : {}),
       },
     });
     await this.audit(
@@ -494,6 +618,13 @@ export class AnalysisService {
     context: AuthorizationContext,
   ) {
     const version = await this.getEditableVersion(versionId);
+    if (version.analysisCase.status !== AnalysisStatus.IN_REVIEW) {
+      throw new ApiException(
+        'ANALYSIS_REVIEW_REQUIRED',
+        'Analysis must be submitted for human review before validation.',
+        409,
+      );
+    }
     await this.prisma.$transaction(async (tx) => {
       await tx.analysisVersion.update({
         where: { id: versionId },
@@ -519,7 +650,38 @@ export class AnalysisService {
     return this.versionDetail(versionId);
   }
 
-  async graph(caseId: string) {
+  async submitReview(
+    caseId: string,
+    context: AuthorizationContext,
+    note?: string,
+  ) {
+    await this.scope.assertAnalysis(context, caseId);
+    const analysisCase = await this.prisma.analysisCase.findUniqueOrThrow({
+      where: { id: caseId },
+    });
+    if (analysisCase.status !== AnalysisStatus.DRAFT) {
+      throw new ApiException(
+        'ANALYSIS_NOT_DRAFT',
+        'Only a draft analysis can enter review.',
+        409,
+      );
+    }
+    await this.prisma.analysisCase.update({
+      where: { id: caseId },
+      data: { status: AnalysisStatus.IN_REVIEW },
+    });
+    await this.audit(
+      context,
+      'ANALYSIS.SUBMIT_REVIEW',
+      'AnalysisCase',
+      caseId,
+      { note: note ?? null },
+    );
+    return this.caseDetail(caseId);
+  }
+
+  async graph(caseId: string, context: AuthorizationContext) {
+    await this.scope.assertAnalysis(context, caseId);
     const analysisCase = await this.caseDetail(caseId);
     const currentVersion = analysisCase.versions.find(
       (item) => item.versionNumber === analysisCase.currentVersionNumber,
@@ -532,7 +694,8 @@ export class AnalysisService {
     };
   }
 
-  async traceability(caseId: string) {
+  async traceability(caseId: string, context: AuthorizationContext) {
+    await this.scope.assertAnalysis(context, caseId);
     const analysisCase = await this.caseDetail(caseId);
     const products = await this.prisma.productSourceAnalysis.findMany({
       where: {
@@ -565,6 +728,7 @@ export class AnalysisService {
     body: ArchiveAnalysisDto,
     context: AuthorizationContext,
   ) {
+    await this.scope.assertAnalysis(context, caseId);
     await this.prisma.analysisCase.update({
       where: { id: caseId },
       data: { status: AnalysisStatus.ARCHIVED },

@@ -201,7 +201,10 @@ export class OrganizationManagementService {
             directorateProfile: {
               include: {
                 coverageAreas: {
-                  orderBy: [{ isPrimary: 'desc' }, { province: { name: 'asc' } }],
+                  orderBy: [
+                    { isPrimary: 'desc' },
+                    { province: { name: 'asc' } },
+                  ],
                   include: {
                     province: {
                       select: {
@@ -238,16 +241,14 @@ export class OrganizationManagementService {
                 ? null
                 : Number(province.centroidLongitude),
           },
-          binda: null as
-            | {
-                unitId: string;
-                code: string;
-                name: string;
-                parentUnitId: string | null;
-                parentUnitCode: string | null;
-                parentUnitName: string | null;
-              }
-            | null,
+          binda: null as {
+            unitId: string;
+            code: string;
+            name: string;
+            parentUnitId: string | null;
+            parentUnitCode: string | null;
+            parentUnitName: string | null;
+          } | null,
           directorates: [] as Array<{
             unitId: string;
             code: string;
@@ -299,7 +300,9 @@ export class OrganizationManagementService {
           isPrimary: coverage.isPrimary,
         })) ?? [];
       const primaryCoverage =
-        coverages.find((coverage) => coverage.isPrimary) ?? coverages[0] ?? null;
+        coverages.find((coverage) => coverage.isPrimary) ??
+        coverages[0] ??
+        null;
       const directorateSummary = {
         unitId: unit.id,
         code: unit.code,
@@ -313,9 +316,9 @@ export class OrganizationManagementService {
       };
 
       for (const coverage of coverages) {
-        provinceSummaries.get(coverage.areaId)?.directorates.push(
-          directorateSummary,
-        );
+        provinceSummaries
+          .get(coverage.areaId)
+          ?.directorates.push(directorateSummary);
       }
     }
 
@@ -833,7 +836,9 @@ export class OrganizationManagementService {
     );
   }
 
-  private async requireProvince(provinceAreaId: string): Promise<ProvinceRecord> {
+  private async requireProvince(
+    provinceAreaId: string,
+  ): Promise<ProvinceRecord> {
     const province = await this.prisma.administrativeArea.findFirst({
       where: {
         id: provinceAreaId,

@@ -42,7 +42,13 @@ export class OrganizationController {
     operationId: 'apiOrg001',
     contractId: 'API-ORG-001',
     summary: 'Daftar unit organisasi',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async list(
     @Query() query: OrganizationListQueryDto,
@@ -81,7 +87,9 @@ export class OrganizationController {
     @Query() query: RegionalMasterQueryDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.organizations.listRegionalMasters(query, context));
+    return apiResult(
+      await this.organizations.listRegionalMasters(query, context),
+    );
   }
 
   @Post('regional-masters/binda')
@@ -123,7 +131,13 @@ export class OrganizationController {
     operationId: 'apiOrg003',
     contractId: 'API-ORG-003',
     summary: 'Detail unit',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async detail(@Param('unitId', ParseUUIDPipe) id: string) {
     return apiResult(await this.organizations.detail(id));
@@ -167,7 +181,13 @@ export class OrganizationController {
     operationId: 'apiOrg006',
     contractId: 'API-ORG-006',
     summary: 'Ambil rantai atasan unit',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async ancestors(
     @Param('unitId', ParseUUIDPipe) id: string,
@@ -183,7 +203,13 @@ export class OrganizationController {
     operationId: 'apiOrg007',
     contractId: 'API-ORG-007',
     summary: 'Ambil unit turunan',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async descendants(
     @Param('unitId', ParseUUIDPipe) id: string,
@@ -199,7 +225,13 @@ export class OrganizationController {
     operationId: 'apiOrg008',
     contractId: 'API-ORG-008',
     summary: 'Ambil subtree organisasi',
-    roles: ['admin_system', 'executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator'],
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async tree(
     @Param('unitId', ParseUUIDPipe) id: string,

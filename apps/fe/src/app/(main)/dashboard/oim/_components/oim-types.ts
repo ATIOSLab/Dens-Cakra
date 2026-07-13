@@ -1,0 +1,49 @@
+export type OimView =
+  | "dashboard"
+  | "reports"
+  | "report-detail"
+  | "report-version"
+  | "verification"
+  | "verification-detail"
+  | "analysis"
+  | "analysis-new"
+  | "analysis-detail"
+  | "analysis-edit"
+  | "analysis-version"
+  | "products"
+  | "product-list"
+  | "product-new"
+  | "product-detail"
+  | "product-edit"
+  | "product-version"
+  | "approval"
+  | "approval-detail"
+  | "workflow-detail"
+  | "monitoring"
+  | "monitoring-task"
+  | "monitoring-report"
+  | "monitoring-personnel"
+  | "map"
+  | "map-report"
+  | "map-alert";
+
+export type OimPageData = {
+  bakets?: unknown;
+  baket?: unknown;
+  version?: unknown;
+  verifications?: unknown;
+  verification?: unknown;
+  analyses?: unknown;
+  analysis?: unknown;
+  products?: unknown;
+  product?: unknown;
+  productTypes?: unknown;
+  workflow?: unknown;
+  dashboard?: unknown;
+  map?: unknown;
+  boundaries?: unknown;
+  areas?: unknown;
+  errors?: string[];
+  activeTab?: string;
+  activeStatus?: string;
+};

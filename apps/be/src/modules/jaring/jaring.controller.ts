@@ -46,8 +46,11 @@ export class JaringController {
     summary: 'Daftar Jaring',
     roles: ['regional_commander', 'field_coordinator', 'field_officer'],
   })
-  async list(@Query() query: JaringQuery) {
-    return apiResult(await this.jaringService.list(query));
+  async list(
+    @Query() query: JaringQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.list(query, context));
   }
 
   @Post()
@@ -161,8 +164,11 @@ export class JaringController {
     summary: 'Detail Jaring',
     roles: ['regional_commander', 'field_coordinator', 'field_officer'],
   })
-  async get(@Param('jaringId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.jaringService.get(id));
+  async get(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.get(id, context));
   }
 
   @Patch(':jaringId')
@@ -235,8 +241,11 @@ export class JaringController {
     summary: 'Riwayat caretaker',
     roles: ['regional_commander', 'field_coordinator', 'field_officer'],
   })
-  async caretakers(@Param('jaringId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.jaringService.caretakers(id));
+  async caretakers(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.caretakers(id, context));
   }
 
   @Post(':jaringId/caretaker-transfer')
@@ -263,8 +272,11 @@ export class JaringController {
     summary: 'Coverage wilayah Jaring',
     roles: ['regional_commander', 'field_coordinator', 'field_officer'],
   })
-  async coverages(@Param('jaringId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.jaringService.coverages(id));
+  async coverages(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.coverages(id, context));
   }
 
   @Put(':jaringId/area-coverages')
@@ -299,9 +311,18 @@ export class JaringController {
     operationId: 'apiJar013',
     contractId: 'API-JAR-013',
     summary: 'Baket Jaring',
-    roles: ['executive', 'regional_commander', 'operational_intelligence_manager', 'field_coordinator', 'field_officer'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
-  async bakets(@Param('jaringId', ParseUUIDPipe) id: string) {
-    return apiResult(await this.jaringService.bakets(id));
+  async bakets(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.bakets(id, context));
   }
 }

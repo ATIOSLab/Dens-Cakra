@@ -1,5 +1,11 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { AdministrativeLevel } from '../../../generated/prisma/client.js';
 
 export class AreaScopeQueryDto {

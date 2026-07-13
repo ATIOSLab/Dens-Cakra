@@ -278,8 +278,7 @@ export class WhatsappBotRuntimeService
       const { state, saveCreds } = await useMultiFileAuthState(authDir);
       const { version } = await fetchLatestBaileysVersion();
       const config = this.readConfig(channel.config);
-      const pairingMethod =
-        config.pairingMethod === 'code' ? 'code' : 'qr';
+      const pairingMethod = config.pairingMethod === 'code' ? 'code' : 'qr';
       const botPhoneNumber = this.readPhone(config.botPhoneNumber);
 
       const socket = makeWASocket({
@@ -300,11 +299,7 @@ export class WhatsappBotRuntimeService
         await this.handleConnectionUpdate(
           channel,
           socket,
-          update as {
-            connection?: string;
-            lastDisconnect?: { error?: unknown } | null;
-            qr?: string;
-          },
+          update,
           pairingMethod,
           botPhoneNumber,
         );
@@ -395,8 +390,7 @@ export class WhatsappBotRuntimeService
         await this.persistState(
           channel.id,
           {
-            connectionStatus:
-              WhatsAppBotConnectionStatus.PAIRING_CODE_READY,
+            connectionStatus: WhatsAppBotConnectionStatus.PAIRING_CODE_READY,
             pairingCode,
             botPhoneNumber,
           },
@@ -492,7 +486,11 @@ export class WhatsappBotRuntimeService
     }
 
     const remoteJid = message.key.remoteJid;
-    if (!remoteJid || remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast') {
+    if (
+      !remoteJid ||
+      remoteJid.endsWith('@g.us') ||
+      remoteJid === 'status@broadcast'
+    ) {
       return;
     }
 
@@ -518,7 +516,11 @@ export class WhatsappBotRuntimeService
       return;
     }
 
-    const payload = this.toInboundPayload(message, senderPhone, externalMessageId);
+    const payload = this.toInboundPayload(
+      message,
+      senderPhone,
+      externalMessageId,
+    );
     const handled = await this.handleBotInteraction(
       channel,
       socket,
@@ -584,7 +586,8 @@ export class WhatsappBotRuntimeService
         Number(message.messageTimestamp ?? Date.now()) * 1000,
       ).toISOString(),
       title,
-      content: text || (location ? 'Lokasi diterima dari sesi WhatsApp.' : undefined),
+      content:
+        text || (location ? 'Lokasi diterima dari sesi WhatsApp.' : undefined),
       latitude: location?.latitude,
       longitude: location?.longitude,
       gpsAccuracyMeters: location?.accuracy,
@@ -595,8 +598,8 @@ export class WhatsappBotRuntimeService
         messageType: this.detectMessageType(unwrapped),
         hasMedia: Boolean(
           unwrapped?.imageMessage ||
-            unwrapped?.videoMessage ||
-            unwrapped?.documentMessage,
+          unwrapped?.videoMessage ||
+          unwrapped?.documentMessage,
         ),
       },
     };
@@ -631,9 +634,7 @@ export class WhatsappBotRuntimeService
   }
 
   private extractLocation(message: ReturnType<typeof this.unwrapMessage>) {
-    const location =
-      message?.locationMessage ||
-      message?.liveLocationMessage;
+    const location = message?.locationMessage || message?.liveLocationMessage;
 
     if (!location) {
       return null;
@@ -687,7 +688,10 @@ export class WhatsappBotRuntimeService
     }
 
     if (decoded.server === 'lid') {
-      const mappedPn = await this.resolvePhoneNumberForLid(socket, decoded.user);
+      const mappedPn = await this.resolvePhoneNumberForLid(
+        socket,
+        decoded.user,
+      );
       if (mappedPn) {
         return mappedPn;
       }
@@ -704,7 +708,7 @@ export class WhatsappBotRuntimeService
     const reverseKey = `${lidUser}_reverse`;
     const stored = await Promise.resolve(
       socket.authState.keys.get('lid-mapping', [reverseKey]),
-    ).catch(() => ({} as Record<string, unknown>));
+    ).catch(() => ({}));
     const mappedUser = stored[reverseKey];
 
     if (typeof mappedUser !== 'string' || mappedUser.length === 0) {
@@ -733,7 +737,9 @@ export class WhatsappBotRuntimeService
       'algorithm' in config &&
       (config as { algorithm?: unknown }).algorithm === 'aes-256-gcm'
     ) {
-      return this.vault.decrypt<Record<string, unknown>>(config as EncryptedValue);
+      return this.vault.decrypt<Record<string, unknown>>(
+        config as EncryptedValue,
+      );
     }
 
     return (config as Record<string, unknown> | null) ?? {};
@@ -780,8 +786,7 @@ export class WhatsappBotRuntimeService
         create: {
           integrationChannelId: channelId,
           connectionStatus:
-            patch.connectionStatus ??
-            WhatsAppBotConnectionStatus.DISCONNECTED,
+            patch.connectionStatus ?? WhatsAppBotConnectionStatus.DISCONNECTED,
           qrCodeText: patch.qrCodeText ?? null,
           qrCodeDataUrl: patch.qrCodeDataUrl ?? null,
           pairingCode: patch.pairingCode ?? null,
@@ -820,7 +825,9 @@ export class WhatsappBotRuntimeService
     const channel = await this.getChannel(channelId);
 
     if (!this.runtimes.has(channelId)) {
-      await this.connectChannel(channel, { force: true }).catch(() => undefined);
+      await this.connectChannel(channel, { force: true }).catch(
+        () => undefined,
+      );
     }
 
     await this.disconnectChannel(channel.id, true);
@@ -882,20 +889,21 @@ export class WhatsappBotRuntimeService
       ? `\nCluster: ${jaring.cluster.name}`
       : '';
 
-    const replies = jaring && isInChannelScope
-      ? [
-          `Halo, ${jaringLabel}. Akun WhatsApp Anda sudah terhubung ke DENS CAKRA.${clusterLabel}`,
-          `Laporan Anda akan diterima dan diteruskan ke ${caretakerName}. Kirim teks, foto, atau lokasi sesuai kebutuhan laporan.`,
-        ]
-      : jaring
+    const replies =
+      jaring && isInChannelScope
         ? [
-            'Halo. Nomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah bot WhatsApp ini.',
-            'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda atau hubungi Field Officer penanggung jawab.',
+            `Halo, ${jaringLabel}. Akun WhatsApp Anda sudah terhubung ke DENS CAKRA.${clusterLabel}`,
+            `Laporan Anda akan diterima dan diteruskan ke ${caretakerName}. Kirim teks, foto, atau lokasi sesuai kebutuhan laporan.`,
           ]
-      : [
-          'Halo. Bot DENS CAKRA sudah aktif.',
-          'Nomor WhatsApp ini belum terdaftar sebagai Jaring aktif. Silakan hubungi Field Officer untuk registrasi terlebih dahulu.',
-        ];
+        : jaring
+          ? [
+              'Halo. Nomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah bot WhatsApp ini.',
+              'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda atau hubungi Field Officer penanggung jawab.',
+            ]
+          : [
+              'Halo. Bot DENS CAKRA sudah aktif.',
+              'Nomor WhatsApp ini belum terdaftar sebagai Jaring aktif. Silakan hubungi Field Officer untuk registrasi terlebih dahulu.',
+            ];
 
     await this.sendHumanLikeReplies(socket, remoteJid, [message.key], replies);
     this.logger.log(`Sent /start response to ${payload.senderPhone}`);
@@ -920,9 +928,14 @@ export class WhatsappBotRuntimeService
     if (this.isCancelIntent(text)) {
       if (activeSession) {
         this.reportSessions.delete(sessionKey);
-        await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-          'Pembuatan laporan dibatalkan. Ketik lapor untuk membuat laporan baru.',
-        ]);
+        await this.sendHumanLikeReplies(
+          socket,
+          remoteJid,
+          [message.key],
+          [
+            'Pembuatan laporan dibatalkan. Ketik lapor untuk membuat laporan baru.',
+          ],
+        );
         return true;
       }
       return false;
@@ -946,7 +959,13 @@ export class WhatsappBotRuntimeService
     }
 
     if (this.isReportIntent(text)) {
-      await this.startReportSession(channel, socket, message, payload, sessionKey);
+      await this.startReportSession(
+        channel,
+        socket,
+        message,
+        payload,
+        sessionKey,
+      );
       return true;
     }
 
@@ -971,18 +990,28 @@ export class WhatsappBotRuntimeService
       : false;
 
     if (!jaring) {
-      await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-        'Akses Ditolak\n\nNomor WhatsApp Anda belum terdaftar sebagai Jaring aktif.',
-        `Nomor WhatsApp Anda: ${payload.senderPhone}\n\nSilakan hubungi Field Officer untuk registrasi terlebih dahulu.`,
-      ]);
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        [
+          'Akses Ditolak\n\nNomor WhatsApp Anda belum terdaftar sebagai Jaring aktif.',
+          `Nomor WhatsApp Anda: ${payload.senderPhone}\n\nSilakan hubungi Field Officer untuk registrasi terlebih dahulu.`,
+        ],
+      );
       return;
     }
 
     if (!isInChannelScope) {
-      await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-        'Akses Ditolak\n\nNomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah bot WhatsApp ini.',
-        'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda.',
-      ]);
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        [
+          'Akses Ditolak\n\nNomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah bot WhatsApp ini.',
+          'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda.',
+        ],
+      );
       return;
     }
 
@@ -990,10 +1019,15 @@ export class WhatsappBotRuntimeService
       jaring.caretakerAssignments[0]?.fieldOfficerAssignmentId;
 
     if (!caretakerAssignmentId) {
-      await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-        'Akses Ditolak\n\nJaring Anda belum memiliki Field Officer penanggung jawab aktif.',
-        'Silakan hubungi admin untuk melengkapi penanggung jawab sebelum mengirim laporan.',
-      ]);
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        [
+          'Akses Ditolak\n\nJaring Anda belum memiliki Field Officer penanggung jawab aktif.',
+          'Silakan hubungi admin untuk melengkapi penanggung jawab sebelum mengirim laporan.',
+        ],
+      );
       return;
     }
 
@@ -1010,9 +1044,14 @@ export class WhatsappBotRuntimeService
       startedAt: new Date(),
     });
 
-    await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-      `Halo, ${jaringLabel}.\n\nAnda telah terdaftar sebagai pelapor. Untuk melanjutkan, silakan masukkan PIN/Kode Autentikasi Jaring.`,
-    ]);
+    await this.sendHumanLikeReplies(
+      socket,
+      remoteJid,
+      [message.key],
+      [
+        `Halo, ${jaringLabel}.\n\nAnda telah terdaftar sebagai pelapor. Untuk melanjutkan, silakan masukkan PIN/Kode Autentikasi Jaring.`,
+      ],
+    );
   }
 
   private async advanceReportSession(
@@ -1037,18 +1076,28 @@ export class WhatsappBotRuntimeService
       }
 
       if (text !== session.jaringCode) {
-        await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-          'PIN salah. Silakan coba lagi.',
-          'Ketik /cancel atau Batal untuk membatalkan.',
-        ]);
+        await this.sendHumanLikeReplies(
+          socket,
+          remoteJid,
+          [message.key],
+          [
+            'PIN salah. Silakan coba lagi.',
+            'Ketik /cancel atau Batal untuk membatalkan.',
+          ],
+        );
         return;
       }
 
       session.step = 'AWAITING_TITLE';
-      await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-        'PIN benar. Autentikasi berhasil.',
-        'Silakan ketik judul laporan Anda.',
-      ]);
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        [
+          'PIN benar. Autentikasi berhasil.',
+          'Silakan ketik judul laporan Anda.',
+        ],
+      );
       return;
     }
 
@@ -1059,10 +1108,15 @@ export class WhatsappBotRuntimeService
 
       session.title = text.slice(0, 300);
       session.step = 'AWAITING_CONTENT';
-      await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-        'Judul laporan diterima.',
-        'Silakan ketik isi laporan Anda secara detail.',
-      ]);
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        [
+          'Judul laporan diterima.',
+          'Silakan ketik isi laporan Anda secara detail.',
+        ],
+      );
       return;
     }
 
@@ -1073,11 +1127,16 @@ export class WhatsappBotRuntimeService
 
       session.content = text;
       session.step = 'AWAITING_EVENT_TIME';
-      await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-        'Teks laporan diterima.',
-        'Kirim tanggal dan jam kejadian dengan format: tanggal/bulan/tahun jam',
-        'Contoh: 13/07/2026 21:30',
-      ]);
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        [
+          'Teks laporan diterima.',
+          'Kirim tanggal dan jam kejadian dengan format: tanggal/bulan/tahun jam',
+          'Contoh: 13/07/2026 21:30',
+        ],
+      );
       return;
     }
 
@@ -1088,28 +1147,41 @@ export class WhatsappBotRuntimeService
 
       const eventDateTime = this.parseReportDateTime(text);
       if (!eventDateTime) {
-        await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-          'Tanggal dan jam belum terbaca.',
-          'Gunakan format: tanggal/bulan/tahun jam. Contoh: 13/07/2026 21:30',
-        ]);
+        await this.sendHumanLikeReplies(
+          socket,
+          remoteJid,
+          [message.key],
+          [
+            'Tanggal dan jam belum terbaca.',
+            'Gunakan format: tanggal/bulan/tahun jam. Contoh: 13/07/2026 21:30',
+          ],
+        );
         return;
       }
 
       session.eventDateTime = eventDateTime;
       session.eventDateTimeText = text;
       session.step = 'AWAITING_PHOTO';
-      await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-        'Tanggal dan jam kejadian diterima.',
-        'Sekarang kirim 1 foto sebagai bukti laporan. Pastikan foto dikirim sebagai foto, bukan file dokumen.',
-      ]);
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        [
+          'Tanggal dan jam kejadian diterima.',
+          'Sekarang kirim 1 foto sebagai bukti laporan. Pastikan foto dikirim sebagai foto, bukan file dokumen.',
+        ],
+      );
       return;
     }
 
     if (session.step === 'AWAITING_PHOTO') {
       if (!unwrapped?.imageMessage) {
-        await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-          'Mohon kirim foto bukti terlebih dahulu.',
-        ]);
+        await this.sendHumanLikeReplies(
+          socket,
+          remoteJid,
+          [message.key],
+          ['Mohon kirim foto bukti terlebih dahulu.'],
+        );
         return;
       }
 
@@ -1121,10 +1193,15 @@ export class WhatsappBotRuntimeService
         session,
       );
       session.step = 'AWAITING_LOCATION';
-      await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-        'Foto diterima.',
-        'Sekarang kirim lokasi/maps kejadian memakai fitur Share Location dari WhatsApp.',
-      ]);
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        [
+          'Foto diterima.',
+          'Sekarang kirim lokasi/maps kejadian memakai fitur Share Location dari WhatsApp.',
+        ],
+      );
       return;
     }
 
@@ -1138,30 +1215,47 @@ export class WhatsappBotRuntimeService
           return;
         }
 
-        await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-          'Lokasi belum terbaca. Mohon kirim fitur Share Location dari WhatsApp, bukan teks alamat.',
-        ]);
+        await this.sendHumanLikeReplies(
+          socket,
+          remoteJid,
+          [message.key],
+          [
+            'Lokasi belum terbaca. Mohon kirim fitur Share Location dari WhatsApp, bukan teks alamat.',
+          ],
+        );
         return;
       }
 
       await this.saveCompletedReport(channel, payload, session, location);
       this.reportSessions.delete(sessionKey);
 
-      await this.sendHumanLikeReplies(socket, remoteJid, [message.key], [
-        'Laporan berhasil dikirim.',
-        'Teks, foto bukti, dan lokasi/maps telah dicatat di server dan masuk ke kotak masuk Field Officer penanggung jawab.',
-      ]);
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        [
+          'Laporan berhasil dikirim.',
+          'Teks, foto bukti, dan lokasi/maps telah dicatat di server dan masuk ke kotak masuk Field Officer penanggung jawab.',
+        ],
+      );
     }
   }
 
   private isReportIntent(text: string) {
     const command = text.trim().split(/\s+/)[0]?.toLowerCase();
-    return command === 'lapor' || command === '/lapor' || command === '/laporan';
+    return (
+      command === 'lapor' || command === '/lapor' || command === '/laporan'
+    );
   }
 
   private isCancelIntent(text: string) {
     const command = text.trim().split(/\s+/)[0]?.toLowerCase();
-    return command === 'batal' || command === '/batal' || command === 'cancel' || command === '/cancel';
+    return (
+      command === 'batal' ||
+      command === '/batal' ||
+      command === 'cancel' ||
+      command === '/cancel'
+    );
   }
 
   private async saveCompletedReport(
@@ -1182,7 +1276,8 @@ export class WhatsappBotRuntimeService
         latitude: location.latitude,
         longitude: location.longitude,
         gpsAccuracyMeters: location.accuracy,
-        locationCapturedAt: session.eventDateTime ?? new Date(payload.receivedAt),
+        locationCapturedAt:
+          session.eventDateTime ?? new Date(payload.receivedAt),
         coordinateSource: CoordinateSource.WHATSAPP_LOCATION,
         status: WhatsAppMessageStatus.RECEIVED,
         validationSummary: WhatsAppValidationSummary.VALID,
@@ -1200,7 +1295,7 @@ export class WhatsappBotRuntimeService
           startedAt: session.startedAt.toISOString(),
           completedAt: new Date(payload.receivedAt).toISOString(),
           timestamp: new Date().toISOString(),
-        } as Prisma.InputJsonValue,
+        },
         ...(session.photoFileId
           ? {
               media: {
@@ -1365,10 +1460,13 @@ export class WhatsappBotRuntimeService
       },
     });
 
-    const channelAreaIds = channelUser?.positionAssignments.flatMap((assignment) =>
-      assignment.areaScopes.map((scope) => scope.areaId),
-    ) ?? [];
-    const jaringAreaIds = jaring.areaCoverages.map((coverage) => coverage.areaId);
+    const channelAreaIds =
+      channelUser?.positionAssignments.flatMap((assignment) =>
+        assignment.areaScopes.map((scope) => scope.areaId),
+      ) ?? [];
+    const jaringAreaIds = jaring.areaCoverages.map(
+      (coverage) => coverage.areaId,
+    );
 
     if (channelAreaIds.length === 0 || jaringAreaIds.length === 0) {
       return true;
@@ -1378,13 +1476,15 @@ export class WhatsappBotRuntimeService
       return true;
     }
 
-    const ancestorMatch = await this.prisma.administrativeAreaClosure.findFirst({
-      where: {
-        ancestorId: { in: channelAreaIds },
-        descendantId: { in: jaringAreaIds },
+    const ancestorMatch = await this.prisma.administrativeAreaClosure.findFirst(
+      {
+        where: {
+          ancestorId: { in: channelAreaIds },
+          descendantId: { in: jaringAreaIds },
+        },
+        select: { ancestorId: true },
       },
-      select: { ancestorId: true },
-    });
+    );
 
     return Boolean(ancestorMatch);
   }
@@ -1400,7 +1500,9 @@ export class WhatsappBotRuntimeService
     try {
       await socket.readMessages(messageKeys);
     } catch (error: unknown) {
-      this.logger.warn(`Failed to mark WhatsApp message as read: ${this.messageOf(error)}`);
+      this.logger.warn(
+        `Failed to mark WhatsApp message as read: ${this.messageOf(error)}`,
+      );
     }
 
     for (const [index, text] of replies.entries()) {
