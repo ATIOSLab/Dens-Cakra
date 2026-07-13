@@ -145,12 +145,12 @@ export function SearchDialog() {
     <>
       <Button
         onClick={() => handleOpenChange(true)}
-        variant="link"
-        className="px-0! font-normal text-muted-foreground hover:no-underline"
+        variant="outline"
+        className="h-8 min-w-42 justify-start gap-2 border-[var(--dc-divider)] bg-[var(--dc-surface)]/55 px-2.5 font-normal text-muted-foreground shadow-none hover:bg-[var(--dc-surface-hover)] hover:no-underline md:min-w-64"
       >
         <Search data-icon="inline-start" />
-        Cari
-        <kbd className="inline-flex h-5 select-none items-center rounded border bg-muted px-1.5 font-medium text-[10px]">
+        <span className="flex-1 text-left">Cari</span>
+        <kbd className="inline-flex h-5 select-none items-center rounded border border-[var(--dc-divider)] bg-muted/60 px-1.5 font-medium text-[10px] [font-family:var(--dc-font-metadata)]">
           Ctrl J
         </kbd>
       </Button>

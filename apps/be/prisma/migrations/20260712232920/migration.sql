@@ -1,8 +1,10 @@
--- This migration was generated from an intermediate local schema state where
--- JaringCluster and ReportCategory had already been introduced.
--- In the committed migration order, both tables are created later by:
--- - 20260713195000_add_jaring_clusters
--- - 20260713201000_add_report_categories
---
--- Keeping this migration as a no-op preserves local history ordering while
--- allowing `prisma migrate reset` and shadow DB creation to succeed cleanly.
+DO $$
+BEGIN
+  IF to_regclass('"JaringCluster"') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE "JaringCluster" ALTER COLUMN "id" DROP DEFAULT';
+  END IF;
+
+  IF to_regclass('"ReportCategory"') IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE "ReportCategory" ALTER COLUMN "id" DROP DEFAULT';
+  END IF;
+END $$;

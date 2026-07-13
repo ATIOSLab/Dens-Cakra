@@ -52,17 +52,48 @@ async function parseEnvelope<T>(response: Response): Promise<ApiResolvedEnvelope
   return payload;
 }
 
+function buildServerApiUrls(path: string, query?: QueryParams) {
+  const primaryUrl = `${getBackendInternalUrl()}/api/v1${withQuery(path, query)}`;
+  const urls = [primaryUrl];
+
+  try {
+    const fallbackUrl = new URL(primaryUrl);
+
+    if (fallbackUrl.hostname === "localhost") {
+      fallbackUrl.hostname = "127.0.0.1";
+      urls.push(fallbackUrl.toString());
+    }
+  } catch {
+    // Keep the primary URL only when URL parsing fails.
+  }
+
+  return urls;
+}
+
 export async function apiServerFetchEnvelope<T>(path: string, options: ServerRequestOptions = {}) {
-  const url = `${getBackendInternalUrl()}/api/v1${withQuery(path, options.query)}`;
+  const urls = buildServerApiUrls(path, options.query);
   const forwardedHeaders = await buildForwardedHeaders(options.init?.headers, options.idempotent);
+  let lastNetworkError: unknown = null;
 
-  const response = await fetch(url, {
-    ...options.init,
-    headers: forwardedHeaders,
-    cache: "no-store",
-  });
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        ...options.init,
+        headers: forwardedHeaders,
+        cache: "no-store",
+      });
 
-  return parseEnvelope<T>(response);
+      return parseEnvelope<T>(response);
+    } catch (error) {
+      lastNetworkError = error;
+
+      if (!(error instanceof TypeError)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastNetworkError;
 }
 
 export async function apiServerFetch<T>(path: string, options: ServerRequestOptions = {}) {

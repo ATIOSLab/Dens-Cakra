@@ -5,6 +5,8 @@
  * Runs early in <head> to apply the correct data attributes before hydration,
  * preventing layout or theme flicker and keeping RootLayout fully static.
  */
+import Script from "next/script";
+
 import { PREFERENCE_REGISTRY } from "@/lib/preferences/preferences-config";
 
 export function ThemeBootScript() {
@@ -73,6 +75,12 @@ export function ThemeBootScript() {
     })();
   `;
 
-  /* biome-ignore lint/security/noDangerouslySetInnerHtml: required for pre-hydration boot script */
-  return <script dangerouslySetInnerHTML={{ __html: code }} />;
+  return (
+    <Script
+      id="dens-theme-boot"
+      strategy="beforeInteractive"
+      /* biome-ignore lint/security/noDangerouslySetInnerHtml: required for pre-hydration boot script */
+      dangerouslySetInnerHTML={{ __html: code }}
+    />
+  );
 }
