@@ -1,12 +1,11 @@
+// biome-ignore-all lint/nursery/useSortedClasses: Preserves selected finalkalife map UI class composition.
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-  Compass,
   FileText,
   Layers3,
   LoaderCircle,
@@ -22,12 +21,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Map as BaseMap, MapControls, MapGeoJSON, type MapRef, type MapViewport } from "@/components/ui/map";
+import { Map as BaseMap, MapControls, MapGeoJSON, MapMarker, type MapRef, type MapViewport } from "@/components/ui/map";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
 
 import { MapInspector, type SelectionType } from "./MapInspector";
-import { MapLegend } from "./MapLegend";
+import { MapLegend, REPORT_URGENCY_COLORS, REPORT_URGENCY_LABELS } from "./MapLegend";
 import { usePersonnelMap } from "./usePersonnelMap";
 import { getCoordinates, getPersonnelStatus } from "./utils/mapHelpers";
 
@@ -37,6 +36,46 @@ const OPENSTREETMAP_3D_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 const MAP_STYLES = {
   light: OPENSTREETMAP_3D_STYLE,
   dark: OPENSTREETMAP_3D_STYLE,
+};
+type ObjectFilter = "ALL" | "PERSONNEL" | "REPORTS";
+type UnitBranchFilter = "ALL" | "BINDA" | "DIRECTORATE";
+
+type AdministrativeAreaOption = {
+  id: string;
+  code: string;
+  name: string;
+  level: "COUNTRY" | "PROVINCE" | "REGENCY" | "CITY" | "DISTRICT";
+  parentId: string | null;
+  centroidLatitude: string | number | null;
+  centroidLongitude: string | number | null;
+};
+
+type JaringClusterOption = {
+  id: string;
+  code: string;
+  name: string;
+};
+
+type AreaFocus =
+  | { kind: "bounds"; bounds: [[number, number], [number, number]] }
+  | { kind: "center"; center: [number, number] };
+
+type NominatimResult = {
+  lat?: string;
+  lon?: string;
+  boundingbox?: [string, string, string, string];
+};
+
+const REPORT_STATUSES = ["SENT_TO_OIM", "UNDER_VERIFICATION", "NEEDS_DEVELOPMENT", "VERIFIED", "REJECTED"] as const;
+
+const REPORT_URGENCIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
+
+const REPORT_STATUS_LABELS: Record<(typeof REPORT_STATUSES)[number], string> = {
+  SENT_TO_OIM: "Dikirim ke OIM",
+  UNDER_VERIFICATION: "Dalam Verifikasi",
+  NEEDS_DEVELOPMENT: "Perlu Pengembangan",
+  VERIFIED: "Terverifikasi",
+  REJECTED: "Ditolak",
 };
 
 function record(value: unknown): Record<string, unknown> {
@@ -50,6 +89,16 @@ function stringOrNull(value: unknown) {
 function numberOrNull(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getUnitBranch(properties: Record<string, unknown>): UnitBranchFilter | null {
+  if (properties.unitBranch === "BINDA" || properties.unitBranch === "DIRECTORATE") {
+    return properties.unitBranch;
+  }
+  const unitName = String(properties.unitName || "");
+  if (/binda/i.test(unitName)) return "BINDA";
+  if (/direktorat/i.test(unitName)) return "DIRECTORATE";
+  return null;
 }
 
 function getGeometryBounds(geometry: unknown): [[number, number], [number, number]] | null {
@@ -81,6 +130,35 @@ function getGeometryBounds(geometry: unknown): [[number, number], [number, numbe
     [minLongitude, minLatitude],
     [maxLongitude, maxLatitude],
   ];
+}
+
+function isCoordinateInIndonesia(longitude: number, latitude: number) {
+  return longitude >= 90 && longitude <= 145 && latitude >= -15 && latitude <= 10;
+}
+
+function areBoundsInIndonesia(bounds: [[number, number], [number, number]]) {
+  return isCoordinateInIndonesia(bounds[0][0], bounds[0][1]) && isCoordinateInIndonesia(bounds[1][0], bounds[1][1]);
+}
+
+function normalizeAreaNameForGeocoding(name: string) {
+  return name.replace(/^(kabupaten|kota administrasi|kota)\s+/i, "").trim();
+}
+
+function getNominatimFocus(result: NominatimResult | undefined): AreaFocus | null {
+  if (!result) return null;
+  const [south, north, west, east] = (result.boundingbox ?? []).map(Number);
+  const bounds: [[number, number], [number, number]] = [
+    [west, south],
+    [east, north],
+  ];
+  if ([south, north, west, east].every(Number.isFinite) && areBoundsInIndonesia(bounds)) {
+    return { kind: "bounds", bounds };
+  }
+
+  const longitude = numberOrNull(result.lon);
+  const latitude = numberOrNull(result.lat);
+  if (longitude === null || latitude === null || !isCoordinateInIndonesia(longitude, latitude)) return null;
+  return { kind: "center", center: [longitude, latitude] };
 }
 
 function mergePersonnelDetails(featureProperties: any, assignmentValue: unknown, pingValue: unknown) {
@@ -121,8 +199,11 @@ function mergePersonnelDetails(featureProperties: any, assignmentValue: unknown,
     positionTitle: stringOrNull(position.title) ?? featureProperties.positionTitle,
     roleCode: stringOrNull(role.code),
     roleName: stringOrNull(role.name),
+    unitId: stringOrNull(unit.id) ?? featureProperties.unitId,
     unitCode: stringOrNull(unit.code),
     unitName: stringOrNull(unit.name) ?? featureProperties.unitName,
+    unitType: stringOrNull(unit.type) ?? featureProperties.unitType,
+    unitBranch: stringOrNull(unit.branch) ?? featureProperties.unitBranch,
     areaId: stringOrNull(ping.areaId) ?? stringOrNull(primaryArea.id) ?? featureProperties.areaId,
     areaName: stringOrNull(record(ping.area).name) ?? stringOrNull(primaryArea.name) ?? featureProperties.areaName,
     areaNames,
@@ -134,9 +215,52 @@ function mergePersonnelDetails(featureProperties: any, assignmentValue: unknown,
   };
 }
 
+function mergeReportDetails(featureProperties: any, detailValue: unknown) {
+  const detail = record(detailValue);
+  const versions = Array.isArray(detail.versions) ? detail.versions.map(record) : [];
+  const currentVersionNumber = numberOrNull(detail.currentVersionNumber);
+  const currentVersion =
+    versions.find((version) => numberOrNull(version.versionNumber) === currentVersionNumber) ?? versions[0] ?? {};
+  const category = record(detail.reportCategory);
+  const cluster = record(detail.jaringCluster);
+  const creatorAssignment = record(detail.createdByFieldOfficerAssignment);
+  const creatorProfile = record(creatorAssignment.userProfile);
+  const creatorPosition = record(creatorAssignment.position);
+  const verification = record(currentVersion.verification);
+
+  return {
+    ...featureProperties,
+    status: stringOrNull(detail.status) ?? featureProperties.status,
+    title: stringOrNull(currentVersion.title) ?? featureProperties.title,
+    urgency: stringOrNull(currentVersion.urgency) ?? featureProperties.urgency,
+    originalContent: stringOrNull(currentVersion.originalContent),
+    normalizedContent: stringOrNull(currentVersion.normalizedContent),
+    eventTime: stringOrNull(currentVersion.eventTime),
+    fieldOfficerNote: stringOrNull(currentVersion.fieldOfficerNote),
+    coverageValidationStatus: stringOrNull(currentVersion.coverageValidationStatus),
+    coverageValidationNote: stringOrNull(currentVersion.coverageValidationNote),
+    areaResolutionMethod: stringOrNull(currentVersion.areaResolutionMethod),
+    areaResolutionConfidence: numberOrNull(currentVersion.areaResolutionConfidence),
+    gpsAccuracyMeters: numberOrNull(currentVersion.gpsAccuracyMeters),
+    reportCategoryId: stringOrNull(category.id) ?? featureProperties.reportCategoryId,
+    reportCategoryName: stringOrNull(category.name) ?? featureProperties.reportCategoryName,
+    jaringClusterId: stringOrNull(cluster.id) ?? featureProperties.jaringClusterId,
+    jaringClusterName: stringOrNull(cluster.name) ?? featureProperties.jaringClusterName,
+    createdByName: stringOrNull(creatorProfile.fullName),
+    createdByPosition: stringOrNull(creatorPosition.title),
+    verificationStatus: stringOrNull(verification.status),
+    sourceCount: Array.isArray(currentVersion.sourceMessages) ? currentVersion.sourceMessages.length : 0,
+    attachmentCount: Array.isArray(currentVersion.attachments) ? currentVersion.attachments.length : 0,
+    alertCount: Array.isArray(detail.alerts) ? detail.alerts.length : 0,
+    versionNumber: numberOrNull(currentVersion.versionNumber),
+  };
+}
+
 export function NationalMap() {
   const mapRef = useRef<MapRef>(null);
   const personnelRequestId = useRef(0);
+  const reportRequestId = useRef(0);
+  const districtFocusCache = useRef(new Map<string, AreaFocus>());
 
   // Viewport State
   const [viewport, setViewport] = useState<MapViewport>({
@@ -166,30 +290,50 @@ export function NationalMap() {
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedObjectType, setSelectedObjectType] = useState<ObjectFilter>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [selectedUnit, setSelectedUnit] = useState<string>("ALL");
+  const [selectedUnitBranch, setSelectedUnitBranch] = useState<UnitBranchFilter>("ALL");
+  const [selectedReportStatus, setSelectedReportStatus] = useState<string>("ALL");
+  const [selectedReportUrgency, setSelectedReportUrgency] = useState<string>("ALL");
+  const [selectedReportCluster, setSelectedReportCluster] = useState<string>("ALL");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Cascading administrative filters
+  const [countries, setCountries] = useState<AdministrativeAreaOption[]>([]);
+  const [provinces, setProvinces] = useState<AdministrativeAreaOption[]>([]);
+  const [regencies, setRegencies] = useState<AdministrativeAreaOption[]>([]);
+  const [districts, setDistricts] = useState<AdministrativeAreaOption[]>([]);
+  const [selectedCountryId, setSelectedCountryId] = useState("");
+  const [selectedProvinceId, setSelectedProvinceId] = useState("");
+  const [selectedRegencyId, setSelectedRegencyId] = useState("");
+  const [selectedDistrictId, setSelectedDistrictId] = useState("");
+  const [areaOptionsLoading, setAreaOptionsLoading] = useState(false);
+  const [jaringClusters, setJaringClusters] = useState<JaringClusterOption[]>([]);
 
   // Inspector Panel State
   const [selection, setSelection] = useState<SelectionType | null>(null);
-  const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
+
+  const activeAreaId = selectedDistrictId || selectedRegencyId || selectedProvinceId || undefined;
+  const queryZoom = Math.round(viewport.zoom);
 
   const fetchLayers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const bounds = mapRef.current?.getMap()?.getBounds();
-      const bbox = bounds
-        ? [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(",")
-        : "94,-12,142,7";
-      const query = { bbox, zoom: Math.round(viewport.zoom), limit: 1000 };
+      const bbox = activeAreaId
+        ? "94,-12,142,7"
+        : bounds
+          ? [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(",")
+          : "94,-12,142,7";
+      const query = { bbox, zoom: queryZoom, limit: 5000, areaId: activeAreaId };
 
       const [boundariesRes, reportsRes, alertsRes, emergenciesRes, personnelRes] = await Promise.all([
         apiBrowserFetch("/map/boundaries", { query }),
         apiBrowserFetch("/map/reports", { query }),
         apiBrowserFetch("/map/alerts", { query }),
         apiBrowserFetch("/map/emergencies", { query }),
-        apiBrowserFetch("/personnel-location-map"),
+        apiBrowserFetch("/personnel-location-map", { query: { areaId: activeAreaId } }),
       ]);
 
       setBoundaries(boundariesRes || EMPTY_COLLECTION);
@@ -202,7 +346,7 @@ export function NationalMap() {
     } finally {
       setLoading(false);
     }
-  }, [viewport.zoom]);
+  }, [activeAreaId, queryZoom]);
 
   // Initial fetch and auto refresh
   useEffect(() => {
@@ -214,20 +358,71 @@ export function NationalMap() {
     return () => clearInterval(interval);
   }, [fetchLayers]);
 
-  // Extract unique units for filtering
-  const uniqueUnits = useMemo(() => {
-    const units = new Set<string>();
-    (personnel?.features || []).forEach((f: any) => {
-      if (f.properties?.unitName) {
-        units.add(f.properties.unitName);
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMasterFilters = async () => {
+      setAreaOptionsLoading(true);
+      try {
+        const [countryItems, clusterItems] = await Promise.all([
+          apiBrowserFetch<AdministrativeAreaOption[]>("/administrative-areas", {
+            query: { level: "COUNTRY", limit: 1000, isActive: true },
+          }),
+          apiBrowserFetch<JaringClusterOption[]>("/jaring/clusters", {
+            query: { limit: 200 },
+          }).catch(() => []),
+        ]);
+        if (cancelled) return;
+
+        setCountries(countryItems || []);
+        setJaringClusters(clusterItems || []);
+
+        const defaultCountry = countryItems?.[0];
+        if (!defaultCountry) return;
+
+        setSelectedCountryId(defaultCountry.id);
+        const provinceItems = await apiBrowserFetch<AdministrativeAreaOption[]>(
+          `/administrative-areas/${defaultCountry.id}/children`,
+          { query: { level: "PROVINCE" } },
+        );
+        if (!cancelled) setProvinces(provinceItems || []);
+      } catch (masterError) {
+        if (!cancelled) {
+          setError(masterError instanceof Error ? masterError.message : "Filter master wilayah gagal dimuat.");
+        }
+      } finally {
+        if (!cancelled) setAreaOptionsLoading(false);
+      }
+    };
+
+    void loadMasterFilters();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const reportFilterOptions = useMemo(() => {
+    const clusters = new Map<string, string>(jaringClusters.map((cluster) => [cluster.id, cluster.name]));
+
+    (reports?.features || []).forEach((feature: any) => {
+      const props = feature.properties || {};
+      const clusterKey = props.jaringClusterId || props.jaringClusterCode || props.jaringClusterName;
+      if (clusterKey) {
+        clusters.set(String(clusterKey), String(props.jaringClusterName || props.jaringClusterCode || clusterKey));
       }
     });
-    return Array.from(units).sort();
-  }, [personnel]);
+
+    return {
+      statuses: [...REPORT_STATUSES],
+      urgencies: [...REPORT_URGENCIES],
+      clusters: Array.from(clusters.entries()).sort((a, b) => a[1].localeCompare(b[1])),
+    };
+  }, [jaringClusters, reports]);
 
   // Filtered personnel data based on active search and dropdown filters
   const filteredPersonnelData = useMemo(() => {
     const features = (personnel?.features || []).filter((feature: any) => {
+      if (selectedObjectType === "REPORTS") return false;
       const props = feature.properties || {};
       const status = getPersonnelStatus(props, emergencies?.features || []);
 
@@ -244,7 +439,7 @@ export function NationalMap() {
       if (selectedStatus !== "ALL" && status !== selectedStatus) return false;
 
       // Unit dropdown evaluation
-      if (selectedUnit !== "ALL" && props.unitName !== selectedUnit) return false;
+      if (selectedUnitBranch !== "ALL" && getUnitBranch(props) !== selectedUnitBranch) return false;
 
       return true;
     });
@@ -253,7 +448,46 @@ export function NationalMap() {
       type: "FeatureCollection",
       features,
     };
-  }, [personnel, emergencies, searchQuery, selectedStatus, selectedUnit]);
+  }, [personnel, emergencies, searchQuery, selectedStatus, selectedUnitBranch, selectedObjectType]);
+
+  const filteredReportsData = useMemo(() => {
+    const features = (reports?.features || []).filter((feature: any) => {
+      if (selectedObjectType === "PERSONNEL") return false;
+      const props = feature.properties || {};
+      const q = searchQuery.toLowerCase().trim();
+      if (q) {
+        const matchesTitle = String(props.title || "")
+          .toLowerCase()
+          .includes(q);
+        const matchesArea = String(props.areaName || "")
+          .toLowerCase()
+          .includes(q);
+        const matchesCategory = String(props.reportCategoryName || "")
+          .toLowerCase()
+          .includes(q);
+        const matchesCluster = String(props.jaringClusterName || "")
+          .toLowerCase()
+          .includes(q);
+        if (!matchesTitle && !matchesArea && !matchesCategory && !matchesCluster) return false;
+      }
+      if (selectedReportStatus !== "ALL" && props.status !== selectedReportStatus) return false;
+      if (selectedReportUrgency !== "ALL" && props.urgency !== selectedReportUrgency) return false;
+      if (
+        selectedReportCluster !== "ALL" &&
+        props.jaringClusterId !== selectedReportCluster &&
+        props.jaringClusterCode !== selectedReportCluster &&
+        props.jaringClusterName !== selectedReportCluster
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    return {
+      type: "FeatureCollection",
+      features,
+    };
+  }, [reports, searchQuery, selectedObjectType, selectedReportStatus, selectedReportUrgency, selectedReportCluster]);
 
   // Autocomplete search suggestions
   const searchSuggestions = useMemo(() => {
@@ -289,7 +523,6 @@ export function NationalMap() {
         loading: true,
         detailError: null,
       });
-      setIsInspectorCollapsed(false);
       mapRef.current?.easeTo({
         center: coordinates,
         zoom: 15.5,
@@ -370,7 +603,6 @@ export function NationalMap() {
     const areaId = feature.properties?.areaId;
     if (!areaId) return;
     personnelRequestId.current += 1;
-    setIsInspectorCollapsed(false);
 
     const bounds = getGeometryBounds(feature.geometry);
     const areaLevel = String(feature.properties?.level || "");
@@ -453,11 +685,267 @@ export function NationalMap() {
     }
   };
 
+  const handleSelectReport = useCallback(async (feature: any) => {
+    const coordinates = getCoordinates(feature);
+    const baketId = stringOrNull(feature?.properties?.baketId);
+    if (!coordinates || !baketId) return;
+    personnelRequestId.current += 1;
+    const requestId = ++reportRequestId.current;
+    setSelection({
+      kind: "report",
+      properties: feature.properties || {},
+      coordinates,
+      loading: true,
+      detailError: null,
+    });
+    mapRef.current?.easeTo({
+      center: coordinates,
+      zoom: 13.5,
+      pitch: 60,
+      bearing: -18,
+      duration: 850,
+    });
+
+    try {
+      const detail = await apiBrowserFetch(`/bakets/${baketId}`);
+      if (requestId !== reportRequestId.current) return;
+      setSelection((current) => {
+        if (!current || current.kind !== "report" || current.properties.baketId !== baketId) return current;
+        return {
+          ...current,
+          properties: mergeReportDetails(current.properties, detail),
+          loading: false,
+          detailError: null,
+        };
+      });
+    } catch (detailError) {
+      if (requestId !== reportRequestId.current) return;
+      setSelection((current) => {
+        if (!current || current.kind !== "report" || current.properties.baketId !== baketId) return current;
+        return {
+          ...current,
+          loading: false,
+          detailError: detailError instanceof Error ? detailError.message : "Detail baket tidak dapat dimuat.",
+        };
+      });
+    }
+  }, []);
+
+  const focusAdministrativeArea = useCallback(async (area: AdministrativeAreaOption | undefined) => {
+    if (!area) return false;
+    const maxZoom = area.level === "COUNTRY" ? 5 : area.level === "PROVINCE" ? 8 : area.level === "DISTRICT" ? 14 : 11;
+
+    try {
+      const boundary = record(
+        await apiBrowserFetch(`/administrative-areas/${area.id}/boundary`, {
+          query: { simplifyMeters: area.level === "COUNTRY" ? 3000 : 300 },
+        }),
+      );
+      const bounds = getGeometryBounds(boundary.geometry);
+      if (bounds && areBoundsInIndonesia(bounds)) {
+        mapRef.current?.getMap()?.fitBounds(bounds, {
+          padding: 56,
+          maxZoom,
+          pitch: 55,
+          bearing: -15,
+          duration: 900,
+        });
+        return true;
+      }
+    } catch {
+      // Centroid remains a valid fallback when an area has no active polygon.
+    }
+
+    const longitude = numberOrNull(area.centroidLongitude);
+    const latitude = numberOrNull(area.centroidLatitude);
+    if (longitude === null || latitude === null || !isCoordinateInIndonesia(longitude, latitude)) return false;
+    mapRef.current?.easeTo({
+      center: [longitude, latitude],
+      zoom: maxZoom,
+      pitch: 55,
+      bearing: -15,
+      duration: 900,
+    });
+    return true;
+  }, []);
+
+  const focusDistrictFromOpenStreetMap = useCallback(
+    async (
+      district: AdministrativeAreaOption,
+      regency: AdministrativeAreaOption | undefined,
+      province: AdministrativeAreaOption | undefined,
+    ) => {
+      let focus = districtFocusCache.current.get(district.id) ?? null;
+
+      if (!focus) {
+        const query = [
+          normalizeAreaNameForGeocoding(district.name),
+          regency ? normalizeAreaNameForGeocoding(regency.name) : null,
+          province ? normalizeAreaNameForGeocoding(province.name) : null,
+          "Indonesia",
+        ]
+          .filter(Boolean)
+          .join(", ");
+        const params = new URLSearchParams({
+          q: query,
+          format: "jsonv2",
+          countrycodes: "id",
+          limit: "1",
+          "accept-language": "id",
+        });
+
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+          if (!response.ok) return false;
+          const results = (await response.json()) as NominatimResult[];
+          focus = getNominatimFocus(results[0]);
+          if (!focus) return false;
+          districtFocusCache.current.set(district.id, focus);
+        } catch {
+          return false;
+        }
+      }
+
+      if (focus.kind === "bounds") {
+        mapRef.current?.getMap()?.fitBounds(focus.bounds, {
+          padding: 64,
+          maxZoom: 13,
+          pitch: 55,
+          bearing: -15,
+          duration: 900,
+        });
+      } else {
+        mapRef.current?.easeTo({
+          center: focus.center,
+          zoom: 12,
+          pitch: 55,
+          bearing: -15,
+          duration: 900,
+        });
+      }
+      return true;
+    },
+    [],
+  );
+
+  const handleCountryChange = async (countryId: string) => {
+    setSelectedCountryId(countryId);
+    setSelectedProvinceId("");
+    setSelectedRegencyId("");
+    setSelectedDistrictId("");
+    setRegencies([]);
+    setDistricts([]);
+    const country = countries.find((area) => area.id === countryId);
+    if (!country) {
+      setProvinces([]);
+      mapRef.current?.easeTo({
+        center: INDONESIA_CENTER,
+        zoom: 4.2,
+        pitch: 60,
+        bearing: -18,
+        duration: 800,
+      });
+      return;
+    }
+
+    setAreaOptionsLoading(true);
+    try {
+      const items = await apiBrowserFetch<AdministrativeAreaOption[]>(`/administrative-areas/${countryId}/children`, {
+        query: { level: "PROVINCE" },
+      });
+      setProvinces(items || []);
+      await focusAdministrativeArea(country);
+    } catch (areaError) {
+      setError(areaError instanceof Error ? areaError.message : "Daftar provinsi gagal dimuat.");
+    } finally {
+      setAreaOptionsLoading(false);
+    }
+  };
+
+  const handleProvinceChange = async (provinceId: string) => {
+    setSelectedProvinceId(provinceId);
+    setSelectedRegencyId("");
+    setSelectedDistrictId("");
+    setDistricts([]);
+    const province = provinces.find((area) => area.id === provinceId);
+    if (!province) {
+      setRegencies([]);
+      await focusAdministrativeArea(countries.find((area) => area.id === selectedCountryId));
+      return;
+    }
+
+    setAreaOptionsLoading(true);
+    try {
+      const items = await apiBrowserFetch<AdministrativeAreaOption[]>(`/administrative-areas/${provinceId}/children`);
+      setRegencies((items || []).filter((area) => area.level === "REGENCY" || area.level === "CITY"));
+      await focusAdministrativeArea(province);
+    } catch (areaError) {
+      setError(areaError instanceof Error ? areaError.message : "Daftar kabupaten/kota gagal dimuat.");
+    } finally {
+      setAreaOptionsLoading(false);
+    }
+  };
+
+  const handleRegencyChange = async (regencyId: string) => {
+    setSelectedRegencyId(regencyId);
+    setSelectedDistrictId("");
+    const regency = regencies.find((area) => area.id === regencyId);
+    if (!regency) {
+      setDistricts([]);
+      await focusAdministrativeArea(provinces.find((area) => area.id === selectedProvinceId));
+      return;
+    }
+
+    setAreaOptionsLoading(true);
+    try {
+      const items = await apiBrowserFetch<AdministrativeAreaOption[]>(`/administrative-areas/${regencyId}/children`, {
+        query: { level: "DISTRICT" },
+      });
+      setDistricts(items || []);
+      await focusAdministrativeArea(regency);
+    } catch (areaError) {
+      setError(areaError instanceof Error ? areaError.message : "Daftar kecamatan gagal dimuat.");
+    } finally {
+      setAreaOptionsLoading(false);
+    }
+  };
+
+  const handleDistrictChange = async (districtId: string) => {
+    setSelectedDistrictId(districtId);
+    setAreaOptionsLoading(true);
+    try {
+      const district = districts.find((area) => area.id === districtId);
+      if (district) {
+        const focused = await focusAdministrativeArea(district);
+        if (focused) return;
+
+        const regency = regencies.find((area) => area.id === selectedRegencyId);
+        const province = provinces.find((area) => area.id === selectedProvinceId);
+        const geocoded = await focusDistrictFromOpenStreetMap(district, regency, province);
+        if (!geocoded) await focusAdministrativeArea(regency);
+        return;
+      }
+      await focusAdministrativeArea(regencies.find((area) => area.id === selectedRegencyId));
+    } finally {
+      setAreaOptionsLoading(false);
+    }
+  };
+
   const handleResetFilters = () => {
     personnelRequestId.current += 1;
+    reportRequestId.current += 1;
     setSearchQuery("");
+    setSelectedObjectType("ALL");
     setSelectedStatus("ALL");
-    setSelectedUnit("ALL");
+    setSelectedUnitBranch("ALL");
+    setSelectedReportStatus("ALL");
+    setSelectedReportUrgency("ALL");
+    setSelectedReportCluster("ALL");
+    setSelectedProvinceId("");
+    setSelectedRegencyId("");
+    setSelectedDistrictId("");
+    setRegencies([]);
+    setDistricts([]);
     setSelection(null);
     mapRef.current?.easeTo({
       center: INDONESIA_CENTER,
@@ -471,12 +959,12 @@ export function NationalMap() {
   // Compute metric totals
   const counts = useMemo(
     () => ({
-      reports: reports?.features?.length || 0,
-      personnel: personnel?.features?.length || 0,
+      reports: filteredReportsData.features.length,
+      personnel: filteredPersonnelData.features.length,
       alerts: alerts?.features?.length || 0,
       emergencies: emergencies?.features?.length || 0,
     }),
-    [reports, personnel, alerts, emergencies],
+    [filteredReportsData.features.length, filteredPersonnelData.features.length, alerts, emergencies],
   );
 
   const highRisk = useMemo(() => {
@@ -496,11 +984,11 @@ export function NationalMap() {
       <header className="flex flex-col gap-3 border-b pb-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Common operating picture / need-to-know
+            Gambaran operasional bersama / sesuai kebutuhan
           </p>
           <h1 className="mt-1 font-heading text-2xl font-semibold">Peta Kerawanan Nasional</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Baket, personel lapangan, boundary administratif, alert, dan insiden dalam scope komando aktif.
+            Baket, personel lapangan, batas administratif, peringatan, dan insiden dalam cakupan komando aktif.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -526,8 +1014,8 @@ export function NationalMap() {
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { key: "reports" as const, label: "Baket terpetakan", value: counts.reports, icon: FileText },
-          { key: "personnel" as const, label: "Personel dalam scope", value: counts.personnel, icon: UserRound },
-          { key: "alerts" as const, label: "Alert viewport", value: counts.alerts, icon: AlertTriangle },
+          { key: "personnel" as const, label: "Personel dalam cakupan", value: counts.personnel, icon: UserRound },
+          { key: "alerts" as const, label: "Peringatan pada peta", value: counts.alerts, icon: AlertTriangle },
           { key: "emergencies" as const, label: "Insiden darurat", value: counts.emergencies, icon: ShieldAlert },
         ].map((metric) => (
           <button
@@ -603,7 +1091,7 @@ export function NationalMap() {
                 onClick={handleResetFilters}
                 className="h-9 px-2 text-[10px] uppercase font-mono text-muted-foreground hover:text-foreground cursor-pointer"
               >
-                Reset
+                Atur Ulang
               </Button>
 
               <Button
@@ -620,20 +1108,105 @@ export function NationalMap() {
 
           {/* Expanded filter options */}
           {isFilterOpen && (
-            <div className="px-4 pb-4 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 bg-secondary/5">
+            <div className="px-4 pb-4 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 pt-3 bg-secondary/5">
               <div className="space-y-1">
-                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">Status</span>
+                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">Objek Peta</span>
+                <select
+                  className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono focus:ring-1 focus:ring-primary cursor-pointer"
+                  value={selectedObjectType}
+                  onChange={(e) => setSelectedObjectType(e.target.value as ObjectFilter)}
+                >
+                  <option value="ALL">SEMUA</option>
+                  <option value="PERSONNEL">PERSONEL</option>
+                  <option value="REPORTS">BAKET</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">Nasional</span>
+                <select
+                  className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono focus:ring-1 focus:ring-primary cursor-pointer"
+                  value={selectedCountryId}
+                  onChange={(e) => void handleCountryChange(e.target.value)}
+                  disabled={areaOptionsLoading}
+                >
+                  <option value="">SEMUA</option>
+                  {countries.map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">Provinsi</span>
+                <select
+                  className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono focus:ring-1 focus:ring-primary cursor-pointer"
+                  value={selectedProvinceId}
+                  onChange={(e) => void handleProvinceChange(e.target.value)}
+                  disabled={!selectedCountryId || areaOptionsLoading}
+                >
+                  <option value="">SEMUA</option>
+                  {provinces.map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">
+                  Kabupaten / Kota
+                </span>
+                <select
+                  className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono focus:ring-1 focus:ring-primary cursor-pointer"
+                  value={selectedRegencyId}
+                  onChange={(e) => void handleRegencyChange(e.target.value)}
+                  disabled={!selectedProvinceId || areaOptionsLoading}
+                >
+                  <option value="">SEMUA</option>
+                  {regencies.map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">Kecamatan</span>
+                <select
+                  className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono focus:ring-1 focus:ring-primary cursor-pointer"
+                  value={selectedDistrictId}
+                  onChange={(e) => void handleDistrictChange(e.target.value)}
+                  disabled={!selectedRegencyId || areaOptionsLoading}
+                >
+                  <option value="">SEMUA</option>
+                  {districts.map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">
+                  Status Personel
+                </span>
                 <select
                   className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono focus:ring-1 focus:ring-primary cursor-pointer"
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                 >
-                  <option value="ALL">SEMUA STATUS</option>
+                  <option value="ALL">SEMUA</option>
                   <option value="ACTIVE">AKTIF</option>
-                  <option value="SUPERVISOR">SUPERVISOR</option>
-                  <option value="DUTY">BERTUGAS</option>
-                  <option value="EMERGENCY">EMERGENCY</option>
-                  <option value="OFFLINE">OFFLINE</option>
+                  <option value="SUPERVISOR">PENGAWAS</option>
+                  <option value="DUTY">SEDANG BERTUGAS</option>
+                  <option value="EMERGENCY">DARURAT</option>
+                  <option value="OFFLINE">TIDAK AKTIF</option>
                 </select>
               </div>
 
@@ -641,13 +1214,60 @@ export function NationalMap() {
                 <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">Unit Kerja</span>
                 <select
                   className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono truncate focus:ring-1 focus:ring-primary cursor-pointer"
-                  value={selectedUnit}
-                  onChange={(e) => setSelectedUnit(e.target.value)}
+                  value={selectedUnitBranch}
+                  onChange={(e) => setSelectedUnitBranch(e.target.value as UnitBranchFilter)}
                 >
-                  <option value="ALL">SEMUA UNIT</option>
-                  {uniqueUnits.map((unit) => (
-                    <option key={unit} value={unit}>
-                      {unit}
+                  <option value="ALL">SEMUA</option>
+                  <option value="BINDA">BINDA</option>
+                  <option value="DIRECTORATE">DIREKTORAT</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">Status Baket</span>
+                <select
+                  className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono focus:ring-1 focus:ring-primary cursor-pointer"
+                  value={selectedReportStatus}
+                  onChange={(e) => setSelectedReportStatus(e.target.value)}
+                >
+                  <option value="ALL">SEMUA</option>
+                  {reportFilterOptions.statuses.map((status) => (
+                    <option key={status} value={status}>
+                      {REPORT_STATUS_LABELS[status as keyof typeof REPORT_STATUS_LABELS] ?? status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">Urgensi Baket</span>
+                <select
+                  className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono focus:ring-1 focus:ring-primary cursor-pointer"
+                  value={selectedReportUrgency}
+                  onChange={(e) => setSelectedReportUrgency(e.target.value)}
+                >
+                  <option value="ALL">SEMUA</option>
+                  {reportFilterOptions.urgencies.map((urgency) => (
+                    <option key={urgency} value={urgency}>
+                      {REPORT_URGENCY_LABELS[urgency as keyof typeof REPORT_URGENCY_LABELS] ?? urgency}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">
+                  Kelompok Baket
+                </span>
+                <select
+                  className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono truncate focus:ring-1 focus:ring-primary cursor-pointer"
+                  value={selectedReportCluster}
+                  onChange={(e) => setSelectedReportCluster(e.target.value)}
+                >
+                  <option value="ALL">SEMUA</option>
+                  {reportFilterOptions.clusters.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
                     </option>
                   ))}
                 </select>
@@ -656,8 +1276,8 @@ export function NationalMap() {
           )}
         </Card>
 
-        {/* Map & Inspector panels */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4 items-start relative">
+        {/* Map panel */}
+        <div className="space-y-4">
           <Card className="overflow-hidden border border-border relative rounded-[8px]">
             <div className="relative h-[65vh] min-h-[500px] max-h-[850px]">
               <BaseMap
@@ -685,35 +1305,27 @@ export function NationalMap() {
                   onClick={handleBoundaryClick}
                 />
 
-                {/* Legend panel */}
-                <MapLegend />
+                {layers.reports
+                  ? filteredReportsData.features.map((feature: any) => (
+                      <ReportMarker
+                        key={String(feature.id || feature.properties?.baketId)}
+                        feature={feature}
+                        onSelect={() => handleSelectReport(feature)}
+                      />
+                    ))
+                  : null}
               </BaseMap>
-
-              {/* Inspector toggle (Desktop) */}
-              <div className="absolute right-4 bottom-4 z-10 hidden xl:block pointer-events-auto">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsInspectorCollapsed(!isInspectorCollapsed)}
-                  className="size-8 rounded-full bg-background/90 backdrop-blur shadow-md hover:bg-accent border-border cursor-pointer"
-                >
-                  {isInspectorCollapsed ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
-                </Button>
-              </div>
             </div>
           </Card>
 
-          {/* Right Inspector Panel wrapper */}
-          <div
-            className={cn(
-              "w-full transition-all duration-300 xl:h-[65vh] xl:min-h-[500px] xl:max-h-[850px]",
-              isInspectorCollapsed ? "xl:w-0 xl:overflow-hidden xl:hidden" : "xl:block",
-            )}
-          >
+          <MapLegend />
+
+          <div className="w-full">
             <MapInspector
               selection={selection}
               onClear={() => {
                 personnelRequestId.current += 1;
+                reportRequestId.current += 1;
                 setSelection(null);
               }}
             />
@@ -721,6 +1333,30 @@ export function NationalMap() {
         </div>
       </div>
     </main>
+  );
+}
+
+function ReportMarker({ feature, onSelect }: { feature: any; onSelect: () => void }) {
+  const coordinates = getCoordinates(feature);
+  if (!coordinates) return null;
+
+  const properties = feature.properties || {};
+  const urgency = String(properties.urgency || "NORMAL") as keyof typeof REPORT_URGENCY_COLORS;
+  const markerColor = REPORT_URGENCY_COLORS[urgency] ?? REPORT_URGENCY_COLORS.NORMAL;
+
+  return (
+    <MapMarker longitude={coordinates[0]} latitude={coordinates[1]}>
+      <button
+        type="button"
+        onClick={onSelect}
+        title={properties.title || "Baket terpetakan"}
+        aria-label={`Buka hasil analisa ${properties.title || "Baket"}`}
+        className="grid size-5 cursor-pointer place-items-center rounded-full border-2 border-white/90 shadow-lg transition-transform hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        style={{ backgroundColor: markerColor, boxShadow: `0 0 0 4px ${markerColor}30` }}
+      >
+        <span className="size-1.5 rounded-full bg-white" />
+      </button>
+    </MapMarker>
   );
 }
 export default NationalMap;

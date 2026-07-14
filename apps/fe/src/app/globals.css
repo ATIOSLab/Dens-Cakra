@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "../../node_modules/leaflet/dist/leaflet.css";
+@import "../../node_modules/@xyflow/react/dist/style.css";
 
 /* Theme preset styles: these override CSS variables based on the selected data-theme-preset */
 @import "../styles/presets/brutalist.css";
@@ -9,6 +10,46 @@
 @import "../styles/presets/tangerine.css";
 
 @custom-variant dark (&:is(.dark *));
+
+.directive-tracking-flow .react-flow__controls {
+  top: 16px;
+  right: 16px;
+  bottom: auto;
+  overflow: hidden;
+  border: 1px solid #334155;
+  border-radius: 0;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 30%);
+}
+
+.directive-tracking-flow .react-flow__controls-button {
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  border: 0;
+  border-bottom: 1px solid #334155;
+  background: #0b1727;
+  color: #cbd5e1;
+  fill: currentColor;
+}
+
+.directive-tracking-flow .react-flow__controls-button:last-child {
+  border-bottom: 0;
+}
+
+.directive-tracking-flow .react-flow__controls-button:hover {
+  background: #13243a;
+  color: #22d3ee;
+}
+
+.directive-tracking-flow .react-flow__minimap {
+  margin: 16px;
+  border-radius: 0;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 30%);
+}
+
+.directive-tracking-flow .react-flow__edge.animated path {
+  animation-duration: 1.6s;
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
