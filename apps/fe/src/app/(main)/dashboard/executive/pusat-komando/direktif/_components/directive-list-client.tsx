@@ -1,187 +1,132 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 
-import {
-  ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  FileText,
-  Plus,
-  RadioTower,
-  ShieldCheck,
-  Users,
-  X,
-  RotateCcw,
-} from "lucide-react";
+import { ArrowUpRight, FileText, Plus, RadioTower, ShieldCheck, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildDirectiveUukSummary, parseDirectiveCommandDescription } from "@/features/directives/structured-uuk";
 import type { DirectiveSummary } from "@/features/directives/types";
 
 import { badgeVariant, formatDate, getCurrentVersion } from "./directive-shared";
 
-function translateDirectiveStatus(status: string) {
-  const statuses: Record<string, string> = {
-    DRAFT: "Draf",
-    PUBLISHED: "Diterbitkan",
-    DISTRIBUTED: "Terdistribusi",
-    ACKNOWLEDGED: "Diterima",
-    COMPLETED: "Selesai",
-    FAILED: "Gagal",
-    CANCELLED: "Dibatalkan",
-    REVISION_REQUESTED: "Perlu Revisi",
-  };
-  return statuses[status.toUpperCase()] ?? status;
-}
+type DirectiveListClientProps = {
+  directives: DirectiveSummary[];
+};
 
 function statusBadgeClass(status: string) {
-  const upper = status.toUpperCase();
-  if (["CANCELLED", "FAILED"].includes(upper)) {
+  if (["CANCELLED", "FAILED"].includes(status)) {
     return "border-[var(--dc-danger)]/30 bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]";
   }
 
-  if (["PUBLISHED", "DISTRIBUTED", "COMPLETED", "ACKNOWLEDGED"].includes(upper)) {
+  if (["PUBLISHED", "DISTRIBUTED", "COMPLETED", "ACKNOWLEDGED"].includes(status)) {
     return "border-[var(--dc-success)]/30 bg-[var(--dc-success-soft)] text-[var(--dc-success)]";
   }
 
-  if (["DRAFT", "REVISION_REQUESTED"].includes(upper)) {
+  if (["DRAFT", "REVISION_REQUESTED"].includes(status)) {
     return "border-[var(--dc-warning)]/30 bg-[var(--dc-warning-soft)] text-[var(--dc-warning)]";
   }
 
   return "border-[var(--dc-primary)]/30 bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]";
 }
 
-function getDirectiveUnitType(directive: DirectiveSummary): "BINDA" | "DIREKTORAT" | "OTHER" {
-  const ownerName = directive.ownerUnit?.name?.toLowerCase() ?? "";
-  if (ownerName.includes("binda")) return "BINDA";
-  if (ownerName.includes("direktorat") || ownerName.includes("direktur")) return "DIREKTORAT";
-
-  const currentVersion = getCurrentVersion(directive);
-  if (currentVersion?.recipients) {
-    for (const r of currentVersion.recipients) {
-      const name = r.targetUnit?.name?.toLowerCase() ?? "";
-      if (name.includes("binda")) return "BINDA";
-      if (name.includes("direktorat") || name.includes("direktur")) return "DIREKTORAT";
-    }
-  }
-
-  return "OTHER";
-}
-
-type DirectiveListClientProps = {
-  directives: DirectiveSummary[];
+type PremiumKpiCardProps = {
+  title: string;
+  value: string | number;
+  description: string;
+  icon: React.ReactNode;
+  variant?: "primary" | "success" | "warning" | "danger" | "info";
+  progress?: number;
+  className?: string;
 };
 
+function PremiumKpiCard({
+  title,
+  value,
+  description,
+  icon,
+  variant = "primary",
+  progress,
+  className = "",
+}: PremiumKpiCardProps) {
+  let colorClass = "text-[var(--dc-primary)]";
+  let borderLeftClass = "border-l-2 border-l-[var(--dc-primary)]";
+  let iconBgClass = "bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]";
+  let shadowClass = "drop-shadow-[0_0_8px_rgba(0,183,255,0.3)]";
+
+  if (variant === "success") {
+    colorClass = "text-[var(--dc-success)]";
+    borderLeftClass = "border-l-2 border-l-[var(--dc-success)]";
+    iconBgClass = "bg-[var(--dc-success-soft)] text-[var(--dc-success)]";
+    shadowClass = "drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]";
+  } else if (variant === "warning") {
+    colorClass = "text-[var(--dc-warning)]";
+    borderLeftClass = "border-l-2 border-l-[var(--dc-warning)]";
+    iconBgClass = "bg-[var(--dc-warning-soft)] text-[var(--dc-warning)]";
+    shadowClass = "drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]";
+  } else if (variant === "danger") {
+    colorClass = "text-[var(--dc-danger)]";
+    borderLeftClass = "border-l-2 border-l-[var(--dc-danger)]";
+    iconBgClass = "bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]";
+    shadowClass = "drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]";
+  } else if (variant === "info") {
+    colorClass = "text-[var(--dc-info)]";
+    borderLeftClass = "border-l-2 border-l-[var(--dc-info)]";
+    iconBgClass = "bg-[var(--dc-info-soft)] text-[var(--dc-info)]";
+    shadowClass = "drop-shadow-[0_0_8px_rgba(56,189,248,0.3)]";
+  }
+
+  return (
+    <div className={`relative flex flex-col justify-between rounded-xl border border-[var(--dc-border-subtle)] ${borderLeftClass} bg-[var(--dc-card)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md min-h-[140px] ${className}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground line-clamp-1">
+          {title}
+        </div>
+        <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${iconBgClass}`}>
+          {icon}
+        </div>
+      </div>
+      <div className="mt-2 flex flex-col justify-end flex-1">
+        <div className={`text-3xl font-bold [font-family:var(--dc-font-metadata)] ${colorClass} ${shadowClass}`}>
+          {typeof value === "number" ? value.toLocaleString("id-ID") : value}
+        </div>
+        
+        {progress !== undefined ? (
+          <div className="mt-3 space-y-1">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+              <span>Progres</span>
+              <span className={colorClass}>{progress}%</span>
+            </div>
+            <div className="h-1 w-full rounded-full bg-muted/30 overflow-hidden">
+              <div
+                className={`h-full rounded-full bg-current ${colorClass}`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-2 text-[10px] text-muted-foreground leading-tight line-clamp-2">
+            {description}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function DirectiveListClient({ directives }: DirectiveListClientProps) {
-  // Filter States
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [filterClassification, setFilterClassification] = useState("ALL");
-  const [filterWilayah, setFilterWilayah] = useState("ALL");
-  const [filterUnit, setFilterUnit] = useState("ALL");
-
-  // Pagination States
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  // Dynamic filter lists
-  const uniqueWilayahs = useMemo(() => {
-    const list = new Set<string>();
-    for (const d of directives) {
-      const cv = getCurrentVersion(d);
-      if (cv?.targetAreas) {
-        for (const ta of cv.targetAreas) {
-          if (ta.area?.name) list.add(ta.area.name);
-        }
-      }
-    }
-    return Array.from(list).sort();
-  }, [directives]);
-
-  // Apply dynamic filters
-  const filteredDirectives = useMemo(() => {
-    return directives.filter((directive) => {
-      const currentVersion = getCurrentVersion(directive);
-
-      // 1. Date range filter based on commandDate (created date)
-      if (currentVersion?.commandDate) {
-        const cmdDate = new Date(currentVersion.commandDate);
-        if (startDate) {
-          const start = new Date(startDate);
-          start.setHours(0, 0, 0, 0);
-          if (cmdDate < start) return false;
-        }
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          if (cmdDate > end) return false;
-        }
-      } else if (startDate || endDate) {
-        return false;
-      }
-
-      // 2. Classification filter
-      if (filterClassification !== "ALL") {
-        if (currentVersion?.classification?.toUpperCase() !== filterClassification) {
-          return false;
-        }
-      }
-
-      // 3. Wilayah filter
-      if (filterWilayah !== "ALL") {
-        const hasWilayah = currentVersion?.targetAreas.some(
-          (ta) => ta.area?.name === filterWilayah,
-        );
-        if (!hasWilayah) return false;
-      }
-
-      // 4. Unit filter (BINDA / DIREKTORAT)
-      if (filterUnit !== "ALL") {
-        const unitType = getDirectiveUnitType(directive);
-        if (unitType !== filterUnit) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [directives, startDate, endDate, filterClassification, filterWilayah, filterUnit]);
-
-  const totalRows = filteredDirectives.length;
-  const totalPages = Math.ceil(totalRows / rowsPerPage);
-
-  const paginatedDirectives = useMemo(() => {
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    return filteredDirectives.slice(startIndex, startIndex + rowsPerPage);
-  }, [filteredDirectives, currentPage, rowsPerPage]);
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [totalPages, currentPage]);
-
-  const handleRowsPerPageChange = (val: number) => {
-    setRowsPerPage(val);
-    setCurrentPage(1);
-  };
-
-  const handleResetFilters = () => {
-    setStartDate("");
-    setEndDate("");
-    setFilterClassification("ALL");
-    setFilterWilayah("ALL");
-    setFilterUnit("ALL");
-    setCurrentPage(1);
-  };
+  const totalRecipients = directives.reduce((sum, directive) => {
+    return sum + (getCurrentVersion(directive)?.recipients.length ?? 0);
+  }, 0);
+  const publishedCount = directives.filter((directive) =>
+    ["PUBLISHED", "DISTRIBUTED", "COMPLETED", "ACKNOWLEDGED"].includes(directive.status),
+  ).length;
+  const draftCount = directives.filter((directive) =>
+    ["DRAFT", "REVISION_REQUESTED"].includes(directive.status),
+  ).length;
 
   return (
     <div className="executive-command-page space-y-6">
@@ -218,104 +163,6 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
             </div>
           </div>
         </CardHeader>
-
-        {/* Filter Panel Grid */}
-        <div className="grid grid-cols-1 gap-4 border-b border-[var(--dc-border-subtle)]/65 px-4 pb-5 md:px-5 lg:grid-cols-5">
-          {/* Periode Laporan */}
-          <div className="space-y-1.5 lg:col-span-2">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Periode Laporan</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
-                className="h-9 w-full rounded-[var(--dc-radius-sm)] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] px-3 text-[12px] text-foreground outline-none focus:border-[var(--dc-primary)]"
-                aria-label="Tanggal Mulai"
-              />
-              <span className="text-[12px] text-muted-foreground">s/d</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
-                className="h-9 w-full rounded-[var(--dc-radius-sm)] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] px-3 text-[12px] text-foreground outline-none focus:border-[var(--dc-primary)]"
-                aria-label="Tanggal Selesai"
-              />
-            </div>
-          </div>
-
-          {/* Klasifikasi */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Klasifikasi</label>
-            <Select
-              value={filterClassification}
-              onValueChange={(val) => { setFilterClassification(val); setCurrentPage(1); }}
-            >
-              <SelectTrigger className="h-9 w-full border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] text-[12px] text-foreground">
-                <SelectValue placeholder="Semua Klasifikasi" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Semua Klasifikasi</SelectItem>
-                <SelectItem value="BIASA">BIASA</SelectItem>
-                <SelectItem value="TERBATAS">TERBATAS</SelectItem>
-                <SelectItem value="RAHASIA">RAHASIA</SelectItem>
-                <SelectItem value="SANGAT RAHASIA">SANGAT RAHASIA</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Wilayah */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Wilayah</label>
-            <Select
-              value={filterWilayah}
-              onValueChange={(val) => { setFilterWilayah(val); setCurrentPage(1); }}
-            >
-              <SelectTrigger className="h-9 w-full border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] text-[12px] text-foreground">
-                <SelectValue placeholder="Semua Wilayah" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[260px] overflow-y-auto">
-                <SelectItem value="ALL">Semua Wilayah</SelectItem>
-                {uniqueWilayahs.map((w) => (
-                  <SelectItem key={w} value={w}>
-                    {w}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Unit Kerja */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Unit Kerja</label>
-            <div className="flex gap-2">
-              <Select
-                value={filterUnit}
-                onValueChange={(val) => { setFilterUnit(val); setCurrentPage(1); }}
-              >
-                <SelectTrigger className="h-9 w-full border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] text-[12px] text-foreground">
-                  <SelectValue placeholder="Semua Unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Semua Unit</SelectItem>
-                  <SelectItem value="BINDA">Binda saja</SelectItem>
-                  <SelectItem value="DIREKTORAT">Direktorat saja</SelectItem>
-                </SelectContent>
-              </Select>
-              {(startDate || endDate || filterClassification !== "ALL" || filterWilayah !== "ALL" || filterUnit !== "ALL") && (
-                <Button
-                  variant="outline"
-                  onClick={handleResetFilters}
-                  className="h-9 px-2.5 border-[var(--dc-border-subtle)] text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 flex items-center gap-1.5 text-[12px] font-semibold"
-                  title="Reset Filter"
-                >
-                  <RotateCcw className="size-3.5" />
-                  Reset
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
         <CardContent className="px-4 md:px-5">
           <div className="executive-command-page__table">
             <Table className="min-w-[1120px]">
@@ -325,15 +172,15 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                   <TableHead>Judul UUK/STR</TableHead>
                   <TableHead>Klasifikasi</TableHead>
                   <TableHead>Wilayah</TableHead>
-                  <TableHead>Penugasan</TableHead>
+                  <TableHead>Penerima</TableHead>
                   <TableHead>Deadline</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="pr-4 text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedDirectives.length ? (
-                  paginatedDirectives.map((directive) => {
+                {directives.length ? (
+                  directives.map((directive) => {
                     const currentVersion = getCurrentVersion(directive);
                     const parsed = parseDirectiveCommandDescription(currentVersion?.commandDescription);
                     const title = parsed.uukTitle || directive.commandNumber;
@@ -365,7 +212,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                           {areaSummary}
                         </TableCell>
                         <TableCell className="text-[var(--dc-text-secondary)]">
-                          {currentVersion?.recipients.length ?? 0} penugasan
+                          {currentVersion?.recipients.length ?? 0} penerima
                         </TableCell>
                         <TableCell className="text-[var(--dc-text-secondary)]">
                           {formatDate(currentVersion?.dueDate)}
@@ -375,7 +222,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                             variant={badgeVariant(directive.status)}
                             className={statusBadgeClass(directive.status)}
                           >
-                            {translateDirectiveStatus(directive.status)}
+                            {directive.status}
                           </Badge>
                         </TableCell>
                         <TableCell className="pr-4">
@@ -419,88 +266,12 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={8} className="py-10 text-center text-[var(--dc-text-secondary)]">
-                      Tidak ada data STR yang cocok dengan kriteria filter.
+                      Belum ada STR yang dibuat pada unit eksekutif ini.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
-          </div>
-
-          {/* Premium Glassmorphic Table Pagination Footer */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--dc-border-subtle)]/70 pt-4 mt-4 text-[12px] text-muted-foreground select-none">
-            <div className="font-medium">
-              Menampilkan <span className="font-semibold text-foreground">{totalRows > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0}</span> -{" "}
-              <span className="font-semibold text-foreground">{Math.min(currentPage * rowsPerPage, totalRows)}</span> dari{" "}
-              <span className="font-semibold text-foreground">{totalRows}</span> direktif
-            </div>
-
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="flex items-center gap-2">
-                <span>Baris per halaman:</span>
-                <Select
-                  value={String(rowsPerPage)}
-                  onValueChange={(val) => handleRowsPerPageChange(Number(val))}
-                >
-                  <SelectTrigger className="h-8 w-24 border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] text-[12px] font-semibold">
-                    <SelectValue placeholder="10 baris" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[10, 20, 30, 40, 50].map((opt) => (
-                      <SelectItem key={opt} value={String(opt)}>
-                        {opt} baris
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-1 font-mono">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(1)}
-                  className="h-8 w-8 p-0 border-[var(--dc-border-subtle)] hover:bg-muted"
-                  title="Halaman Pertama"
-                >
-                  <ChevronsLeft className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  className="h-8 w-8 p-0 border-[var(--dc-border-subtle)] hover:bg-muted"
-                  title="Halaman Sebelumnya"
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <span className="text-[11px] px-3 font-semibold text-foreground/80">
-                  Halaman {currentPage} dari {totalPages || 1}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  className="h-8 w-8 p-0 border-[var(--dc-border-subtle)] hover:bg-muted"
-                  title="Halaman Berikutnya"
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  onClick={() => setCurrentPage(totalPages)}
-                  className="h-8 w-8 p-0 border-[var(--dc-border-subtle)] hover:bg-muted"
-                  title="Halaman Terakhir"
-                >
-                  <ChevronsRight className="size-4" />
-                </Button>
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>

@@ -1,7 +1,18 @@
-import { MonitoringNasionalPage } from "./_components/monitoring-nasional-page";
+﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
 
 export const dynamic = "force-dynamic";
 
-export default function Page() {
-  return <MonitoringNasionalPage />;
+type PageProps = {
+  params?: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Page({ params, searchParams }: PageProps) {
+  return (
+    <UniversalDensRoutePage
+      routePattern="/dashboard/executive/monitoring-nasional"
+      params={(await params) ?? {}}
+      searchParams={(await searchParams) ?? {}}
+    />
+  );
 }

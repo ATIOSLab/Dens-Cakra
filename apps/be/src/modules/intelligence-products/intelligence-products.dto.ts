@@ -329,8 +329,6 @@ export class MapReportQuery extends DashboardQuery {
   @Type(() => Number) @IsInt() zoom!: number;
   @IsOptional() @IsString() status?: string;
   @IsOptional() @IsString() urgency?: string;
-  @IsOptional() @IsUUID() reportCategoryId?: string;
-  @IsOptional() @IsUUID() jaringClusterId?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(5000) limit = 500;
 }
 

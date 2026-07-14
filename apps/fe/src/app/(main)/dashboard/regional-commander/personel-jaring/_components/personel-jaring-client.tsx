@@ -1,3 +1,5 @@
+// biome-ignore-all lint/nursery/useSortedClasses: Preserves selected finalkalife tactical map UI class composition.
+
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -205,10 +207,30 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
     if (!coords) return [];
     const [lng, lat] = coords;
     return [
-      { time: "08:10", label: "HQ (Pusat Komando)", coords: [lng - 0.012, lat - 0.008] as [number, number], status: "online" },
-      { time: "08:22", label: "Pos Wilayah Korwil", coords: [lng - 0.008, lat + 0.004] as [number, number], status: "online" },
-      { time: "08:37", label: "Agent Transit Lokasi", coords: [lng - 0.004, lat - 0.002] as [number, number], status: status === "OFFLINE" ? "offline" : "online" },
-      { time: "08:45", label: "Lokasi Saat Ini", coords: coords, status: status === "EMERGENCY" ? "emergency" : (status === "OFFLINE" ? "offline" : "online") },
+      {
+        time: "08:10",
+        label: "HQ (Pusat Komando)",
+        coords: [lng - 0.012, lat - 0.008] as [number, number],
+        status: "online",
+      },
+      {
+        time: "08:22",
+        label: "Pos Wilayah Korwil",
+        coords: [lng - 0.008, lat + 0.004] as [number, number],
+        status: "online",
+      },
+      {
+        time: "08:37",
+        label: "Agent Transit Lokasi",
+        coords: [lng - 0.004, lat - 0.002] as [number, number],
+        status: status === "OFFLINE" ? "offline" : "online",
+      },
+      {
+        time: "08:45",
+        label: "Lokasi Saat Ini",
+        coords: coords,
+        status: status === "EMERGENCY" ? "emergency" : status === "OFFLINE" ? "offline" : "online",
+      },
     ];
   };
 
@@ -224,7 +246,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
         zoom: 15,
         pitch: 65,
         bearing: 0,
-        duration: 800
+        duration: 800,
       });
     }
   }, [timelineIndex]);
@@ -501,13 +523,13 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
     if (status === "EMERGENCY") {
       return cn(
         "bg-red-600 border-red-700 text-white animate-pulse",
-        isSelected ? "ring-2 ring-cyan-400 border-cyan-400" : ""
+        isSelected ? "ring-2 ring-cyan-400 border-cyan-400" : "",
       );
     }
     if (status === "OFFLINE") {
       return cn(
         "bg-slate-600 border-slate-700 text-slate-350",
-        isSelected ? "ring-2 ring-cyan-400 border-cyan-400" : ""
+        isSelected ? "ring-2 ring-cyan-400 border-cyan-400" : "",
       );
     }
 
@@ -529,10 +551,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
         baseColors = "bg-blue-500 border-blue-600 text-white"; // AGENT
     }
 
-    return cn(
-      baseColors,
-      isSelected ? "ring-2 ring-cyan-400 border-cyan-400" : ""
-    );
+    return cn(baseColors, isSelected ? "ring-2 ring-cyan-400 border-cyan-400" : "");
   };
 
   const getMarkerIcon = (kind: string, status?: string) => {
@@ -1520,7 +1539,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
               className="w-full h-full"
             >
               <MapControls showZoom showCompass showFullscreen showLocate position="top-right" />
-              
+
               {/* Map Markers */}
               {gisMapNodes.map((node) => {
                 if (node.isCluster) {
@@ -1558,7 +1577,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                       onContextMenu={(e) => handleRightClick(e, p.id)}
                       className={cn(
                         "flex items-center justify-center size-8 rounded-[3px] border border-white text-white transition-transform hover:scale-110 cursor-pointer select-none outline-none focus:ring-1 focus:ring-sky-400",
-                        getMarkerBgAndBorder(p.kind, p.status, isSelected)
+                        getMarkerBgAndBorder(p.kind, p.status, isSelected),
                       )}
                     >
                       {getMarkerIcon(p.kind, p.status)}
@@ -1592,10 +1611,12 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
               <div className="flex justify-between items-center text-muted-foreground">
                 <span>TIMELINE PLAYBACK // HISTORI PERJALANAN AKTIF</span>
                 <span className="text-primary font-bold">
-                  WAKTU AKTIF: {getTravelHistoryForCoords(selectedGisPoint.coords, selectedGisPoint.status)[timelineIndex]?.time || "08:00"}
+                  WAKTU AKTIF:{" "}
+                  {getTravelHistoryForCoords(selectedGisPoint.coords, selectedGisPoint.status)[timelineIndex]?.time ||
+                    "08:00"}
                 </span>
               </div>
-              
+
               <div className="relative flex items-center py-1">
                 <input
                   type="range"
@@ -1606,7 +1627,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                   className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
                 />
               </div>
-              
+
               <div className="flex justify-between text-[9px] text-muted-foreground px-1">
                 <span>08.00 // DEPARTURE</span>
                 <span>08.30 // TRANSIT</span>
@@ -1618,7 +1639,6 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
 
           {/* Bottom Information Panel (Grid 20% | 45% | 35%) */}
           <div className="grid grid-cols-1 md:grid-cols-[20%_45%_35%] border border-border bg-card rounded-[3px] divide-y md:divide-y-0 md:divide-x divide-border font-mono select-none">
-            
             {/* Column 1: Legend (20%) */}
             <div className="p-4 flex flex-col justify-between space-y-3">
               <div>
@@ -1642,7 +1662,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                     <span className="size-3 bg-purple-800 rounded-[2px]" />
                     <span>DIREKTORAT</span>
                   </div>
-                  </div>
+                </div>
               </div>
 
               <div className="border-t border-border/40 pt-2">
@@ -1671,7 +1691,11 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                   <div className="size-14 rounded-[3px] border border-border bg-secondary/15 flex items-center justify-center text-muted-foreground shrink-0 overflow-hidden">
                     {selectedGisPoint.photo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={selectedGisPoint.photo} alt={selectedGisPoint.fullName} className="size-full object-cover" />
+                      <img
+                        src={selectedGisPoint.photo}
+                        alt={selectedGisPoint.fullName}
+                        className="size-full object-cover"
+                      />
                     ) : (
                       <User className="size-6" />
                     )}
@@ -1679,8 +1703,16 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
 
                   <div className="flex-1 min-w-0 text-[10px] space-y-1.5">
                     <div className="flex justify-between items-center min-w-0 gap-2">
-                      <span className="font-bold text-[12px] text-foreground truncate">{selectedGisPoint.fullName}</span>
-                      <Badge variant="outline" className={cn("text-[8px] tracking-wide rounded-[2px]", getStatusBadgeColor(selectedGisPoint.status))}>
+                      <span className="font-bold text-[12px] text-foreground truncate">
+                        {selectedGisPoint.fullName}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[8px] tracking-wide rounded-[2px]",
+                          getStatusBadgeColor(selectedGisPoint.status),
+                        )}
+                      >
                         {selectedGisPoint.status}
                       </Badge>
                     </div>
@@ -1692,7 +1724,9 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                       </div>
                       <div>
                         <span className="text-[8px] uppercase block">Unit Kerja</span>
-                        <span className="text-foreground font-semibold truncate block">{selectedGisPoint.unitName}</span>
+                        <span className="text-foreground font-semibold truncate block">
+                          {selectedGisPoint.unitName}
+                        </span>
                       </div>
                       <div>
                         <span className="text-[8px] uppercase block">Koordinat GPS</span>
@@ -1702,7 +1736,9 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                       </div>
                       <div>
                         <span className="text-[8px] uppercase block">Ping Terakhir</span>
-                        <span className="text-foreground font-semibold block">{formatTimeAgo(selectedGisPoint.location?.capturedAt)}</span>
+                        <span className="text-foreground font-semibold block">
+                          {formatTimeAgo(selectedGisPoint.location?.capturedAt)}
+                        </span>
                       </div>
                       <div>
                         <span className="text-[8px] uppercase block">Nomor HP</span>
@@ -1728,7 +1764,9 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                         variant="default"
                         size="xs"
                         className="rounded-[3px] bg-primary text-primary-foreground text-[9.5px] font-semibold hover:opacity-90 uppercase cursor-pointer"
-                        onClick={() => toast.success(`Monitoring taktis diaktifkan untuk ${selectedGisPoint.fullName}.`)}
+                        onClick={() =>
+                          toast.success(`Monitoring taktis diaktifkan untuk ${selectedGisPoint.fullName}.`)
+                        }
                       >
                         Monitoring
                       </Button>
@@ -1739,7 +1777,9 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                 <div className="flex flex-col items-center justify-center text-center text-muted-foreground py-6 space-y-1 select-none">
                   <Compass className="size-6 text-muted-foreground/35" />
                   <span className="font-bold text-[9.5px] uppercase tracking-wider">SELECTED OBJECT PARAMETERS</span>
-                  <p className="text-[9px] max-w-xs">Silakan pilih marker personel untuk memetakan visual unit organisasi dan data GPS.</p>
+                  <p className="text-[9px] max-w-xs">
+                    Silakan pilih marker personel untuk memetakan visual unit organisasi dan data GPS.
+                  </p>
                 </div>
               )}
             </div>
@@ -1749,8 +1789,10 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
               {selectedGisPoint ? (
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-[10px] tracking-wider text-foreground uppercase">TRACK LAYOUT PANEL</span>
-                    
+                    <span className="font-bold text-[10px] tracking-wider text-foreground uppercase">
+                      TRACK LAYOUT PANEL
+                    </span>
+
                     {/* Playback Replay Controls */}
                     <div className="flex items-center gap-1 bg-secondary/20 p-0.5 border border-border rounded-[2px]">
                       <button
@@ -1773,21 +1815,36 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                       <button
                         type="button"
                         onClick={() => setPlaybackSpeed(1)}
-                        className={cn("px-1 py-0.5 rounded-[2px] text-[8px] cursor-pointer", playbackSpeed === 1 ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground")}
+                        className={cn(
+                          "px-1 py-0.5 rounded-[2px] text-[8px] cursor-pointer",
+                          playbackSpeed === 1
+                            ? "bg-primary text-primary-foreground font-bold"
+                            : "text-muted-foreground",
+                        )}
                       >
                         1x
                       </button>
                       <button
                         type="button"
                         onClick={() => setPlaybackSpeed(2)}
-                        className={cn("px-1 py-0.5 rounded-[2px] text-[8px] cursor-pointer", playbackSpeed === 2 ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground")}
+                        className={cn(
+                          "px-1 py-0.5 rounded-[2px] text-[8px] cursor-pointer",
+                          playbackSpeed === 2
+                            ? "bg-primary text-primary-foreground font-bold"
+                            : "text-muted-foreground",
+                        )}
                       >
                         2x
                       </button>
                       <button
                         type="button"
                         onClick={() => setPlaybackSpeed(4)}
-                        className={cn("px-1 py-0.5 rounded-[2px] text-[8px] cursor-pointer", playbackSpeed === 4 ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground")}
+                        className={cn(
+                          "px-1 py-0.5 rounded-[2px] text-[8px] cursor-pointer",
+                          playbackSpeed === 4
+                            ? "bg-primary text-primary-foreground font-bold"
+                            : "text-muted-foreground",
+                        )}
                       >
                         4x
                       </button>
@@ -1805,14 +1862,16 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                           onClick={() => setTimelineIndex(index)}
                           className={cn(
                             "flex flex-col items-center gap-1 w-20 text-center cursor-pointer transition-colors relative group",
-                            isActive ? "text-primary font-bold" : "hover:text-foreground"
+                            isActive ? "text-primary font-bold" : "hover:text-foreground",
                           )}
                         >
                           <span>{node.time}</span>
-                          <span className={cn(
-                            "size-2 rounded-full border border-white transition-transform group-hover:scale-125",
-                            isActive ? "bg-primary ring-2 ring-primary/20 scale-110" : "bg-muted-foreground/40"
-                          )} />
+                          <span
+                            className={cn(
+                              "size-2 rounded-full border border-white transition-transform group-hover:scale-125",
+                              isActive ? "bg-primary ring-2 ring-primary/20 scale-110" : "bg-muted-foreground/40",
+                            )}
+                          />
                           <span className="truncate w-full block text-[7.5px] opacity-75">{node.label}</span>
                         </button>
                       );
@@ -1823,11 +1882,12 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                 <div className="flex flex-col items-center justify-center text-center text-muted-foreground py-6 space-y-1 select-none">
                   <Clock className="size-6 text-muted-foreground/35" />
                   <span className="font-bold text-[9.5px] uppercase tracking-wider">TRAVEL PLAYBACK</span>
-                  <p className="text-[9px] max-w-xs">Garis koordinat history perjalanan dan kontrol playback akan muncul di panel ini.</p>
+                  <p className="text-[9px] max-w-xs">
+                    Garis koordinat history perjalanan dan kontrol playback akan muncul di panel ini.
+                  </p>
                 </div>
               )}
             </div>
-
           </div>
         </TabsContent>
       </Tabs>

@@ -1,3 +1,5 @@
+// biome-ignore-all lint/nursery/useSortedClasses: Preserves selected finalkalife map UI class composition.
+
 import type React from "react";
 import { useMemo } from "react";
 
@@ -126,8 +128,8 @@ export function MapInspector({ selection, onClear }: MapInspectorProps) {
 
   return (
     <div className="flex h-full flex-col justify-between space-y-4">
-      <Card className="flex-1 overflow-y-auto border-border bg-card no-scrollbar">
-        <CardHeader className="border-b border-border/40 pb-3">
+      <Card className="no-scrollbar flex-1 overflow-y-auto border-border bg-card">
+        <CardHeader className="border-border/40 border-b pb-3">
           <CardTitle className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2 font-heading font-semibold">
               <MapPinned className="size-4 text-primary" />
@@ -164,9 +166,9 @@ export function MapInspector({ selection, onClear }: MapInspectorProps) {
             <ReportInspector selection={selection} />
           ) : selection.kind === "cluster" && clusterStats ? (
             <div className="space-y-3 font-mono">
-              <div className="mb-2 flex items-center gap-2 border-b border-border/20 pb-2">
+              <div className="mb-2 flex items-center gap-2 border-border/20 border-b pb-2">
                 <Users className="size-4 shrink-0 text-primary" />
-                <span className="font-sans text-sm font-bold text-foreground">Ringkasan Kelompok Personel</span>
+                <span className="font-bold font-sans text-foreground text-sm">Ringkasan Kelompok Personel</span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 rounded border border-border/30 bg-secondary/15 p-2.5 text-center">
@@ -175,8 +177,8 @@ export function MapInspector({ selection, onClear }: MapInspectorProps) {
                 <Metric label="Tidak Aktif" value={clusterStats.offlineCount} className="text-muted-foreground/70" />
               </div>
 
-              <div className="space-y-2 border-t border-border/20 pt-2">
-                <span className="mb-1 block text-[9px] uppercase text-muted-foreground/60">Distribusi Status</span>
+              <div className="space-y-2 border-border/20 border-t pt-2">
+                <span className="mb-1 block text-[9px] text-muted-foreground/60 uppercase">Distribusi Status</span>
                 <div className="space-y-1 text-[10px]">
                   {Object.entries(clusterStats.statuses).map(([status, count]) => {
                     const normalized = normalizeStatus(status);
@@ -214,9 +216,9 @@ function ReportInspector({ selection }: { selection: Extract<SelectionType, { ki
 
   return (
     <div className="space-y-3 font-mono">
-      <div className="mb-2 flex items-center gap-2 border-b border-border/20 pb-2">
+      <div className="mb-2 flex items-center gap-2 border-border/20 border-b pb-2">
         <FileText className="size-4 shrink-0 text-emerald-500" />
-        <span className="font-sans text-sm font-bold text-foreground">{properties.title || "Baket terpetakan"}</span>
+        <span className="font-bold font-sans text-foreground text-sm">{properties.title || "Baket terpetakan"}</span>
       </div>
 
       {selection.loading && (

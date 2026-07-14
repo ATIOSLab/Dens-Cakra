@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 
 import { type PersonnelStatus, STATUS_COLORS, STATUS_LABELS } from "./utils/mapHelpers";
 
@@ -46,7 +46,7 @@ export function MapLegend() {
 function LegendGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-      <span className="shrink-0 font-mono text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+      <span className="shrink-0 font-bold font-mono text-[9px] text-muted-foreground uppercase tracking-wider">
         {title}
       </span>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>
@@ -64,7 +64,7 @@ function LegendItem({ color, label }: { color: string; label: string }) {
           boxShadow: `0 0 8px ${color}50`,
         }}
       />
-      <span className="whitespace-nowrap text-[11px] font-medium text-foreground/90">{label}</span>
+      <span className="whitespace-nowrap font-medium text-[11px] text-foreground/90">{label}</span>
     </div>
   );
 }

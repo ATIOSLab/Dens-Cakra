@@ -11,7 +11,7 @@
 ## Revision History
 
 | Version | Date | Description |
-|---|---|---|e
+|---|---|---|
 | v1.0 | 11 July 2026 | Global UI shell, design tokens, card taxonomy, page layouts, map rules, states, responsiveness, and page-level layout mapping. |
 
 ## 1. Design Intent

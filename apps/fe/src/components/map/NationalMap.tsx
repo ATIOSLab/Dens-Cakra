@@ -1,3 +1,5 @@
+// biome-ignore-all lint/nursery/useSortedClasses: Preserves selected finalkalife map UI class composition.
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

@@ -650,16 +650,6 @@ export async function updateTaskAssignmentStatus(
   });
 }
 
-export async function forwardTaskAssignmentToJaring(
-  cookie: string,
-  assignmentId: string,
-) {
-  return backendApi(`/task-assignments/${assignmentId}/forward-to-jaring`, {
-    cookie,
-    method: "POST",
-  });
-}
-
 export async function createOwnLocationPing(
   cookie: string,
   body: {
