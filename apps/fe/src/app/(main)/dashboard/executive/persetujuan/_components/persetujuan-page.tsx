@@ -655,18 +655,19 @@ export function PersetujuanPage() {
               {/* Bottom Action Footer */}
               {selectedReport.status === "Menunggu Tindakan" && (
                 <div className="flex items-center justify-end gap-3 border-t bg-card px-6 py-4 shrink-0">
-                  <Button
-                    onClick={() => setIsReturnModalOpen(true)}
-                    className="h-9 text-xs border-rose-500/25 bg-rose-500/5 text-rose-500 hover:bg-rose-500/10"
-                    variant="outline"
+              <Button
+                onClick={() => setIsReturnModalOpen(true)}
+                className="h-9 text-xs"
+                variant="warning"
                     size="sm"
                   >
                     <RotateCcw className="size-3.5" />
                     Kembalikan untuk Revisi
                   </Button>
-                  <Button
-                    onClick={handleOpenApproveModal}
-                    className="h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+              <Button
+                onClick={handleOpenApproveModal}
+                className="h-9 text-xs"
+                variant="success"
                     size="sm"
                   >
                     <UserCheck className="size-3.5" />
@@ -744,7 +745,8 @@ export function PersetujuanPage() {
                   disabled={pinInput.length !== 6}
                   onClick={handleVerifyPinAndApprove}
                   size="sm"
-                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="text-xs"
+                  variant="success"
                   type="button"
                 >
                   Verifikasi & TTD
@@ -804,11 +806,12 @@ export function PersetujuanPage() {
                 >
                   Batal
                 </Button>
-                <Button
-                  disabled={!revisionNote.trim()}
-                  onClick={handleReturnSubmit}
-                  size="sm"
-                  className="text-xs bg-rose-600 hover:bg-rose-700 text-white"
+          <Button
+            disabled={!revisionNote.trim()}
+            onClick={handleReturnSubmit}
+            size="sm"
+            className="text-xs"
+            variant="warning"
                   type="button"
                 >
                   <Send className="size-3.5" />

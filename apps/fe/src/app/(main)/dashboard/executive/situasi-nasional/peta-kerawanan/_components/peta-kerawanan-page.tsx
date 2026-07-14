@@ -1,5 +1,5 @@
-import { OperationalMapPage } from "@/app/(main)/dashboard/_components/operational-map/operational-map-page";
+import { NationalMap } from "@/components/map/NationalMap";
 
 export function PetaKerawananPage() {
-  return <OperationalMapPage mode="national" />;
+  return <NationalMap />;
 }

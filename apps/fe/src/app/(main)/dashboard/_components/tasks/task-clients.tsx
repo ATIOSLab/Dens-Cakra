@@ -2274,7 +2274,7 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
                             <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Detail</Link>
                           </Button>
                         ) : (
-                          <Button asChild size="sm">
+                          <Button asChild size="sm" variant="success">
                             <Link href={`/dashboard/oim/direktif-tugas/baru?uukStrId=${source.id}`}>
                               Baca & Teruskan
                             </Link>
@@ -3001,9 +3001,10 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
           </Button>
           <Button
             type="button"
+            variant="success"
             onClick={handleForward}
             disabled={!hasReadSource || !selectedAssigneeIds.length || !eligibleCandidates.length || isSubmitting}
-            className="h-9 px-6 bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)] rounded-[4px] font-mono text-xs cursor-pointer shadow-none"
+            className="h-9 rounded-[4px] px-6 font-mono text-xs"
           >
             {isSubmitting ? "Meneruskan..." : "Teruskan STR"}
           </Button>
@@ -3795,7 +3796,7 @@ export function AssignmentBoardClient({
             />
             <Button
               type="button"
-              variant="outline"
+              variant="destructive"
               disabled={rows.length === 1 || mode === "reassign"}
               onClick={() => setRows((current) => current.filter((_, itemIndex) => itemIndex !== index))}
             >
@@ -3983,7 +3984,7 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
           <Button onClick={() => runAction("progress")} disabled={action !== null}>
             {action === "progress" ? "Memproses..." : "Update Progress"}
           </Button>
-          <Button variant="secondary" onClick={() => runAction("complete")} disabled={action !== null}>
+          <Button variant="success" onClick={() => runAction("complete")} disabled={action !== null}>
             {action === "complete" ? "Memproses..." : "Complete"}
           </Button>
         </CardFooter>

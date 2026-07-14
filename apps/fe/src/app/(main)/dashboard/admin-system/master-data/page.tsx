@@ -67,7 +67,7 @@ type ConfirmDialogState = {
   title: string;
   description: string;
   actionLabel: string;
-  actionVariant: "default" | "destructive" | "cyan";
+  actionVariant: "default" | "success" | "warning" | "destructive";
   onConfirm: () => void | Promise<void>;
 } | null;
 
@@ -324,7 +324,7 @@ export default function AdminMasterDataPage() {
         ? `Apakah Anda yakin ingin menonaktifkan "${item.name}"? Entitas ini tidak akan dapat dipilih di form baru.`
         : `Apakah Anda yakin ingin mengaktifkan kembali "${item.name}"? Entitas ini akan segera tersedia untuk form baru.`,
       actionLabel: item.isActive ? "Ya, Nonaktifkan" : "Ya, Aktifkan",
-      actionVariant: item.isActive ? "destructive" : "default",
+      actionVariant: item.isActive ? "warning" : "success",
       onConfirm: () => void executeToggleStatus(item),
     });
   };
@@ -384,7 +384,7 @@ export default function AdminMasterDataPage() {
       title: `Ubah Status Massal?`,
       description: `Apakah Anda yakin ingin ${actionStr} ${selectedIds.length} item data terpilih secara sekaligus?`,
       actionLabel: targetActive ? "Ya, Aktifkan" : "Ya, Nonaktifkan",
-      actionVariant: targetActive ? "default" : "destructive",
+      actionVariant: targetActive ? "success" : "warning",
       onConfirm: async () => {
         try {
           setBusyKey("bulk");
@@ -865,18 +865,18 @@ export default function AdminMasterDataPage() {
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
+              variant="success"
               size="sm"
               onClick={() => handleBulkStatus(true)}
-              className="h-8 rounded-full text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-white/5 cursor-pointer"
+              className="h-8 rounded-full text-xs font-bold"
             >
               Aktifkan
             </Button>
             <Button
-              variant="ghost"
+              variant="warning"
               size="sm"
               onClick={() => handleBulkStatus(false)}
-              className="h-8 rounded-full text-xs font-bold text-amber-400 hover:text-amber-300 hover:bg-white/5 cursor-pointer"
+              className="h-8 rounded-full text-xs font-bold"
             >
               Nonaktifkan
             </Button>
@@ -910,18 +910,14 @@ export default function AdminMasterDataPage() {
               Kembali
             </AlertDialogCancel>
             <AlertDialogAction
+              variant={confirmDialog?.actionVariant ?? "default"}
               onClick={() => {
                 if (confirmDialog) {
                   confirmDialog.onConfirm();
                   setConfirmDialog(null);
                 }
               }}
-              className={cn(
-                "rounded-[6px] text-xs font-bold text-white cursor-pointer",
-                confirmDialog?.actionVariant === "destructive" 
-                  ? "bg-red-600 hover:bg-red-500 text-white" 
-                  : "bg-[#14B8FF] hover:bg-cyan-400 text-white dark:text-slate-950"
-              )}
+              className="rounded-[6px] text-xs font-bold"
             >
               {confirmDialog?.actionLabel}
             </AlertDialogAction>

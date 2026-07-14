@@ -1,14 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-
-import { Activity, AlertTriangle, Gauge, Search, ShieldCheck, Target, UserRoundCheck } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { KpiSummary } from "./_components/kpi-summary";
+import { KpiIndicator } from "./_components/kpi-indicator";
+import { HierarchyExplorer } from "./_components/hierarchy-explorer";
+import { RightDrawer } from "./_components/right-drawer";
+import {
+  Top5Units,
+  LowestUnits,
+  GradeDistribution,
+} from "./_components/insight-sidebar";
 
 type DataRecord = Record<string, unknown>;
 
@@ -29,18 +39,6 @@ function numeric(value: unknown): number | null {
   return value !== null && value !== undefined && Number.isFinite(number) ? number : null;
 }
 
-function scoreLabel(value: unknown) {
-  const score = numeric(value);
-  return score === null ? "Belum cukup bukti" : score.toLocaleString("id-ID", { maximumFractionDigits: 1 });
-}
-
-function gradeVariant(value: unknown): "default" | "secondary" | "destructive" | "outline" {
-  const grade = text(value, "N/A");
-  if (grade === "A" || grade === "B") return "default";
-  if (grade === "D") return "destructive";
-  return grade === "N/A" ? "outline" : "secondary";
-}
-
 function formatPeriod(value: DataRecord) {
   const from = typeof value.from === "string" ? new Date(value.from) : null;
   const to = typeof value.to === "string" ? new Date(value.to) : null;
@@ -52,7 +50,12 @@ function formatPeriod(value: DataRecord) {
 export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional" | "national" }) {
   const payload = record(data);
   const summary = record(payload.summary);
-  const evidence = record(summary.evidence);
+  const evidence = {
+    reports: Number(record(summary.evidence).reports ?? 0),
+    tasks: Number(record(summary.evidence).tasks ?? 0),
+    verifications: Number(record(summary.evidence).verifications ?? 0),
+    measuredIndicators: Number(record(summary.evidence).measuredIndicators ?? 0),
+  };
   const definitions = list(payload.indicatorDefinitions);
   const summaryIndicators = list(summary.indicators);
   const definitionsByCode = useMemo(
@@ -64,251 +67,158 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
   const recommendations = Array.isArray(payload.recommendations)
     ? payload.recommendations.map((item) => text(item))
     : [];
+
+  // Search local state
   const [search, setSearch] = useState("");
-  const query = search.trim().toLocaleLowerCase("id-ID");
-  const filteredUnits = units.filter((unit) =>
-    [unit.name, unit.code, unit.type].some((value) => text(value, "").toLocaleLowerCase("id-ID").includes(query)),
-  );
-  const filteredPersonnel = personnel.filter((person) => {
-    const unit = record(person.unit);
-    const areas = list(person.areas).map((area) => area.name);
-    return [person.name, person.position, unit.name, ...areas].some((value) =>
-      text(value, "").toLocaleLowerCase("id-ID").includes(query),
-    );
-  });
+
+  // Drawer local state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedDetail, setSelectedDetail] = useState<{
+    type: "unit" | "personnel" | null;
+    data: DataRecord | null;
+  }>({ type: null, data: null });
+
+  // Top & Bottom performers extraction
+  const topPerformers = useMemo(() => {
+    return [...units]
+      .filter((u) => numeric(u.score) !== null)
+      .sort((a, b) => (numeric(b.score) ?? 0) - (numeric(a.score) ?? 0))
+      .slice(0, 5);
+  }, [units]);
+
+  const lowestPerformers = useMemo(() => {
+    return [...units]
+      .filter((u) => numeric(u.score) !== null)
+      .sort((a, b) => (numeric(a.score) ?? 0) - (numeric(b.score) ?? 0))
+      .slice(0, 5);
+  }, [units]);
+
+  const handleSelectRow = (type: "unit" | "personnel", item: DataRecord) => {
+    setSelectedDetail({ type, data: item });
+    setDrawerOpen(true);
+  };
+
+  const handleRecommendationClick = (keyword: string) => {
+    setSearch(keyword);
+  };
+
+  const handleRefresh = () => {
+    // Simulated Refresh / clear search filters
+    setSearch("");
+  };
 
   return (
-    <main className="mx-auto w-full max-w-[1700px] space-y-5 p-4 sm:p-6 lg:p-8">
-      <header className="flex flex-col gap-3 border-b pb-5 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Evaluasi kinerja / kualitas HUMINT
-          </p>
-          <h1 className="mt-1 font-heading text-2xl font-semibold">DENS CAKRA KPI Engine</h1>
-          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+    <main className="mx-auto w-full max-w-[var(--dc-content-max,1792px)] space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* HEADER SECTION */}
+      <header className="flex flex-col gap-3 border-b border-[var(--dc-divider)] pb-6 xl:flex-row xl:items-end xl:justify-between">
+        <div className="space-y-2">
+          {/* Breadcrumb */}
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard" className="text-[10px] tracking-wider uppercase font-semibold text-[var(--dc-text-muted)]">
+                  Evaluasi Kinerja
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="text-[var(--dc-text-muted)] opacity-50" />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-[10px] tracking-wider uppercase font-semibold text-[var(--dc-text-secondary)]">
+                  Kualitas Humint
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          
+          <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight text-[var(--dc-text-primary)]">
+            DENS CAKRA KPI Engine
+          </h1>
+          <p className="max-w-3xl text-sm text-[var(--dc-text-secondary)] leading-relaxed">
             Produktivitas dinilai dari ketepatan waktu, kualitas, validitas, dampak strategis, dan respons UUK/STR;
             bukan jumlah laporan saja.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">{mode === "national" ? "Scope nasional" : "Scope komando regional"}</Badge>
-          <Badge variant="secondary">{formatPeriod(record(payload.period))}</Badge>
+
+        {/* Scope and Date badges */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="font-mono text-[10px] tracking-wider uppercase border-[var(--dc-border-strong)] bg-[var(--dc-surface-raised)] px-2.5 py-1">
+            Scope {mode === "national" ? "Nasional" : "Komando Regional"}
+          </Badge>
+          <Badge variant="secondary" className="font-mono text-[10px] tracking-wider uppercase px-2.5 py-1 bg-[var(--dc-surface-raised)] text-[var(--dc-text-secondary)] border border-[var(--dc-border-subtle)]">
+            Periode: {formatPeriod(record(payload.period))}
+          </Badge>
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Skor terukur" value={scoreLabel(summary.score)} icon={Gauge} />
-        <MetricCard
-          label="Grade"
-          value={text(summary.grade, "N/A")}
-          icon={ShieldCheck}
-          variant={gradeVariant(summary.grade)}
+      {/* KPI SUMMARY CARDS */}
+      <KpiSummary
+        score={numeric(summary.score)}
+        grade={text(summary.grade, "N/A")}
+        personnelCount={personnel.length}
+        evidence={evidence}
+      />
+
+      {/* PERFORMANCE INDICATORS (5 HORIZONTAL CARDS) */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--dc-text-muted)]">
+          Indikator Kinerja Utama
+        </h3>
+        <KpiIndicator
+          indicators={summaryIndicators.map((ind) => ({
+            code: text(ind.code),
+            score: numeric(ind.score),
+            sample: Number(ind.sample ?? 0),
+          }))}
+          definitionsByCode={definitionsByCode as any}
         />
-        <MetricCard label="Personel dinilai" value={personnel.length.toLocaleString("id-ID")} icon={UserRoundCheck} />
-        <MetricCard
-          label="Bukti laporan / tugas"
-          value={`${Number(evidence.reports ?? 0)} / ${Number(evidence.tasks ?? 0)}`}
-          icon={Activity}
+      </div>
+
+      {/* HIERARCHY KPI EXPLORER (FULL WIDTH) */}
+      <div className="w-full">
+        <HierarchyExplorer
+          units={units}
+          personnel={personnel}
+          definitions={definitions}
+          summaryIndicators={summaryIndicators}
+          search={search}
+          onSearchChange={setSearch}
+          onSelectRow={handleSelectRow}
+          onRefresh={handleRefresh}
         />
-      </section>
+      </div>
 
-      <section className="grid gap-3 lg:grid-cols-5" aria-label="Indikator KPI">
-        {summaryIndicators.map((indicator) => {
-          const definition = definitionsByCode.get(text(indicator.code, "")) ?? {};
-          const score = numeric(indicator.score);
-          return (
-            <Card key={text(indicator.code)} size="sm">
-              <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                  <Badge variant="outline">{text(indicator.code)}</Badge>
-                  <span className="font-mono text-lg font-semibold">{scoreLabel(score)}</span>
-                </div>
-                <CardTitle className="text-sm">{text(definition.name)}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Progress value={score ?? 0} aria-label={`Skor ${text(indicator.code)}`} />
-                <p className="mt-2 text-xs text-muted-foreground">Sampel: {Number(indicator.sample ?? 0)}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <CardTitle>Hierarki KPI terintegrasi</CardTitle>
-                <CardDescription>Nasional / BINDA / Kabupaten-Kota / Kecamatan / Unit / Personel</CardDescription>
-              </div>
-              <div className="relative w-full md:max-w-sm">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Cari unit, personel, atau wilayah"
-                />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="units">
-              <TabsList>
-                <TabsTrigger value="units">Unit ({filteredUnits.length})</TabsTrigger>
-                <TabsTrigger value="personnel">Personel ({filteredPersonnel.length})</TabsTrigger>
-                <TabsTrigger value="method">Metodologi</TabsTrigger>
-              </TabsList>
-              <TabsContent value="units" className="mt-4 space-y-2">
-                {filteredUnits.map((unit, index) => (
-                  <ScoreRow
-                    key={text(unit.id)}
-                    rank={index + 1}
-                    title={text(unit.name)}
-                    subtitle={`${Number(unit.personnelCount ?? 0)} personel / ${text(unit.type)}`}
-                    item={unit}
-                  />
-                ))}
-                {!filteredUnits.length ? <Empty label="Tidak ada unit yang cocok." /> : null}
-              </TabsContent>
-              <TabsContent value="personnel" className="mt-4 space-y-2">
-                {filteredPersonnel.map((person, index) => {
-                  const unit = record(person.unit);
-                  const areas = list(person.areas)
-                    .map((area) => text(area.name, ""))
-                    .filter(Boolean)
-                    .join(", ");
-                  return (
-                    <ScoreRow
-                      key={text(person.id)}
-                      rank={index + 1}
-                      title={text(person.name)}
-                      subtitle={`${text(person.position)} / ${text(unit.name)} / ${areas || "Wilayah belum ditetapkan"}`}
-                      item={person}
-                    />
-                  );
-                })}
-                {!filteredPersonnel.length ? <Empty label="Tidak ada personel yang cocok." /> : null}
-              </TabsContent>
-              <TabsContent value="method" className="mt-4 grid gap-3 md:grid-cols-2">
-                {definitions.map((definition) => (
-                  <div key={text(definition.code)} className="rounded-md border p-3">
-                    <p className="font-medium">
-                      {text(definition.code)} / {text(definition.name)}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">{text(definition.evidence)}</p>
-                  </div>
-                ))}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="size-4 text-primary" /> Saran taktis / strategis
-              </CardTitle>
-              <CardDescription>Prioritas pembinaan berdasarkan indikator dan bukti terendah.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recommendations.map((recommendation, index) => (
-                <div key={recommendation} className="flex gap-3 text-sm">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 font-mono text-xs text-primary">
-                    {index + 1}
-                  </span>
-                  <p className="leading-6">{recommendation}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="size-4 text-amber-500" /> Kualitas bukti
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <EvidenceRow label="Baket periode" value={evidence.reports} />
-              <EvidenceRow label="Verifikasi formal" value={evidence.verifications} />
-              <EvidenceRow label="Tugas UUK/STR" value={evidence.tasks} />
-              <EvidenceRow label="Indikator terukur" value={`${Number(evidence.measuredIndicators ?? 0)} / 5`} />
-              <p className="border-t pt-3 text-xs text-muted-foreground">
-                Skor kosong tidak diubah menjadi nol. Pimpinan dapat membedakan kinerja rendah dari bukti yang belum
-                cukup.
-              </p>
-            </CardContent>
-          </Card>
+      {/* STRATEGIC INSIGHT SECTION */}
+      <div className="space-y-6 pt-6 border-t border-[var(--dc-divider)]">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--dc-text-primary)]">Strategic Insight</h2>
+          <p className="text-xs text-[var(--dc-text-muted)] mt-1">
+            Analisis taktis operasional berdasarkan penyebaran skor kinerja dan grade secara nasional.
+          </p>
         </div>
-      </section>
+
+
+        {/* 3-Column Grid for Rankings & Distribution */}
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <Top5Units
+            topPerformers={topPerformers}
+            onSelectUnit={(unit) => handleSelectRow("unit", unit)}
+          />
+          <LowestUnits
+            lowestPerformers={lowestPerformers}
+            onSelectUnit={(unit) => handleSelectRow("unit", unit)}
+          />
+          <GradeDistribution
+            units={units}
+          />
+        </div>
+      </div>
+
+      {/* DETAIL RIGHT DRAWER */}
+      <RightDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        type={selectedDetail.type}
+        data={selectedDetail.data}
+      />
     </main>
   );
-}
-
-function MetricCard({
-  label,
-  value,
-  icon: Icon,
-  variant = "outline",
-}: {
-  label: string;
-  value: string;
-  icon: typeof Gauge;
-  variant?: "default" | "secondary" | "destructive" | "outline";
-}) {
-  return (
-    <Card size="sm">
-      <CardContent className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="mt-1 font-mono text-2xl font-semibold">{value}</p>
-        </div>
-        <Badge variant={variant} className="size-9 justify-center p-0">
-          <Icon className="size-4" />
-        </Badge>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ScoreRow({
-  rank,
-  title,
-  subtitle,
-  item,
-}: {
-  rank: number;
-  title: string;
-  subtitle: string;
-  item: DataRecord;
-}) {
-  const score = numeric(item.score);
-  return (
-    <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-[40px_minmax(0,1fr)_120px] sm:items-center">
-      <span className="font-mono text-sm text-muted-foreground">{rank.toString().padStart(2, "0")}</span>
-      <div>
-        <p className="font-medium">{title}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-      </div>
-      <div className="sm:text-right">
-        <Badge variant={gradeVariant(item.grade)}>Grade {text(item.grade, "N/A")}</Badge>
-        <p className="mt-1 font-mono text-lg font-semibold">{scoreLabel(score)}</p>
-      </div>
-    </div>
-  );
-}
-
-function EvidenceRow({ label, value }: { label: string; value: unknown }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-mono font-medium">{String(value ?? 0)}</span>
-    </div>
-  );
-}
-
-function Empty({ label }: { label: string }) {
-  return <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">{label}</div>;
 }

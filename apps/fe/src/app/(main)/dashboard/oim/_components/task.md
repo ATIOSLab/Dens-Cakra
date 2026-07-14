@@ -1,0 +1,71 @@
+# DENS CAKRA Redesign Tasklist
+
+- [x] Refactor KPI Engine layout to full-width Enterprise Dashboard
+  - [x] Remove 70:30 sidebar grid wrapper
+  - [x] Position rankings and grade distribution at the bottom
+  - [x] Set default page record limit to 20 rows
+- [x] Refactor Strategic Directive detail page to Stepper Wizard Layout
+  - [x] Restore horizontal step navigation (01-10) below the header card
+  - [x] Render only one active section card at a time (01-09)
+  - [x] Position Previous, Next controls under the active section card (removed Save Draft)
+  - [x] Auto-scroll back to active card top upon navigation transitions (150ms fade)
+  - [x] Render Informasi Pendukung & Artefak Turunan STR at the bottom at all times
+  - [x] Track scroll-state and bind Section 10 tab to scroll-spy highlighting
+  - [x] Condense card layouts (compact auto height, single-line metadata)
+  - [x] Run typescript compile checks
+- [x] Implement Interactive 3D National Personnel Map (COP)
+  - [x] Render main dashboard wrapper with page headers and metric cards in NationalMap.tsx
+  - [x] Initialize MapLibre GL JS with OpenFreeMap Liberty styles (light/dark mode matching)
+  - [x] Configure native GeoJSON point clustering with clusterMaxZoom: 9
+  - [x] Add HeatmapLayer for national zoom (<= 5)
+  - [x] Add ClusterCircleLayer, ClusterBoundaryLayer, and ClusterCountLayer for province zoom (5 to 8.5)
+  - [x] Add PersonnelCircleLayer and PersonnelPulseLayer for county/town zoom (> 8.5)
+  - [x] Setup requestAnimationFrame pulse rendering for ACTIVE and EMERGENCY personnel markers
+  - [x] Add MapLegend panel containing dot status indicators
+  - [x] Bind search bar autocomplete suggestions to easeTo flyTo map camera transitions
+  - [x] Bind select filters (Status, Grade, Unit) to filter personnelGeoJson features dynamically
+  - [x] Build MapInspector displaying personnel, cluster stats, and boundary summaries
+  - [x] Run typescript compile checks
+- [x] Refactor Personel & Jaring page to Master-Detail Layout
+  - [x] Restructure grid layout below search/filters to 30:70 split pane
+  - [x] Create scrollable compact list left panel with status dots and blue left border for active selection
+  - [x] Build detailed inspector card in the right panel showing profiles, units, and hierarchical supervisor structures
+  - [x] Integrate live interactive MapLibre mini maps inside the detail card if GPS coordinates are available
+  - [x] Render chronological activity timelines and handler caretaker assignments
+  - [x] Optimize scroll list rendering performance using browser native content-visibility attributes
+  - [x] Run typescript compile checks
+- [x] Style 'SUDAH DITERUSKAN' status badge in green
+  - [x] Update uuk-clients.tsx list view status cells to render green style when status is PUBLISHED
+  - [x] Update uuk-clients.tsx detail sidebar overview status to render green style when status is PUBLISHED
+  - [x] Run typescript compile checks
+- [x] Implement Enterprise Pagination on Personel & Jaring lists
+  - [x] Settle dynamic viewport height container `h-[calc(100vh-380px)]` to fit exactly on screen
+  - [x] Listen to window width resize to set responsive page sizes (10 on desktop, 8 on tablet, 6 on mobile)
+  - [x] Build bottom pagination bar displaying range info, Previous/Next, and page numbers with ellipses
+  - [x] Implement selection tracking to retain highlight if within the active page or select the first item on page switch
+  - [x] Reset active page to 1 automatically upon search queries or filter modifications
+  - [x] Run typescript compile checks
+- [x] Redesign Monitoring Lapangan Page Dashboard
+  - [x] Enrich header block with pulsing green operational status metadata
+  - [x] Redesign 5 top KPI cards with distinct colored top borders, matching icons, and custom status pills
+  - [x] Redesign 6 workload/coverage cards with icons, percentage indicators, trend pills, and colored progress bars with shadows
+  - [x] Add clean empty state status logic (e.g. "Clear" badge when metrics are 0)
+  - [x] Configure smooth 200ms translateY card hover animations
+  - [x] Refactor dashboard to Tactical C2 Command & Control style with corner brackets, grid overlays, flat progress lines, and monospace headers
+  - [x] Redesign semantic color system of the 6 workload/coverage cards (Green for Workload, Amber for Deadline, Cyan for Coverage, Blue for Laporan, Red for Insiden, Purple for Progress)
+  - [x] Add active selection state to monitoring cards with a 2px colored border and a glow shadow
+  - [x] Redesign 5 top KPI cards to represent a Workflow Pipeline using Cyan (Baket Baru), Amber (Antrean Verifikasi), Orange (Pengembangan), Emerald (Analisis Aktif), and Purple (Draft Produk) colors
+  - [x] Configure `#131A26` background, `18px` border radius, `2px` top border accent, `44x44` icon containers, and custom typography/hierarchy layout on top KPI cards
+  - [x] Redesign OIM main dashboard layout, wrap with `#0B1220` background, 3% opacity grid overlays, noise filters, status strips, section titles, custom list cards, empty state refresh CTAs, and a vertical line Mission Pipeline timeline
+  - [x] Run Next.js production build check successfully
+- [x] Redesign Buat Produk Intelijen Page Workspace
+  - [x] Refactor page to a 36:64 desktop grid layout separating Editor and Document workspace
+  - [x] Add horizontal Step indicator flow tracker
+  - [x] Restructure form inputs into collapsible accordion sections
+  - [x] Render document workspace as a centered A4 canvas sheet with `#FFFFFF` background, `12px` border radius, and `0 24px 60px rgba(0,0,0,.35)` shadow
+  - [x] Embed Document Workspace canvas inside `#1B2230` background layout
+  - [x] Add dynamic document scaling zoom toolbar (Zoom -, 100%, Zoom +, Fit Width, Refresh Preview) with custom `#1A2434` buttons
+  - [x] Pin C2 action buttons to a floating Sticky Bottom action bar of height `64px` and `#131C2B` background
+  - [x] Render status details: `● Draft Saved`, `Last Save: 09:42`, `Version: v1.0.3`, `Auto Save: ON`
+  - [x] Implement button color overrides: Primary `#0E7A5F`, Secondary `#3A4657`, Tertiary `#2D394A` with hover states and transitions
+  - [x] Run typescript compile checks

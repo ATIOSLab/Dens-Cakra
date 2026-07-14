@@ -320,7 +320,6 @@ export function FieldCoordinatorWhatsappPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="border-white/15 bg-transparent text-white hover:bg-white/10"
                     disabled={busyKey === `request-qr:${channel.id}`}
                     onClick={() => void runAction(channel.id, "request-qr")}
                   >
@@ -329,8 +328,7 @@ export function FieldCoordinatorWhatsappPage() {
                   </Button>
                   {channel.status === "ACTIVE" ? (
                     <Button
-                      variant="outline"
-                      className="border-white/15 bg-transparent text-white hover:bg-white/10"
+                      variant="warning"
                       disabled={busyKey === `deactivate:${channel.id}`}
                       onClick={() => void runAction(channel.id, "deactivate")}
                     >
@@ -339,7 +337,7 @@ export function FieldCoordinatorWhatsappPage() {
                     </Button>
                   ) : (
                     <Button
-                      className="bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+                      variant="success"
                       disabled={busyKey === `activate:${channel.id}`}
                       onClick={() => void runAction(channel.id, "activate")}
                     >

@@ -14,10 +14,14 @@ const buttonVariants = cva(
           "border-border bg-background/70 hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/25 dark:hover:bg-input/45",
         secondary:
           "bg-secondary/85 text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+        success:
+          "border-[var(--dc-success)] bg-[color-mix(in_srgb,var(--dc-success)_70%,black)] text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--dc-success)_65%,transparent),0_8px_20px_color-mix(in_srgb,var(--dc-success)_16%,transparent)] hover:bg-[color-mix(in_srgb,var(--dc-success)_78%,black)] focus-visible:border-[var(--dc-success)] focus-visible:ring-[color-mix(in_srgb,var(--dc-success)_35%,transparent)]",
+        warning:
+          "border-[var(--dc-warning)] bg-[var(--dc-warning)] text-slate-950 shadow-[0_0_0_1px_color-mix(in_srgb,var(--dc-warning)_60%,transparent),0_8px_20px_color-mix(in_srgb,var(--dc-warning)_14%,transparent)] hover:bg-[color-mix(in_srgb,var(--dc-warning)_88%,black)] focus-visible:border-[var(--dc-warning)] focus-visible:ring-[color-mix(in_srgb,var(--dc-warning)_30%,transparent)]",
         ghost:
           "hover:bg-muted/75 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+          "border-[var(--dc-danger)] bg-[color-mix(in_srgb,var(--dc-danger)_78%,black)] text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--dc-danger)_65%,transparent),0_8px_20px_color-mix(in_srgb,var(--dc-danger)_14%,transparent)] hover:bg-[color-mix(in_srgb,var(--dc-danger)_85%,black)] focus-visible:border-[var(--dc-danger)] focus-visible:ring-[color-mix(in_srgb,var(--dc-danger)_30%,transparent)]",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

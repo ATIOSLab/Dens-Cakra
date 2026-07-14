@@ -826,16 +826,17 @@ export function JawabanLapanganPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         onClick={handleVerify}
-                        variant="outline"
+                        variant="success"
                         size="sm"
-                        className="h-8 gap-1 border-emerald-500/30 font-bold text-emerald-400 text-xs hover:bg-emerald-500/10"
+                        className="h-8 gap-1 font-bold text-xs"
                       >
                         <CheckCircle2 className="size-3.5" /> Verifikasi
                       </Button>
                       <Button
                         onClick={handleEscalateToOim}
                         size="sm"
-                        className="h-8 gap-1 bg-sky-600 font-bold text-xs hover:bg-sky-500"
+                        variant="warning"
+                        className="h-8 gap-1 font-bold text-xs"
                       >
                         <ArrowUpRight className="size-3.5" /> Eskalasi OIM
                       </Button>

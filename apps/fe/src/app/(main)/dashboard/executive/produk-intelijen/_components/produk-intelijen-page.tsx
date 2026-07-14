@@ -521,7 +521,8 @@ export function ProdukIntelijenPage() {
                     <>
                       <Button
                         onClick={handleApprove}
-                        className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                        className="h-8 text-xs"
+                        variant="success"
                         size="sm"
                       >
                         <Check className="size-3.5" />
@@ -529,8 +530,8 @@ export function ProdukIntelijenPage() {
                       </Button>
                       <Button
                         onClick={() => setIsRevisionModalOpen(true)}
-                        className="h-8 text-xs border-rose-500/25 bg-rose-500/5 text-rose-500 hover:bg-rose-500/10"
-                        variant="outline"
+                        className="h-8 text-xs"
+                        variant="warning"
                         size="sm"
                       >
                         <RotateCcw className="size-3.5" />
@@ -541,7 +542,7 @@ export function ProdukIntelijenPage() {
                   {selectedProduct.status !== "Arsip" && (
                     <Button
                       onClick={handleArchive}
-                      variant="outline"
+                      variant="warning"
                       className="h-8 text-xs"
                       size="sm"
                     >
@@ -751,7 +752,8 @@ export function ProdukIntelijenPage() {
                   disabled={!revisionText.trim()}
                   onClick={handleReturnSubmit}
                   size="sm"
-                  className="text-xs bg-rose-600 hover:bg-rose-700 text-white"
+                  className="text-xs"
+                  variant="warning"
                   type="button"
                 >
                   <Send className="size-3.5" />

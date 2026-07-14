@@ -970,15 +970,15 @@ export function LaporanIntelijenPage() {
                   <div className="flex flex-col justify-between gap-3 border-t pt-3 sm:flex-row sm:items-center">
                     <p className="text-muted-foreground text-xs">Keputusan akan tercatat pada riwayat dan audit log.</p>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => openDecision("reject")}>
+                      <Button variant="destructive" onClick={() => openDecision("reject")}>
                         <X />
                         Tolak
                       </Button>
-                      <Button variant="outline" onClick={() => openDecision("return")}>
+                      <Button variant="warning" onClick={() => openDecision("return")}>
                         <RotateCcw />
                         Kembalikan
                       </Button>
-                      <Button onClick={() => openDecision("approve")}>
+                      <Button variant="success" onClick={() => openDecision("approve")}>
                         <Check />
                         Setujui
                       </Button>
@@ -997,7 +997,7 @@ export function LaporanIntelijenPage() {
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline" onClick={archiveReport}>
+                  <Button variant="warning" onClick={archiveReport}>
                     <Archive />
                     Arsipkan
                   </Button>
@@ -1180,7 +1180,7 @@ function DecisionDialog({
       label: "Catatan persetujuan (opsional)",
       action: "Setujui Laporan",
       icon: CheckCircle2,
-      buttonVariant: "default" as const,
+      buttonVariant: "success" as const,
     },
     return: {
       title: "Kembalikan untuk perbaikan?",
@@ -1188,7 +1188,7 @@ function DecisionDialog({
       label: "Catatan revisi",
       action: "Kembalikan ke OIM",
       icon: RotateCcw,
-      buttonVariant: "default" as const,
+      buttonVariant: "warning" as const,
     },
     reject: {
       title: "Tolak laporan?",
