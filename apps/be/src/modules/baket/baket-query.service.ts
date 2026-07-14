@@ -31,7 +31,19 @@ const administrativeAreaInclude = {
   parent: {
     include: {
       parent: {
-        include: { parent: true },
+        include: {
+          parent: {
+            include: {
+              parent: {
+                include: {
+                  parent: {
+                    include: { parent: true },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
   },

@@ -75,7 +75,7 @@ describe('DomainScopeService', () => {
     expect(result.areaRootIds).toEqual(['province']);
   });
 
-  it('keeps unresolved Baket visible only through the reporting-line scope', async () => {
+  it('scopes Baket by reporting line without hiding reports from outside the assignment area', async () => {
     const prisma = {
       position: {
         findMany: jest
@@ -103,25 +103,6 @@ describe('DomainScopeService', () => {
 
     await expect(service.baketWhere(context)).resolves.toEqual({
       createdByFieldOfficerAssignmentId: { in: ['fo-a'] },
-      OR: [
-        {
-          versions: {
-            some: {
-              OR: [
-                { eventAreaId: { in: ['province'] } },
-                {
-                  eventArea: {
-                    ancestorLinks: {
-                      some: { ancestorId: { in: ['province'] } },
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        },
-        { versions: { none: { eventAreaId: { not: null } } } },
-      ],
     });
   });
 

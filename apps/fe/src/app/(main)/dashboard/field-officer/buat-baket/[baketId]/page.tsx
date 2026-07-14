@@ -3,6 +3,9 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { administrativeAreaLabel } from "@/features/baket/administrative-area";
+import { BaketAdministrativeArea } from "@/features/baket/components/baket-administrative-area";
+import { BaketLocationMap } from "@/features/baket/components/baket-location-map";
 import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
@@ -31,6 +34,16 @@ export default async function Page({ params }: PageProps) {
   const baket = await apiServerGet<Row>(`/bakets/${baketId}`);
   const version = rows(baket.versions)[0] ?? {};
   const sourceMessages = rows(version.sourceMessages);
+  const latitude = Number(version.latitude);
+  const longitude = Number(version.longitude);
+  const hasCoordinates =
+    version.latitude !== null &&
+    version.latitude !== undefined &&
+    version.longitude !== null &&
+    version.longitude !== undefined &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
+  const areaLabel = administrativeAreaLabel(version.eventArea);
   const evidence = [
     ...rows(version.attachments),
     ...sourceMessages.flatMap((source) => rows(source.message?.media)),
@@ -44,9 +57,9 @@ export default async function Page({ params }: PageProps) {
     <div className="space-y-5 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">Field Officer · Baket terkirim</p>
-          <h1 className="text-2xl font-semibold">{version.title ?? "Detail Baket"}</h1>
-          <p className="text-sm text-muted-foreground">Data yang telah dikirim bersifat baca-saja.</p>
+          <p className="text-muted-foreground text-sm">Field Officer · Baket terkirim</p>
+          <h1 className="font-semibold text-2xl">{version.title ?? "Detail Baket"}</h1>
+          <p className="text-muted-foreground text-sm">Data yang telah dikirim bersifat baca-saja.</p>
         </div>
         <Button asChild variant="outline">
           <Link href="/dashboard/field-officer/buat-baket">Kembali</Link>
@@ -72,8 +85,34 @@ export default async function Page({ params }: PageProps) {
             <p>
               GPS: {version.latitude ?? "-"}, {version.longitude ?? "-"}
             </p>
-            <p>Wilayah: {version.eventArea?.name ?? "Belum terpetakan"}</p>
+            <p>Wilayah: {areaLabel}</p>
           </div>
+          <BaketAdministrativeArea area={version.eventArea} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Peta lokasi kejadian</CardTitle>
+          <CardDescription>
+            {areaLabel} · {hasCoordinates ? `${latitude}, ${longitude}` : "Koordinat tidak tersedia"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {hasCoordinates ? (
+            <div className="overflow-hidden rounded-xl border bg-muted">
+              <BaketLocationMap
+                latitude={latitude}
+                longitude={longitude}
+                title={version.title ?? "Lokasi Baket"}
+                areaLabel={areaLabel}
+              />
+            </div>
+          ) : (
+            <p className="rounded-lg border border-dashed p-4 text-muted-foreground text-sm">
+              Koordinat lokasi tidak tersedia untuk ditampilkan pada peta.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -102,7 +141,7 @@ export default async function Page({ params }: PageProps) {
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Tidak ada foto atau evidence.</p>
+            <p className="text-muted-foreground text-sm">Tidak ada foto atau evidence.</p>
           )}
         </CardContent>
       </Card>

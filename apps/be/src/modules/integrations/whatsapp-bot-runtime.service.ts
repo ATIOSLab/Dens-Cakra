@@ -23,6 +23,7 @@ import P from 'pino';
 import * as QRCode from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import {
+  AreaResolutionMethod,
   CoordinateSource,
   FileLifecycleStatus,
   FileType,
@@ -40,6 +41,7 @@ import {
 import { LocalStorageService } from '../infrastructure/local-storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
+import { SpatialRepository } from '../spatial/spatial.repository.js';
 
 type RuntimeState = {
   connecting: boolean;
@@ -124,6 +126,7 @@ export class WhatsappBotRuntimeService
     private readonly vault: SecretVaultService,
     private readonly jobs: AsyncJobService,
     private readonly storage: LocalStorageService,
+    private readonly spatial: SpatialRepository,
   ) {}
 
   async onModuleInit() {
@@ -709,6 +712,9 @@ export class WhatsappBotRuntimeService
     const stored: Record<string, string> = await Promise.resolve(
       socket.authState.keys.get('lid-mapping', [reverseKey]),
     ).catch(() => ({} as Record<string, string>));
+    const stored = (await Promise.resolve(
+      socket.authState.keys.get('lid-mapping', [reverseKey]),
+    ).catch(() => ({}))) as Record<string, string | undefined>;
     const mappedUser = stored[reverseKey];
 
     if (typeof mappedUser !== 'string' || mappedUser.length === 0) {
@@ -897,11 +903,11 @@ export class WhatsappBotRuntimeService
           ]
         : jaring
           ? [
-              'Halo. Nomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah bot WhatsApp ini.',
+              'Halo. Nomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah layanan WhatsApp ini.',
               'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda atau hubungi Field Officer penanggung jawab.',
             ]
           : [
-              'Halo. Bot DENS CAKRA sudah aktif.',
+              'Halo. Layanan DENS CAKRA sudah aktif.',
               'Nomor WhatsApp ini belum terdaftar sebagai Jaring aktif. Silakan hubungi Field Officer untuk registrasi terlebih dahulu.',
             ];
 
@@ -1008,7 +1014,7 @@ export class WhatsappBotRuntimeService
         remoteJid,
         [message.key],
         [
-          'Akses Ditolak\n\nNomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah bot WhatsApp ini.',
+          'Akses Ditolak\n\nNomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah layanan WhatsApp ini.',
           'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda.',
         ],
       );
@@ -1264,6 +1270,15 @@ export class WhatsappBotRuntimeService
     session: ReportSession,
     location: { latitude?: number; longitude?: number; accuracy?: number },
   ) {
+    const hasCoordinates =
+      Number.isFinite(location.latitude) && Number.isFinite(location.longitude);
+    const areaResolution = hasCoordinates
+      ? await this.spatial.resolveReportArea(
+          location.latitude as number,
+          location.longitude as number,
+        )
+      : null;
+
     await this.prisma.whatsAppMessage.create({
       data: {
         integrationChannelId: channel.id,
@@ -1279,6 +1294,11 @@ export class WhatsappBotRuntimeService
         locationCapturedAt:
           session.eventDateTime ?? new Date(payload.receivedAt),
         coordinateSource: CoordinateSource.WHATSAPP_LOCATION,
+        resolvedAreaId: areaResolution?.area?.areaId ?? null,
+        areaResolutionMethod:
+          areaResolution?.method ?? AreaResolutionMethod.UNRESOLVED,
+        areaResolutionConfidence: areaResolution?.confidence ?? null,
+        areaResolvedAt: areaResolution?.resolvedAt ?? null,
         status: WhatsAppMessageStatus.RECEIVED,
         validationSummary: WhatsAppValidationSummary.VALID,
         rawPayload: {
@@ -1505,7 +1525,8 @@ export class WhatsappBotRuntimeService
       );
     }
 
-    for (const [index, text] of replies.entries()) {
+    for (const [index, reply] of replies.entries()) {
+      const text = this.sanitizeOutboundReply(reply);
       const typingMs = Math.min(4500, Math.max(1200, text.length * 35));
       const betweenMessageDelayMs = index === 0 ? 500 : 1300;
 
@@ -1523,6 +1544,15 @@ export class WhatsappBotRuntimeService
 
       await socket.sendMessage(remoteJid, { text });
     }
+  }
+
+  private sanitizeOutboundReply(text: string) {
+    return text
+      .replace(/\bbot\s+WhatsApp\b/gi, 'layanan WhatsApp')
+      .replace(/\bbot\s+DENS\s+CAKRA\b/gi, 'layanan DENS CAKRA')
+      .replace(/\bbot\b/gi, 'layanan')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
   }
 
   private printTerminalQr(qr: string) {

@@ -50,6 +50,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { administrativeAreaLabel } from "@/features/baket/administrative-area";
+import { BaketAdministrativeArea } from "@/features/baket/components/baket-administrative-area";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
 import type { OimPageData, OimView } from "./oim-types";
@@ -59,10 +61,13 @@ const SituationMap = dynamic(() => import("./oim-situation-map").then((module) =
   loading: () => <div className="h-[560px] animate-pulse rounded-xl bg-muted" />,
 });
 
-const BaketLocationMap = dynamic(() => import("./baket-location-map").then((module) => module.BaketLocationMap), {
-  ssr: false,
-  loading: () => <div className="h-80 animate-pulse bg-muted" />,
-});
+const BaketLocationMap = dynamic(
+  () => import("@/features/baket/components/baket-location-map").then((module) => module.BaketLocationMap),
+  {
+    ssr: false,
+    loading: () => <div className="h-[420px] animate-pulse bg-muted" />,
+  },
+);
 
 type Row = Record<string, any>;
 type Props = { view: OimView; data: OimPageData; params: Record<string, string> };
@@ -133,19 +138,6 @@ function rows(value: unknown): Row[] {
   if (Array.isArray(value)) return value as Row[];
   if (value && typeof value === "object" && Array.isArray((value as Row).items)) return (value as Row).items;
   return [];
-}
-
-function administrativeAreaLabel(area?: Row | null) {
-  const names: string[] = [];
-  let currentArea = area;
-
-  while (currentArea?.name && names.length < 4) {
-    if (currentArea.name === "Indonesia") break;
-    names.push(currentArea.name);
-    currentArea = currentArea.parent;
-  }
-
-  return names.length > 0 ? names.join(", ") : "Wilayah belum terpetakan";
 }
 
 function fieldOfficerUserName(assignment?: Row | null) {
@@ -692,6 +684,7 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
       <TabsContent value="evidence">
         <Card>
           <CardContent className="space-y-5 py-4">
+            <BaketAdministrativeArea area={version.eventArea} />
             {hasCoordinates ? (
               <div className="space-y-2">
                 <div>
@@ -700,7 +693,7 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
                     {eventAreaLabel} · {coordinates}
                   </p>
                 </div>
-                <div className="h-80 overflow-hidden rounded-xl border bg-muted">
+                <div className="overflow-hidden rounded-xl border bg-muted">
                   <BaketLocationMap
                     latitude={Number(version.latitude)}
                     longitude={Number(version.longitude)}
@@ -1048,7 +1041,7 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
                   <span>
                     <b className="block text-sm">{source.baketVersion?.title ?? "Baket terverifikasi"}</b>
                     <span className="text-muted-foreground text-xs">
-                      {source.baketVersion?.eventArea?.name ?? "Wilayah belum tersedia"}
+                      {administrativeAreaLabel(source.baketVersion?.eventArea)}
                     </span>
                   </span>
                 </label>
@@ -2147,9 +2140,7 @@ function VerificationList({ data }: { data: OimPageData }) {
             <div>
               <StatusBadge value={item.status} />
               <h2 className="mt-2 font-medium">{item.baketVersion?.title ?? "Verifikasi Baket"}</h2>
-              <p className="text-xs text-muted-foreground">
-                {item.baketVersion?.eventArea?.name ?? "Wilayah belum tersedia"}
-              </p>
+              <p className="text-xs text-muted-foreground">{administrativeAreaLabel(item.baketVersion?.eventArea)}</p>
             </div>
             <Button asChild variant="outline">
               <Link href={`/dashboard/oim/verifikasi-neraca-penilaian/${item.id}`}>
