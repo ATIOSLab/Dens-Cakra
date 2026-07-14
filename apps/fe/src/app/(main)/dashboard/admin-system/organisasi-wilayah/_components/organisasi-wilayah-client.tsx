@@ -1,11 +1,11 @@
 "use client";
 
-import { geoMercator, geoPath } from "d3-geo";
 import { startTransition, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { AlertTriangle, Building2, Landmark, MapPinned, ShieldCheck } from "lucide-react";
+import { geoMercator, geoPath } from "d3-geo";
+import { AlertTriangle, MapPinned } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,8 +13,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { apiBrowserFetch } from "@/lib/api/browser-client";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import type { ProvinceBoundaryCollection } from "@/features/directives/types";
+import { apiBrowserFetch } from "@/lib/api/browser-client";
 
 import type {
   RegionalMasterDirectorate,
@@ -51,7 +59,8 @@ type BoundaryCollectionWithCoverage = Omit<ProvinceBoundaryCollection, "features
   >;
 };
 
-const BINDA_PAGE_SIZE = 12;
+type WorkspaceFilter = "ALL" | "BINDA" | "DIRECTORATE";
+
 const MAP_WIDTH = 1200;
 const MAP_HEIGHT = 430;
 const FALLBACK_BOUNDS = {
@@ -158,7 +167,12 @@ function ProvinceCoverageMap({
 
   if (hasProvinceBoundaries && pathGenerator) {
     return (
-      <svg viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} className="h-full w-full">
+      <svg
+        viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+        className="h-full w-full"
+        role="img"
+        aria-label="Peta cakupan organisasi per provinsi"
+      >
         <g>
           {boundaries.features.map((feature) => {
             const provinceId = feature.properties?.areaId;
@@ -177,6 +191,7 @@ function ProvinceCoverageMap({
             const strokeWidth = isSelected ? 1.9 : 1;
 
             return (
+              /* biome-ignore lint/a11y/useSemanticElements: SVG paths cannot use a native button while preserving map geometry. */
               <path
                 key={provinceId}
                 d={pathData}
@@ -185,19 +200,25 @@ function ProvinceCoverageMap({
                 stroke={stroke}
                 strokeOpacity={0.96}
                 strokeWidth={strokeWidth}
-                className="cursor-pointer transition-all duration-150 hover:fill-opacity-95"
+                className="cursor-pointer transition-all duration-150 hover:fill-opacity-95 focus:outline-none"
+                role="button"
+                tabIndex={0}
                 onMouseEnter={() =>
                   onHoverProvince({
                     provinceId,
                     provinceName: feature.properties?.name ?? "Provinsi",
                     provinceCode: feature.properties?.code ?? "-",
-                    bindaName: fallbackMarkerProvinces.find((item) => item.province.id === provinceId)?.binda?.name ?? null,
+                    bindaName:
+                      fallbackMarkerProvinces.find((item) => item.province.id === provinceId)?.binda?.name ?? null,
                     directorateCount:
                       fallbackMarkerProvinces.find((item) => item.province.id === provinceId)?.directorates.length ?? 0,
                   })
                 }
                 onMouseLeave={() => onHoverProvince(null)}
                 onClick={() => onSelectProvince(provinceId)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") onSelectProvince(provinceId);
+                }}
               />
             );
           })}
@@ -217,12 +238,10 @@ function ProvinceCoverageMap({
         }
 
         const left =
-          ((longitude - FALLBACK_BOUNDS.minLongitude) /
-            (FALLBACK_BOUNDS.maxLongitude - FALLBACK_BOUNDS.minLongitude)) *
+          ((longitude - FALLBACK_BOUNDS.minLongitude) / (FALLBACK_BOUNDS.maxLongitude - FALLBACK_BOUNDS.minLongitude)) *
           100;
         const top =
-          ((FALLBACK_BOUNDS.maxLatitude - latitude) /
-            (FALLBACK_BOUNDS.maxLatitude - FALLBACK_BOUNDS.minLatitude)) *
+          ((FALLBACK_BOUNDS.maxLatitude - latitude) / (FALLBACK_BOUNDS.maxLatitude - FALLBACK_BOUNDS.minLatitude)) *
           100;
         const isSelected = summary.province.id === selectedProvinceId;
         const hasBinda = Boolean(summary.binda);
@@ -239,7 +258,7 @@ function ProvinceCoverageMap({
             style={{ left: `${left}%`, top: `${top}%` }}
           >
             <span
-              className={`mx-auto block size-4 rounded-full border-2 shadow-lg transition ${
+              className={`mx-auto block size-4 rounded-[2px] border-2 transition-colors ${
                 isSelected
                   ? "border-sky-100 bg-sky-500"
                   : hasBinda
@@ -250,7 +269,7 @@ function ProvinceCoverageMap({
               }`}
             />
             <span
-              className={`mt-1 block rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm transition ${
+              className={`mt-1 block rounded-[2px] px-2 py-0.5 text-[11px] font-medium transition-colors ${
                 isSelected ? "bg-sky-600 text-white" : "bg-white/90 text-slate-700 group-hover:bg-white"
               }`}
             >
@@ -263,53 +282,93 @@ function ProvinceCoverageMap({
   );
 }
 
-export function OrganisasiWilayahClient({
-  initialOverview,
-  provinceBoundaries,
-}: OrganisasiWilayahClientProps) {
+export function OrganisasiWilayahClient({ initialOverview, provinceBoundaries }: OrganisasiWilayahClientProps) {
   const [overview, setOverview] = useState(initialOverview);
   const [selectedProvinceId, setSelectedProvinceId] = useState<string | null>(null);
   const [hoveredProvince, setHoveredProvince] = useState<MasterMapHoverState | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [bindaPage, setBindaPage] = useState(1);
+  const [workspaceFilter, setWorkspaceFilter] = useState<WorkspaceFilter>("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [workspaceFilter, selectedProvinceId]);
 
   const selectedProvince =
-    (selectedProvinceId
-      ? overview.provinces.find((item) => item.province.id === selectedProvinceId)
-      : null) ?? null;
+    (selectedProvinceId ? overview.provinces.find((item) => item.province.id === selectedProvinceId) : null) ?? null;
   const visibleProvinceRows = selectedProvince ? [selectedProvince] : overview.provinces;
   const visibleDirectorates = flattenDirectorates(visibleProvinceRows);
   const deputyOptions = overview.deputyOptions;
-  const boundaryCollection = buildBoundaryCollection(
-    provinceBoundaries,
-    overview.provinces,
-    selectedProvinceId,
-  );
+  const boundaryCollection = buildBoundaryCollection(provinceBoundaries, overview.provinces, selectedProvinceId);
   const hasProvinceBoundaries = boundaryCollection.features.length > 0;
   const fallbackMarkerProvinces = overview.provinces.filter(
-    (item) =>
-      item.province.centroidLatitude !== null &&
-      item.province.centroidLongitude !== null,
+    (item) => item.province.centroidLatitude !== null && item.province.centroidLongitude !== null,
   );
-  const totalBindaPages = Math.max(1, Math.ceil(visibleProvinceRows.length / BINDA_PAGE_SIZE));
-  const safeBindaPage = Math.min(bindaPage, totalBindaPages);
-  const paginatedProvinceRows =
-    selectedProvince
-      ? visibleProvinceRows
-      : visibleProvinceRows.slice(
-          (safeBindaPage - 1) * BINDA_PAGE_SIZE,
-          safeBindaPage * BINDA_PAGE_SIZE,
-        );
+  const workspaceRows = useMemo(() => {
+    const rows: Array<{
+      id: string;
+      kind: "BINDA" | "DIRECTORATE";
+      name: string;
+      code: string;
+      area: string;
+      status: string;
+      statusTone: "active" | "pending";
+      personnel: string;
+      updated: string;
+      href: string;
+      actionLabel: string;
+    }> = [];
 
-  useEffect(() => {
-    setBindaPage(1);
-  }, [selectedProvinceId]);
-
-  useEffect(() => {
-    if (bindaPage > totalBindaPages) {
-      setBindaPage(totalBindaPages);
+    if (workspaceFilter !== "DIRECTORATE") {
+      visibleProvinceRows.forEach((summary) => {
+        const binda = summary.binda;
+        rows.push({
+          id: `binda:${summary.province.id}`,
+          kind: "BINDA",
+          name: binda?.name ?? "Binda belum terdaftar",
+          code: binda?.code ?? "-",
+          area: summary.province.name,
+          status: binda ? "Aktif" : "Belum terdaftar",
+          statusTone: binda ? "active" : "pending",
+          personnel: "-",
+          updated: "-",
+          href: binda
+            ? `/dashboard/admin-system/organisasi-wilayah/organisasi/${binda.unitId}`
+            : buildCreateHref("/dashboard/admin-system/organisasi-wilayah/organisasi/baru", summary.province.id),
+          actionLabel: binda ? "Detail" : "Tambah",
+        });
+      });
     }
-  }, [bindaPage, totalBindaPages]);
+
+    if (workspaceFilter !== "BINDA") {
+      visibleDirectorates.forEach((directorate) => {
+        rows.push({
+          id: `directorate:${directorate.unitId}`,
+          kind: "DIRECTORATE",
+          name: directorate.name,
+          code: directorate.profileCode ?? directorate.code,
+          area: directorate.coverageAreas.map((coverage) => coverage.name).join(", ") || "-",
+          status: "Aktif",
+          statusTone: "active",
+          personnel: "-",
+          updated: "-",
+          href: `/dashboard/admin-system/organisasi-wilayah/organisasi/${directorate.unitId}`,
+          actionLabel: "Detail",
+        });
+      });
+    }
+
+    return rows;
+  }, [visibleDirectorates, visibleProvinceRows, workspaceFilter]);
+
+  const rowsPerPage = 10;
+  const totalRows = workspaceRows.length;
+  const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return workspaceRows.slice(start, start + rowsPerPage);
+  }, [workspaceRows, currentPage]);
 
   function toggleProvinceSelection(provinceId: string) {
     setSelectedProvinceId((current) => (current === provinceId ? null : provinceId));
@@ -341,8 +400,8 @@ export function OrganisasiWilayahClient({
         </div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">Organisasi Wilayah</h1>
         <p className="max-w-4xl text-muted-foreground text-sm">
-          Kelola master Binda per provinsi dan Direktorat wilayah multi-provinsi dalam satu kanvas admin. Peta di
-          atas memberi konteks coverage, sementara tabel bawah menjaga registrasi unit tetap rapi.
+          Kelola master Binda per provinsi dan Direktorat wilayah multi-provinsi dalam satu kanvas admin. Peta di atas
+          memberi konteks coverage, sementara tabel bawah menjaga registrasi unit tetap rapi.
         </p>
       </div>
 
@@ -358,7 +417,7 @@ export function OrganisasiWilayahClient({
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-6">
-        <Card className="border border-border/70 xl:col-span-6">
+        <Card className="rounded-[2px] border border-border/70 shadow-none xl:col-span-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPinned className="size-4" />
@@ -393,9 +452,11 @@ export function OrganisasiWilayahClient({
               </Alert>
             ) : null}
 
-            <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-[radial-gradient(circle_at_top,#dcecff,transparent_42%),linear-gradient(180deg,#eff6ff,#dbeafe_55%,#f8fafc)]">
-              <div className="absolute left-4 top-4 z-10 max-w-sm rounded-xl border border-white/80 bg-white/88 p-4 text-slate-900 shadow-xl backdrop-blur">
-                <div className="text-[11px] uppercase tracking-[0.26em] text-sky-700/80">Status Provinsi</div>
+            <div className="relative overflow-hidden rounded-[2px] border border-border/70 bg-slate-100">
+              <div className="absolute left-4 top-4 z-10 max-w-sm rounded-[2px] border border-slate-300 bg-white p-4 text-slate-900">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700/80">
+                  Status Provinsi
+                </div>
                 <div className="mt-2 text-base font-semibold">
                   {hoveredProvince?.provinceName ?? selectedProvince?.province.name ?? "Arahkan ke provinsi"}
                 </div>
@@ -423,246 +484,242 @@ export function OrganisasiWilayahClient({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">
+              <Badge variant="outline" className="rounded-[2px]">
                 {selectedProvince ? `Filter: ${selectedProvince.province.name}` : "Semua provinsi"}
               </Badge>
-              <Badge variant="outline">
+              <Badge variant="outline" className="rounded-[2px]">
                 {overview.provinces.filter((item) => item.binda).length} provinsi sudah punya Binda
               </Badge>
-              <Badge variant="outline">
+              <Badge variant="outline" className="rounded-[2px]">
                 {hasProvinceBoundaries
                   ? "Mode boundary aktif"
                   : `${fallbackMarkerProvinces.length} marker centroid aktif`}
               </Badge>
-              <Badge variant="outline">{isRefreshing ? "Memuat ulang..." : "Data sinkron"}</Badge>
-              <Button type="button" variant="ghost" size="sm" onClick={refreshOverview} disabled={isRefreshing}>
+              <Badge variant="outline" className="rounded-[2px]">
+                {isRefreshing ? "Memuat ulang..." : "Data sinkron"}
+              </Badge>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={refreshOverview}
+                disabled={isRefreshing}
+                className="rounded-[3px] border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
                 Muat ulang data
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 xl:col-span-6 xl:grid-cols-2">
-        <Card className="border border-border/70 h-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="size-4" />
-              Daftar Binda per Provinsi
-            </CardTitle>
-            <CardDescription>
-              Satu provinsi hanya boleh memiliki satu Binda aktif. Gunakan peta untuk fokus ke provinsi tertentu.
-            </CardDescription>
-            <CardAction>
-              {deputyOptions.length ? (
-                <Button asChild type="button" size="sm">
-                  <Link
-                    href={buildCreateHref(
-                      "/dashboard/admin-system/organisasi-wilayah/organisasi/baru",
-                      selectedProvinceId,
-                    )}
-                  >
+        <Card className="rounded-[2px] border border-border/70 shadow-none xl:col-span-6">
+          <CardHeader className="gap-4 border-b border-border/70">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <CardTitle className="text-[22px]">Workspace Organisasi</CardTitle>
+                <CardDescription className="mt-1 text-[15px]">
+                  Kelola Binda dan Direktorat wilayah dalam satu daftar operasional.
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {deputyOptions.length ? (
+                  <Button asChild type="button" className="rounded-[3px] bg-green-600 text-white hover:bg-green-700">
+                    <Link
+                      href={buildCreateHref(
+                        "/dashboard/admin-system/organisasi-wilayah/organisasi/baru",
+                        selectedProvinceId,
+                      )}
+                    >
+                      Tambah Binda
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button type="button" disabled className="rounded-[3px]">
                     Tambah Binda
-                  </Link>
+                  </Button>
+                )}
+                {deputyOptions.length ? (
+                  <Button asChild type="button" className="rounded-[3px] bg-green-600 text-white hover:bg-green-700">
+                    <Link
+                      href={buildCreateHref(
+                        "/dashboard/admin-system/organisasi-wilayah/wilayah/baru",
+                        selectedProvinceId,
+                      )}
+                    >
+                      Tambah Direktorat
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button type="button" disabled className="rounded-[3px]">
+                    Tambah Direktorat
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <fieldset className="inline-flex border border-border/70 bg-muted/20 p-1">
+                <legend className="sr-only">Jenis organisasi</legend>
+                {(["ALL", "BINDA", "DIRECTORATE"] as const).map((filter) => {
+                  const label = filter === "ALL" ? "Semua" : filter === "BINDA" ? "Binda" : "Direktorat";
+                  return (
+                    <button
+                      key={filter}
+                      type="button"
+                      aria-pressed={workspaceFilter === filter}
+                      onClick={() => setWorkspaceFilter(filter)}
+                      className={`cursor-pointer border px-4 py-2 text-[13px] font-semibold transition-colors ${
+                        workspaceFilter === filter
+                          ? "border-sky-600 bg-sky-600 text-white"
+                          : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </fieldset>
+              <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+                <span>{workspaceRows.length} record</span>
+                {selectedProvince ? <Badge variant="outline">Wilayah: {selectedProvince.province.name}</Badge> : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedProvinceId(null)}
+                  disabled={!selectedProvinceId}
+                  className="rounded-[3px] border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Atur ulang wilayah
                 </Button>
-              ) : (
-                <Button type="button" size="sm" disabled>
-                  Tambah Binda
-                </Button>
-              )}
-            </CardAction>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Provinsi</TableHead>
-                  <TableHead>Binda</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedProvinceRows.length ? (
-                  paginatedProvinceRows.map((summary) => (
-                    <TableRow key={summary.province.id}>
-                      <TableCell className="font-medium">
-                        <div>{summary.province.name}</div>
-                        <div className="text-muted-foreground text-xs">{summary.province.code}</div>
-                      </TableCell>
-                      <TableCell>
-                        {summary.binda ? (
-                          <div>
-                            <div className="font-medium">{summary.binda.name}</div>
-                            <div className="text-muted-foreground text-xs">{summary.binda.code}</div>
+          <CardContent className="pt-0">
+            <div className="overflow-x-auto rounded-[2px] border border-border/70">
+              <Table>
+                <TableHeader className="bg-muted/40">
+                  <TableRow>
+                    <TableHead className="text-[13px] uppercase tracking-wide">Nama</TableHead>
+                    <TableHead className="text-[13px] uppercase tracking-wide">Kode</TableHead>
+                    <TableHead className="text-[13px] uppercase tracking-wide">Wilayah</TableHead>
+                    <TableHead className="text-[13px] uppercase tracking-wide">Status</TableHead>
+                    <TableHead className="text-[13px] uppercase tracking-wide">Personel</TableHead>
+                    <TableHead className="text-[13px] uppercase tracking-wide">Pembaruan terakhir</TableHead>
+                    <TableHead className="text-right text-[13px] uppercase tracking-wide">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedRows.length ? (
+                    paginatedRows.map((row) => (
+                      <TableRow key={row.id} className="hover:bg-muted/20">
+                        <TableCell className="min-w-[220px] font-medium">
+                          <div>{row.name}</div>
+                          <div className="mt-1 text-[13px] text-muted-foreground">
+                            {row.kind === "BINDA" ? "Badan Intelijen Daerah" : "Direktorat wilayah"}
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">Belum ada Binda</span>
-                        )}
+                        </TableCell>
+                        <TableCell className="font-mono text-[13px] text-muted-foreground">{row.code}</TableCell>
+                        <TableCell className="min-w-[220px] text-[15px]">{row.area}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center gap-2 text-[13px] font-semibold ${
+                              row.statusTone === "active" ? "text-green-400" : "text-amber-400"
+                            }`}
+                          >
+                            <span
+                              className={`size-2 ${row.statusTone === "active" ? "bg-green-500" : "bg-amber-500"}`}
+                            />
+                            {row.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{row.personnel}</TableCell>
+                        <TableCell className="text-muted-foreground">{row.updated}</TableCell>
+                        <TableCell className="text-right">
+                          {row.actionLabel === "Tambah" && !deputyOptions.length ? (
+                            <Button type="button" variant="outline" size="sm" disabled className="rounded-[3px]">
+                                Tambah
+                            </Button>
+                          ) : (
+                            <Button
+                              asChild
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="rounded-[3px] border-sky-700 text-sky-400 hover:bg-sky-500/10"
+                            >
+                              <Link href={row.href}>{row.actionLabel}</Link>
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                        Belum ada data organisasi untuk filter ini.
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={2} className="py-8 text-center text-muted-foreground">
-                      Belum ada provinsi yang bisa ditampilkan.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            {!selectedProvince ? (
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
-                <div className="text-muted-foreground text-sm">
-                  Menampilkan {(safeBindaPage - 1) * BINDA_PAGE_SIZE + 1}-{Math.min(
-                    safeBindaPage * BINDA_PAGE_SIZE,
-                    visibleProvinceRows.length,
-                  )} dari {visibleProvinceRows.length} provinsi
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {totalPages > 1 ? (
+              <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-border/70">
+                <div className="text-muted-foreground text-xs">
+                  Menampilkan {totalRows ? (currentPage - 1) * rowsPerPage + 1 : 0}-
+                  {Math.min(currentPage * rowsPerPage, totalRows)} dari {totalRows} organisasi.
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={safeBindaPage <= 1}
-                    onClick={() => setBindaPage((current) => Math.max(1, current - 1))}
-                  >
-                    Sebelumnya
-                  </Button>
-                  <Badge variant="outline">
-                    Halaman {safeBindaPage}/{totalBindaPages}
-                  </Badge>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={safeBindaPage >= totalBindaPages}
-                    onClick={() => setBindaPage((current) => Math.min(totalBindaPages, current + 1))}
-                  >
-                    Berikutnya
-                  </Button>
-                </div>
+                <Pagination className="mx-0 w-auto justify-end select-none">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        text="Sebelumnya"
+                        aria-disabled={currentPage <= 1}
+                        className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setCurrentPage((current) => Math.max(1, current - 1));
+                        }}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, index): number => index + 1)
+                      .filter(
+                        (pageNumber) =>
+                          pageNumber === 1 || pageNumber === totalPages || Math.abs(pageNumber - currentPage) <= 1,
+                      )
+                      .map((pageNumber) => (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pageNumber === currentPage}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              setCurrentPage(pageNumber);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            {pageNumber}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        text="Berikutnya"
+                        aria-disabled={currentPage >= totalPages}
+                        className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setCurrentPage((current) => Math.min(totalPages, current + 1));
+                        }}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             ) : null}
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border/70 h-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="size-4" />
-              Direktorat Wilayah
-            </CardTitle>
-            <CardDescription>
-              Satu Direktorat dapat menjangkau beberapa provinsi. Tandai provinsi utama untuk menjadi anchor coverage.
-            </CardDescription>
-            <CardAction>
-              {deputyOptions.length ? (
-                <Button asChild type="button" size="sm">
-                  <Link
-                    href={buildCreateHref(
-                      "/dashboard/admin-system/organisasi-wilayah/wilayah/baru",
-                      selectedProvinceId,
-                    )}
-                  >
-                    Tambah Direktorat
-                  </Link>
-                </Button>
-              ) : (
-                <Button type="button" size="sm" disabled>
-                  Tambah Direktorat
-                </Button>
-              )}
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Direktorat</TableHead>
-                  <TableHead>Cakupan</TableHead>
-                  <TableHead>Provinsi Utama</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleDirectorates.length ? (
-                  visibleDirectorates.map((directorate) => {
-                    const primaryProvince =
-                      directorate.coverageAreas.find((coverage) => coverage.isPrimary) ??
-                      directorate.coverageAreas[0] ??
-                      null;
-
-                    return (
-                      <TableRow key={directorate.unitId}>
-                        <TableCell className="font-medium">
-                          <div>{directorate.name}</div>
-                          <div className="text-muted-foreground text-xs">
-                            {directorate.profileCode ?? directorate.code}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1.5">
-                            {directorate.coverageAreas.slice(0, 3).map((coverage) => (
-                              <Badge key={coverage.areaId} variant={coverage.isPrimary ? "default" : "outline"}>
-                                {coverage.name}
-                              </Badge>
-                            ))}
-                            {directorate.coverageAreas.length > 3 ? (
-                              <Badge variant="outline">+{directorate.coverageAreas.length - 3}</Badge>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell>{primaryProvince?.name ?? "-"}</TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
-                      {selectedProvince
-                        ? `Belum ada Direktorat yang mencakup ${selectedProvince.province.name}.`
-                        : "Belum ada Direktorat wilayah yang terdaftar."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card size="sm" className="border border-border/70">
-          <CardContent className="flex items-center gap-3">
-            <div className="rounded-xl bg-sky-500/10 p-2 text-sky-600">
-              <Landmark className="size-4" />
-            </div>
-            <div>
-              <div className="font-medium text-sm">{overview.totals.bindaCount} Binda</div>
-              <div className="text-muted-foreground text-xs">Terdaftar lintas provinsi</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card size="sm" className="border border-border/70">
-          <CardContent className="flex items-center gap-3">
-            <div className="rounded-xl bg-amber-500/10 p-2 text-amber-600">
-              <Building2 className="size-4" />
-            </div>
-            <div>
-              <div className="font-medium text-sm">{overview.totals.directorateCount} Direktorat</div>
-              <div className="text-muted-foreground text-xs">Dengan coverage multi provinsi</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card size="sm" className="border border-border/70">
-          <CardContent className="flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-500/10 p-2 text-emerald-600">
-              <MapPinned className="size-4" />
-            </div>
-            <div>
-              <div className="font-medium text-sm">{overview.totals.coveredProvinceCount} Provinsi ter-cover</div>
-              <div className="text-muted-foreground text-xs">Binda atau Direktorat sudah terhubung</div>
-            </div>
           </CardContent>
         </Card>
       </div>

@@ -17,11 +17,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { REPORT_URGENCY_COLORS, REPORT_URGENCY_LABELS } from "./MapLegend";
 import { type PersonnelStatus, STATUS_COLORS, STATUS_LABELS } from "./utils/mapHelpers";
 
 export type SelectionType =
   | {
       kind: "personnel";
+      properties: any;
+      coordinates: [number, number];
+      loading?: boolean;
+      detailError?: string | null;
+    }
+  | {
+      kind: "report";
       properties: any;
       coordinates: [number, number];
       loading?: boolean;
@@ -69,6 +77,31 @@ function coordinateSourceLabel(value: unknown, hasLiveLocation: boolean) {
   return labels[String(value)] ?? String(value);
 }
 
+function formatEnum(value: unknown) {
+  if (!value) return "-";
+  const labels: Record<string, string> = {
+    SENT_TO_OIM: "Dikirim ke OIM",
+    UNDER_VERIFICATION: "Dalam Verifikasi",
+    NEEDS_DEVELOPMENT: "Perlu Pengembangan",
+    VERIFIED: "Terverifikasi",
+    REJECTED: "Ditolak",
+    PENDING: "Menunggu",
+    APPROVED: "Disetujui",
+    ACTIVE: "Aktif",
+    INACTIVE: "Tidak Aktif",
+  };
+  if (labels[String(value)]) return labels[String(value)];
+  return String(value)
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatReportDateTime(value: unknown) {
+  return typeof value === "string" && value ? formatDateTime(value) : "-";
+}
+
 export function MapInspector({ selection, onClear }: MapInspectorProps) {
   const clusterStats = useMemo(() => {
     if (!selection || selection.kind !== "cluster") return null;
@@ -98,7 +131,7 @@ export function MapInspector({ selection, onClear }: MapInspectorProps) {
           <CardTitle className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2 font-heading font-semibold">
               <MapPinned className="size-4 text-primary" />
-              Inspector COP
+              Hasil Analisa
             </span>
             {selection && (
               <Button
@@ -107,12 +140,12 @@ export function MapInspector({ selection, onClear }: MapInspectorProps) {
                 onClick={onClear}
                 className="h-6 px-2 font-mono text-[10px] text-muted-foreground hover:text-foreground"
               >
-                Clear
+                Bersihkan
               </Button>
             )}
           </CardTitle>
           <CardDescription className="text-xs">
-            Detail operasional berdasarkan titik koordinat dan batas wilayah yang dipilih.
+            Analisa operasional berdasarkan objek peta yang dipilih.
           </CardDescription>
         </CardHeader>
 
@@ -120,24 +153,26 @@ export function MapInspector({ selection, onClear }: MapInspectorProps) {
           {!selection ? (
             <div className="flex flex-col items-center justify-center space-y-2 py-10 text-center text-muted-foreground/60">
               <Compass className="size-8 stroke-[1.25] text-muted-foreground/45" />
-              <p className="font-mono text-[10px] uppercase tracking-wide">No Object Selected</p>
+              <p className="font-mono text-[10px] uppercase tracking-wide">Belum Ada Objek Dipilih</p>
               <p className="max-w-[200px] text-[11px]">
-                Pilih marker personel, cluster density, atau batas wilayah pada peta untuk memuat detail inspector.
+                Pilih penanda personel, penanda baket, atau batas wilayah pada peta untuk memuat hasil analisa.
               </p>
             </div>
           ) : selection.kind === "personnel" ? (
             <PersonnelInspector selection={selection} />
+          ) : selection.kind === "report" ? (
+            <ReportInspector selection={selection} />
           ) : selection.kind === "cluster" && clusterStats ? (
             <div className="space-y-3 font-mono">
               <div className="mb-2 flex items-center gap-2 border-b border-border/20 pb-2">
                 <Users className="size-4 shrink-0 text-primary" />
-                <span className="font-sans text-sm font-bold text-foreground">Cluster Hub Personnel</span>
+                <span className="font-sans text-sm font-bold text-foreground">Ringkasan Kelompok Personel</span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 rounded border border-border/30 bg-secondary/15 p-2.5 text-center">
                 <Metric label="Total" value={clusterStats.total} className="text-primary" />
                 <Metric label="Terdeteksi" value={clusterStats.activeCount} className="text-emerald-500" />
-                <Metric label="Offline" value={clusterStats.offlineCount} className="text-muted-foreground/70" />
+                <Metric label="Tidak Aktif" value={clusterStats.offlineCount} className="text-muted-foreground/70" />
               </div>
 
               <div className="space-y-2 border-t border-border/20 pt-2">
@@ -172,6 +207,83 @@ export function MapInspector({ selection, onClear }: MapInspectorProps) {
   );
 }
 
+function ReportInspector({ selection }: { selection: Extract<SelectionType, { kind: "report" }> }) {
+  const properties = selection.properties;
+  const urgency = String(properties.urgency || "NORMAL") as keyof typeof REPORT_URGENCY_COLORS;
+  const urgencyColor = REPORT_URGENCY_COLORS[urgency] ?? REPORT_URGENCY_COLORS.NORMAL;
+
+  return (
+    <div className="space-y-3 font-mono">
+      <div className="mb-2 flex items-center gap-2 border-b border-border/20 pb-2">
+        <FileText className="size-4 shrink-0 text-emerald-500" />
+        <span className="font-sans text-sm font-bold text-foreground">{properties.title || "Baket terpetakan"}</span>
+      </div>
+
+      {selection.loading && (
+        <div className="flex items-center gap-2 rounded-[4px] border border-primary/25 bg-primary/5 px-2.5 py-2 text-primary">
+          <LoaderCircle className="size-3.5 animate-spin" />
+          <span>Memuat detail baket dari database...</span>
+        </div>
+      )}
+      {selection.detailError && (
+        <div className="rounded-[4px] border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-destructive">
+          {selection.detailError}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 text-[10.5px]">
+        <DataField label="Status Baket" value={formatEnum(properties.status)} />
+        <DataField
+          label="Urgensi"
+          value={<span style={{ color: urgencyColor }}>{REPORT_URGENCY_LABELS[urgency] ?? urgency}</span>}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
+        <DataField label="Kategori" value={properties.reportCategoryName || "-"} breakWords />
+        <DataField label="Kelompok" value={properties.jaringClusterName || "-"} breakWords />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
+        <DataField label="Wilayah Kejadian" value={properties.areaName || "-"} breakWords />
+        <DataField label="Waktu Kejadian" value={formatReportDateTime(properties.eventTime)} />
+      </div>
+
+      <div className="space-y-1 border-t border-border/20 pt-2">
+        <span className="block text-[9px] uppercase text-muted-foreground/60">Informasi Baket</span>
+        <p className="whitespace-pre-wrap break-words font-sans text-xs leading-5 text-foreground/90">
+          {properties.normalizedContent || properties.originalContent || "Detail isi baket belum tersedia."}
+        </p>
+      </div>
+
+      {properties.fieldOfficerNote ? (
+        <DataField label="Catatan Petugas Lapangan" value={properties.fieldOfficerNote} breakWords bordered />
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
+        <DataField label="Dibuat Oleh" value={properties.createdByName || "-"} breakWords />
+        <DataField label="Jabatan" value={properties.createdByPosition || "-"} breakWords />
+        <DataField label="Validasi Cakupan" value={formatEnum(properties.coverageValidationStatus)} breakWords />
+        <DataField label="Status Verifikasi" value={formatEnum(properties.verificationStatus)} breakWords />
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 rounded-[4px] border border-border/40 bg-secondary/10 p-2.5 text-center">
+        <Metric label="Versi" value={properties.versionNumber ?? "-"} />
+        <Metric label="Sumber" value={properties.sourceCount ?? 0} />
+        <Metric label="Lampiran" value={properties.attachmentCount ?? 0} />
+        <Metric label="Peringatan" value={properties.alertCount ?? 0} />
+      </div>
+
+      <div className="space-y-1 border-t border-border/20 pt-2">
+        <span className="block text-[9px] uppercase text-muted-foreground/60">Koordinat</span>
+        <span className="block text-[10px] font-semibold text-sky-500">
+          {selection.coordinates[0].toFixed(6)} E, {selection.coordinates[1].toFixed(6)} N
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function PersonnelInspector({ selection }: { selection: Extract<SelectionType, { kind: "personnel" }> }) {
   const properties = selection.properties;
   const status = normalizeStatus(properties.status);
@@ -197,7 +309,7 @@ function PersonnelInspector({ selection }: { selection: Extract<SelectionType, {
       )}
 
       <div className="grid grid-cols-2 gap-2 text-[10.5px]">
-        <DataField label="Username" value={properties.username ? `@${properties.username}` : "-"} />
+        <DataField label="Nama Pengguna" value={properties.username ? `@${properties.username}` : "-"} />
         <div>
           <span className="block text-[9px] uppercase text-muted-foreground/60">Status Lokasi</span>
           <span className="mt-0.5 flex items-center gap-1.5">
@@ -216,14 +328,14 @@ function PersonnelInspector({ selection }: { selection: Extract<SelectionType, {
       <DataField label="Unit Kerja" value={properties.unitName || "-"} />
 
       <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
-        <DataField label="Role" value={properties.roleName || properties.positionCode || "-"} breakWords />
+        <DataField label="Peran" value={properties.roleName || properties.positionCode || "-"} breakWords />
         <DataField label="Wilayah Tugas" value={areaNames || properties.areaName || "-"} breakWords />
       </div>
 
       <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
         <DataField label="Status Profil" value={properties.profileStatus || "-"} />
         <DataField
-          label="Assignment"
+          label="Penugasan"
           value={properties.assignmentIsActive == null ? "-" : properties.assignmentIsActive ? "Aktif" : "Tidak aktif"}
         />
       </div>
@@ -248,7 +360,7 @@ function PersonnelInspector({ selection }: { selection: Extract<SelectionType, {
       </div>
 
       <div className="space-y-1">
-        <span className="block text-[9px] uppercase text-muted-foreground/60">Last Update Ping</span>
+        <span className="block text-[9px] uppercase text-muted-foreground/60">Pembaruan Lokasi Terakhir</span>
         <span className="flex items-center gap-1 text-foreground/90">
           <Clock className="size-3 shrink-0 text-muted-foreground/60" />
           {formatDateTime(properties.capturedAt)}
@@ -300,7 +412,7 @@ function AreaInspector({ selection }: { selection: Extract<SelectionType, { kind
         />
         <AreaMetric
           icon={AlertTriangle}
-          label="Alert"
+          label="Peringatan"
           value={selection.summary?.alertsCount ?? 0}
           className="text-amber-500"
         />
@@ -344,7 +456,15 @@ function DataField({
   );
 }
 
-function Metric({ label, value, className }: { label: string; value: number; className: string }) {
+function Metric({
+  label,
+  value,
+  className = "text-foreground",
+}: {
+  label: string;
+  value: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div>
       <span className="block text-[8px] uppercase text-muted-foreground/50">{label}</span>
