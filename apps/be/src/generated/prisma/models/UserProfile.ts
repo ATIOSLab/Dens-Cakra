@@ -255,7 +255,7 @@ export type UserProfileWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"UserProfile"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserProfile"> | Date | string
   authUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  positionAssignments?: Prisma.PositionAssignmentListRelationFilter
+  positionAssignments?: Prisma.UserSeatAssignmentListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   receivedDistributions?: Prisma.ProductDistributionListRelationFilter
@@ -277,7 +277,7 @@ export type UserProfileOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   authUser?: Prisma.UserOrderByWithRelationInput
-  positionAssignments?: Prisma.PositionAssignmentOrderByRelationAggregateInput
+  positionAssignments?: Prisma.UserSeatAssignmentOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
   receivedDistributions?: Prisma.ProductDistributionOrderByRelationAggregateInput
@@ -302,7 +302,7 @@ export type UserProfileWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"UserProfile"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserProfile"> | Date | string
   authUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  positionAssignments?: Prisma.PositionAssignmentListRelationFilter
+  positionAssignments?: Prisma.UserSeatAssignmentListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   receivedDistributions?: Prisma.ProductDistributionListRelationFilter
@@ -363,7 +363,7 @@ export type UserProfileCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   authUser: Prisma.UserCreateNestedOneWithoutProfileInput
-  positionAssignments?: Prisma.PositionAssignmentCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutUserProfileInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserProfileInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorUserInput
   receivedDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetUserInput
@@ -384,7 +384,7 @@ export type UserProfileUncheckedCreateInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserProfileInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorUserInput
   receivedDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -405,7 +405,7 @@ export type UserProfileUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   authUser?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
-  positionAssignments?: Prisma.PositionAssignmentUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUpdateManyWithoutUserProfileNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserProfileNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorUserNestedInput
   receivedDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetUserNestedInput
@@ -426,7 +426,7 @@ export type UserProfileUncheckedUpdateInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserProfileNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorUserNestedInput
   receivedDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -653,7 +653,7 @@ export type UserProfileCreateWithoutAuthUserInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  positionAssignments?: Prisma.PositionAssignmentCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutUserProfileInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserProfileInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorUserInput
   receivedDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetUserInput
@@ -673,7 +673,7 @@ export type UserProfileUncheckedCreateWithoutAuthUserInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserProfileInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorUserInput
   receivedDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -709,7 +709,7 @@ export type UserProfileUpdateWithoutAuthUserInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  positionAssignments?: Prisma.PositionAssignmentUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUpdateManyWithoutUserProfileNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserProfileNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorUserNestedInput
   receivedDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetUserNestedInput
@@ -729,7 +729,7 @@ export type UserProfileUncheckedUpdateWithoutAuthUserInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserProfileNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorUserNestedInput
   receivedDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -846,7 +846,7 @@ export type UserProfileCreateWithoutReceivedDistributionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   authUser: Prisma.UserCreateNestedOneWithoutProfileInput
-  positionAssignments?: Prisma.PositionAssignmentCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutUserProfileInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserProfileInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorUserInput
 }
@@ -866,7 +866,7 @@ export type UserProfileUncheckedCreateWithoutReceivedDistributionsInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserProfileInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorUserInput
 }
@@ -902,7 +902,7 @@ export type UserProfileUpdateWithoutReceivedDistributionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   authUser?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
-  positionAssignments?: Prisma.PositionAssignmentUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUpdateManyWithoutUserProfileNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserProfileNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorUserNestedInput
 }
@@ -922,7 +922,7 @@ export type UserProfileUncheckedUpdateWithoutReceivedDistributionsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserProfileNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorUserNestedInput
 }
@@ -942,7 +942,7 @@ export type UserProfileCreateWithoutNotificationsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   authUser: Prisma.UserCreateNestedOneWithoutProfileInput
-  positionAssignments?: Prisma.PositionAssignmentCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutUserProfileInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutActorUserInput
   receivedDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetUserInput
 }
@@ -962,7 +962,7 @@ export type UserProfileUncheckedCreateWithoutNotificationsInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorUserInput
   receivedDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetUserInput
 }
@@ -998,7 +998,7 @@ export type UserProfileUpdateWithoutNotificationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   authUser?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
-  positionAssignments?: Prisma.PositionAssignmentUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUpdateManyWithoutUserProfileNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutActorUserNestedInput
   receivedDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetUserNestedInput
 }
@@ -1018,7 +1018,7 @@ export type UserProfileUncheckedUpdateWithoutNotificationsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutActorUserNestedInput
   receivedDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetUserNestedInput
 }
@@ -1038,7 +1038,7 @@ export type UserProfileCreateWithoutAuditLogsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   authUser: Prisma.UserCreateNestedOneWithoutProfileInput
-  positionAssignments?: Prisma.PositionAssignmentCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutUserProfileInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserProfileInput
   receivedDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetUserInput
 }
@@ -1058,7 +1058,7 @@ export type UserProfileUncheckedCreateWithoutAuditLogsInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutUserProfileInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserProfileInput
   receivedDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetUserInput
 }
@@ -1094,7 +1094,7 @@ export type UserProfileUpdateWithoutAuditLogsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   authUser?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
-  positionAssignments?: Prisma.PositionAssignmentUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUpdateManyWithoutUserProfileNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserProfileNestedInput
   receivedDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetUserNestedInput
 }
@@ -1114,7 +1114,7 @@ export type UserProfileUncheckedUpdateWithoutAuditLogsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  positionAssignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
+  positionAssignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutUserProfileNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserProfileNestedInput
   receivedDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetUserNestedInput
 }
@@ -1152,7 +1152,7 @@ export type UserProfileCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.
  * UserProfileCountOutputType without action
  */
 export type UserProfileCountOutputTypeCountPositionAssignmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.PositionAssignmentWhereInput
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**
@@ -1273,7 +1273,7 @@ export type $UserProfilePayload<ExtArgs extends runtime.Types.Extensions.Interna
   name: "UserProfile"
   objects: {
     authUser: Prisma.$UserPayload<ExtArgs>
-    positionAssignments: Prisma.$PositionAssignmentPayload<ExtArgs>[]
+    positionAssignments: Prisma.$UserSeatAssignmentPayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
     receivedDistributions: Prisma.$ProductDistributionPayload<ExtArgs>[]
@@ -1688,7 +1688,7 @@ readonly fields: UserProfileFieldRefs;
 export interface Prisma__UserProfileClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   authUser<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  positionAssignments<T extends Prisma.UserProfile$positionAssignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserProfile$positionAssignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  positionAssignments<T extends Prisma.UserProfile$positionAssignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserProfile$positionAssignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.UserProfile$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserProfile$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.UserProfile$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserProfile$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   receivedDistributions<T extends Prisma.UserProfile$receivedDistributionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserProfile$receivedDistributionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductDistributionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2140,23 +2140,23 @@ export type UserProfileDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
  */
 export type UserProfile$positionAssignmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
-  orderBy?: Prisma.PositionAssignmentOrderByWithRelationInput | Prisma.PositionAssignmentOrderByWithRelationInput[]
-  cursor?: Prisma.PositionAssignmentWhereUniqueInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
+  orderBy?: Prisma.UserSeatAssignmentOrderByWithRelationInput | Prisma.UserSeatAssignmentOrderByWithRelationInput[]
+  cursor?: Prisma.UserSeatAssignmentWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.PositionAssignmentScalarFieldEnum | Prisma.PositionAssignmentScalarFieldEnum[]
+  distinct?: Prisma.UserSeatAssignmentScalarFieldEnum | Prisma.UserSeatAssignmentScalarFieldEnum[]
 }
 
 /**

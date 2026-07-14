@@ -141,11 +141,7 @@ export class TaskService {
     }
 
     return {
-      AND: [
-        { deletedAt: null },
-        extra,
-        { OR: visibilityBranches },
-      ],
+      AND: [{ deletedAt: null }, extra, { OR: visibilityBranches }],
     };
   }
 
@@ -267,10 +263,7 @@ export class TaskService {
     };
   }
 
-  private async taskDetail(
-    taskId: string,
-    context: AuthorizationContext,
-  ) {
+  private async taskDetail(taskId: string, context: AuthorizationContext) {
     return this.prisma.task.findFirstOrThrow({
       where: this.taskAccessWhere(context, { id: taskId }),
       include: this.taskDetailInclude(),
@@ -291,7 +284,7 @@ export class TaskService {
   }
 
   private async loadAssignmentTarget(assignmentId: string) {
-    return this.prisma.positionAssignment.findFirstOrThrow({
+    return this.prisma.userSeatAssignment.findFirstOrThrow({
       where: {
         id: assignmentId,
         isActive: true,
@@ -508,7 +501,9 @@ export class TaskService {
       ...(query.assigneeAssignmentId
         ? { assigneeAssignmentId: query.assigneeAssignmentId }
         : {}),
-      ...(query.dueBefore ? { dueDate: { lte: new Date(query.dueBefore) } } : {}),
+      ...(query.dueBefore
+        ? { dueDate: { lte: new Date(query.dueBefore) } }
+        : {}),
       ...(query.dueAfter ? { dueDate: { gte: new Date(query.dueAfter) } } : {}),
       ...(query.overdue
         ? {
@@ -560,13 +555,19 @@ export class TaskService {
             },
           }
         : {}),
-      ...(query.dueBefore ? { dueDate: { lte: new Date(query.dueBefore) } } : {}),
+      ...(query.dueBefore
+        ? { dueDate: { lte: new Date(query.dueBefore) } }
+        : {}),
       ...(query.dueAfter ? { dueDate: { gte: new Date(query.dueAfter) } } : {}),
       ...(query.overdue
         ? {
             dueDate: { lt: now },
             status: {
-              in: [TaskStatus.DRAFT, TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS],
+              in: [
+                TaskStatus.DRAFT,
+                TaskStatus.ASSIGNED,
+                TaskStatus.IN_PROGRESS,
+              ],
             },
           }
         : {}),
@@ -596,13 +597,21 @@ export class TaskService {
             uukStr: {
               include: {
                 ownerUnit: true,
+                directiveVersion: {
+                  include: {
+                    directive: true,
+                  },
+                },
               },
             },
           },
         },
         targetAreas: { include: { area: true } },
         assignments: {
-          where: Object.keys(assignmentWhere).length > 0 ? assignmentWhere : undefined,
+          where:
+            Object.keys(assignmentWhere).length > 0
+              ? assignmentWhere
+              : undefined,
           include: {
             assigner: {
               include: {
@@ -745,7 +754,6 @@ export class TaskService {
         createdByAssignmentId: context.primaryAssignmentId,
         title: body.title,
         description: body.description,
-        classification: body.classification,
         priority: body.priority,
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         targetAreas: {
@@ -790,8 +798,10 @@ export class TaskService {
       {
         ...body,
         parentTaskId: taskId,
-        directiveVersionId: body.directiveVersionId ?? parent.directiveVersionId ?? undefined,
-        uukStrVersionId: body.uukStrVersionId ?? parent.uukStrVersionId ?? undefined,
+        directiveVersionId:
+          body.directiveVersionId ?? parent.directiveVersionId ?? undefined,
+        uukStrVersionId:
+          body.uukStrVersionId ?? parent.uukStrVersionId ?? undefined,
         ownerUnitId: parent.ownerUnitId,
       },
       context,

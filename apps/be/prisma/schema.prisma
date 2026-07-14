@@ -7,9 +7,11 @@ datasource db {
   provider = "postgresql"
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * ENUMS
- * =======================================================*/
+ * =======================================================
+ */
 
 enum RoleCode {
   ADMIN_SYSTEM
@@ -95,18 +97,18 @@ enum AreaScopeMode {
   EXPLICIT
 }
 
-enum Classification {
-  SANGAT_RAHASIA
-  RAHASIA
-  TERBATAS
-  BIASA
-}
-
 enum PriorityLevel {
   LOW
   NORMAL
   HIGH
   URGENT
+}
+
+enum Classification {
+  SANGAT_RAHASIA
+  RAHASIA
+  TERBATAS
+  BIASA
 }
 
 enum DirectiveStatus {
@@ -177,6 +179,7 @@ enum WhatsAppMessageStatus {
   UNKNOWN_SENDER
   ROUTED
   UNDER_REVIEW
+  READY_FOR_BAKET
   PROCESSED
   DUPLICATE
   SPAM
@@ -369,6 +372,15 @@ enum IntegrationStatus {
   ERROR
 }
 
+enum WhatsAppBotConnectionStatus {
+  DISCONNECTED
+  CONNECTING
+  QR_READY
+  PAIRING_CODE_READY
+  CONNECTED
+  ERROR
+}
+
 enum FileLifecycleStatus {
   PENDING_UPLOAD
   UPLOADED
@@ -424,22 +436,24 @@ enum CommandRouteType {
   BINDA
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * AUTH LAYER AND DOMAIN USER PROFILE
- * =======================================================*/
+ * =======================================================
+ */
 
 model User {
-  id            String      @id
+  id            String    @id
   name          String
-  email         String      @unique
-  emailVerified Boolean     @default(false)
+  email         String    @unique
+  emailVerified Boolean   @default(false)
   image         String?
-  role          String      @default("field_officer")
-  banned        Boolean     @default(false)
+  role          String    @default("field_officer")
+  banned        Boolean   @default(false)
   banReason     String?
   banExpires    DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   accounts Account[]
   sessions Session[]
@@ -482,8 +496,8 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@unique([providerId, accountId])
+  @@index([userId])
   @@map("account")
 }
 
@@ -517,19 +531,21 @@ model UserProfile {
 
   authUser User @relation("AuthUserProfile", fields: [authUserId], references: [id], onDelete: Restrict)
 
-  positionAssignments   PositionAssignment[]
+  positionAssignments   UserSeatAssignment[]
   notifications         Notification[]
-  auditLogs             AuditLog[]               @relation("AuditActor")
-  receivedDistributions ProductDistribution[]    @relation("DistributionTargetUser")
+  auditLogs             AuditLog[]            @relation("AuditActor")
+  receivedDistributions ProductDistribution[] @relation("DistributionTargetUser")
 
   @@index([isActive, deletedAt])
   @@index([status, deletedAt])
   @@map("user_profile")
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * AUTHORIZATION, USER, ORGANIZATION, POSITION
- * =======================================================*/
+ * =======================================================
+ */
 
 model Role {
   id          String   @id @default(uuid()) @db.Uuid
@@ -540,57 +556,39 @@ model Role {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  positions  Position[]
-  permissions RolePermission[]
-}
-
-model Permission {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique @db.VarChar(120)
-  name        String   @db.VarChar(150)
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  roles RolePermission[]
-}
-
-model RolePermission {
-  roleId       String @db.Uuid
-  permissionId String @db.Uuid
-
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@id([roleId, permissionId])
-  @@index([permissionId])
+  positions Position[]
+  roleSeats OrganizationRoleSeat[]
 }
 
 model OrganizationUnit {
-  id          String           @id @default(uuid()) @db.Uuid
-  code        String           @unique @db.VarChar(80)
-  name        String           @db.VarChar(180)
-  type        OrganizationType
-  parentId    String?          @db.Uuid
-  isActive    Boolean          @default(true)
-  deletedAt   DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id        String            @id @default(uuid()) @db.Uuid
+  code      String            @unique @db.VarChar(80)
+  name      String            @db.VarChar(180)
+  type      OrganizationType
+  branch    CommandRouteType?
+  parentId  String?           @db.Uuid
+  isActive  Boolean           @default(true)
+  deletedAt DateTime?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
-  parent          OrganizationUnit?        @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children        OrganizationUnit[]       @relation("OrganizationHierarchy")
+  parent          OrganizationUnit?         @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children        OrganizationUnit[]        @relation("OrganizationHierarchy")
   ancestorLinks   OrganizationUnitClosure[] @relation("OrganizationClosureAncestor")
   descendantLinks OrganizationUnitClosure[] @relation("OrganizationClosureDescendant")
 
-  positions             Position[]
-  areaCoverages         OrganizationAreaCoverage[]
-  directives            Directive[]              @relation("DirectiveOwnerUnit")
-  uukStrs               UukStr[]                  @relation("UukOwnerUnit")
-  tasks                 Task[]                    @relation("TaskOwnerUnit")
-  analysisCases         AnalysisCase[]
+  positions            Position[]
+  roleSeats            OrganizationRoleSeat[]
+  areaCoverages        OrganizationAreaCoverage[]
+  directorateProfile   DirectorateProfile?
+  bindaProfile         BindaProfile?
+  directives           Directive[]                @relation("DirectiveOwnerUnit")
+  uukStrs              UukStr[]                   @relation("UukOwnerUnit")
+  tasks                Task[]                     @relation("TaskOwnerUnit")
+  analysisCases        AnalysisCase[]
   intelligenceProducts IntelligenceProduct[]
-  directiveRecipients  DirectiveRecipient[]      @relation("DirectiveRecipientUnit")
-  productDistributions ProductDistribution[]     @relation("DistributionTargetUnit")
+  directiveRecipients  DirectiveRecipient[]       @relation("DirectiveRecipientUnit")
+  productDistributions ProductDistribution[]      @relation("DistributionTargetUnit")
 
   @@index([parentId])
   @@index([type, isActive])
@@ -610,83 +608,114 @@ model OrganizationUnitClosure {
 }
 
 model Position {
-  id                  String       @id @default(uuid()) @db.Uuid
-  seatCode            String       @unique @db.VarChar(100)
+  id                  String            @id @default(uuid()) @db.Uuid
+  seatCode            String            @unique @db.VarChar(100)
   code                PositionCode
-  title               String       @db.VarChar(180)
-  roleId              String       @db.Uuid
-  organizationUnitId  String       @db.Uuid
-  reportsToPositionId String?      @db.Uuid
-  isActive            Boolean      @default(true)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  title               String            @db.VarChar(180)
+  roleId              String            @db.Uuid
+  branch              CommandRouteType?
+  organizationUnitId  String            @db.Uuid
+  reportsToPositionId String?           @db.Uuid
+  isActive            Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   role             Role             @relation(fields: [roleId], references: [id], onDelete: Restrict)
   organizationUnit OrganizationUnit @relation(fields: [organizationUnitId], references: [id], onDelete: Restrict)
   reportsTo        Position?        @relation("PositionReportingLine", fields: [reportsToPositionId], references: [id], onDelete: Restrict)
   subordinates     Position[]       @relation("PositionReportingLine")
 
-  assignments          PositionAssignment[]
-  directiveRecipients  DirectiveRecipient[]  @relation("DirectiveRecipientPosition")
-  approvalSteps         ProductApprovalStep[] @relation("ApprovalTargetPosition")
-  productDistributions ProductDistribution[] @relation("DistributionTargetPosition")
-  assignedAlerts        Alert[]               @relation("AlertAssignedPosition")
+  roleSeats            OrganizationRoleSeat[]
+  assignments          UserSeatAssignment[]
+  directiveRecipients  DirectiveRecipient[]   @relation("DirectiveRecipientPosition")
+  approvalSteps        ProductApprovalStep[]  @relation("ApprovalTargetPosition")
+  productDistributions ProductDistribution[]  @relation("DistributionTargetPosition")
+  assignedAlerts       Alert[]                @relation("AlertAssignedPosition")
 
   @@index([organizationUnitId, code])
   @@index([reportsToPositionId])
 }
 
-model PositionAssignment {
-  id            String   @id @default(uuid()) @db.Uuid
-  userProfileId String   @db.Uuid
-  positionId    String   @db.Uuid
-  isPrimary     Boolean  @default(true)
-  isActive      Boolean  @default(true)
-  validFrom     DateTime @default(now())
+model OrganizationRoleSeat {
+  id                 String            @id @default(uuid()) @db.Uuid
+  roleId             String            @db.Uuid
+  branch             CommandRouteType?
+  organizationUnitId String            @db.Uuid
+  positionId         String?           @db.Uuid
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  role             Role             @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  organizationUnit OrganizationUnit @relation(fields: [organizationUnitId], references: [id], onDelete: Restrict)
+  position         Position?        @relation(fields: [positionId], references: [id], onDelete: SetNull)
+
+  assignments          UserSeatAssignment[]
+  directiveRecipients  DirectiveRecipient[]  @relation("DirectiveRecipientSeat")
+  approvalSteps        ProductApprovalStep[] @relation("ApprovalTargetSeat")
+  productDistributions ProductDistribution[] @relation("DistributionTargetSeat")
+  assignedAlerts       Alert[]               @relation("AlertAssignedSeat")
+
+  @@unique([organizationUnitId, roleId, branch])
+  @@index([roleId, branch, isActive])
+  @@index([positionId])
+}
+
+model UserSeatAssignment {
+  id            String    @id @default(uuid()) @db.Uuid
+  userProfileId String    @db.Uuid
+  seatId        String    @db.Uuid
+  positionId    String    @db.Uuid
+  isPrimary     Boolean   @default(true)
+  isActive      Boolean   @default(true)
+  validFrom     DateTime  @default(now())
   validUntil    DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Restrict)
-  position    Position    @relation(fields: [positionId], references: [id], onDelete: Restrict)
+  userProfile UserProfile          @relation(fields: [userProfileId], references: [id], onDelete: Restrict)
+  seat        OrganizationRoleSeat @relation(fields: [seatId], references: [id], onDelete: Restrict)
+  position    Position             @relation(fields: [positionId], references: [id], onDelete: Restrict)
 
-  areaScopes                  PositionAreaScope[]
-  filesCreated                FileAsset[]
-  directivesCreated           Directive[]                 @relation("DirectiveCreatedBy")
-  directiveVersionsCreated    DirectiveVersion[]          @relation("DirectiveVersionCreatedBy")
-  uukStrsCreated              UukStr[]                     @relation("UukCreatedBy")
-  uukStrVersionsCreated       UukStrVersion[]              @relation("UukVersionCreatedBy")
-  tasksCreated                Task[]                       @relation("TaskCreatedBy")
-  taskAssignmentsGiven        TaskAssignment[]             @relation("TaskAssignedBy")
-  taskAssignmentsReceived     TaskAssignment[]             @relation("TaskAssignedTo")
-  taskProgressCreated         TaskProgressLog[]
-  jaringCreated               Jaring[]                     @relation("JaringCreatedBy")
-  jaringCaretakerAssignments  JaringCaretakerAssignment[]
-  routedWhatsAppMessages      WhatsAppMessage[]            @relation("WhatsAppRoutedTo")
-  whatsappRoutingLogs         WhatsAppRoutingLog[]
-  baketsCreated               Baket[]                      @relation("BaketCreatedBy")
-  baketVersionsCreated        BaketVersion[]               @relation("BaketVersionCreatedBy")
-  baketRevisionRequests       BaketRevisionRequest[]
-  verifications               BaketVerification[]
-  baketCoverageChecks         BaketCoverageCheck[]
-  analysisCasesCreated        AnalysisCase[]               @relation("AnalysisCaseCreatedBy")
-  analysisVersionsCreated     AnalysisVersion[]            @relation("AnalysisVersionCreatedBy")
-  analysisVersionsValidated   AnalysisVersion[]            @relation("AnalysisVersionValidatedBy")
-  productsCreated             IntelligenceProduct[]        @relation("ProductCreatedBy")
-  productVersionsCreated      ProductVersion[]             @relation("ProductVersionCreatedBy")
-  approvalDecisions           ProductApprovalStep[]        @relation("ApprovalDecidedBy")
-  productDistributionsSent    ProductDistribution[]        @relation("DistributionSentBy")
-  emergencyReportsCreated     EmergencyIncident[]          @relation("EmergencyReportedBy")
-  auditLogs                   AuditLog[]                   @relation("AuditAssignment")
-  locationPings               PersonnelLocationPing[]
+  areaScopes                 PositionAreaScope[]
+  filesCreated               FileAsset[]
+  directivesCreated          Directive[]                 @relation("DirectiveCreatedBy")
+  directiveVersionsCreated   DirectiveVersion[]          @relation("DirectiveVersionCreatedBy")
+  uukStrsCreated             UukStr[]                    @relation("UukCreatedBy")
+  uukStrVersionsCreated      UukStrVersion[]             @relation("UukVersionCreatedBy")
+  tasksCreated               Task[]                      @relation("TaskCreatedBy")
+  taskAssignmentsGiven       TaskAssignment[]            @relation("TaskAssignedBy")
+  taskAssignmentsReceived    TaskAssignment[]            @relation("TaskAssignedTo")
+  taskProgressCreated        TaskProgressLog[]
+  jaringCreated              Jaring[]                    @relation("JaringCreatedBy")
+  jaringCaretakerAssignments JaringCaretakerAssignment[]
+  routedWhatsAppMessages     WhatsAppMessage[]           @relation("WhatsAppRoutedTo")
+  whatsappRoutingLogs        WhatsAppRoutingLog[]
+  baketsCreated              Baket[]                     @relation("BaketCreatedBy")
+  baketVersionsCreated       BaketVersion[]              @relation("BaketVersionCreatedBy")
+  baketRevisionRequests      BaketRevisionRequest[]
+  verifications              BaketVerification[]
+  baketCoverageChecks        BaketCoverageCheck[]
+  analysisCasesCreated       AnalysisCase[]              @relation("AnalysisCaseCreatedBy")
+  analysisVersionsCreated    AnalysisVersion[]           @relation("AnalysisVersionCreatedBy")
+  analysisVersionsValidated  AnalysisVersion[]           @relation("AnalysisVersionValidatedBy")
+  productsCreated            IntelligenceProduct[]       @relation("ProductCreatedBy")
+  productVersionsCreated     ProductVersion[]            @relation("ProductVersionCreatedBy")
+  approvalDecisions          ProductApprovalStep[]       @relation("ApprovalDecidedBy")
+  productDistributionsSent   ProductDistribution[]       @relation("DistributionSentBy")
+  emergencyReportsCreated    EmergencyIncident[]         @relation("EmergencyReportedBy")
+  auditLogs                  AuditLog[]                  @relation("AuditAssignment")
+  locationPings              PersonnelLocationPing[]
 
   @@index([userProfileId, isActive])
+  @@index([seatId, isActive])
   @@index([positionId, isActive])
 }
 
-model PositionAreaPolicy {
+model RoleAreaPolicy {
   id                  String              @id @default(uuid()) @db.Uuid
-  positionCode        PositionCode
+  roleCode            RoleCode
+  branch              CommandRouteType?
   administrativeLevel AdministrativeLevel
   scopeMode           AreaScopeMode       @default(EXPLICIT)
   minimumAreas        Int                 @default(1)
@@ -695,19 +724,19 @@ model PositionAreaPolicy {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
-  @@unique([positionCode, administrativeLevel])
+  @@unique([roleCode, branch, administrativeLevel])
 }
 
 model PositionAreaScope {
-  id                   String   @id @default(uuid()) @db.Uuid
-  positionAssignmentId String   @db.Uuid
-  areaId               String   @db.Uuid
-  isPrimary            Boolean  @default(false)
-  validFrom            DateTime @default(now())
+  id                   String    @id @default(uuid()) @db.Uuid
+  positionAssignmentId String    @db.Uuid
+  areaId               String    @db.Uuid
+  isPrimary            Boolean   @default(false)
+  validFrom            DateTime  @default(now())
   validUntil           DateTime?
-  createdAt            DateTime @default(now())
+  createdAt            DateTime  @default(now())
 
-  assignment PositionAssignment @relation(fields: [positionAssignmentId], references: [id], onDelete: Cascade)
+  assignment UserSeatAssignment @relation(fields: [positionAssignmentId], references: [id], onDelete: Cascade)
   area       AdministrativeArea @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   @@unique([positionAssignmentId, areaId, validFrom])
@@ -715,23 +744,25 @@ model PositionAreaScope {
   @@index([positionAssignmentId, validUntil])
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * ADMINISTRATIVE AREA AND COVERAGE
- * =======================================================*/
+ * =======================================================
+ */
 
 model AdministrativeArea {
-  id                  String              @id @default(uuid()) @db.Uuid
-  code                String              @db.VarChar(50)
-  officialCode        String?             @unique @db.VarChar(30)
-  name                String              @db.VarChar(180)
-  level               AdministrativeLevel
-  parentId            String?             @db.Uuid
-  centroidLatitude    Decimal?            @db.Decimal(10, 7)
-  centroidLongitude   Decimal?            @db.Decimal(10, 7)
-  isActive            Boolean             @default(true)
-  deletedAt           DateTime?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  id                String              @id @default(uuid()) @db.Uuid
+  code              String              @db.VarChar(50)
+  officialCode      String?             @unique @db.VarChar(30)
+  name              String              @db.VarChar(180)
+  level             AdministrativeLevel
+  parentId          String?             @db.Uuid
+  centroidLatitude  Decimal?            @db.Decimal(10, 7)
+  centroidLongitude Decimal?            @db.Decimal(10, 7)
+  isActive          Boolean             @default(true)
+  deletedAt         DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
   parent   AdministrativeArea?  @relation("AdministrativeAreaHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
   children AdministrativeArea[] @relation("AdministrativeAreaHierarchy")
@@ -741,11 +772,13 @@ model AdministrativeArea {
 
   boundaries               AdministrativeAreaBoundary[]
   organizationCoverages    OrganizationAreaCoverage[]
+  directorateCoverages     DirectorateCoverage[]
+  bindaProfiles            BindaProfile[]
   positionScopes           PositionAreaScope[]
   directiveTargets         DirectiveTargetArea[]
   taskTargets              TaskTargetArea[]
   jaringCoverages          JaringAreaCoverage[]
-  resolvedWhatsAppMessages WhatsAppMessage[]                @relation("WhatsAppResolvedArea")
+  resolvedWhatsAppMessages WhatsAppMessage[]            @relation("WhatsAppResolvedArea")
   baketVersions            BaketVersion[]
   baketCoverageChecks      BaketCoverageCheck[]
   emergencyIncidents       EmergencyIncident[]
@@ -772,15 +805,15 @@ model AdministrativeAreaClosure {
 }
 
 model AdministrativeAreaDataSource {
-  id             String   @id @default(uuid()) @db.Uuid
-  name           String   @db.VarChar(200)
-  sourceType     String   @db.VarChar(80)
-  referenceUrl   String?  @db.VarChar(500)
-  versionLabel   String?  @db.VarChar(100)
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String    @db.VarChar(200)
+  sourceType     String    @db.VarChar(80)
+  referenceUrl   String?   @db.VarChar(500)
+  versionLabel   String?   @db.VarChar(100)
   effectiveDate  DateTime?
-  importedAt     DateTime @default(now())
-  checksumSha256 String?  @db.VarChar(64)
-  notes          String?  @db.Text
+  importedAt     DateTime  @default(now())
+  checksumSha256 String?   @db.VarChar(64)
+  notes          String?   @db.Text
 
   boundaries AdministrativeAreaBoundary[]
 
@@ -788,24 +821,24 @@ model AdministrativeAreaDataSource {
 }
 
 model AdministrativeAreaBoundary {
-  id                            String                @id @default(uuid()) @db.Uuid
-  areaId                        String                @db.Uuid
-  dataSourceId                  String?               @db.Uuid
+  id                            String                                     @id @default(uuid()) @db.Uuid
+  areaId                        String                                     @db.Uuid
+  dataSourceId                  String?                                    @db.Uuid
   versionNumber                 Int
   boundary                      Unsupported("geometry(MultiPolygon,4326)")
   centroid                      Unsupported("geometry(Point,4326)")?
-  minLatitude                   Decimal?              @db.Decimal(10, 7)
-  minLongitude                  Decimal?              @db.Decimal(10, 7)
-  maxLatitude                   Decimal?              @db.Decimal(10, 7)
-  maxLongitude                  Decimal?              @db.Decimal(10, 7)
-  qualityStatus                 BoundaryQualityStatus @default(VERIFIED)
-  simplificationToleranceMeters Decimal?              @db.Decimal(12, 2)
-  geometryHash                  String?               @db.VarChar(64)
+  minLatitude                   Decimal?                                   @db.Decimal(10, 7)
+  minLongitude                  Decimal?                                   @db.Decimal(10, 7)
+  maxLatitude                   Decimal?                                   @db.Decimal(10, 7)
+  maxLongitude                  Decimal?                                   @db.Decimal(10, 7)
+  qualityStatus                 BoundaryQualityStatus                      @default(VERIFIED)
+  simplificationToleranceMeters Decimal?                                   @db.Decimal(12, 2)
+  geometryHash                  String?                                    @db.VarChar(64)
   effectiveFrom                 DateTime
   effectiveUntil                DateTime?
-  isActive                      Boolean               @default(true)
-  createdAt                     DateTime              @default(now())
-  updatedAt                     DateTime              @updatedAt
+  isActive                      Boolean                                    @default(true)
+  createdAt                     DateTime                                   @default(now())
+  updatedAt                     DateTime                                   @updatedAt
 
   area       AdministrativeArea            @relation(fields: [areaId], references: [id], onDelete: Cascade)
   dataSource AdministrativeAreaDataSource? @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
@@ -816,24 +849,60 @@ model AdministrativeAreaBoundary {
 }
 
 model OrganizationAreaCoverage {
-  id                 String   @id @default(uuid()) @db.Uuid
-  organizationUnitId String   @db.Uuid
-  areaId             String   @db.Uuid
-  isPrimary          Boolean  @default(false)
-  validFrom          DateTime @default(now())
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationUnitId String    @db.Uuid
+  areaId             String    @db.Uuid
+  isPrimary          Boolean   @default(false)
+  validFrom          DateTime  @default(now())
   validUntil         DateTime?
-  createdAt          DateTime @default(now())
+  createdAt          DateTime  @default(now())
 
-  organizationUnit OrganizationUnit  @relation(fields: [organizationUnitId], references: [id], onDelete: Cascade)
+  organizationUnit OrganizationUnit   @relation(fields: [organizationUnitId], references: [id], onDelete: Cascade)
   area             AdministrativeArea @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   @@unique([organizationUnitId, areaId, validFrom])
   @@index([areaId, validUntil])
 }
 
-/* =========================================================
+model DirectorateProfile {
+  organizationUnitId String   @id @db.Uuid
+  code               String?  @unique @db.VarChar(80)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  organizationUnit OrganizationUnit      @relation(fields: [organizationUnitId], references: [id], onDelete: Cascade)
+  coverageAreas    DirectorateCoverage[]
+}
+
+model DirectorateCoverage {
+  id                String   @id @default(uuid()) @db.Uuid
+  directorateUnitId String   @db.Uuid
+  provinceAreaId    String   @db.Uuid
+  isPrimary         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  directorate DirectorateProfile @relation(fields: [directorateUnitId], references: [organizationUnitId], onDelete: Cascade)
+  province    AdministrativeArea @relation(fields: [provinceAreaId], references: [id], onDelete: Restrict)
+
+  @@unique([directorateUnitId, provinceAreaId])
+  @@index([provinceAreaId])
+}
+
+model BindaProfile {
+  organizationUnitId String   @id @db.Uuid
+  provinceAreaId     String   @unique @db.Uuid
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  organizationUnit OrganizationUnit   @relation(fields: [organizationUnitId], references: [id], onDelete: Cascade)
+  province         AdministrativeArea @relation(fields: [provinceAreaId], references: [id], onDelete: Restrict)
+}
+
+/**
+ * =========================================================
  * FILE STORAGE
- * =======================================================*/
+ * =======================================================
+ */
 
 model FileAsset {
   id                    String              @id @default(uuid()) @db.Uuid
@@ -848,25 +917,27 @@ model FileAsset {
   scannedAt             DateTime?
   quarantineReason      String?             @db.Text
   retentionUntil        DateTime?
-  createdByAssignmentId String?  @db.Uuid
-  createdAt             DateTime @default(now())
+  createdByAssignmentId String?             @db.Uuid
+  createdAt             DateTime            @default(now())
   deletedAt             DateTime?
 
-  createdByAssignment PositionAssignment? @relation(fields: [createdByAssignmentId], references: [id], onDelete: SetNull)
+  createdByAssignment UserSeatAssignment? @relation(fields: [createdByAssignmentId], references: [id], onDelete: SetNull)
 
-  whatsAppMedia       WhatsAppMessageMedia[]
-  taskAttachments     TaskAttachment[]
-  baketAttachments    BaketVersionAttachment[]
-  productAttachments  ProductAttachment[]
+  whatsAppMedia        WhatsAppMessageMedia[]
+  taskAttachments      TaskAttachment[]
+  baketAttachments     BaketVersionAttachment[]
+  productAttachments   ProductAttachment[]
   emergencyAttachments EmergencyAttachment[]
   uploadReservation    FileUploadReservation?
 
   @@index([createdAt])
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * DIRECTIVE AND UUK/STR
- * =======================================================*/
+ * =======================================================
+ */
 
 model Directive {
   id                    String          @id @default(uuid()) @db.Uuid
@@ -879,8 +950,8 @@ model Directive {
   updatedAt             DateTime        @updatedAt
   deletedAt             DateTime?
 
-  ownerUnit          OrganizationUnit  @relation("DirectiveOwnerUnit", fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment @relation("DirectiveCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  ownerUnit           OrganizationUnit   @relation("DirectiveOwnerUnit", fields: [ownerUnitId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("DirectiveCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   versions DirectiveVersion[]
 
@@ -903,15 +974,16 @@ model DirectiveVersion {
   createdAt             DateTime       @default(now())
 
   directive           Directive          @relation(fields: [directiveId], references: [id], onDelete: Cascade)
-  createdByAssignment PositionAssignment @relation("DirectiveVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("DirectiveVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   targetAreas DirectiveTargetArea[]
-  recipients DirectiveRecipient[]
+  recipients  DirectiveRecipient[]
   uukStrs     UukStr[]
   tasks       Task[]
 
   @@unique([directiveId, versionNumber])
   @@index([classification, commandDate])
+  @@index([commandDate])
 }
 
 model DirectiveTargetArea {
@@ -919,7 +991,7 @@ model DirectiveTargetArea {
   areaId             String  @db.Uuid
   isPrimary          Boolean @default(false)
 
-  directiveVersion DirectiveVersion  @relation(fields: [directiveVersionId], references: [id], onDelete: Cascade)
+  directiveVersion DirectiveVersion   @relation(fields: [directiveVersionId], references: [id], onDelete: Cascade)
   area             AdministrativeArea @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   @@id([directiveVersionId, areaId])
@@ -930,6 +1002,7 @@ model DirectiveRecipient {
   id                 String          @id @default(uuid()) @db.Uuid
   directiveVersionId String          @db.Uuid
   targetUnitId       String?         @db.Uuid
+  targetSeatId       String?         @db.Uuid
   targetPositionId   String?         @db.Uuid
   status             RecipientStatus @default(SENT)
   sentAt             DateTime        @default(now())
@@ -938,11 +1011,13 @@ model DirectiveRecipient {
   acknowledgedAt     DateTime?
   failureReason      String?         @db.Text
 
-  directiveVersion DirectiveVersion @relation(fields: [directiveVersionId], references: [id], onDelete: Cascade)
-  targetUnit       OrganizationUnit? @relation("DirectiveRecipientUnit", fields: [targetUnitId], references: [id], onDelete: Restrict)
-  targetPosition   Position?         @relation("DirectiveRecipientPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
+  directiveVersion DirectiveVersion      @relation(fields: [directiveVersionId], references: [id], onDelete: Cascade)
+  targetUnit       OrganizationUnit?     @relation("DirectiveRecipientUnit", fields: [targetUnitId], references: [id], onDelete: Restrict)
+  targetSeat       OrganizationRoleSeat? @relation("DirectiveRecipientSeat", fields: [targetSeatId], references: [id], onDelete: Restrict)
+  targetPosition   Position?             @relation("DirectiveRecipientPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
 
   @@index([targetUnitId, status])
+  @@index([targetSeatId, status])
   @@index([targetPositionId, status])
 }
 
@@ -957,9 +1032,9 @@ model UukStr {
   updatedAt             DateTime     @updatedAt
   deletedAt             DateTime?
 
-  directiveVersion    DirectiveVersion  @relation(fields: [directiveVersionId], references: [id], onDelete: Restrict)
-  ownerUnit           OrganizationUnit  @relation("UukOwnerUnit", fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment @relation("UukCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  directiveVersion    DirectiveVersion   @relation(fields: [directiveVersionId], references: [id], onDelete: Restrict)
+  ownerUnit           OrganizationUnit   @relation("UukOwnerUnit", fields: [ownerUnitId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("UukCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   versions UukStrVersion[]
 
@@ -976,7 +1051,7 @@ model UukStrVersion {
   createdAt             DateTime @default(now())
 
   uukStr              UukStr             @relation(fields: [uukStrId], references: [id], onDelete: Cascade)
-  createdByAssignment PositionAssignment @relation("UukVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("UukVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   sections UukStrSection[]
   tasks    Task[]
@@ -985,13 +1060,13 @@ model UukStrVersion {
 }
 
 model UukStrSection {
-  id              String                @id @default(uuid()) @db.Uuid
-  uukStrVersionId String                @db.Uuid
+  id              String            @id @default(uuid()) @db.Uuid
+  uukStrVersionId String            @db.Uuid
   sectionType     UukStrSectionType
-  title           String                @db.VarChar(250)
+  title           String            @db.VarChar(250)
   orderNumber     Int
 
-  uukStrVersion UukStrVersion      @relation(fields: [uukStrVersionId], references: [id], onDelete: Cascade)
+  uukStrVersion UukStrVersion       @relation(fields: [uukStrVersionId], references: [id], onDelete: Cascade)
   items         UukStrSectionItem[]
 
   @@unique([uukStrVersionId, sectionType])
@@ -999,31 +1074,32 @@ model UukStrSection {
 }
 
 model UukStrSectionItem {
-  id            String @id @default(uuid()) @db.Uuid
-  sectionId     String @db.Uuid
-  itemCode      String @db.VarChar(30)
-  content       String @db.Text
-  orderNumber   Int
+  id          String @id @default(uuid()) @db.Uuid
+  sectionId   String @db.Uuid
+  itemCode    String @db.VarChar(30)
+  content     String @db.Text
+  orderNumber Int
 
   section UukStrSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@unique([sectionId, orderNumber])
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * TASK CASCADE
- * =======================================================*/
+ * =======================================================
+ */
 
 model Task {
-  id                    String       @id @default(uuid()) @db.Uuid
-  parentTaskId          String?      @db.Uuid
-  directiveVersionId    String?      @db.Uuid
-  uukStrVersionId       String?      @db.Uuid
-  ownerUnitId           String       @db.Uuid
-  createdByAssignmentId String       @db.Uuid
-  title                 String       @db.VarChar(300)
-  description           String       @db.Text
-  classification        Classification
+  id                    String        @id @default(uuid()) @db.Uuid
+  parentTaskId          String?       @db.Uuid
+  directiveVersionId    String?       @db.Uuid
+  uukStrVersionId       String?       @db.Uuid
+  ownerUnitId           String        @db.Uuid
+  createdByAssignmentId String        @db.Uuid
+  title                 String        @db.VarChar(300)
+  description           String        @db.Text
   priority              PriorityLevel @default(NORMAL)
   dueDate               DateTime?
   status                TaskStatus    @default(DRAFT)
@@ -1036,11 +1112,11 @@ model Task {
   directiveVersion    DirectiveVersion?  @relation(fields: [directiveVersionId], references: [id], onDelete: Restrict)
   uukStrVersion       UukStrVersion?     @relation(fields: [uukStrVersionId], references: [id], onDelete: Restrict)
   ownerUnit           OrganizationUnit   @relation("TaskOwnerUnit", fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment @relation("TaskCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("TaskCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
-  targetAreas  TaskTargetArea[]
-  assignments  TaskAssignment[]
-  attachments  TaskAttachment[]
+  targetAreas TaskTargetArea[]
+  assignments TaskAssignment[]
+  attachments TaskAttachment[]
 
   @@index([parentTaskId])
   @@index([ownerUnitId, status])
@@ -1060,25 +1136,25 @@ model TaskTargetArea {
 }
 
 model TaskAssignment {
-  id                    String               @id @default(uuid()) @db.Uuid
-  taskId                String               @db.Uuid
-  assignerAssignmentId  String               @db.Uuid
-  assigneeAssignmentId  String               @db.Uuid
-  reassignedFromId      String?              @unique @db.Uuid
-  status                TaskAssignmentStatus @default(SENT)
-  assignedAt            DateTime             @default(now())
-  readAt                DateTime?
-  acknowledgedAt        DateTime?
-  startedAt             DateTime?
-  completedAt           DateTime?
-  dueDate               DateTime?
-  assignmentNote        String?              @db.Text
+  id                   String               @id @default(uuid()) @db.Uuid
+  taskId               String               @db.Uuid
+  assignerAssignmentId String               @db.Uuid
+  assigneeAssignmentId String               @db.Uuid
+  reassignedFromId     String?              @unique @db.Uuid
+  status               TaskAssignmentStatus @default(SENT)
+  assignedAt           DateTime             @default(now())
+  readAt               DateTime?
+  acknowledgedAt       DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  dueDate              DateTime?
+  assignmentNote       String?              @db.Text
 
-  task            Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  assigner        PositionAssignment @relation("TaskAssignedBy", fields: [assignerAssignmentId], references: [id], onDelete: Restrict)
-  assignee        PositionAssignment @relation("TaskAssignedTo", fields: [assigneeAssignmentId], references: [id], onDelete: Restrict)
-  reassignedFrom  TaskAssignment?  @relation("TaskReassignment", fields: [reassignedFromId], references: [id], onDelete: Restrict)
-  reassignedTo    TaskAssignment?  @relation("TaskReassignment")
+  task           Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assigner       UserSeatAssignment @relation("TaskAssignedBy", fields: [assignerAssignmentId], references: [id], onDelete: Restrict)
+  assignee       UserSeatAssignment @relation("TaskAssignedTo", fields: [assigneeAssignmentId], references: [id], onDelete: Restrict)
+  reassignedFrom TaskAssignment?    @relation("TaskReassignment", fields: [reassignedFromId], references: [id], onDelete: Restrict)
+  reassignedTo   TaskAssignment?    @relation("TaskReassignment")
 
   progressLogs TaskProgressLog[]
   bakets       Baket[]
@@ -1098,7 +1174,7 @@ model TaskProgressLog {
   createdAt             DateTime             @default(now())
 
   taskAssignment      TaskAssignment     @relation(fields: [taskAssignmentId], references: [id], onDelete: Cascade)
-  createdByAssignment PositionAssignment @relation(fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation(fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([taskAssignmentId, createdAt])
 }
@@ -1113,15 +1189,18 @@ model TaskAttachment {
   @@id([taskId, fileId])
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * JARING AND WHATSAPP INTAKE
- * =======================================================*/
+ * =======================================================
+ */
 
 model Jaring {
   id                    String       @id @default(uuid()) @db.Uuid
   code                  String       @unique @db.VarChar(80)
   aliasName             String?      @db.VarChar(150)
   whatsappNumber        String       @db.VarChar(30)
+  clusterId             String?      @db.Uuid
   status                JaringStatus @default(ACTIVE)
   createdByAssignmentId String       @db.Uuid
   notes                 String?      @db.Text
@@ -1131,39 +1210,71 @@ model Jaring {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
-  createdByAssignment PositionAssignment @relation("JaringCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("JaringCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  cluster             JaringCluster?     @relation(fields: [clusterId], references: [id], onDelete: SetNull)
 
   caretakerAssignments JaringCaretakerAssignment[]
   areaCoverages        JaringAreaCoverage[]
   messages             WhatsAppMessage[]
-  primaryBakets        Baket[]                    @relation("BaketPrimaryJaring")
+  primaryBakets        Baket[]                     @relation("BaketPrimaryJaring")
 
   @@index([status, deletedAt])
+  @@index([clusterId, status])
+}
+
+model JaringCluster {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(80)
+  name        String   @unique @db.VarChar(120)
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  jaring Jaring[]
+  bakets Baket[]
+
+  @@index([isActive, name])
+}
+
+model ReportCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(80)
+  name        String   @unique @db.VarChar(120)
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  whatsAppMessages WhatsAppMessage[]
+  bakets           Baket[]
+
+  @@index([isActive, name])
 }
 
 model JaringCaretakerAssignment {
-  id                       String   @id @default(uuid()) @db.Uuid
-  jaringId                 String   @db.Uuid
-  fieldOfficerAssignmentId String   @db.Uuid
-  isActive                 Boolean  @default(true)
-  validFrom                DateTime @default(now())
+  id                       String    @id @default(uuid()) @db.Uuid
+  jaringId                 String    @db.Uuid
+  fieldOfficerAssignmentId String    @db.Uuid
+  isActive                 Boolean   @default(true)
+  validFrom                DateTime  @default(now())
   validUntil               DateTime?
-  transferReason           String?  @db.Text
-  createdAt                DateTime @default(now())
+  transferReason           String?   @db.Text
+  createdAt                DateTime  @default(now())
 
   jaring                 Jaring             @relation(fields: [jaringId], references: [id], onDelete: Restrict)
-  fieldOfficerAssignment PositionAssignment @relation(fields: [fieldOfficerAssignmentId], references: [id], onDelete: Restrict)
+  fieldOfficerAssignment UserSeatAssignment @relation(fields: [fieldOfficerAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([jaringId, isActive])
   @@index([fieldOfficerAssignmentId, isActive])
 }
 
 model JaringAreaCoverage {
-  id         String   @id @default(uuid()) @db.Uuid
-  jaringId   String   @db.Uuid
-  areaId     String   @db.Uuid
-  isPrimary  Boolean  @default(false)
-  validFrom  DateTime @default(now())
+  id         String    @id @default(uuid()) @db.Uuid
+  jaringId   String    @db.Uuid
+  areaId     String    @db.Uuid
+  isPrimary  Boolean   @default(false)
+  validFrom  DateTime  @default(now())
   validUntil DateTime?
 
   jaring Jaring             @relation(fields: [jaringId], references: [id], onDelete: Cascade)
@@ -1174,36 +1285,40 @@ model JaringAreaCoverage {
 }
 
 model WhatsAppMessage {
-  id                               String                   @id @default(uuid()) @db.Uuid
-  integrationChannelId             String                   @db.Uuid
-  externalMessageId                String                   @db.VarChar(255)
-  senderPhone                      String                   @db.VarChar(30)
-  jaringId                         String?                  @db.Uuid
-  routedToFieldOfficerAssignmentId String?                  @db.Uuid
-  title                            String?                  @db.VarChar(300)
-  content                          String?                  @db.Text
-  latitude                         Decimal?                 @db.Decimal(10, 7)
-  longitude                        Decimal?                 @db.Decimal(10, 7)
+  id                               String                               @id @default(uuid()) @db.Uuid
+  integrationChannelId             String                               @db.Uuid
+  externalMessageId                String                               @db.VarChar(255)
+  senderPhone                      String                               @db.VarChar(30)
+  jaringId                         String?                              @db.Uuid
+  categoryId                       String?                              @db.Uuid
+  routedToFieldOfficerAssignmentId String?                              @db.Uuid
+  title                            String?                              @db.VarChar(300)
+  content                          String?                              @db.Text
+  latitude                         Decimal?                             @db.Decimal(10, 7)
+  longitude                        Decimal?                             @db.Decimal(10, 7)
   locationPoint                    Unsupported("geometry(Point,4326)")?
-  gpsAccuracyMeters                Decimal?                 @db.Decimal(10, 2)
+  gpsAccuracyMeters                Decimal?                             @db.Decimal(10, 2)
   locationCapturedAt               DateTime?
   coordinateSource                 CoordinateSource?
-  resolvedAreaId                   String?                  @db.Uuid
-  areaResolutionMethod             AreaResolutionMethod    @default(UNRESOLVED)
-  areaResolutionConfidence         Decimal?                 @db.Decimal(5, 2)
+  resolvedAreaId                   String?                              @db.Uuid
+  areaResolutionMethod             AreaResolutionMethod                 @default(UNRESOLVED)
+  areaResolutionConfidence         Decimal?                             @db.Decimal(5, 2)
   areaResolvedAt                   DateTime?
-  status                           WhatsAppMessageStatus    @default(RECEIVED)
-  validationSummary                WhatsAppValidationSummary @default(NOT_CHECKED)
+  status                           WhatsAppMessageStatus                @default(RECEIVED)
+  validationSummary                WhatsAppValidationSummary            @default(NOT_CHECKED)
   rawPayload                       Json
-  contentChecksum                  String?                  @db.VarChar(64)
+  contentChecksum                  String?                              @db.VarChar(64)
   receivedAt                       DateTime
   processedAt                      DateTime?
-  createdAt                        DateTime                 @default(now())
+  convertedBaketId                 String?                              @unique @db.Uuid
+  createdAt                        DateTime                             @default(now())
 
-  integrationChannel             IntegrationChannel   @relation(fields: [integrationChannelId], references: [id], onDelete: Restrict)
-  jaring                         Jaring?              @relation(fields: [jaringId], references: [id], onDelete: SetNull)
-  routedToFieldOfficerAssignment PositionAssignment? @relation("WhatsAppRoutedTo", fields: [routedToFieldOfficerAssignmentId], references: [id], onDelete: SetNull)
-  resolvedArea                   AdministrativeArea?  @relation("WhatsAppResolvedArea", fields: [resolvedAreaId], references: [id], onDelete: Restrict)
+  integrationChannel             IntegrationChannel  @relation(fields: [integrationChannelId], references: [id], onDelete: Restrict)
+  jaring                         Jaring?             @relation(fields: [jaringId], references: [id], onDelete: SetNull)
+  category                       ReportCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  routedToFieldOfficerAssignment UserSeatAssignment? @relation("WhatsAppRoutedTo", fields: [routedToFieldOfficerAssignmentId], references: [id], onDelete: SetNull)
+  resolvedArea                   AdministrativeArea? @relation("WhatsAppResolvedArea", fields: [resolvedAreaId], references: [id], onDelete: Restrict)
+  convertedBaket                 Baket?              @relation("WhatsAppConvertedBaket", fields: [convertedBaketId], references: [id], onDelete: SetNull)
 
   media            WhatsAppMessageMedia[]
   routingLogs      WhatsAppRoutingLog[]
@@ -1215,6 +1330,7 @@ model WhatsAppMessage {
   @@index([senderPhone, receivedAt])
   @@index([routedToFieldOfficerAssignmentId, status])
   @@index([jaringId, receivedAt])
+  @@index([categoryId, receivedAt])
   @@index([resolvedAreaId, receivedAt])
 }
 
@@ -1244,85 +1360,94 @@ model WhatsAppMessageMedia {
 }
 
 model WhatsAppRoutingLog {
-  id                    String   @id @default(uuid()) @db.Uuid
-  messageId             String   @db.Uuid
-  routedToAssignmentId  String?  @db.Uuid
-  action                String   @db.VarChar(80)
-  note                  String?  @db.Text
-  createdAt             DateTime @default(now())
+  id                   String   @id @default(uuid()) @db.Uuid
+  messageId            String   @db.Uuid
+  routedToAssignmentId String?  @db.Uuid
+  action               String   @db.VarChar(80)
+  note                 String?  @db.Text
+  createdAt            DateTime @default(now())
 
   message            WhatsAppMessage     @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  routedToAssignment PositionAssignment? @relation(fields: [routedToAssignmentId], references: [id], onDelete: SetNull)
+  routedToAssignment UserSeatAssignment? @relation(fields: [routedToAssignmentId], references: [id], onDelete: SetNull)
 
   @@index([messageId, createdAt])
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * BAKET AND FORMAL VERIFICATION
- * =======================================================*/
+ * =======================================================
+ */
 
 model Baket {
-  id                               String      @id @default(uuid()) @db.Uuid
+  id                                String      @id @default(uuid()) @db.Uuid
   createdByFieldOfficerAssignmentId String      @db.Uuid
-  taskAssignmentId                 String?     @db.Uuid
-  primaryJaringId                  String?     @db.Uuid
-  status                           BaketStatus @default(DRAFT)
-  currentVersionNumber             Int         @default(1)
-  createdAt                        DateTime    @default(now())
-  updatedAt                        DateTime    @updatedAt
-  deletedAt                        DateTime?
+  taskAssignmentId                  String?     @db.Uuid
+  primaryJaringId                   String?     @db.Uuid
+  reportCategoryId                  String?     @db.Uuid
+  jaringClusterId                   String?     @db.Uuid
+  status                            BaketStatus @default(DRAFT)
+  currentVersionNumber              Int         @default(1)
+  createdAt                         DateTime    @default(now())
+  updatedAt                         DateTime    @updatedAt
+  deletedAt                         DateTime?
 
-  createdByFieldOfficerAssignment PositionAssignment @relation("BaketCreatedBy", fields: [createdByFieldOfficerAssignmentId], references: [id], onDelete: Restrict)
-  taskAssignment                  TaskAssignment?     @relation(fields: [taskAssignmentId], references: [id], onDelete: Restrict)
-  primaryJaring                   Jaring?             @relation("BaketPrimaryJaring", fields: [primaryJaringId], references: [id], onDelete: SetNull)
+  createdByFieldOfficerAssignment UserSeatAssignment @relation("BaketCreatedBy", fields: [createdByFieldOfficerAssignmentId], references: [id], onDelete: Restrict)
+  taskAssignment                  TaskAssignment?    @relation(fields: [taskAssignmentId], references: [id], onDelete: Restrict)
+  primaryJaring                   Jaring?            @relation("BaketPrimaryJaring", fields: [primaryJaringId], references: [id], onDelete: SetNull)
+  reportCategory                  ReportCategory?    @relation(fields: [reportCategoryId], references: [id], onDelete: SetNull)
+  jaringCluster                   JaringCluster?     @relation(fields: [jaringClusterId], references: [id], onDelete: SetNull)
 
-  versions         BaketVersion[]
-  revisionRequests BaketRevisionRequest[]
-  relatedCrossReferences BaketVerificationCrossReference[] @relation("RelatedBaketCrossReference")
-  alerts           Alert[]
+  versions                BaketVersion[]
+  revisionRequests        BaketRevisionRequest[]
+  relatedCrossReferences  BaketVerificationCrossReference[] @relation("RelatedBaketCrossReference")
+  alerts                  Alert[]
+  convertedSourceMessages WhatsAppMessage[]                 @relation("WhatsAppConvertedBaket")
 
   @@index([createdByFieldOfficerAssignmentId, status])
   @@index([taskAssignmentId])
+  @@index([reportCategoryId, status])
+  @@index([jaringClusterId, status])
 }
 
 model BaketVersion {
-  id                       String                   @id @default(uuid()) @db.Uuid
-  baketId                  String                   @db.Uuid
+  id                       String                               @id @default(uuid()) @db.Uuid
+  baketId                  String                               @db.Uuid
   versionNumber            Int
-  title                    String                   @db.VarChar(300)
-  originalContent          String                   @db.Text
-  normalizedContent        String?                  @db.Text
+  title                    String                               @db.VarChar(300)
+  originalContent          String                               @db.Text
+  normalizedContent        String?                              @db.Text
   eventTime                DateTime?
-  eventAreaId              String?                  @db.Uuid
-  latitude                 Decimal?                 @db.Decimal(10, 7)
-  longitude                Decimal?                 @db.Decimal(10, 7)
+  eventAreaId              String?                              @db.Uuid
+  latitude                 Decimal?                             @db.Decimal(10, 7)
+  longitude                Decimal?                             @db.Decimal(10, 7)
   locationPoint            Unsupported("geometry(Point,4326)")?
-  gpsAccuracyMeters        Decimal?                 @db.Decimal(10, 2)
+  gpsAccuracyMeters        Decimal?                             @db.Decimal(10, 2)
   locationCapturedAt       DateTime?
   coordinateSource         CoordinateSource?
-  areaResolutionMethod     AreaResolutionMethod     @default(UNRESOLVED)
-  areaResolutionConfidence Decimal?                 @db.Decimal(5, 2)
+  areaResolutionMethod     AreaResolutionMethod                 @default(UNRESOLVED)
+  areaResolutionConfidence Decimal?                             @db.Decimal(5, 2)
   areaResolvedAt           DateTime?
-  manualAreaOverrideReason String?                  @db.Text
-  coverageValidationStatus CoverageValidationStatus @default(NOT_CHECKED)
-  coverageValidationNote   String?                  @db.Text
+  manualAreaOverrideReason String?                              @db.Text
+  coverageValidationStatus CoverageValidationStatus             @default(NOT_CHECKED)
+  coverageValidationNote   String?                              @db.Text
   coverageValidatedAt      DateTime?
-  urgency                  PriorityLevel            @default(NORMAL)
-  fieldOfficerNote         String?                  @db.Text
-  createdByAssignmentId    String                   @db.Uuid
-  revisionReason           String?                  @db.Text
-  createdAt                DateTime                 @default(now())
+  urgency                  PriorityLevel                        @default(NORMAL)
+  fieldOfficerNote         String?                              @db.Text
+  createdByAssignmentId    String                               @db.Uuid
+  revisionReason           String?                              @db.Text
+  createdAt                DateTime                             @default(now())
 
   baket               Baket               @relation(fields: [baketId], references: [id], onDelete: Cascade)
   eventArea           AdministrativeArea? @relation(fields: [eventAreaId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment  @relation("BaketVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment  @relation("BaketVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
-  verification          BaketVerification?
-  coverageChecks        BaketCoverageCheck[]
-  requestedRevisions    BaketRevisionRequest[] @relation("BaketRevisionRequestedAgainst")
-  resolvingRevisions    BaketRevisionRequest[] @relation("BaketRevisionResolvedBy")
-  sourceMessages        BaketVersionSourceMessage[]
-  attachments           BaketVersionAttachment[]
+  verification       BaketVerification?
+  coverageChecks     BaketCoverageCheck[]
+  requestedRevisions BaketRevisionRequest[]      @relation("BaketRevisionRequestedAgainst")
+  resolvingRevisions BaketRevisionRequest[]      @relation("BaketRevisionResolvedBy")
+  sourceMessages     BaketVersionSourceMessage[]
+  attachments        BaketVersionAttachment[]
 
   @@unique([baketId, versionNumber])
   @@index([eventAreaId, eventTime])
@@ -1331,7 +1456,7 @@ model BaketVersion {
 
 model BaketVersionSourceMessage {
   baketVersionId String @db.Uuid
-  messageId String @db.Uuid
+  messageId      String @db.Uuid
 
   baketVersion BaketVersion    @relation(fields: [baketVersionId], references: [id], onDelete: Cascade)
   message      WhatsAppMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
@@ -1341,9 +1466,9 @@ model BaketVersionSourceMessage {
 }
 
 model BaketVersionAttachment {
-  baketVersionId String @db.Uuid
-  fileId  String @db.Uuid
-  caption String? @db.Text
+  baketVersionId String  @db.Uuid
+  fileId         String  @db.Uuid
+  caption        String? @db.Text
 
   baketVersion BaketVersion @relation(fields: [baketVersionId], references: [id], onDelete: Cascade)
   file         FileAsset    @relation(fields: [fileId], references: [id], onDelete: Restrict)
@@ -1353,23 +1478,23 @@ model BaketVersionAttachment {
 }
 
 model BaketRevisionRequest {
-  id                    String                @id @default(uuid()) @db.Uuid
-  baketId               String                @db.Uuid
-  requestedAgainstVersionId String            @db.Uuid
-  resolvedByVersionId   String?               @db.Uuid
-  requestedByAssignmentId String              @db.Uuid
-  reason                String                @db.Text
-  requiredInformation   String                @db.Text
-  dueDate               DateTime?
-  status                RevisionRequestStatus @default(OPEN)
-  resolvedAt            DateTime?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
+  id                        String                @id @default(uuid()) @db.Uuid
+  baketId                   String                @db.Uuid
+  requestedAgainstVersionId String                @db.Uuid
+  resolvedByVersionId       String?               @db.Uuid
+  requestedByAssignmentId   String                @db.Uuid
+  reason                    String                @db.Text
+  requiredInformation       String                @db.Text
+  dueDate                   DateTime?
+  status                    RevisionRequestStatus @default(OPEN)
+  resolvedAt                DateTime?
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
 
   baket                   Baket              @relation(fields: [baketId], references: [id], onDelete: Cascade)
   requestedAgainstVersion BaketVersion       @relation("BaketRevisionRequestedAgainst", fields: [requestedAgainstVersionId], references: [id], onDelete: Restrict)
   resolvedByVersion       BaketVersion?      @relation("BaketRevisionResolvedBy", fields: [resolvedByVersionId], references: [id], onDelete: Restrict)
-  requestedByAssignment   PositionAssignment @relation(fields: [requestedByAssignmentId], references: [id], onDelete: Restrict)
+  requestedByAssignment   UserSeatAssignment @relation(fields: [requestedByAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([baketId, status])
   @@index([requestedAgainstVersionId])
@@ -1377,20 +1502,20 @@ model BaketRevisionRequest {
 }
 
 model BaketVerification {
-  id                     String                 @id @default(uuid()) @db.Uuid
-  baketVersionId         String                 @unique @db.Uuid
-  verifiedByAssignmentId String                 @db.Uuid
-  status                 VerificationStatus     @default(DRAFT)
+  id                     String                  @id @default(uuid()) @db.Uuid
+  baketVersionId         String                  @unique @db.Uuid
+  verifiedByAssignmentId String                  @db.Uuid
+  status                 VerificationStatus      @default(DRAFT)
   sourceReliability      SourceReliability?
   informationCredibility InformationCredibility?
-  summary                String?                @db.Text
-  startedAt              DateTime               @default(now())
+  summary                String?                 @db.Text
+  startedAt              DateTime                @default(now())
   completedAt            DateTime?
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
 
   baketVersion         BaketVersion       @relation(fields: [baketVersionId], references: [id], onDelete: Restrict)
-  verifiedByAssignment PositionAssignment @relation(fields: [verifiedByAssignmentId], references: [id], onDelete: Restrict)
+  verifiedByAssignment UserSeatAssignment @relation(fields: [verifiedByAssignmentId], references: [id], onDelete: Restrict)
 
   checks          BaketVerificationCheck[]
   crossReferences BaketVerificationCrossReference[]
@@ -1413,7 +1538,7 @@ model BaketCoverageCheck {
 
   baketVersion       BaketVersion        @relation(fields: [baketVersionId], references: [id], onDelete: Cascade)
   area               AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  positionAssignment PositionAssignment? @relation(fields: [positionAssignmentId], references: [id], onDelete: Restrict)
+  positionAssignment UserSeatAssignment? @relation(fields: [positionAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([baketVersionId, scopeType])
   @@index([areaId, checkedAt])
@@ -1441,14 +1566,16 @@ model BaketVerificationCrossReference {
   description    String? @db.Text
 
   verification BaketVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
-  relatedBaket Baket?       @relation("RelatedBaketCrossReference", fields: [relatedBaketId], references: [id], onDelete: SetNull)
+  relatedBaket Baket?            @relation("RelatedBaketCrossReference", fields: [relatedBaketId], references: [id], onDelete: SetNull)
 
   @@index([relatedBaketId])
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * ANALYSIS WORKSPACE
- * =======================================================*/
+ * =======================================================
+ */
 
 model AnalysisCase {
   id                    String         @id @default(uuid()) @db.Uuid
@@ -1462,8 +1589,8 @@ model AnalysisCase {
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
-  ownerUnit           OrganizationUnit  @relation(fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment @relation("AnalysisCaseCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  ownerUnit           OrganizationUnit   @relation(fields: [ownerUnitId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment @relation("AnalysisCaseCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   sources  AnalysisSourceVerification[]
   versions AnalysisVersion[]
@@ -1475,30 +1602,30 @@ model AnalysisSourceVerification {
   analysisCaseId String @db.Uuid
   verificationId String @db.Uuid
 
-  analysisCase AnalysisCase @relation(fields: [analysisCaseId], references: [id], onDelete: Cascade)
+  analysisCase AnalysisCase      @relation(fields: [analysisCaseId], references: [id], onDelete: Cascade)
   verification BaketVerification @relation(fields: [verificationId], references: [id], onDelete: Restrict)
 
   @@id([analysisCaseId, verificationId])
 }
 
 model AnalysisVersion {
-  id                      String   @id @default(uuid()) @db.Uuid
-  analysisCaseId          String   @db.Uuid
+  id                      String    @id @default(uuid()) @db.Uuid
+  analysisCaseId          String    @db.Uuid
   versionNumber           Int
-  indications             String?  @db.Text
-  analysis                String?  @db.Text
-  impact                  String?  @db.Text
-  efforts                 String?  @db.Text
-  recommendations         String?  @db.Text
+  indications             String?   @db.Text
+  analysis                String?   @db.Text
+  impact                  String?   @db.Text
+  efforts                 String?   @db.Text
+  recommendations         String?   @db.Text
   aiDraft                 Json?
-  createdByAssignmentId   String   @db.Uuid
-  validatedByAssignmentId String?  @db.Uuid
+  createdByAssignmentId   String    @db.Uuid
+  validatedByAssignmentId String?   @db.Uuid
   validatedAt             DateTime?
-  createdAt               DateTime @default(now())
+  createdAt               DateTime  @default(now())
 
-  analysisCase          AnalysisCase       @relation(fields: [analysisCaseId], references: [id], onDelete: Cascade)
-  createdByAssignment   PositionAssignment @relation("AnalysisVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
-  validatedByAssignment PositionAssignment? @relation("AnalysisVersionValidatedBy", fields: [validatedByAssignmentId], references: [id], onDelete: Restrict)
+  analysisCase          AnalysisCase        @relation(fields: [analysisCaseId], references: [id], onDelete: Cascade)
+  createdByAssignment   UserSeatAssignment  @relation("AnalysisVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  validatedByAssignment UserSeatAssignment? @relation("AnalysisVersionValidatedBy", fields: [validatedByAssignmentId], references: [id], onDelete: Restrict)
 
   entities       AnalysisEntity[]
   relationships  AnalysisRelationship[]
@@ -1515,7 +1642,7 @@ model AnalysisEntity {
   normalizedName    String?         @db.VarChar(250)
   metadata          Json?
 
-  analysisVersion AnalysisVersion       @relation(fields: [analysisVersionId], references: [id], onDelete: Cascade)
+  analysisVersion AnalysisVersion        @relation(fields: [analysisVersionId], references: [id], onDelete: Cascade)
   outgoingLinks   AnalysisRelationship[] @relation("AnalysisRelationshipFrom")
   incomingLinks   AnalysisRelationship[] @relation("AnalysisRelationshipTo")
 
@@ -1523,12 +1650,12 @@ model AnalysisEntity {
 }
 
 model AnalysisRelationship {
-  id                String  @id @default(uuid()) @db.Uuid
-  analysisVersionId String  @db.Uuid
-  fromEntityId      String  @db.Uuid
-  toEntityId        String  @db.Uuid
-  relationshipType  String  @db.VarChar(120)
-  description       String? @db.Text
+  id                String   @id @default(uuid()) @db.Uuid
+  analysisVersionId String   @db.Uuid
+  fromEntityId      String   @db.Uuid
+  toEntityId        String   @db.Uuid
+  relationshipType  String   @db.VarChar(120)
+  description       String?  @db.Text
   confidence        Decimal? @db.Decimal(5, 2)
 
   analysisVersion AnalysisVersion @relation(fields: [analysisVersionId], references: [id], onDelete: Cascade)
@@ -1539,22 +1666,40 @@ model AnalysisRelationship {
   @@index([fromEntityId, toEntityId])
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * INTELLIGENCE PRODUCT TEMPLATE AND PRODUCT
- * =======================================================*/
+ * =======================================================
+ */
 
 model ProductTypeDefinition {
   id          String   @id @default(uuid()) @db.Uuid
   code        String   @unique @db.VarChar(80)
   name        String   @db.VarChar(180)
   formatNo    String?  @db.VarChar(30)
+  numberCode  String   @unique @db.VarChar(20)
   description String?  @db.Text
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  templates ProductTemplate[]
-  products  IntelligenceProduct[]
+  templates       ProductTemplate[]
+  products        IntelligenceProduct[]
+  numberSequences ProductNumberSequence[]
+}
+
+model ProductNumberSequence {
+  id            String   @id @default(uuid()) @db.Uuid
+  productTypeId String   @db.Uuid
+  year          Int
+  lastNumber    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  productType ProductTypeDefinition @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([productTypeId, year])
+  @@index([year])
 }
 
 model ProductTemplate {
@@ -1565,7 +1710,7 @@ model ProductTemplate {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
 
-  productType ProductTypeDefinition @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
+  productType ProductTypeDefinition    @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
   sections    ProductTemplateSection[]
   versions    ProductVersion[]
 
@@ -1580,7 +1725,7 @@ model ProductTemplateSection {
   orderNumber  Int
   isRepeatable Boolean @default(false)
 
-  template ProductTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template ProductTemplate        @relation(fields: [templateId], references: [id], onDelete: Cascade)
   fields   ProductTemplateField[]
 
   @@unique([templateId, code])
@@ -1604,24 +1749,24 @@ model ProductTemplateField {
 }
 
 model IntelligenceProduct {
-  id                    String        @id @default(uuid()) @db.Uuid
-  productTypeId         String        @db.Uuid
-  ownerUnitId           String        @db.Uuid
-  createdByAssignmentId String        @db.Uuid
+  id                    String         @id @default(uuid()) @db.Uuid
+  productTypeId         String         @db.Uuid
+  ownerUnitId           String         @db.Uuid
+  createdByAssignmentId String         @db.Uuid
+  productNumber         String         @unique @db.VarChar(150)
   classification        Classification
-  productNumber         String        @unique @db.VarChar(150)
-  title                 String        @db.VarChar(300)
-  status                ProductStatus @default(DRAFT)
-  currentVersionNumber  Int           @default(1)
+  title                 String         @db.VarChar(300)
+  status                ProductStatus  @default(DRAFT)
+  currentVersionNumber  Int            @default(1)
   periodStart           DateTime?
   periodEnd             DateTime?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
   deletedAt             DateTime?
 
-  productType        ProductTypeDefinition @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
-  ownerUnit          OrganizationUnit      @relation(fields: [ownerUnitId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment    @relation("ProductCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  productType         ProductTypeDefinition @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
+  ownerUnit           OrganizationUnit      @relation(fields: [ownerUnitId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment    @relation("ProductCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   versions ProductVersion[]
 
@@ -1630,24 +1775,24 @@ model IntelligenceProduct {
 }
 
 model ProductVersion {
-  id                     String                 @id @default(uuid()) @db.Uuid
-  productId              String                 @db.Uuid
-  templateId             String                 @db.Uuid
+  id                     String                  @id @default(uuid()) @db.Uuid
+  productId              String                  @db.Uuid
+  templateId             String                  @db.Uuid
   versionNumber          Int
-  routingTo              String?                @db.Text
-  routingFrom            String?                @db.Text
-  routingCc              String?                @db.Text
-  subject                String?                @db.VarChar(500)
+  routingTo              String?                 @db.Text
+  routingFrom            String?                 @db.Text
+  routingCc              String?                 @db.Text
+  subject                String?                 @db.VarChar(500)
   sourceReliability      SourceReliability?
   informationCredibility InformationCredibility?
   content                Json
-  createdByAssignmentId  String                 @db.Uuid
-  changeReason           String?                @db.Text
-  createdAt              DateTime               @default(now())
+  createdByAssignmentId  String                  @db.Uuid
+  changeReason           String?                 @db.Text
+  createdAt              DateTime                @default(now())
 
   product             IntelligenceProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  template            ProductTemplate      @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  createdByAssignment PositionAssignment   @relation("ProductVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  template            ProductTemplate     @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  createdByAssignment UserSeatAssignment  @relation("ProductVersionCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
 
   sourceVerifications ProductSourceVerification[]
   sourceAnalyses      ProductSourceAnalysis[]
@@ -1662,25 +1807,25 @@ model ProductSourceVerification {
   productVersionId String @db.Uuid
   verificationId   String @db.Uuid
 
-  productVersion ProductVersion @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
-  verification   BaketVerification   @relation(fields: [verificationId], references: [id], onDelete: Restrict)
+  productVersion ProductVersion    @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
+  verification   BaketVerification @relation(fields: [verificationId], references: [id], onDelete: Restrict)
 
   @@id([productVersionId, verificationId])
 }
 
 model ProductSourceAnalysis {
-  productVersionId String @db.Uuid
+  productVersionId  String @db.Uuid
   analysisVersionId String @db.Uuid
 
-  productVersion ProductVersion  @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
+  productVersion  ProductVersion  @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
   analysisVersion AnalysisVersion @relation(fields: [analysisVersionId], references: [id], onDelete: Restrict)
 
   @@id([productVersionId, analysisVersionId])
 }
 
 model ProductAttachment {
-  productVersionId String @db.Uuid
-  fileId           String @db.Uuid
+  productVersionId String  @db.Uuid
+  fileId           String  @db.Uuid
   caption          String? @db.Text
 
   productVersion ProductVersion @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
@@ -1689,21 +1834,23 @@ model ProductAttachment {
   @@id([productVersionId, fileId])
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * APPROVAL AND DISTRIBUTION
- * =======================================================*/
+ * =======================================================
+ */
 
 model ProductApprovalWorkflow {
-  id                 String                 @id @default(uuid()) @db.Uuid
-  productVersionId   String                 @unique @db.Uuid
-  routeType          CommandRouteType
-  status             ApprovalWorkflowStatus @default(PENDING)
-  currentStepNumber  Int                    @default(1)
-  startedAt          DateTime               @default(now())
-  completedAt        DateTime?
-  cancelledAt        DateTime?
+  id                String                 @id @default(uuid()) @db.Uuid
+  productVersionId  String                 @unique @db.Uuid
+  routeType         CommandRouteType
+  status            ApprovalWorkflowStatus @default(PENDING)
+  currentStepNumber Int                    @default(1)
+  startedAt         DateTime               @default(now())
+  completedAt       DateTime?
+  cancelledAt       DateTime?
 
-  productVersion ProductVersion        @relation(fields: [productVersionId], references: [id], onDelete: Restrict)
+  productVersion ProductVersion         @relation(fields: [productVersionId], references: [id], onDelete: Restrict)
   steps          ProductApprovalStep[]
   events         ProductApprovalEvent[]
 }
@@ -1713,7 +1860,8 @@ model ProductApprovalStep {
   workflowId            String             @db.Uuid
   stepNumber            Int
   stage                 ApprovalStage
-  targetPositionId      String             @db.Uuid
+  targetSeatId          String             @db.Uuid
+  targetPositionId      String?            @db.Uuid
   status                ApprovalStepStatus @default(WAITING)
   decision              ApprovalDecision?
   decisionNote          String?            @db.Text
@@ -1723,66 +1871,71 @@ model ProductApprovalStep {
   decidedByAssignmentId String?            @db.Uuid
 
   workflow            ProductApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  targetPosition      Position                @relation("ApprovalTargetPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
-  decidedByAssignment PositionAssignment?     @relation("ApprovalDecidedBy", fields: [decidedByAssignmentId], references: [id], onDelete: Restrict)
+  targetSeat          OrganizationRoleSeat    @relation("ApprovalTargetSeat", fields: [targetSeatId], references: [id], onDelete: Restrict)
+  targetPosition      Position?               @relation("ApprovalTargetPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
+  decidedByAssignment UserSeatAssignment?     @relation("ApprovalDecidedBy", fields: [decidedByAssignmentId], references: [id], onDelete: Restrict)
   events              ProductApprovalEvent[]
 
   @@unique([workflowId, stepNumber])
+  @@index([targetSeatId, status])
   @@index([targetPositionId, status])
 }
 
 model ProductDistribution {
-  id                   String             @id @default(uuid()) @db.Uuid
-  productVersionId     String             @db.Uuid
-  sentByAssignmentId   String             @db.Uuid
-  targetUnitId         String?            @db.Uuid
-  targetPositionId     String?            @db.Uuid
-  targetUserProfileId  String?            @db.Uuid
-  classification       Classification
-  status               DistributionStatus @default(QUEUED)
-  sentAt               DateTime?
-  deliveredAt          DateTime?
-  readAt               DateTime?
-  revokedAt            DateTime?
-  failureReason        String?            @db.Text
+  id                  String             @id @default(uuid()) @db.Uuid
+  productVersionId    String             @db.Uuid
+  sentByAssignmentId  String             @db.Uuid
+  targetUnitId        String?            @db.Uuid
+  targetSeatId        String?            @db.Uuid
+  targetPositionId    String?            @db.Uuid
+  targetUserProfileId String?            @db.Uuid
+  status              DistributionStatus @default(QUEUED)
+  sentAt              DateTime?
+  deliveredAt         DateTime?
+  readAt              DateTime?
+  revokedAt           DateTime?
+  failureReason       String?            @db.Text
 
-  productVersion   ProductVersion     @relation(fields: [productVersionId], references: [id], onDelete: Restrict)
-  sentByAssignment PositionAssignment @relation("DistributionSentBy", fields: [sentByAssignmentId], references: [id], onDelete: Restrict)
-  targetUnit       OrganizationUnit?  @relation("DistributionTargetUnit", fields: [targetUnitId], references: [id], onDelete: Restrict)
-  targetPosition   Position?          @relation("DistributionTargetPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
-  targetUser       UserProfile?       @relation("DistributionTargetUser", fields: [targetUserProfileId], references: [id], onDelete: Restrict)
+  productVersion   ProductVersion        @relation(fields: [productVersionId], references: [id], onDelete: Restrict)
+  sentByAssignment UserSeatAssignment    @relation("DistributionSentBy", fields: [sentByAssignmentId], references: [id], onDelete: Restrict)
+  targetUnit       OrganizationUnit?     @relation("DistributionTargetUnit", fields: [targetUnitId], references: [id], onDelete: Restrict)
+  targetSeat       OrganizationRoleSeat? @relation("DistributionTargetSeat", fields: [targetSeatId], references: [id], onDelete: Restrict)
+  targetPosition   Position?             @relation("DistributionTargetPosition", fields: [targetPositionId], references: [id], onDelete: Restrict)
+  targetUser       UserProfile?          @relation("DistributionTargetUser", fields: [targetUserProfileId], references: [id], onDelete: Restrict)
 
   @@index([productVersionId, status])
   @@index([targetUserProfileId, status])
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * EMERGENCY, ALERT, NOTIFICATION, AUDIT, INTEGRATION
- * =======================================================*/
+ * =======================================================
+ */
 
 model EmergencyIncident {
-  id                     String               @id @default(uuid()) @db.Uuid
-  title                  String               @db.VarChar(300)
-  status                 EmergencyStatus      @default(NEW)
+  id                     String                               @id @default(uuid()) @db.Uuid
+  title                  String                               @db.VarChar(300)
+  status                 EmergencyStatus                      @default(NEW)
   severity               AlertSeverity
-  areaId                 String?              @db.Uuid
-  latitude               Decimal?             @db.Decimal(10, 7)
-  longitude              Decimal?             @db.Decimal(10, 7)
+  areaId                 String?                              @db.Uuid
+  latitude               Decimal?                             @db.Decimal(10, 7)
+  longitude              Decimal?                             @db.Decimal(10, 7)
   locationPoint          Unsupported("geometry(Point,4326)")?
-  gpsAccuracyMeters      Decimal?             @db.Decimal(10, 2)
+  gpsAccuracyMeters      Decimal?                             @db.Decimal(10, 2)
   locationCapturedAt     DateTime?
   coordinateSource       CoordinateSource?
-  areaResolutionMethod   AreaResolutionMethod @default(UNRESOLVED)
-  situation              String               @db.Text
-  actionTaken            String?              @db.Text
-  needs                  String?              @db.Text
-  reportedByAssignmentId String               @db.Uuid
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  areaResolutionMethod   AreaResolutionMethod                 @default(UNRESOLVED)
+  situation              String                               @db.Text
+  actionTaken            String?                              @db.Text
+  needs                  String?                              @db.Text
+  reportedByAssignmentId String                               @db.Uuid
+  createdAt              DateTime                             @default(now())
+  updatedAt              DateTime                             @updatedAt
   resolvedAt             DateTime?
 
   area                 AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  reportedByAssignment PositionAssignment  @relation("EmergencyReportedBy", fields: [reportedByAssignmentId], references: [id], onDelete: Restrict)
+  reportedByAssignment UserSeatAssignment  @relation("EmergencyReportedBy", fields: [reportedByAssignmentId], references: [id], onDelete: Restrict)
 
   attachments EmergencyAttachment[]
   alerts      Alert[]
@@ -1802,46 +1955,48 @@ model EmergencyAttachment {
 }
 
 model Alert {
-  id                 String        @id @default(uuid()) @db.Uuid
-  title              String        @db.VarChar(300)
-  description        String        @db.Text
+  id                 String                               @id @default(uuid()) @db.Uuid
+  title              String                               @db.VarChar(300)
+  description        String                               @db.Text
   severity           AlertSeverity
-  status             AlertStatus   @default(NEW)
-  areaId             String?       @db.Uuid
-  latitude           Decimal?      @db.Decimal(10, 7)
-  longitude          Decimal?      @db.Decimal(10, 7)
+  status             AlertStatus                          @default(NEW)
+  areaId             String?                              @db.Uuid
+  latitude           Decimal?                             @db.Decimal(10, 7)
+  longitude          Decimal?                             @db.Decimal(10, 7)
   locationPoint      Unsupported("geometry(Point,4326)")?
-  sourceBaketId      String?       @db.Uuid
-  sourceIncidentId   String?       @db.Uuid
-  assignedPositionId String?       @db.Uuid
-  createdAt          DateTime      @default(now())
+  sourceBaketId      String?                              @db.Uuid
+  sourceIncidentId   String?                              @db.Uuid
+  assignedSeatId     String?                              @db.Uuid
+  assignedPositionId String?                              @db.Uuid
+  createdAt          DateTime                             @default(now())
   acknowledgedAt     DateTime?
   resolvedAt         DateTime?
 
-  area             AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
-  sourceBaket      Baket?              @relation(fields: [sourceBaketId], references: [id], onDelete: SetNull)
-  sourceIncident   EmergencyIncident?  @relation(fields: [sourceIncidentId], references: [id], onDelete: SetNull)
-  assignedPosition Position?           @relation("AlertAssignedPosition", fields: [assignedPositionId], references: [id], onDelete: SetNull)
+  area             AdministrativeArea?   @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  sourceBaket      Baket?                @relation(fields: [sourceBaketId], references: [id], onDelete: SetNull)
+  sourceIncident   EmergencyIncident?    @relation(fields: [sourceIncidentId], references: [id], onDelete: SetNull)
+  assignedSeat     OrganizationRoleSeat? @relation("AlertAssignedSeat", fields: [assignedSeatId], references: [id], onDelete: SetNull)
+  assignedPosition Position?             @relation("AlertAssignedPosition", fields: [assignedPositionId], references: [id], onDelete: SetNull)
 
   @@index([status, severity])
   @@index([areaId, createdAt])
 }
 
 model PersonnelLocationPing {
-  id                   String               @id @default(uuid()) @db.Uuid
-  positionAssignmentId String               @db.Uuid
-  areaId               String?              @db.Uuid
-  latitude             Decimal              @db.Decimal(10, 7)
-  longitude            Decimal              @db.Decimal(10, 7)
+  id                   String                              @id @default(uuid()) @db.Uuid
+  positionAssignmentId String                              @db.Uuid
+  areaId               String?                             @db.Uuid
+  latitude             Decimal                             @db.Decimal(10, 7)
+  longitude            Decimal                             @db.Decimal(10, 7)
   locationPoint        Unsupported("geometry(Point,4326)")
-  gpsAccuracyMeters    Decimal?             @db.Decimal(10, 2)
+  gpsAccuracyMeters    Decimal?                            @db.Decimal(10, 2)
   coordinateSource     CoordinateSource
-  areaResolutionMethod AreaResolutionMethod @default(UNRESOLVED)
+  areaResolutionMethod AreaResolutionMethod                @default(UNRESOLVED)
   capturedAt           DateTime
-  receivedAt           DateTime             @default(now())
-  isStealth            Boolean              @default(false)
+  receivedAt           DateTime                            @default(now())
+  isStealth            Boolean                             @default(false)
 
-  positionAssignment PositionAssignment @relation(fields: [positionAssignmentId], references: [id], onDelete: Restrict)
+  positionAssignment UserSeatAssignment  @relation(fields: [positionAssignmentId], references: [id], onDelete: Restrict)
   area               AdministrativeArea? @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   @@index([positionAssignmentId, capturedAt])
@@ -1864,21 +2019,21 @@ model Notification {
 }
 
 model AuditLog {
-  id                 String      @id @default(uuid()) @db.Uuid
-  actorUserProfileId String?     @db.Uuid
-  actorAssignmentId  String?     @db.Uuid
-  action             String      @db.VarChar(120)
-  entityType         String      @db.VarChar(120)
-  entityId           String?     @db.VarChar(100)
+  id                 String   @id @default(uuid()) @db.Uuid
+  actorUserProfileId String?  @db.Uuid
+  actorAssignmentId  String?  @db.Uuid
+  action             String   @db.VarChar(120)
+  entityType         String   @db.VarChar(120)
+  entityId           String?  @db.VarChar(100)
   beforeData         Json?
   afterData          Json?
   metadata           Json?
-  ipAddress          String?     @db.VarChar(64)
-  deviceInfo         String?     @db.Text
-  createdAt          DateTime    @default(now())
+  ipAddress          String?  @db.VarChar(64)
+  deviceInfo         String?  @db.Text
+  createdAt          DateTime @default(now())
 
   actorUser       UserProfile?        @relation("AuditActor", fields: [actorUserProfileId], references: [id], onDelete: SetNull)
-  actorAssignment PositionAssignment? @relation("AuditAssignment", fields: [actorAssignmentId], references: [id], onDelete: SetNull)
+  actorAssignment UserSeatAssignment? @relation("AuditAssignment", fields: [actorAssignmentId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId, createdAt])
   @@index([actorUserProfileId, createdAt])
@@ -1897,18 +2052,57 @@ model IntegrationChannel {
 
   whatsAppMessages WhatsAppMessage[]
   webhookEvents    IntegrationWebhookEvent[]
+  botState         WhatsAppBotChannelState?
+  senderNumbers    WhatsAppSenderNumber[]
+}
+
+model WhatsAppBotChannelState {
+  id                   String                      @id @default(uuid()) @db.Uuid
+  integrationChannelId String                      @unique @db.Uuid
+  connectionStatus     WhatsAppBotConnectionStatus @default(DISCONNECTED)
+  qrCodeText           String?                     @db.Text
+  qrCodeDataUrl        String?                     @db.Text
+  pairingCode          String?                     @db.VarChar(64)
+  authStatePath        String?                     @db.VarChar(300)
+  botPhoneNumber       String?                     @db.VarChar(30)
+  sessionJid           String?                     @db.VarChar(120)
+  lastConnectedAt      DateTime?
+  lastDisconnectedAt   DateTime?
+  lastError            String?                     @db.Text
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  integrationChannel IntegrationChannel @relation(fields: [integrationChannelId], references: [id], onDelete: Cascade)
+
+  @@index([connectionStatus, updatedAt])
+}
+
+model WhatsAppSenderNumber {
+  id                   String   @id @default(uuid()) @db.Uuid
+  integrationChannelId String   @db.Uuid
+  phoneNumber          String   @db.VarChar(30)
+  label                String?  @db.VarChar(120)
+  isPrimary            Boolean  @default(false)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  integrationChannel IntegrationChannel @relation(fields: [integrationChannelId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationChannelId, phoneNumber])
+  @@index([integrationChannelId, isActive])
 }
 
 model IntegrationWebhookEvent {
-  id             String   @id @default(uuid()) @db.Uuid
-  channelId      String   @db.Uuid
-  externalEventId String?  @db.VarChar(255)
-  eventType      String   @db.VarChar(120)
-  payload        Json
-  receivedAt     DateTime @default(now())
-  processedAt    DateTime?
-  success        Boolean?
-  errorMessage   String?  @db.Text
+  id              String    @id @default(uuid()) @db.Uuid
+  channelId       String    @db.Uuid
+  externalEventId String?   @db.VarChar(255)
+  eventType       String    @db.VarChar(120)
+  payload         Json
+  receivedAt      DateTime  @default(now())
+  processedAt     DateTime?
+  success         Boolean?
+  errorMessage    String?   @db.Text
 
   channel IntegrationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
@@ -1927,9 +2121,11 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt
 }
 
-/* =========================================================
+/**
+ * =========================================================
  * API RUNTIME, DURABLE JOBS, AND IMMUTABLE EVENTS
- * =======================================================*/
+ * =======================================================
+ */
 
 model ApiIdempotencyRecord {
   id             String            @id @default(uuid()) @db.Uuid
@@ -1994,20 +2190,20 @@ model OutboxEvent {
 }
 
 model FileUploadReservation {
-  id                    String   @id @default(uuid()) @db.Uuid
-  storageKey            String   @unique @db.VarChar(500)
-  originalName          String   @db.VarChar(255)
-  mimeType              String   @db.VarChar(120)
+  id                    String    @id @default(uuid()) @db.Uuid
+  storageKey            String    @unique @db.VarChar(500)
+  originalName          String    @db.VarChar(255)
+  mimeType              String    @db.VarChar(120)
   fileType              FileType
   sizeBytes             BigInt
-  checksumSha256        String   @db.VarChar(64)
-  context               String   @db.VarChar(80)
-  uploadTokenHash       String   @unique @db.VarChar(64)
-  createdByAssignmentId String   @db.Uuid
-  fileAssetId           String?  @unique @db.Uuid
+  checksumSha256        String    @db.VarChar(64)
+  context               String    @db.VarChar(80)
+  uploadTokenHash       String    @unique @db.VarChar(64)
+  createdByAssignmentId String    @db.Uuid
+  fileAssetId           String?   @unique @db.Uuid
   expiresAt             DateTime
   completedAt           DateTime?
-  createdAt             DateTime @default(now())
+  createdAt             DateTime  @default(now())
 
   fileAsset FileAsset? @relation(fields: [fileAssetId], references: [id], onDelete: Restrict)
 
@@ -2026,7 +2222,7 @@ model ProductApprovalEvent {
   createdAt         DateTime          @default(now())
 
   workflow ProductApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Restrict)
-  step     ProductApprovalStep?     @relation(fields: [stepId], references: [id], onDelete: Restrict)
+  step     ProductApprovalStep?    @relation(fields: [stepId], references: [id], onDelete: Restrict)
 
   @@index([workflowId, createdAt])
   @@index([stepId, createdAt])

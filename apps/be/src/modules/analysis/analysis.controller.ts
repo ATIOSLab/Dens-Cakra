@@ -22,9 +22,11 @@ import {
   ArchiveAnalysisDto,
   CreateAnalysisCaseDto,
   CreateAnalysisVersionDto,
+  FinalizeAnalysisDto,
   ReplaceEntitiesDto,
   ReplaceRelationshipsDto,
   ReplaceSourcesDto,
+  SubmitAnalysisReviewDto,
   UpdateAnalysisCaseDto,
   UpdateAnalysisVersionDto,
   ValidateAnalysisDto,
@@ -42,10 +44,17 @@ export class AnalysisController {
     operationId: 'apiAnl001',
     contractId: 'API-ANL-001',
     summary: 'Daftar analysis case',
-    permission: 'analysis.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
   })
-  async list(@Query() query: AnalysisQuery) {
-    return apiResult(await this.analysisService.list(query));
+  async list(
+    @Query() query: AnalysisQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.analysisService.list(query, context));
   }
 
   @Post('analysis-cases')
@@ -53,7 +62,7 @@ export class AnalysisController {
     operationId: 'apiAnl002',
     contractId: 'API-ANL-002',
     summary: 'Buat analysis case',
-    permission: 'analysis.create',
+    roles: ['operational_intelligence_manager'],
     successStatus: 201,
     idempotent: true,
   })
@@ -69,10 +78,53 @@ export class AnalysisController {
     operationId: 'apiAnl003',
     contractId: 'API-ANL-003',
     summary: 'Detail analysis case',
-    permission: 'analysis.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
   })
-  async get(@Param('caseId', ParseUUIDPipe) caseId: string) {
-    return apiResult(await this.analysisService.get(caseId));
+  async get(
+    @Param('caseId', ParseUUIDPipe) caseId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.analysisService.get(caseId, context));
+  }
+
+  @Post('analysis-cases/:caseId/finalize')
+  @ApiContract({
+    operationId: 'apiAnl017',
+    contractId: 'API-ANL-017',
+    summary: 'Finalkan analysis dan kunci versi aktif',
+    roles: ['operational_intelligence_manager'],
+    idempotent: true,
+  })
+  async finalize(
+    @Param('caseId', ParseUUIDPipe) caseId: string,
+    @Body() body: FinalizeAnalysisDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.analysisService.finalize(caseId, body, context),
+    );
+  }
+
+  @Post('analysis-cases/:caseId/submit-review')
+  @ApiContract({
+    operationId: 'apiAnl016',
+    contractId: 'API-ANL-016',
+    summary: 'Kirim analysis ke review manusia',
+    roles: ['operational_intelligence_manager'],
+    idempotent: true,
+  })
+  async submitReview(
+    @Param('caseId', ParseUUIDPipe) caseId: string,
+    @Body() body: SubmitAnalysisReviewDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.analysisService.submitReview(caseId, context, body.note),
+    );
   }
 
   @Patch('analysis-cases/:caseId')
@@ -80,7 +132,7 @@ export class AnalysisController {
     operationId: 'apiAnl004',
     contractId: 'API-ANL-004',
     summary: 'Edit analysis case',
-    permission: 'analysis.update',
+    roles: ['operational_intelligence_manager'],
   })
   async update(
     @Param('caseId', ParseUUIDPipe) caseId: string,
@@ -95,7 +147,7 @@ export class AnalysisController {
     operationId: 'apiAnl005',
     contractId: 'API-ANL-005',
     summary: 'Ganti sumber verification',
-    permission: 'analysis.update',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async replaceSources(
@@ -113,10 +165,17 @@ export class AnalysisController {
     operationId: 'apiAnl006',
     contractId: 'API-ANL-006',
     summary: 'Riwayat analysis versions',
-    permission: 'analysis.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
   })
-  async versions(@Param('caseId', ParseUUIDPipe) caseId: string) {
-    return apiResult(await this.analysisService.versions(caseId));
+  async versions(
+    @Param('caseId', ParseUUIDPipe) caseId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.analysisService.versions(caseId, context));
   }
 
   @Post('analysis-cases/:caseId/versions')
@@ -124,7 +183,7 @@ export class AnalysisController {
     operationId: 'apiAnl007',
     contractId: 'API-ANL-007',
     summary: 'Buat versi analysis',
-    permission: 'analysis.update',
+    roles: ['operational_intelligence_manager'],
     successStatus: 201,
     idempotent: true,
   })
@@ -143,10 +202,17 @@ export class AnalysisController {
     operationId: 'apiAnl008',
     contractId: 'API-ANL-008',
     summary: 'Detail analysis version',
-    permission: 'analysis.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
   })
-  async getVersion(@Param('versionId', ParseUUIDPipe) versionId: string) {
-    return apiResult(await this.analysisService.getVersion(versionId));
+  async getVersion(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.analysisService.getVersion(versionId, context));
   }
 
   @Patch('analysis-versions/:versionId')
@@ -154,7 +220,7 @@ export class AnalysisController {
     operationId: 'apiAnl009',
     contractId: 'API-ANL-009',
     summary: 'Edit analysis version',
-    permission: 'analysis.update',
+    roles: ['operational_intelligence_manager'],
   })
   async updateVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
@@ -171,7 +237,7 @@ export class AnalysisController {
     operationId: 'apiAnl010',
     contractId: 'API-ANL-010',
     summary: 'Ganti entities',
-    permission: 'analysis.update',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async replaceEntities(
@@ -189,7 +255,7 @@ export class AnalysisController {
     operationId: 'apiAnl011',
     contractId: 'API-ANL-011',
     summary: 'Ganti relationships',
-    permission: 'analysis.update',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async replaceRelationships(
@@ -207,7 +273,7 @@ export class AnalysisController {
     operationId: 'apiAnl012',
     contractId: 'API-ANL-012',
     summary: 'Validate analysis',
-    permission: 'analysis.validate',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async validateVersion(
@@ -225,10 +291,17 @@ export class AnalysisController {
     operationId: 'apiAnl013',
     contractId: 'API-ANL-013',
     summary: 'Graph analysis',
-    permission: 'analysis.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
   })
-  async graph(@Param('caseId', ParseUUIDPipe) caseId: string) {
-    return apiResult(await this.analysisService.graph(caseId));
+  async graph(
+    @Param('caseId', ParseUUIDPipe) caseId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.analysisService.graph(caseId, context));
   }
 
   @Get('analysis-cases/:caseId/traceability')
@@ -236,10 +309,17 @@ export class AnalysisController {
     operationId: 'apiAnl014',
     contractId: 'API-ANL-014',
     summary: 'Traceability analysis',
-    permission: 'analysis.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
   })
-  async traceability(@Param('caseId', ParseUUIDPipe) caseId: string) {
-    return apiResult(await this.analysisService.traceability(caseId));
+  async traceability(
+    @Param('caseId', ParseUUIDPipe) caseId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.analysisService.traceability(caseId, context));
   }
 
   @Post('analysis-cases/:caseId/archive')
@@ -247,7 +327,7 @@ export class AnalysisController {
     operationId: 'apiAnl015',
     contractId: 'API-ANL-015',
     summary: 'Archive analysis',
-    permission: 'analysis.archive',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async archive(

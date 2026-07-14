@@ -32,6 +32,7 @@ import { UukModule } from './modules/uuk/uuk.module.js';
 import { BaketModule } from './modules/baket/baket.module.js';
 import { AnalysisModule } from './modules/analysis/analysis.module.js';
 import { IntelligenceProductsModule } from './modules/intelligence-products/intelligence-products.module.js';
+import { MapMarkersModule } from './modules/map-markers/map-markers.module.js';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { IntelligenceProductsModule } from './modules/intelligence-products/inte
     BaketModule,
     AnalysisModule,
     IntelligenceProductsModule,
+    MapMarkersModule,
     TaskModule,
     JaringModule,
     WhatsAppModule,

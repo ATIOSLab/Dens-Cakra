@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AreaPolicyQueryDto,
-  PermissionListQueryDto,
   RoleListQueryDto,
   UpdateAreaPolicyDto,
 } from './dto/rbac.dto.js';
+import { ApiException } from '../../common/api/api-exception.js';
 
 @Injectable()
 export class RbacService {
@@ -17,7 +16,7 @@ export class RbacService {
     return this.prisma.role.findMany({
       where: query.isActive === undefined ? {} : { isActive: query.isActive },
       orderBy: { code: 'asc' },
-      include: { _count: { select: { permissions: true, positions: true } } },
+      include: { _count: { select: { positions: true } } },
     });
   }
 
@@ -25,91 +24,19 @@ export class RbacService {
     return this.prisma.role.findUniqueOrThrow({
       where: { id },
       include: {
-        permissions: { include: { permission: true } },
         _count: { select: { positions: true } },
       },
     });
   }
 
-  async replacePermissions(
-    id: string,
-    codes: string[],
-    actor: AuthorizationContext,
-  ) {
-    const uniqueCodes = [...new Set(codes)];
-    const permissions = await this.prisma.permission.findMany({
-      where: { code: { in: uniqueCodes } },
-    });
-    if (permissions.length !== uniqueCodes.length) {
-      throw new ApiException(
-        'PERMISSION_UNKNOWN',
-        'One or more permission codes are unknown.',
-        422,
-      );
-    }
-    const before = await this.prisma.rolePermission.findMany({
-      where: { roleId: id },
-      include: { permission: true },
-    });
-    await this.prisma.$transaction(async (tx) => {
-      await tx.rolePermission.deleteMany({ where: { roleId: id } });
-      if (permissions.length) {
-        await tx.rolePermission.createMany({
-          data: permissions.map((permission) => ({
-            roleId: id,
-            permissionId: permission.id,
-          })),
-        });
-      }
-      await tx.auditLog.create({
-        data: {
-          actorUserProfileId: actor.userProfileId,
-          actorAssignmentId: actor.primaryAssignmentId,
-          action: 'ROLE.PERMISSIONS.REPLACE',
-          entityType: 'Role',
-          entityId: id,
-          beforeData: before.map((item) => item.permission.code),
-          afterData: uniqueCodes,
-        },
-      });
-    });
-    return this.role(id);
-  }
-
-  permissions(query: PermissionListQueryDto) {
-    return this.prisma.permission.findMany({
-      where: {
-        ...(query.search
-          ? {
-              OR: [
-                {
-                  code: {
-                    contains: query.search,
-                    mode: 'insensitive' as const,
-                  },
-                },
-                {
-                  name: {
-                    contains: query.search,
-                    mode: 'insensitive' as const,
-                  },
-                },
-              ],
-            }
-          : {}),
-        ...(query.module ? { code: { startsWith: `${query.module}.` } } : {}),
-      },
-      orderBy: { code: 'asc' },
-    });
-  }
-
   policies(query: AreaPolicyQueryDto) {
-    return this.prisma.positionAreaPolicy.findMany({
+    return this.prisma.roleAreaPolicy.findMany({
       where: {
-        ...(query.positionCode ? { positionCode: query.positionCode } : {}),
+        ...(query.roleCode ? { roleCode: query.roleCode } : {}),
+        ...(query.branch ? { branch: query.branch } : {}),
         ...(query.isActive === undefined ? {} : { isActive: query.isActive }),
       },
-      orderBy: [{ positionCode: 'asc' }, { administrativeLevel: 'asc' }],
+      orderBy: [{ roleCode: 'asc' }, { administrativeLevel: 'asc' }],
     });
   }
 
@@ -128,10 +55,10 @@ export class RbacService {
         422,
       );
     }
-    const before = await this.prisma.positionAreaPolicy.findUniqueOrThrow({
+    const before = await this.prisma.roleAreaPolicy.findUniqueOrThrow({
       where: { id },
     });
-    const updated = await this.prisma.positionAreaPolicy.update({
+    const updated = await this.prisma.roleAreaPolicy.update({
       where: { id },
       data: input,
     });
@@ -140,7 +67,7 @@ export class RbacService {
         actorUserProfileId: actor.userProfileId,
         actorAssignmentId: actor.primaryAssignmentId,
         action: 'AREA.POLICY.UPDATE',
-        entityType: 'PositionAreaPolicy',
+        entityType: 'RoleAreaPolicy',
         entityId: id,
         beforeData: before,
         afterData: updated,

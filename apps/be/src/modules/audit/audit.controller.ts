@@ -60,7 +60,7 @@ export class AuditController {
     operationId: 'apiAud001',
     contractId: 'API-AUD-001',
     summary: 'Cari audit log',
-    permission: 'audit.read',
+    roles: ['admin_system'],
   })
   async list(@Query() q: AuditQuery) {
     return apiResult(
@@ -99,7 +99,7 @@ export class AuditController {
     operationId: 'apiAud002',
     contractId: 'API-AUD-002',
     summary: 'Detail audit event',
-    permission: 'audit.read',
+    roles: ['admin_system'],
   })
   async detail(@Param('auditLogId', ParseUUIDPipe) id: string) {
     return apiResult(
@@ -117,7 +117,7 @@ export class AuditController {
     operationId: 'apiAud003',
     contractId: 'API-AUD-003',
     summary: 'Audit trail resource',
-    permission: 'audit.read',
+    roles: ['admin_system'],
   })
   async trail(
     @Param('entityType') type: string,
@@ -137,7 +137,7 @@ export class AuditController {
     operationId: 'apiAud004',
     contractId: 'API-AUD-004',
     summary: 'Minta export audit',
-    permission: 'audit.export',
+    roles: ['admin_system'],
     successStatus: 202,
     idempotent: true,
   })

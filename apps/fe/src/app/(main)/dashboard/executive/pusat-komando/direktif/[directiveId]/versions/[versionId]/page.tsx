@@ -1,4 +1,4 @@
-import { DirectiveVersionPage } from "@/features/directives/pages";
+import { DirectiveVersionPage } from "../../../_components/directive-pages";
 
 export const dynamic = "force-dynamic";
 

@@ -9,21 +9,24 @@ import {
   ApprovalStepStatus,
   ApprovalWorkflowStatus,
   AreaResolutionMethod,
-  Classification,
   CoordinateSource,
   DistributionStatus,
   EmergencyStatus,
   FileLifecycleStatus,
   NotificationType,
+  PositionCode,
   Prisma,
   ProductStatus,
   RoleCode,
   TaskStatus,
+  Classification,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
+import { formatProductNumber } from './product-number.util.js';
 import type {
   ActivateTemplateDto,
   AlertQuery,
@@ -77,6 +80,7 @@ import type {
   UpdateAlertDto,
   UpdateEmergencyIncidentDto,
   UpdateProductTypeDto,
+  UpdateProductDto,
   UpdateProductVersionDto,
   ValidateTemplateContentDto,
   VerifyEmergencyIncidentDto,
@@ -103,19 +107,84 @@ const USABLE_FILE_STATUSES: FileLifecycleStatus[] = [
   FileLifecycleStatus.UPLOADED,
 ];
 
-const CLASSIFICATION_WEIGHT: Record<Classification, number> = {
-  [Classification.BIASA]: 1,
-  [Classification.TERBATAS]: 2,
-  [Classification.RAHASIA]: 3,
-  [Classification.SANGAT_RAHASIA]: 4,
-};
-
 @Injectable()
 export class IntelligenceProductsService {
+  private readonly locationPingSelect = {
+    id: true,
+    positionAssignmentId: true,
+    areaId: true,
+    latitude: true,
+    longitude: true,
+    gpsAccuracyMeters: true,
+    coordinateSource: true,
+    areaResolutionMethod: true,
+    capturedAt: true,
+    receivedAt: true,
+    isStealth: true,
+    area: true,
+    positionAssignment: {
+      include: { position: true, userProfile: true },
+    },
+  } satisfies Prisma.PersonnelLocationPingSelect;
+
+  private readonly ownLocationPingSelect = {
+    id: true,
+    positionAssignmentId: true,
+    areaId: true,
+    latitude: true,
+    longitude: true,
+    gpsAccuracyMeters: true,
+    coordinateSource: true,
+    areaResolutionMethod: true,
+    capturedAt: true,
+    receivedAt: true,
+    isStealth: true,
+    area: true,
+  } satisfies Prisma.PersonnelLocationPingSelect;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly spatial: SpatialRepository,
+    private readonly scope: DomainScopeService,
   ) {}
+
+  private assertProductClassification(classification: Classification) {
+    if (classification === Classification.BIASA) {
+      throw new ApiException(
+        'PRODUCT_CLASSIFICATION_INVALID',
+        'Produk intelijen hanya dapat memakai SANGAT_RAHASIA, RAHASIA, atau TERBATAS.',
+        422,
+      );
+    }
+  }
+
+  private async allocateProductNumber(
+    productTypeId: string,
+    classification: Classification,
+  ) {
+    const now = new Date();
+    const [productType, sequence] = await this.prisma.$transaction(
+      async (tx) => {
+        const type = await tx.productTypeDefinition.findUniqueOrThrow({
+          where: { id: productTypeId },
+        });
+        const next = await tx.productNumberSequence.upsert({
+          where: {
+            productTypeId_year: { productTypeId, year: now.getFullYear() },
+          },
+          create: { productTypeId, year: now.getFullYear(), lastNumber: 1 },
+          update: { lastNumber: { increment: 1 } },
+        });
+        return [type, next] as const;
+      },
+    );
+    return formatProductNumber({
+      classification: classification as Exclude<Classification, 'BIASA'>,
+      productCode: productType.numberCode,
+      sequence: sequence.lastNumber,
+      date: now,
+    });
+  }
 
   private paginate(page: number, limit: number, total: number) {
     return {
@@ -126,14 +195,23 @@ export class IntelligenceProductsService {
     };
   }
 
-  private ensureDateOrder(from?: string, to?: string, code = 'DATE_RANGE_INVALID') {
+  private ensureDateOrder(
+    from?: string,
+    to?: string,
+    code = 'DATE_RANGE_INVALID',
+  ) {
     if (from && to && new Date(from) > new Date(to)) {
-      throw new ApiException(code, 'Start date must not be later than end date.', 422);
+      throw new ApiException(
+        code,
+        'Start date must not be later than end date.',
+        422,
+      );
     }
   }
 
   private ensureCoordinatePair(latitude?: number, longitude?: number) {
-    const count = Number(latitude !== undefined) + Number(longitude !== undefined);
+    const count =
+      Number(latitude !== undefined) + Number(longitude !== undefined);
     if (count === 1) {
       throw new ApiException(
         'COORDINATE_PAIR_REQUIRED',
@@ -194,7 +272,7 @@ export class IntelligenceProductsService {
     if (!positionId) {
       return;
     }
-    const assignments = await this.prisma.positionAssignment.findMany({
+    const assignments = await this.prisma.userSeatAssignment.findMany({
       where: {
         positionId,
         isActive: true,
@@ -221,14 +299,20 @@ export class IntelligenceProductsService {
     if (!assignmentId) {
       return;
     }
-    const assignment = await this.prisma.positionAssignment.findUnique({
+    const assignment = await this.prisma.userSeatAssignment.findUnique({
       where: { id: assignmentId },
       select: { userProfileId: true },
     });
     if (!assignment) {
       return;
     }
-    await this.notifyUsers([assignment.userProfileId], type, title, message, link);
+    await this.notifyUsers(
+      [assignment.userProfileId],
+      type,
+      title,
+      message,
+      link,
+    );
   }
 
   private async resolveArea(latitude?: number, longitude?: number) {
@@ -286,10 +370,16 @@ export class IntelligenceProductsService {
         message: `Expected ${expected}.`,
       });
 
-    if (['text', 'string', 'richtext'].includes(kind) && typeof value !== 'string') {
+    if (
+      ['text', 'string', 'richtext'].includes(kind) &&
+      typeof value !== 'string'
+    ) {
       addTypeError('string');
     }
-    if (['number', 'float', 'decimal'].includes(kind) && typeof value !== 'number') {
+    if (
+      ['number', 'float', 'decimal'].includes(kind) &&
+      typeof value !== 'number'
+    ) {
       addTypeError('number');
     }
     if (['int', 'integer'].includes(kind) && !Number.isInteger(value)) {
@@ -301,7 +391,10 @@ export class IntelligenceProductsService {
     if (kind === 'array' && !Array.isArray(value)) {
       addTypeError('array');
     }
-    if (['object', 'json'].includes(kind) && (typeof value !== 'object' || Array.isArray(value))) {
+    if (
+      ['object', 'json'].includes(kind) &&
+      (typeof value !== 'object' || Array.isArray(value))
+    ) {
       addTypeError('object');
     }
     if (['date', 'datetime'].includes(kind)) {
@@ -397,7 +490,10 @@ export class IntelligenceProductsService {
           for (const field of section.fields) {
             const fieldPath = `${section.code}[${index}].${field.code}`;
             const value = row?.[field.code];
-            if (field.isRequired && (value === undefined || value === null || value === '')) {
+            if (
+              field.isRequired &&
+              (value === undefined || value === null || value === '')
+            ) {
               errors.push({
                 field: fieldPath,
                 code: 'REQUIRED',
@@ -406,7 +502,12 @@ export class IntelligenceProductsService {
               continue;
             }
             errors.push(
-              ...this.validateFieldValue(fieldPath, field.dataType, field.validation as Record<string, unknown> | undefined, value),
+              ...this.validateFieldValue(
+                fieldPath,
+                field.dataType,
+                field.validation as Record<string, unknown> | undefined,
+                value,
+              ),
             );
           }
         });
@@ -416,7 +517,10 @@ export class IntelligenceProductsService {
       for (const field of section.fields) {
         const fieldPath = `${section.code}.${field.code}`;
         const value = this.getContentValue(content, section.code, field.code);
-        if (field.isRequired && (value === undefined || value === null || value === '')) {
+        if (
+          field.isRequired &&
+          (value === undefined || value === null || value === '')
+        ) {
           errors.push({
             field: fieldPath,
             code: 'REQUIRED',
@@ -425,7 +529,12 @@ export class IntelligenceProductsService {
           continue;
         }
         errors.push(
-          ...this.validateFieldValue(fieldPath, field.dataType, field.validation as Record<string, unknown> | undefined, value),
+          ...this.validateFieldValue(
+            fieldPath,
+            field.dataType,
+            field.validation as Record<string, unknown> | undefined,
+            value,
+          ),
         );
       }
     }
@@ -470,7 +579,27 @@ export class IntelligenceProductsService {
                 verification: {
                   include: {
                     baketVersion: {
-                      include: { baket: true, eventArea: true },
+                      include: {
+                        eventArea: {
+                          include: {
+                            parent: {
+                              include: {
+                                parent: { include: { parent: true } },
+                              },
+                            },
+                          },
+                        },
+                        baket: {
+                          include: {
+                            createdByFieldOfficerAssignment: {
+                              include: {
+                                userProfile: { include: { authUser: true } },
+                                position: true,
+                              },
+                            },
+                          },
+                        },
+                      },
                     },
                   },
                 },
@@ -479,7 +608,47 @@ export class IntelligenceProductsService {
             sourceAnalyses: {
               include: {
                 analysisVersion: {
-                  include: { analysisCase: true },
+                  include: {
+                    analysisCase: {
+                      include: {
+                        sources: {
+                          include: {
+                            verification: {
+                              include: {
+                                baketVersion: {
+                                  include: {
+                                    eventArea: {
+                                      include: {
+                                        parent: {
+                                          include: {
+                                            parent: {
+                                              include: { parent: true },
+                                            },
+                                          },
+                                        },
+                                      },
+                                    },
+                                    baket: {
+                                      include: {
+                                        createdByFieldOfficerAssignment: {
+                                          include: {
+                                            userProfile: {
+                                              include: { authUser: true },
+                                            },
+                                            position: true,
+                                          },
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -545,7 +714,27 @@ export class IntelligenceProductsService {
             verification: {
               include: {
                 baketVersion: {
-                  include: { baket: true, eventArea: true },
+                  include: {
+                    eventArea: {
+                      include: {
+                        parent: {
+                          include: {
+                            parent: { include: { parent: true } },
+                          },
+                        },
+                      },
+                    },
+                    baket: {
+                      include: {
+                        createdByFieldOfficerAssignment: {
+                          include: {
+                            userProfile: { include: { authUser: true } },
+                            position: true,
+                          },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -554,7 +743,47 @@ export class IntelligenceProductsService {
         sourceAnalyses: {
           include: {
             analysisVersion: {
-              include: { analysisCase: true },
+              include: {
+                analysisCase: {
+                  include: {
+                    sources: {
+                      include: {
+                        verification: {
+                          include: {
+                            baketVersion: {
+                              include: {
+                                eventArea: {
+                                  include: {
+                                    parent: {
+                                      include: {
+                                        parent: {
+                                          include: { parent: true },
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                                baket: {
+                                  include: {
+                                    createdByFieldOfficerAssignment: {
+                                      include: {
+                                        userProfile: {
+                                          include: { authUser: true },
+                                        },
+                                        position: true,
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -635,7 +864,26 @@ export class IntelligenceProductsService {
     });
   }
 
-  private async getEditableProductVersion(versionId: string) {
+  private async assertProductVersionScope(
+    versionId: string,
+    context: AuthorizationContext,
+  ) {
+    const version = await this.prisma.productVersion.findUnique({
+      where: { id: versionId },
+      select: { productId: true },
+    });
+    if (!version) {
+      throw new ApiException('RESOURCE_NOT_FOUND', 'Resource not found.', 404);
+    }
+    await this.scope.assertProduct(context, version.productId);
+    return version;
+  }
+
+  private async getEditableProductVersion(
+    versionId: string,
+    context: AuthorizationContext,
+  ) {
+    await this.assertProductVersionScope(versionId, context);
     const version = await this.prisma.productVersion.findUniqueOrThrow({
       where: { id: versionId },
       include: { product: true },
@@ -655,17 +903,28 @@ export class IntelligenceProductsService {
     return version;
   }
 
-  private async validateVerificationSources(ids: string[]) {
+  private async validateVerificationSources(
+    ids: string[],
+    context?: AuthorizationContext,
+  ) {
     if (ids.length === 0) {
       return;
     }
     const rows = await this.prisma.baketVerification.findMany({
-      where: { id: { in: ids } },
+      where: {
+        id: { in: ids },
+        ...(context
+          ? { baketVersion: { baket: await this.scope.baketWhere(context) } }
+          : {}),
+      },
       include: {
         baketVersion: true,
       },
     });
-    if (rows.length !== ids.length || rows.some((row) => row.status !== 'VERIFIED')) {
+    if (
+      rows.length !== ids.length ||
+      rows.some((row) => row.status !== 'VERIFIED')
+    ) {
       throw new ApiException(
         'PRODUCT_SOURCE_VERIFICATION_INVALID',
         'All source verifications must exist and be VERIFIED.',
@@ -674,12 +933,18 @@ export class IntelligenceProductsService {
     }
   }
 
-  private async validateAnalysisSources(ids: string[]) {
+  private async validateAnalysisSources(
+    ids: string[],
+    context?: AuthorizationContext,
+  ) {
     if (ids.length === 0) {
       return;
     }
     const rows = await this.prisma.analysisVersion.findMany({
-      where: { id: { in: ids } },
+      where: {
+        id: { in: ids },
+        ...(context ? { analysisCase: this.scope.analysisWhere(context) } : {}),
+      },
       include: {
         analysisCase: true,
       },
@@ -695,6 +960,73 @@ export class IntelligenceProductsService {
       throw new ApiException(
         'PRODUCT_SOURCE_ANALYSIS_INVALID',
         'All source analyses must be validated before use.',
+        422,
+      );
+    }
+  }
+
+  private async validateClassificationFloor(
+    classification: Classification,
+    verificationIds: string[],
+    analysisVersionIds: string[],
+  ) {
+    const include = {
+      baketVersion: {
+        include: {
+          baket: {
+            include: {
+              taskAssignment: {
+                include: { task: { include: { directiveVersion: true } } },
+              },
+            },
+          },
+        },
+      },
+    } as const;
+    const [directSources, analysisSources] = await Promise.all([
+      this.prisma.baketVerification.findMany({
+        where: { id: { in: verificationIds } },
+        include,
+      }),
+      this.prisma.analysisVersion.findMany({
+        where: { id: { in: analysisVersionIds } },
+        include: {
+          analysisCase: {
+            include: {
+              sources: { include: { verification: { include } } },
+            },
+          },
+        },
+      }),
+    ]);
+    const sourceClassifications = [
+      ...directSources.map(
+        (source) =>
+          source.baketVersion.baket.taskAssignment?.task.directiveVersion
+            ?.classification,
+      ),
+      ...analysisSources.flatMap((source) =>
+        source.analysisCase.sources.map(
+          (item) =>
+            item.verification.baketVersion.baket.taskAssignment?.task
+              .directiveVersion?.classification,
+        ),
+      ),
+    ].filter((value): value is Classification => Boolean(value));
+    const rank: Record<Classification, number> = {
+      BIASA: 0,
+      TERBATAS: 1,
+      RAHASIA: 2,
+      SANGAT_RAHASIA: 3,
+    };
+    if (
+      sourceClassifications.some(
+        (source) => rank[classification] < rank[source],
+      )
+    ) {
+      throw new ApiException(
+        'PRODUCT_CLASSIFICATION_BELOW_SOURCE',
+        'Klasifikasi produk tidak boleh lebih rendah daripada klasifikasi sumbernya.',
         422,
       );
     }
@@ -751,7 +1083,8 @@ export class IntelligenceProductsService {
       errors.push({
         field: 'sources',
         code: 'SOURCE_REQUIRED',
-        message: 'At least one verified source or validated analysis is required.',
+        message:
+          'At least one verified source or validated analysis is required.',
       });
     }
     if (
@@ -783,7 +1116,7 @@ export class IntelligenceProductsService {
   }
 
   private async buildWorkflowTargets(assignmentId: string) {
-    const creator = await this.prisma.positionAssignment.findUniqueOrThrow({
+    const creator = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: assignmentId },
       include: {
         position: true,
@@ -802,18 +1135,50 @@ export class IntelligenceProductsService {
       where: { id: creator.position.reportsToPositionId },
     });
 
-    if (!regional.reportsToPositionId) {
-      throw new ApiException(
-        'APPROVAL_ROUTE_UNRESOLVED',
-        'Executive approver could not be resolved from reporting line.',
-        422,
-      );
-    }
-
     return {
       regionalTargetPositionId: regional.id,
-      executiveTargetPositionId: regional.reportsToPositionId,
     };
+  }
+
+  private async resolveSeatIdForPosition(
+    client: Prisma.TransactionClient | PrismaService,
+    positionId: string,
+  ) {
+    const position = await client.position.findUniqueOrThrow({
+      where: { id: positionId },
+      select: {
+        id: true,
+        roleId: true,
+        organizationUnitId: true,
+        branch: true,
+      },
+    });
+
+    const existingSeat = await client.organizationRoleSeat.findFirst({
+      where: {
+        organizationUnitId: position.organizationUnitId,
+        roleId: position.roleId,
+        ...(position.branch ? { branch: position.branch } : { branch: null }),
+      },
+      select: { id: true },
+    });
+
+    if (existingSeat) {
+      return existingSeat.id;
+    }
+
+    const seat = await client.organizationRoleSeat.create({
+      data: {
+        organizationUnitId: position.organizationUnitId,
+        roleId: position.roleId,
+        ...(position.branch ? { branch: position.branch } : {}),
+        positionId: position.id,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    return seat.id;
   }
 
   private async createWorkflowTx(
@@ -821,7 +1186,6 @@ export class IntelligenceProductsService {
     versionId: string,
     routeType: 'DIRECTORATE' | 'BINDA',
     regionalTargetPositionId: string,
-    executiveTargetPositionId: string,
     actorAssignmentId: string,
   ) {
     const existing = await tx.productApprovalWorkflow.findUnique({
@@ -831,6 +1195,10 @@ export class IntelligenceProductsService {
       return existing.id;
     }
 
+    const regionalTargetSeatId = await this.resolveSeatIdForPosition(
+      tx,
+      regionalTargetPositionId,
+    );
     const workflow = await tx.productApprovalWorkflow.create({
       data: {
         productVersionId: versionId,
@@ -838,21 +1206,14 @@ export class IntelligenceProductsService {
         status: ApprovalWorkflowStatus.IN_PROGRESS,
         currentStepNumber: 1,
         steps: {
-          create: [
-            {
-              stepNumber: 1,
-              stage: ApprovalStage.REGIONAL,
-              targetPositionId: regionalTargetPositionId,
-              status: ApprovalStepStatus.ACTIVE,
-              activatedAt: new Date(),
-            },
-            {
-              stepNumber: 2,
-              stage: ApprovalStage.EXECUTIVE,
-              targetPositionId: executiveTargetPositionId,
-              status: ApprovalStepStatus.WAITING,
-            },
-          ],
+          create: {
+            stepNumber: 1,
+            stage: ApprovalStage.REGIONAL,
+            targetSeatId: regionalTargetSeatId,
+            targetPositionId: regionalTargetPositionId,
+            status: ApprovalStepStatus.ACTIVE,
+            activatedAt: new Date(),
+          },
         },
       },
     });
@@ -877,23 +1238,24 @@ export class IntelligenceProductsService {
       return;
     }
 
-    const target = await this.prisma.positionAssignment.findUniqueOrThrow({
+    const target = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: assignmentId },
       include: {
         position: true,
       },
     });
 
-    let currentPositionId: string | null | undefined = target.position.reportsToPositionId;
+    let currentPositionId: string | null | undefined =
+      target.position.reportsToPositionId;
     while (currentPositionId) {
       if (currentPositionId === context.positionId) {
         return;
       }
       const current: { reportsToPositionId: string | null } | null =
         await this.prisma.position.findUnique({
-        where: { id: currentPositionId },
-        select: { reportsToPositionId: true },
-      });
+          where: { id: currentPositionId },
+          select: { reportsToPositionId: true },
+        });
       currentPositionId = current?.reportsToPositionId;
     }
 
@@ -904,7 +1266,10 @@ export class IntelligenceProductsService {
     );
   }
 
-  private toCursorPage<T extends { id: string }>(items: T[], limit: number): CursorPage<T> {
+  private toCursorPage<T extends { id: string }>(
+    items: T[],
+    limit: number,
+  ): CursorPage<T> {
     return {
       items: items.slice(0, limit),
       nextCursor: items.length > limit ? items[limit].id : null,
@@ -925,11 +1290,19 @@ export class IntelligenceProductsService {
     });
   }
 
-  async createProductType(body: CreateProductTypeDto, context: AuthorizationContext) {
+  async createProductType(
+    body: CreateProductTypeDto,
+    context: AuthorizationContext,
+  ) {
     const created = await this.prisma.productTypeDefinition.create({
       data: body,
     });
-    await this.audit(context, 'PRODUCT_TYPE.CREATE', 'ProductTypeDefinition', created.id);
+    await this.audit(
+      context,
+      'PRODUCT_TYPE.CREATE',
+      'ProductTypeDefinition',
+      created.id,
+    );
     return created;
   }
 
@@ -942,7 +1315,12 @@ export class IntelligenceProductsService {
       where: { id: productTypeId },
       data: body,
     });
-    await this.audit(context, 'PRODUCT_TYPE.UPDATE', 'ProductTypeDefinition', productTypeId);
+    await this.audit(
+      context,
+      'PRODUCT_TYPE.UPDATE',
+      'ProductTypeDefinition',
+      productTypeId,
+    );
     return updated;
   }
 
@@ -1003,7 +1381,8 @@ export class IntelligenceProductsService {
                   dataType: field.dataType,
                   isRequired: field.isRequired,
                   orderNumber: field.orderNumber,
-                  validation: field.validation as Prisma.InputJsonValue | undefined,
+                  validation: field.validation as
+                    Prisma.InputJsonValue | undefined,
                 })),
               },
             })),
@@ -1012,7 +1391,12 @@ export class IntelligenceProductsService {
       });
     });
 
-    await this.audit(context, 'PRODUCT_TEMPLATE.CREATE', 'ProductTemplate', template.id);
+    await this.audit(
+      context,
+      'PRODUCT_TEMPLATE.CREATE',
+      'ProductTemplate',
+      template.id,
+    );
     return this.getTemplate(template.id);
   }
 
@@ -1051,14 +1435,23 @@ export class IntelligenceProductsService {
         data: { isActive: true },
       });
     });
-    await this.audit(context, 'PRODUCT_TEMPLATE.ACTIVATE', 'ProductTemplate', templateId, {
-      reason: body.reason,
-    });
+    await this.audit(
+      context,
+      'PRODUCT_TEMPLATE.ACTIVATE',
+      'ProductTemplate',
+      templateId,
+      {
+        reason: body.reason,
+      },
+    );
     return this.getTemplate(templateId);
   }
 
   async validateTemplate(templateId: string, body: ValidateTemplateContentDto) {
-    const result = await this.validateTemplateContentInternal(templateId, body.content);
+    const result = await this.validateTemplateContentInternal(
+      templateId,
+      body.content,
+    );
     return {
       valid: result.valid,
       errors: result.errors,
@@ -1066,14 +1459,19 @@ export class IntelligenceProductsService {
     };
   }
 
-  async listProducts(query: ProductQuery) {
-    this.ensureDateOrder(query.periodFrom, query.periodTo, 'PRODUCT_PERIOD_INVALID');
+  async listProducts(query: ProductQuery, context: AuthorizationContext) {
+    this.ensureDateOrder(
+      query.periodFrom,
+      query.periodTo,
+      'PRODUCT_PERIOD_INVALID',
+    );
     const where: Prisma.IntelligenceProductWhereInput = {
+      ...(await this.scope.productWhere(context)),
       deletedAt: null,
       ...(query.status ? { status: query.status } : {}),
+      ...(query.classification ? { classification: query.classification } : {}),
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
       ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
-      ...(query.classification ? { classification: query.classification } : {}),
       ...(query.createdByAssignmentId
         ? { createdByAssignmentId: query.createdByAssignmentId }
         : {}),
@@ -1082,13 +1480,17 @@ export class IntelligenceProductsService {
             OR: [
               {
                 periodStart: {
-                  ...(query.periodFrom ? { gte: new Date(query.periodFrom) } : {}),
+                  ...(query.periodFrom
+                    ? { gte: new Date(query.periodFrom) }
+                    : {}),
                   ...(query.periodTo ? { lte: new Date(query.periodTo) } : {}),
                 },
               },
               {
                 periodEnd: {
-                  ...(query.periodFrom ? { gte: new Date(query.periodFrom) } : {}),
+                  ...(query.periodFrom
+                    ? { gte: new Date(query.periodFrom) }
+                    : {}),
                   ...(query.periodTo ? { lte: new Date(query.periodTo) } : {}),
                 },
               },
@@ -1150,9 +1552,25 @@ export class IntelligenceProductsService {
   }
 
   async createProduct(body: CreateProductDto, context: AuthorizationContext) {
-    this.ensureDateOrder(body.periodStart, body.periodEnd, 'PRODUCT_PERIOD_INVALID');
-    await this.validateVerificationSources(body.version.sourceVerificationIds ?? []);
-    await this.validateAnalysisSources(body.version.sourceAnalysisVersionIds ?? []);
+    this.assertProductClassification(body.classification);
+    this.ensureDateOrder(
+      body.periodStart,
+      body.periodEnd,
+      'PRODUCT_PERIOD_INVALID',
+    );
+    await this.validateVerificationSources(
+      body.version.sourceVerificationIds ?? [],
+      context,
+    );
+    await this.validateAnalysisSources(
+      body.version.sourceAnalysisVersionIds ?? [],
+      context,
+    );
+    await this.validateClassificationFloor(
+      body.classification,
+      body.version.sourceVerificationIds ?? [],
+      body.version.sourceAnalysisVersionIds ?? [],
+    );
     await this.validateAttachmentFiles(body.version.attachmentFileIds ?? []);
     if (
       (body.version.sourceVerificationIds?.length ?? 0) +
@@ -1178,13 +1596,19 @@ export class IntelligenceProductsService {
       );
     }
 
+    const productNumber =
+      body.productNumber ??
+      (await this.allocateProductNumber(
+        body.productTypeId,
+        body.classification,
+      ));
     const product = await this.prisma.intelligenceProduct.create({
       data: {
         productTypeId: body.productTypeId,
-        ownerUnitId: body.ownerUnitId,
+        ownerUnitId: context.organizationUnitId,
         createdByAssignmentId: context.primaryAssignmentId,
+        productNumber,
         classification: body.classification,
-        productNumber: body.productNumber,
         title: body.title,
         periodStart: body.periodStart ? new Date(body.periodStart) : null,
         periodEnd: body.periodEnd ? new Date(body.periodEnd) : null,
@@ -1200,16 +1624,20 @@ export class IntelligenceProductsService {
             createdByAssignmentId: context.primaryAssignmentId,
             sourceVerifications: body.version.sourceVerificationIds?.length
               ? {
-                  create: body.version.sourceVerificationIds.map((verificationId) => ({
-                    verificationId,
-                  })),
+                  create: body.version.sourceVerificationIds.map(
+                    (verificationId) => ({
+                      verificationId,
+                    }),
+                  ),
                 }
               : undefined,
             sourceAnalyses: body.version.sourceAnalysisVersionIds?.length
               ? {
-                  create: body.version.sourceAnalysisVersionIds.map((analysisVersionId) => ({
-                    analysisVersionId,
-                  })),
+                  create: body.version.sourceAnalysisVersionIds.map(
+                    (analysisVersionId) => ({
+                      analysisVersionId,
+                    }),
+                  ),
                 }
               : undefined,
             attachments: body.version.attachmentFileIds?.length
@@ -1225,11 +1653,21 @@ export class IntelligenceProductsService {
       },
     });
 
-    await this.audit(context, 'PRODUCT.CREATE', 'IntelligenceProduct', product.id);
+    await this.audit(
+      context,
+      'PRODUCT.CREATE',
+      'IntelligenceProduct',
+      product.id,
+    );
     return this.productDetail(product.id);
   }
 
-  async getProduct(productId: string, include?: string) {
+  async getProduct(
+    productId: string,
+    include: string | undefined,
+    context: AuthorizationContext,
+  ) {
+    await this.scope.assertProduct(context, productId);
     const product = await this.productDetail(productId);
     if (!include) {
       return {
@@ -1240,7 +1678,74 @@ export class IntelligenceProductsService {
     return product;
   }
 
-  async productVersions(productId: string, query: ProductVersionListQuery) {
+  async updateProduct(
+    productId: string,
+    body: UpdateProductDto,
+    context: AuthorizationContext,
+  ) {
+    await this.scope.assertProduct(context, productId);
+    const product = await this.prisma.intelligenceProduct.findUniqueOrThrow({
+      where: { id: productId },
+    });
+    if (!EDITABLE_PRODUCT_STATUSES.includes(product.status)) {
+      throw new ApiException(
+        'PRODUCT_NOT_EDITABLE',
+        'Metadata produk terkunci setelah diajukan.',
+        409,
+      );
+    }
+    if (body.classification)
+      this.assertProductClassification(body.classification);
+    if (
+      body.productNumber &&
+      body.productNumber !== product.productNumber &&
+      !body.changeReason?.trim()
+    ) {
+      throw new ApiException(
+        'PRODUCT_NUMBER_CHANGE_REASON_REQUIRED',
+        'Alasan koreksi nomor produk wajib diisi.',
+        422,
+      );
+    }
+    this.ensureDateOrder(
+      body.periodStart,
+      body.periodEnd,
+      'PRODUCT_PERIOD_INVALID',
+    );
+    const updated = await this.prisma.intelligenceProduct.update({
+      where: { id: productId },
+      data: {
+        title: body.title,
+        classification: body.classification,
+        productNumber: body.productNumber,
+        ...(body.periodStart !== undefined
+          ? { periodStart: new Date(body.periodStart) }
+          : {}),
+        ...(body.periodEnd !== undefined
+          ? { periodEnd: new Date(body.periodEnd) }
+          : {}),
+      },
+    });
+    await this.audit(
+      context,
+      'PRODUCT.METADATA.UPDATE',
+      'IntelligenceProduct',
+      productId,
+      {
+        changeReason: body.changeReason ?? null,
+        previousProductNumber: product.productNumber,
+        productNumber: updated.productNumber,
+      },
+    );
+    return this.productDetail(productId);
+  }
+
+  async productVersions(
+    productId: string,
+    query: ProductVersionListQuery,
+    context: AuthorizationContext,
+  ) {
+    await this.scope.assertProduct(context, productId);
     const where = { productId };
     const [items, total] = await Promise.all([
       this.prisma.productVersion.findMany({
@@ -1267,6 +1772,7 @@ export class IntelligenceProductsService {
     body: CreateProductRevisionDto,
     context: AuthorizationContext,
   ) {
+    await this.scope.assertProduct(context, productId);
     const product = await this.prisma.intelligenceProduct.findUniqueOrThrow({
       where: { id: productId },
     });
@@ -1278,8 +1784,19 @@ export class IntelligenceProductsService {
       );
     }
 
-    await this.validateVerificationSources(body.patch.sourceVerificationIds ?? []);
-    await this.validateAnalysisSources(body.patch.sourceAnalysisVersionIds ?? []);
+    await this.validateVerificationSources(
+      body.patch.sourceVerificationIds ?? [],
+      context,
+    );
+    await this.validateAnalysisSources(
+      body.patch.sourceAnalysisVersionIds ?? [],
+      context,
+    );
+    await this.validateClassificationFloor(
+      product.classification,
+      body.patch.sourceVerificationIds ?? [],
+      body.patch.sourceAnalysisVersionIds ?? [],
+    );
     await this.validateAttachmentFiles(body.patch.attachmentFileIds ?? []);
     const templateValidation = await this.validateTemplateContentInternal(
       body.patch.templateId,
@@ -1309,16 +1826,20 @@ export class IntelligenceProductsService {
         createdByAssignmentId: context.primaryAssignmentId,
         sourceVerifications: body.patch.sourceVerificationIds?.length
           ? {
-              create: body.patch.sourceVerificationIds.map((verificationId) => ({
-                verificationId,
-              })),
+              create: body.patch.sourceVerificationIds.map(
+                (verificationId) => ({
+                  verificationId,
+                }),
+              ),
             }
           : undefined,
         sourceAnalyses: body.patch.sourceAnalysisVersionIds?.length
           ? {
-              create: body.patch.sourceAnalysisVersionIds.map((analysisVersionId) => ({
-                analysisVersionId,
-              })),
+              create: body.patch.sourceAnalysisVersionIds.map(
+                (analysisVersionId) => ({
+                  analysisVersionId,
+                }),
+              ),
             }
           : undefined,
         attachments: body.patch.attachmentFileIds?.length
@@ -1338,14 +1859,21 @@ export class IntelligenceProductsService {
         status: ProductStatus.DRAFT,
       },
     });
-    await this.audit(context, 'PRODUCT.VERSION.CREATE', 'ProductVersion', version.id, {
-      productId,
-      basedOnVersionId: body.basedOnVersionId,
-    });
+    await this.audit(
+      context,
+      'PRODUCT.VERSION.CREATE',
+      'ProductVersion',
+      version.id,
+      {
+        productId,
+        basedOnVersionId: body.basedOnVersionId,
+      },
+    );
     return this.productVersionDetail(version.id);
   }
 
-  async getProductVersion(versionId: string) {
+  async getProductVersion(versionId: string, context: AuthorizationContext) {
+    await this.assertProductVersionScope(versionId, context);
     return this.productVersionDetail(versionId);
   }
 
@@ -1354,7 +1882,7 @@ export class IntelligenceProductsService {
     body: UpdateProductVersionDto,
     context: AuthorizationContext,
   ) {
-    const version = await this.getEditableProductVersion(versionId);
+    const version = await this.getEditableProductVersion(versionId, context);
     const nextContent =
       body.content ?? (version.content as Record<string, unknown>);
     const validation = await this.validateTemplateContentInternal(
@@ -1376,10 +1904,17 @@ export class IntelligenceProductsService {
         routingFrom: body.routingFrom,
         routingCc: body.routingCc,
         subject: body.subject,
-        ...(body.content ? { content: body.content as Prisma.InputJsonValue } : {}),
+        ...(body.content
+          ? { content: body.content as Prisma.InputJsonValue }
+          : {}),
       },
     });
-    await this.audit(context, 'PRODUCT.VERSION.UPDATE', 'ProductVersion', versionId);
+    await this.audit(
+      context,
+      'PRODUCT.VERSION.UPDATE',
+      'ProductVersion',
+      versionId,
+    );
     return this.productVersionDetail(versionId);
   }
 
@@ -1388,8 +1923,8 @@ export class IntelligenceProductsService {
     body: ReplaceSourceVerificationsDto,
     context: AuthorizationContext,
   ) {
-    await this.getEditableProductVersion(versionId);
-    await this.validateVerificationSources(body.verificationIds);
+    await this.getEditableProductVersion(versionId, context);
+    await this.validateVerificationSources(body.verificationIds, context);
     await this.prisma.$transaction(async (tx) => {
       await tx.productSourceVerification.deleteMany({
         where: { productVersionId: versionId },
@@ -1401,7 +1936,12 @@ export class IntelligenceProductsService {
         })),
       });
     });
-    await this.audit(context, 'PRODUCT.VERSION.SOURCES.REPLACE', 'ProductVersion', versionId);
+    await this.audit(
+      context,
+      'PRODUCT.VERSION.SOURCES.REPLACE',
+      'ProductVersion',
+      versionId,
+    );
     return (await this.productVersionDetail(versionId)).sourceVerifications;
   }
 
@@ -1410,8 +1950,8 @@ export class IntelligenceProductsService {
     body: ReplaceSourceAnalysesDto,
     context: AuthorizationContext,
   ) {
-    await this.getEditableProductVersion(versionId);
-    await this.validateAnalysisSources(body.analysisVersionIds);
+    await this.getEditableProductVersion(versionId, context);
+    await this.validateAnalysisSources(body.analysisVersionIds, context);
     await this.prisma.$transaction(async (tx) => {
       await tx.productSourceAnalysis.deleteMany({
         where: { productVersionId: versionId },
@@ -1423,7 +1963,12 @@ export class IntelligenceProductsService {
         })),
       });
     });
-    await this.audit(context, 'PRODUCT.VERSION.ANALYSES.REPLACE', 'ProductVersion', versionId);
+    await this.audit(
+      context,
+      'PRODUCT.VERSION.ANALYSES.REPLACE',
+      'ProductVersion',
+      versionId,
+    );
     return (await this.productVersionDetail(versionId)).sourceAnalyses;
   }
 
@@ -1432,7 +1977,7 @@ export class IntelligenceProductsService {
     body: ReplaceProductAttachmentsDto,
     context: AuthorizationContext,
   ) {
-    await this.getEditableProductVersion(versionId);
+    await this.getEditableProductVersion(versionId, context);
     await this.validateAttachmentFiles(body.attachments);
     await this.prisma.$transaction(async (tx) => {
       await tx.productAttachment.deleteMany({
@@ -1448,11 +1993,20 @@ export class IntelligenceProductsService {
         });
       }
     });
-    await this.audit(context, 'PRODUCT.VERSION.ATTACHMENTS.REPLACE', 'ProductVersion', versionId);
+    await this.audit(
+      context,
+      'PRODUCT.VERSION.ATTACHMENTS.REPLACE',
+      'ProductVersion',
+      versionId,
+    );
     return (await this.productVersionDetail(versionId)).attachments;
   }
 
-  async validateProductVersion(versionId: string) {
+  async validateProductVersion(
+    versionId: string,
+    context: AuthorizationContext,
+  ) {
+    await this.assertProductVersionScope(versionId, context);
     return this.buildProductValidation(versionId);
   }
 
@@ -1461,6 +2015,7 @@ export class IntelligenceProductsService {
     body: SubmitProductDto,
     context: AuthorizationContext,
   ) {
+    await this.scope.assertProduct(context, productId);
     if (body.confirmation !== 'SUBMIT') {
       throw new ApiException(
         'PRODUCT_SUBMIT_CONFIRMATION_REQUIRED',
@@ -1500,7 +2055,9 @@ export class IntelligenceProductsService {
       );
     }
 
-    const derivedTargets = await this.buildWorkflowTargets(product.createdByAssignmentId);
+    const derivedTargets = await this.buildWorkflowTargets(
+      product.createdByAssignmentId,
+    );
     const workflowId = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.productApprovalWorkflow.findUnique({
         where: { productVersionId: body.versionId },
@@ -1511,9 +2068,8 @@ export class IntelligenceProductsService {
       const createdWorkflowId = await this.createWorkflowTx(
         tx,
         body.versionId,
-        (context.commandRouteType ?? 'DIRECTORATE') as 'DIRECTORATE' | 'BINDA',
+        context.commandRouteType ?? 'DIRECTORATE',
         derivedTargets.regionalTargetPositionId,
-        derivedTargets.executiveTargetPositionId,
         context.primaryAssignmentId,
       );
       await tx.intelligenceProduct.update({
@@ -1530,14 +2086,21 @@ export class IntelligenceProductsService {
       `Produk ${product.title} menunggu approval regional.`,
       `/products/${productId}`,
     );
-    await this.audit(context, 'PRODUCT.SUBMIT', 'IntelligenceProduct', productId, {
-      versionId: body.versionId,
-      workflowId,
-    });
+    await this.audit(
+      context,
+      'PRODUCT.SUBMIT',
+      'IntelligenceProduct',
+      productId,
+      {
+        versionId: body.versionId,
+        workflowId,
+      },
+    );
     return this.approvalWorkflowDetail(workflowId);
   }
 
-  async productTraceability(productId: string) {
+  async productTraceability(productId: string, context: AuthorizationContext) {
+    await this.scope.assertProduct(context, productId);
     const detail = await this.productDetail(productId);
     return {
       productId,
@@ -1549,11 +2112,14 @@ export class IntelligenceProductsService {
       approval: detail.versions
         .map((version) => version.approvalWorkflow)
         .filter(Boolean),
-      distributions: detail.versions.flatMap((version) => version.distributions),
+      distributions: detail.versions.flatMap(
+        (version) => version.distributions,
+      ),
     };
   }
 
-  async productTimeline(productId: string) {
+  async productTimeline(productId: string, context: AuthorizationContext) {
+    await this.scope.assertProduct(context, productId);
     const detail = await this.productDetail(productId);
     const versionIds = detail.versions.map((version) => version.id);
     const workflowIds = detail.versions
@@ -1564,8 +2130,18 @@ export class IntelligenceProductsService {
         OR: [
           { entityType: 'IntelligenceProduct', entityId: productId },
           { entityType: 'ProductVersion', entityId: { in: versionIds } },
-          { entityType: 'ProductApprovalWorkflow', entityId: { in: workflowIds } },
-          { entityType: 'ProductDistribution', entityId: { in: detail.versions.flatMap((version) => version.distributions.map((distribution) => distribution.id)) } },
+          {
+            entityType: 'ProductApprovalWorkflow',
+            entityId: { in: workflowIds },
+          },
+          {
+            entityType: 'ProductDistribution',
+            entityId: {
+              in: detail.versions.flatMap((version) =>
+                version.distributions.map((distribution) => distribution.id),
+              ),
+            },
+          },
         ],
       },
       orderBy: { createdAt: 'asc' },
@@ -1588,7 +2164,11 @@ export class IntelligenceProductsService {
       ...detail.versions.flatMap((version) =>
         version.distributions.map((distribution) => ({
           type: 'DISTRIBUTION',
-          at: distribution.sentAt ?? distribution.deliveredAt ?? distribution.readAt ?? version.createdAt,
+          at:
+            distribution.sentAt ??
+            distribution.deliveredAt ??
+            distribution.readAt ??
+            version.createdAt,
           payload: distribution,
         })),
       ),
@@ -1606,17 +2186,27 @@ export class IntelligenceProductsService {
     body: ArchiveProductDto,
     context: AuthorizationContext,
   ) {
+    await this.scope.assertProduct(context, productId);
     await this.prisma.intelligenceProduct.update({
       where: { id: productId },
       data: { status: ProductStatus.ARCHIVED },
     });
-    await this.audit(context, 'PRODUCT.ARCHIVE', 'IntelligenceProduct', productId, {
-      reason: body.reason,
-    });
+    await this.audit(
+      context,
+      'PRODUCT.ARCHIVE',
+      'IntelligenceProduct',
+      productId,
+      {
+        reason: body.reason,
+      },
+    );
     return this.productDetail(productId);
   }
 
-  async approvalInbox(query: ApprovalInboxQuery, context: AuthorizationContext) {
+  async approvalInbox(
+    query: ApprovalInboxQuery,
+    context: AuthorizationContext,
+  ) {
     const where: Prisma.ProductApprovalStepWhereInput = {
       targetPositionId: context.positionId,
       status: query.status
@@ -1634,22 +2224,17 @@ export class IntelligenceProductsService {
           }
         : {}),
       ...(query.routeType ? { workflow: { routeType: query.routeType } } : {}),
-      ...(query.classification
-        ? {
-            workflow: {
-              productVersion: {
-                product: { classification: query.classification },
-              },
-            },
-          }
-        : {}),
     };
     const [items, total] = await Promise.all([
       this.prisma.productApprovalStep.findMany({
         where,
         skip: (query.page - 1) * query.limit,
         take: query.limit,
-        orderBy: [{ status: 'asc' }, { activatedAt: 'asc' }, { stepNumber: 'asc' }],
+        orderBy: [
+          { status: 'asc' },
+          { activatedAt: 'asc' },
+          { stepNumber: 'asc' },
+        ],
         include: {
           workflow: {
             include: {
@@ -1702,11 +2287,15 @@ export class IntelligenceProductsService {
         versionId,
         body.routeType,
         body.regionalTargetPositionId,
-        body.executiveTargetPositionId,
         context.primaryAssignmentId,
       );
     });
-    await this.audit(context, 'APPROVAL_WORKFLOW.CREATE', 'ProductApprovalWorkflow', workflowId);
+    await this.audit(
+      context,
+      'APPROVAL_WORKFLOW.CREATE',
+      'ProductApprovalWorkflow',
+      workflowId,
+    );
     return this.approvalWorkflowDetail(workflowId);
   }
 
@@ -1754,10 +2343,18 @@ export class IntelligenceProductsService {
       },
     });
     if (step.targetPositionId !== context.positionId) {
-      throw new ApiException('APPROVAL_FORBIDDEN', 'Caller is not the target approver.', 403);
+      throw new ApiException(
+        'APPROVAL_FORBIDDEN',
+        'Caller is not the target approver.',
+        403,
+      );
     }
     if (step.status !== ApprovalStepStatus.ACTIVE) {
-      throw new ApiException('APPROVAL_STEP_NOT_ACTIVE', 'Approval step is not active.', 409);
+      throw new ApiException(
+        'APPROVAL_STEP_NOT_ACTIVE',
+        'Approval step is not active.',
+        409,
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -1781,71 +2378,43 @@ export class IntelligenceProductsService {
         },
       });
 
-      const nextStep = await tx.productApprovalStep.findFirst({
+      await tx.productApprovalStep.updateMany({
         where: {
           workflowId: step.workflowId,
-          stepNumber: step.stepNumber + 1,
+          id: { not: stepId },
+          status: {
+            in: [ApprovalStepStatus.WAITING, ApprovalStepStatus.ACTIVE],
+          },
+        },
+        data: { status: ApprovalStepStatus.SKIPPED },
+      });
+      await tx.productApprovalWorkflow.update({
+        where: { id: step.workflowId },
+        data: {
+          status: ApprovalWorkflowStatus.APPROVED,
+          completedAt: new Date(),
         },
       });
-
-      if (nextStep) {
-        await tx.productApprovalStep.update({
-          where: { id: nextStep.id },
-          data: {
-            status: ApprovalStepStatus.ACTIVE,
-            activatedAt: new Date(),
-          },
-        });
-        await tx.productApprovalWorkflow.update({
-          where: { id: step.workflowId },
-          data: {
-            status: ApprovalWorkflowStatus.IN_PROGRESS,
-            currentStepNumber: nextStep.stepNumber,
-          },
-        });
-        await tx.intelligenceProduct.update({
-          where: { id: step.workflow.productVersion.productId },
-          data: {
-            status: ProductStatus.UNDER_EXECUTIVE_REVIEW,
-          },
-        });
-      } else {
-        await tx.productApprovalWorkflow.update({
-          where: { id: step.workflowId },
-          data: {
-            status: ApprovalWorkflowStatus.APPROVED,
-            completedAt: new Date(),
-          },
-        });
-        await tx.intelligenceProduct.update({
-          where: { id: step.workflow.productVersion.productId },
-          data: {
-            status: ProductStatus.APPROVED_EXECUTIVE,
-          },
-        });
-      }
+      await tx.intelligenceProduct.update({
+        where: { id: step.workflow.productVersion.productId },
+        data: { status: ProductStatus.APPROVED_REGIONAL },
+      });
     });
 
     const workflow = await this.approvalWorkflowDetail(step.workflowId);
-    const nextStep = workflow.steps.find((item) => item.status === ApprovalStepStatus.ACTIVE);
-    if (nextStep) {
-      await this.notifyPosition(
-        nextStep.targetPositionId,
-        NotificationType.APPROVAL,
-        'Approval produk menunggu keputusan',
-        `Produk ${workflow.productVersion.product.title} menunggu approval tahap berikutnya.`,
-        `/approval-workflows/${step.workflowId}`,
-      );
-    } else {
-      await this.notifyAssignment(
-        workflow.productVersion.createdByAssignmentId,
-        NotificationType.PRODUCT,
-        'Produk disetujui',
-        `Produk ${workflow.productVersion.product.title} telah disetujui eksekutif.`,
-        `/products/${workflow.productVersion.productId}`,
-      );
-    }
-    await this.audit(context, 'APPROVAL_STEP.APPROVE', 'ProductApprovalStep', stepId);
+    await this.notifyAssignment(
+      workflow.productVersion.createdByAssignmentId,
+      NotificationType.PRODUCT,
+      'Produk disetujui',
+      `Produk ${workflow.productVersion.product.title} telah disetujui Regional Commander dan tersedia untuk Executive.`,
+      `/products/${workflow.productVersion.productId}`,
+    );
+    await this.audit(
+      context,
+      'APPROVAL_STEP.APPROVE',
+      'ProductApprovalStep',
+      stepId,
+    );
     return workflow;
   }
 
@@ -1867,10 +2436,18 @@ export class IntelligenceProductsService {
       },
     });
     if (step.targetPositionId !== context.positionId) {
-      throw new ApiException('APPROVAL_FORBIDDEN', 'Caller is not the target approver.', 403);
+      throw new ApiException(
+        'APPROVAL_FORBIDDEN',
+        'Caller is not the target approver.',
+        403,
+      );
     }
     if (step.status !== ApprovalStepStatus.ACTIVE) {
-      throw new ApiException('APPROVAL_STEP_NOT_ACTIVE', 'Approval step is not active.', 409);
+      throw new ApiException(
+        'APPROVAL_STEP_NOT_ACTIVE',
+        'Approval step is not active.',
+        409,
+      );
     }
     await this.prisma.$transaction(async (tx) => {
       await tx.productApprovalStep.update({
@@ -1911,9 +2488,15 @@ export class IntelligenceProductsService {
       `Produk ${step.workflow.productVersion.product.title} perlu direvisi.`,
       `/products/${step.workflow.productVersion.productId}`,
     );
-    await this.audit(context, 'APPROVAL_STEP.REQUEST_REVISION', 'ProductApprovalStep', stepId, {
-      requiredChanges: body.requiredChanges,
-    });
+    await this.audit(
+      context,
+      'APPROVAL_STEP.REQUEST_REVISION',
+      'ProductApprovalStep',
+      stepId,
+      {
+        requiredChanges: body.requiredChanges,
+      },
+    );
     return this.approvalWorkflowDetail(step.workflowId);
   }
 
@@ -1942,10 +2525,18 @@ export class IntelligenceProductsService {
       },
     });
     if (step.targetPositionId !== context.positionId) {
-      throw new ApiException('APPROVAL_FORBIDDEN', 'Caller is not the target approver.', 403);
+      throw new ApiException(
+        'APPROVAL_FORBIDDEN',
+        'Caller is not the target approver.',
+        403,
+      );
     }
     if (step.status !== ApprovalStepStatus.ACTIVE) {
-      throw new ApiException('APPROVAL_STEP_NOT_ACTIVE', 'Approval step is not active.', 409);
+      throw new ApiException(
+        'APPROVAL_STEP_NOT_ACTIVE',
+        'Approval step is not active.',
+        409,
+      );
     }
     await this.prisma.$transaction(async (tx) => {
       await tx.productApprovalStep.update({
@@ -1962,7 +2553,9 @@ export class IntelligenceProductsService {
         where: {
           workflowId: step.workflowId,
           id: { not: stepId },
-          status: { in: [ApprovalStepStatus.WAITING, ApprovalStepStatus.ACTIVE] },
+          status: {
+            in: [ApprovalStepStatus.WAITING, ApprovalStepStatus.ACTIVE],
+          },
         },
         data: { status: ApprovalStepStatus.SKIPPED },
       });
@@ -1987,7 +2580,12 @@ export class IntelligenceProductsService {
         },
       });
     });
-    await this.audit(context, 'APPROVAL_STEP.REJECT', 'ProductApprovalStep', stepId);
+    await this.audit(
+      context,
+      'APPROVAL_STEP.REJECT',
+      'ProductApprovalStep',
+      stepId,
+    );
     return this.approvalWorkflowDetail(step.workflowId);
   }
 
@@ -2009,7 +2607,11 @@ export class IntelligenceProductsService {
       },
     });
     if (step.targetPositionId !== context.positionId) {
-      throw new ApiException('APPROVAL_FORBIDDEN', 'Caller is not the target approver.', 403);
+      throw new ApiException(
+        'APPROVAL_FORBIDDEN',
+        'Caller is not the target approver.',
+        403,
+      );
     }
     await this.prisma.productApprovalEvent.create({
       data: {
@@ -2028,7 +2630,12 @@ export class IntelligenceProductsService {
       `Klarifikasi diminta untuk produk ${step.workflow.productVersion.product.title}.`,
       `/approval-steps/${stepId}`,
     );
-    await this.audit(context, 'APPROVAL_STEP.REQUEST_CLARIFICATION', 'ProductApprovalStep', stepId);
+    await this.audit(
+      context,
+      'APPROVAL_STEP.REQUEST_CLARIFICATION',
+      'ProductApprovalStep',
+      stepId,
+    );
     return this.approvalWorkflowDetail(step.workflowId);
   }
 
@@ -2037,14 +2644,15 @@ export class IntelligenceProductsService {
     body: CancelWorkflowDto,
     context: AuthorizationContext,
   ) {
-    const workflow = await this.prisma.productApprovalWorkflow.findUniqueOrThrow({
-      where: { id: workflowId },
-      include: {
-        productVersion: {
-          include: { product: true },
+    const workflow =
+      await this.prisma.productApprovalWorkflow.findUniqueOrThrow({
+        where: { id: workflowId },
+        include: {
+          productVersion: {
+            include: { product: true },
+          },
         },
-      },
-    });
+      });
     if (workflow.status === ApprovalWorkflowStatus.APPROVED) {
       throw new ApiException(
         'APPROVAL_WORKFLOW_FINAL',
@@ -2063,7 +2671,9 @@ export class IntelligenceProductsService {
       await tx.productApprovalStep.updateMany({
         where: {
           workflowId,
-          status: { in: [ApprovalStepStatus.WAITING, ApprovalStepStatus.ACTIVE] },
+          status: {
+            in: [ApprovalStepStatus.WAITING, ApprovalStepStatus.ACTIVE],
+          },
         },
         data: { status: ApprovalStepStatus.SKIPPED },
       });
@@ -2080,9 +2690,15 @@ export class IntelligenceProductsService {
         },
       });
     });
-    await this.audit(context, 'APPROVAL_WORKFLOW.CANCEL', 'ProductApprovalWorkflow', workflowId, {
-      reason: body.reason,
-    });
+    await this.audit(
+      context,
+      'APPROVAL_WORKFLOW.CANCEL',
+      'ProductApprovalWorkflow',
+      workflowId,
+      {
+        reason: body.reason,
+      },
+    );
     return this.approvalWorkflowDetail(workflowId);
   }
 
@@ -2122,7 +2738,9 @@ export class IntelligenceProductsService {
     const where: Prisma.ProductDistributionWhereInput = {
       ...(query.status ? { status: query.status } : {}),
       ...(query.targetUnitId ? { targetUnitId: query.targetUnitId } : {}),
-      ...(query.targetPositionId ? { targetPositionId: query.targetPositionId } : {}),
+      ...(query.targetPositionId
+        ? { targetPositionId: query.targetPositionId }
+        : {}),
       ...(query.targetUserProfileId
         ? { targetUserProfileId: query.targetUserProfileId }
         : {}),
@@ -2175,12 +2793,13 @@ export class IntelligenceProductsService {
       include: { product: true },
     });
     if (
+      version.product.status !== ProductStatus.APPROVED_REGIONAL &&
       version.product.status !== ProductStatus.APPROVED_EXECUTIVE &&
       version.product.status !== ProductStatus.DISTRIBUTED
     ) {
       throw new ApiException(
         'PRODUCT_NOT_DISTRIBUTABLE',
-        'Only executive-approved products can be distributed.',
+        'Only regionally approved products can be distributed.',
         409,
       );
     }
@@ -2206,7 +2825,6 @@ export class IntelligenceProductsService {
             targetUnitId: target.targetUnitId,
             targetPositionId: target.targetPositionId,
             targetUserProfileId: target.targetUserProfileId,
-            classification: body.classification,
             status: DistributionStatus.SENT,
             sentAt: new Date(),
           },
@@ -2246,10 +2864,16 @@ export class IntelligenceProductsService {
       'ProductVersion',
       versionId,
       {
-        targets: JSON.parse(JSON.stringify(body.targets)) as Prisma.InputJsonValue,
+        targets: JSON.parse(
+          JSON.stringify(body.targets),
+        ) as Prisma.InputJsonValue,
       },
     );
-    return Promise.all(distributions.map((distribution) => this.distributionDetail(distribution.id)));
+    return Promise.all(
+      distributions.map((distribution) =>
+        this.distributionDetail(distribution.id),
+      ),
+    );
   }
 
   async getDistribution(distributionId: string) {
@@ -2261,9 +2885,10 @@ export class IntelligenceProductsService {
     body: MarkDeliveredDto,
     context: AuthorizationContext,
   ) {
-    const distribution = await this.prisma.productDistribution.findUniqueOrThrow({
-      where: { id: distributionId },
-    });
+    const distribution =
+      await this.prisma.productDistribution.findUniqueOrThrow({
+        where: { id: distributionId },
+      });
     if (
       distribution.status === DistributionStatus.DELIVERED ||
       distribution.status === DistributionStatus.READ
@@ -2287,16 +2912,26 @@ export class IntelligenceProductsService {
         deliveredAt: new Date(body.deliveredAt),
       },
     });
-    await this.audit(context, 'PRODUCT_DISTRIBUTION.DELIVERED', 'ProductDistribution', distributionId, {
-      providerReceipt: body.providerReceipt ?? null,
-    });
+    await this.audit(
+      context,
+      'PRODUCT_DISTRIBUTION.DELIVERED',
+      'ProductDistribution',
+      distributionId,
+      {
+        providerReceipt: body.providerReceipt ?? null,
+      },
+    );
     return this.distributionDetail(distributionId);
   }
 
-  async markDistributionRead(distributionId: string, context: AuthorizationContext) {
-    const distribution = await this.prisma.productDistribution.findUniqueOrThrow({
-      where: { id: distributionId },
-    });
+  async markDistributionRead(
+    distributionId: string,
+    context: AuthorizationContext,
+  ) {
+    const distribution =
+      await this.prisma.productDistribution.findUniqueOrThrow({
+        where: { id: distributionId },
+      });
     const allowed =
       distribution.targetUserProfileId === context.userProfileId ||
       distribution.targetPositionId === context.positionId ||
@@ -2318,7 +2953,12 @@ export class IntelligenceProductsService {
         readAt: distribution.readAt ?? new Date(),
       },
     });
-    await this.audit(context, 'PRODUCT_DISTRIBUTION.READ', 'ProductDistribution', distributionId);
+    await this.audit(
+      context,
+      'PRODUCT_DISTRIBUTION.READ',
+      'ProductDistribution',
+      distributionId,
+    );
     return this.distributionDetail(distributionId);
   }
 
@@ -2327,9 +2967,10 @@ export class IntelligenceProductsService {
     body: RetryDistributionDto,
     context: AuthorizationContext,
   ) {
-    const distribution = await this.prisma.productDistribution.findUniqueOrThrow({
-      where: { id: distributionId },
-    });
+    const distribution =
+      await this.prisma.productDistribution.findUniqueOrThrow({
+        where: { id: distributionId },
+      });
     if (distribution.status !== DistributionStatus.FAILED) {
       throw new ApiException(
         'DISTRIBUTION_RETRY_INVALID',
@@ -2344,9 +2985,15 @@ export class IntelligenceProductsService {
         failureReason: null,
       },
     });
-    await this.audit(context, 'PRODUCT_DISTRIBUTION.RETRY', 'ProductDistribution', distributionId, {
-      reason: body.reason,
-    });
+    await this.audit(
+      context,
+      'PRODUCT_DISTRIBUTION.RETRY',
+      'ProductDistribution',
+      distributionId,
+      {
+        reason: body.reason,
+      },
+    );
     return this.distributionDetail(distributionId);
   }
 
@@ -2362,9 +3009,15 @@ export class IntelligenceProductsService {
         revokedAt: new Date(),
       },
     });
-    await this.audit(context, 'PRODUCT_DISTRIBUTION.REVOKE', 'ProductDistribution', distributionId, {
-      reason: body.reason,
-    });
+    await this.audit(
+      context,
+      'PRODUCT_DISTRIBUTION.REVOKE',
+      'ProductDistribution',
+      distributionId,
+      {
+        reason: body.reason,
+      },
+    );
     return this.distributionDetail(distributionId);
   }
 
@@ -2385,7 +3038,11 @@ export class IntelligenceProductsService {
     };
   }
 
-  private buildCommonDateWhere<T extends string>(field: T, from?: string, to?: string) {
+  private buildCommonDateWhere<T extends string>(
+    field: T,
+    from?: string,
+    to?: string,
+  ) {
     if (!from && !to) {
       return {};
     }
@@ -2397,68 +3054,126 @@ export class IntelligenceProductsService {
     };
   }
 
-  async dashboardOverview(query: DashboardQuery, _context: AuthorizationContext) {
+  async dashboardOverview(
+    query: DashboardQuery,
+    context: AuthorizationContext,
+  ) {
     this.ensureDateOrder(query.from, query.to);
-    const [bakets, tasks, directives, products, alerts, emergencies] = await Promise.all([
-      this.prisma.baket.count({
-        where: {
-          deletedAt: null,
-          ...this.buildCommonDateWhere('createdAt', query.from, query.to),
-        },
-      }),
-      this.prisma.task.count({
-        where: {
-          deletedAt: null,
-          ...this.buildCommonDateWhere('createdAt', query.from, query.to),
-        },
-      }),
-      this.prisma.directive.count({
-        where: this.buildCommonDateWhere('createdAt', query.from, query.to),
-      }),
-      this.prisma.intelligenceProduct.count({
-        where: {
-          deletedAt: null,
-          ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
-          ...this.buildCommonDateWhere('createdAt', query.from, query.to),
-        },
-      }),
-      this.prisma.alert.count({
-        where: this.buildCommonDateWhere('createdAt', query.from, query.to),
-      }),
-      this.prisma.emergencyIncident.count({
-        where: this.buildCommonDateWhere('createdAt', query.from, query.to),
-      }),
+    const [baketScope, resolvedScope] = await Promise.all([
+      this.scope.baketWhere(context),
+      this.scope.resolve(context),
     ]);
+    const areaWhere = resolvedScope.areaRootIds.length
+      ? {
+          OR: [
+            { areaId: { in: resolvedScope.areaRootIds } },
+            {
+              area: {
+                ancestorLinks: {
+                  some: { ancestorId: { in: resolvedScope.areaRootIds } },
+                },
+              },
+            },
+          ],
+        }
+      : {};
+    const [bakets, tasks, directives, products, alerts, emergencies] =
+      await Promise.all([
+        this.prisma.baket.count({
+          where: {
+            ...baketScope,
+            deletedAt: null,
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+        this.prisma.task.count({
+          where: {
+            ownerUnit: {
+              ancestorLinks: {
+                some: { ancestorId: context.organizationUnitId },
+              },
+            },
+            deletedAt: null,
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+        this.prisma.directive.count({
+          where: {
+            ownerUnitId: context.organizationUnitId,
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+        this.prisma.intelligenceProduct.count({
+          where: {
+            deletedAt: null,
+            ownerUnitId: context.organizationUnitId,
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+        this.prisma.alert.count({
+          where: {
+            ...areaWhere,
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+        this.prisma.emergencyIncident.count({
+          where: {
+            ...areaWhere,
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+      ]);
     return {
       filters: query,
       cards: { bakets, tasks, directives, products, alerts, emergencies },
     };
   }
 
-  async dashboardKpis(query: DashboardQuery, _context: AuthorizationContext) {
-    const [taskGrouped, verificationGrouped, approvalBacklog] = await Promise.all([
-      this.prisma.task.groupBy({
-        by: ['status'],
-        where: {
-          deletedAt: null,
-          ...this.buildCommonDateWhere('createdAt', query.from, query.to),
-        },
-        _count: { _all: true },
-      }),
-      this.prisma.baketVerification.groupBy({
-        by: ['status'],
-        where: this.buildCommonDateWhere('createdAt', query.from, query.to),
-        _count: { _all: true },
-      }),
-      this.prisma.productApprovalStep.count({
-        where: { status: ApprovalStepStatus.ACTIVE },
-      }),
-    ]);
-    const totalTasks = taskGrouped.reduce((sum, item) => sum + item._count._all, 0);
+  async dashboardKpis(query: DashboardQuery, context: AuthorizationContext) {
+    const baketScope = await this.scope.baketWhere(context);
+    const [taskGrouped, verificationGrouped, approvalBacklog] =
+      await Promise.all([
+        this.prisma.task.groupBy({
+          by: ['status'],
+          where: {
+            ownerUnit: {
+              ancestorLinks: {
+                some: { ancestorId: context.organizationUnitId },
+              },
+            },
+            deletedAt: null,
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+          _count: { _all: true },
+        }),
+        this.prisma.baketVerification.groupBy({
+          by: ['status'],
+          where: {
+            baketVersion: { baket: baketScope },
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+          _count: { _all: true },
+        }),
+        this.prisma.productApprovalStep.count({
+          where: {
+            status: ApprovalStepStatus.ACTIVE,
+            workflow: {
+              productVersion: {
+                product: { ownerUnitId: context.organizationUnitId },
+              },
+            },
+          },
+        }),
+      ]);
+    const totalTasks = taskGrouped.reduce(
+      (sum, item) => sum + item._count._all,
+      0,
+    );
     const completedTasks =
       taskGrouped.find((item) => item.status === 'COMPLETED')?._count._all ?? 0;
     return {
-      completionRate: totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100),
+      completionRate:
+        totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100),
       verificationStatuses: Object.fromEntries(
         verificationGrouped.map((group) => [group.status, group._count._all]),
       ),
@@ -2466,6 +3181,390 @@ export class IntelligenceProductsService {
       taskStatuses: Object.fromEntries(
         taskGrouped.map((group) => [group.status, group._count._all]),
       ),
+    };
+  }
+
+  async dashboardKpiEngine(
+    query: DashboardQuery,
+    context: AuthorizationContext,
+  ) {
+    this.ensureDateOrder(query.from, query.to);
+    const to = query.to ? new Date(query.to) : new Date();
+    const from = query.from
+      ? new Date(query.from)
+      : new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const scope = await this.scope.resolve(context);
+    const dateWhere = { gte: from, lte: to };
+    const [assignments, taskAssignments, bakets] = await Promise.all([
+      this.prisma.userSeatAssignment.findMany({
+        where: { id: { in: scope.assignmentIds }, isActive: true },
+        orderBy: [{ position: { organizationUnit: { name: 'asc' } } }],
+        select: {
+          id: true,
+          userProfile: { select: { id: true, fullName: true, username: true } },
+          position: {
+            select: {
+              id: true,
+              title: true,
+              code: true,
+              organizationUnit: {
+                select: { id: true, code: true, name: true, type: true },
+              },
+            },
+          },
+          areaScopes: {
+            where: { validUntil: null },
+            select: {
+              isPrimary: true,
+              area: {
+                select: { id: true, code: true, name: true, level: true },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.taskAssignment.findMany({
+        where: {
+          assigneeAssignmentId: { in: scope.assignmentIds },
+          assignedAt: dateWhere,
+          task: { deletedAt: null },
+        },
+        select: {
+          id: true,
+          assigneeAssignmentId: true,
+          status: true,
+          assignedAt: true,
+          acknowledgedAt: true,
+          completedAt: true,
+          dueDate: true,
+          task: {
+            select: { id: true, title: true, dueDate: true, priority: true },
+          },
+        },
+      }),
+      this.prisma.baket.findMany({
+        where: {
+          deletedAt: null,
+          createdAt: dateWhere,
+          ...(await this.scope.baketWhere(context)),
+        },
+        select: {
+          id: true,
+          createdByFieldOfficerAssignmentId: true,
+          createdAt: true,
+          taskAssignment: {
+            select: { dueDate: true, task: { select: { dueDate: true } } },
+          },
+          versions: {
+            orderBy: { versionNumber: 'desc' },
+            take: 1,
+            select: {
+              eventArea: { select: { id: true, name: true, level: true } },
+              verification: {
+                select: {
+                  status: true,
+                  sourceReliability: true,
+                  informationCredibility: true,
+                  completedAt: true,
+                  checks: { select: { status: true } },
+                  productSources: {
+                    select: {
+                      productVersion: {
+                        select: { product: { select: { status: true } } },
+                      },
+                    },
+                  },
+                  analysisSources: { select: { analysisCaseId: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const tasksByAssignment = new Map<string, typeof taskAssignments>();
+    for (const task of taskAssignments) {
+      const items = tasksByAssignment.get(task.assigneeAssignmentId) ?? [];
+      items.push(task);
+      tasksByAssignment.set(task.assigneeAssignmentId, items);
+    }
+    const baketsByAssignment = new Map<string, typeof bakets>();
+    for (const baket of bakets) {
+      const items =
+        baketsByAssignment.get(baket.createdByFieldOfficerAssignmentId) ?? [];
+      items.push(baket);
+      baketsByAssignment.set(baket.createdByFieldOfficerAssignmentId, items);
+    }
+
+    const average = (values: number[]) =>
+      values.length
+        ? Math.round(
+            (values.reduce((sum, value) => sum + value, 0) / values.length) *
+              10,
+          ) / 10
+        : null;
+    const scoreFor = (assignmentIds: string[]) => {
+      const tasks = assignmentIds.flatMap(
+        (id) => tasksByAssignment.get(id) ?? [],
+      );
+      const reports = assignmentIds.flatMap(
+        (id) => baketsByAssignment.get(id) ?? [],
+      );
+      const taskTimeliness = tasks
+        .filter(
+          (task) => task.completedAt && (task.dueDate ?? task.task.dueDate),
+        )
+        .map((task) =>
+          task.completedAt! <= (task.dueDate ?? task.task.dueDate)! ? 100 : 40,
+        );
+      const reportTimeliness = reports
+        .filter(
+          (baket) =>
+            baket.taskAssignment?.dueDate ?? baket.taskAssignment?.task.dueDate,
+        )
+        .map((baket) =>
+          baket.createdAt <=
+          (baket.taskAssignment?.dueDate ?? baket.taskAssignment?.task.dueDate)!
+            ? 100
+            : 40,
+        );
+      const verifications = reports
+        .map((baket) => baket.versions[0]?.verification)
+        .filter(
+          (verification): verification is NonNullable<typeof verification> =>
+            Boolean(verification),
+        );
+      const qualityScores = verifications.map((verification) => {
+        const statusScore =
+          verification.status === 'VERIFIED'
+            ? 100
+            : verification.status === 'NEEDS_DEVELOPMENT'
+              ? 55
+              : verification.status === 'REJECTED'
+                ? 20
+                : 45;
+        const applicableChecks = verification.checks.filter(
+          (check) => check.status !== 'NOT_APPLICABLE',
+        );
+        const checkScore = applicableChecks.length
+          ? (applicableChecks.filter((check) => check.status === 'PASS')
+              .length /
+              applicableChecks.length) *
+            100
+          : statusScore;
+        return statusScore * 0.65 + checkScore * 0.35;
+      });
+      const reliabilityScore: Record<string, number> = {
+        A: 100,
+        B: 90,
+        C: 75,
+        D: 55,
+        E: 35,
+        F: 15,
+      };
+      const credibilityScore: Record<string, number> = {
+        ONE: 100,
+        TWO: 90,
+        THREE: 75,
+        FOUR: 55,
+        FIVE: 35,
+        SIX: 15,
+      };
+      const validityScores = verifications
+        .filter(
+          (verification) =>
+            verification.sourceReliability &&
+            verification.informationCredibility,
+        )
+        .map(
+          (verification) =>
+            ((reliabilityScore[verification.sourceReliability!] ?? 0) +
+              (credibilityScore[verification.informationCredibility!] ?? 0)) /
+            2,
+        );
+      const contributionScores = verifications.map((verification) =>
+        verification.productSources.length ||
+        verification.analysisSources.length
+          ? 100
+          : 35,
+      );
+      const responseScores = tasks.flatMap((task) => {
+        const values: number[] = [];
+        if (task.acknowledgedAt) {
+          const hours =
+            (task.acknowledgedAt.getTime() - task.assignedAt.getTime()) /
+            3_600_000;
+          values.push(
+            hours <= 6 ? 100 : hours <= 24 ? 85 : hours <= 48 ? 65 : 35,
+          );
+        }
+        if (task.completedAt && (task.dueDate ?? task.task.dueDate)) {
+          values.push(
+            task.completedAt <= (task.dueDate ?? task.task.dueDate)! ? 100 : 45,
+          );
+        }
+        return values;
+      });
+      const indicators = [
+        {
+          code: 'IDX.1',
+          score: average([...taskTimeliness, ...reportTimeliness]),
+          sample: taskTimeliness.length + reportTimeliness.length,
+        },
+        {
+          code: 'IDX.2',
+          score: average(qualityScores),
+          sample: qualityScores.length,
+        },
+        {
+          code: 'IDX.3',
+          score: average(validityScores),
+          sample: validityScores.length,
+        },
+        {
+          code: 'IDX.4',
+          score: average(contributionScores),
+          sample: contributionScores.length,
+        },
+        {
+          code: 'IDX.5',
+          score: average(responseScores),
+          sample: responseScores.length,
+        },
+      ];
+      const measured = indicators.filter(
+        (indicator) => indicator.score !== null,
+      );
+      const overall = average(measured.map((indicator) => indicator.score!));
+      return {
+        score: overall,
+        grade:
+          overall === null
+            ? 'N/A'
+            : overall >= 90
+              ? 'A'
+              : overall >= 80
+                ? 'B'
+                : overall >= 70
+                  ? 'C'
+                  : 'D',
+        indicators,
+        evidence: {
+          tasks: tasks.length,
+          reports: reports.length,
+          verifications: verifications.length,
+          measuredIndicators: measured.length,
+        },
+      };
+    };
+
+    const unitGroups = new Map<
+      string,
+      {
+        unit: (typeof assignments)[number]['position']['organizationUnit'];
+        assignmentIds: string[];
+      }
+    >();
+    for (const assignment of assignments) {
+      const unit = assignment.position.organizationUnit;
+      const group = unitGroups.get(unit.id) ?? { unit, assignmentIds: [] };
+      group.assignmentIds.push(assignment.id);
+      unitGroups.set(unit.id, group);
+    }
+    const summary = scoreFor(assignments.map((assignment) => assignment.id));
+    const units = [...unitGroups.values()]
+      .map((group) => ({
+        id: group.unit.id,
+        code: group.unit.code,
+        name: group.unit.name,
+        type: group.unit.type,
+        personnelCount: group.assignmentIds.length,
+        ...scoreFor(group.assignmentIds),
+      }))
+      .sort((left, right) => (right.score ?? -1) - (left.score ?? -1));
+    const personnel = assignments
+      .filter((assignment) => assignment.id !== context.primaryAssignmentId)
+      .map((assignment) => ({
+        id: assignment.id,
+        name:
+          assignment.userProfile.fullName ??
+          assignment.userProfile.username ??
+          'Personel tanpa nama',
+        position: assignment.position.title,
+        positionCode: assignment.position.code,
+        unit: assignment.position.organizationUnit,
+        areas: assignment.areaScopes.map((scopeItem) => scopeItem.area),
+        ...scoreFor([assignment.id]),
+      }))
+      .sort((left, right) => (right.score ?? -1) - (left.score ?? -1));
+    const lowest = summary.indicators
+      .filter((indicator) => indicator.score !== null)
+      .sort((left, right) => left.score! - right.score!)[0];
+    const recommendations = [
+      lowest
+        ? `Prioritas pembinaan adalah ${lowest.code} karena menjadi indikator terendah pada periode ini.`
+        : 'Belum cukup bukti untuk menetapkan prioritas pembinaan. Pastikan tugas, Baket, dan verifikasi tercatat pada periode yang sama.',
+      summary.evidence.verifications < summary.evidence.reports
+        ? 'Percepat verifikasi formal dan Neraca A-F / 1-6 agar laporan tidak berhenti sebagai volume tanpa validitas.'
+        : 'Pertahankan audit kualitas dan telusur sumber sebelum memakai laporan sebagai dasar keputusan.',
+      summary.indicators.find((indicator) => indicator.code === 'IDX.4')
+        ?.score !== null &&
+      (summary.indicators.find((indicator) => indicator.code === 'IDX.4')
+        ?.score ?? 100) < 70
+        ? 'Hubungkan Baket terverifikasi ke analisis atau produk strategis untuk menaikkan dampak terhadap isu prioritas.'
+        : 'Pantau distribusi kontribusi agar isu nasional tidak hanya ditopang oleh sedikit unit atau personel.',
+    ];
+
+    return {
+      period: {
+        from: from.toISOString(),
+        to: to.toISOString(),
+        days: Math.max(
+          1,
+          Math.ceil((to.getTime() - from.getTime()) / 86_400_000),
+        ),
+      },
+      hierarchy: [
+        'NASIONAL',
+        'BINDA',
+        'KABUPATEN_KOTA',
+        'KECAMATAN',
+        'UNIT',
+        'PERSONEL',
+      ],
+      indicatorDefinitions: [
+        {
+          code: 'IDX.1',
+          name: 'Ketepatan waktu pelaporan',
+          evidence: 'Waktu Baket dan penyelesaian tugas terhadap tenggat.',
+        },
+        {
+          code: 'IDX.2',
+          name: 'Kualitas dan kedalaman laporan',
+          evidence: 'Status verifikasi serta kelulusan checklist formal.',
+        },
+        {
+          code: 'IDX.3',
+          name: 'Tingkat validasi informasi',
+          evidence: 'Neraca sumber A-F dan kredibilitas informasi 1-6.',
+        },
+        {
+          code: 'IDX.4',
+          name: 'Kontribusi terhadap isu strategis',
+          evidence:
+            'Baket terverifikasi yang digunakan dalam analisis atau produk.',
+        },
+        {
+          code: 'IDX.5',
+          name: 'Kecepatan respons tugas UUK/STR',
+          evidence: 'Waktu acknowledge dan penyelesaian penugasan.',
+        },
+      ],
+      summary,
+      units,
+      personnel,
+      recommendations,
     };
   }
 
@@ -2481,7 +3580,10 @@ export class IntelligenceProductsService {
     return value.toISOString();
   }
 
-  async dashboardTrends(query: DashboardTrendQuery, _context: AuthorizationContext) {
+  async dashboardTrends(
+    query: DashboardTrendQuery,
+    _context: AuthorizationContext,
+  ) {
     this.ensureDateOrder(query.from, query.to);
     let rows: Array<{ createdAt: Date; groupValue: string | null }> = [];
     if (query.metric === 'alerts') {
@@ -2504,16 +3606,11 @@ export class IntelligenceProductsService {
           deletedAt: null,
           ...this.buildCommonDateWhere('createdAt', query.from, query.to),
         },
-        select: { createdAt: true, status: true, classification: true },
+        select: { createdAt: true, status: true },
       });
       rows = products.map((item) => ({
         createdAt: item.createdAt,
-        groupValue:
-          query.groupBy === 'classification'
-            ? item.classification
-            : query.groupBy === 'status'
-              ? item.status
-              : null,
+        groupValue: query.groupBy === 'status' ? item.status : null,
       }));
     } else if (query.metric === 'tasks') {
       const tasks = await this.prisma.task.findMany({
@@ -2548,7 +3645,9 @@ export class IntelligenceProductsService {
       if (!buckets.has(bucket)) {
         buckets.set(bucket, new Map());
       }
-      buckets.get(bucket)!.set(groupValue, (buckets.get(bucket)!.get(groupValue) ?? 0) + 1);
+      buckets
+        .get(bucket)!
+        .set(groupValue, (buckets.get(bucket)!.get(groupValue) ?? 0) + 1);
     }
 
     return {
@@ -2613,7 +3712,10 @@ export class IntelligenceProductsService {
     }
     return {
       metric: query.metric,
-      items: [...counts.entries()].map(([areaId, count]) => ({ areaId, count })),
+      items: [...counts.entries()].map(([areaId, count]) => ({
+        areaId,
+        count,
+      })),
     };
   }
 
@@ -2645,13 +3747,16 @@ export class IntelligenceProductsService {
         },
       },
     });
-    const grouped = new Map<string, { total: number; completed: number; overdue: number }>();
+    const grouped = new Map<
+      string,
+      { total: number; completed: number; overdue: number }
+    >();
     for (const assignment of assignments) {
       const key =
         query.groupBy === 'position'
           ? assignment.assignee.position.title
           : query.groupBy === 'area'
-            ? assignment.task.targetAreas[0]?.area.name ?? 'UNSCOPED'
+            ? (assignment.task.targetAreas[0]?.area.name ?? 'UNSCOPED')
             : assignment.assignee.position.organizationUnit.name;
       if (!grouped.has(key)) {
         grouped.set(key, { total: 0, completed: 0, overdue: 0 });
@@ -2661,13 +3766,20 @@ export class IntelligenceProductsService {
       if (assignment.status === 'COMPLETED') {
         value.completed += 1;
       }
-      if (assignment.dueDate && assignment.dueDate < new Date() && assignment.status !== 'COMPLETED') {
+      if (
+        assignment.dueDate &&
+        assignment.dueDate < new Date() &&
+        assignment.status !== 'COMPLETED'
+      ) {
         value.overdue += 1;
       }
     }
     return {
       groupBy: query.groupBy,
-      items: [...grouped.entries()].map(([group, stats]) => ({ group, ...stats })),
+      items: [...grouped.entries()].map(([group, stats]) => ({
+        group,
+        ...stats,
+      })),
     };
   }
 
@@ -2755,7 +3867,8 @@ export class IntelligenceProductsService {
       }
       if (verification.completedAt) {
         totalTurnaroundHours +=
-          (verification.completedAt.getTime() - verification.createdAt.getTime()) /
+          (verification.completedAt.getTime() -
+            verification.createdAt.getTime()) /
           3_600_000;
         turnaroundCount += 1;
       }
@@ -2768,22 +3881,34 @@ export class IntelligenceProductsService {
           ? 0
           : Math.round((needsDevelopment / verifications.length) * 100),
       averageTurnaroundHours:
-        turnaroundCount === 0 ? 0 : Math.round(totalTurnaroundHours / turnaroundCount),
+        turnaroundCount === 0
+          ? 0
+          : Math.round(totalTurnaroundHours / turnaroundCount),
     };
   }
 
-  async dashboardProductStatus(query: DashboardQuery, _context: AuthorizationContext) {
+  async dashboardProductStatus(
+    query: DashboardQuery,
+    context: AuthorizationContext,
+  ) {
     const grouped = await this.prisma.intelligenceProduct.groupBy({
       by: ['status'],
       where: {
         deletedAt: null,
-        ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
+        ownerUnitId: context.organizationUnitId,
         ...this.buildCommonDateWhere('createdAt', query.from, query.to),
       },
       _count: { _all: true },
     });
     const activeSteps = await this.prisma.productApprovalStep.findMany({
-      where: { status: ApprovalStepStatus.ACTIVE },
+      where: {
+        status: ApprovalStepStatus.ACTIVE,
+        workflow: {
+          productVersion: {
+            product: { ownerUnitId: context.organizationUnitId },
+          },
+        },
+      },
       include: { workflow: true },
     });
     return {
@@ -2800,15 +3925,19 @@ export class IntelligenceProductsService {
     };
   }
 
-  async dashboardBriefing(query: DashboardQuery, context: AuthorizationContext) {
+  async dashboardBriefing(
+    query: DashboardQuery,
+    context: AuthorizationContext,
+  ) {
     this.ensureDateOrder(query.from, query.to);
-    const [overview, kpis, productStatus, alerts, emergencies] = await Promise.all([
-      this.dashboardOverview(query, context),
-      this.dashboardKpis(query, context),
-      this.dashboardProductStatus(query, context),
-      this.listAlerts({ ...query, limit: 5 }, context),
-      this.listEmergencyIncidents({ ...query, limit: 5 }, context),
-    ]);
+    const [overview, kpis, productStatus, alerts, emergencies] =
+      await Promise.all([
+        this.dashboardOverview(query, context),
+        this.dashboardKpis(query, context),
+        this.dashboardProductStatus(query, context),
+        this.listAlerts({ ...query, limit: 5 }, context),
+        this.listEmergencyIncidents({ ...query, limit: 5 }, context),
+      ]);
 
     return {
       appliedScope: query,
@@ -2818,14 +3947,23 @@ export class IntelligenceProductsService {
       productStatus,
       priorityAlerts: alerts.items,
       priorityEmergencies: emergencies.items,
-      availableActions: ['refresh', 'open-alert', 'open-emergency', 'open-product'],
+      availableActions: [
+        'refresh',
+        'open-alert',
+        'open-emergency',
+        'open-product',
+      ],
     };
   }
 
   private parseBbox(bbox: string) {
     const values = bbox.split(',').map(Number);
     if (values.length !== 4 || values.some(Number.isNaN)) {
-      throw new ApiException('BBOX_INVALID', 'bbox must be minLng,minLat,maxLng,maxLat.', 400);
+      throw new ApiException(
+        'BBOX_INVALID',
+        'bbox must be minLng,minLat,maxLng,maxLat.',
+        400,
+      );
     }
     return {
       minLng: values[0],
@@ -2835,10 +3973,61 @@ export class IntelligenceProductsService {
     };
   }
 
-  private async getMapReports(query: MapReportQuery) {
+  private async getMapReports(
+    query: MapReportQuery,
+    context: AuthorizationContext,
+  ) {
     const bbox = this.parseBbox(query.bbox);
+    const acceptedStatuses = [
+      'SENT_TO_OIM',
+      'UNDER_VERIFICATION',
+      'NEEDS_DEVELOPMENT',
+      'VERIFIED',
+      'REJECTED',
+    ];
+    const requestedStatuses = query.status
+      ? query.status
+          .split(',')
+          .filter((status) => acceptedStatuses.includes(status))
+      : acceptedStatuses;
+    const versionIds = await this.prisma.$queryRaw<
+      Array<{ id: string }>
+    >(Prisma.sql`
+      SELECT bv.id
+      FROM "BaketVersion" bv
+      JOIN "Baket" b ON b.id = bv."baketId" AND b."currentVersionNumber" = bv."versionNumber"
+      WHERE b."deletedAt" IS NULL
+        AND b.status IN (${Prisma.join(requestedStatuses.map((status) => Prisma.sql`${status}::"BaketStatus"`))})
+        AND bv.latitude IS NOT NULL
+        AND bv.longitude IS NOT NULL
+        AND ST_Intersects(
+          COALESCE(bv."locationPoint", ST_SetSRID(ST_MakePoint(bv.longitude::double precision, bv.latitude::double precision), 4326)),
+          ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)
+        )
+      LIMIT ${query.limit}
+    `);
     const bakets = await this.prisma.baket.findMany({
       where: {
+        ...(await this.scope.baketWhere(context)),
+        status: { in: requestedStatuses as never[] },
+        versions: {
+          some: {
+            id: { in: versionIds.map((item) => item.id) },
+            ...(query.urgency ? { urgency: query.urgency as never } : {}),
+            ...(query.areaId
+              ? {
+                  OR: [
+                    { eventAreaId: query.areaId },
+                    {
+                      eventArea: {
+                        ancestorLinks: { some: { ancestorId: query.areaId } },
+                      },
+                    },
+                  ],
+                }
+              : {}),
+          },
+        },
         deletedAt: null,
         ...this.buildCommonDateWhere('createdAt', query.from, query.to),
       },
@@ -2863,6 +4052,7 @@ export class IntelligenceProductsService {
     return bakets
       .map((baket) => ({
         baketId: baket.id,
+        status: baket.status,
         version: baket.versions[0],
       }))
       .filter(
@@ -2878,38 +4068,104 @@ export class IntelligenceProductsService {
       );
   }
 
-  async mapReports(query: MapReportQuery, _context: AuthorizationContext) {
-    const reports = await this.getMapReports(query);
+  async mapReports(query: MapReportQuery, context: AuthorizationContext) {
+    const reports = await this.getMapReports(query, context);
     return {
       type: 'FeatureCollection',
       features: reports.map((item) => ({
         type: 'Feature',
-        id: item.version!.id,
+        id: item.version.id,
         geometry: {
           type: 'Point',
-          coordinates: [Number(item.version!.longitude), Number(item.version!.latitude)],
+          coordinates: [
+            Number(item.version.longitude),
+            Number(item.version.latitude),
+          ],
         },
         properties: {
           baketId: item.baketId,
-          title: item.version!.title,
-          urgency: item.version!.urgency,
-          areaId: item.version!.eventAreaId,
-          areaName: item.version!.eventArea?.name ?? null,
+          status: item.status,
+          title: item.version.title,
+          urgency: item.version.urgency,
+          areaId: item.version.eventAreaId,
+          areaName: item.version.eventArea?.name ?? null,
         },
       })),
     };
   }
 
-  async mapClusters(query: MapReportQuery, _context: AuthorizationContext) {
-    const reports = await this.getMapReports(query);
+  async mapBoundaries(query: MapReportQuery, context: AuthorizationContext) {
+    const bbox = this.parseBbox(query.bbox);
+    let areaRootIds = context.areaScopes.map((scope) => scope.areaId);
+    if (query.areaId) {
+      await this.scope.assertArea(context, query.areaId);
+      areaRootIds = [query.areaId];
+    }
+    const levels =
+      query.zoom <= 5
+        ? ['PROVINCE']
+        : query.zoom <= 9
+          ? ['REGENCY', 'CITY']
+          : ['DISTRICT'];
+    const tolerance = Math.max(0.00001, 0.5 / 2 ** query.zoom);
+    const areaScopeFilter = areaRootIds.length
+      ? Prisma.sql`
+        AND EXISTS (
+          SELECT 1
+          FROM "AdministrativeAreaClosure" scope_area
+          WHERE scope_area."descendantId" = area.id
+            AND scope_area."ancestorId" IN (${Prisma.join(
+              areaRootIds.map((id) => Prisma.sql`${id}::uuid`),
+            )})
+        )
+      `
+      : Prisma.empty;
+    const boundaries = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        areaId: string;
+        name: string;
+        level: string;
+        geometry: string;
+      }>
+    >(Prisma.sql`
+      SELECT boundary.id, area.id AS "areaId", area.name, area.level::text,
+        ST_AsGeoJSON(ST_SimplifyPreserveTopology(boundary.boundary, ${tolerance})) AS geometry
+      FROM "AdministrativeAreaBoundary" boundary
+      JOIN "AdministrativeArea" area ON area.id = boundary."areaId"
+      WHERE boundary."isActive" = true
+        AND boundary."effectiveUntil" IS NULL
+        AND boundary."qualityStatus" <> 'INVALID'
+        ${areaScopeFilter}
+        AND area.level IN (${Prisma.join(levels.map((level) => Prisma.sql`${level}::"AdministrativeLevel"`))})
+        AND ST_Intersects(boundary.boundary, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))
+      LIMIT ${query.limit}
+    `);
+    return {
+      type: 'FeatureCollection',
+      features: boundaries.map((boundary) => ({
+        type: 'Feature',
+        id: boundary.id,
+        geometry: JSON.parse(boundary.geometry) as unknown,
+        properties: {
+          areaId: boundary.areaId,
+          name: boundary.name,
+          level: boundary.level,
+        },
+      })),
+    };
+  }
+
+  async mapClusters(query: MapReportQuery, context: AuthorizationContext) {
+    const reports = await this.getMapReports(query, context);
     const cellSize = Math.max(0.01, 1 / Math.max(1, query.zoom));
     const clusters = new Map<
       string,
       { lng: number; lat: number; count: number }
     >();
     for (const report of reports) {
-      const lat = Number(report.version!.latitude);
-      const lng = Number(report.version!.longitude);
+      const lat = Number(report.version.latitude);
+      const lng = Number(report.version.longitude);
       const key = `${Math.floor(lng / cellSize)}:${Math.floor(lat / cellSize)}`;
       if (!clusters.has(key)) {
         clusters.set(key, { lng: 0, lat: 0, count: 0 });
@@ -2935,60 +4191,113 @@ export class IntelligenceProductsService {
     };
   }
 
-  async mapHeatmap(query: MapHeatmapQuery, _context: AuthorizationContext) {
-    const reports = await this.getMapReports(query);
+  async mapHeatmap(query: MapHeatmapQuery, context: AuthorizationContext) {
+    const reports = await this.getMapReports(query, context);
     return {
       metric: query.metric ?? 'count',
       points: reports.map((report) => ({
-        latitude: Number(report.version!.latitude),
-        longitude: Number(report.version!.longitude),
+        latitude: Number(report.version.latitude),
+        longitude: Number(report.version.longitude),
         weight: query.metric === 'urgencyWeight' ? 2 : 1,
       })),
     };
   }
 
-  async mapAreaSummary(query: MapAreaSummaryQuery, _context: AuthorizationContext) {
-    const [alerts, emergencies, bakets, boundary] = await Promise.all([
-      this.prisma.alert.count({
-        where: {
-          OR: [
-            { areaId: query.areaId },
-            { area: { ancestorLinks: { some: { ancestorId: query.areaId } } } },
-          ],
-          ...this.buildCommonDateWhere('createdAt', query.from, query.to),
-        },
-      }),
-      this.prisma.emergencyIncident.count({
-        where: {
-          OR: [
-            { areaId: query.areaId },
-            { area: { ancestorLinks: { some: { ancestorId: query.areaId } } } },
-          ],
-          ...this.buildCommonDateWhere('createdAt', query.from, query.to),
-        },
-      }),
-      this.prisma.baket.count({
-        where: {
-          versions: {
-            some: {
-              OR: [
-                { eventAreaId: query.areaId },
-                {
-                  eventArea: {
-                    ancestorLinks: { some: { ancestorId: query.areaId } },
+  async mapAreaSummary(
+    query: MapAreaSummaryQuery,
+    context: AuthorizationContext,
+  ) {
+    await this.scope.assertArea(context, query.areaId);
+    const scope = await this.scope.resolve(context);
+    const now = new Date();
+    const [alerts, emergencies, bakets, personnelAssignments, boundary] =
+      await Promise.all([
+        this.prisma.alert.count({
+          where: {
+            OR: [
+              { areaId: query.areaId },
+              {
+                area: { ancestorLinks: { some: { ancestorId: query.areaId } } },
+              },
+            ],
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+        this.prisma.emergencyIncident.count({
+          where: {
+            OR: [
+              { areaId: query.areaId },
+              {
+                area: { ancestorLinks: { some: { ancestorId: query.areaId } } },
+              },
+            ],
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+        this.prisma.baket.count({
+          where: {
+            versions: {
+              some: {
+                OR: [
+                  { eventAreaId: query.areaId },
+                  {
+                    eventArea: {
+                      ancestorLinks: { some: { ancestorId: query.areaId } },
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
-        },
-      }),
-      this.spatial.getActiveBoundaryGeoJson(query.areaId),
-    ]);
+        }),
+        this.prisma.userSeatAssignment.findMany({
+          where: {
+            id: { in: scope.assignmentIds },
+            isActive: true,
+            OR: [{ validUntil: null }, { validUntil: { gt: now } }],
+            userProfile: { isActive: true, deletedAt: null },
+            position: {
+              code: PositionCode.PETUGAS_ORGANIK,
+              isActive: true,
+            },
+            areaScopes: {
+              some: {
+                validUntil: null,
+                OR: [
+                  { areaId: query.areaId },
+                  {
+                    area: {
+                      ancestorLinks: {
+                        some: { ancestorId: query.areaId },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          select: {
+            position: { select: { organizationUnitId: true } },
+          },
+        }),
+        this.spatial.getActiveBoundaryGeoJson(query.areaId),
+      ]);
+    const units = new Set(
+      personnelAssignments.map(
+        (assignment) => assignment.position.organizationUnitId,
+      ),
+    ).size;
+
     return {
       areaId: query.areaId,
       boundary,
-      kpis: { alerts, emergencies, bakets },
+      kpis: {
+        personnel: personnelAssignments.length,
+        units,
+        alerts,
+        emergencies,
+        bakets,
+      },
     };
   }
 
@@ -3014,7 +4323,10 @@ export class IntelligenceProductsService {
     const located = tasks
       .map((task) => ({
         task,
-        area: task.targetAreas.find((target) => target.area.centroidLatitude && target.area.centroidLongitude)?.area,
+        area: task.targetAreas.find(
+          (target) =>
+            target.area.centroidLatitude && target.area.centroidLongitude,
+        )?.area,
       }))
       .filter((item) => {
         if (!item.area?.centroidLatitude || !item.area.centroidLongitude) {
@@ -3022,7 +4334,12 @@ export class IntelligenceProductsService {
         }
         const lat = Number(item.area.centroidLatitude);
         const lng = Number(item.area.centroidLongitude);
-        return lng >= bbox.minLng && lng <= bbox.maxLng && lat >= bbox.minLat && lat <= bbox.maxLat;
+        return (
+          lng >= bbox.minLng &&
+          lng <= bbox.maxLng &&
+          lat >= bbox.minLat &&
+          lat <= bbox.maxLat
+        );
       });
 
     return {
@@ -3033,7 +4350,10 @@ export class IntelligenceProductsService {
         id: item.task.id,
         geometry: {
           type: 'Point',
-          coordinates: [Number(item.area!.centroidLongitude), Number(item.area!.centroidLatitude)],
+          coordinates: [
+            Number(item.area!.centroidLongitude),
+            Number(item.area!.centroidLatitude),
+          ],
         },
         properties: {
           taskId: item.task.id,
@@ -3051,14 +4371,22 @@ export class IntelligenceProductsService {
 
   async mapAlerts(query: MapReportQuery, context: AuthorizationContext) {
     const bbox = this.parseBbox(query.bbox);
-    const alerts = await this.listAlerts({ ...query, limit: query.limit }, context);
+    const alerts = await this.listAlerts(
+      { ...query, limit: query.limit },
+      context,
+    );
     const located = alerts.items.filter((alert) => {
       if (alert.latitude === null || alert.longitude === null) {
         return false;
       }
       const lat = Number(alert.latitude);
       const lng = Number(alert.longitude);
-      return lng >= bbox.minLng && lng <= bbox.maxLng && lat >= bbox.minLat && lat <= bbox.maxLat;
+      return (
+        lng >= bbox.minLng &&
+        lng <= bbox.maxLng &&
+        lat >= bbox.minLat &&
+        lat <= bbox.maxLat
+      );
     });
 
     return {
@@ -3087,14 +4415,22 @@ export class IntelligenceProductsService {
 
   async mapEmergencies(query: MapReportQuery, context: AuthorizationContext) {
     const bbox = this.parseBbox(query.bbox);
-    const incidents = await this.listEmergencyIncidents({ ...query, limit: query.limit }, context);
+    const incidents = await this.listEmergencyIncidents(
+      { ...query, limit: query.limit },
+      context,
+    );
     const located = incidents.items.filter((incident) => {
       if (incident.latitude === null || incident.longitude === null) {
         return false;
       }
       const lat = Number(incident.latitude);
       const lng = Number(incident.longitude);
-      return lng >= bbox.minLng && lng <= bbox.maxLng && lat >= bbox.minLat && lat <= bbox.maxLat;
+      return (
+        lng >= bbox.minLng &&
+        lng <= bbox.maxLng &&
+        lat >= bbox.minLat &&
+        lat <= bbox.maxLat
+      );
     });
 
     return {
@@ -3121,9 +4457,35 @@ export class IntelligenceProductsService {
     };
   }
 
-  async listEmergencyIncidents(query: EmergencyQuery, _context: AuthorizationContext) {
+  async listEmergencyIncidents(
+    query: EmergencyQuery,
+    context: AuthorizationContext,
+  ) {
+    const scope = await this.scope.resolve(context);
+    if (query.areaId) await this.scope.assertArea(context, query.areaId);
     const items = await this.prisma.emergencyIncident.findMany({
       where: {
+        AND: [
+          {
+            OR: [
+              ...(scope.areaRootIds.length
+                ? [
+                    { areaId: { in: scope.areaRootIds } },
+                    {
+                      area: {
+                        ancestorLinks: {
+                          some: {
+                            ancestorId: { in: scope.areaRootIds },
+                          },
+                        },
+                      },
+                    },
+                  ]
+                : []),
+              { reportedByAssignmentId: { in: scope.assignmentIds } },
+            ],
+          },
+        ],
         ...(query.status ? { status: query.status as EmergencyStatus } : {}),
         ...(query.severity ? { severity: query.severity } : {}),
         ...(query.areaId ? { areaId: query.areaId } : {}),
@@ -3199,7 +4561,12 @@ export class IntelligenceProductsService {
         },
       });
     }
-    await this.audit(context, 'EMERGENCY.CREATE', 'EmergencyIncident', incident.id);
+    await this.audit(
+      context,
+      'EMERGENCY.CREATE',
+      'EmergencyIncident',
+      incident.id,
+    );
     return this.getEmergencyIncident(incident.id);
   }
 
@@ -3215,9 +4582,7 @@ export class IntelligenceProductsService {
         ...(withRelations.includes('attachments')
           ? { attachments: { include: { file: true } } }
           : {}),
-        ...(withRelations.includes('alerts')
-          ? { alerts: true }
-          : {}),
+        ...(withRelations.includes('alerts') ? { alerts: true } : {}),
       },
     });
   }
@@ -3244,7 +4609,12 @@ export class IntelligenceProductsService {
       where: { id: incidentId },
       data: body,
     });
-    await this.audit(context, 'EMERGENCY.UPDATE', 'EmergencyIncident', incidentId);
+    await this.audit(
+      context,
+      'EMERGENCY.UPDATE',
+      'EmergencyIncident',
+      incidentId,
+    );
     return this.getEmergencyIncident(incidentId, 'attachments,alerts');
   }
 
@@ -3274,7 +4644,13 @@ export class IntelligenceProductsService {
           : {}),
       },
     });
-    await this.audit(context, `EMERGENCY.${next}`, 'EmergencyIncident', incidentId, metadata);
+    await this.audit(
+      context,
+      `EMERGENCY.${next}`,
+      'EmergencyIncident',
+      incidentId,
+      metadata,
+    );
     return this.getEmergencyIncident(incidentId, 'attachments,alerts');
   }
 
@@ -3371,7 +4747,14 @@ export class IntelligenceProductsService {
       await tx.alert.updateMany({
         where: {
           sourceIncidentId: incidentId,
-          status: { in: [AlertStatus.NEW, AlertStatus.ACKNOWLEDGED, AlertStatus.ASSIGNED, AlertStatus.IN_PROGRESS] },
+          status: {
+            in: [
+              AlertStatus.NEW,
+              AlertStatus.ACKNOWLEDGED,
+              AlertStatus.ASSIGNED,
+              AlertStatus.IN_PROGRESS,
+            ],
+          },
         },
         data: {
           status: AlertStatus.RESOLVED,
@@ -3379,9 +4762,15 @@ export class IntelligenceProductsService {
         },
       });
     });
-    await this.audit(context, 'EMERGENCY.RESOLVE', 'EmergencyIncident', incidentId, {
-      resolution: body.resolution,
-    });
+    await this.audit(
+      context,
+      'EMERGENCY.RESOLVE',
+      'EmergencyIncident',
+      incidentId,
+      {
+        resolution: body.resolution,
+      },
+    );
     return this.getEmergencyIncident(incidentId, 'attachments,alerts');
   }
 
@@ -3405,9 +4794,39 @@ export class IntelligenceProductsService {
     );
   }
 
-  async listAlerts(query: AlertQuery, _context: AuthorizationContext) {
+  async listAlerts(query: AlertQuery, context: AuthorizationContext) {
+    const scope = await this.scope.resolve(context);
+    if (query.areaId) await this.scope.assertArea(context, query.areaId);
     const items = await this.prisma.alert.findMany({
       where: {
+        AND: [
+          {
+            OR: [
+              ...(scope.areaRootIds.length
+                ? [
+                    { areaId: { in: scope.areaRootIds } },
+                    {
+                      area: {
+                        ancestorLinks: {
+                          some: {
+                            ancestorId: { in: scope.areaRootIds },
+                          },
+                        },
+                      },
+                    },
+                  ]
+                : []),
+              { assignedPositionId: { in: scope.positionIds } },
+              {
+                sourceBaket: {
+                  createdByFieldOfficerAssignmentId: {
+                    in: scope.assignmentIds,
+                  },
+                },
+              },
+            ],
+          },
+        ],
         ...(query.status ? { status: query.status as AlertStatus } : {}),
         ...(query.severity ? { severity: query.severity } : {}),
         ...(query.areaId ? { areaId: query.areaId } : {}),
@@ -3476,13 +4895,23 @@ export class IntelligenceProductsService {
     });
   }
 
-  async updateAlert(alertId: string, body: UpdateAlertDto, context: AuthorizationContext) {
-    const alert = await this.prisma.alert.findUniqueOrThrow({ where: { id: alertId } });
+  async updateAlert(
+    alertId: string,
+    body: UpdateAlertDto,
+    context: AuthorizationContext,
+  ) {
+    const alert = await this.prisma.alert.findUniqueOrThrow({
+      where: { id: alertId },
+    });
     if (
       alert.status === AlertStatus.RESOLVED ||
       alert.status === AlertStatus.CANCELLED
     ) {
-      throw new ApiException('ALERT_IMMUTABLE', 'Resolved or cancelled alerts cannot be edited.', 409);
+      throw new ApiException(
+        'ALERT_IMMUTABLE',
+        'Resolved or cancelled alerts cannot be edited.',
+        409,
+      );
     }
     await this.prisma.alert.update({
       where: { id: alertId },
@@ -3499,7 +4928,9 @@ export class IntelligenceProductsService {
     context: AuthorizationContext,
     metadata?: Prisma.InputJsonValue,
   ) {
-    const alert = await this.prisma.alert.findUniqueOrThrow({ where: { id: alertId } });
+    const alert = await this.prisma.alert.findUniqueOrThrow({
+      where: { id: alertId },
+    });
     if (!allowed.includes(alert.status)) {
       throw new ApiException(
         'ALERT_STATE_INVALID',
@@ -3511,7 +4942,9 @@ export class IntelligenceProductsService {
       where: { id: alertId },
       data: {
         status: next,
-        ...(next === AlertStatus.ACKNOWLEDGED ? { acknowledgedAt: new Date() } : {}),
+        ...(next === AlertStatus.ACKNOWLEDGED
+          ? { acknowledgedAt: new Date() }
+          : {}),
         ...(next === AlertStatus.RESOLVED ? { resolvedAt: new Date() } : {}),
       },
     });
@@ -3519,7 +4952,11 @@ export class IntelligenceProductsService {
     return this.getAlert(alertId);
   }
 
-  async acknowledgeAlert(alertId: string, body: DecisionNoteDto, context: AuthorizationContext) {
+  async acknowledgeAlert(
+    alertId: string,
+    body: DecisionNoteDto,
+    context: AuthorizationContext,
+  ) {
     return this.transitionAlert(
       alertId,
       [AlertStatus.NEW],
@@ -3529,7 +4966,11 @@ export class IntelligenceProductsService {
     );
   }
 
-  async assignAlert(alertId: string, body: AssignAlertDto, context: AuthorizationContext) {
+  async assignAlert(
+    alertId: string,
+    body: AssignAlertDto,
+    context: AuthorizationContext,
+  ) {
     await this.prisma.alert.update({
       where: { id: alertId },
       data: {
@@ -3560,7 +5001,11 @@ export class IntelligenceProductsService {
     );
   }
 
-  async resolveAlert(alertId: string, body: ResolveAlertDto, context: AuthorizationContext) {
+  async resolveAlert(
+    alertId: string,
+    body: ResolveAlertDto,
+    context: AuthorizationContext,
+  ) {
     return this.transitionAlert(
       alertId,
       [AlertStatus.ACKNOWLEDGED, AlertStatus.ASSIGNED, AlertStatus.IN_PROGRESS],
@@ -3570,10 +5015,19 @@ export class IntelligenceProductsService {
     );
   }
 
-  async cancelAlert(alertId: string, body: CancelAlertDto, context: AuthorizationContext) {
+  async cancelAlert(
+    alertId: string,
+    body: CancelAlertDto,
+    context: AuthorizationContext,
+  ) {
     return this.transitionAlert(
       alertId,
-      [AlertStatus.NEW, AlertStatus.ACKNOWLEDGED, AlertStatus.ASSIGNED, AlertStatus.IN_PROGRESS],
+      [
+        AlertStatus.NEW,
+        AlertStatus.ACKNOWLEDGED,
+        AlertStatus.ASSIGNED,
+        AlertStatus.IN_PROGRESS,
+      ],
       AlertStatus.CANCELLED,
       context,
       { reason: body.reason },
@@ -3598,12 +5052,18 @@ export class IntelligenceProductsService {
     };
   }
 
-  async createLocationPing(body: CreateLocationPingDto, context: AuthorizationContext) {
+  async createLocationPing(
+    body: CreateLocationPingDto,
+    context: AuthorizationContext,
+  ) {
     this.ensureCoordinatePair(body.latitude, body.longitude);
-    const assignment = await this.prisma.positionAssignment.findUniqueOrThrow({
+    const assignment = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: body.positionAssignmentId },
     });
-    if (assignment.userProfileId !== context.userProfileId || !assignment.isActive) {
+    if (
+      assignment.userProfileId !== context.userProfileId ||
+      !assignment.isActive
+    ) {
       throw new ApiException(
         'LOCATION_ASSIGNMENT_INVALID',
         'Location ping can only be submitted for an active assignment owned by the caller.',
@@ -3643,15 +5103,15 @@ export class IntelligenceProductsService {
       RETURNING "id"
     `);
     const created = rows[0];
-    await this.audit(context, 'LOCATION.PING.CREATE', 'PersonnelLocationPing', created.id);
+    await this.audit(
+      context,
+      'LOCATION.PING.CREATE',
+      'PersonnelLocationPing',
+      created.id,
+    );
     return this.prisma.personnelLocationPing.findUniqueOrThrow({
       where: { id: created.id },
-      include: {
-        area: true,
-        positionAssignment: {
-          include: { position: true, userProfile: true },
-        },
-      },
+      select: this.locationPingSelect,
     });
   }
 
@@ -3659,24 +5119,25 @@ export class IntelligenceProductsService {
     return this.prisma.personnelLocationPing.findFirstOrThrow({
       where: { positionAssignmentId: context.primaryAssignmentId },
       orderBy: { capturedAt: 'desc' },
-      include: {
-        area: true,
-      },
+      select: this.ownLocationPingSelect,
     });
   }
 
   async latestLocation(assignmentId: string, context: AuthorizationContext) {
     await this.ensureLocationAccess(assignmentId, context);
-    return this.prisma.personnelLocationPing.findFirstOrThrow({
+    const ping = await this.prisma.personnelLocationPing.findFirst({
       where: { positionAssignmentId: assignmentId },
       orderBy: { capturedAt: 'desc' },
-      include: {
-        area: true,
-        positionAssignment: {
-          include: { position: true, userProfile: true },
-        },
-      },
+      select: this.locationPingSelect,
     });
+    if (!ping) {
+      throw new ApiException(
+        'LOCATION_PING_NOT_FOUND',
+        'Personnel has not submitted a location ping.',
+        404,
+      );
+    }
+    return ping;
   }
 
   async locationHistory(
@@ -3693,14 +5154,146 @@ export class IntelligenceProductsService {
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       take: query.limit + 1,
       orderBy: [{ capturedAt: 'desc' }, { id: 'desc' }],
-      include: {
-        area: true,
-      },
+      select: this.ownLocationPingSelect,
     });
     return this.toCursorPage(items, query.limit);
   }
 
   async personnelLocationMap(
+    query: PersonnelLocationMapQuery,
+    context: AuthorizationContext,
+  ) {
+    const scope = await this.scope.resolve(context);
+    if (query.areaId) {
+      await this.scope.assertArea(context, query.areaId);
+    }
+    const assignments = await this.prisma.userSeatAssignment.findMany({
+      where: {
+        id: { in: scope.assignmentIds },
+        isActive: true,
+        OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+        position: {
+          code: PositionCode.PETUGAS_ORGANIK,
+          isActive: true,
+          ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
+        },
+        ...(query.areaId
+          ? {
+              areaScopes: {
+                some: { areaId: query.areaId, validUntil: null },
+              },
+            }
+          : {}),
+      },
+      include: {
+        userProfile: true,
+        areaScopes: {
+          where: { validUntil: null },
+          include: { area: true },
+          orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+        },
+        position: {
+          include: {
+            organizationUnit: true,
+            reportsTo: {
+              include: {
+                organizationUnit: true,
+                assignments: {
+                  where: { isActive: true, validUntil: null },
+                  take: 1,
+                  include: { userProfile: true },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const assignmentIds = assignments.map((item) => item.id);
+    const pings = assignmentIds.length
+      ? await this.prisma.personnelLocationPing.findMany({
+          where: {
+            positionAssignmentId: { in: assignmentIds },
+            isStealth: false,
+            ...(query.capturedAfter
+              ? { capturedAt: { gte: new Date(query.capturedAfter) } }
+              : {}),
+          },
+          orderBy: [{ capturedAt: 'desc' }, { id: 'desc' }],
+          include: {
+            area: true,
+          },
+        })
+      : [];
+
+    const latest = new Map<string, (typeof pings)[number]>();
+    for (const ping of pings) {
+      if (!latest.has(ping.positionAssignmentId)) {
+        latest.set(ping.positionAssignmentId, ping);
+      }
+    }
+
+    const features = assignments.map((assignment) => {
+      const ping = latest.get(assignment.id);
+      const fallbackArea = assignment.areaScopes.find(
+        (scope) => scope.area?.centroidLatitude && scope.area.centroidLongitude,
+      )?.area;
+      const latitude: number | null = ping
+        ? Number(ping.latitude)
+        : fallbackArea?.centroidLatitude
+          ? Number(fallbackArea.centroidLatitude)
+          : null;
+      const longitude: number | null = ping
+        ? Number(ping.longitude)
+        : fallbackArea?.centroidLongitude
+          ? Number(fallbackArea.centroidLongitude)
+          : null;
+      const supervisorAssignment =
+        assignment.position.reportsTo?.assignments[0] ?? null;
+
+      return {
+        type: 'Feature',
+        id: ping?.id ?? `assignment:${assignment.id}`,
+        geometry:
+          latitude !== null && longitude !== null
+            ? {
+                type: 'Point',
+                coordinates: [longitude, latitude],
+              }
+            : null,
+        properties: {
+          assignmentId: assignment.id,
+          capturedAt: ping?.capturedAt ?? null,
+          isStealth: ping?.isStealth ?? false,
+          hasLiveLocation: Boolean(ping),
+          areaId: ping?.areaId ?? fallbackArea?.id ?? null,
+          areaName: ping?.area?.name ?? fallbackArea?.name ?? null,
+          userProfileId: assignment.userProfile.id,
+          userName: assignment.userProfile.fullName,
+          positionTitle: assignment.position.title,
+          unitName: assignment.position.organizationUnit.name,
+          supervisorAssignmentId: supervisorAssignment?.id ?? null,
+          supervisorName:
+            supervisorAssignment?.userProfile.fullName ??
+            assignment.position.reportsTo?.title ??
+            null,
+          supervisorPositionTitle: assignment.position.reportsTo?.title ?? null,
+          supervisorUnitName:
+            assignment.position.reportsTo?.organizationUnit.name ?? null,
+          canSeeStealth: false,
+        },
+      };
+    });
+
+    return {
+      type: 'FeatureCollection',
+      features,
+    };
+  }
+
+  async personnelLocationMapOld(
     query: PersonnelLocationMapQuery,
     context: AuthorizationContext,
   ) {
@@ -3710,9 +5303,7 @@ export class IntelligenceProductsService {
         ...(query.capturedAfter
           ? { capturedAt: { gte: new Date(query.capturedAfter) } }
           : {}),
-        ...(query.includeStealth
-          ? {}
-          : { isStealth: false }),
+        ...(query.includeStealth ? {} : { isStealth: false }),
         ...(query.unitId
           ? {
               positionAssignment: {
@@ -3759,7 +5350,8 @@ export class IntelligenceProductsService {
         userName: ping.positionAssignment.userProfile.fullName,
         positionTitle: ping.positionAssignment.position.title,
         unitName: ping.positionAssignment.position.organizationUnit.name,
-        canSeeStealth: query.includeStealth && context.roleCode !== RoleCode.FIELD_OFFICER,
+        canSeeStealth:
+          query.includeStealth && context.roleCode !== RoleCode.FIELD_OFFICER,
       },
     }));
 

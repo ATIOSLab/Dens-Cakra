@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsIn,
@@ -7,6 +8,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -30,6 +32,19 @@ export class CreateIntegrationDto {
 export class UpdateIntegrationDto {
   @IsOptional() @IsString() @MaxLength(180) name?: string;
   @IsOptional() @IsObject() configPatch?: Record<string, unknown>;
+}
+
+export class UpdateWhatsappControlDto {
+  @IsOptional() @IsString() @MaxLength(180) name?: string;
+  @IsOptional() @IsString() @MaxLength(180) botLabel?: string;
+  @IsOptional() @IsString() @MaxLength(120) provider?: string;
+  @IsOptional() @IsString() @MaxLength(30) botPhoneNumber?: string;
+  @IsOptional() @IsIn(['qr', 'code']) pairingMethod?: 'qr' | 'code';
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Matches(/^\+?\d[\d\s-]{7,30}$/, { each: true })
+  senderNumbers?: string[];
 }
 
 export class ReasonDto {

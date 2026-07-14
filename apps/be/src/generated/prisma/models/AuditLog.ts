@@ -227,7 +227,7 @@ export type AuditLogWhereInput = {
   deviceInfo?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AuditLog"> | Date | string
   actorUser?: Prisma.XOR<Prisma.UserProfileNullableScalarRelationFilter, Prisma.UserProfileWhereInput> | null
-  actorAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  actorAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
 }
 
 export type AuditLogOrderByWithRelationInput = {
@@ -244,7 +244,7 @@ export type AuditLogOrderByWithRelationInput = {
   deviceInfo?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   actorUser?: Prisma.UserProfileOrderByWithRelationInput
-  actorAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  actorAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
 }
 
 export type AuditLogWhereUniqueInput = Prisma.AtLeast<{
@@ -264,7 +264,7 @@ export type AuditLogWhereUniqueInput = Prisma.AtLeast<{
   deviceInfo?: Prisma.StringNullableFilter<"AuditLog"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AuditLog"> | Date | string
   actorUser?: Prisma.XOR<Prisma.UserProfileNullableScalarRelationFilter, Prisma.UserProfileWhereInput> | null
-  actorAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  actorAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
 }, "id">
 
 export type AuditLogOrderByWithAggregationInput = {
@@ -315,7 +315,7 @@ export type AuditLogCreateInput = {
   deviceInfo?: string | null
   createdAt?: Date | string
   actorUser?: Prisma.UserProfileCreateNestedOneWithoutAuditLogsInput
-  actorAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutAuditLogsInput
+  actorAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutAuditLogsInput
 }
 
 export type AuditLogUncheckedCreateInput = {
@@ -345,7 +345,7 @@ export type AuditLogUpdateInput = {
   deviceInfo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   actorUser?: Prisma.UserProfileUpdateOneWithoutAuditLogsNestedInput
-  actorAssignment?: Prisma.PositionAssignmentUpdateOneWithoutAuditLogsNestedInput
+  actorAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutAuditLogsNestedInput
 }
 
 export type AuditLogUncheckedUpdateInput = {
@@ -550,7 +550,7 @@ export type AuditLogCreateWithoutActorUserInput = {
   ipAddress?: string | null
   deviceInfo?: string | null
   createdAt?: Date | string
-  actorAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutAuditLogsInput
+  actorAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutAuditLogsInput
 }
 
 export type AuditLogUncheckedCreateWithoutActorUserInput = {
@@ -690,7 +690,7 @@ export type AuditLogUpdateWithoutActorUserInput = {
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deviceInfo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  actorAssignment?: Prisma.PositionAssignmentUpdateOneWithoutAuditLogsNestedInput
+  actorAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutAuditLogsNestedInput
 }
 
 export type AuditLogUncheckedUpdateWithoutActorUserInput = {
@@ -863,7 +863,7 @@ export type $AuditLogPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
   name: "AuditLog"
   objects: {
     actorUser: Prisma.$UserProfilePayload<ExtArgs> | null
-    actorAssignment: Prisma.$PositionAssignmentPayload<ExtArgs> | null
+    actorAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1273,7 +1273,7 @@ readonly fields: AuditLogFieldRefs;
 export interface Prisma__AuditLogClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   actorUser<T extends Prisma.AuditLog$actorUserArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AuditLog$actorUserArgs<ExtArgs>>): Prisma.Prisma__UserProfileClient<runtime.Types.Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  actorAssignment<T extends Prisma.AuditLog$actorAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AuditLog$actorAssignmentArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  actorAssignment<T extends Prisma.AuditLog$actorAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AuditLog$actorAssignmentArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1739,18 +1739,18 @@ export type AuditLog$actorUserArgs<ExtArgs extends runtime.Types.Extensions.Inte
  */
 export type AuditLog$actorAssignmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**

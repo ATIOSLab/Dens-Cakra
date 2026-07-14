@@ -15,6 +15,8 @@ try {
   runScript('seed-master.js');
   runScript('seed-wilayah.js');
   runScript('seed-role-accounts.js');
+  runScript('seed-str-hierarchy.js');
+  runScript('seed-baket.js');
   console.log('Completed full baseline seed.');
 } catch (error) {
   console.error('Failed to run full baseline seed.', error);

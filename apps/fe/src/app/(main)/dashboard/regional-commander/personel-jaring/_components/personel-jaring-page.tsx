@@ -1,16 +1,15 @@
-import { DensModulePage } from "@/app/(main)/dashboard/_components/dens-module-page";
+import { apiServerGet } from "@/lib/api/server-client";
+import { requireRole } from "@/lib/auth/server-session";
+import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
-export function PersonelJaringPage() {
-  return (
-    <DensModulePage
-      title="Personel & Jaring"
-      role="Komandan Regional"
-      description="Halaman ini menyiapkan pemantauan personel, jaring dengan pseudonym, dan produktivitas wilayah."
-      highlights={[
-        "Status aktif, posisi terakhir, dan tugas berjalan.",
-        "Coverage area, beban kerja, dan produktivitas.",
-        "Pembatasan identitas jaring sesuai need-to-know.",
-      ]}
-    />
-  );
+import { PersonelJaringClient } from "./personel-jaring-client";
+
+export async function PersonelJaringPage() {
+  await requireRole(SYSTEM_ROLES.REGIONAL_COMMANDER);
+  const [network, locations] = await Promise.all([
+    apiServerGet("/command-network"),
+    apiServerGet("/personnel-location-map"),
+  ]);
+
+  return <PersonelJaringClient network={network} locations={locations} />;
 }

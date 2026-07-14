@@ -39,6 +39,8 @@ export type BaketMinAggregateOutputType = {
   createdByFieldOfficerAssignmentId: string | null
   taskAssignmentId: string | null
   primaryJaringId: string | null
+  reportCategoryId: string | null
+  jaringClusterId: string | null
   status: $Enums.BaketStatus | null
   currentVersionNumber: number | null
   createdAt: Date | null
@@ -51,6 +53,8 @@ export type BaketMaxAggregateOutputType = {
   createdByFieldOfficerAssignmentId: string | null
   taskAssignmentId: string | null
   primaryJaringId: string | null
+  reportCategoryId: string | null
+  jaringClusterId: string | null
   status: $Enums.BaketStatus | null
   currentVersionNumber: number | null
   createdAt: Date | null
@@ -63,6 +67,8 @@ export type BaketCountAggregateOutputType = {
   createdByFieldOfficerAssignmentId: number
   taskAssignmentId: number
   primaryJaringId: number
+  reportCategoryId: number
+  jaringClusterId: number
   status: number
   currentVersionNumber: number
   createdAt: number
@@ -85,6 +91,8 @@ export type BaketMinAggregateInputType = {
   createdByFieldOfficerAssignmentId?: true
   taskAssignmentId?: true
   primaryJaringId?: true
+  reportCategoryId?: true
+  jaringClusterId?: true
   status?: true
   currentVersionNumber?: true
   createdAt?: true
@@ -97,6 +105,8 @@ export type BaketMaxAggregateInputType = {
   createdByFieldOfficerAssignmentId?: true
   taskAssignmentId?: true
   primaryJaringId?: true
+  reportCategoryId?: true
+  jaringClusterId?: true
   status?: true
   currentVersionNumber?: true
   createdAt?: true
@@ -109,6 +119,8 @@ export type BaketCountAggregateInputType = {
   createdByFieldOfficerAssignmentId?: true
   taskAssignmentId?: true
   primaryJaringId?: true
+  reportCategoryId?: true
+  jaringClusterId?: true
   status?: true
   currentVersionNumber?: true
   createdAt?: true
@@ -208,6 +220,8 @@ export type BaketGroupByOutputType = {
   createdByFieldOfficerAssignmentId: string
   taskAssignmentId: string | null
   primaryJaringId: string | null
+  reportCategoryId: string | null
+  jaringClusterId: string | null
   status: $Enums.BaketStatus
   currentVersionNumber: number
   createdAt: Date
@@ -243,18 +257,23 @@ export type BaketWhereInput = {
   createdByFieldOfficerAssignmentId?: Prisma.UuidFilter<"Baket"> | string
   taskAssignmentId?: Prisma.UuidNullableFilter<"Baket"> | string | null
   primaryJaringId?: Prisma.UuidNullableFilter<"Baket"> | string | null
+  reportCategoryId?: Prisma.UuidNullableFilter<"Baket"> | string | null
+  jaringClusterId?: Prisma.UuidNullableFilter<"Baket"> | string | null
   status?: Prisma.EnumBaketStatusFilter<"Baket"> | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFilter<"Baket"> | number
   createdAt?: Prisma.DateTimeFilter<"Baket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Baket"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Baket"> | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByFieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   taskAssignment?: Prisma.XOR<Prisma.TaskAssignmentNullableScalarRelationFilter, Prisma.TaskAssignmentWhereInput> | null
   primaryJaring?: Prisma.XOR<Prisma.JaringNullableScalarRelationFilter, Prisma.JaringWhereInput> | null
+  reportCategory?: Prisma.XOR<Prisma.ReportCategoryNullableScalarRelationFilter, Prisma.ReportCategoryWhereInput> | null
+  jaringCluster?: Prisma.XOR<Prisma.JaringClusterNullableScalarRelationFilter, Prisma.JaringClusterWhereInput> | null
   versions?: Prisma.BaketVersionListRelationFilter
   revisionRequests?: Prisma.BaketRevisionRequestListRelationFilter
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceListRelationFilter
   alerts?: Prisma.AlertListRelationFilter
+  convertedSourceMessages?: Prisma.WhatsAppMessageListRelationFilter
 }
 
 export type BaketOrderByWithRelationInput = {
@@ -262,18 +281,23 @@ export type BaketOrderByWithRelationInput = {
   createdByFieldOfficerAssignmentId?: Prisma.SortOrder
   taskAssignmentId?: Prisma.SortOrderInput | Prisma.SortOrder
   primaryJaringId?: Prisma.SortOrderInput | Prisma.SortOrder
+  reportCategoryId?: Prisma.SortOrderInput | Prisma.SortOrder
+  jaringClusterId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   currentVersionNumber?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   taskAssignment?: Prisma.TaskAssignmentOrderByWithRelationInput
   primaryJaring?: Prisma.JaringOrderByWithRelationInput
+  reportCategory?: Prisma.ReportCategoryOrderByWithRelationInput
+  jaringCluster?: Prisma.JaringClusterOrderByWithRelationInput
   versions?: Prisma.BaketVersionOrderByRelationAggregateInput
   revisionRequests?: Prisma.BaketRevisionRequestOrderByRelationAggregateInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceOrderByRelationAggregateInput
   alerts?: Prisma.AlertOrderByRelationAggregateInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageOrderByRelationAggregateInput
 }
 
 export type BaketWhereUniqueInput = Prisma.AtLeast<{
@@ -284,18 +308,23 @@ export type BaketWhereUniqueInput = Prisma.AtLeast<{
   createdByFieldOfficerAssignmentId?: Prisma.UuidFilter<"Baket"> | string
   taskAssignmentId?: Prisma.UuidNullableFilter<"Baket"> | string | null
   primaryJaringId?: Prisma.UuidNullableFilter<"Baket"> | string | null
+  reportCategoryId?: Prisma.UuidNullableFilter<"Baket"> | string | null
+  jaringClusterId?: Prisma.UuidNullableFilter<"Baket"> | string | null
   status?: Prisma.EnumBaketStatusFilter<"Baket"> | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFilter<"Baket"> | number
   createdAt?: Prisma.DateTimeFilter<"Baket"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Baket"> | Date | string
   deletedAt?: Prisma.DateTimeNullableFilter<"Baket"> | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByFieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   taskAssignment?: Prisma.XOR<Prisma.TaskAssignmentNullableScalarRelationFilter, Prisma.TaskAssignmentWhereInput> | null
   primaryJaring?: Prisma.XOR<Prisma.JaringNullableScalarRelationFilter, Prisma.JaringWhereInput> | null
+  reportCategory?: Prisma.XOR<Prisma.ReportCategoryNullableScalarRelationFilter, Prisma.ReportCategoryWhereInput> | null
+  jaringCluster?: Prisma.XOR<Prisma.JaringClusterNullableScalarRelationFilter, Prisma.JaringClusterWhereInput> | null
   versions?: Prisma.BaketVersionListRelationFilter
   revisionRequests?: Prisma.BaketRevisionRequestListRelationFilter
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceListRelationFilter
   alerts?: Prisma.AlertListRelationFilter
+  convertedSourceMessages?: Prisma.WhatsAppMessageListRelationFilter
 }, "id">
 
 export type BaketOrderByWithAggregationInput = {
@@ -303,6 +332,8 @@ export type BaketOrderByWithAggregationInput = {
   createdByFieldOfficerAssignmentId?: Prisma.SortOrder
   taskAssignmentId?: Prisma.SortOrderInput | Prisma.SortOrder
   primaryJaringId?: Prisma.SortOrderInput | Prisma.SortOrder
+  reportCategoryId?: Prisma.SortOrderInput | Prisma.SortOrder
+  jaringClusterId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   currentVersionNumber?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -323,6 +354,8 @@ export type BaketScalarWhereWithAggregatesInput = {
   createdByFieldOfficerAssignmentId?: Prisma.UuidWithAggregatesFilter<"Baket"> | string
   taskAssignmentId?: Prisma.UuidNullableWithAggregatesFilter<"Baket"> | string | null
   primaryJaringId?: Prisma.UuidNullableWithAggregatesFilter<"Baket"> | string | null
+  reportCategoryId?: Prisma.UuidNullableWithAggregatesFilter<"Baket"> | string | null
+  jaringClusterId?: Prisma.UuidNullableWithAggregatesFilter<"Baket"> | string | null
   status?: Prisma.EnumBaketStatusWithAggregatesFilter<"Baket"> | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntWithAggregatesFilter<"Baket"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Baket"> | Date | string
@@ -337,13 +370,16 @@ export type BaketCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketUncheckedCreateInput = {
@@ -351,6 +387,8 @@ export type BaketUncheckedCreateInput = {
   createdByFieldOfficerAssignmentId: string
   taskAssignmentId?: string | null
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -360,6 +398,7 @@ export type BaketUncheckedCreateInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketUpdateInput = {
@@ -369,13 +408,16 @@ export type BaketUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateInput = {
@@ -383,6 +425,8 @@ export type BaketUncheckedUpdateInput = {
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -392,6 +436,7 @@ export type BaketUncheckedUpdateInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketCreateManyInput = {
@@ -399,6 +444,8 @@ export type BaketCreateManyInput = {
   createdByFieldOfficerAssignmentId: string
   taskAssignmentId?: string | null
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -420,6 +467,8 @@ export type BaketUncheckedUpdateManyInput = {
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -437,11 +486,18 @@ export type BaketOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type BaketNullableScalarRelationFilter = {
+  is?: Prisma.BaketWhereInput | null
+  isNot?: Prisma.BaketWhereInput | null
+}
+
 export type BaketCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   createdByFieldOfficerAssignmentId?: Prisma.SortOrder
   taskAssignmentId?: Prisma.SortOrder
   primaryJaringId?: Prisma.SortOrder
+  reportCategoryId?: Prisma.SortOrder
+  jaringClusterId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentVersionNumber?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -458,6 +514,8 @@ export type BaketMaxOrderByAggregateInput = {
   createdByFieldOfficerAssignmentId?: Prisma.SortOrder
   taskAssignmentId?: Prisma.SortOrder
   primaryJaringId?: Prisma.SortOrder
+  reportCategoryId?: Prisma.SortOrder
+  jaringClusterId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentVersionNumber?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -470,6 +528,8 @@ export type BaketMinOrderByAggregateInput = {
   createdByFieldOfficerAssignmentId?: Prisma.SortOrder
   taskAssignmentId?: Prisma.SortOrder
   primaryJaringId?: Prisma.SortOrder
+  reportCategoryId?: Prisma.SortOrder
+  jaringClusterId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentVersionNumber?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -484,11 +544,6 @@ export type BaketSumOrderByAggregateInput = {
 export type BaketScalarRelationFilter = {
   is?: Prisma.BaketWhereInput
   isNot?: Prisma.BaketWhereInput
-}
-
-export type BaketNullableScalarRelationFilter = {
-  is?: Prisma.BaketWhereInput | null
-  isNot?: Prisma.BaketWhereInput | null
 }
 
 export type BaketCreateNestedManyWithoutCreatedByFieldOfficerAssignmentInput = {
@@ -617,6 +672,106 @@ export type BaketUncheckedUpdateManyWithoutPrimaryJaringNestedInput = {
   deleteMany?: Prisma.BaketScalarWhereInput | Prisma.BaketScalarWhereInput[]
 }
 
+export type BaketCreateNestedManyWithoutJaringClusterInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutJaringClusterInput, Prisma.BaketUncheckedCreateWithoutJaringClusterInput> | Prisma.BaketCreateWithoutJaringClusterInput[] | Prisma.BaketUncheckedCreateWithoutJaringClusterInput[]
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutJaringClusterInput | Prisma.BaketCreateOrConnectWithoutJaringClusterInput[]
+  createMany?: Prisma.BaketCreateManyJaringClusterInputEnvelope
+  connect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+}
+
+export type BaketUncheckedCreateNestedManyWithoutJaringClusterInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutJaringClusterInput, Prisma.BaketUncheckedCreateWithoutJaringClusterInput> | Prisma.BaketCreateWithoutJaringClusterInput[] | Prisma.BaketUncheckedCreateWithoutJaringClusterInput[]
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutJaringClusterInput | Prisma.BaketCreateOrConnectWithoutJaringClusterInput[]
+  createMany?: Prisma.BaketCreateManyJaringClusterInputEnvelope
+  connect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+}
+
+export type BaketUpdateManyWithoutJaringClusterNestedInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutJaringClusterInput, Prisma.BaketUncheckedCreateWithoutJaringClusterInput> | Prisma.BaketCreateWithoutJaringClusterInput[] | Prisma.BaketUncheckedCreateWithoutJaringClusterInput[]
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutJaringClusterInput | Prisma.BaketCreateOrConnectWithoutJaringClusterInput[]
+  upsert?: Prisma.BaketUpsertWithWhereUniqueWithoutJaringClusterInput | Prisma.BaketUpsertWithWhereUniqueWithoutJaringClusterInput[]
+  createMany?: Prisma.BaketCreateManyJaringClusterInputEnvelope
+  set?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  disconnect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  delete?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  connect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  update?: Prisma.BaketUpdateWithWhereUniqueWithoutJaringClusterInput | Prisma.BaketUpdateWithWhereUniqueWithoutJaringClusterInput[]
+  updateMany?: Prisma.BaketUpdateManyWithWhereWithoutJaringClusterInput | Prisma.BaketUpdateManyWithWhereWithoutJaringClusterInput[]
+  deleteMany?: Prisma.BaketScalarWhereInput | Prisma.BaketScalarWhereInput[]
+}
+
+export type BaketUncheckedUpdateManyWithoutJaringClusterNestedInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutJaringClusterInput, Prisma.BaketUncheckedCreateWithoutJaringClusterInput> | Prisma.BaketCreateWithoutJaringClusterInput[] | Prisma.BaketUncheckedCreateWithoutJaringClusterInput[]
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutJaringClusterInput | Prisma.BaketCreateOrConnectWithoutJaringClusterInput[]
+  upsert?: Prisma.BaketUpsertWithWhereUniqueWithoutJaringClusterInput | Prisma.BaketUpsertWithWhereUniqueWithoutJaringClusterInput[]
+  createMany?: Prisma.BaketCreateManyJaringClusterInputEnvelope
+  set?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  disconnect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  delete?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  connect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  update?: Prisma.BaketUpdateWithWhereUniqueWithoutJaringClusterInput | Prisma.BaketUpdateWithWhereUniqueWithoutJaringClusterInput[]
+  updateMany?: Prisma.BaketUpdateManyWithWhereWithoutJaringClusterInput | Prisma.BaketUpdateManyWithWhereWithoutJaringClusterInput[]
+  deleteMany?: Prisma.BaketScalarWhereInput | Prisma.BaketScalarWhereInput[]
+}
+
+export type BaketCreateNestedManyWithoutReportCategoryInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutReportCategoryInput, Prisma.BaketUncheckedCreateWithoutReportCategoryInput> | Prisma.BaketCreateWithoutReportCategoryInput[] | Prisma.BaketUncheckedCreateWithoutReportCategoryInput[]
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutReportCategoryInput | Prisma.BaketCreateOrConnectWithoutReportCategoryInput[]
+  createMany?: Prisma.BaketCreateManyReportCategoryInputEnvelope
+  connect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+}
+
+export type BaketUncheckedCreateNestedManyWithoutReportCategoryInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutReportCategoryInput, Prisma.BaketUncheckedCreateWithoutReportCategoryInput> | Prisma.BaketCreateWithoutReportCategoryInput[] | Prisma.BaketUncheckedCreateWithoutReportCategoryInput[]
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutReportCategoryInput | Prisma.BaketCreateOrConnectWithoutReportCategoryInput[]
+  createMany?: Prisma.BaketCreateManyReportCategoryInputEnvelope
+  connect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+}
+
+export type BaketUpdateManyWithoutReportCategoryNestedInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutReportCategoryInput, Prisma.BaketUncheckedCreateWithoutReportCategoryInput> | Prisma.BaketCreateWithoutReportCategoryInput[] | Prisma.BaketUncheckedCreateWithoutReportCategoryInput[]
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutReportCategoryInput | Prisma.BaketCreateOrConnectWithoutReportCategoryInput[]
+  upsert?: Prisma.BaketUpsertWithWhereUniqueWithoutReportCategoryInput | Prisma.BaketUpsertWithWhereUniqueWithoutReportCategoryInput[]
+  createMany?: Prisma.BaketCreateManyReportCategoryInputEnvelope
+  set?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  disconnect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  delete?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  connect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  update?: Prisma.BaketUpdateWithWhereUniqueWithoutReportCategoryInput | Prisma.BaketUpdateWithWhereUniqueWithoutReportCategoryInput[]
+  updateMany?: Prisma.BaketUpdateManyWithWhereWithoutReportCategoryInput | Prisma.BaketUpdateManyWithWhereWithoutReportCategoryInput[]
+  deleteMany?: Prisma.BaketScalarWhereInput | Prisma.BaketScalarWhereInput[]
+}
+
+export type BaketUncheckedUpdateManyWithoutReportCategoryNestedInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutReportCategoryInput, Prisma.BaketUncheckedCreateWithoutReportCategoryInput> | Prisma.BaketCreateWithoutReportCategoryInput[] | Prisma.BaketUncheckedCreateWithoutReportCategoryInput[]
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutReportCategoryInput | Prisma.BaketCreateOrConnectWithoutReportCategoryInput[]
+  upsert?: Prisma.BaketUpsertWithWhereUniqueWithoutReportCategoryInput | Prisma.BaketUpsertWithWhereUniqueWithoutReportCategoryInput[]
+  createMany?: Prisma.BaketCreateManyReportCategoryInputEnvelope
+  set?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  disconnect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  delete?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  connect?: Prisma.BaketWhereUniqueInput | Prisma.BaketWhereUniqueInput[]
+  update?: Prisma.BaketUpdateWithWhereUniqueWithoutReportCategoryInput | Prisma.BaketUpdateWithWhereUniqueWithoutReportCategoryInput[]
+  updateMany?: Prisma.BaketUpdateManyWithWhereWithoutReportCategoryInput | Prisma.BaketUpdateManyWithWhereWithoutReportCategoryInput[]
+  deleteMany?: Prisma.BaketScalarWhereInput | Prisma.BaketScalarWhereInput[]
+}
+
+export type BaketCreateNestedOneWithoutConvertedSourceMessagesInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutConvertedSourceMessagesInput, Prisma.BaketUncheckedCreateWithoutConvertedSourceMessagesInput>
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutConvertedSourceMessagesInput
+  connect?: Prisma.BaketWhereUniqueInput
+}
+
+export type BaketUpdateOneWithoutConvertedSourceMessagesNestedInput = {
+  create?: Prisma.XOR<Prisma.BaketCreateWithoutConvertedSourceMessagesInput, Prisma.BaketUncheckedCreateWithoutConvertedSourceMessagesInput>
+  connectOrCreate?: Prisma.BaketCreateOrConnectWithoutConvertedSourceMessagesInput
+  upsert?: Prisma.BaketUpsertWithoutConvertedSourceMessagesInput
+  disconnect?: Prisma.BaketWhereInput | boolean
+  delete?: Prisma.BaketWhereInput | boolean
+  connect?: Prisma.BaketWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BaketUpdateToOneWithWhereWithoutConvertedSourceMessagesInput, Prisma.BaketUpdateWithoutConvertedSourceMessagesInput>, Prisma.BaketUncheckedUpdateWithoutConvertedSourceMessagesInput>
+}
+
 export type EnumBaketStatusFieldUpdateOperationsInput = {
   set?: $Enums.BaketStatus
 }
@@ -690,16 +845,21 @@ export type BaketCreateWithoutCreatedByFieldOfficerAssignmentInput = {
   deletedAt?: Date | string | null
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketUncheckedCreateWithoutCreatedByFieldOfficerAssignmentInput = {
   id?: string
   taskAssignmentId?: string | null
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -709,6 +869,7 @@ export type BaketUncheckedCreateWithoutCreatedByFieldOfficerAssignmentInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketCreateOrConnectWithoutCreatedByFieldOfficerAssignmentInput = {
@@ -745,6 +906,8 @@ export type BaketScalarWhereInput = {
   createdByFieldOfficerAssignmentId?: Prisma.UuidFilter<"Baket"> | string
   taskAssignmentId?: Prisma.UuidNullableFilter<"Baket"> | string | null
   primaryJaringId?: Prisma.UuidNullableFilter<"Baket"> | string | null
+  reportCategoryId?: Prisma.UuidNullableFilter<"Baket"> | string | null
+  jaringClusterId?: Prisma.UuidNullableFilter<"Baket"> | string | null
   status?: Prisma.EnumBaketStatusFilter<"Baket"> | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFilter<"Baket"> | number
   createdAt?: Prisma.DateTimeFilter<"Baket"> | Date | string
@@ -759,18 +922,23 @@ export type BaketCreateWithoutTaskAssignmentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketUncheckedCreateWithoutTaskAssignmentInput = {
   id?: string
   createdByFieldOfficerAssignmentId: string
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -780,6 +948,7 @@ export type BaketUncheckedCreateWithoutTaskAssignmentInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketCreateOrConnectWithoutTaskAssignmentInput = {
@@ -815,18 +984,23 @@ export type BaketCreateWithoutPrimaryJaringInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketUncheckedCreateWithoutPrimaryJaringInput = {
   id?: string
   createdByFieldOfficerAssignmentId: string
   taskAssignmentId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -836,6 +1010,7 @@ export type BaketUncheckedCreateWithoutPrimaryJaringInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketCreateOrConnectWithoutPrimaryJaringInput = {
@@ -864,6 +1039,218 @@ export type BaketUpdateManyWithWhereWithoutPrimaryJaringInput = {
   data: Prisma.XOR<Prisma.BaketUpdateManyMutationInput, Prisma.BaketUncheckedUpdateManyWithoutPrimaryJaringInput>
 }
 
+export type BaketCreateWithoutJaringClusterInput = {
+  id?: string
+  status?: $Enums.BaketStatus
+  currentVersionNumber?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
+  primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
+  revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
+  alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
+}
+
+export type BaketUncheckedCreateWithoutJaringClusterInput = {
+  id?: string
+  createdByFieldOfficerAssignmentId: string
+  taskAssignmentId?: string | null
+  primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  status?: $Enums.BaketStatus
+  currentVersionNumber?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  versions?: Prisma.BaketVersionUncheckedCreateNestedManyWithoutBaketInput
+  revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
+  alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
+}
+
+export type BaketCreateOrConnectWithoutJaringClusterInput = {
+  where: Prisma.BaketWhereUniqueInput
+  create: Prisma.XOR<Prisma.BaketCreateWithoutJaringClusterInput, Prisma.BaketUncheckedCreateWithoutJaringClusterInput>
+}
+
+export type BaketCreateManyJaringClusterInputEnvelope = {
+  data: Prisma.BaketCreateManyJaringClusterInput | Prisma.BaketCreateManyJaringClusterInput[]
+  skipDuplicates?: boolean
+}
+
+export type BaketUpsertWithWhereUniqueWithoutJaringClusterInput = {
+  where: Prisma.BaketWhereUniqueInput
+  update: Prisma.XOR<Prisma.BaketUpdateWithoutJaringClusterInput, Prisma.BaketUncheckedUpdateWithoutJaringClusterInput>
+  create: Prisma.XOR<Prisma.BaketCreateWithoutJaringClusterInput, Prisma.BaketUncheckedCreateWithoutJaringClusterInput>
+}
+
+export type BaketUpdateWithWhereUniqueWithoutJaringClusterInput = {
+  where: Prisma.BaketWhereUniqueInput
+  data: Prisma.XOR<Prisma.BaketUpdateWithoutJaringClusterInput, Prisma.BaketUncheckedUpdateWithoutJaringClusterInput>
+}
+
+export type BaketUpdateManyWithWhereWithoutJaringClusterInput = {
+  where: Prisma.BaketScalarWhereInput
+  data: Prisma.XOR<Prisma.BaketUpdateManyMutationInput, Prisma.BaketUncheckedUpdateManyWithoutJaringClusterInput>
+}
+
+export type BaketCreateWithoutReportCategoryInput = {
+  id?: string
+  status?: $Enums.BaketStatus
+  currentVersionNumber?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
+  primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
+  versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
+  revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
+  alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
+}
+
+export type BaketUncheckedCreateWithoutReportCategoryInput = {
+  id?: string
+  createdByFieldOfficerAssignmentId: string
+  taskAssignmentId?: string | null
+  primaryJaringId?: string | null
+  jaringClusterId?: string | null
+  status?: $Enums.BaketStatus
+  currentVersionNumber?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  versions?: Prisma.BaketVersionUncheckedCreateNestedManyWithoutBaketInput
+  revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
+  alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
+}
+
+export type BaketCreateOrConnectWithoutReportCategoryInput = {
+  where: Prisma.BaketWhereUniqueInput
+  create: Prisma.XOR<Prisma.BaketCreateWithoutReportCategoryInput, Prisma.BaketUncheckedCreateWithoutReportCategoryInput>
+}
+
+export type BaketCreateManyReportCategoryInputEnvelope = {
+  data: Prisma.BaketCreateManyReportCategoryInput | Prisma.BaketCreateManyReportCategoryInput[]
+  skipDuplicates?: boolean
+}
+
+export type BaketUpsertWithWhereUniqueWithoutReportCategoryInput = {
+  where: Prisma.BaketWhereUniqueInput
+  update: Prisma.XOR<Prisma.BaketUpdateWithoutReportCategoryInput, Prisma.BaketUncheckedUpdateWithoutReportCategoryInput>
+  create: Prisma.XOR<Prisma.BaketCreateWithoutReportCategoryInput, Prisma.BaketUncheckedCreateWithoutReportCategoryInput>
+}
+
+export type BaketUpdateWithWhereUniqueWithoutReportCategoryInput = {
+  where: Prisma.BaketWhereUniqueInput
+  data: Prisma.XOR<Prisma.BaketUpdateWithoutReportCategoryInput, Prisma.BaketUncheckedUpdateWithoutReportCategoryInput>
+}
+
+export type BaketUpdateManyWithWhereWithoutReportCategoryInput = {
+  where: Prisma.BaketScalarWhereInput
+  data: Prisma.XOR<Prisma.BaketUpdateManyMutationInput, Prisma.BaketUncheckedUpdateManyWithoutReportCategoryInput>
+}
+
+export type BaketCreateWithoutConvertedSourceMessagesInput = {
+  id?: string
+  status?: $Enums.BaketStatus
+  currentVersionNumber?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
+  primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
+  versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
+  revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
+  alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+}
+
+export type BaketUncheckedCreateWithoutConvertedSourceMessagesInput = {
+  id?: string
+  createdByFieldOfficerAssignmentId: string
+  taskAssignmentId?: string | null
+  primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
+  status?: $Enums.BaketStatus
+  currentVersionNumber?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  versions?: Prisma.BaketVersionUncheckedCreateNestedManyWithoutBaketInput
+  revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
+  alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+}
+
+export type BaketCreateOrConnectWithoutConvertedSourceMessagesInput = {
+  where: Prisma.BaketWhereUniqueInput
+  create: Prisma.XOR<Prisma.BaketCreateWithoutConvertedSourceMessagesInput, Prisma.BaketUncheckedCreateWithoutConvertedSourceMessagesInput>
+}
+
+export type BaketUpsertWithoutConvertedSourceMessagesInput = {
+  update: Prisma.XOR<Prisma.BaketUpdateWithoutConvertedSourceMessagesInput, Prisma.BaketUncheckedUpdateWithoutConvertedSourceMessagesInput>
+  create: Prisma.XOR<Prisma.BaketCreateWithoutConvertedSourceMessagesInput, Prisma.BaketUncheckedCreateWithoutConvertedSourceMessagesInput>
+  where?: Prisma.BaketWhereInput
+}
+
+export type BaketUpdateToOneWithWhereWithoutConvertedSourceMessagesInput = {
+  where?: Prisma.BaketWhereInput
+  data: Prisma.XOR<Prisma.BaketUpdateWithoutConvertedSourceMessagesInput, Prisma.BaketUncheckedUpdateWithoutConvertedSourceMessagesInput>
+}
+
+export type BaketUpdateWithoutConvertedSourceMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
+  currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
+  primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
+  versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
+  revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
+  alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+}
+
+export type BaketUncheckedUpdateWithoutConvertedSourceMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
+  currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  versions?: Prisma.BaketVersionUncheckedUpdateManyWithoutBaketNestedInput
+  revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
+  alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+}
+
 export type BaketCreateWithoutVersionsInput = {
   id?: string
   status?: $Enums.BaketStatus
@@ -871,12 +1258,15 @@ export type BaketCreateWithoutVersionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketUncheckedCreateWithoutVersionsInput = {
@@ -884,6 +1274,8 @@ export type BaketUncheckedCreateWithoutVersionsInput = {
   createdByFieldOfficerAssignmentId: string
   taskAssignmentId?: string | null
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -892,6 +1284,7 @@ export type BaketUncheckedCreateWithoutVersionsInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketCreateOrConnectWithoutVersionsInput = {
@@ -917,12 +1310,15 @@ export type BaketUpdateWithoutVersionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateWithoutVersionsInput = {
@@ -930,6 +1326,8 @@ export type BaketUncheckedUpdateWithoutVersionsInput = {
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -938,6 +1336,7 @@ export type BaketUncheckedUpdateWithoutVersionsInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketCreateWithoutRevisionRequestsInput = {
@@ -947,12 +1346,15 @@ export type BaketCreateWithoutRevisionRequestsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketUncheckedCreateWithoutRevisionRequestsInput = {
@@ -960,6 +1362,8 @@ export type BaketUncheckedCreateWithoutRevisionRequestsInput = {
   createdByFieldOfficerAssignmentId: string
   taskAssignmentId?: string | null
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -968,6 +1372,7 @@ export type BaketUncheckedCreateWithoutRevisionRequestsInput = {
   versions?: Prisma.BaketVersionUncheckedCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketCreateOrConnectWithoutRevisionRequestsInput = {
@@ -993,12 +1398,15 @@ export type BaketUpdateWithoutRevisionRequestsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateWithoutRevisionRequestsInput = {
@@ -1006,6 +1414,8 @@ export type BaketUncheckedUpdateWithoutRevisionRequestsInput = {
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1014,6 +1424,7 @@ export type BaketUncheckedUpdateWithoutRevisionRequestsInput = {
   versions?: Prisma.BaketVersionUncheckedUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketCreateWithoutRelatedCrossReferencesInput = {
@@ -1023,12 +1434,15 @@ export type BaketCreateWithoutRelatedCrossReferencesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
   alerts?: Prisma.AlertCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketUncheckedCreateWithoutRelatedCrossReferencesInput = {
@@ -1036,6 +1450,8 @@ export type BaketUncheckedCreateWithoutRelatedCrossReferencesInput = {
   createdByFieldOfficerAssignmentId: string
   taskAssignmentId?: string | null
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -1044,6 +1460,7 @@ export type BaketUncheckedCreateWithoutRelatedCrossReferencesInput = {
   versions?: Prisma.BaketVersionUncheckedCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutSourceBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketCreateOrConnectWithoutRelatedCrossReferencesInput = {
@@ -1069,12 +1486,15 @@ export type BaketUpdateWithoutRelatedCrossReferencesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateWithoutRelatedCrossReferencesInput = {
@@ -1082,6 +1502,8 @@ export type BaketUncheckedUpdateWithoutRelatedCrossReferencesInput = {
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1090,6 +1512,7 @@ export type BaketUncheckedUpdateWithoutRelatedCrossReferencesInput = {
   versions?: Prisma.BaketVersionUncheckedUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketCreateWithoutAlertsInput = {
@@ -1099,12 +1522,15 @@ export type BaketCreateWithoutAlertsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   deletedAt?: Date | string | null
-  createdByFieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketsCreatedInput
+  createdByFieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketsCreatedInput
   taskAssignment?: Prisma.TaskAssignmentCreateNestedOneWithoutBaketsInput
   primaryJaring?: Prisma.JaringCreateNestedOneWithoutPrimaryBaketsInput
+  reportCategory?: Prisma.ReportCategoryCreateNestedOneWithoutBaketsInput
+  jaringCluster?: Prisma.JaringClusterCreateNestedOneWithoutBaketsInput
   versions?: Prisma.BaketVersionCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceCreateNestedManyWithoutRelatedBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketUncheckedCreateWithoutAlertsInput = {
@@ -1112,6 +1538,8 @@ export type BaketUncheckedCreateWithoutAlertsInput = {
   createdByFieldOfficerAssignmentId: string
   taskAssignmentId?: string | null
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -1120,6 +1548,7 @@ export type BaketUncheckedCreateWithoutAlertsInput = {
   versions?: Prisma.BaketVersionUncheckedCreateNestedManyWithoutBaketInput
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedCreateNestedManyWithoutBaketInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedCreateNestedManyWithoutRelatedBaketInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput
 }
 
 export type BaketCreateOrConnectWithoutAlertsInput = {
@@ -1145,12 +1574,15 @@ export type BaketUpdateWithoutAlertsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateWithoutAlertsInput = {
@@ -1158,6 +1590,8 @@ export type BaketUncheckedUpdateWithoutAlertsInput = {
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1166,12 +1600,15 @@ export type BaketUncheckedUpdateWithoutAlertsInput = {
   versions?: Prisma.BaketVersionUncheckedUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketCreateManyCreatedByFieldOfficerAssignmentInput = {
   id?: string
   taskAssignmentId?: string | null
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -1188,16 +1625,21 @@ export type BaketUpdateWithoutCreatedByFieldOfficerAssignmentInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateWithoutCreatedByFieldOfficerAssignmentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1207,12 +1649,15 @@ export type BaketUncheckedUpdateWithoutCreatedByFieldOfficerAssignmentInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateManyWithoutCreatedByFieldOfficerAssignmentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1224,6 +1669,8 @@ export type BaketCreateManyTaskAssignmentInput = {
   id?: string
   createdByFieldOfficerAssignmentId: string
   primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -1238,18 +1685,23 @@ export type BaketUpdateWithoutTaskAssignmentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateWithoutTaskAssignmentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1259,12 +1711,15 @@ export type BaketUncheckedUpdateWithoutTaskAssignmentInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateManyWithoutTaskAssignmentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1276,6 +1731,8 @@ export type BaketCreateManyPrimaryJaringInput = {
   id?: string
   createdByFieldOfficerAssignmentId: string
   taskAssignmentId?: string | null
+  reportCategoryId?: string | null
+  jaringClusterId?: string | null
   status?: $Enums.BaketStatus
   currentVersionNumber?: number
   createdAt?: Date | string
@@ -1290,18 +1747,23 @@ export type BaketUpdateWithoutPrimaryJaringInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdByFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
   taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
   versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
   revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateWithoutPrimaryJaringInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1311,12 +1773,139 @@ export type BaketUncheckedUpdateWithoutPrimaryJaringInput = {
   revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
   relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
 }
 
 export type BaketUncheckedUpdateManyWithoutPrimaryJaringInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
+  currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type BaketCreateManyJaringClusterInput = {
+  id?: string
+  createdByFieldOfficerAssignmentId: string
+  taskAssignmentId?: string | null
+  primaryJaringId?: string | null
+  reportCategoryId?: string | null
+  status?: $Enums.BaketStatus
+  currentVersionNumber?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type BaketUpdateWithoutJaringClusterInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
+  currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
+  primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  reportCategory?: Prisma.ReportCategoryUpdateOneWithoutBaketsNestedInput
+  versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
+  revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
+  alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
+}
+
+export type BaketUncheckedUpdateWithoutJaringClusterInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
+  currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  versions?: Prisma.BaketVersionUncheckedUpdateManyWithoutBaketNestedInput
+  revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
+  alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
+}
+
+export type BaketUncheckedUpdateManyWithoutJaringClusterInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reportCategoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
+  currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type BaketCreateManyReportCategoryInput = {
+  id?: string
+  createdByFieldOfficerAssignmentId: string
+  taskAssignmentId?: string | null
+  primaryJaringId?: string | null
+  jaringClusterId?: string | null
+  status?: $Enums.BaketStatus
+  currentVersionNumber?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type BaketUpdateWithoutReportCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
+  currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdByFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketsCreatedNestedInput
+  taskAssignment?: Prisma.TaskAssignmentUpdateOneWithoutBaketsNestedInput
+  primaryJaring?: Prisma.JaringUpdateOneWithoutPrimaryBaketsNestedInput
+  jaringCluster?: Prisma.JaringClusterUpdateOneWithoutBaketsNestedInput
+  versions?: Prisma.BaketVersionUpdateManyWithoutBaketNestedInput
+  revisionRequests?: Prisma.BaketRevisionRequestUpdateManyWithoutBaketNestedInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUpdateManyWithoutRelatedBaketNestedInput
+  alerts?: Prisma.AlertUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput
+}
+
+export type BaketUncheckedUpdateWithoutReportCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
+  currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  versions?: Prisma.BaketVersionUncheckedUpdateManyWithoutBaketNestedInput
+  revisionRequests?: Prisma.BaketRevisionRequestUncheckedUpdateManyWithoutBaketNestedInput
+  relatedCrossReferences?: Prisma.BaketVerificationCrossReferenceUncheckedUpdateManyWithoutRelatedBaketNestedInput
+  alerts?: Prisma.AlertUncheckedUpdateManyWithoutSourceBaketNestedInput
+  convertedSourceMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput
+}
+
+export type BaketUncheckedUpdateManyWithoutReportCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdByFieldOfficerAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  taskAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primaryJaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jaringClusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumBaketStatusFieldUpdateOperationsInput | $Enums.BaketStatus
   currentVersionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1334,6 +1923,7 @@ export type BaketCountOutputType = {
   revisionRequests: number
   relatedCrossReferences: number
   alerts: number
+  convertedSourceMessages: number
 }
 
 export type BaketCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1341,6 +1931,7 @@ export type BaketCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.
   revisionRequests?: boolean | BaketCountOutputTypeCountRevisionRequestsArgs
   relatedCrossReferences?: boolean | BaketCountOutputTypeCountRelatedCrossReferencesArgs
   alerts?: boolean | BaketCountOutputTypeCountAlertsArgs
+  convertedSourceMessages?: boolean | BaketCountOutputTypeCountConvertedSourceMessagesArgs
 }
 
 /**
@@ -1381,24 +1972,36 @@ export type BaketCountOutputTypeCountAlertsArgs<ExtArgs extends runtime.Types.Ex
   where?: Prisma.AlertWhereInput
 }
 
+/**
+ * BaketCountOutputType without action
+ */
+export type BaketCountOutputTypeCountConvertedSourceMessagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.WhatsAppMessageWhereInput
+}
+
 
 export type BaketSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   createdByFieldOfficerAssignmentId?: boolean
   taskAssignmentId?: boolean
   primaryJaringId?: boolean
+  reportCategoryId?: boolean
+  jaringClusterId?: boolean
   status?: boolean
   currentVersionNumber?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   deletedAt?: boolean
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
+  reportCategory?: boolean | Prisma.Baket$reportCategoryArgs<ExtArgs>
+  jaringCluster?: boolean | Prisma.Baket$jaringClusterArgs<ExtArgs>
   versions?: boolean | Prisma.Baket$versionsArgs<ExtArgs>
   revisionRequests?: boolean | Prisma.Baket$revisionRequestsArgs<ExtArgs>
   relatedCrossReferences?: boolean | Prisma.Baket$relatedCrossReferencesArgs<ExtArgs>
   alerts?: boolean | Prisma.Baket$alertsArgs<ExtArgs>
+  convertedSourceMessages?: boolean | Prisma.Baket$convertedSourceMessagesArgs<ExtArgs>
   _count?: boolean | Prisma.BaketCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["baket"]>
 
@@ -1407,14 +2010,18 @@ export type BaketSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   createdByFieldOfficerAssignmentId?: boolean
   taskAssignmentId?: boolean
   primaryJaringId?: boolean
+  reportCategoryId?: boolean
+  jaringClusterId?: boolean
   status?: boolean
   currentVersionNumber?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   deletedAt?: boolean
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
+  reportCategory?: boolean | Prisma.Baket$reportCategoryArgs<ExtArgs>
+  jaringCluster?: boolean | Prisma.Baket$jaringClusterArgs<ExtArgs>
 }, ExtArgs["result"]["baket"]>
 
 export type BaketSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1422,14 +2029,18 @@ export type BaketSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   createdByFieldOfficerAssignmentId?: boolean
   taskAssignmentId?: boolean
   primaryJaringId?: boolean
+  reportCategoryId?: boolean
+  jaringClusterId?: boolean
   status?: boolean
   currentVersionNumber?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   deletedAt?: boolean
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
+  reportCategory?: boolean | Prisma.Baket$reportCategoryArgs<ExtArgs>
+  jaringCluster?: boolean | Prisma.Baket$jaringClusterArgs<ExtArgs>
 }, ExtArgs["result"]["baket"]>
 
 export type BaketSelectScalar = {
@@ -1437,6 +2048,8 @@ export type BaketSelectScalar = {
   createdByFieldOfficerAssignmentId?: boolean
   taskAssignmentId?: boolean
   primaryJaringId?: boolean
+  reportCategoryId?: boolean
+  jaringClusterId?: boolean
   status?: boolean
   currentVersionNumber?: boolean
   createdAt?: boolean
@@ -1444,44 +2057,56 @@ export type BaketSelectScalar = {
   deletedAt?: boolean
 }
 
-export type BaketOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdByFieldOfficerAssignmentId" | "taskAssignmentId" | "primaryJaringId" | "status" | "currentVersionNumber" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["baket"]>
+export type BaketOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdByFieldOfficerAssignmentId" | "taskAssignmentId" | "primaryJaringId" | "reportCategoryId" | "jaringClusterId" | "status" | "currentVersionNumber" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["baket"]>
 export type BaketInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
+  reportCategory?: boolean | Prisma.Baket$reportCategoryArgs<ExtArgs>
+  jaringCluster?: boolean | Prisma.Baket$jaringClusterArgs<ExtArgs>
   versions?: boolean | Prisma.Baket$versionsArgs<ExtArgs>
   revisionRequests?: boolean | Prisma.Baket$revisionRequestsArgs<ExtArgs>
   relatedCrossReferences?: boolean | Prisma.Baket$relatedCrossReferencesArgs<ExtArgs>
   alerts?: boolean | Prisma.Baket$alertsArgs<ExtArgs>
+  convertedSourceMessages?: boolean | Prisma.Baket$convertedSourceMessagesArgs<ExtArgs>
   _count?: boolean | Prisma.BaketCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BaketIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
+  reportCategory?: boolean | Prisma.Baket$reportCategoryArgs<ExtArgs>
+  jaringCluster?: boolean | Prisma.Baket$jaringClusterArgs<ExtArgs>
 }
 export type BaketIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  createdByFieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByFieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   taskAssignment?: boolean | Prisma.Baket$taskAssignmentArgs<ExtArgs>
   primaryJaring?: boolean | Prisma.Baket$primaryJaringArgs<ExtArgs>
+  reportCategory?: boolean | Prisma.Baket$reportCategoryArgs<ExtArgs>
+  jaringCluster?: boolean | Prisma.Baket$jaringClusterArgs<ExtArgs>
 }
 
 export type $BaketPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Baket"
   objects: {
-    createdByFieldOfficerAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByFieldOfficerAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     taskAssignment: Prisma.$TaskAssignmentPayload<ExtArgs> | null
     primaryJaring: Prisma.$JaringPayload<ExtArgs> | null
+    reportCategory: Prisma.$ReportCategoryPayload<ExtArgs> | null
+    jaringCluster: Prisma.$JaringClusterPayload<ExtArgs> | null
     versions: Prisma.$BaketVersionPayload<ExtArgs>[]
     revisionRequests: Prisma.$BaketRevisionRequestPayload<ExtArgs>[]
     relatedCrossReferences: Prisma.$BaketVerificationCrossReferencePayload<ExtArgs>[]
     alerts: Prisma.$AlertPayload<ExtArgs>[]
+    convertedSourceMessages: Prisma.$WhatsAppMessagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     createdByFieldOfficerAssignmentId: string
     taskAssignmentId: string | null
     primaryJaringId: string | null
+    reportCategoryId: string | null
+    jaringClusterId: string | null
     status: $Enums.BaketStatus
     currentVersionNumber: number
     createdAt: Date
@@ -1881,13 +2506,16 @@ readonly fields: BaketFieldRefs;
  */
 export interface Prisma__BaketClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  createdByFieldOfficerAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByFieldOfficerAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   taskAssignment<T extends Prisma.Baket$taskAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$taskAssignmentArgs<ExtArgs>>): Prisma.Prisma__TaskAssignmentClient<runtime.Types.Result.GetResult<Prisma.$TaskAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   primaryJaring<T extends Prisma.Baket$primaryJaringArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$primaryJaringArgs<ExtArgs>>): Prisma.Prisma__JaringClient<runtime.Types.Result.GetResult<Prisma.$JaringPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  reportCategory<T extends Prisma.Baket$reportCategoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$reportCategoryArgs<ExtArgs>>): Prisma.Prisma__ReportCategoryClient<runtime.Types.Result.GetResult<Prisma.$ReportCategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  jaringCluster<T extends Prisma.Baket$jaringClusterArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$jaringClusterArgs<ExtArgs>>): Prisma.Prisma__JaringClusterClient<runtime.Types.Result.GetResult<Prisma.$JaringClusterPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   versions<T extends Prisma.Baket$versionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$versionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketVersionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   revisionRequests<T extends Prisma.Baket$revisionRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$revisionRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketRevisionRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   relatedCrossReferences<T extends Prisma.Baket$relatedCrossReferencesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$relatedCrossReferencesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketVerificationCrossReferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   alerts<T extends Prisma.Baket$alertsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$alertsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AlertPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  convertedSourceMessages<T extends Prisma.Baket$convertedSourceMessagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Baket$convertedSourceMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1921,6 +2549,8 @@ export interface BaketFieldRefs {
   readonly createdByFieldOfficerAssignmentId: Prisma.FieldRef<"Baket", 'String'>
   readonly taskAssignmentId: Prisma.FieldRef<"Baket", 'String'>
   readonly primaryJaringId: Prisma.FieldRef<"Baket", 'String'>
+  readonly reportCategoryId: Prisma.FieldRef<"Baket", 'String'>
+  readonly jaringClusterId: Prisma.FieldRef<"Baket", 'String'>
   readonly status: Prisma.FieldRef<"Baket", 'BaketStatus'>
   readonly currentVersionNumber: Prisma.FieldRef<"Baket", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Baket", 'DateTime'>
@@ -2365,6 +2995,44 @@ export type Baket$primaryJaringArgs<ExtArgs extends runtime.Types.Extensions.Int
 }
 
 /**
+ * Baket.reportCategory
+ */
+export type Baket$reportCategoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ReportCategory
+   */
+  select?: Prisma.ReportCategorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ReportCategory
+   */
+  omit?: Prisma.ReportCategoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReportCategoryInclude<ExtArgs> | null
+  where?: Prisma.ReportCategoryWhereInput
+}
+
+/**
+ * Baket.jaringCluster
+ */
+export type Baket$jaringClusterArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the JaringCluster
+   */
+  select?: Prisma.JaringClusterSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the JaringCluster
+   */
+  omit?: Prisma.JaringClusterOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JaringClusterInclude<ExtArgs> | null
+  where?: Prisma.JaringClusterWhereInput
+}
+
+/**
  * Baket.versions
  */
 export type Baket$versionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2458,6 +3126,30 @@ export type Baket$alertsArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.AlertScalarFieldEnum | Prisma.AlertScalarFieldEnum[]
+}
+
+/**
+ * Baket.convertedSourceMessages
+ */
+export type Baket$convertedSourceMessagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the WhatsAppMessage
+   */
+  select?: Prisma.WhatsAppMessageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the WhatsAppMessage
+   */
+  omit?: Prisma.WhatsAppMessageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WhatsAppMessageInclude<ExtArgs> | null
+  where?: Prisma.WhatsAppMessageWhereInput
+  orderBy?: Prisma.WhatsAppMessageOrderByWithRelationInput | Prisma.WhatsAppMessageOrderByWithRelationInput[]
+  cursor?: Prisma.WhatsAppMessageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.WhatsAppMessageScalarFieldEnum | Prisma.WhatsAppMessageScalarFieldEnum[]
 }
 
 /**

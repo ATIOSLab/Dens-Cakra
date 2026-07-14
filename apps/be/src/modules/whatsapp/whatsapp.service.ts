@@ -2,7 +2,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   AreaResolutionMethod,
+  BaketStatus,
   CoordinateSource,
+  FileLifecycleStatus,
   Prisma,
   WhatsAppMessageStatus,
   WhatsAppValidationSummary,
@@ -18,12 +20,31 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import type {
   DuplicateDto,
+  AssignCategoryDto,
+  CreateBaketFromMessageDto,
   LinkDto,
   MessageQuery,
   ReasonDto,
   ResolveDto,
   WebhookDto,
 } from './whatsapp.dto.js';
+
+const publicFileSelect = {
+  id: true,
+  storageKey: true,
+  originalName: true,
+  mimeType: true,
+  fileType: true,
+  checksumSha256: true,
+  lifecycleStatus: true,
+  scanResult: true,
+  scannedAt: true,
+  quarantineReason: true,
+  retentionUntil: true,
+  createdByAssignmentId: true,
+  createdAt: true,
+  deletedAt: true,
+} satisfies Prisma.FileAssetSelect;
 
 @Injectable()
 export class WhatsAppService {
@@ -33,14 +54,29 @@ export class WhatsAppService {
     private readonly vault: SecretVaultService,
   ) {}
 
-  private detail(id: string) {
-    return this.prisma.whatsAppMessage.findUniqueOrThrow({
-      where: { id },
+  private detail(id: string, assignmentId?: string) {
+    return this.prisma.whatsAppMessage.findFirstOrThrow({
+      where: {
+        id,
+        ...(assignmentId
+          ? { routedToFieldOfficerAssignmentId: assignmentId }
+          : {}),
+      },
       include: {
         integrationChannel: true,
-        jaring: true,
+        jaring: {
+          include: {
+            cluster: true,
+            areaCoverages: { include: { area: true } },
+          },
+        },
+        category: true,
         resolvedArea: true,
-        media: { include: { file: true } },
+        media: {
+          include: {
+            file: { select: publicFileSelect },
+          },
+        },
         validationIssues: true,
         routingLogs: true,
       },
@@ -123,46 +159,127 @@ export class WhatsAppService {
     return { eventId: event.id, accepted: true };
   }
 
-  async list(query: MessageQuery) {
+  async list(query: MessageQuery, context: AuthorizationContext) {
     return this.prisma.whatsAppMessage.findMany({
       where: {
         ...(query.status ? { status: query.status } : {}),
         ...(query.jaringId ? { jaringId: query.jaringId } : {}),
+        routedToFieldOfficerAssignmentId: context.primaryAssignmentId,
       },
       take: query.limit,
       orderBy: { receivedAt: 'desc' },
       include: {
-        jaring: true,
+        jaring: {
+          include: {
+            cluster: true,
+            areaCoverages: { include: { area: true } },
+          },
+        },
+        category: true,
         resolvedArea: true,
         validationIssues: true,
-        media: true,
+        media: { include: { file: { select: publicFileSelect } } },
       },
     });
   }
 
-  async get(id: string) {
-    return this.detail(id);
+  async get(id: string, context: AuthorizationContext) {
+    return this.detail(id, context.primaryAssignmentId);
   }
 
-  async link(id: string, body: LinkDto) {
+  async link(id: string, body: LinkDto, context: AuthorizationContext) {
+    await this.detail(id, context.primaryAssignmentId);
+    const ownedJaring = await this.prisma.jaring.findFirst({
+      where: {
+        id: body.jaringId,
+        deletedAt: null,
+        caretakerAssignments: {
+          some: {
+            fieldOfficerAssignmentId: context.primaryAssignmentId,
+            isActive: true,
+            validUntil: null,
+          },
+        },
+      },
+    });
+    if (!ownedJaring) {
+      throw new ApiException(
+        'JARING_NOT_FOUND',
+        'Jaring tidak ditemukan.',
+        404,
+      );
+    }
     await this.prisma.whatsAppMessage.update({
       where: { id },
       data: { jaringId: body.jaringId },
     });
-    return this.detail(id);
+    return this.detail(id, context.primaryAssignmentId);
   }
 
-  async validate(id: string) {
-    const message = await this.detail(id);
+  async assignCategory(
+    id: string,
+    body: AssignCategoryDto,
+    context: AuthorizationContext,
+  ) {
+    await this.detail(id, context.primaryAssignmentId);
+    const category = await this.prisma.reportCategory.findUnique({
+      where: { id: body.categoryId },
+    });
+
+    if (!category || !category.isActive) {
+      throw new ApiException(
+        'REPORT_CATEGORY_NOT_FOUND',
+        'Kategori laporan tidak aktif atau tidak ditemukan.',
+        422,
+      );
+    }
+
+    await this.prisma.whatsAppMessage.update({
+      where: { id },
+      data: { categoryId: category.id },
+    });
+
+    return this.detail(id, context.primaryAssignmentId);
+  }
+
+  async validate(id: string, context: AuthorizationContext) {
+    const message = await this.detail(id, context.primaryAssignmentId);
+    const rawPayload =
+      message.rawPayload &&
+      typeof message.rawPayload === 'object' &&
+      !Array.isArray(message.rawPayload)
+        ? (message.rawPayload as Record<string, unknown>)
+        : null;
+    const hasPhotoEvidence =
+      message.media.length > 0 ||
+      (typeof rawPayload?.photoMessageId === 'string' &&
+        rawPayload.photoMessageId.length > 0);
     const issues = [
       ...(!message.title ? [['MISSING_TITLE', 'Judul wajib tersedia']] : []),
       ...(!message.content ? [['MISSING_CONTENT', 'Isi wajib tersedia']] : []),
+      ...(!message.senderPhone
+        ? [['MISSING_SOURCE', 'Identitas pengirim wajib tersedia']]
+        : []),
+      ...(!message.jaringId
+        ? [['MISSING_JARING', 'Sumber Jaring wajib tersedia']]
+        : []),
+      ...(!message.receivedAt
+        ? [['MISSING_TIME', 'Waktu penerimaan wajib tersedia']]
+        : []),
       ...(message.latitude === null || message.longitude === null
         ? [['MISSING_GPS', 'GPS wajib tersedia']]
         : []),
-      ...(message.media.length === 0
-        ? [['MISSING_PHOTO', 'Foto wajib tersedia']]
+      ...(message.latitude !== null &&
+      message.longitude !== null &&
+      !message.resolvedAreaId
+        ? [
+            [
+              'UNRESOLVED_AREA',
+              'Wilayah administratif dari koordinat belum berhasil ditentukan',
+            ],
+          ]
         : []),
+      ...(!hasPhotoEvidence ? [['MISSING_PHOTO', 'Foto wajib tersedia']] : []),
     ];
 
     await this.prisma.$transaction(async (tx) => {
@@ -182,27 +299,31 @@ export class WhatsAppService {
           validationSummary: issues.length
             ? WhatsAppValidationSummary.INVALID
             : WhatsAppValidationSummary.VALID,
-          status: WhatsAppMessageStatus.UNDER_REVIEW,
+          status: issues.length
+            ? WhatsAppMessageStatus.UNDER_REVIEW
+            : WhatsAppMessageStatus.READY_FOR_BAKET,
         },
       });
     });
-    return this.detail(id);
+    return this.detail(id, context.primaryAssignmentId);
   }
 
-  async resolve(id: string, body: ResolveDto) {
-    const message = await this.prisma.whatsAppMessage.findUniqueOrThrow({
-      where: { id },
-    });
+  async resolve(id: string, body: ResolveDto, context: AuthorizationContext) {
+    const message = await this.detail(id, context.primaryAssignmentId);
     let areaId = body.areaId;
     let method: AreaResolutionMethod = AreaResolutionMethod.MANUAL_CONFIRMATION;
+    let confidence: number | null = null;
+    let resolvedAt = new Date();
 
     if (!areaId && message.latitude !== null && message.longitude !== null) {
-      const matches = await this.spatial.findContainingAreas(
+      const resolution = await this.spatial.resolveReportArea(
         Number(message.latitude),
         Number(message.longitude),
       );
-      areaId = matches[0]?.areaId;
-      method = AreaResolutionMethod.POLYGON_MATCH;
+      areaId = resolution.area?.areaId;
+      method = resolution.method;
+      confidence = resolution.confidence;
+      resolvedAt = resolution.resolvedAt ?? resolvedAt;
     }
 
     if (!areaId) {
@@ -218,19 +339,16 @@ export class WhatsAppService {
       data: {
         resolvedAreaId: areaId,
         areaResolutionMethod: method,
-        areaResolutionConfidence:
-          method === AreaResolutionMethod.POLYGON_MATCH ? 100 : null,
-        areaResolvedAt: new Date(),
+        areaResolutionConfidence: confidence,
+        areaResolvedAt: resolvedAt,
       },
     });
 
-    return this.detail(id);
+    return this.detail(id, context.primaryAssignmentId);
   }
 
   async route(id: string, context: AuthorizationContext) {
-    const message = await this.prisma.whatsAppMessage.findUniqueOrThrow({
-      where: { id },
-    });
+    const message = await this.detail(id, context.primaryAssignmentId);
     if (!message.jaringId) {
       throw new ApiException(
         'JARING_REQUIRED',
@@ -272,7 +390,8 @@ export class WhatsAppService {
     return this.detail(id);
   }
 
-  async spam(id: string, body: ReasonDto) {
+  async spam(id: string, body: ReasonDto, context: AuthorizationContext) {
+    await this.detail(id, context.primaryAssignmentId);
     await this.prisma.whatsAppMessage.update({
       where: { id },
       data: { status: WhatsAppMessageStatus.SPAM },
@@ -280,10 +399,16 @@ export class WhatsAppService {
     await this.prisma.whatsAppRoutingLog.create({
       data: { messageId: id, action: 'MARKED_SPAM', note: body.reason },
     });
-    return this.detail(id);
+    return this.detail(id, context.primaryAssignmentId);
   }
 
-  async duplicate(id: string, body: DuplicateDto) {
+  async duplicate(
+    id: string,
+    body: DuplicateDto,
+    context: AuthorizationContext,
+  ) {
+    await this.detail(id, context.primaryAssignmentId);
+    await this.detail(body.duplicateOfMessageId, context.primaryAssignmentId);
     await this.prisma.whatsAppMessage.update({
       where: { id },
       data: { status: WhatsAppMessageStatus.DUPLICATE },
@@ -295,57 +420,211 @@ export class WhatsAppService {
         note: `Duplicate of ${body.duplicateOfMessageId}. ${body.reason ?? ''}`,
       },
     });
-    return this.detail(id);
+    return this.detail(id, context.primaryAssignmentId);
   }
 
-  async logs(id: string) {
+  async logs(id: string, context: AuthorizationContext) {
+    await this.detail(id, context.primaryAssignmentId);
     return this.prisma.whatsAppRoutingLog.findMany({
       where: { messageId: id },
       orderBy: { createdAt: 'asc' },
     });
   }
 
-  async createBaket(id: string, context: AuthorizationContext) {
-    const message = await this.prisma.whatsAppMessage.findUniqueOrThrow({
-      where: { id },
-    });
-    if (message.validationSummary !== WhatsAppValidationSummary.VALID) {
-      throw new ApiException(
-        'MESSAGE_VALIDATION_REQUIRED',
-        'Message must pass validation.',
-        422,
-      );
-    }
-    return this.prisma.baket.create({
-      data: {
-        createdByFieldOfficerAssignmentId: context.primaryAssignmentId,
-        primaryJaringId: message.jaringId,
-        versions: {
-          create: {
-            versionNumber: 1,
-            title: message.title ?? 'Laporan Jaring',
-            originalContent: message.content ?? '',
-            eventAreaId: message.resolvedAreaId,
-            latitude: message.latitude,
-            longitude: message.longitude,
-            gpsAccuracyMeters: message.gpsAccuracyMeters,
-            locationCapturedAt: message.locationCapturedAt,
-            coordinateSource:
-              message.coordinateSource ?? CoordinateSource.WHATSAPP_LOCATION,
-            areaResolutionMethod: message.areaResolutionMethod,
-            areaResolutionConfidence: message.areaResolutionConfidence,
-            areaResolvedAt: message.areaResolvedAt,
-            createdByAssignmentId: context.primaryAssignmentId,
-            sourceMessages: { create: { messageId: id } },
+  async createBaket(
+    id: string,
+    body: CreateBaketFromMessageDto,
+    context: AuthorizationContext,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "WhatsAppMessage" WHERE id = ${id}::uuid FOR UPDATE`;
+      const message = await tx.whatsAppMessage.findFirst({
+        where: {
+          id,
+          routedToFieldOfficerAssignmentId: context.primaryAssignmentId,
+        },
+        include: {
+          jaring: { include: { cluster: true } },
+          media: {
+            include: {
+              file: { select: { lifecycleStatus: true } },
+            },
           },
         },
-      },
+      });
+      if (!message) {
+        throw new ApiException(
+          'WHATSAPP_MESSAGE_NOT_FOUND',
+          'Pesan tidak ditemukan.',
+          404,
+        );
+      }
+      if (message.convertedBaketId) {
+        return tx.baket.findUniqueOrThrow({
+          where: { id: message.convertedBaketId },
+          include: {
+            reportCategory: true,
+            jaringCluster: true,
+            primaryJaring: true,
+            versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
+          },
+        });
+      }
+      if (
+        message.validationSummary !== WhatsAppValidationSummary.VALID ||
+        message.status !== WhatsAppMessageStatus.READY_FOR_BAKET
+      ) {
+        throw new ApiException(
+          'MESSAGE_NOT_READY_FOR_BAKET',
+          'Pesan harus lolos validasi dan berada pada antrean Buat Baket.',
+          422,
+        );
+      }
+      if (!message.jaring || !message.jaring.cluster) {
+        throw new ApiException(
+          'JARING_CLUSTER_REQUIRED',
+          'Jaring sumber harus mempunyai klaster aktif.',
+          422,
+        );
+      }
+      if (!message.jaring.cluster.isActive) {
+        throw new ApiException(
+          'JARING_CLUSTER_INACTIVE',
+          'Klaster Jaring sumber sudah tidak aktif.',
+          422,
+        );
+      }
+      const category = await tx.reportCategory.findFirst({
+        where: { id: body.categoryId, isActive: true },
+      });
+      if (!category) {
+        throw new ApiException(
+          'REPORT_CATEGORY_NOT_FOUND',
+          'Kategori laporan tidak aktif atau tidak ditemukan.',
+          422,
+        );
+      }
+      if (body.taskAssignmentId) {
+        const taskAssignment = await tx.taskAssignment.findFirst({
+          where: {
+            id: body.taskAssignmentId,
+            assigneeAssignmentId: context.primaryAssignmentId,
+          },
+        });
+        if (!taskAssignment) {
+          throw new ApiException(
+            'TASK_ASSIGNMENT_NOT_FOUND',
+            'Tugas terkait tidak ditemukan pada assignment Field Officer.',
+            404,
+          );
+        }
+      }
+
+      const usableFileStatuses: FileLifecycleStatus[] = [
+        FileLifecycleStatus.CLEAN,
+        FileLifecycleStatus.UPLOADED,
+      ];
+      const usableMedia = message.media.filter((item) =>
+        usableFileStatuses.includes(item.file.lifecycleStatus),
+      );
+      if (!message.resolvedAreaId) {
+        throw new ApiException(
+          'MESSAGE_AREA_UNRESOLVED',
+          'Wilayah laporan belum tersimpan. Selesaikan resolusi lokasi sebelum membuat Baket.',
+          422,
+        );
+      }
+      const eventAreaId = message.resolvedAreaId;
+      const areaResolutionMethod = message.areaResolutionMethod;
+      const areaResolutionConfidence = message.areaResolutionConfidence;
+      const areaResolvedAt = message.areaResolvedAt;
+      const baket = await tx.baket.create({
+        data: {
+          status: BaketStatus.READY_TO_SEND,
+          createdByFieldOfficerAssignmentId: context.primaryAssignmentId,
+          taskAssignmentId: body.taskAssignmentId,
+          primaryJaringId: message.jaringId,
+          reportCategoryId: category.id,
+          jaringClusterId: message.jaring.cluster.id,
+          versions: {
+            create: {
+              versionNumber: 1,
+              title: body.title?.trim() || message.title || 'Laporan Jaring',
+              originalContent: message.content ?? '',
+              normalizedContent:
+                body.normalizedContent?.trim() || message.content,
+              eventTime: body.eventTime
+                ? new Date(body.eventTime)
+                : (message.locationCapturedAt ?? message.receivedAt),
+              eventAreaId,
+              latitude: message.latitude,
+              longitude: message.longitude,
+              gpsAccuracyMeters: message.gpsAccuracyMeters,
+              locationCapturedAt: message.locationCapturedAt,
+              coordinateSource:
+                message.coordinateSource ?? CoordinateSource.WHATSAPP_LOCATION,
+              areaResolutionMethod,
+              areaResolutionConfidence,
+              areaResolvedAt,
+              urgency: body.urgency,
+              fieldOfficerNote: body.fieldOfficerNote,
+              createdByAssignmentId: context.primaryAssignmentId,
+              sourceMessages: { create: { messageId: id } },
+              attachments: usableMedia.length
+                ? {
+                    create: usableMedia.map((item) => ({
+                      fileId: item.fileId,
+                      caption: item.caption,
+                    })),
+                  }
+                : undefined,
+            },
+          },
+        },
+        include: {
+          reportCategory: true,
+          jaringCluster: true,
+          primaryJaring: true,
+          versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
+        },
+      });
+      await tx.whatsAppMessage.update({
+        where: { id },
+        data: {
+          convertedBaketId: baket.id,
+          status: WhatsAppMessageStatus.PROCESSED,
+          processedAt: new Date(),
+          resolvedAreaId: eventAreaId,
+          areaResolutionMethod,
+          areaResolutionConfidence,
+          areaResolvedAt,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorUserProfileId: context.userProfileId,
+          actorAssignmentId: context.primaryAssignmentId,
+          action: 'WHATSAPP_MESSAGE.CONVERT_TO_BAKET',
+          entityType: 'Baket',
+          entityId: baket.id,
+          metadata: {
+            messageId: id,
+            categoryId: category.id,
+            jaringClusterId: message.jaring.cluster.id,
+            urgency: body.urgency,
+          },
+        },
+      });
+      return baket;
     });
   }
 
-  async summary() {
+  async summary(context: AuthorizationContext) {
     const grouped = await this.prisma.whatsAppMessage.groupBy({
       by: ['status'],
+      where: {
+        routedToFieldOfficerAssignmentId: context.primaryAssignmentId,
+      },
       _count: { _all: true },
     });
     return {

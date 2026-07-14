@@ -241,7 +241,7 @@ export type BaketRevisionRequestWhereInput = {
   baket?: Prisma.XOR<Prisma.BaketScalarRelationFilter, Prisma.BaketWhereInput>
   requestedAgainstVersion?: Prisma.XOR<Prisma.BaketVersionScalarRelationFilter, Prisma.BaketVersionWhereInput>
   resolvedByVersion?: Prisma.XOR<Prisma.BaketVersionNullableScalarRelationFilter, Prisma.BaketVersionWhereInput> | null
-  requestedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  requestedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
 }
 
 export type BaketRevisionRequestOrderByWithRelationInput = {
@@ -260,7 +260,7 @@ export type BaketRevisionRequestOrderByWithRelationInput = {
   baket?: Prisma.BaketOrderByWithRelationInput
   requestedAgainstVersion?: Prisma.BaketVersionOrderByWithRelationInput
   resolvedByVersion?: Prisma.BaketVersionOrderByWithRelationInput
-  requestedByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  requestedByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
 }
 
 export type BaketRevisionRequestWhereUniqueInput = Prisma.AtLeast<{
@@ -282,7 +282,7 @@ export type BaketRevisionRequestWhereUniqueInput = Prisma.AtLeast<{
   baket?: Prisma.XOR<Prisma.BaketScalarRelationFilter, Prisma.BaketWhereInput>
   requestedAgainstVersion?: Prisma.XOR<Prisma.BaketVersionScalarRelationFilter, Prisma.BaketVersionWhereInput>
   resolvedByVersion?: Prisma.XOR<Prisma.BaketVersionNullableScalarRelationFilter, Prisma.BaketVersionWhereInput> | null
-  requestedByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  requestedByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
 }, "id">
 
 export type BaketRevisionRequestOrderByWithAggregationInput = {
@@ -333,7 +333,7 @@ export type BaketRevisionRequestCreateInput = {
   baket: Prisma.BaketCreateNestedOneWithoutRevisionRequestsInput
   requestedAgainstVersion: Prisma.BaketVersionCreateNestedOneWithoutRequestedRevisionsInput
   resolvedByVersion?: Prisma.BaketVersionCreateNestedOneWithoutResolvingRevisionsInput
-  requestedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketRevisionRequestsInput
+  requestedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketRevisionRequestsInput
 }
 
 export type BaketRevisionRequestUncheckedCreateInput = {
@@ -363,7 +363,7 @@ export type BaketRevisionRequestUpdateInput = {
   baket?: Prisma.BaketUpdateOneRequiredWithoutRevisionRequestsNestedInput
   requestedAgainstVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutRequestedRevisionsNestedInput
   resolvedByVersion?: Prisma.BaketVersionUpdateOneWithoutResolvingRevisionsNestedInput
-  requestedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketRevisionRequestsNestedInput
+  requestedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketRevisionRequestsNestedInput
 }
 
 export type BaketRevisionRequestUncheckedUpdateInput = {
@@ -732,7 +732,7 @@ export type BaketRevisionRequestCreateWithoutBaketInput = {
   updatedAt?: Date | string
   requestedAgainstVersion: Prisma.BaketVersionCreateNestedOneWithoutRequestedRevisionsInput
   resolvedByVersion?: Prisma.BaketVersionCreateNestedOneWithoutResolvingRevisionsInput
-  requestedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketRevisionRequestsInput
+  requestedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketRevisionRequestsInput
 }
 
 export type BaketRevisionRequestUncheckedCreateWithoutBaketInput = {
@@ -786,7 +786,7 @@ export type BaketRevisionRequestCreateWithoutRequestedAgainstVersionInput = {
   updatedAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutRevisionRequestsInput
   resolvedByVersion?: Prisma.BaketVersionCreateNestedOneWithoutResolvingRevisionsInput
-  requestedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketRevisionRequestsInput
+  requestedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketRevisionRequestsInput
 }
 
 export type BaketRevisionRequestUncheckedCreateWithoutRequestedAgainstVersionInput = {
@@ -824,7 +824,7 @@ export type BaketRevisionRequestCreateWithoutResolvedByVersionInput = {
   updatedAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutRevisionRequestsInput
   requestedAgainstVersion: Prisma.BaketVersionCreateNestedOneWithoutRequestedRevisionsInput
-  requestedByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketRevisionRequestsInput
+  requestedByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketRevisionRequestsInput
 }
 
 export type BaketRevisionRequestUncheckedCreateWithoutResolvedByVersionInput = {
@@ -964,7 +964,7 @@ export type BaketRevisionRequestUpdateWithoutBaketInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   requestedAgainstVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutRequestedRevisionsNestedInput
   resolvedByVersion?: Prisma.BaketVersionUpdateOneWithoutResolvingRevisionsNestedInput
-  requestedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketRevisionRequestsNestedInput
+  requestedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketRevisionRequestsNestedInput
 }
 
 export type BaketRevisionRequestUncheckedUpdateWithoutBaketInput = {
@@ -1034,7 +1034,7 @@ export type BaketRevisionRequestUpdateWithoutRequestedAgainstVersionInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutRevisionRequestsNestedInput
   resolvedByVersion?: Prisma.BaketVersionUpdateOneWithoutResolvingRevisionsNestedInput
-  requestedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketRevisionRequestsNestedInput
+  requestedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketRevisionRequestsNestedInput
 }
 
 export type BaketRevisionRequestUncheckedUpdateWithoutRequestedAgainstVersionInput = {
@@ -1076,7 +1076,7 @@ export type BaketRevisionRequestUpdateWithoutResolvedByVersionInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutRevisionRequestsNestedInput
   requestedAgainstVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutRequestedRevisionsNestedInput
-  requestedByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketRevisionRequestsNestedInput
+  requestedByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketRevisionRequestsNestedInput
 }
 
 export type BaketRevisionRequestUncheckedUpdateWithoutResolvedByVersionInput = {
@@ -1125,7 +1125,7 @@ export type BaketRevisionRequestSelect<ExtArgs extends runtime.Types.Extensions.
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   requestedAgainstVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
   resolvedByVersion?: boolean | Prisma.BaketRevisionRequest$resolvedByVersionArgs<ExtArgs>
-  requestedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  requestedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["baketRevisionRequest"]>
 
 export type BaketRevisionRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1144,7 +1144,7 @@ export type BaketRevisionRequestSelectCreateManyAndReturn<ExtArgs extends runtim
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   requestedAgainstVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
   resolvedByVersion?: boolean | Prisma.BaketRevisionRequest$resolvedByVersionArgs<ExtArgs>
-  requestedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  requestedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["baketRevisionRequest"]>
 
 export type BaketRevisionRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1163,7 +1163,7 @@ export type BaketRevisionRequestSelectUpdateManyAndReturn<ExtArgs extends runtim
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   requestedAgainstVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
   resolvedByVersion?: boolean | Prisma.BaketRevisionRequest$resolvedByVersionArgs<ExtArgs>
-  requestedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  requestedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["baketRevisionRequest"]>
 
 export type BaketRevisionRequestSelectScalar = {
@@ -1186,19 +1186,19 @@ export type BaketRevisionRequestInclude<ExtArgs extends runtime.Types.Extensions
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   requestedAgainstVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
   resolvedByVersion?: boolean | Prisma.BaketRevisionRequest$resolvedByVersionArgs<ExtArgs>
-  requestedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  requestedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type BaketRevisionRequestIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   requestedAgainstVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
   resolvedByVersion?: boolean | Prisma.BaketRevisionRequest$resolvedByVersionArgs<ExtArgs>
-  requestedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  requestedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type BaketRevisionRequestIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   requestedAgainstVersion?: boolean | Prisma.BaketVersionDefaultArgs<ExtArgs>
   resolvedByVersion?: boolean | Prisma.BaketRevisionRequest$resolvedByVersionArgs<ExtArgs>
-  requestedByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  requestedByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $BaketRevisionRequestPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1207,7 +1207,7 @@ export type $BaketRevisionRequestPayload<ExtArgs extends runtime.Types.Extension
     baket: Prisma.$BaketPayload<ExtArgs>
     requestedAgainstVersion: Prisma.$BaketVersionPayload<ExtArgs>
     resolvedByVersion: Prisma.$BaketVersionPayload<ExtArgs> | null
-    requestedByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    requestedByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1619,7 +1619,7 @@ export interface Prisma__BaketRevisionRequestClient<T, Null = never, ExtArgs ext
   baket<T extends Prisma.BaketDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketDefaultArgs<ExtArgs>>): Prisma.Prisma__BaketClient<runtime.Types.Result.GetResult<Prisma.$BaketPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   requestedAgainstVersion<T extends Prisma.BaketVersionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVersionDefaultArgs<ExtArgs>>): Prisma.Prisma__BaketVersionClient<runtime.Types.Result.GetResult<Prisma.$BaketVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   resolvedByVersion<T extends Prisma.BaketRevisionRequest$resolvedByVersionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketRevisionRequest$resolvedByVersionArgs<ExtArgs>>): Prisma.Prisma__BaketVersionClient<runtime.Types.Result.GetResult<Prisma.$BaketVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  requestedByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  requestedByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.

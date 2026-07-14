@@ -1,1 +1,5 @@
-export { default } from "@/app/(main)/dashboard/coming-soon/page";
+import { AdminWaCenterPage } from "./_components/integrasi-wa-center-page";
+
+export default function Page() {
+  return <AdminWaCenterPage />;
+}

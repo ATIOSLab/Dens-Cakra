@@ -19,18 +19,6 @@ export class AreaScopeQueryDto {
   level?: AdministrativeLevel;
 }
 
-export class PermissionQueryDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  resourceType?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  resourceId?: string;
-}
-
 export class RevokeOtherSessionsDto {
   @IsOptional()
   @IsString()

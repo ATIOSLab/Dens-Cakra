@@ -1,36 +1,45 @@
 import type { ReactNode } from "react";
 
-import { Command } from "lucide-react";
-
-import { Separator } from "@/components/ui/separator";
-import { APP_CONFIG } from "@/config/app-config";
-
 export default function Layout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <main>
-      <div className="grid h-dvh justify-center p-2 lg:grid-cols-2">
-        <div className="relative order-2 hidden h-full rounded-3xl bg-primary lg:flex">
-          <div className="absolute top-10 space-y-1 px-10 text-primary-foreground">
-            <Command className="size-10" />
-            <h1 className="font-medium text-2xl">{APP_CONFIG.name}</h1>
-            <p className="text-sm">Design. Build. Launch. Repeat.</p>
-          </div>
+    <main className="min-h-dvh w-full flex flex-col items-center justify-center relative bg-background overflow-hidden p-4 select-none">
+      {/* 1. Fine-mesh visual grid layer */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-[0.25] dark:opacity-[0.4]"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(20, 184, 255, 0.06) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(20, 184, 255, 0.06) 1px, transparent 1px)
+          `,
+          backgroundSize: "24px 24px"
+        }}
+      />
 
-          <div className="absolute bottom-10 flex w-full justify-between px-10">
-            <div className="flex-1 space-y-1 text-primary-foreground">
-              <h2 className="font-medium">Ready to launch?</h2>
-              <p className="text-sm">Clone the repo, install dependencies, and your dashboard is live in minutes.</p>
-            </div>
-            <Separator orientation="vertical" className="mx-3 h-auto!" />
-            <div className="flex-1 space-y-1 text-primary-foreground">
-              <h2 className="font-medium">Need help?</h2>
-              <p className="text-sm">
-                Check out the docs or open an issue on GitHub, community support is just a click away.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="relative order-1 flex h-full">{children}</div>
+      {/* 2. Topographical wave contour layer (Subtle custom SVG data-URI) */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-[0.4] dark:opacity-[0.6]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cpath d='M0 20 Q40 40 80 20 T160 20 M0 60 Q40 80 80 60 T160 60 M0 100 Q40 120 80 100 T160 100 M0 140 Q40 160 80 140 T160 140' fill='none' stroke='rgba(20,184,255,0.025)' stroke-width='1.5'/%3E%3C/svg%3E")`,
+          backgroundSize: "160px 160px"
+        }}
+      />
+
+      {/* 3. Noise / Grain density overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-[0.15] dark:opacity-[0.25]"
+        style={{
+          backgroundImage: `radial-gradient(rgba(20, 184, 255, 0.12) 0.5px, transparent 0.5px)`,
+          backgroundSize: "8px 8px"
+        }}
+      />
+
+      {/* 4. Ambient radial color glow circles */}
+      <div className="absolute -top-[25%] -left-[15%] w-[60%] h-[60%] bg-cyan-500/[0.04] dark:bg-cyan-500/[0.08] rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute -bottom-[25%] -right-[15%] w-[60%] h-[60%] bg-[#14B8FF]/[0.04] dark:bg-[#14B8FF]/[0.08] rounded-full blur-[130px] pointer-events-none" />
+
+      {/* Dynamic Children Content (Centred Login/Auth Views) */}
+      <div className="w-full flex flex-col items-center justify-center relative z-10 animate-fade-in">
+        {children}
       </div>
     </main>
   );

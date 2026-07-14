@@ -30,6 +30,7 @@ export type PositionMinAggregateOutputType = {
   code: $Enums.PositionCode | null
   title: string | null
   roleId: string | null
+  branch: $Enums.CommandRouteType | null
   organizationUnitId: string | null
   reportsToPositionId: string | null
   isActive: boolean | null
@@ -43,6 +44,7 @@ export type PositionMaxAggregateOutputType = {
   code: $Enums.PositionCode | null
   title: string | null
   roleId: string | null
+  branch: $Enums.CommandRouteType | null
   organizationUnitId: string | null
   reportsToPositionId: string | null
   isActive: boolean | null
@@ -56,6 +58,7 @@ export type PositionCountAggregateOutputType = {
   code: number
   title: number
   roleId: number
+  branch: number
   organizationUnitId: number
   reportsToPositionId: number
   isActive: number
@@ -71,6 +74,7 @@ export type PositionMinAggregateInputType = {
   code?: true
   title?: true
   roleId?: true
+  branch?: true
   organizationUnitId?: true
   reportsToPositionId?: true
   isActive?: true
@@ -84,6 +88,7 @@ export type PositionMaxAggregateInputType = {
   code?: true
   title?: true
   roleId?: true
+  branch?: true
   organizationUnitId?: true
   reportsToPositionId?: true
   isActive?: true
@@ -97,6 +102,7 @@ export type PositionCountAggregateInputType = {
   code?: true
   title?: true
   roleId?: true
+  branch?: true
   organizationUnitId?: true
   reportsToPositionId?: true
   isActive?: true
@@ -183,6 +189,7 @@ export type PositionGroupByOutputType = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId: string | null
   isActive: boolean
@@ -217,6 +224,7 @@ export type PositionWhereInput = {
   code?: Prisma.EnumPositionCodeFilter<"Position"> | $Enums.PositionCode
   title?: Prisma.StringFilter<"Position"> | string
   roleId?: Prisma.UuidFilter<"Position"> | string
+  branch?: Prisma.EnumCommandRouteTypeNullableFilter<"Position"> | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.UuidFilter<"Position"> | string
   reportsToPositionId?: Prisma.UuidNullableFilter<"Position"> | string | null
   isActive?: Prisma.BoolFilter<"Position"> | boolean
@@ -226,7 +234,8 @@ export type PositionWhereInput = {
   organizationUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
   reportsTo?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
   subordinates?: Prisma.PositionListRelationFilter
-  assignments?: Prisma.PositionAssignmentListRelationFilter
+  roleSeats?: Prisma.OrganizationRoleSeatListRelationFilter
+  assignments?: Prisma.UserSeatAssignmentListRelationFilter
   directiveRecipients?: Prisma.DirectiveRecipientListRelationFilter
   approvalSteps?: Prisma.ProductApprovalStepListRelationFilter
   productDistributions?: Prisma.ProductDistributionListRelationFilter
@@ -239,6 +248,7 @@ export type PositionOrderByWithRelationInput = {
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
   roleId?: Prisma.SortOrder
+  branch?: Prisma.SortOrderInput | Prisma.SortOrder
   organizationUnitId?: Prisma.SortOrder
   reportsToPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -248,7 +258,8 @@ export type PositionOrderByWithRelationInput = {
   organizationUnit?: Prisma.OrganizationUnitOrderByWithRelationInput
   reportsTo?: Prisma.PositionOrderByWithRelationInput
   subordinates?: Prisma.PositionOrderByRelationAggregateInput
-  assignments?: Prisma.PositionAssignmentOrderByRelationAggregateInput
+  roleSeats?: Prisma.OrganizationRoleSeatOrderByRelationAggregateInput
+  assignments?: Prisma.UserSeatAssignmentOrderByRelationAggregateInput
   directiveRecipients?: Prisma.DirectiveRecipientOrderByRelationAggregateInput
   approvalSteps?: Prisma.ProductApprovalStepOrderByRelationAggregateInput
   productDistributions?: Prisma.ProductDistributionOrderByRelationAggregateInput
@@ -264,6 +275,7 @@ export type PositionWhereUniqueInput = Prisma.AtLeast<{
   code?: Prisma.EnumPositionCodeFilter<"Position"> | $Enums.PositionCode
   title?: Prisma.StringFilter<"Position"> | string
   roleId?: Prisma.UuidFilter<"Position"> | string
+  branch?: Prisma.EnumCommandRouteTypeNullableFilter<"Position"> | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.UuidFilter<"Position"> | string
   reportsToPositionId?: Prisma.UuidNullableFilter<"Position"> | string | null
   isActive?: Prisma.BoolFilter<"Position"> | boolean
@@ -273,7 +285,8 @@ export type PositionWhereUniqueInput = Prisma.AtLeast<{
   organizationUnit?: Prisma.XOR<Prisma.OrganizationUnitScalarRelationFilter, Prisma.OrganizationUnitWhereInput>
   reportsTo?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
   subordinates?: Prisma.PositionListRelationFilter
-  assignments?: Prisma.PositionAssignmentListRelationFilter
+  roleSeats?: Prisma.OrganizationRoleSeatListRelationFilter
+  assignments?: Prisma.UserSeatAssignmentListRelationFilter
   directiveRecipients?: Prisma.DirectiveRecipientListRelationFilter
   approvalSteps?: Prisma.ProductApprovalStepListRelationFilter
   productDistributions?: Prisma.ProductDistributionListRelationFilter
@@ -286,6 +299,7 @@ export type PositionOrderByWithAggregationInput = {
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
   roleId?: Prisma.SortOrder
+  branch?: Prisma.SortOrderInput | Prisma.SortOrder
   organizationUnitId?: Prisma.SortOrder
   reportsToPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -305,6 +319,7 @@ export type PositionScalarWhereWithAggregatesInput = {
   code?: Prisma.EnumPositionCodeWithAggregatesFilter<"Position"> | $Enums.PositionCode
   title?: Prisma.StringWithAggregatesFilter<"Position"> | string
   roleId?: Prisma.UuidWithAggregatesFilter<"Position"> | string
+  branch?: Prisma.EnumCommandRouteTypeNullableWithAggregatesFilter<"Position"> | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.UuidWithAggregatesFilter<"Position"> | string
   reportsToPositionId?: Prisma.UuidNullableWithAggregatesFilter<"Position"> | string | null
   isActive?: Prisma.BoolWithAggregatesFilter<"Position"> | boolean
@@ -317,6 +332,7 @@ export type PositionCreateInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -324,7 +340,8 @@ export type PositionCreateInput = {
   organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -337,13 +354,15 @@ export type PositionUncheckedCreateInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -355,6 +374,7 @@ export type PositionUpdateInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -362,7 +382,8 @@ export type PositionUpdateInput = {
   organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -375,13 +396,15 @@ export type PositionUncheckedUpdateInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -394,6 +417,7 @@ export type PositionCreateManyInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
@@ -406,6 +430,7 @@ export type PositionUpdateManyMutationInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -417,6 +442,7 @@ export type PositionUncheckedUpdateManyInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -445,6 +471,7 @@ export type PositionCountOrderByAggregateInput = {
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
   roleId?: Prisma.SortOrder
+  branch?: Prisma.SortOrder
   organizationUnitId?: Prisma.SortOrder
   reportsToPositionId?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -458,6 +485,7 @@ export type PositionMaxOrderByAggregateInput = {
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
   roleId?: Prisma.SortOrder
+  branch?: Prisma.SortOrder
   organizationUnitId?: Prisma.SortOrder
   reportsToPositionId?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -471,6 +499,7 @@ export type PositionMinOrderByAggregateInput = {
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
   roleId?: Prisma.SortOrder
+  branch?: Prisma.SortOrder
   organizationUnitId?: Prisma.SortOrder
   reportsToPositionId?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -629,6 +658,22 @@ export type PositionUncheckedUpdateManyWithoutReportsToNestedInput = {
   deleteMany?: Prisma.PositionScalarWhereInput | Prisma.PositionScalarWhereInput[]
 }
 
+export type PositionCreateNestedOneWithoutRoleSeatsInput = {
+  create?: Prisma.XOR<Prisma.PositionCreateWithoutRoleSeatsInput, Prisma.PositionUncheckedCreateWithoutRoleSeatsInput>
+  connectOrCreate?: Prisma.PositionCreateOrConnectWithoutRoleSeatsInput
+  connect?: Prisma.PositionWhereUniqueInput
+}
+
+export type PositionUpdateOneWithoutRoleSeatsNestedInput = {
+  create?: Prisma.XOR<Prisma.PositionCreateWithoutRoleSeatsInput, Prisma.PositionUncheckedCreateWithoutRoleSeatsInput>
+  connectOrCreate?: Prisma.PositionCreateOrConnectWithoutRoleSeatsInput
+  upsert?: Prisma.PositionUpsertWithoutRoleSeatsInput
+  disconnect?: Prisma.PositionWhereInput | boolean
+  delete?: Prisma.PositionWhereInput | boolean
+  connect?: Prisma.PositionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PositionUpdateToOneWithWhereWithoutRoleSeatsInput, Prisma.PositionUpdateWithoutRoleSeatsInput>, Prisma.PositionUncheckedUpdateWithoutRoleSeatsInput>
+}
+
 export type PositionCreateNestedOneWithoutAssignmentsInput = {
   create?: Prisma.XOR<Prisma.PositionCreateWithoutAssignmentsInput, Prisma.PositionUncheckedCreateWithoutAssignmentsInput>
   connectOrCreate?: Prisma.PositionCreateOrConnectWithoutAssignmentsInput
@@ -665,10 +710,12 @@ export type PositionCreateNestedOneWithoutApprovalStepsInput = {
   connect?: Prisma.PositionWhereUniqueInput
 }
 
-export type PositionUpdateOneRequiredWithoutApprovalStepsNestedInput = {
+export type PositionUpdateOneWithoutApprovalStepsNestedInput = {
   create?: Prisma.XOR<Prisma.PositionCreateWithoutApprovalStepsInput, Prisma.PositionUncheckedCreateWithoutApprovalStepsInput>
   connectOrCreate?: Prisma.PositionCreateOrConnectWithoutApprovalStepsInput
   upsert?: Prisma.PositionUpsertWithoutApprovalStepsInput
+  disconnect?: Prisma.PositionWhereInput | boolean
+  delete?: Prisma.PositionWhereInput | boolean
   connect?: Prisma.PositionWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.PositionUpdateToOneWithWhereWithoutApprovalStepsInput, Prisma.PositionUpdateWithoutApprovalStepsInput>, Prisma.PositionUncheckedUpdateWithoutApprovalStepsInput>
 }
@@ -710,13 +757,15 @@ export type PositionCreateWithoutRoleInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -728,13 +777,15 @@ export type PositionUncheckedCreateWithoutRoleInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -776,6 +827,7 @@ export type PositionScalarWhereInput = {
   code?: Prisma.EnumPositionCodeFilter<"Position"> | $Enums.PositionCode
   title?: Prisma.StringFilter<"Position"> | string
   roleId?: Prisma.UuidFilter<"Position"> | string
+  branch?: Prisma.EnumCommandRouteTypeNullableFilter<"Position"> | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.UuidFilter<"Position"> | string
   reportsToPositionId?: Prisma.UuidNullableFilter<"Position"> | string | null
   isActive?: Prisma.BoolFilter<"Position"> | boolean
@@ -788,13 +840,15 @@ export type PositionCreateWithoutOrganizationUnitInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   role: Prisma.RoleCreateNestedOneWithoutPositionsInput
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -807,12 +861,14 @@ export type PositionUncheckedCreateWithoutOrganizationUnitInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -850,13 +906,15 @@ export type PositionCreateWithoutSubordinatesInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   role: Prisma.RoleCreateNestedOneWithoutPositionsInput
   organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
-  assignments?: Prisma.PositionAssignmentCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -869,12 +927,14 @@ export type PositionUncheckedCreateWithoutSubordinatesInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  assignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -891,13 +951,15 @@ export type PositionCreateWithoutReportsToInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   role: Prisma.RoleCreateNestedOneWithoutPositionsInput
   organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -910,12 +972,14 @@ export type PositionUncheckedCreateWithoutReportsToInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -948,13 +1012,15 @@ export type PositionUpdateWithoutSubordinatesInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   role?: Prisma.RoleUpdateOneRequiredWithoutPositionsNestedInput
   organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
-  assignments?: Prisma.PositionAssignmentUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -967,12 +1033,14 @@ export type PositionUncheckedUpdateWithoutSubordinatesInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  assignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -995,11 +1063,12 @@ export type PositionUpdateManyWithWhereWithoutReportsToInput = {
   data: Prisma.XOR<Prisma.PositionUpdateManyMutationInput, Prisma.PositionUncheckedUpdateManyWithoutReportsToInput>
 }
 
-export type PositionCreateWithoutAssignmentsInput = {
+export type PositionCreateWithoutRoleSeatsInput = {
   id?: string
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1007,6 +1076,103 @@ export type PositionCreateWithoutAssignmentsInput = {
   organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
+  approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
+  productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
+  assignedAlerts?: Prisma.AlertCreateNestedManyWithoutAssignedPositionInput
+}
+
+export type PositionUncheckedCreateWithoutRoleSeatsInput = {
+  id?: string
+  seatCode: string
+  code: $Enums.PositionCode
+  title: string
+  roleId: string
+  branch?: $Enums.CommandRouteType | null
+  organizationUnitId: string
+  reportsToPositionId?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
+  approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
+  productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
+  assignedAlerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAssignedPositionInput
+}
+
+export type PositionCreateOrConnectWithoutRoleSeatsInput = {
+  where: Prisma.PositionWhereUniqueInput
+  create: Prisma.XOR<Prisma.PositionCreateWithoutRoleSeatsInput, Prisma.PositionUncheckedCreateWithoutRoleSeatsInput>
+}
+
+export type PositionUpsertWithoutRoleSeatsInput = {
+  update: Prisma.XOR<Prisma.PositionUpdateWithoutRoleSeatsInput, Prisma.PositionUncheckedUpdateWithoutRoleSeatsInput>
+  create: Prisma.XOR<Prisma.PositionCreateWithoutRoleSeatsInput, Prisma.PositionUncheckedCreateWithoutRoleSeatsInput>
+  where?: Prisma.PositionWhereInput
+}
+
+export type PositionUpdateToOneWithWhereWithoutRoleSeatsInput = {
+  where?: Prisma.PositionWhereInput
+  data: Prisma.XOR<Prisma.PositionUpdateWithoutRoleSeatsInput, Prisma.PositionUncheckedUpdateWithoutRoleSeatsInput>
+}
+
+export type PositionUpdateWithoutRoleSeatsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  seatCode?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.RoleUpdateOneRequiredWithoutPositionsNestedInput
+  organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
+  reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
+  subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
+  approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
+  productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
+  assignedAlerts?: Prisma.AlertUpdateManyWithoutAssignedPositionNestedInput
+}
+
+export type PositionUncheckedUpdateWithoutRoleSeatsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  seatCode?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
+  reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
+  approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
+  productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
+  assignedAlerts?: Prisma.AlertUncheckedUpdateManyWithoutAssignedPositionNestedInput
+}
+
+export type PositionCreateWithoutAssignmentsInput = {
+  id?: string
+  seatCode: string
+  code: $Enums.PositionCode
+  title: string
+  branch?: $Enums.CommandRouteType | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  role: Prisma.RoleCreateNestedOneWithoutPositionsInput
+  organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
+  reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
+  subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -1019,12 +1185,14 @@ export type PositionUncheckedCreateWithoutAssignmentsInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -1052,6 +1220,7 @@ export type PositionUpdateWithoutAssignmentsInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1059,6 +1228,7 @@ export type PositionUpdateWithoutAssignmentsInput = {
   organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1071,12 +1241,14 @@ export type PositionUncheckedUpdateWithoutAssignmentsInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1088,6 +1260,7 @@ export type PositionCreateWithoutDirectiveRecipientsInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1095,7 +1268,8 @@ export type PositionCreateWithoutDirectiveRecipientsInput = {
   organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertCreateNestedManyWithoutAssignedPositionInput
@@ -1107,13 +1281,15 @@ export type PositionUncheckedCreateWithoutDirectiveRecipientsInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAssignedPositionInput
@@ -1140,6 +1316,7 @@ export type PositionUpdateWithoutDirectiveRecipientsInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1147,7 +1324,8 @@ export type PositionUpdateWithoutDirectiveRecipientsInput = {
   organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUpdateManyWithoutAssignedPositionNestedInput
@@ -1159,13 +1337,15 @@ export type PositionUncheckedUpdateWithoutDirectiveRecipientsInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUncheckedUpdateManyWithoutAssignedPositionNestedInput
@@ -1176,6 +1356,7 @@ export type PositionCreateWithoutApprovalStepsInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1183,7 +1364,8 @@ export type PositionCreateWithoutApprovalStepsInput = {
   organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertCreateNestedManyWithoutAssignedPositionInput
@@ -1195,13 +1377,15 @@ export type PositionUncheckedCreateWithoutApprovalStepsInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAssignedPositionInput
@@ -1228,6 +1412,7 @@ export type PositionUpdateWithoutApprovalStepsInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1235,7 +1420,8 @@ export type PositionUpdateWithoutApprovalStepsInput = {
   organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUpdateManyWithoutAssignedPositionNestedInput
@@ -1247,13 +1433,15 @@ export type PositionUncheckedUpdateWithoutApprovalStepsInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUncheckedUpdateManyWithoutAssignedPositionNestedInput
@@ -1264,6 +1452,7 @@ export type PositionCreateWithoutProductDistributionsInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1271,7 +1460,8 @@ export type PositionCreateWithoutProductDistributionsInput = {
   organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertCreateNestedManyWithoutAssignedPositionInput
@@ -1283,13 +1473,15 @@ export type PositionUncheckedCreateWithoutProductDistributionsInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAssignedPositionInput
@@ -1316,6 +1508,7 @@ export type PositionUpdateWithoutProductDistributionsInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1323,7 +1516,8 @@ export type PositionUpdateWithoutProductDistributionsInput = {
   organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUpdateManyWithoutAssignedPositionNestedInput
@@ -1335,13 +1529,15 @@ export type PositionUncheckedUpdateWithoutProductDistributionsInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUncheckedUpdateManyWithoutAssignedPositionNestedInput
@@ -1352,6 +1548,7 @@ export type PositionCreateWithoutAssignedAlertsInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1359,7 +1556,8 @@ export type PositionCreateWithoutAssignedAlertsInput = {
   organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -1371,13 +1569,15 @@ export type PositionUncheckedCreateWithoutAssignedAlertsInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
-  assignments?: Prisma.PositionAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -1404,6 +1604,7 @@ export type PositionUpdateWithoutAssignedAlertsInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1411,7 +1612,8 @@ export type PositionUpdateWithoutAssignedAlertsInput = {
   organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1423,13 +1625,15 @@ export type PositionUncheckedUpdateWithoutAssignedAlertsInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1440,6 +1644,7 @@ export type PositionCreateManyRoleInput = {
   seatCode: string
   code: $Enums.PositionCode
   title: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   reportsToPositionId?: string | null
   isActive?: boolean
@@ -1452,13 +1657,15 @@ export type PositionUpdateWithoutRoleInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1470,13 +1677,15 @@ export type PositionUncheckedUpdateWithoutRoleInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1488,6 +1697,7 @@ export type PositionUncheckedUpdateManyWithoutRoleInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1501,6 +1711,7 @@ export type PositionCreateManyOrganizationUnitInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   reportsToPositionId?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1512,13 +1723,15 @@ export type PositionUpdateWithoutOrganizationUnitInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   role?: Prisma.RoleUpdateOneRequiredWithoutPositionsNestedInput
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1531,12 +1744,14 @@ export type PositionUncheckedUpdateWithoutOrganizationUnitInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1549,6 +1764,7 @@ export type PositionUncheckedUpdateManyWithoutOrganizationUnitInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1561,6 +1777,7 @@ export type PositionCreateManyReportsToInput = {
   code: $Enums.PositionCode
   title: string
   roleId: string
+  branch?: $Enums.CommandRouteType | null
   organizationUnitId: string
   isActive?: boolean
   createdAt?: Date | string
@@ -1572,13 +1789,15 @@ export type PositionUpdateWithoutReportsToInput = {
   seatCode?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   role?: Prisma.RoleUpdateOneRequiredWithoutPositionsNestedInput
   organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1591,12 +1810,14 @@ export type PositionUncheckedUpdateWithoutReportsToInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
-  assignments?: Prisma.PositionAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1609,6 +1830,7 @@ export type PositionUncheckedUpdateManyWithoutReportsToInput = {
   code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
   title?: Prisma.StringFieldUpdateOperationsInput | string
   roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1622,6 +1844,7 @@ export type PositionUncheckedUpdateManyWithoutReportsToInput = {
 
 export type PositionCountOutputType = {
   subordinates: number
+  roleSeats: number
   assignments: number
   directiveRecipients: number
   approvalSteps: number
@@ -1631,6 +1854,7 @@ export type PositionCountOutputType = {
 
 export type PositionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   subordinates?: boolean | PositionCountOutputTypeCountSubordinatesArgs
+  roleSeats?: boolean | PositionCountOutputTypeCountRoleSeatsArgs
   assignments?: boolean | PositionCountOutputTypeCountAssignmentsArgs
   directiveRecipients?: boolean | PositionCountOutputTypeCountDirectiveRecipientsArgs
   approvalSteps?: boolean | PositionCountOutputTypeCountApprovalStepsArgs
@@ -1658,8 +1882,15 @@ export type PositionCountOutputTypeCountSubordinatesArgs<ExtArgs extends runtime
 /**
  * PositionCountOutputType without action
  */
+export type PositionCountOutputTypeCountRoleSeatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.OrganizationRoleSeatWhereInput
+}
+
+/**
+ * PositionCountOutputType without action
+ */
 export type PositionCountOutputTypeCountAssignmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.PositionAssignmentWhereInput
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**
@@ -1697,6 +1928,7 @@ export type PositionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   code?: boolean
   title?: boolean
   roleId?: boolean
+  branch?: boolean
   organizationUnitId?: boolean
   reportsToPositionId?: boolean
   isActive?: boolean
@@ -1706,6 +1938,7 @@ export type PositionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   organizationUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
   reportsTo?: boolean | Prisma.Position$reportsToArgs<ExtArgs>
   subordinates?: boolean | Prisma.Position$subordinatesArgs<ExtArgs>
+  roleSeats?: boolean | Prisma.Position$roleSeatsArgs<ExtArgs>
   assignments?: boolean | Prisma.Position$assignmentsArgs<ExtArgs>
   directiveRecipients?: boolean | Prisma.Position$directiveRecipientsArgs<ExtArgs>
   approvalSteps?: boolean | Prisma.Position$approvalStepsArgs<ExtArgs>
@@ -1720,6 +1953,7 @@ export type PositionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   code?: boolean
   title?: boolean
   roleId?: boolean
+  branch?: boolean
   organizationUnitId?: boolean
   reportsToPositionId?: boolean
   isActive?: boolean
@@ -1736,6 +1970,7 @@ export type PositionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   code?: boolean
   title?: boolean
   roleId?: boolean
+  branch?: boolean
   organizationUnitId?: boolean
   reportsToPositionId?: boolean
   isActive?: boolean
@@ -1752,6 +1987,7 @@ export type PositionSelectScalar = {
   code?: boolean
   title?: boolean
   roleId?: boolean
+  branch?: boolean
   organizationUnitId?: boolean
   reportsToPositionId?: boolean
   isActive?: boolean
@@ -1759,12 +1995,13 @@ export type PositionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type PositionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "seatCode" | "code" | "title" | "roleId" | "organizationUnitId" | "reportsToPositionId" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["position"]>
+export type PositionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "seatCode" | "code" | "title" | "roleId" | "branch" | "organizationUnitId" | "reportsToPositionId" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["position"]>
 export type PositionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   role?: boolean | Prisma.RoleDefaultArgs<ExtArgs>
   organizationUnit?: boolean | Prisma.OrganizationUnitDefaultArgs<ExtArgs>
   reportsTo?: boolean | Prisma.Position$reportsToArgs<ExtArgs>
   subordinates?: boolean | Prisma.Position$subordinatesArgs<ExtArgs>
+  roleSeats?: boolean | Prisma.Position$roleSeatsArgs<ExtArgs>
   assignments?: boolean | Prisma.Position$assignmentsArgs<ExtArgs>
   directiveRecipients?: boolean | Prisma.Position$directiveRecipientsArgs<ExtArgs>
   approvalSteps?: boolean | Prisma.Position$approvalStepsArgs<ExtArgs>
@@ -1790,7 +2027,8 @@ export type $PositionPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     organizationUnit: Prisma.$OrganizationUnitPayload<ExtArgs>
     reportsTo: Prisma.$PositionPayload<ExtArgs> | null
     subordinates: Prisma.$PositionPayload<ExtArgs>[]
-    assignments: Prisma.$PositionAssignmentPayload<ExtArgs>[]
+    roleSeats: Prisma.$OrganizationRoleSeatPayload<ExtArgs>[]
+    assignments: Prisma.$UserSeatAssignmentPayload<ExtArgs>[]
     directiveRecipients: Prisma.$DirectiveRecipientPayload<ExtArgs>[]
     approvalSteps: Prisma.$ProductApprovalStepPayload<ExtArgs>[]
     productDistributions: Prisma.$ProductDistributionPayload<ExtArgs>[]
@@ -1802,6 +2040,7 @@ export type $PositionPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     code: $Enums.PositionCode
     title: string
     roleId: string
+    branch: $Enums.CommandRouteType | null
     organizationUnitId: string
     reportsToPositionId: string | null
     isActive: boolean
@@ -2205,7 +2444,8 @@ export interface Prisma__PositionClient<T, Null = never, ExtArgs extends runtime
   organizationUnit<T extends Prisma.OrganizationUnitDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationUnitDefaultArgs<ExtArgs>>): Prisma.Prisma__OrganizationUnitClient<runtime.Types.Result.GetResult<Prisma.$OrganizationUnitPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   reportsTo<T extends Prisma.Position$reportsToArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$reportsToArgs<ExtArgs>>): Prisma.Prisma__PositionClient<runtime.Types.Result.GetResult<Prisma.$PositionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   subordinates<T extends Prisma.Position$subordinatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$subordinatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PositionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  assignments<T extends Prisma.Position$assignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$assignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  roleSeats<T extends Prisma.Position$roleSeatsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$roleSeatsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrganizationRoleSeatPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  assignments<T extends Prisma.Position$assignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$assignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   directiveRecipients<T extends Prisma.Position$directiveRecipientsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$directiveRecipientsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DirectiveRecipientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   approvalSteps<T extends Prisma.Position$approvalStepsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$approvalStepsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductApprovalStepPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   productDistributions<T extends Prisma.Position$productDistributionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$productDistributionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductDistributionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2244,6 +2484,7 @@ export interface PositionFieldRefs {
   readonly code: Prisma.FieldRef<"Position", 'PositionCode'>
   readonly title: Prisma.FieldRef<"Position", 'String'>
   readonly roleId: Prisma.FieldRef<"Position", 'String'>
+  readonly branch: Prisma.FieldRef<"Position", 'CommandRouteType'>
   readonly organizationUnitId: Prisma.FieldRef<"Position", 'String'>
   readonly reportsToPositionId: Prisma.FieldRef<"Position", 'String'>
   readonly isActive: Prisma.FieldRef<"Position", 'Boolean'>
@@ -2693,27 +2934,51 @@ export type Position$subordinatesArgs<ExtArgs extends runtime.Types.Extensions.I
 }
 
 /**
+ * Position.roleSeats
+ */
+export type Position$roleSeatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrganizationRoleSeat
+   */
+  select?: Prisma.OrganizationRoleSeatSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OrganizationRoleSeat
+   */
+  omit?: Prisma.OrganizationRoleSeatOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrganizationRoleSeatInclude<ExtArgs> | null
+  where?: Prisma.OrganizationRoleSeatWhereInput
+  orderBy?: Prisma.OrganizationRoleSeatOrderByWithRelationInput | Prisma.OrganizationRoleSeatOrderByWithRelationInput[]
+  cursor?: Prisma.OrganizationRoleSeatWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.OrganizationRoleSeatScalarFieldEnum | Prisma.OrganizationRoleSeatScalarFieldEnum[]
+}
+
+/**
  * Position.assignments
  */
 export type Position$assignmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
-  orderBy?: Prisma.PositionAssignmentOrderByWithRelationInput | Prisma.PositionAssignmentOrderByWithRelationInput[]
-  cursor?: Prisma.PositionAssignmentWhereUniqueInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
+  orderBy?: Prisma.UserSeatAssignmentOrderByWithRelationInput | Prisma.UserSeatAssignmentOrderByWithRelationInput[]
+  cursor?: Prisma.UserSeatAssignmentWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.PositionAssignmentScalarFieldEnum | Prisma.PositionAssignmentScalarFieldEnum[]
+  distinct?: Prisma.UserSeatAssignmentScalarFieldEnum | Prisma.UserSeatAssignmentScalarFieldEnum[]
 }
 
 /**

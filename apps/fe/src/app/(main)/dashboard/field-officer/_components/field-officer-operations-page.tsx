@@ -1,0 +1,2161 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Crosshair,
+  MapPin,
+  Radio,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Trash2,
+  Users,
+  Inbox,
+} from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Map,
+  MapControls,
+  MapMarker,
+  MarkerContent,
+  MarkerPopup,
+} from "@/components/ui/map";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type {
+  FieldOfficerIncoming,
+  FieldOfficerTask,
+  FieldOfficerWorkspace,
+  ReportCategory,
+} from "@/server/field-ops/types";
+import { LeafletLocationPreview } from "./leaflet-location-preview";
+
+type FieldOfficerView = "overview" | "tasks" | "jaring" | "incoming" | "baket" | "reports" | "map" | "alert";
+
+const FORWARDED_STORAGE_KEY = "dens-cakra-forwarded-assignments";
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function statusTone(status: string) {
+  const value = status.toUpperCase();
+
+  if (
+    value.includes("COMPLETED") ||
+    value.includes("ACTIVE") ||
+    value.includes("VALID")
+  ) {
+    return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+  }
+
+  if (
+    value.includes("IN_PROGRESS") ||
+    value.includes("ROUTED") ||
+    value.includes("READY")
+  ) {
+    return "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20";
+  }
+
+  if (
+    value.includes("DRAFT") ||
+    value.includes("RECEIVED") ||
+    value.includes("ASSIGNED")
+  ) {
+    return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+  }
+
+  if (
+    value.includes("INACTIVE") ||
+    value.includes("ARCHIVED") ||
+    value.includes("ERROR")
+  ) {
+    return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
+  }
+
+  return "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20";
+}
+
+function nextTaskAction(status: string) {
+  const value = status.toUpperCase();
+
+  if (value === "SENT") {
+    return { label: "Tandai Dibaca", nextStatus: "READ" as const };
+  }
+
+  if (value === "READ") {
+    return { label: "Acknowledge", nextStatus: "ACKNOWLEDGED" as const };
+  }
+
+  if (value === "ACKNOWLEDGED") {
+    return { label: "Mulai Tugas", nextStatus: "IN_PROGRESS" as const };
+  }
+
+  if (value === "IN_PROGRESS" || value === "OVERDUE") {
+    return { label: "Selesaikan", nextStatus: "COMPLETED" as const };
+  }
+
+  return null;
+}
+
+export function FieldOfficerOperationsPage({
+  view,
+}: {
+  view: FieldOfficerView;
+}) {
+  const [workspace, setWorkspace] = useState<FieldOfficerWorkspace | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isBusy, setIsBusy] = useState<string | null>(null);
+  const [baketTab, setBaketTab] = useState(
+    view === "reports" ? "sent" : "ready",
+  );
+  const [forwardedAssignments, setForwardedAssignments] = useState<string[]>(
+    [],
+  );
+  const [jaringForm, setJaringForm] = useState({
+    code: "",
+    aliasName: "",
+    whatsappNumber: "",
+    clusterId: "",
+    notes: "",
+    areaId: "",
+  });
+  const [showSaveJaringConfirm, setShowSaveJaringConfirm] = useState(false);
+
+  useEffect(() => {
+    const raw = window.sessionStorage.getItem(FORWARDED_STORAGE_KEY);
+
+    if (!raw) {
+      return;
+    }
+
+    try {
+      setForwardedAssignments(JSON.parse(raw) as string[]);
+    } catch {
+      window.sessionStorage.removeItem(FORWARDED_STORAGE_KEY);
+    }
+  }, []);
+
+  const loadWorkspace = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/field-officer/workspace", {
+        cache: "no-store",
+      });
+      const body = (await response.json()) as
+        FieldOfficerWorkspace | { message?: string };
+
+      if (!response.ok) {
+        throw new Error(
+          "message" in body
+            ? body.message
+            : "Gagal memuat workspace field officer.",
+        );
+      }
+
+      setWorkspace(body as FieldOfficerWorkspace);
+      setError(null);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Gagal memuat workspace field officer.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadWorkspace();
+  }, []);
+
+  const metrics = useMemo(() => {
+    if (!workspace) {
+      return null;
+    }
+
+    return {
+      activeTasks: workspace.tasks.filter(
+        (item) => item.assignmentStatus !== "COMPLETED",
+      ).length,
+      activeJaring: workspace.jaring.filter((item) => item.status === "ACTIVE")
+        .length,
+      pendingIncoming: workspace.incoming.filter(
+        (item) => item.validationSummary !== "VALID",
+      ).length,
+      readyToSendBakets: workspace.bakets.filter(
+        (item) => item.status === "DRAFT" || item.status === "READY_TO_SEND",
+      ).length,
+    };
+  }, [workspace]);
+
+  const readyToSendBakets = useMemo(
+    () =>
+      workspace?.bakets.filter(
+        (item) =>
+          item.status === "DRAFT" || item.status === "READY_TO_SEND",
+      ) ?? [],
+    [workspace],
+  );
+  const submittedBakets = useMemo(
+    () =>
+      workspace?.bakets.filter(
+        (item) =>
+          item.status !== "DRAFT" && item.status !== "READY_TO_SEND",
+      ) ?? [],
+    [workspace],
+  );
+
+  const runAction = async (key: string, callback: () => Promise<void>) => {
+    try {
+      setIsBusy(key);
+      setActionNotice(null);
+      await callback();
+      await loadWorkspace();
+      setError(null);
+    } catch (actionError) {
+      setActionNotice(null);
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : "Aksi gagal dijalankan.",
+      );
+    } finally {
+      setIsBusy(null);
+    }
+  };
+
+  const handleForwardToggle = (assignmentId: string) => {
+    const next = forwardedAssignments.includes(assignmentId)
+      ? forwardedAssignments.filter((item) => item !== assignmentId)
+      : [...forwardedAssignments, assignmentId];
+
+    setForwardedAssignments(next);
+    window.sessionStorage.setItem(FORWARDED_STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const createJaring = async () => {
+    if (!workspace) {
+      return;
+    }
+
+    await runAction("jaring:create", async () => {
+      const response = await fetch("/api/field-officer/jaring", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          code: jaringForm.code,
+          aliasName: jaringForm.aliasName,
+          whatsappNumber: jaringForm.whatsappNumber,
+          clusterId: jaringForm.clusterId || undefined,
+          notes: jaringForm.notes,
+          areaIds: [
+            jaringForm.areaId || workspace.context.areaScopes[0]?.areaId,
+          ].filter(Boolean),
+          fieldOfficerAssignmentId: workspace.context.primaryAssignmentId,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        throw new Error(body.message || "Gagal membuat jaring.");
+      }
+
+      setJaringForm({
+        code: "",
+        aliasName: "",
+        whatsappNumber: "",
+        clusterId: "",
+        notes: "",
+        areaId: "",
+      });
+    });
+  };
+
+  const updateTaskStatus = async (
+    assignmentId: string,
+    nextStatus: "READ" | "ACKNOWLEDGED" | "IN_PROGRESS" | "COMPLETED",
+  ) => {
+    await runAction(`task:${assignmentId}:${nextStatus}`, async () => {
+      const response = await fetch(
+        `/api/field-officer/task-assignments/${assignmentId}/status`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ nextStatus }),
+        },
+      );
+
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        throw new Error(body.message || "Gagal memperbarui tugas.");
+      }
+    });
+  };
+
+  const validateIncoming = async (messageId: string) => {
+    await runAction(`validate:${messageId}`, async () => {
+      const response = await fetch(
+        `/api/field-officer/incoming/${messageId}/validate`,
+        {
+          method: "POST",
+        },
+      );
+      const body = (await response.json().catch(() => null)) as
+        | { validationSummary?: string; title?: string | null }
+        | { message?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(
+          (body && "message" in body ? body.message : null) ||
+            "Gagal memvalidasi laporan.",
+        );
+      }
+
+      const result =
+        body && "validationSummary" in body ? body.validationSummary : null;
+      setActionNotice(
+        result === "VALID"
+          ? "Validasi berhasil. Laporan sudah lengkap dan siap dibuat menjadi Baket."
+          : "Validasi selesai. Cek badge dan kelengkapan laporan sebelum dibuat menjadi Baket.",
+      );
+    });
+  };
+
+  const createBaket = async (
+    messageId: string,
+    payload: {
+      categoryId: string;
+      urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+      title?: string;
+      normalizedContent?: string;
+      fieldOfficerNote?: string;
+      taskAssignmentId?: string;
+      eventTime?: string;
+    },
+  ) => {
+    await runAction(`baket:${messageId}`, async () => {
+      const response = await fetch(
+        `/api/field-officer/incoming/${messageId}/baket`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        throw new Error(body.message || "Gagal membuat baket.");
+      }
+
+      setBaketTab("ready-to-send");
+      setActionNotice(
+        "Baket berhasil dibuat dan siap dikirim. Tekan Kirim ke OIM agar masuk ke Laporan Masuk OIM.",
+      );
+    });
+  };
+
+  const deleteIncoming = async (messageId: string) => {
+    await runAction(`delete:${messageId}`, async () => {
+      const response = await fetch(
+        `/api/field-officer/incoming/${messageId}/delete`,
+        {
+          method: "POST",
+        },
+      );
+
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        throw new Error(body.message || "Gagal menghapus laporan.");
+      }
+    });
+  };
+
+  const submitBaket = async (baketId: string) => {
+    await runAction(`submit:${baketId}`, async () => {
+      const response = await fetch(
+        `/api/field-officer/baket/${baketId}/submit`,
+        {
+          method: "POST",
+        },
+      );
+
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        throw new Error(body.message || "Gagal mengirim baket.");
+      }
+
+      setActionNotice(
+        "Baket berhasil dikirim ke OIM dan sudah masuk ke antrean Laporan Masuk.",
+      );
+      setBaketTab("sent");
+    });
+  };
+
+  const changeJaringStatus = async (
+    jaringId: string,
+    action: "activate" | "deactivate" | "archive",
+  ) => {
+    await runAction(`jaring:${jaringId}:${action}`, async () => {
+      const response = await fetch(
+        `/api/field-officer/jaring/${jaringId}/status`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action,
+            reason: `Status diubah dari workspace field officer ke mode ${action}.`,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        throw new Error(body.message || "Gagal mengubah status jaring.");
+      }
+    });
+  };
+
+  const publishOwnLocation = async () => {
+    if (!workspace) {
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setError("Browser ini tidak mendukung geolocation.");
+      return;
+    }
+
+    await runAction("location:publish", async () => {
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+          });
+        },
+      );
+
+      const response = await fetch("/api/field-officer/live-location", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          positionAssignmentId: workspace.context.primaryAssignmentId,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          gpsAccuracyMeters: position.coords.accuracy,
+          capturedAt: new Date(position.timestamp).toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        throw new Error(body.message || "Gagal mengirim lokasi.");
+      }
+    });
+  };
+
+  const mapPoints = useMemo(() => {
+    if (!workspace) {
+      return [];
+    }
+
+    const incomingPoints = [...workspace.incoming, ...workspace.baketCandidates]
+      .filter((item) => item.latitude !== null && item.longitude !== null)
+      .map((item) => ({
+        id: item.id,
+        kind: "incoming" as const,
+        latitude: item.latitude as number,
+        longitude: item.longitude as number,
+        title: item.title || item.jaringAlias,
+        subtitle: `${item.jaringCode} • ${item.status}`,
+      }));
+
+    const ownPoint = workspace.latestLocation
+      ? [
+          {
+            id: workspace.latestLocation.id,
+            kind: "self" as const,
+            latitude: workspace.latestLocation.latitude,
+            longitude: workspace.latestLocation.longitude,
+            title: "Posisi Saya",
+            subtitle: workspace.latestLocation.areaName || "Lokasi terbaru",
+          },
+        ]
+      : [];
+
+    return [...ownPoint, ...incomingPoints];
+  }, [workspace]);
+
+  const mapCenter = useMemo(() => {
+    if (mapPoints.length === 0) {
+      return [106.8456, -6.2088] as [number, number];
+    }
+
+    const lng =
+      mapPoints.reduce((sum, item) => sum + item.longitude, 0) /
+      mapPoints.length;
+    const lat =
+      mapPoints.reduce((sum, item) => sum + item.latitude, 0) /
+      mapPoints.length;
+
+    return [lng, lat] as [number, number];
+  }, [mapPoints]);
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={`loading-${index}`} className="border-[var(--dc-border-subtle)] bg-[var(--dc-card)]">
+            <CardHeader>
+              <div className="h-4 w-28 animate-pulse rounded bg-[var(--dc-surface-hover)]" />
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 w-20 animate-pulse rounded bg-[var(--dc-surface-hover)]" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (!workspace || !metrics) {
+    return (
+      <Alert className="border-[var(--dc-danger)]/30 bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]">
+        <AlertTriangle className="size-4" />
+        <AlertTitle>Workspace tidak tersedia</AlertTitle>
+        <AlertDescription>
+          {error || "Data field officer belum dapat dibaca."}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div className="tactical-workspace p-6 space-y-8 text-[var(--tactical-text-primary)]">
+      <style>{`
+        :root {
+          --tactical-bg: #f6f8fb;
+          --tactical-grid-color: rgba(15, 23, 42, 0.03);
+          --tactical-card-bg: #ffffff;
+          --tactical-border: rgba(15, 23, 42, 0.06);
+          --tactical-border-hover: rgba(14, 165, 233, 0.18);
+          --tactical-text-primary: #0f172a;
+          --tactical-text-secondary: #475569;
+          --tactical-text-muted: #94a3b8;
+          --tactical-blue: #0ea5e9;
+          --tactical-green: #16a34a;
+          --tactical-amber: #d97706;
+          --tactical-red: #dc2626;
+          --tactical-input-bg: #ffffff;
+          --tactical-input-border: #cbd5e1;
+          --tactical-action-bg: #f8fafc;
+          --tactical-action-border: rgba(15, 23, 42, 0.06);
+          --tactical-panel-bg: #f8fafc;
+          --tactical-panel-border: #e2e8f0;
+        }
+        .dark {
+          --tactical-bg: #0b1220;
+          --tactical-grid-color: rgba(255, 255, 255, 0.03);
+          --tactical-card-bg: #121a28;
+          --tactical-border: rgba(255, 255, 255, 0.06);
+          --tactical-border-hover: rgba(14, 165, 233, 0.18);
+          --tactical-text-primary: #f8fafc;
+          --tactical-text-secondary: #94a3b8;
+          --tactical-text-muted: #64748b;
+          --tactical-blue: #14b8ff;
+          --tactical-green: #22c55e;
+          --tactical-amber: #f59e0b;
+          --tactical-red: #ef4444;
+          --tactical-input-bg: #0f172a;
+          --tactical-input-border: #2a3445;
+          --tactical-action-bg: #101826;
+          --tactical-action-border: rgba(255, 255, 255, 0.06);
+          --tactical-panel-bg: #0f172a;
+          --tactical-panel-border: rgba(255, 255, 255, 0.05);
+        }
+        
+        .tactical-workspace {
+          background-color: var(--tactical-bg);
+          background-image: 
+          linear-gradient(var(--tactical-grid-color) 1px, transparent 1px),
+          linear-gradient(90deg, var(--tactical-grid-color) 1px, transparent 1px);
+          background-size: 24px 24px;
+          min-height: 100vh;
+        }
+
+        .tactical-card {
+          background-color: var(--tactical-card-bg) !important;
+          border: 1px solid var(--tactical-border) !important;
+          border-radius: 6px !important;
+          padding: 24px !important;
+          transition: all 180ms ease-out !important;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .tactical-card:hover {
+          border-color: var(--tactical-border-hover) !important;
+          transform: translateY(-2px) !important;
+        }
+
+        .tactical-input {
+          background-color: var(--tactical-input-bg) !important;
+          border: 1px solid var(--tactical-input-border) !important;
+          color: var(--tactical-text-primary) !important;
+          border-radius: 4px !important;
+          transition: all 150ms ease-out !important;
+        }
+        .tactical-input:focus {
+          border-color: #0ea5e9 !important;
+          box-shadow: 0 0 0 1px #0ea5e9 !important;
+        }
+
+        .tactical-badge {
+          font-family: var(--font-mono), monospace !important;
+          font-size: 11px !important;
+          letter-spacing: 0.05em !important;
+          text-transform: uppercase !important;
+          border-radius: 3px !important;
+          font-weight: 500 !important;
+          border: 1px solid currentColor !important;
+        }
+      `}</style>
+
+      {/* Tactical Workspace Header */}
+      <section className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+        {/* Left Card: Live Workspace Profiling */}
+        <div className="tactical-card space-y-4">
+          <div>
+            <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--tactical-blue)] font-mono font-medium block">
+              FIELD OFFICER LIVE WORKSPACE
+            </span>
+            <div className="flex flex-wrap items-center gap-3 mt-1">
+              <h1 className="text-3xl font-semibold tracking-tight text-[var(--tactical-text-primary)]">
+                {workspace.profile.name}
+              </h1>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] border border-[var(--tactical-green)]/35 bg-[var(--tactical-green)]/10 text-[var(--tactical-green)] text-[11px] font-mono font-medium">
+                <span className="size-1.5 rounded-full bg-[var(--tactical-green)] animate-pulse" />
+                LIVE
+              </div>
+              <span className="tactical-badge px-2 py-0.5 rounded-[3px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                {workspace.profile.role.toUpperCase()}
+              </span>
+            </div>
+            <p className="text-sm text-[var(--tactical-text-secondary)] mt-1.5 font-mono">
+              {workspace.context.positionTitle.toUpperCase()} &middot; {workspace.context.organizationUnitName.toUpperCase()}
+            </p>
+          </div>
+
+          {/* Mission Status Strip */}
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 border-t border-[var(--tactical-border)] pt-4 mt-2 font-mono">
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--tactical-text-muted)] block">
+                STATUS
+              </span>
+              <p className="text-xs font-semibold text-[var(--tactical-green)]">
+                ACTIVE / VERIFIED
+              </p>
+            </div>
+            <div className="space-y-1 md:border-l md:border-[var(--tactical-border)] md:pl-4">
+              <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--tactical-text-muted)] block">
+                LAST SYNC
+              </span>
+              <p className="text-xs text-[var(--tactical-text-primary)]">
+                {workspace.latestLocation
+                  ? formatDateTime(workspace.latestLocation.capturedAt)
+                  : "N/A"}
+              </p>
+            </div>
+            <div className="space-y-1 md:border-l md:border-[var(--tactical-border)] md:pl-4">
+              <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--tactical-text-muted)] block">
+                ASSIGNMENT ID
+              </span>
+              <p className="text-xs text-[var(--tactical-text-secondary)] truncate" title={workspace.context.primaryAssignmentId}>
+                {workspace.context.primaryAssignmentId.slice(0, 8).toUpperCase()}...
+              </p>
+            </div>
+            <div className="space-y-1 md:border-l md:border-[var(--tactical-border)] md:pl-4">
+              <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--tactical-text-muted)] block">
+                SCOPE AREA
+              </span>
+              <p className="text-xs text-[var(--tactical-text-secondary)] truncate" title={workspace.context.areaScopes.map((item) => item.name).join(", ")}>
+                {workspace.context.areaScopes.map((item) => item.name).join(", ").toUpperCase()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Card: Statistics and Quick Actions */}
+        <div className="tactical-card flex flex-col justify-between space-y-4">
+          <div className="space-y-2">
+            <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
+              WORKSPACE METRICS
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <MetricCard label="Tugas Aktif" value={metrics.activeTasks} />
+              <MetricCard label="Jaring Binaan" value={metrics.activeJaring} />
+            </div>
+          </div>
+          <div className="pt-2 border-t border-[var(--tactical-border)] flex items-center justify-between gap-4 font-mono">
+            <span className="text-[10px] text-[var(--tactical-text-muted)] uppercase">
+              {workspace.profile.email}
+            </span>
+            <button
+              disabled={isBusy === "location:publish"}
+              onClick={() => void publishOwnLocation()}
+              className="h-8 px-3 rounded-[6px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] font-semibold font-mono text-[10px] transition-all duration-200 hover:-translate-y-[0.5px] hover:brightness-105 disabled:opacity-50 uppercase shrink-0 cursor-pointer"
+            >
+              SYNC GPS
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {error && (
+        <Alert className="border-[var(--tactical-red)]/30 bg-[var(--tactical-red)]/[0.02] text-[var(--tactical-red)] rounded-xl p-4">
+          <AlertTriangle className="size-4 shrink-0 text-[var(--tactical-red)]" />
+          <AlertTitle className="font-mono text-sm uppercase tracking-wider font-semibold">Perlu perhatian</AlertTitle>
+          <AlertDescription className="text-xs opacity-90">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {actionNotice && (
+        <Alert className="border-[var(--tactical-green)]/30 bg-[var(--tactical-green)]/[0.02] text-[var(--tactical-green)] rounded-xl p-4">
+          <CheckCircle2 className="size-4 shrink-0 text-[var(--tactical-green)]" />
+          <AlertTitle className="font-mono text-sm uppercase tracking-wider font-semibold">Aksi berhasil</AlertTitle>
+          <AlertDescription className="text-xs opacity-90">{actionNotice}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* MODULES LIST */}
+      
+      {/* MOD-01: TUGAS SAYA */}
+      {(view === "overview" || view === "tasks") && (
+        <>
+          <TacticalSection
+            code="MOD-01"
+            title="TUGAS SAYA"
+            description="Update status eksekusi lapangan dan tandai assignment yang perlu diteruskan ke coordinator."
+            metadata={[
+              { label: "TOTAL TUGAS", value: workspace.tasks.length },
+              { label: "AKTIF", value: metrics.activeTasks }
+            ]}
+          >
+            {workspace.tasks.length === 0 ? (
+              <TacticalEmptyState
+                title="Tidak ada Tugas aktif"
+                description="Semua penugasan operasional telah selesai dilaksanakan atau belum dijadwalkan."
+                icon={CheckCircle2}
+              />
+            ) : (
+              <div className="grid gap-4">
+                {workspace.tasks.map((task) => {
+                  const action = nextTaskAction(task.assignmentStatus);
+                  const forwarded = forwardedAssignments.includes(task.assignmentId);
+                  return (
+                    <TaskCard
+                      key={task.assignmentId}
+                      task={task}
+                      action={action}
+                      forwarded={forwarded}
+                      isBusy={isBusy === `task:${task.assignmentId}:${action?.nextStatus}`}
+                      onUpdateStatus={(nextStatus) => void updateTaskStatus(task.assignmentId, nextStatus)}
+                      onForwardToggle={() => handleForwardToggle(task.assignmentId)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </TacticalSection>
+          {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
+        </>
+      )}
+
+      {/* MOD-02: REGISTRASI JARING BINAAN */}
+      {(view === "overview" || view === "jaring") && (
+        <>
+          <TacticalSection
+            code="MOD-02"
+            title="REGISTRASI & JARING BINAAN"
+            description="Kelola identitas Jaring binaan. FO memegang ownership data. Bot pusat dikelola coordinator."
+            metadata={[
+              { label: "TOTAL JARING", value: workspace.jaring.length },
+              { label: "AKTIF", value: metrics.activeJaring }
+            ]}
+          >
+          <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+            {/* Registrasi Jaring Baru Form */}
+            <div className="tactical-card space-y-4">
+              <h3 className="text-lg font-semibold tracking-tight text-[var(--tactical-text-primary)] border-b border-[var(--tactical-border)] pb-2">
+                Registrasi Jaring Baru
+              </h3>
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                    Kode Jaring
+                  </label>
+                  <Input
+                    className="tactical-input w-full"
+                    placeholder="Contoh: J-01"
+                    value={jaringForm.code}
+                    onChange={(event) =>
+                      setJaringForm((current) => ({
+                        ...current,
+                        code: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                    Alias / Nama Sandi
+                  </label>
+                  <Input
+                    className="tactical-input w-full"
+                    placeholder="Contoh: Elang Malam"
+                    value={jaringForm.aliasName}
+                    onChange={(event) =>
+                      setJaringForm((current) => ({
+                        ...current,
+                        aliasName: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                    Nomor WhatsApp
+                  </label>
+                  <Input
+                    className="tactical-input w-full"
+                    placeholder="Contoh: 628123456789"
+                    value={jaringForm.whatsappNumber}
+                    onChange={(event) =>
+                      setJaringForm((current) => ({
+                        ...current,
+                        whatsappNumber: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                    Cluster Jaring
+                  </label>
+                  <select
+                    className="flex h-10 w-full tactical-input px-3 text-sm text-[var(--tactical-text-primary)] focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition-all font-mono"
+                    value={jaringForm.clusterId}
+                    onChange={(event) =>
+                      setJaringForm((current) => ({
+                        ...current,
+                        clusterId: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">PILIH CLUSTER JARING</option>
+                    {workspace.jaringClusters.map((cluster) => (
+                      <option key={cluster.id} value={cluster.id}>
+                        {cluster.name.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                    Area Utama
+                  </label>
+                  <select
+                    className="flex h-10 w-full tactical-input px-3 text-sm text-[var(--tactical-text-primary)] focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition-all font-mono"
+                    value={jaringForm.areaId}
+                    onChange={(event) =>
+                      setJaringForm((current) => ({
+                        ...current,
+                        areaId: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">PILIH AREA UTAMA</option>
+                    {workspace.context.areaScopes.map((area) => (
+                      <option key={area.areaId} value={area.areaId}>
+                        {area.name.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                    Catatan Pembinaan
+                  </label>
+                  <Textarea
+                    className="tactical-input w-full"
+                    placeholder="Catatan intelijen/pembinaan..."
+                    value={jaringForm.notes}
+                    onChange={(event) =>
+                      setJaringForm((current) => ({
+                        ...current,
+                        notes: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <button
+                  disabled={isBusy === "jaring:create"}
+                  onClick={() => setShowSaveJaringConfirm(true)}
+                  className="w-full h-[40px] px-[18px] rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white font-semibold font-mono tracking-[0.04em] text-sm uppercase transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] shadow-[0_0_18px_rgba(22,163,74,0.25)] disabled:opacity-50 cursor-pointer"
+                >
+                  {isBusy === "jaring:create" ? "SAVING..." : "SIMPAN JARING"}
+                </button>
+
+                <AlertDialog open={showSaveJaringConfirm} onOpenChange={setShowSaveJaringConfirm}>
+                  <AlertDialogContent className="border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] text-[var(--tactical-text-primary)] rounded-[6px] font-mono">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">KONFIRMASI REGISTRASI</AlertDialogTitle>
+                      <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
+                        Apakah Anda yakin ingin menyimpan dan meregistrasikan Jaring Binaan baru ini?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
+                      <AlertDialogCancel className="h-9 px-4 rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] text-xs font-semibold uppercase tracking-wider cursor-pointer">
+                        BATAL
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          setShowSaveJaringConfirm(false);
+                          void createJaring();
+                        }}
+                        className="h-9 px-4 rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
+                      >
+                        YA, SIMPAN
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+
+            {/* Jaring Binaan List */}
+            <div className="space-y-4">
+              {workspace.jaring.length === 0 ? (
+                <TacticalEmptyState
+                  title="Tidak ada Jaring binaan"
+                  description="Daftarkan Jaring operasional baru di formulir sebelah kiri."
+                  icon={Users}
+                />
+              ) : (
+                workspace.jaring.map((jaring) => (
+                  <div
+                    key={jaring.id}
+                    className="tactical-card space-y-3"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(jaring.status)}`}>
+                            {jaring.status}
+                          </span>
+                          <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                            CODE: {jaring.code}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
+                          {jaring.aliasName}
+                        </h3>
+                        <p className="text-sm text-[var(--tactical-text-secondary)] font-mono">
+                          {jaring.whatsappNumber}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-3 text-xs text-[var(--tactical-text-secondary)] font-mono">
+                          <span className="text-[var(--tactical-blue)]">{jaring.clusterName || "NO_CLUSTER"}</span>
+                          <span>&middot;</span>
+                          <span>{jaring.areaNames.join(", ") || "NO_AREA"}</span>
+                        </div>
+                        {jaring.notes && (
+                          <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed italic bg-black/5 dark:bg-white/[0.01] p-2.5 rounded border border-[var(--tactical-border)]">
+                            {jaring.notes}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        {jaring.status !== "ACTIVE" ? (
+                          <button
+                            disabled={isBusy === `jaring:${jaring.id}:activate`}
+                            onClick={() => void changeJaringStatus(jaring.id, "activate")}
+                            className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                          >
+                            AKTIFKAN
+                          </button>
+                        ) : (
+                          <button
+                            disabled={isBusy === `jaring:${jaring.id}:deactivate`}
+                            onClick={() => void changeJaringStatus(jaring.id, "deactivate")}
+                            className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#B45309] hover:bg-[#D97706] active:bg-[#92400E] text-white shadow-[0_0_18px_rgba(217,119,6,0.20)] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                          >
+                            NONAKTIFKAN
+                          </button>
+                        )}
+                        <button
+                          disabled={isBusy === `jaring:${jaring.id}:archive`}
+                          onClick={() => void changeJaringStatus(jaring.id, "archive")}
+                          className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#991B1B] hover:bg-[#DC2626] text-white transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                        >
+                          ARSIPKAN
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 text-[11px] font-mono text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)] pt-2.5">
+                      <span>SYS REV: {jaring.id.slice(0, 8).toUpperCase()}</span>
+                      <span>&middot;</span>
+                      <span>VOLUME: {jaring.messageCount} MSG</span>
+                      <span>&middot;</span>
+                      <span>BAKET: {jaring.baketCount} BKT</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </TacticalSection>
+          {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
+        </>
+      )}
+
+      {/* MOD-03: KOTAK MASUK JARING */}
+      {(view === "overview" || view === "incoming") && (
+        <>
+          <TacticalSection
+            code="MOD-03"
+            title="KOTAK MASUK JARING"
+            description="Validasi judul, isi, bukti foto, koordinat GPS, waktu kejadian, Jaring, dan sumber laporan intelijen."
+            metadata={[
+              { label: "PENDING VALIDASI", value: metrics.pendingIncoming },
+              { label: "SOURCE NODE", value: workspace.incoming.length }
+            ]}
+          >
+          {workspace.incoming.length === 0 ? (
+            <TacticalEmptyState
+              title="Tidak ada laporan masuk"
+              description="Semua pesan masuk dari Jaring telah divalidasi dan diarsipkan."
+              icon={Inbox}
+            />
+          ) : (
+            <div className="grid gap-4">
+              {workspace.incoming.map((message) => (
+                <div
+                  key={message.id}
+                  className="tactical-card space-y-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(message.status)}`}>
+                          {message.status}
+                        </span>
+                        <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                          VAL: {message.validationSummary}
+                        </span>
+                        <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                          JARING: {message.jaringCode}
+                        </span>
+                      </div>
+                      <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
+                        {message.title || message.jaringAlias}
+                      </h3>
+                      <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed">
+                        {message.content || "Pesan belum memiliki isi teks."}
+                      </p>
+                      
+                      <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 border-t border-[var(--tactical-border)] pt-3 text-[11px] font-mono text-[var(--tactical-text-muted)]">
+                        <span>RECEIVED: {formatDateTime(message.receivedAt)}</span>
+                        <span>EVENT TIME: {formatDateTime(message.eventDateTime)}</span>
+                        <span>GPS TIME: {formatDateTime(message.gpsSharedAt)}</span>
+                        <span>TIMESTAMP: {formatDateTime(message.reportTimestamp)}</span>
+                        <span>SENDER: {message.senderPhone}</span>
+                        <span>AREA: {message.areaName || "-"}</span>
+                      </div>
+
+                      {message.hasPhoto && (
+                        <div className="rounded-lg border border-[var(--tactical-green)]/20 bg-[var(--tactical-green)]/[0.02] p-3 text-[var(--tactical-green)] text-sm space-y-2">
+                          <div className="flex items-center gap-1.5 font-medium">
+                            <CheckCircle2 className="size-4 shrink-0" />
+                            <span>FOTO BUKTI TERVERIFIKASI</span>
+                          </div>
+                          {message.photoUrl ? (
+                            <img
+                              src={message.photoUrl}
+                              alt={`Foto bukti ${message.title || message.jaringAlias}`}
+                              className="max-h-64 rounded-lg border border-[var(--tactical-border)] object-cover shadow-sm"
+                            />
+                          ) : (
+                            <p className="text-xs text-[var(--tactical-text-secondary)] opacity-80">
+                              Foto diterima oleh bot, tetapi file visual belum tersedia di storage. Kiriman lama sebelum patch hanya punya metadata WA.
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[var(--tactical-text-muted)] text-[10px] font-mono">
+                            <span>MEDIA DB: {message.mediaCount}</span>
+                            <span>FILE ID: {message.photoFileId || "-"}</span>
+                            <span>WA ID: {message.photoMessageId || "-"}</span>
+                            {message.photoCaption && <span>CAPTION: {message.photoCaption}</span>}
+                          </div>
+                        </div>
+                      )}
+
+                      {message.latitude !== null && message.longitude !== null && (
+                        <div className="grid gap-3 rounded-lg border border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.01] p-3 md:grid-cols-[1fr_14rem]">
+                          <div className="space-y-1.5 text-sm text-[var(--tactical-text-secondary)]">
+                            <p className="font-medium text-[var(--tactical-text-primary)]">
+                              LOKASI KEJADIAN
+                            </p>
+                            <p className="font-mono text-xs">
+                              {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)}
+                            </p>
+                            <p className="text-xs text-[var(--tactical-text-muted)] font-mono">
+                              AKURASI: {message.gpsAccuracyMeters !== null ? `${message.gpsAccuracyMeters} M` : "-"}
+                            </p>
+                            <button
+                              className="mt-2 text-xs font-mono font-medium rounded border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] hover:bg-[var(--tactical-text-secondary)]/10 px-3 py-1.5 transition-colors"
+                            >
+                              <a
+                                href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                [ BUKA DI GOOGLE MAPS ]
+                              </a>
+                            </button>
+                          </div>
+                          <a
+                            href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
+                            rel="noreferrer"
+                            target="_blank"
+                            aria-label="Buka koordinat laporan di Google Maps"
+                            className="block rounded-lg overflow-hidden border border-[var(--tactical-border)]"
+                          >
+                            <LeafletLocationPreview
+                              latitude={message.latitude}
+                              longitude={message.longitude}
+                              title={message.title || message.jaringAlias}
+                            />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col gap-2 shrink-0 font-mono">
+                      <button
+                        disabled={isBusy === `validate:${message.id}`}
+                        onClick={() => void validateIncoming(message.id)}
+                        className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
+                      >
+                        {isBusy === `validate:${message.id}` ? "VALIDATING..." : message.validationSummary === "VALID" ? "VALIDASI ULANG" : "VALIDASI"}
+                      </button>
+                      <button
+                        disabled={isBusy === `delete:${message.id}`}
+                        onClick={() => void deleteIncoming(message.id)}
+                        className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#991B1B] hover:bg-[#DC2626] text-white transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
+                      >
+                        TOLAK
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TacticalSection>
+          {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
+        </>
+      )}
+
+      {/* MOD-04: FORMULASI BAKET */}
+      {(view === "overview" || view === "baket" || view === "reports") && (
+        <>
+          <TacticalSection
+            code="MOD-04"
+            title={view === "reports" ? "LAPORAN SAYA" : "FORMULASI BAKET"}
+            description="Bentuk Baket dari laporan Jaring, kirim ke OIM, dan pantau statusnya."
+            metadata={[
+              { label: "SIAP DIKIRIM", value: readyToSendBakets.length },
+              { label: "TERKIRIM", value: submittedBakets.length }
+            ]}
+          >
+          <div className="tactical-card !p-1 bg-black/5 dark:bg-white/[0.01] rounded-[6px]">
+            <Tabs value={baketTab} onValueChange={setBaketTab} className="space-y-4">
+              <TabsList className="bg-black/10 dark:bg-white/[0.02] border border-[var(--tactical-border)] rounded-[4px] p-1 font-mono text-xs flex flex-wrap gap-1">
+                <TabsTrigger value="ready" className="rounded-[4px] px-4 py-1.5 data-[state=active]:bg-[var(--tactical-card-bg)] data-[state=active]:text-[var(--tactical-blue)] data-[state=active]:shadow-none border border-transparent data-[state=active]:border-[var(--tactical-border)] transition-all font-semibold uppercase tracking-wider">
+                  SIAP DIBUAT ({workspace.baketCandidates.length})
+                </TabsTrigger>
+                <TabsTrigger value="ready-to-send" className="rounded-[4px] px-4 py-1.5 data-[state=active]:bg-[var(--tactical-card-bg)] data-[state=active]:text-[var(--tactical-blue)] data-[state=active]:shadow-none border border-transparent data-[state=active]:border-[var(--tactical-border)] transition-all font-semibold uppercase tracking-wider">
+                  SIAP DIKIRIM ({readyToSendBakets.length})
+                </TabsTrigger>
+                <TabsTrigger value="sent" className="rounded-[4px] px-4 py-1.5 data-[state=active]:bg-[var(--tactical-card-bg)] data-[state=active]:text-[var(--tactical-blue)] data-[state=active]:shadow-none border border-transparent data-[state=active]:border-[var(--tactical-border)] transition-all font-semibold uppercase tracking-wider">
+                  TERKIRIM ({submittedBakets.length})
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="ready" className="grid gap-4 pt-2">
+                {workspace.baketCandidates.length === 0 ? (
+                  <TacticalEmptyState
+                    title="Tidak ada Baket aktif"
+                    description="Belum ada pesan valid yang menunggu pembentukan Baket."
+                    icon={Radio}
+                  />
+                ) : (
+                  workspace.baketCandidates.map((message) => (
+                    <BaketCandidateForm
+                      key={message.id}
+                      message={message}
+                      categories={workspace.reportCategories}
+                      tasks={workspace.tasks}
+                      busy={isBusy === `baket:${message.id}`}
+                      onCreate={(payload) => createBaket(message.id, payload)}
+                    />
+                  ))
+                )}
+              </TabsContent>
+              
+              <TabsContent value="ready-to-send" className="grid gap-4 pt-2">
+                {readyToSendBakets.length === 0 ? (
+                  <TacticalEmptyState
+                    title="Semua Laporan Telah Diproses"
+                    description="Belum ada Baket yang menunggu pengiriman ke OIM."
+                    icon={Send}
+                  />
+                ) : (
+                  readyToSendBakets.map((baket) => (
+                    <div
+                      key={baket.id}
+                      className="tactical-card space-y-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(baket.status)}`}>
+                              SIAP DIKIRIM
+                            </span>
+                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                              CAT: {baket.categoryName || "LEGACY"}
+                            </span>
+                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                              KLASTER: {baket.clusterName || "LEGACY"}
+                            </span>
+                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                              URGENCY: {baket.urgency || "-"}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
+                            {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                          </h3>
+                          <p className="text-sm text-[var(--tactical-text-secondary)]">
+                            Jaring: {baket.primaryJaringAlias || baket.primaryJaringCode || "-"}
+                          </p>
+                          <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed italic bg-black/5 dark:bg-white/[0.01] p-2.5 rounded border border-[var(--tactical-border)]">
+                            {baket.summary || "Catatan Field Officer belum ditambahkan."}
+                          </p>
+                        </div>
+                        <button
+                          disabled={isBusy === `submit:${baket.id}`}
+                          onClick={() => void submitBaket(baket.id)}
+                          className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
+                        >
+                          KIRIM KE OIM
+                        </button>
+                      </div>
+                      <div className="flex gap-4 text-[11px] font-mono text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)] pt-2.5">
+                        <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
+                        <span>&middot;</span>
+                        <span>CREATED: {formatDateTime(baket.createdAt)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="sent" className="grid gap-4 pt-2">
+                {submittedBakets.length === 0 ? (
+                  <TacticalEmptyState
+                    title="Tidak ada Baket terkirim"
+                    description="Belum ada Baket yang telah dikirim ke OIM."
+                    icon={Send}
+                  />
+                ) : (
+                  submittedBakets.map((baket) => (
+                    <div
+                      key={baket.id}
+                      className="tactical-card space-y-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(baket.status)}`}>
+                              {baket.status}
+                            </span>
+                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                              CAT: {baket.categoryName || "LEGACY"}
+                            </span>
+                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                              URGENCY: {baket.urgency || "-"}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
+                            {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                          </h3>
+                          <p className="text-sm text-[var(--tactical-text-secondary)]">
+                            Dikirim ke OIM &middot; data terkunci dan hanya dapat dilihat.
+                          </p>
+                        </div>
+                        <button className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] shrink-0 uppercase cursor-pointer">
+                          <Link
+                            href={`/dashboard/field-officer/buat-baket/${baket.id}`}
+                          >
+                            LIHAT BAKET
+                          </Link>
+                        </button>
+                      </div>
+                      <div className="flex gap-4 text-[11px] font-mono text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)] pt-2.5">
+                        <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
+                        <span>&middot;</span>
+                        <span>SUBMITTED: {formatDateTime(baket.createdAt)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </TacticalSection>
+          {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
+        </>
+      )}
+
+      {/* MOD-05: PETA TUGAS & LIVE LOCATION */}
+      {(view === "overview" || view === "map") && (
+        <>
+          <TacticalSection
+            code="MOD-05"
+            title="PETA TUGAS & LIVE LOCATION"
+            description="Gabungan lokasi laporan Jaring dan ping lokasi terbaru petugas di lapangan."
+            metadata={[
+              { label: "ACTIVE MARKER", value: mapPoints.length },
+              { label: "GPS ACCURACY", value: workspace.latestLocation?.gpsAccuracyMeters ? `${workspace.latestLocation.gpsAccuracyMeters}M` : "N/A" }
+            ]}
+          >
+            <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+              {/* Peta Tugas Card */}
+              <div className="tactical-card space-y-4">
+                <h3 className="text-lg font-semibold tracking-tight text-[var(--tactical-text-primary)] border-b border-[var(--tactical-border)] pb-2">
+                  Peta Tugas
+                </h3>
+                <div className="relative dc-map-shell rounded-[6px] overflow-hidden border border-[var(--tactical-border)]">
+                  {/* Tactical Overlay */}
+                  <div className="absolute top-3 right-3 z-[1000] p-3 rounded-[4px] border border-[var(--tactical-border)] bg-[#ffffff]/90 dark:bg-[#131A26]/90 backdrop-blur-sm text-[10px] font-mono text-[var(--tactical-text-secondary)] space-y-1.5 shadow-lg w-52">
+                  <div className="flex items-center justify-between border-b border-[var(--tactical-border)] pb-1.5 mb-1.5">
+                    <span className="font-semibold text-[var(--tactical-text-primary)] uppercase tracking-wider">TACTICAL MAP OVERLAY</span>
+                    <span className="flex items-center gap-1 px-1 rounded bg-[var(--tactical-green)]/15 text-[var(--tactical-green)] font-bold text-[9px]">
+                      <span className="size-1 rounded-full bg-[var(--tactical-green)] animate-ping" />
+                      LIVE
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>GPS STATUS:</span>
+                    <span className="text-[var(--tactical-text-primary)] font-medium">OPTIMAL</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>MARKER COUNT:</span>
+                    <span className="text-[var(--tactical-text-primary)] font-medium">{mapPoints.length} NODES</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>COORDINATE:</span>
+                    <span className="text-[var(--tactical-text-primary)] font-medium truncate max-w-[100px]" title={`${mapCenter[1].toFixed(5)}, ${mapCenter[0].toFixed(5)}`}>
+                      {mapCenter[1].toFixed(5)}, {mapCenter[0].toFixed(5)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>LAST PING:</span>
+                    <span className="text-[var(--tactical-text-primary)] font-medium">
+                      {workspace.latestLocation ? "ACTIVE" : "N/A"}
+                    </span>
+                  </div>
+                </div>
+
+                <Map className="h-[28rem]" center={mapCenter} zoom={7}>
+                  {mapPoints.map((point) => (
+                    <MapMarker
+                      key={point.id}
+                      longitude={point.longitude}
+                      latitude={point.latitude}
+                    >
+                      <MarkerContent>
+                        <div
+                          className={`flex size-4 items-center justify-center rounded-full border-2 ${
+                            point.kind === "self"
+                              ? "border-[var(--tactical-card-bg)] bg-[var(--tactical-blue)]"
+                              : "border-[var(--tactical-card-bg)] bg-[var(--tactical-green)]"
+                          }`}
+                        />
+                      </MarkerContent>
+                      <MarkerPopup>
+                        <div className="space-y-1 text-sm font-mono p-1">
+                          <p className="font-semibold">{point.title}</p>
+                          <p className="text-[var(--tactical-text-secondary)] text-xs">
+                            {point.subtitle}
+                          </p>
+                          <p className="text-[var(--tactical-text-muted)] text-[10px]">
+                            {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}
+                          </p>
+                        </div>
+                      </MarkerPopup>
+                    </MapMarker>
+                  ))}
+                  <MapControls showZoom showLocate position="bottom-right" />
+                </Map>
+              </div>
+            </div>
+
+            {/* Live Location Card */}
+            <div className="tactical-card space-y-4">
+              <h3 className="text-lg font-semibold tracking-tight text-[var(--tactical-text-primary)] border-b border-[var(--tactical-border)] pb-2">
+                Live Location
+              </h3>
+              
+              <div className="space-y-3">
+                <div className="rounded-[6px] border border-[var(--tactical-border)] bg-black/5 dark:bg-[#0F172A] p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-[4px] bg-[var(--tactical-blue)]/10 text-[var(--tactical-blue)]">
+                      <Crosshair className="size-5 shrink-0" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[var(--tactical-text-primary)]">Posisi terbaru</p>
+                      <p className="text-xs text-[var(--tactical-text-secondary)] font-mono">
+                        {workspace.latestLocation
+                          ? formatDateTime(workspace.latestLocation.capturedAt)
+                          : "Belum ada ping aktif."}
+                      </p>
+                    </div>
+                  </div>
+                  {workspace.latestLocation && (
+                    <div className="space-y-1.5 text-xs font-mono text-[var(--tactical-text-secondary)] border-t border-[var(--tactical-border)] pt-3">
+                      <p>
+                        <span className="text-[var(--tactical-text-muted)]">KOORDINAT:</span>{" "}
+                        {workspace.latestLocation.latitude.toFixed(5)}, {workspace.latestLocation.longitude.toFixed(5)}
+                      </p>
+                      <p>
+                        <span className="text-[var(--tactical-text-muted)]">AKURASI:</span>{" "}
+                        {workspace.latestLocation.gpsAccuracyMeters ?? "-"} m
+                      </p>
+                      <p>
+                        <span className="text-[var(--tactical-text-muted)]">WILAYAH:</span>{" "}
+                        {workspace.latestLocation.areaName || "-"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <button
+                  disabled={isBusy === "location:publish"}
+                  onClick={() => void publishOwnLocation()}
+                  className="w-full h-[40px] px-[18px] rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] font-semibold font-mono tracking-[0.04em] text-sm transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
+                >
+                  KIRIM PING LOKASI
+                </button>
+              </div>
+            </div>
+          </div>
+        </TacticalSection>
+          {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
+        </>
+      )}
+
+      {/* MOD-06: PANIC & EMERGENCY FLOW */}
+      {view === "alert" && (
+        <TacticalSection
+          code="MOD-06"
+          title="PANIC & EMERGENCY FLOW"
+          description="Eskalasi darurat terpusat. Kirim lokasi darurat secara langsung ke coordinator."
+          metadata={[
+            { label: "EMERGENCY UNIT", value: "FC COMMAND UNIT" },
+            { label: "ROUTE STATUS", value: "DIRECT LINE" }
+          ]}
+        >
+          <div className="tactical-card border-[var(--tactical-red)]/30 bg-[var(--tactical-red)]/[0.02] space-y-4">
+            <div className="border-b border-[var(--tactical-red)]/20 pb-3 flex items-center gap-3">
+              <div className="p-2 rounded-[4px] bg-[var(--tactical-red)]/10 text-[var(--tactical-red)]">
+                <Radio className="size-6 animate-pulse" strokeWidth={2} />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold tracking-tight text-[var(--tactical-red)]">Panic & Emergency Flow</h3>
+                <p className="text-xs text-[var(--tactical-text-secondary)]">Tombol darurat tetap berpusat pada pengiriman lokasi dan eskalasi ke coordinator/regional.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-3">
+              <EmergencyStep
+                icon={<MapPin className="size-4 text-[var(--tactical-red)] shrink-0" strokeWidth={2} />}
+                title="1. TANGKAP LOKASI"
+                description="Kirim ping lokasi terakhir dulu agar rantai komando menerima posisi paling aktual."
+              />
+              <EmergencyStep
+                icon={<ShieldCheck className="size-4 text-[var(--tactical-red)] shrink-0" strokeWidth={2} />}
+                title="2. AKTIFKAN SOP"
+                description="Coordinator memeriksa Jaring aktif, coverage area, dan kanal WhatsApp pusat yang sedang online."
+              />
+              <EmergencyStep
+                icon={<Send className="size-4 text-[var(--tactical-red)] shrink-0" strokeWidth={2} />}
+                title="3. ESKALASI"
+                description="Laporan diteruskan ke regional atau posko menggunakan channel resmi di level coordinator."
+              />
+              
+              <div className="xl:col-span-3 pt-2">
+                <button
+                  disabled={isBusy === "location:publish"}
+                  onClick={() => void publishOwnLocation()}
+                  className="h-[40px] px-[18px] rounded-[4px] bg-[#991B1B] hover:bg-[#DC2626] text-white font-semibold font-mono tracking-[0.04em] text-xs transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
+                >
+                  {isBusy === "location:publish" ? "SENDING..." : "KIRIM LOKASI DARURAT"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </TacticalSection>
+      )}
+    </div>
+  );
+}
+
+/* HELPER COMPONENTS */
+
+function MetricCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-[4px] border border-slate-200 dark:border-[#2A3445] bg-slate-50 dark:bg-[#0F172A] p-3 text-center space-y-1 hover:border-[#0EA5E9]/50 transition-all duration-180">
+      <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200 dark:border-[#2A3445]/30 pb-1 mb-1">
+        {label}
+      </p>
+      <p className="font-mono text-2xl font-bold text-[var(--tactical-text-primary)]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function MetricBadge({ label, value, color }: { label: string; value: number; color: "blue" | "green" | "amber" | "red" }) {
+  const colorMap = {
+    blue: "border-[var(--tactical-blue)]/30 bg-[var(--tactical-blue)]/[0.07] text-[var(--tactical-blue)]",
+    green: "border-[var(--tactical-green)]/30 bg-[var(--tactical-green)]/[0.07] text-[var(--tactical-green)]",
+    amber: "border-[var(--tactical-amber)]/30 bg-[var(--tactical-amber)]/[0.07] text-[var(--tactical-amber)]",
+    red: "border-[var(--tactical-red)]/30 bg-[var(--tactical-red)]/[0.07] text-[var(--tactical-red)]",
+  };
+
+  return (
+    <div className={`flex items-center justify-between px-3 py-2 rounded-[4px] border ${colorMap[color]} font-mono`}>
+      <span className="text-[11px] uppercase tracking-wider opacity-85">{label}</span>
+      <span className="text-lg font-semibold">{value}</span>
+    </div>
+  );
+}
+
+function TacticalSection({
+  code,
+  title,
+  description,
+  children,
+  metadata,
+  footer
+}: {
+  code: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  metadata?: { label: string; value: string | number }[];
+  footer?: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      {/* Section Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--tactical-border)] pb-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono tracking-wider text-[var(--tactical-blue)] font-bold bg-[var(--tactical-blue)]/10 border border-[var(--tactical-blue)]/20 px-1.5 py-0.5 rounded-[3px]">
+              {code.toUpperCase()}
+            </span>
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--tactical-text-primary)]">
+            {title}
+          </h2>
+          <p className="text-xs text-[var(--tactical-text-secondary)]">
+            {description}
+          </p>
+        </div>
+
+        {/* Section Metadata */}
+        {metadata && metadata.length > 0 && (
+          <div className="flex gap-4 font-mono text-[10px] text-[var(--tactical-text-muted)] bg-black/5 dark:bg-white/[0.01] px-3 py-1.5 rounded-[4px] border border-[var(--tactical-border)]">
+            {metadata.slice(0, 2).map((meta, i) => (
+              <div key={i} className="flex flex-col">
+                <span className="text-[8px] uppercase tracking-wider text-[var(--tactical-text-muted)]">{meta.label}</span>
+                <span className="text-[var(--tactical-text-secondary)] font-semibold mt-0.5">{meta.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="space-y-4">
+        {children}
+      </div>
+
+      {/* Footer */}
+      {footer && (
+        <div className="text-xs text-[var(--tactical-text-muted)] pt-2">
+          {footer}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TaskCard({
+  task,
+  action,
+  forwarded,
+  isBusy,
+  onUpdateStatus,
+  onForwardToggle
+}: {
+  task: FieldOfficerTask;
+  action: { label: string; nextStatus: "READ" | "ACKNOWLEDGED" | "IN_PROGRESS" | "COMPLETED" } | null;
+  forwarded: boolean;
+  isBusy: boolean;
+  onUpdateStatus: (nextStatus: "READ" | "ACKNOWLEDGED" | "IN_PROGRESS" | "COMPLETED") => void;
+  onForwardToggle: () => void;
+}) {
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [showForwardConfirm, setShowForwardConfirm] = useState(false);
+
+  const handleActionClick = () => {
+    if (action?.nextStatus === "READ") {
+      setShowStatusConfirm(true);
+    } else if (action) {
+      onUpdateStatus(action.nextStatus);
+    }
+  };
+
+  const handleForwardClick = () => {
+    if (forwarded) {
+      onForwardToggle();
+    } else {
+      setShowForwardConfirm(true);
+    }
+  };
+
+  return (
+    <div className="tactical-card !p-[28px] space-y-0 transition-all duration-200 hover:-translate-y-[2px] hover:border-slate-500/30 hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
+      {/* Header Panel */}
+      <div className="pb-4 border-b border-[var(--tactical-border)] flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`tactical-badge px-2 py-0.5 rounded text-[10px] ${statusTone(task.assignmentStatus)}`}>
+            {task.assignmentStatus}
+          </span>
+          <span className="tactical-badge px-2 py-0.5 rounded text-[10px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+            PRIORITY: {task.priority}
+          </span>
+          {forwarded && (
+            <span className="tactical-badge px-2 py-0.5 rounded text-[10px] bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-500 font-semibold">
+              FORWARDED
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Content Panel */}
+      <div className="py-4 border-b border-[var(--tactical-border)]">
+        <h3 className="text-xl font-bold tracking-tight text-[var(--tactical-text-primary)] mb-[20px]">
+          {task.title}
+        </h3>
+        <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed mb-[20px]">
+          {task.description}
+        </p>
+      </div>
+
+      {/* Action Panel */}
+      <div className="py-4 border-b border-[var(--tactical-border)]">
+        <div className="bg-[var(--tactical-action-bg)] border border-[var(--tactical-action-border)] rounded-[12px] p-[16px] space-y-3">
+          <span className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+            ACTION
+          </span>
+          <div className="flex flex-wrap items-center gap-[12px]">
+            {action && (
+              <>
+                <button
+                  disabled={isBusy}
+                  onClick={handleActionClick}
+                  className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] uppercase tracking-[0.04em] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] flex items-center justify-center cursor-pointer"
+                >
+                  {isBusy ? "PROCESSING..." : action.label.toUpperCase()}
+                </button>
+
+                <AlertDialog open={showStatusConfirm} onOpenChange={setShowStatusConfirm}>
+                  <AlertDialogContent className="border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] text-[var(--tactical-text-primary)] rounded-[6px] font-mono">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">KONFIRMASI STATUS</AlertDialogTitle>
+                      <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
+                        Apakah Anda yakin ingin menandai tugas lapangan ini sebagai selesai/dibaca?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
+                      <AlertDialogCancel className="h-9 px-4 rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] text-xs font-semibold uppercase tracking-wider cursor-pointer">
+                        BATAL
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          setShowStatusConfirm(false);
+                          onUpdateStatus(action.nextStatus);
+                        }}
+                        className="h-9 px-4 rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
+                      >
+                        YA, DIBACA
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+            <button
+              onClick={handleForwardClick}
+              className={`h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] uppercase tracking-[0.04em] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] flex items-center justify-center cursor-pointer ${
+                forwarded
+                  ? "bg-[#991B1B] text-white hover:bg-[#DC2626]"
+                  : "bg-[#B45309] text-white hover:bg-[#D97706] active:bg-[#92400E] shadow-[0_0_18px_rgba(217,119,6,0.20)]"
+              }`}
+            >
+              {forwarded ? "BATAL FORWARD" : "FORWARD"}
+            </button>
+
+            <AlertDialog open={showForwardConfirm} onOpenChange={setShowForwardConfirm}>
+              <AlertDialogContent className="border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] text-[var(--tactical-text-primary)] rounded-[6px] font-mono">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">KONFIRMASI FORWARD</AlertDialogTitle>
+                  <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
+                    Apakah Anda yakin ingin meneruskan (forward) tugas lapangan ini ke Coordinator?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
+                  <AlertDialogCancel className="h-9 px-4 rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] text-xs font-semibold uppercase tracking-wider cursor-pointer">
+                    BATAL
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      setShowForwardConfirm(false);
+                      onForwardToggle();
+                    }}
+                    className="h-9 px-4 rounded-[4px] bg-[#B45309] hover:bg-[#D97706] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
+                  >
+                    YA, FORWARD
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Grid Panel */}
+      <div className="pt-4 mt-[20px]">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 text-xs font-mono">
+          <div className="bg-[var(--tactical-panel-bg)] border border-[var(--tactical-panel-border)] rounded-[10px] p-3 flex flex-col justify-between min-h-[75px]">
+            <span className="text-[9px] uppercase tracking-wider text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200/50 dark:border-white/[0.03] pb-1.5 mb-1.5">
+              MISSION ID
+            </span>
+            <span className="text-[var(--tactical-text-primary)] font-medium break-all whitespace-pre-wrap leading-relaxed">
+              {task.assignmentId.toUpperCase()}
+            </span>
+          </div>
+
+          <div className="bg-[var(--tactical-panel-bg)] border border-[var(--tactical-panel-border)] rounded-[10px] p-3 flex flex-col justify-between min-h-[75px]">
+            <span className="text-[9px] uppercase tracking-wider text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200/50 dark:border-white/[0.03] pb-1.5 mb-1.5">
+              TARGET AREAS
+            </span>
+            <span className="text-[var(--tactical-text-primary)] font-medium break-words whitespace-pre-wrap leading-relaxed">
+              {task.targetAreas.join(", ").toUpperCase() || "-"}
+            </span>
+          </div>
+
+          <div className="bg-[var(--tactical-panel-bg)] border border-[var(--tactical-panel-border)] rounded-[10px] p-3 flex flex-col justify-between min-h-[75px]">
+            <span className="text-[9px] uppercase tracking-wider text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200/50 dark:border-white/[0.03] pb-1.5 mb-1.5">
+              SOURCE
+            </span>
+            <span className="text-[var(--tactical-text-primary)] font-medium break-words whitespace-pre-wrap leading-relaxed">
+              {(task.sourceLabel || "-").toUpperCase()}
+            </span>
+          </div>
+
+          <div className="bg-[var(--tactical-panel-bg)] border border-[var(--tactical-panel-border)] rounded-[10px] p-3 flex flex-col justify-between min-h-[75px]">
+            <span className="text-[9px] uppercase tracking-wider text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200/50 dark:border-white/[0.03] pb-1.5 mb-1.5">
+              DUE DATE
+            </span>
+            <span className="text-[var(--tactical-text-primary)] font-medium break-words whitespace-pre-wrap leading-relaxed">
+              {formatDateTime(task.dueDate).toUpperCase()}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TacticalEmptyState({
+  title,
+  description,
+  onAction,
+  actionLabel = "Refresh",
+  icon: IconComponent = Radio
+}: {
+  title: string;
+  description: string;
+  onAction?: () => void;
+  actionLabel?: string;
+  icon?: React.ComponentType<any>;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center p-8 text-center rounded-[6px] border border-dashed border-[var(--tactical-border)] bg-black/5 dark:bg-white/[0.01] space-y-3 font-mono">
+      <div className="p-2.5 rounded-[4px] bg-[var(--tactical-border)]/20 text-[var(--tactical-text-muted)]">
+        <IconComponent className="size-6 animate-pulse" strokeWidth={2} />
+      </div>
+      <div className="space-y-1">
+        <h4 className="text-sm font-semibold text-[var(--tactical-text-primary)] uppercase tracking-wider">
+          {title}
+        </h4>
+        <p className="text-xs text-[var(--tactical-text-secondary)] max-w-sm">
+          {description}
+        </p>
+      </div>
+      {onAction && (
+        <button
+          onClick={onAction}
+          className="text-xs text-[var(--tactical-blue)] hover:underline uppercase font-medium bg-[var(--tactical-blue)]/5 border border-[var(--tactical-blue)]/10 px-3 py-1 rounded-[4px]"
+        >
+          [ {actionLabel} ]
+        </button>
+      )}
+    </div>
+  );
+}
+
+function BaketCandidateForm({
+  message,
+  categories,
+  tasks,
+  busy,
+  onCreate,
+}: {
+  message: FieldOfficerIncoming;
+  categories: ReportCategory[];
+  tasks: FieldOfficerTask[];
+  busy: boolean;
+  onCreate: (payload: {
+    categoryId: string;
+    urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+    title?: string;
+    normalizedContent?: string;
+    fieldOfficerNote?: string;
+    taskAssignmentId?: string;
+    eventTime?: string;
+  }) => Promise<void>;
+}) {
+  const [categoryId, setCategoryId] = useState("");
+  const [urgency, setUrgency] = useState<"LOW" | "NORMAL" | "HIGH" | "URGENT">(
+    "NORMAL",
+  );
+  const [urgencyConfirmed, setUrgencyConfirmed] = useState(false);
+  const [title, setTitle] = useState(message.title || "");
+  const [normalizedContent, setNormalizedContent] = useState(
+    message.content || "",
+  );
+  const [fieldOfficerNote, setFieldOfficerNote] = useState("");
+  const [taskAssignmentId, setTaskAssignmentId] = useState("");
+  const [eventTime, setEventTime] = useState(
+    message.eventDateTime
+      ? new Date(message.eventDateTime).toISOString().slice(0, 16)
+      : "",
+  );
+  const canCreate = Boolean(
+    categoryId && urgencyConfirmed && title.trim() && normalizedContent.trim(),
+  );
+
+  return (
+    <div className="tactical-card border-emerald-500/25 bg-emerald-500/[0.02] space-y-6">
+      {/* Candidate Header Info */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--tactical-border)] pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`tactical-badge px-2 py-0.5 rounded text-[10px] ${statusTone(message.status)}`}>
+            {message.status}
+          </span>
+          <span className="tactical-badge px-2 py-0.5 rounded text-[10px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)]">
+            JARING: {message.jaringCode}
+          </span>
+          <span className="tactical-badge px-2 py-0.5 rounded text-[10px] bg-[var(--tactical-blue)]/10 text-[var(--tactical-blue)] font-mono border border-[var(--tactical-blue)]/20">
+            KLASTER: {message.clusterName || "BELUM TERPETAKAN"}
+          </span>
+        </div>
+        <div className="text-[10px] font-mono text-[var(--tactical-text-muted)]">
+          CANDIDATE ID: {message.id.slice(0, 8).toUpperCase()}
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+        {/* Left: Message Source Detail */}
+        <div className="space-y-4 pr-0 xl:pr-6 xl:border-r border-[var(--tactical-border)]">
+          <div className="space-y-1">
+            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
+              SUMBER PESAN JARING
+            </span>
+            <div className="p-4 rounded-lg bg-black/10 dark:bg-white/[0.01] border border-[var(--tactical-border)] text-sm text-[var(--tactical-text-primary)] leading-relaxed min-h-[100px]">
+              {message.content}
+            </div>
+          </div>
+
+          {message.photoUrl && (
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
+                BUKTI DOKUMENTASI
+              </span>
+              <img
+                src={message.photoUrl}
+                alt={`Evidence ${message.title || message.jaringAlias}`}
+                className="max-h-56 w-full rounded-lg border border-[var(--tactical-border)] object-cover shadow-sm animate-fade-in"
+              />
+            </div>
+          )}
+
+          {message.latitude !== null && message.longitude !== null && (
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
+                KOORDINAT GPS
+              </span>
+              <div className="p-3 rounded-lg bg-black/10 dark:bg-white/[0.01] border border-[var(--tactical-border)] font-mono text-xs text-[var(--tactical-text-secondary)]">
+                {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)} &middot; AKURASI {message.gpsAccuracyMeters ?? "-"} M
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] font-mono text-[var(--tactical-text-muted)]">
+            <span>SENDER: {message.senderPhone}</span>
+            <span>INCOMING: {formatDateTime(message.receivedAt)}</span>
+            <span>EVENT: {formatDateTime(message.eventDateTime)}</span>
+            <span>AREA: {message.areaName || "-"}</span>
+          </div>
+        </div>
+
+        {/* Right: Baket Normalization Form Fields */}
+        <div className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                KATEGORI LAPORAN <span className="text-[var(--tactical-red)]">*</span>
+              </label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.02] text-[var(--tactical-text-primary)]">
+                  <SelectValue placeholder="PILIH KATEGORI" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories
+                    .filter((item) => item.isActive)
+                    .map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name.toUpperCase()}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                URGENCY LEVEL <span className="text-[var(--tactical-red)]">*</span>
+              </label>
+              <Select
+                value={urgency}
+                onValueChange={(value) => {
+                  setUrgency(value as typeof urgency);
+                  setUrgencyConfirmed(false);
+                }}
+              >
+                <SelectTrigger className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.02] text-[var(--tactical-text-primary)] font-mono">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="font-mono">
+                  <SelectItem value="LOW">LOW</SelectItem>
+                  <SelectItem value="NORMAL">NORMAL</SelectItem>
+                  <SelectItem value="HIGH">HIGH</SelectItem>
+                  <SelectItem value="URGENT">URGENT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+              JUDUL BAKET <span className="text-[var(--tactical-red)]">*</span>
+            </label>
+            <Input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Masukkan judul laporan formal..."
+              className="tactical-input w-full"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+              ISI NORMALISASI LAPORAN <span className="text-[var(--tactical-red)]">*</span>
+            </label>
+            <Textarea
+              value={normalizedContent}
+              onChange={(event) => setNormalizedContent(event.target.value)}
+              placeholder="Tuliskan isi laporan dengan bahasa formal..."
+              className="tactical-input min-h-24 w-full"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                WAKTU KEJADIAN
+              </label>
+              <Input
+                type="datetime-local"
+                value={eventTime}
+                onChange={(event) => setEventTime(event.target.value)}
+                className="tactical-input w-full font-mono text-xs"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                TUGAS OPERASIONAL TERKAIT
+              </label>
+              <Select
+                value={taskAssignmentId || "none"}
+                onValueChange={(value) =>
+                  setTaskAssignmentId(value === "none" ? "" : value)
+                }
+              >
+                <SelectTrigger className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.02] text-[var(--tactical-text-primary)]">
+                  <SelectValue placeholder="TANPA TUGAS" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">TANPA TUGAS</SelectItem>
+                  {tasks.map((task) => (
+                    <SelectItem key={task.assignmentId} value={task.assignmentId}>
+                      {task.title.toUpperCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+              CATATAN FIELD OFFICER
+            </label>
+            <Textarea
+              value={fieldOfficerNote}
+              onChange={(event) => setFieldOfficerNote(event.target.value)}
+              placeholder="Catatan tambahan FO mengenai situasi lapangan..."
+              className="tactical-input w-full min-h-16"
+            />
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-[var(--tactical-border)] mt-4 font-mono">
+            <label className="flex items-center gap-2.5 text-xs text-[var(--tactical-text-secondary)] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={urgencyConfirmed}
+                onChange={(event) => setUrgencyConfirmed(event.target.checked)}
+                className="size-4 rounded border-[var(--tactical-border)] text-[var(--tactical-blue)] focus:ring-0 focus:ring-offset-0 bg-transparent shrink-0"
+              />
+              <span className="text-[10px]">SOP CONFIRMATION: Konfirmasi urgency {urgency}.</span>
+            </label>
+
+            <button
+              disabled={!canCreate || busy}
+              onClick={() =>
+                void onCreate({
+                  categoryId,
+                  urgency,
+                  title: title.trim(),
+                  normalizedContent: normalizedContent.trim(),
+                  fieldOfficerNote: fieldOfficerNote.trim() || undefined,
+                  taskAssignmentId: taskAssignmentId || undefined,
+                  eventTime: eventTime
+                    ? new Date(eventTime).toISOString()
+                    : undefined,
+                })
+              }
+              className="h-[40px] px-[18px] rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white font-semibold tracking-[0.04em] text-xs transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] shadow-[0_0_18px_rgba(22,163,74,0.25)] disabled:opacity-50 uppercase cursor-pointer"
+            >
+              {busy ? "SAVING..." : "FORMULASIKAN BAKET"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmergencyStep({ description, icon, title }: { description: string; icon: React.ReactNode; title: string }) {
+  return (
+    <div className="rounded-[4px] border border-slate-200 dark:border-[#2A3445] bg-slate-50 dark:bg-[#0F172A] p-4 text-[var(--tactical-text-primary)] space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="p-1.5 rounded-[4px] bg-slate-200 dark:bg-[#2A3445]/20 text-[var(--tactical-red)] shrink-0">
+          {icon}
+        </div>
+        <p className="font-semibold text-xs font-mono tracking-wide text-[var(--tactical-text-primary)]">{title}</p>
+      </div>
+      <p className="text-[var(--tactical-text-secondary)] text-xs leading-relaxed">{description}</p>
+    </div>
+  );
+}

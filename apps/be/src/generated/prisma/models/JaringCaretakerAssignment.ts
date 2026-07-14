@@ -207,7 +207,7 @@ export type JaringCaretakerAssignmentWhereInput = {
   transferReason?: Prisma.StringNullableFilter<"JaringCaretakerAssignment"> | string | null
   createdAt?: Prisma.DateTimeFilter<"JaringCaretakerAssignment"> | Date | string
   jaring?: Prisma.XOR<Prisma.JaringScalarRelationFilter, Prisma.JaringWhereInput>
-  fieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  fieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
 }
 
 export type JaringCaretakerAssignmentOrderByWithRelationInput = {
@@ -220,7 +220,7 @@ export type JaringCaretakerAssignmentOrderByWithRelationInput = {
   transferReason?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   jaring?: Prisma.JaringOrderByWithRelationInput
-  fieldOfficerAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  fieldOfficerAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
 }
 
 export type JaringCaretakerAssignmentWhereUniqueInput = Prisma.AtLeast<{
@@ -236,7 +236,7 @@ export type JaringCaretakerAssignmentWhereUniqueInput = Prisma.AtLeast<{
   transferReason?: Prisma.StringNullableFilter<"JaringCaretakerAssignment"> | string | null
   createdAt?: Prisma.DateTimeFilter<"JaringCaretakerAssignment"> | Date | string
   jaring?: Prisma.XOR<Prisma.JaringScalarRelationFilter, Prisma.JaringWhereInput>
-  fieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  fieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
 }, "id">
 
 export type JaringCaretakerAssignmentOrderByWithAggregationInput = {
@@ -275,7 +275,7 @@ export type JaringCaretakerAssignmentCreateInput = {
   transferReason?: string | null
   createdAt?: Date | string
   jaring: Prisma.JaringCreateNestedOneWithoutCaretakerAssignmentsInput
-  fieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutJaringCaretakerAssignmentsInput
+  fieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCaretakerAssignmentsInput
 }
 
 export type JaringCaretakerAssignmentUncheckedCreateInput = {
@@ -297,7 +297,7 @@ export type JaringCaretakerAssignmentUpdateInput = {
   transferReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   jaring?: Prisma.JaringUpdateOneRequiredWithoutCaretakerAssignmentsNestedInput
-  fieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutJaringCaretakerAssignmentsNestedInput
+  fieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCaretakerAssignmentsNestedInput
 }
 
 export type JaringCaretakerAssignmentUncheckedUpdateInput = {
@@ -536,7 +536,7 @@ export type JaringCaretakerAssignmentCreateWithoutJaringInput = {
   validUntil?: Date | string | null
   transferReason?: string | null
   createdAt?: Date | string
-  fieldOfficerAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutJaringCaretakerAssignmentsInput
+  fieldOfficerAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCaretakerAssignmentsInput
 }
 
 export type JaringCaretakerAssignmentUncheckedCreateWithoutJaringInput = {
@@ -632,7 +632,7 @@ export type JaringCaretakerAssignmentUpdateWithoutJaringInput = {
   validUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   transferReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  fieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutJaringCaretakerAssignmentsNestedInput
+  fieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCaretakerAssignmentsNestedInput
 }
 
 export type JaringCaretakerAssignmentUncheckedUpdateWithoutJaringInput = {
@@ -667,7 +667,7 @@ export type JaringCaretakerAssignmentSelect<ExtArgs extends runtime.Types.Extens
   transferReason?: boolean
   createdAt?: boolean
   jaring?: boolean | Prisma.JaringDefaultArgs<ExtArgs>
-  fieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  fieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["jaringCaretakerAssignment"]>
 
 export type JaringCaretakerAssignmentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -680,7 +680,7 @@ export type JaringCaretakerAssignmentSelectCreateManyAndReturn<ExtArgs extends r
   transferReason?: boolean
   createdAt?: boolean
   jaring?: boolean | Prisma.JaringDefaultArgs<ExtArgs>
-  fieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  fieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["jaringCaretakerAssignment"]>
 
 export type JaringCaretakerAssignmentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -693,7 +693,7 @@ export type JaringCaretakerAssignmentSelectUpdateManyAndReturn<ExtArgs extends r
   transferReason?: boolean
   createdAt?: boolean
   jaring?: boolean | Prisma.JaringDefaultArgs<ExtArgs>
-  fieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  fieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["jaringCaretakerAssignment"]>
 
 export type JaringCaretakerAssignmentSelectScalar = {
@@ -710,22 +710,22 @@ export type JaringCaretakerAssignmentSelectScalar = {
 export type JaringCaretakerAssignmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "jaringId" | "fieldOfficerAssignmentId" | "isActive" | "validFrom" | "validUntil" | "transferReason" | "createdAt", ExtArgs["result"]["jaringCaretakerAssignment"]>
 export type JaringCaretakerAssignmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   jaring?: boolean | Prisma.JaringDefaultArgs<ExtArgs>
-  fieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  fieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type JaringCaretakerAssignmentIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   jaring?: boolean | Prisma.JaringDefaultArgs<ExtArgs>
-  fieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  fieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type JaringCaretakerAssignmentIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   jaring?: boolean | Prisma.JaringDefaultArgs<ExtArgs>
-  fieldOfficerAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  fieldOfficerAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $JaringCaretakerAssignmentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "JaringCaretakerAssignment"
   objects: {
     jaring: Prisma.$JaringPayload<ExtArgs>
-    fieldOfficerAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    fieldOfficerAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1131,7 +1131,7 @@ readonly fields: JaringCaretakerAssignmentFieldRefs;
 export interface Prisma__JaringCaretakerAssignmentClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   jaring<T extends Prisma.JaringDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.JaringDefaultArgs<ExtArgs>>): Prisma.Prisma__JaringClient<runtime.Types.Result.GetResult<Prisma.$JaringPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  fieldOfficerAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  fieldOfficerAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.

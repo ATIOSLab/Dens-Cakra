@@ -25,3 +25,5 @@ prisma/dev.db*
 Thumbs.db
 .idea/
 .vscode/
+
+wa_auth

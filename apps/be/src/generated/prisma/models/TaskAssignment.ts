@@ -247,8 +247,8 @@ export type TaskAssignmentWhereInput = {
   dueDate?: Prisma.DateTimeNullableFilter<"TaskAssignment"> | Date | string | null
   assignmentNote?: Prisma.StringNullableFilter<"TaskAssignment"> | string | null
   task?: Prisma.XOR<Prisma.TaskScalarRelationFilter, Prisma.TaskWhereInput>
-  assigner?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
-  assignee?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  assigner?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
+  assignee?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   reassignedFrom?: Prisma.XOR<Prisma.TaskAssignmentNullableScalarRelationFilter, Prisma.TaskAssignmentWhereInput> | null
   reassignedTo?: Prisma.XOR<Prisma.TaskAssignmentNullableScalarRelationFilter, Prisma.TaskAssignmentWhereInput> | null
   progressLogs?: Prisma.TaskProgressLogListRelationFilter
@@ -270,8 +270,8 @@ export type TaskAssignmentOrderByWithRelationInput = {
   dueDate?: Prisma.SortOrderInput | Prisma.SortOrder
   assignmentNote?: Prisma.SortOrderInput | Prisma.SortOrder
   task?: Prisma.TaskOrderByWithRelationInput
-  assigner?: Prisma.PositionAssignmentOrderByWithRelationInput
-  assignee?: Prisma.PositionAssignmentOrderByWithRelationInput
+  assigner?: Prisma.UserSeatAssignmentOrderByWithRelationInput
+  assignee?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   reassignedFrom?: Prisma.TaskAssignmentOrderByWithRelationInput
   reassignedTo?: Prisma.TaskAssignmentOrderByWithRelationInput
   progressLogs?: Prisma.TaskProgressLogOrderByRelationAggregateInput
@@ -296,8 +296,8 @@ export type TaskAssignmentWhereUniqueInput = Prisma.AtLeast<{
   dueDate?: Prisma.DateTimeNullableFilter<"TaskAssignment"> | Date | string | null
   assignmentNote?: Prisma.StringNullableFilter<"TaskAssignment"> | string | null
   task?: Prisma.XOR<Prisma.TaskScalarRelationFilter, Prisma.TaskWhereInput>
-  assigner?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
-  assignee?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  assigner?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
+  assignee?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   reassignedFrom?: Prisma.XOR<Prisma.TaskAssignmentNullableScalarRelationFilter, Prisma.TaskAssignmentWhereInput> | null
   reassignedTo?: Prisma.XOR<Prisma.TaskAssignmentNullableScalarRelationFilter, Prisma.TaskAssignmentWhereInput> | null
   progressLogs?: Prisma.TaskProgressLogListRelationFilter
@@ -353,8 +353,8 @@ export type TaskAssignmentCreateInput = {
   dueDate?: Date | string | null
   assignmentNote?: string | null
   task: Prisma.TaskCreateNestedOneWithoutAssignmentsInput
-  assigner: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
-  assignee: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
+  assigner: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
+  assignee: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
   reassignedFrom?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedToInput
   reassignedTo?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedFromInput
   progressLogs?: Prisma.TaskProgressLogCreateNestedManyWithoutTaskAssignmentInput
@@ -391,8 +391,8 @@ export type TaskAssignmentUpdateInput = {
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   assignmentNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   task?: Prisma.TaskUpdateOneRequiredWithoutAssignmentsNestedInput
-  assigner?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
-  assignee?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
+  assigner?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
+  assignee?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
   reassignedFrom?: Prisma.TaskAssignmentUpdateOneWithoutReassignedToNestedInput
   reassignedTo?: Prisma.TaskAssignmentUpdateOneWithoutReassignedFromNestedInput
   progressLogs?: Prisma.TaskProgressLogUpdateManyWithoutTaskAssignmentNestedInput
@@ -749,7 +749,7 @@ export type TaskAssignmentCreateWithoutAssignerInput = {
   dueDate?: Date | string | null
   assignmentNote?: string | null
   task: Prisma.TaskCreateNestedOneWithoutAssignmentsInput
-  assignee: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
+  assignee: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
   reassignedFrom?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedToInput
   reassignedTo?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedFromInput
   progressLogs?: Prisma.TaskProgressLogCreateNestedManyWithoutTaskAssignmentInput
@@ -795,7 +795,7 @@ export type TaskAssignmentCreateWithoutAssigneeInput = {
   dueDate?: Date | string | null
   assignmentNote?: string | null
   task: Prisma.TaskCreateNestedOneWithoutAssignmentsInput
-  assigner: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
+  assigner: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
   reassignedFrom?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedToInput
   reassignedTo?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedFromInput
   progressLogs?: Prisma.TaskProgressLogCreateNestedManyWithoutTaskAssignmentInput
@@ -891,8 +891,8 @@ export type TaskAssignmentCreateWithoutTaskInput = {
   completedAt?: Date | string | null
   dueDate?: Date | string | null
   assignmentNote?: string | null
-  assigner: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
-  assignee: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
+  assigner: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
+  assignee: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
   reassignedFrom?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedToInput
   reassignedTo?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedFromInput
   progressLogs?: Prisma.TaskProgressLogCreateNestedManyWithoutTaskAssignmentInput
@@ -954,8 +954,8 @@ export type TaskAssignmentCreateWithoutReassignedToInput = {
   dueDate?: Date | string | null
   assignmentNote?: string | null
   task: Prisma.TaskCreateNestedOneWithoutAssignmentsInput
-  assigner: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
-  assignee: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
+  assigner: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
+  assignee: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
   reassignedFrom?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedToInput
   progressLogs?: Prisma.TaskProgressLogCreateNestedManyWithoutTaskAssignmentInput
   bakets?: Prisma.BaketCreateNestedManyWithoutTaskAssignmentInput
@@ -995,8 +995,8 @@ export type TaskAssignmentCreateWithoutReassignedFromInput = {
   dueDate?: Date | string | null
   assignmentNote?: string | null
   task: Prisma.TaskCreateNestedOneWithoutAssignmentsInput
-  assigner: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
-  assignee: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
+  assigner: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
+  assignee: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
   reassignedTo?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedFromInput
   progressLogs?: Prisma.TaskProgressLogCreateNestedManyWithoutTaskAssignmentInput
   bakets?: Prisma.BaketCreateNestedManyWithoutTaskAssignmentInput
@@ -1047,8 +1047,8 @@ export type TaskAssignmentUpdateWithoutReassignedToInput = {
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   assignmentNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   task?: Prisma.TaskUpdateOneRequiredWithoutAssignmentsNestedInput
-  assigner?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
-  assignee?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
+  assigner?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
+  assignee?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
   reassignedFrom?: Prisma.TaskAssignmentUpdateOneWithoutReassignedToNestedInput
   progressLogs?: Prisma.TaskProgressLogUpdateManyWithoutTaskAssignmentNestedInput
   bakets?: Prisma.BaketUpdateManyWithoutTaskAssignmentNestedInput
@@ -1094,8 +1094,8 @@ export type TaskAssignmentUpdateWithoutReassignedFromInput = {
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   assignmentNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   task?: Prisma.TaskUpdateOneRequiredWithoutAssignmentsNestedInput
-  assigner?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
-  assignee?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
+  assigner?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
+  assignee?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
   reassignedTo?: Prisma.TaskAssignmentUpdateOneWithoutReassignedFromNestedInput
   progressLogs?: Prisma.TaskProgressLogUpdateManyWithoutTaskAssignmentNestedInput
   bakets?: Prisma.BaketUpdateManyWithoutTaskAssignmentNestedInput
@@ -1130,8 +1130,8 @@ export type TaskAssignmentCreateWithoutProgressLogsInput = {
   dueDate?: Date | string | null
   assignmentNote?: string | null
   task: Prisma.TaskCreateNestedOneWithoutAssignmentsInput
-  assigner: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
-  assignee: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
+  assigner: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
+  assignee: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
   reassignedFrom?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedToInput
   reassignedTo?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedFromInput
   bakets?: Prisma.BaketCreateNestedManyWithoutTaskAssignmentInput
@@ -1182,8 +1182,8 @@ export type TaskAssignmentUpdateWithoutProgressLogsInput = {
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   assignmentNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   task?: Prisma.TaskUpdateOneRequiredWithoutAssignmentsNestedInput
-  assigner?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
-  assignee?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
+  assigner?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
+  assignee?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
   reassignedFrom?: Prisma.TaskAssignmentUpdateOneWithoutReassignedToNestedInput
   reassignedTo?: Prisma.TaskAssignmentUpdateOneWithoutReassignedFromNestedInput
   bakets?: Prisma.BaketUpdateManyWithoutTaskAssignmentNestedInput
@@ -1218,8 +1218,8 @@ export type TaskAssignmentCreateWithoutBaketsInput = {
   dueDate?: Date | string | null
   assignmentNote?: string | null
   task: Prisma.TaskCreateNestedOneWithoutAssignmentsInput
-  assigner: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
-  assignee: Prisma.PositionAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
+  assigner: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsGivenInput
+  assignee: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskAssignmentsReceivedInput
   reassignedFrom?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedToInput
   reassignedTo?: Prisma.TaskAssignmentCreateNestedOneWithoutReassignedFromInput
   progressLogs?: Prisma.TaskProgressLogCreateNestedManyWithoutTaskAssignmentInput
@@ -1270,8 +1270,8 @@ export type TaskAssignmentUpdateWithoutBaketsInput = {
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   assignmentNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   task?: Prisma.TaskUpdateOneRequiredWithoutAssignmentsNestedInput
-  assigner?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
-  assignee?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
+  assigner?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
+  assignee?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
   reassignedFrom?: Prisma.TaskAssignmentUpdateOneWithoutReassignedToNestedInput
   reassignedTo?: Prisma.TaskAssignmentUpdateOneWithoutReassignedFromNestedInput
   progressLogs?: Prisma.TaskProgressLogUpdateManyWithoutTaskAssignmentNestedInput
@@ -1336,7 +1336,7 @@ export type TaskAssignmentUpdateWithoutAssignerInput = {
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   assignmentNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   task?: Prisma.TaskUpdateOneRequiredWithoutAssignmentsNestedInput
-  assignee?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
+  assignee?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
   reassignedFrom?: Prisma.TaskAssignmentUpdateOneWithoutReassignedToNestedInput
   reassignedTo?: Prisma.TaskAssignmentUpdateOneWithoutReassignedFromNestedInput
   progressLogs?: Prisma.TaskProgressLogUpdateManyWithoutTaskAssignmentNestedInput
@@ -1387,7 +1387,7 @@ export type TaskAssignmentUpdateWithoutAssigneeInput = {
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   assignmentNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   task?: Prisma.TaskUpdateOneRequiredWithoutAssignmentsNestedInput
-  assigner?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
+  assigner?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
   reassignedFrom?: Prisma.TaskAssignmentUpdateOneWithoutReassignedToNestedInput
   reassignedTo?: Prisma.TaskAssignmentUpdateOneWithoutReassignedFromNestedInput
   progressLogs?: Prisma.TaskProgressLogUpdateManyWithoutTaskAssignmentNestedInput
@@ -1452,8 +1452,8 @@ export type TaskAssignmentUpdateWithoutTaskInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   assignmentNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  assigner?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
-  assignee?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
+  assigner?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsGivenNestedInput
+  assignee?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskAssignmentsReceivedNestedInput
   reassignedFrom?: Prisma.TaskAssignmentUpdateOneWithoutReassignedToNestedInput
   reassignedTo?: Prisma.TaskAssignmentUpdateOneWithoutReassignedFromNestedInput
   progressLogs?: Prisma.TaskProgressLogUpdateManyWithoutTaskAssignmentNestedInput
@@ -1548,8 +1548,8 @@ export type TaskAssignmentSelect<ExtArgs extends runtime.Types.Extensions.Intern
   dueDate?: boolean
   assignmentNote?: boolean
   task?: boolean | Prisma.TaskDefaultArgs<ExtArgs>
-  assigner?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
-  assignee?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assigner?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
+  assignee?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   reassignedFrom?: boolean | Prisma.TaskAssignment$reassignedFromArgs<ExtArgs>
   reassignedTo?: boolean | Prisma.TaskAssignment$reassignedToArgs<ExtArgs>
   progressLogs?: boolean | Prisma.TaskAssignment$progressLogsArgs<ExtArgs>
@@ -1572,8 +1572,8 @@ export type TaskAssignmentSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   dueDate?: boolean
   assignmentNote?: boolean
   task?: boolean | Prisma.TaskDefaultArgs<ExtArgs>
-  assigner?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
-  assignee?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assigner?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
+  assignee?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   reassignedFrom?: boolean | Prisma.TaskAssignment$reassignedFromArgs<ExtArgs>
 }, ExtArgs["result"]["taskAssignment"]>
 
@@ -1592,8 +1592,8 @@ export type TaskAssignmentSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   dueDate?: boolean
   assignmentNote?: boolean
   task?: boolean | Prisma.TaskDefaultArgs<ExtArgs>
-  assigner?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
-  assignee?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assigner?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
+  assignee?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   reassignedFrom?: boolean | Prisma.TaskAssignment$reassignedFromArgs<ExtArgs>
 }, ExtArgs["result"]["taskAssignment"]>
 
@@ -1616,8 +1616,8 @@ export type TaskAssignmentSelectScalar = {
 export type TaskAssignmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "taskId" | "assignerAssignmentId" | "assigneeAssignmentId" | "reassignedFromId" | "status" | "assignedAt" | "readAt" | "acknowledgedAt" | "startedAt" | "completedAt" | "dueDate" | "assignmentNote", ExtArgs["result"]["taskAssignment"]>
 export type TaskAssignmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   task?: boolean | Prisma.TaskDefaultArgs<ExtArgs>
-  assigner?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
-  assignee?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assigner?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
+  assignee?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   reassignedFrom?: boolean | Prisma.TaskAssignment$reassignedFromArgs<ExtArgs>
   reassignedTo?: boolean | Prisma.TaskAssignment$reassignedToArgs<ExtArgs>
   progressLogs?: boolean | Prisma.TaskAssignment$progressLogsArgs<ExtArgs>
@@ -1626,14 +1626,14 @@ export type TaskAssignmentInclude<ExtArgs extends runtime.Types.Extensions.Inter
 }
 export type TaskAssignmentIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   task?: boolean | Prisma.TaskDefaultArgs<ExtArgs>
-  assigner?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
-  assignee?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assigner?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
+  assignee?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   reassignedFrom?: boolean | Prisma.TaskAssignment$reassignedFromArgs<ExtArgs>
 }
 export type TaskAssignmentIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   task?: boolean | Prisma.TaskDefaultArgs<ExtArgs>
-  assigner?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
-  assignee?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  assigner?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
+  assignee?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   reassignedFrom?: boolean | Prisma.TaskAssignment$reassignedFromArgs<ExtArgs>
 }
 
@@ -1641,8 +1641,8 @@ export type $TaskAssignmentPayload<ExtArgs extends runtime.Types.Extensions.Inte
   name: "TaskAssignment"
   objects: {
     task: Prisma.$TaskPayload<ExtArgs>
-    assigner: Prisma.$PositionAssignmentPayload<ExtArgs>
-    assignee: Prisma.$PositionAssignmentPayload<ExtArgs>
+    assigner: Prisma.$UserSeatAssignmentPayload<ExtArgs>
+    assignee: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     reassignedFrom: Prisma.$TaskAssignmentPayload<ExtArgs> | null
     reassignedTo: Prisma.$TaskAssignmentPayload<ExtArgs> | null
     progressLogs: Prisma.$TaskProgressLogPayload<ExtArgs>[]
@@ -2057,8 +2057,8 @@ readonly fields: TaskAssignmentFieldRefs;
 export interface Prisma__TaskAssignmentClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   task<T extends Prisma.TaskDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TaskDefaultArgs<ExtArgs>>): Prisma.Prisma__TaskClient<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  assigner<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  assignee<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  assigner<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  assignee<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   reassignedFrom<T extends Prisma.TaskAssignment$reassignedFromArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TaskAssignment$reassignedFromArgs<ExtArgs>>): Prisma.Prisma__TaskAssignmentClient<runtime.Types.Result.GetResult<Prisma.$TaskAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   reassignedTo<T extends Prisma.TaskAssignment$reassignedToArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TaskAssignment$reassignedToArgs<ExtArgs>>): Prisma.Prisma__TaskAssignmentClient<runtime.Types.Result.GetResult<Prisma.$TaskAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   progressLogs<T extends Prisma.TaskAssignment$progressLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TaskAssignment$progressLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskProgressLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>

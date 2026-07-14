@@ -1,0 +1,38 @@
+# Dokploy backend-only compose for DENS CAKRA.
+# Use Dokploy Domains UI for routing instead of hardcoding Traefik labels here.
+
+services:
+  dens-cakra-be:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3001}
+      # Keep container storage paths absolute so Dokploy volume mounts never
+      # break when UI/.env values use local relative paths like ./storage.
+      LOCAL_STORAGE_ROOT: /app/storage
+      WHATSAPP_AUTH_ROOT: /app/wa_auth
+      RUN_MIGRATIONS_ON_STARTUP: ${RUN_MIGRATIONS_ON_STARTUP:-true}
+      RUN_SEED_ON_STARTUP: ${RUN_SEED_ON_STARTUP:-false}
+      RUN_JAKARTA_SEED_ON_STARTUP: ${RUN_JAKARTA_SEED_ON_STARTUP:-false}
+      WAIT_FOR_DB_TIMEOUT_MS: ${WAIT_FOR_DB_TIMEOUT_MS:-60000}
+      WAIT_FOR_DB_INTERVAL_MS: ${WAIT_FOR_DB_INTERVAL_MS:-2000}
+    volumes:
+      - dens_cakra_storage:/app/storage
+      - dens_cakra_wa_auth:/app/wa_auth
+    expose:
+      - '${PORT:-3001}'
+    healthcheck:
+      test: ['CMD', 'node', 'docker/healthcheck.mjs']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  dens_cakra_storage:
+  dens_cakra_wa_auth:

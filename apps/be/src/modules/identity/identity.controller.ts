@@ -19,7 +19,6 @@ import { toWebHeaders } from '../../common/utils/node-headers.js';
 import { apiResult } from '../../common/api/api-response.js';
 import {
   AreaScopeQueryDto,
-  PermissionQueryDto,
   RevokeOtherSessionsDto,
 } from './dto/identity.dto.js';
 import { IdentityService } from './identity.service.js';
@@ -52,33 +51,10 @@ export class IdentityController {
     return apiResult(context);
   }
 
-  @Get('permissions')
+  @Get('area-scopes')
   @ApiContract({
     operationId: 'apiCtx003',
     contractId: 'API-CTX-003',
-    summary: 'Ambil permission code efektif',
-  })
-  getPermissions(
-    @CurrentAccessContext() context: AuthorizationContext,
-    @Query() query: PermissionQueryDto,
-  ) {
-    return apiResult({
-      permissions: context.permissions,
-      resourceEvaluation:
-        query.resourceType && query.resourceId
-          ? {
-              resourceType: query.resourceType,
-              resourceId: query.resourceId,
-              requiresEndpointEvaluation: true,
-            }
-          : null,
-    });
-  }
-
-  @Get('area-scopes')
-  @ApiContract({
-    operationId: 'apiCtx004',
-    contractId: 'API-CTX-004',
     summary: 'Ambil wilayah yang dapat diakses pengguna',
   })
   async getAreaScopes(
@@ -96,8 +72,8 @@ export class IdentityController {
 
   @Post('revoke-other-sessions')
   @ApiContract({
-    operationId: 'apiCtx005',
-    contractId: 'API-CTX-005',
+    operationId: 'apiCtx004',
+    contractId: 'API-CTX-004',
     summary: 'Cabut semua session lain',
     idempotent: true,
   })

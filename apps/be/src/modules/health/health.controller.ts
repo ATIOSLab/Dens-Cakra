@@ -14,7 +14,7 @@ export class HealthController {
     operationId: 'apiSys005',
     contractId: 'API-SYS-005',
     summary: 'Liveness probe',
-    permission: 'public-internal',
+    access: 'public-internal',
   })
   getLiveness() {
     return apiResult({
@@ -28,7 +28,7 @@ export class HealthController {
     operationId: 'apiSys006',
     contractId: 'API-SYS-006',
     summary: 'Readiness probe',
-    permission: 'public-internal',
+    access: 'public-internal',
   })
   async getReadiness() {
     return apiResult(await this.health.checkReadiness());

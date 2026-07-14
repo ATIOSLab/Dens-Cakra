@@ -1,12 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
+import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
-import { OrganizationType, Prisma } from '../../generated/prisma/client.js';
+import {
+  AdministrativeLevel,
+  CommandRouteType,
+  OrganizationType,
+  Prisma,
+} from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
+  CreateBindaMasterDto,
+  CreateDirectorateMasterDto,
   CreateOrganizationUnitDto,
   OrganizationHierarchyQueryDto,
   OrganizationListQueryDto,
+  RegionalMasterQueryDto,
   OrganizationTreeQueryDto,
   ReplaceOrganizationCoverageDto,
   UpdateOrganizationUnitDto,
@@ -23,6 +32,16 @@ const ALLOWED_PARENT_TYPES: Partial<
     OrganizationType.SUBDIRECTORATE,
     OrganizationType.BAGOPS,
   ],
+};
+
+type OrganizationClient = Prisma.TransactionClient | PrismaService;
+
+type ProvinceRecord = {
+  id: string;
+  code: string;
+  name: string;
+  level: AdministrativeLevel;
+  isActive: boolean;
 };
 
 @Injectable()
@@ -69,25 +88,444 @@ export class OrganizationManagementService {
   async create(input: CreateOrganizationUnitDto, actor: AuthorizationContext) {
     await this.validateParent(input.type, input.parentId ?? null);
     return this.prisma.$transaction(async (tx) => {
-      const unit = await tx.organizationUnit.create({ data: input });
-      await tx.organizationUnitClosure.create({
-        data: { ancestorId: unit.id, descendantId: unit.id, depth: 0 },
+      const unit = await this.createUnitWithHierarchy(tx, {
+        code: input.code,
+        name: input.name,
+        type: input.type,
+        parentId: input.parentId ?? null,
       });
-      if (unit.parentId) {
-        const ancestors = await tx.organizationUnitClosure.findMany({
-          where: { descendantId: unit.parentId },
-        });
-        await tx.organizationUnitClosure.createMany({
-          data: ancestors.map((link) => ({
-            ancestorId: link.ancestorId,
-            descendantId: unit.id,
-            depth: link.depth + 1,
-          })),
-          skipDuplicates: true,
-        });
-      }
       await this.audit(tx, actor, 'ORGANIZATION.CREATE', unit.id, null, unit);
       return unit;
+    });
+  }
+
+  async listRegionalMasters(
+    query: RegionalMasterQueryDto,
+    context: AuthorizationContext,
+  ) {
+    const unitScope = await this.resolveScopedUnitWhere(context, true);
+    const provinceScope = query.provinceAreaId
+      ? { id: query.provinceAreaId }
+      : undefined;
+
+    const [provinces, deputyUnits, bindaUnits, directorateUnits] =
+      await Promise.all([
+        this.prisma.administrativeArea.findMany({
+          where: {
+            deletedAt: null,
+            isActive: true,
+            level: AdministrativeLevel.PROVINCE,
+            ...(provinceScope ?? {}),
+          },
+          orderBy: { name: 'asc' },
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            level: true,
+            isActive: true,
+            centroidLatitude: true,
+            centroidLongitude: true,
+          },
+        }),
+        this.prisma.organizationUnit.findMany({
+          where: {
+            deletedAt: null,
+            isActive: true,
+            type: OrganizationType.DEPUTI,
+            ...unitScope,
+          },
+          orderBy: { name: 'asc' },
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
+        }),
+        this.prisma.organizationUnit.findMany({
+          where: {
+            deletedAt: null,
+            type: OrganizationType.BINDA,
+            ...unitScope,
+            ...(query.provinceAreaId
+              ? { bindaProfile: { provinceAreaId: query.provinceAreaId } }
+              : {}),
+          },
+          orderBy: { name: 'asc' },
+          include: {
+            parent: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+            bindaProfile: {
+              include: {
+                province: {
+                  select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    level: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+        this.prisma.organizationUnit.findMany({
+          where: {
+            deletedAt: null,
+            type: OrganizationType.DIRECTORATE,
+            ...unitScope,
+            ...(query.provinceAreaId
+              ? {
+                  directorateProfile: {
+                    coverageAreas: {
+                      some: { provinceAreaId: query.provinceAreaId },
+                    },
+                  },
+                }
+              : {}),
+          },
+          orderBy: { name: 'asc' },
+          include: {
+            parent: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+            directorateProfile: {
+              include: {
+                coverageAreas: {
+                  orderBy: [
+                    { isPrimary: 'desc' },
+                    { province: { name: 'asc' } },
+                  ],
+                  include: {
+                    province: {
+                      select: {
+                        id: true,
+                        code: true,
+                        name: true,
+                        level: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+      ]);
+
+    const provinceSummaries = new Map(
+      provinces.map((province) => [
+        province.id,
+        {
+          province: {
+            id: province.id,
+            code: province.code,
+            name: province.name,
+            level: province.level,
+            isActive: province.isActive,
+            centroidLatitude:
+              province.centroidLatitude === null
+                ? null
+                : Number(province.centroidLatitude),
+            centroidLongitude:
+              province.centroidLongitude === null
+                ? null
+                : Number(province.centroidLongitude),
+          },
+          binda: null as {
+            unitId: string;
+            code: string;
+            name: string;
+            parentUnitId: string | null;
+            parentUnitCode: string | null;
+            parentUnitName: string | null;
+          } | null,
+          directorates: [] as Array<{
+            unitId: string;
+            code: string;
+            name: string;
+            profileCode: string | null;
+            parentUnitId: string | null;
+            parentUnitCode: string | null;
+            parentUnitName: string | null;
+            coverageAreas: Array<{
+              areaId: string;
+              code: string;
+              name: string;
+              level: AdministrativeLevel;
+              isPrimary: boolean;
+            }>;
+            primaryProvinceAreaId: string | null;
+          }>,
+        },
+      ]),
+    );
+
+    for (const unit of bindaUnits) {
+      if (!unit.bindaProfile?.province) {
+        continue;
+      }
+
+      const summary = provinceSummaries.get(unit.bindaProfile.province.id);
+      if (!summary) {
+        continue;
+      }
+
+      summary.binda = {
+        unitId: unit.id,
+        code: unit.code,
+        name: unit.name,
+        parentUnitId: unit.parent?.id ?? null,
+        parentUnitCode: unit.parent?.code ?? null,
+        parentUnitName: unit.parent?.name ?? null,
+      };
+    }
+
+    for (const unit of directorateUnits) {
+      const coverages =
+        unit.directorateProfile?.coverageAreas.map((coverage) => ({
+          areaId: coverage.province.id,
+          code: coverage.province.code,
+          name: coverage.province.name,
+          level: coverage.province.level,
+          isPrimary: coverage.isPrimary,
+        })) ?? [];
+      const primaryCoverage =
+        coverages.find((coverage) => coverage.isPrimary) ??
+        coverages[0] ??
+        null;
+      const directorateSummary = {
+        unitId: unit.id,
+        code: unit.code,
+        name: unit.name,
+        profileCode: unit.directorateProfile?.code ?? null,
+        parentUnitId: unit.parent?.id ?? null,
+        parentUnitCode: unit.parent?.code ?? null,
+        parentUnitName: unit.parent?.name ?? null,
+        coverageAreas: coverages,
+        primaryProvinceAreaId: primaryCoverage?.areaId ?? null,
+      };
+
+      for (const coverage of coverages) {
+        provinceSummaries
+          .get(coverage.areaId)
+          ?.directorates.push(directorateSummary);
+      }
+    }
+
+    const provincesWithMasters = [...provinceSummaries.values()];
+
+    return {
+      totals: {
+        provinceCount: provincesWithMasters.length,
+        bindaCount: bindaUnits.length,
+        directorateCount: directorateUnits.length,
+        coveredProvinceCount: provincesWithMasters.filter(
+          (item) => item.binda || item.directorates.length,
+        ).length,
+      },
+      deputyOptions: deputyUnits,
+      provinces: provincesWithMasters,
+    };
+  }
+
+  async createRegionalBinda(
+    input: CreateBindaMasterDto,
+    actor: AuthorizationContext,
+  ) {
+    const province = await this.requireProvince(input.provinceAreaId);
+    const parentUnit = await this.resolveRegionalParentUnit(
+      input.parentUnitId ?? null,
+      actor,
+    );
+    await this.ensureProvinceHasNoBinda(province.id);
+    await this.ensureOrganizationCodeAvailable(input.code);
+
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const unit = await this.createUnitWithHierarchy(tx, {
+        code: input.code,
+        name: input.name,
+        type: OrganizationType.BINDA,
+        branch: CommandRouteType.BINDA,
+        parentId: parentUnit.id,
+      });
+
+      await tx.bindaProfile.create({
+        data: {
+          organizationUnitId: unit.id,
+          provinceAreaId: province.id,
+        },
+      });
+      await tx.organizationAreaCoverage.create({
+        data: {
+          organizationUnitId: unit.id,
+          areaId: province.id,
+          isPrimary: true,
+          validFrom: now,
+        },
+      });
+
+      const result = await tx.organizationUnit.findUniqueOrThrow({
+        where: { id: unit.id },
+        include: {
+          parent: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+            },
+          },
+          bindaProfile: {
+            include: {
+              province: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  level: true,
+                },
+              },
+            },
+          },
+          areaCoverages: {
+            where: { validUntil: null },
+            include: { area: true },
+          },
+        },
+      });
+
+      await this.audit(
+        tx,
+        actor,
+        'ORGANIZATION.REGIONAL_MASTER.BINDA.CREATE',
+        unit.id,
+        null,
+        {
+          unitId: unit.id,
+          code: input.code,
+          name: input.name,
+          provinceAreaId: province.id,
+          parentUnitId: parentUnit.id,
+        },
+      );
+
+      return result;
+    });
+  }
+
+  async createRegionalDirectorate(
+    input: CreateDirectorateMasterDto,
+    actor: AuthorizationContext,
+  ) {
+    const provinceIds = [...new Set(input.provinceAreaIds)];
+    if (!provinceIds.includes(input.primaryProvinceAreaId)) {
+      throw new ApiException(
+        'DIRECTORATE_PRIMARY_PROVINCE_INVALID',
+        'Primary province must be part of the selected province coverage.',
+        422,
+      );
+    }
+
+    const provinces = await this.requireProvinces(provinceIds);
+    const parentUnit = await this.resolveRegionalParentUnit(
+      input.parentUnitId ?? null,
+      actor,
+    );
+    await this.ensureOrganizationCodeAvailable(input.code);
+
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const unit = await this.createUnitWithHierarchy(tx, {
+        code: input.code,
+        name: input.name,
+        type: OrganizationType.DIRECTORATE,
+        branch: CommandRouteType.DIRECTORATE,
+        parentId: parentUnit.id,
+      });
+
+      await tx.directorateProfile.create({
+        data: {
+          organizationUnitId: unit.id,
+          code: input.profileCode ?? input.code,
+        },
+      });
+      await tx.directorateCoverage.createMany({
+        data: provinces.map((province) => ({
+          directorateUnitId: unit.id,
+          provinceAreaId: province.id,
+          isPrimary: province.id === input.primaryProvinceAreaId,
+        })),
+      });
+      await tx.organizationAreaCoverage.createMany({
+        data: provinces.map((province) => ({
+          organizationUnitId: unit.id,
+          areaId: province.id,
+          isPrimary: province.id === input.primaryProvinceAreaId,
+          validFrom: now,
+        })),
+      });
+
+      const result = await tx.organizationUnit.findUniqueOrThrow({
+        where: { id: unit.id },
+        include: {
+          parent: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+            },
+          },
+          directorateProfile: {
+            include: {
+              coverageAreas: {
+                orderBy: [{ isPrimary: 'desc' }, { province: { name: 'asc' } }],
+                include: {
+                  province: {
+                    select: {
+                      id: true,
+                      code: true,
+                      name: true,
+                      level: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          areaCoverages: {
+            where: { validUntil: null },
+            include: { area: true },
+          },
+        },
+      });
+
+      await this.audit(
+        tx,
+        actor,
+        'ORGANIZATION.REGIONAL_MASTER.DIRECTORATE.CREATE',
+        unit.id,
+        null,
+        {
+          unitId: unit.id,
+          code: input.code,
+          name: input.name,
+          provinceAreaIds: provinceIds,
+          primaryProvinceAreaId: input.primaryProvinceAreaId,
+          parentUnitId: parentUnit.id,
+        },
+      );
+
+      return result;
     });
   }
 
@@ -273,6 +711,235 @@ export class OrganizationManagementService {
       );
     });
     return this.coverages(id, true);
+  }
+
+  private async createUnitWithHierarchy(
+    client: OrganizationClient,
+    input: {
+      code: string;
+      name: string;
+      type: OrganizationType;
+      parentId?: string | null;
+      branch?: CommandRouteType | null;
+    },
+  ) {
+    const unit = await client.organizationUnit.create({
+      data: {
+        code: input.code,
+        name: input.name,
+        type: input.type,
+        parentId: input.parentId ?? null,
+        branch: input.branch ?? null,
+      },
+    });
+
+    await client.organizationUnitClosure.create({
+      data: { ancestorId: unit.id, descendantId: unit.id, depth: 0 },
+    });
+
+    if (unit.parentId) {
+      const ancestors = await client.organizationUnitClosure.findMany({
+        where: { descendantId: unit.parentId },
+      });
+      await client.organizationUnitClosure.createMany({
+        data: ancestors.map((link) => ({
+          ancestorId: link.ancestorId,
+          descendantId: unit.id,
+          depth: link.depth + 1,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return unit;
+  }
+
+  private async resolveScopedUnitWhere(
+    context: AuthorizationContext,
+    allowGlobalAdmin = false,
+  ): Promise<Prisma.OrganizationUnitWhereInput> {
+    if (allowGlobalAdmin && context.authRole === SYSTEM_ROLES.ADMIN_SYSTEM) {
+      return {};
+    }
+
+    return {
+      id: { in: await this.accessibleUnitIds(context.organizationUnitId) },
+    };
+  }
+
+  private async resolveRegionalParentUnit(
+    parentUnitId: string | null,
+    actor: AuthorizationContext,
+  ) {
+    const scope = await this.resolveScopedUnitWhere(actor, true);
+
+    if (parentUnitId) {
+      const parent = await this.prisma.organizationUnit.findFirst({
+        where: {
+          id: parentUnitId,
+          deletedAt: null,
+          isActive: true,
+          type: OrganizationType.DEPUTI,
+          ...scope,
+        },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          type: true,
+        },
+      });
+
+      if (!parent) {
+        throw new ApiException(
+          'REGIONAL_PARENT_UNIT_INVALID',
+          'Selected deputi parent is unavailable.',
+          422,
+        );
+      }
+
+      return parent;
+    }
+
+    const availableDeputies = await this.prisma.organizationUnit.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        type: OrganizationType.DEPUTI,
+        ...scope,
+      },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        type: true,
+      },
+    });
+
+    if (availableDeputies.length === 1) {
+      return availableDeputies[0];
+    }
+
+    if (availableDeputies.length === 0) {
+      throw new ApiException(
+        'REGIONAL_PARENT_UNIT_REQUIRED',
+        'No active deputi unit is available to become parent.',
+        422,
+      );
+    }
+
+    throw new ApiException(
+      'REGIONAL_PARENT_UNIT_AMBIGUOUS',
+      'Select a deputi parent before creating regional master data.',
+      422,
+    );
+  }
+
+  private async requireProvince(
+    provinceAreaId: string,
+  ): Promise<ProvinceRecord> {
+    const province = await this.prisma.administrativeArea.findFirst({
+      where: {
+        id: provinceAreaId,
+        deletedAt: null,
+        isActive: true,
+        level: AdministrativeLevel.PROVINCE,
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        level: true,
+        isActive: true,
+      },
+    });
+
+    if (!province) {
+      throw new ApiException(
+        'PROVINCE_AREA_INVALID',
+        'Selected province area is unavailable.',
+        422,
+      );
+    }
+
+    return province;
+  }
+
+  private async requireProvinces(
+    provinceAreaIds: string[],
+  ): Promise<ProvinceRecord[]> {
+    const provinces = await this.prisma.administrativeArea.findMany({
+      where: {
+        id: { in: provinceAreaIds },
+        deletedAt: null,
+        isActive: true,
+        level: AdministrativeLevel.PROVINCE,
+      },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        level: true,
+        isActive: true,
+      },
+    });
+
+    if (provinces.length !== provinceAreaIds.length) {
+      throw new ApiException(
+        'PROVINCE_AREA_INVALID',
+        'One or more selected provinces are unavailable.',
+        422,
+      );
+    }
+
+    return provinces;
+  }
+
+  private async ensureProvinceHasNoBinda(provinceAreaId: string) {
+    const existing = await this.prisma.bindaProfile.findUnique({
+      where: { provinceAreaId },
+      include: {
+        organizationUnit: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            deletedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!existing?.organizationUnit) {
+      return;
+    }
+
+    throw new ApiException(
+      'BINDA_PROVINCE_ALREADY_ASSIGNED',
+      `Provinsi tersebut sudah memiliki Binda (${existing.organizationUnit.name}).`,
+      409,
+    );
+  }
+
+  private async ensureOrganizationCodeAvailable(code: string) {
+    const existing = await this.prisma.organizationUnit.findUnique({
+      where: { code },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!existing) {
+      return;
+    }
+
+    throw new ApiException(
+      'ORGANIZATION_CODE_CONFLICT',
+      `Organization code ${code} is already in use.`,
+      409,
+    );
   }
 
   private async validateParent(

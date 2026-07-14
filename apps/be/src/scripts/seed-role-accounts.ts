@@ -7,6 +7,7 @@ import {
 } from '../common/constants/system-role.js';
 import {
   AdministrativeLevel,
+  CommandRouteType,
   OrganizationType,
   PositionCode,
   RoleCode,
@@ -27,6 +28,7 @@ type OrganizationSeed = {
   name: string;
   type: OrganizationType;
   parentCode?: string;
+  branch?: CommandRouteType | null;
 };
 
 type PositionSeed = {
@@ -37,12 +39,31 @@ type PositionSeed = {
   roleCode: RoleCode;
   organizationUnitCode: string;
   reportsToKey?: string;
+  branch?: CommandRouteType | null;
 };
 
 type AssignmentSeed = {
   email: string;
   positionKey: string;
   areaCodes: readonly string[];
+};
+
+type OrganizationCoverageSeed = {
+  organizationUnitCode: string;
+  areaCodes: readonly string[];
+  primaryAreaCode: string;
+};
+
+type DirectorateProfileSeed = {
+  organizationUnitCode: string;
+  code: string;
+  provinceCodes: readonly string[];
+  primaryProvinceCode: string;
+};
+
+type BindaProfileSeed = {
+  organizationUnitCode: string;
+  provinceCode: string;
 };
 
 type ProvinceArea = {
@@ -70,6 +91,9 @@ type SeedPlan = {
   organizations: OrganizationSeed[];
   positions: PositionSeed[];
   assignments: AssignmentSeed[];
+  organizationCoverages: OrganizationCoverageSeed[];
+  directorateProfiles: DirectorateProfileSeed[];
+  bindaProfiles: BindaProfileSeed[];
 };
 
 const defaultDemoPassword = 'DensCakraDemo123!';
@@ -175,6 +199,19 @@ const baseAssignments: readonly AssignmentSeed[] = [
     email: 'executive@denscakra.local',
     positionKey: 'executive',
     areaCodes: ['IDN'],
+  },
+] as const;
+
+const baseOrganizationCoverages: readonly OrganizationCoverageSeed[] = [
+  {
+    organizationUnitCode: 'ORG-ADMIN-SYSTEM',
+    areaCodes: ['IDN'],
+    primaryAreaCode: 'IDN',
+  },
+  {
+    organizationUnitCode: 'ORG-DEPUTI-II',
+    areaCodes: ['IDN'],
+    primaryAreaCode: 'IDN',
   },
 ] as const;
 
@@ -333,9 +370,6 @@ function buildSeedPlan(
   provinces: ProvinceArea[],
   regencyCities: RegencyCityArea[],
 ): SeedPlan {
-  const provinceById = new Map(
-    provinces.map((province) => [province.id, province]),
-  );
   const provinceByCode = new Map(
     provinces.map((province) => [province.officialCode, province]),
   );
@@ -363,6 +397,11 @@ function buildSeedPlan(
   const organizations: OrganizationSeed[] = [...baseOrganizations];
   const positions: PositionSeed[] = [...basePositions];
   const assignments: AssignmentSeed[] = [...baseAssignments];
+  const organizationCoverages: OrganizationCoverageSeed[] = [
+    ...baseOrganizationCoverages,
+  ];
+  const directorateProfiles: DirectorateProfileSeed[] = [];
+  const bindaProfiles: BindaProfileSeed[] = [];
 
   for (const region of DIRECTORATE_REGION_SEEDS) {
     const regionDirectorateCode = `DIR-${region.key}`;
@@ -376,14 +415,36 @@ function buildSeedPlan(
         name: region.name,
         type: OrganizationType.DIRECTORATE,
         parentCode: 'ORG-DEPUTI-II',
+        branch: CommandRouteType.DIRECTORATE,
       },
       {
         code: regionSubdirectorateCode,
         name: `Subdirektorat ${region.name.replace('Direktorat Wilayah ', '')}`,
         type: OrganizationType.SUBDIRECTORATE,
         parentCode: regionDirectorateCode,
+        branch: CommandRouteType.DIRECTORATE,
       },
     );
+
+    organizationCoverages.push(
+      {
+        organizationUnitCode: regionDirectorateCode,
+        areaCodes: region.provinceCodes,
+        primaryAreaCode: region.provinceCodes[0] ?? 'IDN',
+      },
+      {
+        organizationUnitCode: regionSubdirectorateCode,
+        areaCodes: region.provinceCodes,
+        primaryAreaCode: region.provinceCodes[0] ?? 'IDN',
+      },
+    );
+
+    directorateProfiles.push({
+      organizationUnitCode: regionDirectorateCode,
+      code: regionDirectorateCode,
+      provinceCodes: region.provinceCodes,
+      primaryProvinceCode: region.provinceCodes[0] ?? 'IDN',
+    });
 
     accounts.push(
       {
@@ -409,6 +470,7 @@ function buildSeedPlan(
         roleCode: RoleCode.REGIONAL_COMMANDER,
         organizationUnitCode: regionDirectorateCode,
         reportsToKey: 'executive',
+        branch: CommandRouteType.DIRECTORATE,
       },
       {
         key: `kasubdit:${region.key}`,
@@ -418,6 +480,7 @@ function buildSeedPlan(
         roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
         organizationUnitCode: regionSubdirectorateCode,
         reportsToKey: `director:${region.key}`,
+        branch: CommandRouteType.DIRECTORATE,
       },
     );
 
@@ -453,12 +516,23 @@ function buildSeedPlan(
 
       const fcuCode = `FCD-${region.key}-${compactAreaCode(province.officialCode)}`;
       const staffEmail = `staf.subdit.${region.key.toLowerCase()}.${compactAreaCode(province.officialCode)}@denscakra.local`;
+      const directorateCoverageCodes =
+        provinceRegencyCities.length > 0
+          ? provinceRegencyCities.map((area) => area.officialCode)
+          : [province.officialCode];
 
       organizations.push({
         code: fcuCode,
         name: `Field Coordination Unit Direktorat ${province.name}`,
         type: OrganizationType.FIELD_COORDINATION_UNIT,
         parentCode: regionSubdirectorateCode,
+        branch: CommandRouteType.DIRECTORATE,
+      });
+
+      organizationCoverages.push({
+        organizationUnitCode: fcuCode,
+        areaCodes: directorateCoverageCodes,
+        primaryAreaCode: directorateCoverageCodes[0] ?? province.officialCode,
       });
 
       accounts.push({
@@ -476,6 +550,7 @@ function buildSeedPlan(
         roleCode: RoleCode.FIELD_COORDINATOR,
         organizationUnitCode: fcuCode,
         reportsToKey: `kasubdit:${region.key}`,
+        branch: CommandRouteType.DIRECTORATE,
       });
 
       assignments.push({
@@ -503,6 +578,7 @@ function buildSeedPlan(
           roleCode: RoleCode.FIELD_OFFICER,
           organizationUnitCode: fcuCode,
           reportsToKey: `staf-subdit:${province.officialCode}`,
+          branch: CommandRouteType.DIRECTORATE,
         });
 
         assignments.push({
@@ -534,14 +610,34 @@ function buildSeedPlan(
         name: `Binda ${province.name}`,
         type: OrganizationType.BINDA,
         parentCode: 'ORG-DEPUTI-II',
+        branch: CommandRouteType.BINDA,
       },
       {
         code: bagopsCode,
         name: `Bagops Binda ${province.name}`,
         type: OrganizationType.BAGOPS,
         parentCode: bindaCode,
+        branch: CommandRouteType.BINDA,
       },
     );
+
+    organizationCoverages.push(
+      {
+        organizationUnitCode: bindaCode,
+        areaCodes: [province.officialCode],
+        primaryAreaCode: province.officialCode,
+      },
+      {
+        organizationUnitCode: bagopsCode,
+        areaCodes: [province.officialCode],
+        primaryAreaCode: province.officialCode,
+      },
+    );
+
+    bindaProfiles.push({
+      organizationUnitCode: bindaCode,
+      provinceCode: province.officialCode,
+    });
 
     accounts.push(
       {
@@ -567,6 +663,7 @@ function buildSeedPlan(
         roleCode: RoleCode.REGIONAL_COMMANDER,
         organizationUnitCode: bindaCode,
         reportsToKey: 'executive',
+        branch: CommandRouteType.BINDA,
       },
       {
         key: `kabagops:${province.officialCode}`,
@@ -576,6 +673,7 @@ function buildSeedPlan(
         roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
         organizationUnitCode: bagopsCode,
         reportsToKey: `kabinda:${province.officialCode}`,
+        branch: CommandRouteType.BINDA,
       },
     );
 
@@ -603,6 +701,13 @@ function buildSeedPlan(
         name: `Field Coordination Unit Binda ${area.name}`,
         type: OrganizationType.FIELD_COORDINATION_UNIT,
         parentCode: bagopsCode,
+        branch: CommandRouteType.BINDA,
+      });
+
+      organizationCoverages.push({
+        organizationUnitCode: fcuCode,
+        areaCodes: [area.officialCode],
+        primaryAreaCode: area.officialCode,
       });
 
       accounts.push(
@@ -629,6 +734,7 @@ function buildSeedPlan(
           roleCode: RoleCode.FIELD_COORDINATOR,
           organizationUnitCode: fcuCode,
           reportsToKey: `kabagops:${province.officialCode}`,
+          branch: CommandRouteType.BINDA,
         },
         {
           key: `agent-binda:${area.officialCode}`,
@@ -638,6 +744,7 @@ function buildSeedPlan(
           roleCode: RoleCode.FIELD_OFFICER,
           organizationUnitCode: fcuCode,
           reportsToKey: `korwil-binda:${area.officialCode}`,
+          branch: CommandRouteType.BINDA,
         },
       );
 
@@ -663,6 +770,18 @@ function buildSeedPlan(
     assignments: uniqueByKey(
       assignments,
       (item) => `${item.email}:${item.positionKey}:${item.areaCodes.join(',')}`,
+    ),
+    organizationCoverages: uniqueByKey(
+      organizationCoverages,
+      (item) => `${item.organizationUnitCode}:${item.areaCodes.join(',')}`,
+    ),
+    directorateProfiles: uniqueByKey(
+      directorateProfiles,
+      (item) => item.organizationUnitCode,
+    ),
+    bindaProfiles: uniqueByKey(
+      bindaProfiles,
+      (item) => item.organizationUnitCode,
     ),
   };
 }
@@ -691,6 +810,7 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
       update: {
         name: seed.name,
         type: seed.type,
+        branch: seed.branch ?? null,
         parentId,
         isActive: true,
         deletedAt: null,
@@ -699,6 +819,7 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
         code: seed.code,
         name: seed.name,
         type: seed.type,
+        branch: seed.branch ?? null,
         parentId,
         isActive: true,
       },
@@ -750,6 +871,211 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
 
       cursorId = cursor.parentId;
       depth += 1;
+    }
+  }
+
+  const coverageAreaCodes = new Set<string>();
+
+  for (const seed of plan.organizationCoverages) {
+    for (const areaCode of seed.areaCodes) {
+      coverageAreaCodes.add(areaCode);
+    }
+  }
+
+  for (const seed of plan.directorateProfiles) {
+    for (const areaCode of seed.provinceCodes) {
+      coverageAreaCodes.add(areaCode);
+    }
+  }
+
+  for (const seed of plan.bindaProfiles) {
+    coverageAreaCodes.add(seed.provinceCode);
+  }
+
+  for (const seed of plan.assignments) {
+    for (const areaCode of seed.areaCodes) {
+      coverageAreaCodes.add(areaCode);
+    }
+  }
+
+  const areas = await tx.administrativeArea.findMany({
+    where: {
+      officialCode: {
+        in: Array.from(coverageAreaCodes),
+      },
+    },
+    select: {
+      id: true,
+      officialCode: true,
+    },
+  });
+
+  const areaByCode = new Map(
+    areas.map((area) => [area.officialCode ?? '', area]),
+  );
+
+  for (const seed of plan.directorateProfiles) {
+    const unit = unitByCode.get(seed.organizationUnitCode);
+    const provinceIds = seed.provinceCodes.map((provinceCode) => {
+      const province = areaByCode.get(provinceCode);
+
+      if (!province) {
+        throw new Error(`Administrative area ${provinceCode} is missing.`);
+      }
+
+      return province.id;
+    });
+    const primaryProvince = areaByCode.get(seed.primaryProvinceCode);
+
+    if (!unit || !primaryProvince) {
+      throw new Error(
+        `Missing baseline dependency for directorate ${seed.organizationUnitCode}.`,
+      );
+    }
+
+    await tx.directorateProfile.upsert({
+      where: {
+        organizationUnitId: unit.id,
+      },
+      update: {
+        code: seed.code,
+      },
+      create: {
+        organizationUnitId: unit.id,
+        code: seed.code,
+      },
+    });
+
+    await tx.directorateCoverage.deleteMany({
+      where: {
+        directorateUnitId: unit.id,
+        provinceAreaId: {
+          notIn: provinceIds,
+        },
+      },
+    });
+
+    for (const provinceId of provinceIds) {
+      const existingCoverage = await tx.directorateCoverage.findFirst({
+        where: {
+          directorateUnitId: unit.id,
+          provinceAreaId: provinceId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existingCoverage) {
+        await tx.directorateCoverage.update({
+          where: {
+            id: existingCoverage.id,
+          },
+          data: {
+            isPrimary: provinceId === primaryProvince.id,
+          },
+        });
+        continue;
+      }
+
+      await tx.directorateCoverage.create({
+        data: {
+          directorateUnitId: unit.id,
+          provinceAreaId: provinceId,
+          isPrimary: provinceId === primaryProvince.id,
+        },
+      });
+    }
+  }
+
+  for (const seed of plan.bindaProfiles) {
+    const unit = unitByCode.get(seed.organizationUnitCode);
+    const province = areaByCode.get(seed.provinceCode);
+
+    if (!unit || !province) {
+      throw new Error(
+        `Missing baseline dependency for binda ${seed.organizationUnitCode}.`,
+      );
+    }
+
+    await tx.bindaProfile.upsert({
+      where: {
+        organizationUnitId: unit.id,
+      },
+      update: {
+        provinceAreaId: province.id,
+      },
+      create: {
+        organizationUnitId: unit.id,
+        provinceAreaId: province.id,
+      },
+    });
+  }
+
+  for (const seed of plan.organizationCoverages) {
+    const unit = unitByCode.get(seed.organizationUnitCode);
+    const primaryArea = areaByCode.get(seed.primaryAreaCode);
+    const areaIds = seed.areaCodes.map((areaCode) => {
+      const area = areaByCode.get(areaCode);
+
+      if (!area) {
+        throw new Error(`Administrative area ${areaCode} is missing.`);
+      }
+
+      return area.id;
+    });
+
+    if (!unit || !primaryArea) {
+      throw new Error(
+        `Missing baseline dependency for organization coverage ${seed.organizationUnitCode}.`,
+      );
+    }
+
+    await tx.organizationAreaCoverage.updateMany({
+      where: {
+        organizationUnitId: unit.id,
+        validUntil: null,
+        areaId: {
+          notIn: areaIds,
+        },
+      },
+      data: {
+        validUntil: seedEffectiveFrom,
+      },
+    });
+
+    for (const areaId of areaIds) {
+      const activeCoverage = await tx.organizationAreaCoverage.findFirst({
+        where: {
+          organizationUnitId: unit.id,
+          areaId,
+          validUntil: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (activeCoverage) {
+        await tx.organizationAreaCoverage.update({
+          where: {
+            id: activeCoverage.id,
+          },
+          data: {
+            isPrimary: areaId === primaryArea.id,
+          },
+        });
+        continue;
+      }
+
+      await tx.organizationAreaCoverage.create({
+        data: {
+          organizationUnitId: unit.id,
+          areaId,
+          isPrimary: areaId === primaryArea.id,
+          validFrom: seedEffectiveFrom,
+        },
+      });
     }
   }
 
@@ -805,6 +1131,7 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
             code: seed.code,
             title: seed.title,
             roleId,
+            branch: seed.branch ?? null,
             organizationUnitId: organizationUnit.id,
             reportsToPositionId,
             isActive: true,
@@ -820,6 +1147,7 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
             code: seed.code,
             title: seed.title,
             roleId,
+            branch: seed.branch ?? null,
             organizationUnitId: organizationUnit.id,
             reportsToPositionId,
             isActive: true,
@@ -855,24 +1183,6 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
     profiles.map((profile) => [profile.authUser.email, profile]),
   );
 
-  const areas = await tx.administrativeArea.findMany({
-    where: {
-      officialCode: {
-        in: Array.from(
-          new Set(plan.assignments.flatMap((seed) => seed.areaCodes)),
-        ),
-      },
-    },
-    select: {
-      id: true,
-      officialCode: true,
-    },
-  });
-
-  const areaByCode = new Map(
-    areas.map((area) => [area.officialCode ?? "", area]),
-  );
-
   for (const seed of plan.assignments) {
     const profile = profileByEmail.get(seed.email);
     const position = positionByKey.get(seed.positionKey);
@@ -880,6 +1190,46 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
     if (!profile || !position) {
       throw new Error(`Missing profile or position for ${seed.email}.`);
     }
+
+    const persistedPosition = await tx.position.findUniqueOrThrow({
+      where: { id: position.id },
+      select: {
+        id: true,
+        roleId: true,
+        organizationUnitId: true,
+        branch: true,
+      },
+    });
+
+    const existingSeat = await tx.organizationRoleSeat.findFirst({
+      where: {
+        organizationUnitId: persistedPosition.organizationUnitId,
+        roleId: persistedPosition.roleId,
+        ...(persistedPosition.branch
+          ? { branch: persistedPosition.branch }
+          : { branch: null }),
+      },
+      select: { id: true },
+    });
+
+    const seat = existingSeat
+      ? await tx.organizationRoleSeat.update({
+          where: { id: existingSeat.id },
+          data: { positionId: persistedPosition.id, isActive: true },
+          select: { id: true },
+        })
+      : await tx.organizationRoleSeat.create({
+          data: {
+            organizationUnitId: persistedPosition.organizationUnitId,
+            roleId: persistedPosition.roleId,
+            ...(persistedPosition.branch
+              ? { branch: persistedPosition.branch }
+              : {}),
+            positionId: persistedPosition.id,
+            isActive: true,
+          },
+          select: { id: true },
+        });
 
     await tx.userProfile.update({
       where: {
@@ -892,7 +1242,7 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
       },
     });
 
-    await tx.positionAssignment.updateMany({
+    await tx.userSeatAssignment.updateMany({
       where: {
         positionId: position.id,
         isActive: true,
@@ -908,7 +1258,7 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
       },
     });
 
-    let assignment = await tx.positionAssignment.findFirst({
+    let assignment = await tx.userSeatAssignment.findFirst({
       where: {
         userProfileId: profile.id,
         positionId: position.id,
@@ -921,7 +1271,7 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
     });
 
     if (!assignment) {
-      await tx.positionAssignment.updateMany({
+      await tx.userSeatAssignment.updateMany({
         where: {
           userProfileId: profile.id,
           isPrimary: true,
@@ -935,9 +1285,10 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
         },
       });
 
-      assignment = await tx.positionAssignment.create({
+      assignment = await tx.userSeatAssignment.create({
         data: {
           userProfileId: profile.id,
+          seatId: seat.id,
           positionId: position.id,
           isPrimary: true,
           isActive: true,
@@ -948,7 +1299,7 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
         },
       });
     } else {
-      await tx.positionAssignment.update({
+      await tx.userSeatAssignment.update({
         where: {
           id: assignment.id,
         },
@@ -1111,7 +1462,46 @@ async function seedRoleAccounts() {
   const { provinces, regencyCities } = await loadAreaTopology();
   const plan = buildSeedPlan(provinces, regencyCities);
 
+  const existingAccounts = await prisma.user.findMany({
+    where: {
+      email: {
+        in: plan.accounts.map((account) => account.email),
+      },
+    },
+    select: {
+      email: true,
+      name: true,
+      emailVerified: true,
+      role: true,
+      banned: true,
+      banReason: true,
+      banExpires: true,
+      profile: {
+        select: {
+          status: true,
+        },
+      },
+    },
+  });
+  const existingAccountByEmail = new Map(
+    existingAccounts.map((account) => [account.email, account]),
+  );
+
   for (const account of plan.accounts) {
+    const existing = existingAccountByEmail.get(account.email);
+    const isSynchronized =
+      existing?.name === account.name &&
+      existing.emailVerified &&
+      existing.role === account.role &&
+      !existing.banned &&
+      existing.banReason === null &&
+      existing.banExpires === null &&
+      existing.profile?.status === UserProfileStatus.ACTIVE;
+
+    if (isSynchronized) {
+      continue;
+    }
+
     await ensureUser(account);
   }
 

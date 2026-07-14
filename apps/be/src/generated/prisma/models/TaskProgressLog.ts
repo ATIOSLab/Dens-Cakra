@@ -233,7 +233,7 @@ export type TaskProgressLogWhereInput = {
   createdByAssignmentId?: Prisma.UuidFilter<"TaskProgressLog"> | string
   createdAt?: Prisma.DateTimeFilter<"TaskProgressLog"> | Date | string
   taskAssignment?: Prisma.XOR<Prisma.TaskAssignmentScalarRelationFilter, Prisma.TaskAssignmentWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
 }
 
 export type TaskProgressLogOrderByWithRelationInput = {
@@ -245,7 +245,7 @@ export type TaskProgressLogOrderByWithRelationInput = {
   createdByAssignmentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   taskAssignment?: Prisma.TaskAssignmentOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
 }
 
 export type TaskProgressLogWhereUniqueInput = Prisma.AtLeast<{
@@ -260,7 +260,7 @@ export type TaskProgressLogWhereUniqueInput = Prisma.AtLeast<{
   createdByAssignmentId?: Prisma.UuidFilter<"TaskProgressLog"> | string
   createdAt?: Prisma.DateTimeFilter<"TaskProgressLog"> | Date | string
   taskAssignment?: Prisma.XOR<Prisma.TaskAssignmentScalarRelationFilter, Prisma.TaskAssignmentWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
 }, "id">
 
 export type TaskProgressLogOrderByWithAggregationInput = {
@@ -298,7 +298,7 @@ export type TaskProgressLogCreateInput = {
   note?: string | null
   createdAt?: Date | string
   taskAssignment: Prisma.TaskAssignmentCreateNestedOneWithoutProgressLogsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutTaskProgressCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskProgressCreatedInput
 }
 
 export type TaskProgressLogUncheckedCreateInput = {
@@ -318,7 +318,7 @@ export type TaskProgressLogUpdateInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   taskAssignment?: Prisma.TaskAssignmentUpdateOneRequiredWithoutProgressLogsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskProgressCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskProgressCreatedNestedInput
 }
 
 export type TaskProgressLogUncheckedUpdateInput = {
@@ -554,7 +554,7 @@ export type TaskProgressLogCreateWithoutTaskAssignmentInput = {
   progressPercent?: number | null
   note?: string | null
   createdAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutTaskProgressCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutTaskProgressCreatedInput
 }
 
 export type TaskProgressLogUncheckedCreateWithoutTaskAssignmentInput = {
@@ -643,7 +643,7 @@ export type TaskProgressLogUpdateWithoutTaskAssignmentInput = {
   progressPercent?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutTaskProgressCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutTaskProgressCreatedNestedInput
 }
 
 export type TaskProgressLogUncheckedUpdateWithoutTaskAssignmentInput = {
@@ -675,7 +675,7 @@ export type TaskProgressLogSelect<ExtArgs extends runtime.Types.Extensions.Inter
   createdByAssignmentId?: boolean
   createdAt?: boolean
   taskAssignment?: boolean | Prisma.TaskAssignmentDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["taskProgressLog"]>
 
 export type TaskProgressLogSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -687,7 +687,7 @@ export type TaskProgressLogSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   createdByAssignmentId?: boolean
   createdAt?: boolean
   taskAssignment?: boolean | Prisma.TaskAssignmentDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["taskProgressLog"]>
 
 export type TaskProgressLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -699,7 +699,7 @@ export type TaskProgressLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   createdByAssignmentId?: boolean
   createdAt?: boolean
   taskAssignment?: boolean | Prisma.TaskAssignmentDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["taskProgressLog"]>
 
 export type TaskProgressLogSelectScalar = {
@@ -715,22 +715,22 @@ export type TaskProgressLogSelectScalar = {
 export type TaskProgressLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "taskAssignmentId" | "status" | "progressPercent" | "note" | "createdByAssignmentId" | "createdAt", ExtArgs["result"]["taskProgressLog"]>
 export type TaskProgressLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   taskAssignment?: boolean | Prisma.TaskAssignmentDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type TaskProgressLogIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   taskAssignment?: boolean | Prisma.TaskAssignmentDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type TaskProgressLogIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   taskAssignment?: boolean | Prisma.TaskAssignmentDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $TaskProgressLogPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "TaskProgressLog"
   objects: {
     taskAssignment: Prisma.$TaskAssignmentPayload<ExtArgs>
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1135,7 +1135,7 @@ readonly fields: TaskProgressLogFieldRefs;
 export interface Prisma__TaskProgressLogClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   taskAssignment<T extends Prisma.TaskAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TaskAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__TaskAssignmentClient<runtime.Types.Result.GetResult<Prisma.$TaskAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.

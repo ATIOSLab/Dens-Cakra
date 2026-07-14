@@ -39,7 +39,12 @@ export class UukController {
     operationId: 'apiUuk001',
     contractId: 'API-UUK-001',
     summary: 'Daftar UUK/STR',
-    permission: 'uuk.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async list(
     @Query() query: UukQuery,
@@ -53,7 +58,7 @@ export class UukController {
     operationId: 'apiUuk002',
     contractId: 'API-UUK-002',
     summary: 'Buat UUK/STR versi awal',
-    permission: 'uuk.create',
+    roles: ['regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -69,7 +74,12 @@ export class UukController {
     operationId: 'apiUuk003',
     contractId: 'API-UUK-003',
     summary: 'Detail UUK/STR',
-    permission: 'uuk.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async get(
     @Param('uukStrId', ParseUUIDPipe) uukStrId: string,
@@ -83,7 +93,12 @@ export class UukController {
     operationId: 'apiUuk004',
     contractId: 'API-UUK-004',
     summary: 'Riwayat versi UUK/STR',
-    permission: 'uuk.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async versions(
     @Param('uukStrId', ParseUUIDPipe) uukStrId: string,
@@ -97,7 +112,7 @@ export class UukController {
     operationId: 'apiUuk005',
     contractId: 'API-UUK-005',
     summary: 'Buat revisi UUK/STR',
-    permission: 'uuk.update',
+    roles: ['regional_commander'],
     successStatus: 201,
     idempotent: true,
   })
@@ -116,7 +131,12 @@ export class UukController {
     operationId: 'apiUuk006',
     contractId: 'API-UUK-006',
     summary: 'Detail versi UUK/STR',
-    permission: 'uuk.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async getVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
@@ -130,7 +150,7 @@ export class UukController {
     operationId: 'apiUuk007',
     contractId: 'API-UUK-007',
     summary: 'Edit judul versi draft',
-    permission: 'uuk.update',
+    roles: ['regional_commander'],
   })
   async updateVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
@@ -147,7 +167,7 @@ export class UukController {
     operationId: 'apiUuk008',
     contractId: 'API-UUK-008',
     summary: 'Ganti seluruh section draft',
-    permission: 'uuk.update',
+    roles: ['regional_commander'],
     idempotent: true,
   })
   async replaceSections(
@@ -165,7 +185,7 @@ export class UukController {
     operationId: 'apiUuk009',
     contractId: 'API-UUK-009',
     summary: 'Publish UUK/STR',
-    permission: 'uuk.publish',
+    roles: ['regional_commander'],
     idempotent: true,
   })
   async publish(
@@ -181,7 +201,7 @@ export class UukController {
     operationId: 'apiUuk010',
     contractId: 'API-UUK-010',
     summary: 'Batalkan UUK/STR',
-    permission: 'uuk.cancel',
+    roles: ['regional_commander'],
     idempotent: true,
   })
   async cancel(

@@ -191,7 +191,7 @@ export type WhatsAppRoutingLogWhereInput = {
   note?: Prisma.StringNullableFilter<"WhatsAppRoutingLog"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WhatsAppRoutingLog"> | Date | string
   message?: Prisma.XOR<Prisma.WhatsAppMessageScalarRelationFilter, Prisma.WhatsAppMessageWhereInput>
-  routedToAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  routedToAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
 }
 
 export type WhatsAppRoutingLogOrderByWithRelationInput = {
@@ -202,7 +202,7 @@ export type WhatsAppRoutingLogOrderByWithRelationInput = {
   note?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   message?: Prisma.WhatsAppMessageOrderByWithRelationInput
-  routedToAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  routedToAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
 }
 
 export type WhatsAppRoutingLogWhereUniqueInput = Prisma.AtLeast<{
@@ -216,7 +216,7 @@ export type WhatsAppRoutingLogWhereUniqueInput = Prisma.AtLeast<{
   note?: Prisma.StringNullableFilter<"WhatsAppRoutingLog"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WhatsAppRoutingLog"> | Date | string
   message?: Prisma.XOR<Prisma.WhatsAppMessageScalarRelationFilter, Prisma.WhatsAppMessageWhereInput>
-  routedToAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  routedToAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
 }, "id">
 
 export type WhatsAppRoutingLogOrderByWithAggregationInput = {
@@ -249,7 +249,7 @@ export type WhatsAppRoutingLogCreateInput = {
   note?: string | null
   createdAt?: Date | string
   message: Prisma.WhatsAppMessageCreateNestedOneWithoutRoutingLogsInput
-  routedToAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutWhatsappRoutingLogsInput
+  routedToAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutWhatsappRoutingLogsInput
 }
 
 export type WhatsAppRoutingLogUncheckedCreateInput = {
@@ -267,7 +267,7 @@ export type WhatsAppRoutingLogUpdateInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   message?: Prisma.WhatsAppMessageUpdateOneRequiredWithoutRoutingLogsNestedInput
-  routedToAssignment?: Prisma.PositionAssignmentUpdateOneWithoutWhatsappRoutingLogsNestedInput
+  routedToAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutWhatsappRoutingLogsNestedInput
 }
 
 export type WhatsAppRoutingLogUncheckedUpdateInput = {
@@ -484,7 +484,7 @@ export type WhatsAppRoutingLogCreateWithoutMessageInput = {
   action: string
   note?: string | null
   createdAt?: Date | string
-  routedToAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutWhatsappRoutingLogsInput
+  routedToAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutWhatsappRoutingLogsInput
 }
 
 export type WhatsAppRoutingLogUncheckedCreateWithoutMessageInput = {
@@ -566,7 +566,7 @@ export type WhatsAppRoutingLogUpdateWithoutMessageInput = {
   action?: Prisma.StringFieldUpdateOperationsInput | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  routedToAssignment?: Prisma.PositionAssignmentUpdateOneWithoutWhatsappRoutingLogsNestedInput
+  routedToAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutWhatsappRoutingLogsNestedInput
 }
 
 export type WhatsAppRoutingLogUncheckedUpdateWithoutMessageInput = {
@@ -647,7 +647,7 @@ export type $WhatsAppRoutingLogPayload<ExtArgs extends runtime.Types.Extensions.
   name: "WhatsAppRoutingLog"
   objects: {
     message: Prisma.$WhatsAppMessagePayload<ExtArgs>
-    routedToAssignment: Prisma.$PositionAssignmentPayload<ExtArgs> | null
+    routedToAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1051,7 +1051,7 @@ readonly fields: WhatsAppRoutingLogFieldRefs;
 export interface Prisma__WhatsAppRoutingLogClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   message<T extends Prisma.WhatsAppMessageDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessageDefaultArgs<ExtArgs>>): Prisma.Prisma__WhatsAppMessageClient<runtime.Types.Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  routedToAssignment<T extends Prisma.WhatsAppRoutingLog$routedToAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppRoutingLog$routedToAssignmentArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  routedToAssignment<T extends Prisma.WhatsAppRoutingLog$routedToAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppRoutingLog$routedToAssignmentArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1492,18 +1492,18 @@ export type WhatsAppRoutingLogDeleteManyArgs<ExtArgs extends runtime.Types.Exten
  */
 export type WhatsAppRoutingLog$routedToAssignmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**

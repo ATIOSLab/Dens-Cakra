@@ -18,8 +18,11 @@ import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
+  CreateBindaMasterDto,
+  CreateDirectorateMasterDto,
   CreateOrganizationUnitDto,
   MoveOrganizationUnitDto,
+  RegionalMasterQueryDto,
   OrganizationHierarchyQueryDto,
   OrganizationListQueryDto,
   OrganizationTreeQueryDto,
@@ -39,7 +42,13 @@ export class OrganizationController {
     operationId: 'apiOrg001',
     contractId: 'API-ORG-001',
     summary: 'Daftar unit organisasi',
-    permission: 'organization.read',
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async list(
     @Query() query: OrganizationListQueryDto,
@@ -56,7 +65,7 @@ export class OrganizationController {
     operationId: 'apiOrg002',
     contractId: 'API-ORG-002',
     summary: 'Buat unit organisasi',
-    permission: 'organization.create',
+    roles: ['admin_system'],
     successStatus: 201,
     idempotent: true,
   })
@@ -67,12 +76,68 @@ export class OrganizationController {
     return apiResult(await this.organizations.create(body, actor));
   }
 
+  @Get('regional-masters')
+  @ApiContract({
+    operationId: 'apiOrg011',
+    contractId: 'API-ORG-011',
+    summary: 'Ringkasan master wilayah Binda dan Direktorat',
+    roles: ['admin_system', 'executive'],
+  })
+  async regionalMasters(
+    @Query() query: RegionalMasterQueryDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.organizations.listRegionalMasters(query, context),
+    );
+  }
+
+  @Post('regional-masters/binda')
+  @ApiContract({
+    operationId: 'apiOrg012',
+    contractId: 'API-ORG-012',
+    summary: 'Daftarkan Binda per provinsi',
+    roles: ['admin_system'],
+    successStatus: 201,
+    idempotent: true,
+  })
+  async createBindaMaster(
+    @Body() body: CreateBindaMasterDto,
+    @CurrentAccessContext() actor: AuthorizationContext,
+  ) {
+    return apiResult(await this.organizations.createRegionalBinda(body, actor));
+  }
+
+  @Post('regional-masters/directorates')
+  @ApiContract({
+    operationId: 'apiOrg013',
+    contractId: 'API-ORG-013',
+    summary: 'Daftarkan Direktorat wilayah multi provinsi',
+    roles: ['admin_system'],
+    successStatus: 201,
+    idempotent: true,
+  })
+  async createDirectorateMaster(
+    @Body() body: CreateDirectorateMasterDto,
+    @CurrentAccessContext() actor: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.organizations.createRegionalDirectorate(body, actor),
+    );
+  }
+
   @Get(':unitId')
   @ApiContract({
     operationId: 'apiOrg003',
     contractId: 'API-ORG-003',
     summary: 'Detail unit',
-    permission: 'organization.read',
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async detail(@Param('unitId', ParseUUIDPipe) id: string) {
     return apiResult(await this.organizations.detail(id));
@@ -83,7 +148,7 @@ export class OrganizationController {
     operationId: 'apiOrg004',
     contractId: 'API-ORG-004',
     summary: 'Ubah metadata unit',
-    permission: 'organization.update',
+    roles: ['admin_system'],
   })
   async update(
     @Param('unitId', ParseUUIDPipe) id: string,
@@ -98,7 +163,7 @@ export class OrganizationController {
     operationId: 'apiOrg005',
     contractId: 'API-ORG-005',
     summary: 'Pindahkan unit dalam hierarchy',
-    permission: 'organization.move',
+    roles: ['admin_system'],
     idempotent: true,
   })
   async move(
@@ -116,7 +181,13 @@ export class OrganizationController {
     operationId: 'apiOrg006',
     contractId: 'API-ORG-006',
     summary: 'Ambil rantai atasan unit',
-    permission: 'organization.read',
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async ancestors(
     @Param('unitId', ParseUUIDPipe) id: string,
@@ -132,7 +203,13 @@ export class OrganizationController {
     operationId: 'apiOrg007',
     contractId: 'API-ORG-007',
     summary: 'Ambil unit turunan',
-    permission: 'organization.read',
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async descendants(
     @Param('unitId', ParseUUIDPipe) id: string,
@@ -148,7 +225,13 @@ export class OrganizationController {
     operationId: 'apiOrg008',
     contractId: 'API-ORG-008',
     summary: 'Ambil subtree organisasi',
-    permission: 'organization.read',
+    roles: [
+      'admin_system',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
   })
   async tree(
     @Param('unitId', ParseUUIDPipe) id: string,
@@ -162,7 +245,7 @@ export class OrganizationController {
     operationId: 'apiOrg009',
     contractId: 'API-ORG-009',
     summary: 'Coverage wilayah unit',
-    permission: 'organization.coverage.read',
+    roles: ['admin_system'],
   })
   async coverages(@Param('unitId', ParseUUIDPipe) id: string) {
     return apiResult(await this.organizations.coverages(id, true));
@@ -173,7 +256,7 @@ export class OrganizationController {
     operationId: 'apiOrg010',
     contractId: 'API-ORG-010',
     summary: 'Ganti coverage wilayah unit',
-    permission: 'organization.coverage.manage',
+    roles: ['admin_system'],
     idempotent: true,
   })
   async replaceCoverages(

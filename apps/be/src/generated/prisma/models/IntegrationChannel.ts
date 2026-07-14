@@ -212,6 +212,8 @@ export type IntegrationChannelWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"IntegrationChannel"> | Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageListRelationFilter
   webhookEvents?: Prisma.IntegrationWebhookEventListRelationFilter
+  botState?: Prisma.XOR<Prisma.WhatsAppBotChannelStateNullableScalarRelationFilter, Prisma.WhatsAppBotChannelStateWhereInput> | null
+  senderNumbers?: Prisma.WhatsAppSenderNumberListRelationFilter
 }
 
 export type IntegrationChannelOrderByWithRelationInput = {
@@ -226,6 +228,8 @@ export type IntegrationChannelOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   whatsAppMessages?: Prisma.WhatsAppMessageOrderByRelationAggregateInput
   webhookEvents?: Prisma.IntegrationWebhookEventOrderByRelationAggregateInput
+  botState?: Prisma.WhatsAppBotChannelStateOrderByWithRelationInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberOrderByRelationAggregateInput
 }
 
 export type IntegrationChannelWhereUniqueInput = Prisma.AtLeast<{
@@ -243,6 +247,8 @@ export type IntegrationChannelWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"IntegrationChannel"> | Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageListRelationFilter
   webhookEvents?: Prisma.IntegrationWebhookEventListRelationFilter
+  botState?: Prisma.XOR<Prisma.WhatsAppBotChannelStateNullableScalarRelationFilter, Prisma.WhatsAppBotChannelStateWhereInput> | null
+  senderNumbers?: Prisma.WhatsAppSenderNumberListRelationFilter
 }, "id" | "code">
 
 export type IntegrationChannelOrderByWithAggregationInput = {
@@ -287,6 +293,8 @@ export type IntegrationChannelCreateInput = {
   updatedAt?: Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutIntegrationChannelInput
   webhookEvents?: Prisma.IntegrationWebhookEventCreateNestedManyWithoutChannelInput
+  botState?: Prisma.WhatsAppBotChannelStateCreateNestedOneWithoutIntegrationChannelInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberCreateNestedManyWithoutIntegrationChannelInput
 }
 
 export type IntegrationChannelUncheckedCreateInput = {
@@ -301,6 +309,8 @@ export type IntegrationChannelUncheckedCreateInput = {
   updatedAt?: Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutIntegrationChannelInput
   webhookEvents?: Prisma.IntegrationWebhookEventUncheckedCreateNestedManyWithoutChannelInput
+  botState?: Prisma.WhatsAppBotChannelStateUncheckedCreateNestedOneWithoutIntegrationChannelInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUncheckedCreateNestedManyWithoutIntegrationChannelInput
 }
 
 export type IntegrationChannelUpdateInput = {
@@ -315,6 +325,8 @@ export type IntegrationChannelUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageUpdateManyWithoutIntegrationChannelNestedInput
   webhookEvents?: Prisma.IntegrationWebhookEventUpdateManyWithoutChannelNestedInput
+  botState?: Prisma.WhatsAppBotChannelStateUpdateOneWithoutIntegrationChannelNestedInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUpdateManyWithoutIntegrationChannelNestedInput
 }
 
 export type IntegrationChannelUncheckedUpdateInput = {
@@ -329,6 +341,8 @@ export type IntegrationChannelUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutIntegrationChannelNestedInput
   webhookEvents?: Prisma.IntegrationWebhookEventUncheckedUpdateManyWithoutChannelNestedInput
+  botState?: Prisma.WhatsAppBotChannelStateUncheckedUpdateOneWithoutIntegrationChannelNestedInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUncheckedUpdateManyWithoutIntegrationChannelNestedInput
 }
 
 export type IntegrationChannelCreateManyInput = {
@@ -424,6 +438,34 @@ export type EnumIntegrationStatusFieldUpdateOperationsInput = {
   set?: $Enums.IntegrationStatus
 }
 
+export type IntegrationChannelCreateNestedOneWithoutBotStateInput = {
+  create?: Prisma.XOR<Prisma.IntegrationChannelCreateWithoutBotStateInput, Prisma.IntegrationChannelUncheckedCreateWithoutBotStateInput>
+  connectOrCreate?: Prisma.IntegrationChannelCreateOrConnectWithoutBotStateInput
+  connect?: Prisma.IntegrationChannelWhereUniqueInput
+}
+
+export type IntegrationChannelUpdateOneRequiredWithoutBotStateNestedInput = {
+  create?: Prisma.XOR<Prisma.IntegrationChannelCreateWithoutBotStateInput, Prisma.IntegrationChannelUncheckedCreateWithoutBotStateInput>
+  connectOrCreate?: Prisma.IntegrationChannelCreateOrConnectWithoutBotStateInput
+  upsert?: Prisma.IntegrationChannelUpsertWithoutBotStateInput
+  connect?: Prisma.IntegrationChannelWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.IntegrationChannelUpdateToOneWithWhereWithoutBotStateInput, Prisma.IntegrationChannelUpdateWithoutBotStateInput>, Prisma.IntegrationChannelUncheckedUpdateWithoutBotStateInput>
+}
+
+export type IntegrationChannelCreateNestedOneWithoutSenderNumbersInput = {
+  create?: Prisma.XOR<Prisma.IntegrationChannelCreateWithoutSenderNumbersInput, Prisma.IntegrationChannelUncheckedCreateWithoutSenderNumbersInput>
+  connectOrCreate?: Prisma.IntegrationChannelCreateOrConnectWithoutSenderNumbersInput
+  connect?: Prisma.IntegrationChannelWhereUniqueInput
+}
+
+export type IntegrationChannelUpdateOneRequiredWithoutSenderNumbersNestedInput = {
+  create?: Prisma.XOR<Prisma.IntegrationChannelCreateWithoutSenderNumbersInput, Prisma.IntegrationChannelUncheckedCreateWithoutSenderNumbersInput>
+  connectOrCreate?: Prisma.IntegrationChannelCreateOrConnectWithoutSenderNumbersInput
+  upsert?: Prisma.IntegrationChannelUpsertWithoutSenderNumbersInput
+  connect?: Prisma.IntegrationChannelWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.IntegrationChannelUpdateToOneWithWhereWithoutSenderNumbersInput, Prisma.IntegrationChannelUpdateWithoutSenderNumbersInput>, Prisma.IntegrationChannelUncheckedUpdateWithoutSenderNumbersInput>
+}
+
 export type IntegrationChannelCreateNestedOneWithoutWebhookEventsInput = {
   create?: Prisma.XOR<Prisma.IntegrationChannelCreateWithoutWebhookEventsInput, Prisma.IntegrationChannelUncheckedCreateWithoutWebhookEventsInput>
   connectOrCreate?: Prisma.IntegrationChannelCreateOrConnectWithoutWebhookEventsInput
@@ -449,6 +491,8 @@ export type IntegrationChannelCreateWithoutWhatsAppMessagesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   webhookEvents?: Prisma.IntegrationWebhookEventCreateNestedManyWithoutChannelInput
+  botState?: Prisma.WhatsAppBotChannelStateCreateNestedOneWithoutIntegrationChannelInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberCreateNestedManyWithoutIntegrationChannelInput
 }
 
 export type IntegrationChannelUncheckedCreateWithoutWhatsAppMessagesInput = {
@@ -462,6 +506,8 @@ export type IntegrationChannelUncheckedCreateWithoutWhatsAppMessagesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   webhookEvents?: Prisma.IntegrationWebhookEventUncheckedCreateNestedManyWithoutChannelInput
+  botState?: Prisma.WhatsAppBotChannelStateUncheckedCreateNestedOneWithoutIntegrationChannelInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUncheckedCreateNestedManyWithoutIntegrationChannelInput
 }
 
 export type IntegrationChannelCreateOrConnectWithoutWhatsAppMessagesInput = {
@@ -491,6 +537,8 @@ export type IntegrationChannelUpdateWithoutWhatsAppMessagesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   webhookEvents?: Prisma.IntegrationWebhookEventUpdateManyWithoutChannelNestedInput
+  botState?: Prisma.WhatsAppBotChannelStateUpdateOneWithoutIntegrationChannelNestedInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUpdateManyWithoutIntegrationChannelNestedInput
 }
 
 export type IntegrationChannelUncheckedUpdateWithoutWhatsAppMessagesInput = {
@@ -504,6 +552,160 @@ export type IntegrationChannelUncheckedUpdateWithoutWhatsAppMessagesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   webhookEvents?: Prisma.IntegrationWebhookEventUncheckedUpdateManyWithoutChannelNestedInput
+  botState?: Prisma.WhatsAppBotChannelStateUncheckedUpdateOneWithoutIntegrationChannelNestedInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUncheckedUpdateManyWithoutIntegrationChannelNestedInput
+}
+
+export type IntegrationChannelCreateWithoutBotStateInput = {
+  id?: string
+  code: string
+  name: string
+  channelType: string
+  status?: $Enums.IntegrationStatus
+  config: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lastHealthAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  whatsAppMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutIntegrationChannelInput
+  webhookEvents?: Prisma.IntegrationWebhookEventCreateNestedManyWithoutChannelInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberCreateNestedManyWithoutIntegrationChannelInput
+}
+
+export type IntegrationChannelUncheckedCreateWithoutBotStateInput = {
+  id?: string
+  code: string
+  name: string
+  channelType: string
+  status?: $Enums.IntegrationStatus
+  config: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lastHealthAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  whatsAppMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutIntegrationChannelInput
+  webhookEvents?: Prisma.IntegrationWebhookEventUncheckedCreateNestedManyWithoutChannelInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUncheckedCreateNestedManyWithoutIntegrationChannelInput
+}
+
+export type IntegrationChannelCreateOrConnectWithoutBotStateInput = {
+  where: Prisma.IntegrationChannelWhereUniqueInput
+  create: Prisma.XOR<Prisma.IntegrationChannelCreateWithoutBotStateInput, Prisma.IntegrationChannelUncheckedCreateWithoutBotStateInput>
+}
+
+export type IntegrationChannelUpsertWithoutBotStateInput = {
+  update: Prisma.XOR<Prisma.IntegrationChannelUpdateWithoutBotStateInput, Prisma.IntegrationChannelUncheckedUpdateWithoutBotStateInput>
+  create: Prisma.XOR<Prisma.IntegrationChannelCreateWithoutBotStateInput, Prisma.IntegrationChannelUncheckedCreateWithoutBotStateInput>
+  where?: Prisma.IntegrationChannelWhereInput
+}
+
+export type IntegrationChannelUpdateToOneWithWhereWithoutBotStateInput = {
+  where?: Prisma.IntegrationChannelWhereInput
+  data: Prisma.XOR<Prisma.IntegrationChannelUpdateWithoutBotStateInput, Prisma.IntegrationChannelUncheckedUpdateWithoutBotStateInput>
+}
+
+export type IntegrationChannelUpdateWithoutBotStateInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  channelType?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumIntegrationStatusFieldUpdateOperationsInput | $Enums.IntegrationStatus
+  config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lastHealthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  whatsAppMessages?: Prisma.WhatsAppMessageUpdateManyWithoutIntegrationChannelNestedInput
+  webhookEvents?: Prisma.IntegrationWebhookEventUpdateManyWithoutChannelNestedInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUpdateManyWithoutIntegrationChannelNestedInput
+}
+
+export type IntegrationChannelUncheckedUpdateWithoutBotStateInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  channelType?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumIntegrationStatusFieldUpdateOperationsInput | $Enums.IntegrationStatus
+  config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lastHealthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  whatsAppMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutIntegrationChannelNestedInput
+  webhookEvents?: Prisma.IntegrationWebhookEventUncheckedUpdateManyWithoutChannelNestedInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUncheckedUpdateManyWithoutIntegrationChannelNestedInput
+}
+
+export type IntegrationChannelCreateWithoutSenderNumbersInput = {
+  id?: string
+  code: string
+  name: string
+  channelType: string
+  status?: $Enums.IntegrationStatus
+  config: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lastHealthAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  whatsAppMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutIntegrationChannelInput
+  webhookEvents?: Prisma.IntegrationWebhookEventCreateNestedManyWithoutChannelInput
+  botState?: Prisma.WhatsAppBotChannelStateCreateNestedOneWithoutIntegrationChannelInput
+}
+
+export type IntegrationChannelUncheckedCreateWithoutSenderNumbersInput = {
+  id?: string
+  code: string
+  name: string
+  channelType: string
+  status?: $Enums.IntegrationStatus
+  config: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lastHealthAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  whatsAppMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutIntegrationChannelInput
+  webhookEvents?: Prisma.IntegrationWebhookEventUncheckedCreateNestedManyWithoutChannelInput
+  botState?: Prisma.WhatsAppBotChannelStateUncheckedCreateNestedOneWithoutIntegrationChannelInput
+}
+
+export type IntegrationChannelCreateOrConnectWithoutSenderNumbersInput = {
+  where: Prisma.IntegrationChannelWhereUniqueInput
+  create: Prisma.XOR<Prisma.IntegrationChannelCreateWithoutSenderNumbersInput, Prisma.IntegrationChannelUncheckedCreateWithoutSenderNumbersInput>
+}
+
+export type IntegrationChannelUpsertWithoutSenderNumbersInput = {
+  update: Prisma.XOR<Prisma.IntegrationChannelUpdateWithoutSenderNumbersInput, Prisma.IntegrationChannelUncheckedUpdateWithoutSenderNumbersInput>
+  create: Prisma.XOR<Prisma.IntegrationChannelCreateWithoutSenderNumbersInput, Prisma.IntegrationChannelUncheckedCreateWithoutSenderNumbersInput>
+  where?: Prisma.IntegrationChannelWhereInput
+}
+
+export type IntegrationChannelUpdateToOneWithWhereWithoutSenderNumbersInput = {
+  where?: Prisma.IntegrationChannelWhereInput
+  data: Prisma.XOR<Prisma.IntegrationChannelUpdateWithoutSenderNumbersInput, Prisma.IntegrationChannelUncheckedUpdateWithoutSenderNumbersInput>
+}
+
+export type IntegrationChannelUpdateWithoutSenderNumbersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  channelType?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumIntegrationStatusFieldUpdateOperationsInput | $Enums.IntegrationStatus
+  config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lastHealthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  whatsAppMessages?: Prisma.WhatsAppMessageUpdateManyWithoutIntegrationChannelNestedInput
+  webhookEvents?: Prisma.IntegrationWebhookEventUpdateManyWithoutChannelNestedInput
+  botState?: Prisma.WhatsAppBotChannelStateUpdateOneWithoutIntegrationChannelNestedInput
+}
+
+export type IntegrationChannelUncheckedUpdateWithoutSenderNumbersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  channelType?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumIntegrationStatusFieldUpdateOperationsInput | $Enums.IntegrationStatus
+  config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  lastHealthAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  whatsAppMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutIntegrationChannelNestedInput
+  webhookEvents?: Prisma.IntegrationWebhookEventUncheckedUpdateManyWithoutChannelNestedInput
+  botState?: Prisma.WhatsAppBotChannelStateUncheckedUpdateOneWithoutIntegrationChannelNestedInput
 }
 
 export type IntegrationChannelCreateWithoutWebhookEventsInput = {
@@ -517,6 +719,8 @@ export type IntegrationChannelCreateWithoutWebhookEventsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageCreateNestedManyWithoutIntegrationChannelInput
+  botState?: Prisma.WhatsAppBotChannelStateCreateNestedOneWithoutIntegrationChannelInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberCreateNestedManyWithoutIntegrationChannelInput
 }
 
 export type IntegrationChannelUncheckedCreateWithoutWebhookEventsInput = {
@@ -530,6 +734,8 @@ export type IntegrationChannelUncheckedCreateWithoutWebhookEventsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutIntegrationChannelInput
+  botState?: Prisma.WhatsAppBotChannelStateUncheckedCreateNestedOneWithoutIntegrationChannelInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUncheckedCreateNestedManyWithoutIntegrationChannelInput
 }
 
 export type IntegrationChannelCreateOrConnectWithoutWebhookEventsInput = {
@@ -559,6 +765,8 @@ export type IntegrationChannelUpdateWithoutWebhookEventsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageUpdateManyWithoutIntegrationChannelNestedInput
+  botState?: Prisma.WhatsAppBotChannelStateUpdateOneWithoutIntegrationChannelNestedInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUpdateManyWithoutIntegrationChannelNestedInput
 }
 
 export type IntegrationChannelUncheckedUpdateWithoutWebhookEventsInput = {
@@ -572,6 +780,8 @@ export type IntegrationChannelUncheckedUpdateWithoutWebhookEventsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   whatsAppMessages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutIntegrationChannelNestedInput
+  botState?: Prisma.WhatsAppBotChannelStateUncheckedUpdateOneWithoutIntegrationChannelNestedInput
+  senderNumbers?: Prisma.WhatsAppSenderNumberUncheckedUpdateManyWithoutIntegrationChannelNestedInput
 }
 
 
@@ -582,11 +792,13 @@ export type IntegrationChannelUncheckedUpdateWithoutWebhookEventsInput = {
 export type IntegrationChannelCountOutputType = {
   whatsAppMessages: number
   webhookEvents: number
+  senderNumbers: number
 }
 
 export type IntegrationChannelCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   whatsAppMessages?: boolean | IntegrationChannelCountOutputTypeCountWhatsAppMessagesArgs
   webhookEvents?: boolean | IntegrationChannelCountOutputTypeCountWebhookEventsArgs
+  senderNumbers?: boolean | IntegrationChannelCountOutputTypeCountSenderNumbersArgs
 }
 
 /**
@@ -613,6 +825,13 @@ export type IntegrationChannelCountOutputTypeCountWebhookEventsArgs<ExtArgs exte
   where?: Prisma.IntegrationWebhookEventWhereInput
 }
 
+/**
+ * IntegrationChannelCountOutputType without action
+ */
+export type IntegrationChannelCountOutputTypeCountSenderNumbersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.WhatsAppSenderNumberWhereInput
+}
+
 
 export type IntegrationChannelSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -626,6 +845,8 @@ export type IntegrationChannelSelect<ExtArgs extends runtime.Types.Extensions.In
   updatedAt?: boolean
   whatsAppMessages?: boolean | Prisma.IntegrationChannel$whatsAppMessagesArgs<ExtArgs>
   webhookEvents?: boolean | Prisma.IntegrationChannel$webhookEventsArgs<ExtArgs>
+  botState?: boolean | Prisma.IntegrationChannel$botStateArgs<ExtArgs>
+  senderNumbers?: boolean | Prisma.IntegrationChannel$senderNumbersArgs<ExtArgs>
   _count?: boolean | Prisma.IntegrationChannelCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["integrationChannel"]>
 
@@ -669,6 +890,8 @@ export type IntegrationChannelOmit<ExtArgs extends runtime.Types.Extensions.Inte
 export type IntegrationChannelInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   whatsAppMessages?: boolean | Prisma.IntegrationChannel$whatsAppMessagesArgs<ExtArgs>
   webhookEvents?: boolean | Prisma.IntegrationChannel$webhookEventsArgs<ExtArgs>
+  botState?: boolean | Prisma.IntegrationChannel$botStateArgs<ExtArgs>
+  senderNumbers?: boolean | Prisma.IntegrationChannel$senderNumbersArgs<ExtArgs>
   _count?: boolean | Prisma.IntegrationChannelCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type IntegrationChannelIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -679,6 +902,8 @@ export type $IntegrationChannelPayload<ExtArgs extends runtime.Types.Extensions.
   objects: {
     whatsAppMessages: Prisma.$WhatsAppMessagePayload<ExtArgs>[]
     webhookEvents: Prisma.$IntegrationWebhookEventPayload<ExtArgs>[]
+    botState: Prisma.$WhatsAppBotChannelStatePayload<ExtArgs> | null
+    senderNumbers: Prisma.$WhatsAppSenderNumberPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1086,6 +1311,8 @@ export interface Prisma__IntegrationChannelClient<T, Null = never, ExtArgs exten
   readonly [Symbol.toStringTag]: "PrismaPromise"
   whatsAppMessages<T extends Prisma.IntegrationChannel$whatsAppMessagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntegrationChannel$whatsAppMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   webhookEvents<T extends Prisma.IntegrationChannel$webhookEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntegrationChannel$webhookEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$IntegrationWebhookEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  botState<T extends Prisma.IntegrationChannel$botStateArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntegrationChannel$botStateArgs<ExtArgs>>): Prisma.Prisma__WhatsAppBotChannelStateClient<runtime.Types.Result.GetResult<Prisma.$WhatsAppBotChannelStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  senderNumbers<T extends Prisma.IntegrationChannel$senderNumbersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntegrationChannel$senderNumbersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppSenderNumberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1562,6 +1789,49 @@ export type IntegrationChannel$webhookEventsArgs<ExtArgs extends runtime.Types.E
   take?: number
   skip?: number
   distinct?: Prisma.IntegrationWebhookEventScalarFieldEnum | Prisma.IntegrationWebhookEventScalarFieldEnum[]
+}
+
+/**
+ * IntegrationChannel.botState
+ */
+export type IntegrationChannel$botStateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the WhatsAppBotChannelState
+   */
+  select?: Prisma.WhatsAppBotChannelStateSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the WhatsAppBotChannelState
+   */
+  omit?: Prisma.WhatsAppBotChannelStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WhatsAppBotChannelStateInclude<ExtArgs> | null
+  where?: Prisma.WhatsAppBotChannelStateWhereInput
+}
+
+/**
+ * IntegrationChannel.senderNumbers
+ */
+export type IntegrationChannel$senderNumbersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the WhatsAppSenderNumber
+   */
+  select?: Prisma.WhatsAppSenderNumberSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the WhatsAppSenderNumber
+   */
+  omit?: Prisma.WhatsAppSenderNumberOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WhatsAppSenderNumberInclude<ExtArgs> | null
+  where?: Prisma.WhatsAppSenderNumberWhereInput
+  orderBy?: Prisma.WhatsAppSenderNumberOrderByWithRelationInput | Prisma.WhatsAppSenderNumberOrderByWithRelationInput[]
+  cursor?: Prisma.WhatsAppSenderNumberWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.WhatsAppSenderNumberScalarFieldEnum | Prisma.WhatsAppSenderNumberScalarFieldEnum[]
 }
 
 /**

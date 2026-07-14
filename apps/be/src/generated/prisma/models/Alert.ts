@@ -47,6 +47,7 @@ export type AlertMinAggregateOutputType = {
   longitude: runtime.Decimal | null
   sourceBaketId: string | null
   sourceIncidentId: string | null
+  assignedSeatId: string | null
   assignedPositionId: string | null
   createdAt: Date | null
   acknowledgedAt: Date | null
@@ -64,6 +65,7 @@ export type AlertMaxAggregateOutputType = {
   longitude: runtime.Decimal | null
   sourceBaketId: string | null
   sourceIncidentId: string | null
+  assignedSeatId: string | null
   assignedPositionId: string | null
   createdAt: Date | null
   acknowledgedAt: Date | null
@@ -81,6 +83,7 @@ export type AlertCountAggregateOutputType = {
   longitude: number
   sourceBaketId: number
   sourceIncidentId: number
+  assignedSeatId: number
   assignedPositionId: number
   createdAt: number
   acknowledgedAt: number
@@ -110,6 +113,7 @@ export type AlertMinAggregateInputType = {
   longitude?: true
   sourceBaketId?: true
   sourceIncidentId?: true
+  assignedSeatId?: true
   assignedPositionId?: true
   createdAt?: true
   acknowledgedAt?: true
@@ -127,6 +131,7 @@ export type AlertMaxAggregateInputType = {
   longitude?: true
   sourceBaketId?: true
   sourceIncidentId?: true
+  assignedSeatId?: true
   assignedPositionId?: true
   createdAt?: true
   acknowledgedAt?: true
@@ -144,6 +149,7 @@ export type AlertCountAggregateInputType = {
   longitude?: true
   sourceBaketId?: true
   sourceIncidentId?: true
+  assignedSeatId?: true
   assignedPositionId?: true
   createdAt?: true
   acknowledgedAt?: true
@@ -248,6 +254,7 @@ export type AlertGroupByOutputType = {
   longitude: runtime.Decimal | null
   sourceBaketId: string | null
   sourceIncidentId: string | null
+  assignedSeatId: string | null
   assignedPositionId: string | null
   createdAt: Date
   acknowledgedAt: Date | null
@@ -288,6 +295,7 @@ export type AlertWhereInput = {
   longitude?: Prisma.DecimalNullableFilter<"Alert"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.UuidNullableFilter<"Alert"> | string | null
   sourceIncidentId?: Prisma.UuidNullableFilter<"Alert"> | string | null
+  assignedSeatId?: Prisma.UuidNullableFilter<"Alert"> | string | null
   assignedPositionId?: Prisma.UuidNullableFilter<"Alert"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Alert"> | Date | string
   acknowledgedAt?: Prisma.DateTimeNullableFilter<"Alert"> | Date | string | null
@@ -295,6 +303,7 @@ export type AlertWhereInput = {
   area?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
   sourceBaket?: Prisma.XOR<Prisma.BaketNullableScalarRelationFilter, Prisma.BaketWhereInput> | null
   sourceIncident?: Prisma.XOR<Prisma.EmergencyIncidentNullableScalarRelationFilter, Prisma.EmergencyIncidentWhereInput> | null
+  assignedSeat?: Prisma.XOR<Prisma.OrganizationRoleSeatNullableScalarRelationFilter, Prisma.OrganizationRoleSeatWhereInput> | null
   assignedPosition?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
 }
 
@@ -309,6 +318,7 @@ export type AlertOrderByWithRelationInput = {
   longitude?: Prisma.SortOrderInput | Prisma.SortOrder
   sourceBaketId?: Prisma.SortOrderInput | Prisma.SortOrder
   sourceIncidentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  assignedSeatId?: Prisma.SortOrderInput | Prisma.SortOrder
   assignedPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   acknowledgedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -316,6 +326,7 @@ export type AlertOrderByWithRelationInput = {
   area?: Prisma.AdministrativeAreaOrderByWithRelationInput
   sourceBaket?: Prisma.BaketOrderByWithRelationInput
   sourceIncident?: Prisma.EmergencyIncidentOrderByWithRelationInput
+  assignedSeat?: Prisma.OrganizationRoleSeatOrderByWithRelationInput
   assignedPosition?: Prisma.PositionOrderByWithRelationInput
 }
 
@@ -333,6 +344,7 @@ export type AlertWhereUniqueInput = Prisma.AtLeast<{
   longitude?: Prisma.DecimalNullableFilter<"Alert"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.UuidNullableFilter<"Alert"> | string | null
   sourceIncidentId?: Prisma.UuidNullableFilter<"Alert"> | string | null
+  assignedSeatId?: Prisma.UuidNullableFilter<"Alert"> | string | null
   assignedPositionId?: Prisma.UuidNullableFilter<"Alert"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Alert"> | Date | string
   acknowledgedAt?: Prisma.DateTimeNullableFilter<"Alert"> | Date | string | null
@@ -340,6 +352,7 @@ export type AlertWhereUniqueInput = Prisma.AtLeast<{
   area?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
   sourceBaket?: Prisma.XOR<Prisma.BaketNullableScalarRelationFilter, Prisma.BaketWhereInput> | null
   sourceIncident?: Prisma.XOR<Prisma.EmergencyIncidentNullableScalarRelationFilter, Prisma.EmergencyIncidentWhereInput> | null
+  assignedSeat?: Prisma.XOR<Prisma.OrganizationRoleSeatNullableScalarRelationFilter, Prisma.OrganizationRoleSeatWhereInput> | null
   assignedPosition?: Prisma.XOR<Prisma.PositionNullableScalarRelationFilter, Prisma.PositionWhereInput> | null
 }, "id">
 
@@ -354,6 +367,7 @@ export type AlertOrderByWithAggregationInput = {
   longitude?: Prisma.SortOrderInput | Prisma.SortOrder
   sourceBaketId?: Prisma.SortOrderInput | Prisma.SortOrder
   sourceIncidentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  assignedSeatId?: Prisma.SortOrderInput | Prisma.SortOrder
   assignedPositionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   acknowledgedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -379,6 +393,7 @@ export type AlertScalarWhereWithAggregatesInput = {
   longitude?: Prisma.DecimalNullableWithAggregatesFilter<"Alert"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.UuidNullableWithAggregatesFilter<"Alert"> | string | null
   sourceIncidentId?: Prisma.UuidNullableWithAggregatesFilter<"Alert"> | string | null
+  assignedSeatId?: Prisma.UuidNullableWithAggregatesFilter<"Alert"> | string | null
   assignedPositionId?: Prisma.UuidNullableWithAggregatesFilter<"Alert"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Alert"> | Date | string
   acknowledgedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Alert"> | Date | string | null
@@ -399,6 +414,7 @@ export type AlertCreateInput = {
   area?: Prisma.AdministrativeAreaCreateNestedOneWithoutAlertsInput
   sourceBaket?: Prisma.BaketCreateNestedOneWithoutAlertsInput
   sourceIncident?: Prisma.EmergencyIncidentCreateNestedOneWithoutAlertsInput
+  assignedSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutAssignedAlertsInput
   assignedPosition?: Prisma.PositionCreateNestedOneWithoutAssignedAlertsInput
 }
 
@@ -413,6 +429,7 @@ export type AlertUncheckedCreateInput = {
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: string | null
   sourceIncidentId?: string | null
+  assignedSeatId?: string | null
   assignedPositionId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
@@ -433,6 +450,7 @@ export type AlertUpdateInput = {
   area?: Prisma.AdministrativeAreaUpdateOneWithoutAlertsNestedInput
   sourceBaket?: Prisma.BaketUpdateOneWithoutAlertsNestedInput
   sourceIncident?: Prisma.EmergencyIncidentUpdateOneWithoutAlertsNestedInput
+  assignedSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutAssignedAlertsNestedInput
   assignedPosition?: Prisma.PositionUpdateOneWithoutAssignedAlertsNestedInput
 }
 
@@ -447,6 +465,7 @@ export type AlertUncheckedUpdateInput = {
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -464,6 +483,7 @@ export type AlertCreateManyInput = {
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: string | null
   sourceIncidentId?: string | null
+  assignedSeatId?: string | null
   assignedPositionId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
@@ -494,6 +514,7 @@ export type AlertUncheckedUpdateManyInput = {
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -521,6 +542,7 @@ export type AlertCountOrderByAggregateInput = {
   longitude?: Prisma.SortOrder
   sourceBaketId?: Prisma.SortOrder
   sourceIncidentId?: Prisma.SortOrder
+  assignedSeatId?: Prisma.SortOrder
   assignedPositionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   acknowledgedAt?: Prisma.SortOrder
@@ -543,6 +565,7 @@ export type AlertMaxOrderByAggregateInput = {
   longitude?: Prisma.SortOrder
   sourceBaketId?: Prisma.SortOrder
   sourceIncidentId?: Prisma.SortOrder
+  assignedSeatId?: Prisma.SortOrder
   assignedPositionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   acknowledgedAt?: Prisma.SortOrder
@@ -560,6 +583,7 @@ export type AlertMinOrderByAggregateInput = {
   longitude?: Prisma.SortOrder
   sourceBaketId?: Prisma.SortOrder
   sourceIncidentId?: Prisma.SortOrder
+  assignedSeatId?: Prisma.SortOrder
   assignedPositionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   acknowledgedAt?: Prisma.SortOrder
@@ -610,6 +634,48 @@ export type AlertUncheckedUpdateManyWithoutAssignedPositionNestedInput = {
   connect?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
   update?: Prisma.AlertUpdateWithWhereUniqueWithoutAssignedPositionInput | Prisma.AlertUpdateWithWhereUniqueWithoutAssignedPositionInput[]
   updateMany?: Prisma.AlertUpdateManyWithWhereWithoutAssignedPositionInput | Prisma.AlertUpdateManyWithWhereWithoutAssignedPositionInput[]
+  deleteMany?: Prisma.AlertScalarWhereInput | Prisma.AlertScalarWhereInput[]
+}
+
+export type AlertCreateNestedManyWithoutAssignedSeatInput = {
+  create?: Prisma.XOR<Prisma.AlertCreateWithoutAssignedSeatInput, Prisma.AlertUncheckedCreateWithoutAssignedSeatInput> | Prisma.AlertCreateWithoutAssignedSeatInput[] | Prisma.AlertUncheckedCreateWithoutAssignedSeatInput[]
+  connectOrCreate?: Prisma.AlertCreateOrConnectWithoutAssignedSeatInput | Prisma.AlertCreateOrConnectWithoutAssignedSeatInput[]
+  createMany?: Prisma.AlertCreateManyAssignedSeatInputEnvelope
+  connect?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+}
+
+export type AlertUncheckedCreateNestedManyWithoutAssignedSeatInput = {
+  create?: Prisma.XOR<Prisma.AlertCreateWithoutAssignedSeatInput, Prisma.AlertUncheckedCreateWithoutAssignedSeatInput> | Prisma.AlertCreateWithoutAssignedSeatInput[] | Prisma.AlertUncheckedCreateWithoutAssignedSeatInput[]
+  connectOrCreate?: Prisma.AlertCreateOrConnectWithoutAssignedSeatInput | Prisma.AlertCreateOrConnectWithoutAssignedSeatInput[]
+  createMany?: Prisma.AlertCreateManyAssignedSeatInputEnvelope
+  connect?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+}
+
+export type AlertUpdateManyWithoutAssignedSeatNestedInput = {
+  create?: Prisma.XOR<Prisma.AlertCreateWithoutAssignedSeatInput, Prisma.AlertUncheckedCreateWithoutAssignedSeatInput> | Prisma.AlertCreateWithoutAssignedSeatInput[] | Prisma.AlertUncheckedCreateWithoutAssignedSeatInput[]
+  connectOrCreate?: Prisma.AlertCreateOrConnectWithoutAssignedSeatInput | Prisma.AlertCreateOrConnectWithoutAssignedSeatInput[]
+  upsert?: Prisma.AlertUpsertWithWhereUniqueWithoutAssignedSeatInput | Prisma.AlertUpsertWithWhereUniqueWithoutAssignedSeatInput[]
+  createMany?: Prisma.AlertCreateManyAssignedSeatInputEnvelope
+  set?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+  disconnect?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+  delete?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+  connect?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+  update?: Prisma.AlertUpdateWithWhereUniqueWithoutAssignedSeatInput | Prisma.AlertUpdateWithWhereUniqueWithoutAssignedSeatInput[]
+  updateMany?: Prisma.AlertUpdateManyWithWhereWithoutAssignedSeatInput | Prisma.AlertUpdateManyWithWhereWithoutAssignedSeatInput[]
+  deleteMany?: Prisma.AlertScalarWhereInput | Prisma.AlertScalarWhereInput[]
+}
+
+export type AlertUncheckedUpdateManyWithoutAssignedSeatNestedInput = {
+  create?: Prisma.XOR<Prisma.AlertCreateWithoutAssignedSeatInput, Prisma.AlertUncheckedCreateWithoutAssignedSeatInput> | Prisma.AlertCreateWithoutAssignedSeatInput[] | Prisma.AlertUncheckedCreateWithoutAssignedSeatInput[]
+  connectOrCreate?: Prisma.AlertCreateOrConnectWithoutAssignedSeatInput | Prisma.AlertCreateOrConnectWithoutAssignedSeatInput[]
+  upsert?: Prisma.AlertUpsertWithWhereUniqueWithoutAssignedSeatInput | Prisma.AlertUpsertWithWhereUniqueWithoutAssignedSeatInput[]
+  createMany?: Prisma.AlertCreateManyAssignedSeatInputEnvelope
+  set?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+  disconnect?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+  delete?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+  connect?: Prisma.AlertWhereUniqueInput | Prisma.AlertWhereUniqueInput[]
+  update?: Prisma.AlertUpdateWithWhereUniqueWithoutAssignedSeatInput | Prisma.AlertUpdateWithWhereUniqueWithoutAssignedSeatInput[]
+  updateMany?: Prisma.AlertUpdateManyWithWhereWithoutAssignedSeatInput | Prisma.AlertUpdateManyWithWhereWithoutAssignedSeatInput[]
   deleteMany?: Prisma.AlertScalarWhereInput | Prisma.AlertScalarWhereInput[]
 }
 
@@ -757,6 +823,7 @@ export type AlertCreateWithoutAssignedPositionInput = {
   area?: Prisma.AdministrativeAreaCreateNestedOneWithoutAlertsInput
   sourceBaket?: Prisma.BaketCreateNestedOneWithoutAlertsInput
   sourceIncident?: Prisma.EmergencyIncidentCreateNestedOneWithoutAlertsInput
+  assignedSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutAssignedAlertsInput
 }
 
 export type AlertUncheckedCreateWithoutAssignedPositionInput = {
@@ -770,6 +837,7 @@ export type AlertUncheckedCreateWithoutAssignedPositionInput = {
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: string | null
   sourceIncidentId?: string | null
+  assignedSeatId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
   resolvedAt?: Date | string | null
@@ -815,10 +883,71 @@ export type AlertScalarWhereInput = {
   longitude?: Prisma.DecimalNullableFilter<"Alert"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.UuidNullableFilter<"Alert"> | string | null
   sourceIncidentId?: Prisma.UuidNullableFilter<"Alert"> | string | null
+  assignedSeatId?: Prisma.UuidNullableFilter<"Alert"> | string | null
   assignedPositionId?: Prisma.UuidNullableFilter<"Alert"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Alert"> | Date | string
   acknowledgedAt?: Prisma.DateTimeNullableFilter<"Alert"> | Date | string | null
   resolvedAt?: Prisma.DateTimeNullableFilter<"Alert"> | Date | string | null
+}
+
+export type AlertCreateWithoutAssignedSeatInput = {
+  id?: string
+  title: string
+  description: string
+  severity: $Enums.AlertSeverity
+  status?: $Enums.AlertStatus
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  createdAt?: Date | string
+  acknowledgedAt?: Date | string | null
+  resolvedAt?: Date | string | null
+  area?: Prisma.AdministrativeAreaCreateNestedOneWithoutAlertsInput
+  sourceBaket?: Prisma.BaketCreateNestedOneWithoutAlertsInput
+  sourceIncident?: Prisma.EmergencyIncidentCreateNestedOneWithoutAlertsInput
+  assignedPosition?: Prisma.PositionCreateNestedOneWithoutAssignedAlertsInput
+}
+
+export type AlertUncheckedCreateWithoutAssignedSeatInput = {
+  id?: string
+  title: string
+  description: string
+  severity: $Enums.AlertSeverity
+  status?: $Enums.AlertStatus
+  areaId?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  sourceBaketId?: string | null
+  sourceIncidentId?: string | null
+  assignedPositionId?: string | null
+  createdAt?: Date | string
+  acknowledgedAt?: Date | string | null
+  resolvedAt?: Date | string | null
+}
+
+export type AlertCreateOrConnectWithoutAssignedSeatInput = {
+  where: Prisma.AlertWhereUniqueInput
+  create: Prisma.XOR<Prisma.AlertCreateWithoutAssignedSeatInput, Prisma.AlertUncheckedCreateWithoutAssignedSeatInput>
+}
+
+export type AlertCreateManyAssignedSeatInputEnvelope = {
+  data: Prisma.AlertCreateManyAssignedSeatInput | Prisma.AlertCreateManyAssignedSeatInput[]
+  skipDuplicates?: boolean
+}
+
+export type AlertUpsertWithWhereUniqueWithoutAssignedSeatInput = {
+  where: Prisma.AlertWhereUniqueInput
+  update: Prisma.XOR<Prisma.AlertUpdateWithoutAssignedSeatInput, Prisma.AlertUncheckedUpdateWithoutAssignedSeatInput>
+  create: Prisma.XOR<Prisma.AlertCreateWithoutAssignedSeatInput, Prisma.AlertUncheckedCreateWithoutAssignedSeatInput>
+}
+
+export type AlertUpdateWithWhereUniqueWithoutAssignedSeatInput = {
+  where: Prisma.AlertWhereUniqueInput
+  data: Prisma.XOR<Prisma.AlertUpdateWithoutAssignedSeatInput, Prisma.AlertUncheckedUpdateWithoutAssignedSeatInput>
+}
+
+export type AlertUpdateManyWithWhereWithoutAssignedSeatInput = {
+  where: Prisma.AlertScalarWhereInput
+  data: Prisma.XOR<Prisma.AlertUpdateManyMutationInput, Prisma.AlertUncheckedUpdateManyWithoutAssignedSeatInput>
 }
 
 export type AlertCreateWithoutAreaInput = {
@@ -834,6 +963,7 @@ export type AlertCreateWithoutAreaInput = {
   resolvedAt?: Date | string | null
   sourceBaket?: Prisma.BaketCreateNestedOneWithoutAlertsInput
   sourceIncident?: Prisma.EmergencyIncidentCreateNestedOneWithoutAlertsInput
+  assignedSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutAssignedAlertsInput
   assignedPosition?: Prisma.PositionCreateNestedOneWithoutAssignedAlertsInput
 }
 
@@ -847,6 +977,7 @@ export type AlertUncheckedCreateWithoutAreaInput = {
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: string | null
   sourceIncidentId?: string | null
+  assignedSeatId?: string | null
   assignedPositionId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
@@ -892,6 +1023,7 @@ export type AlertCreateWithoutSourceBaketInput = {
   resolvedAt?: Date | string | null
   area?: Prisma.AdministrativeAreaCreateNestedOneWithoutAlertsInput
   sourceIncident?: Prisma.EmergencyIncidentCreateNestedOneWithoutAlertsInput
+  assignedSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutAssignedAlertsInput
   assignedPosition?: Prisma.PositionCreateNestedOneWithoutAssignedAlertsInput
 }
 
@@ -905,6 +1037,7 @@ export type AlertUncheckedCreateWithoutSourceBaketInput = {
   latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceIncidentId?: string | null
+  assignedSeatId?: string | null
   assignedPositionId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
@@ -950,6 +1083,7 @@ export type AlertCreateWithoutSourceIncidentInput = {
   resolvedAt?: Date | string | null
   area?: Prisma.AdministrativeAreaCreateNestedOneWithoutAlertsInput
   sourceBaket?: Prisma.BaketCreateNestedOneWithoutAlertsInput
+  assignedSeat?: Prisma.OrganizationRoleSeatCreateNestedOneWithoutAssignedAlertsInput
   assignedPosition?: Prisma.PositionCreateNestedOneWithoutAssignedAlertsInput
 }
 
@@ -963,6 +1097,7 @@ export type AlertUncheckedCreateWithoutSourceIncidentInput = {
   latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: string | null
+  assignedSeatId?: string | null
   assignedPositionId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
@@ -1006,6 +1141,7 @@ export type AlertCreateManyAssignedPositionInput = {
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: string | null
   sourceIncidentId?: string | null
+  assignedSeatId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
   resolvedAt?: Date | string | null
@@ -1025,6 +1161,7 @@ export type AlertUpdateWithoutAssignedPositionInput = {
   area?: Prisma.AdministrativeAreaUpdateOneWithoutAlertsNestedInput
   sourceBaket?: Prisma.BaketUpdateOneWithoutAlertsNestedInput
   sourceIncident?: Prisma.EmergencyIncidentUpdateOneWithoutAlertsNestedInput
+  assignedSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutAssignedAlertsNestedInput
 }
 
 export type AlertUncheckedUpdateWithoutAssignedPositionInput = {
@@ -1038,6 +1175,7 @@ export type AlertUncheckedUpdateWithoutAssignedPositionInput = {
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1054,6 +1192,75 @@ export type AlertUncheckedUpdateManyWithoutAssignedPositionInput = {
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type AlertCreateManyAssignedSeatInput = {
+  id?: string
+  title: string
+  description: string
+  severity: $Enums.AlertSeverity
+  status?: $Enums.AlertStatus
+  areaId?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  sourceBaketId?: string | null
+  sourceIncidentId?: string | null
+  assignedPositionId?: string | null
+  createdAt?: Date | string
+  acknowledgedAt?: Date | string | null
+  resolvedAt?: Date | string | null
+}
+
+export type AlertUpdateWithoutAssignedSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  severity?: Prisma.EnumAlertSeverityFieldUpdateOperationsInput | $Enums.AlertSeverity
+  status?: Prisma.EnumAlertStatusFieldUpdateOperationsInput | $Enums.AlertStatus
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  area?: Prisma.AdministrativeAreaUpdateOneWithoutAlertsNestedInput
+  sourceBaket?: Prisma.BaketUpdateOneWithoutAlertsNestedInput
+  sourceIncident?: Prisma.EmergencyIncidentUpdateOneWithoutAlertsNestedInput
+  assignedPosition?: Prisma.PositionUpdateOneWithoutAssignedAlertsNestedInput
+}
+
+export type AlertUncheckedUpdateWithoutAssignedSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  severity?: Prisma.EnumAlertSeverityFieldUpdateOperationsInput | $Enums.AlertSeverity
+  status?: Prisma.EnumAlertStatusFieldUpdateOperationsInput | $Enums.AlertStatus
+  areaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type AlertUncheckedUpdateManyWithoutAssignedSeatInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  severity?: Prisma.EnumAlertSeverityFieldUpdateOperationsInput | $Enums.AlertSeverity
+  status?: Prisma.EnumAlertStatusFieldUpdateOperationsInput | $Enums.AlertStatus
+  areaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1069,6 +1276,7 @@ export type AlertCreateManyAreaInput = {
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: string | null
   sourceIncidentId?: string | null
+  assignedSeatId?: string | null
   assignedPositionId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
@@ -1088,6 +1296,7 @@ export type AlertUpdateWithoutAreaInput = {
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sourceBaket?: Prisma.BaketUpdateOneWithoutAlertsNestedInput
   sourceIncident?: Prisma.EmergencyIncidentUpdateOneWithoutAlertsNestedInput
+  assignedSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutAssignedAlertsNestedInput
   assignedPosition?: Prisma.PositionUpdateOneWithoutAssignedAlertsNestedInput
 }
 
@@ -1101,6 +1310,7 @@ export type AlertUncheckedUpdateWithoutAreaInput = {
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1117,6 +1327,7 @@ export type AlertUncheckedUpdateManyWithoutAreaInput = {
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1133,6 +1344,7 @@ export type AlertCreateManySourceBaketInput = {
   latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceIncidentId?: string | null
+  assignedSeatId?: string | null
   assignedPositionId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
@@ -1152,6 +1364,7 @@ export type AlertUpdateWithoutSourceBaketInput = {
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   area?: Prisma.AdministrativeAreaUpdateOneWithoutAlertsNestedInput
   sourceIncident?: Prisma.EmergencyIncidentUpdateOneWithoutAlertsNestedInput
+  assignedSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutAssignedAlertsNestedInput
   assignedPosition?: Prisma.PositionUpdateOneWithoutAssignedAlertsNestedInput
 }
 
@@ -1165,6 +1378,7 @@ export type AlertUncheckedUpdateWithoutSourceBaketInput = {
   latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1181,6 +1395,7 @@ export type AlertUncheckedUpdateManyWithoutSourceBaketInput = {
   latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceIncidentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1197,6 +1412,7 @@ export type AlertCreateManySourceIncidentInput = {
   latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: string | null
+  assignedSeatId?: string | null
   assignedPositionId?: string | null
   createdAt?: Date | string
   acknowledgedAt?: Date | string | null
@@ -1216,6 +1432,7 @@ export type AlertUpdateWithoutSourceIncidentInput = {
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   area?: Prisma.AdministrativeAreaUpdateOneWithoutAlertsNestedInput
   sourceBaket?: Prisma.BaketUpdateOneWithoutAlertsNestedInput
+  assignedSeat?: Prisma.OrganizationRoleSeatUpdateOneWithoutAssignedAlertsNestedInput
   assignedPosition?: Prisma.PositionUpdateOneWithoutAssignedAlertsNestedInput
 }
 
@@ -1229,6 +1446,7 @@ export type AlertUncheckedUpdateWithoutSourceIncidentInput = {
   latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1245,6 +1463,7 @@ export type AlertUncheckedUpdateManyWithoutSourceIncidentInput = {
   latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sourceBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedSeatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   acknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1264,6 +1483,7 @@ export type AlertSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   longitude?: boolean
   sourceBaketId?: boolean
   sourceIncidentId?: boolean
+  assignedSeatId?: boolean
   assignedPositionId?: boolean
   createdAt?: boolean
   acknowledgedAt?: boolean
@@ -1271,6 +1491,7 @@ export type AlertSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   area?: boolean | Prisma.Alert$areaArgs<ExtArgs>
   sourceBaket?: boolean | Prisma.Alert$sourceBaketArgs<ExtArgs>
   sourceIncident?: boolean | Prisma.Alert$sourceIncidentArgs<ExtArgs>
+  assignedSeat?: boolean | Prisma.Alert$assignedSeatArgs<ExtArgs>
   assignedPosition?: boolean | Prisma.Alert$assignedPositionArgs<ExtArgs>
 }, ExtArgs["result"]["alert"]>
 
@@ -1285,6 +1506,7 @@ export type AlertSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   longitude?: boolean
   sourceBaketId?: boolean
   sourceIncidentId?: boolean
+  assignedSeatId?: boolean
   assignedPositionId?: boolean
   createdAt?: boolean
   acknowledgedAt?: boolean
@@ -1292,6 +1514,7 @@ export type AlertSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   area?: boolean | Prisma.Alert$areaArgs<ExtArgs>
   sourceBaket?: boolean | Prisma.Alert$sourceBaketArgs<ExtArgs>
   sourceIncident?: boolean | Prisma.Alert$sourceIncidentArgs<ExtArgs>
+  assignedSeat?: boolean | Prisma.Alert$assignedSeatArgs<ExtArgs>
   assignedPosition?: boolean | Prisma.Alert$assignedPositionArgs<ExtArgs>
 }, ExtArgs["result"]["alert"]>
 
@@ -1306,6 +1529,7 @@ export type AlertSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   longitude?: boolean
   sourceBaketId?: boolean
   sourceIncidentId?: boolean
+  assignedSeatId?: boolean
   assignedPositionId?: boolean
   createdAt?: boolean
   acknowledgedAt?: boolean
@@ -1313,6 +1537,7 @@ export type AlertSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   area?: boolean | Prisma.Alert$areaArgs<ExtArgs>
   sourceBaket?: boolean | Prisma.Alert$sourceBaketArgs<ExtArgs>
   sourceIncident?: boolean | Prisma.Alert$sourceIncidentArgs<ExtArgs>
+  assignedSeat?: boolean | Prisma.Alert$assignedSeatArgs<ExtArgs>
   assignedPosition?: boolean | Prisma.Alert$assignedPositionArgs<ExtArgs>
 }, ExtArgs["result"]["alert"]>
 
@@ -1327,29 +1552,33 @@ export type AlertSelectScalar = {
   longitude?: boolean
   sourceBaketId?: boolean
   sourceIncidentId?: boolean
+  assignedSeatId?: boolean
   assignedPositionId?: boolean
   createdAt?: boolean
   acknowledgedAt?: boolean
   resolvedAt?: boolean
 }
 
-export type AlertOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "severity" | "status" | "areaId" | "latitude" | "longitude" | "sourceBaketId" | "sourceIncidentId" | "assignedPositionId" | "createdAt" | "acknowledgedAt" | "resolvedAt", ExtArgs["result"]["alert"]>
+export type AlertOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "severity" | "status" | "areaId" | "latitude" | "longitude" | "sourceBaketId" | "sourceIncidentId" | "assignedSeatId" | "assignedPositionId" | "createdAt" | "acknowledgedAt" | "resolvedAt", ExtArgs["result"]["alert"]>
 export type AlertInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   area?: boolean | Prisma.Alert$areaArgs<ExtArgs>
   sourceBaket?: boolean | Prisma.Alert$sourceBaketArgs<ExtArgs>
   sourceIncident?: boolean | Prisma.Alert$sourceIncidentArgs<ExtArgs>
+  assignedSeat?: boolean | Prisma.Alert$assignedSeatArgs<ExtArgs>
   assignedPosition?: boolean | Prisma.Alert$assignedPositionArgs<ExtArgs>
 }
 export type AlertIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   area?: boolean | Prisma.Alert$areaArgs<ExtArgs>
   sourceBaket?: boolean | Prisma.Alert$sourceBaketArgs<ExtArgs>
   sourceIncident?: boolean | Prisma.Alert$sourceIncidentArgs<ExtArgs>
+  assignedSeat?: boolean | Prisma.Alert$assignedSeatArgs<ExtArgs>
   assignedPosition?: boolean | Prisma.Alert$assignedPositionArgs<ExtArgs>
 }
 export type AlertIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   area?: boolean | Prisma.Alert$areaArgs<ExtArgs>
   sourceBaket?: boolean | Prisma.Alert$sourceBaketArgs<ExtArgs>
   sourceIncident?: boolean | Prisma.Alert$sourceIncidentArgs<ExtArgs>
+  assignedSeat?: boolean | Prisma.Alert$assignedSeatArgs<ExtArgs>
   assignedPosition?: boolean | Prisma.Alert$assignedPositionArgs<ExtArgs>
 }
 
@@ -1359,6 +1588,7 @@ export type $AlertPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     area: Prisma.$AdministrativeAreaPayload<ExtArgs> | null
     sourceBaket: Prisma.$BaketPayload<ExtArgs> | null
     sourceIncident: Prisma.$EmergencyIncidentPayload<ExtArgs> | null
+    assignedSeat: Prisma.$OrganizationRoleSeatPayload<ExtArgs> | null
     assignedPosition: Prisma.$PositionPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1372,6 +1602,7 @@ export type $AlertPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     longitude: runtime.Decimal | null
     sourceBaketId: string | null
     sourceIncidentId: string | null
+    assignedSeatId: string | null
     assignedPositionId: string | null
     createdAt: Date
     acknowledgedAt: Date | null
@@ -1773,6 +2004,7 @@ export interface Prisma__AlertClient<T, Null = never, ExtArgs extends runtime.Ty
   area<T extends Prisma.Alert$areaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Alert$areaArgs<ExtArgs>>): Prisma.Prisma__AdministrativeAreaClient<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   sourceBaket<T extends Prisma.Alert$sourceBaketArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Alert$sourceBaketArgs<ExtArgs>>): Prisma.Prisma__BaketClient<runtime.Types.Result.GetResult<Prisma.$BaketPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   sourceIncident<T extends Prisma.Alert$sourceIncidentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Alert$sourceIncidentArgs<ExtArgs>>): Prisma.Prisma__EmergencyIncidentClient<runtime.Types.Result.GetResult<Prisma.$EmergencyIncidentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  assignedSeat<T extends Prisma.Alert$assignedSeatArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Alert$assignedSeatArgs<ExtArgs>>): Prisma.Prisma__OrganizationRoleSeatClient<runtime.Types.Result.GetResult<Prisma.$OrganizationRoleSeatPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   assignedPosition<T extends Prisma.Alert$assignedPositionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Alert$assignedPositionArgs<ExtArgs>>): Prisma.Prisma__PositionClient<runtime.Types.Result.GetResult<Prisma.$PositionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1813,6 +2045,7 @@ export interface AlertFieldRefs {
   readonly longitude: Prisma.FieldRef<"Alert", 'Decimal'>
   readonly sourceBaketId: Prisma.FieldRef<"Alert", 'String'>
   readonly sourceIncidentId: Prisma.FieldRef<"Alert", 'String'>
+  readonly assignedSeatId: Prisma.FieldRef<"Alert", 'String'>
   readonly assignedPositionId: Prisma.FieldRef<"Alert", 'String'>
   readonly createdAt: Prisma.FieldRef<"Alert", 'DateTime'>
   readonly acknowledgedAt: Prisma.FieldRef<"Alert", 'DateTime'>
@@ -2272,6 +2505,25 @@ export type Alert$sourceIncidentArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   include?: Prisma.EmergencyIncidentInclude<ExtArgs> | null
   where?: Prisma.EmergencyIncidentWhereInput
+}
+
+/**
+ * Alert.assignedSeat
+ */
+export type Alert$assignedSeatArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the OrganizationRoleSeat
+   */
+  select?: Prisma.OrganizationRoleSeatSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the OrganizationRoleSeat
+   */
+  omit?: Prisma.OrganizationRoleSeatOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.OrganizationRoleSeatInclude<ExtArgs> | null
+  where?: Prisma.OrganizationRoleSeatWhereInput
 }
 
 /**

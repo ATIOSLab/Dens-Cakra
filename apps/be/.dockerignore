@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.local
+npm-debug.log
+storage/*
+!storage/whatsapp-evidence/
+wa_auth
+.git
+.gitignore

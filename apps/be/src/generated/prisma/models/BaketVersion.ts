@@ -394,7 +394,7 @@ export type BaketVersionWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"BaketVersion"> | Date | string
   baket?: Prisma.XOR<Prisma.BaketScalarRelationFilter, Prisma.BaketWhereInput>
   eventArea?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   verification?: Prisma.XOR<Prisma.BaketVerificationNullableScalarRelationFilter, Prisma.BaketVerificationWhereInput> | null
   coverageChecks?: Prisma.BaketCoverageCheckListRelationFilter
   requestedRevisions?: Prisma.BaketRevisionRequestListRelationFilter
@@ -431,7 +431,7 @@ export type BaketVersionOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   baket?: Prisma.BaketOrderByWithRelationInput
   eventArea?: Prisma.AdministrativeAreaOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   verification?: Prisma.BaketVerificationOrderByWithRelationInput
   coverageChecks?: Prisma.BaketCoverageCheckOrderByRelationAggregateInput
   requestedRevisions?: Prisma.BaketRevisionRequestOrderByRelationAggregateInput
@@ -472,7 +472,7 @@ export type BaketVersionWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"BaketVersion"> | Date | string
   baket?: Prisma.XOR<Prisma.BaketScalarRelationFilter, Prisma.BaketWhereInput>
   eventArea?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   verification?: Prisma.XOR<Prisma.BaketVerificationNullableScalarRelationFilter, Prisma.BaketVerificationWhereInput> | null
   coverageChecks?: Prisma.BaketCoverageCheckListRelationFilter
   requestedRevisions?: Prisma.BaketRevisionRequestListRelationFilter
@@ -570,7 +570,7 @@ export type BaketVersionCreateInput = {
   createdAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutVersionsInput
   eventArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
   verification?: Prisma.BaketVerificationCreateNestedOneWithoutBaketVersionInput
   coverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutBaketVersionInput
   requestedRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutRequestedAgainstVersionInput
@@ -638,7 +638,7 @@ export type BaketVersionUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutVersionsNestedInput
   eventArea?: Prisma.AdministrativeAreaUpdateOneWithoutBaketVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
   verification?: Prisma.BaketVerificationUpdateOneWithoutBaketVersionNestedInput
   coverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutBaketVersionNestedInput
   requestedRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutRequestedAgainstVersionNestedInput
@@ -1250,7 +1250,7 @@ export type BaketVersionCreateWithoutEventAreaInput = {
   revisionReason?: string | null
   createdAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
   verification?: Prisma.BaketVerificationCreateNestedOneWithoutBaketVersionInput
   coverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutBaketVersionInput
   requestedRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutRequestedAgainstVersionInput
@@ -1342,7 +1342,7 @@ export type BaketVersionCreateWithoutBaketInput = {
   revisionReason?: string | null
   createdAt?: Date | string
   eventArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
   verification?: Prisma.BaketVerificationCreateNestedOneWithoutBaketVersionInput
   coverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutBaketVersionInput
   requestedRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutRequestedAgainstVersionInput
@@ -1435,7 +1435,7 @@ export type BaketVersionCreateWithoutSourceMessagesInput = {
   createdAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutVersionsInput
   eventArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
   verification?: Prisma.BaketVerificationCreateNestedOneWithoutBaketVersionInput
   coverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutBaketVersionInput
   requestedRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutRequestedAgainstVersionInput
@@ -1517,7 +1517,7 @@ export type BaketVersionUpdateWithoutSourceMessagesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutVersionsNestedInput
   eventArea?: Prisma.AdministrativeAreaUpdateOneWithoutBaketVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
   verification?: Prisma.BaketVerificationUpdateOneWithoutBaketVersionNestedInput
   coverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutBaketVersionNestedInput
   requestedRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutRequestedAgainstVersionNestedInput
@@ -1583,7 +1583,7 @@ export type BaketVersionCreateWithoutAttachmentsInput = {
   createdAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutVersionsInput
   eventArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
   verification?: Prisma.BaketVerificationCreateNestedOneWithoutBaketVersionInput
   coverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutBaketVersionInput
   requestedRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutRequestedAgainstVersionInput
@@ -1665,7 +1665,7 @@ export type BaketVersionUpdateWithoutAttachmentsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutVersionsNestedInput
   eventArea?: Prisma.AdministrativeAreaUpdateOneWithoutBaketVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
   verification?: Prisma.BaketVerificationUpdateOneWithoutBaketVersionNestedInput
   coverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutBaketVersionNestedInput
   requestedRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutRequestedAgainstVersionNestedInput
@@ -1731,7 +1731,7 @@ export type BaketVersionCreateWithoutRequestedRevisionsInput = {
   createdAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutVersionsInput
   eventArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
   verification?: Prisma.BaketVerificationCreateNestedOneWithoutBaketVersionInput
   coverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutBaketVersionInput
   resolvingRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutResolvedByVersionInput
@@ -1802,7 +1802,7 @@ export type BaketVersionCreateWithoutResolvingRevisionsInput = {
   createdAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutVersionsInput
   eventArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
   verification?: Prisma.BaketVerificationCreateNestedOneWithoutBaketVersionInput
   coverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutBaketVersionInput
   requestedRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutRequestedAgainstVersionInput
@@ -1884,7 +1884,7 @@ export type BaketVersionUpdateWithoutRequestedRevisionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutVersionsNestedInput
   eventArea?: Prisma.AdministrativeAreaUpdateOneWithoutBaketVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
   verification?: Prisma.BaketVerificationUpdateOneWithoutBaketVersionNestedInput
   coverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutBaketVersionNestedInput
   resolvingRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutResolvedByVersionNestedInput
@@ -1961,7 +1961,7 @@ export type BaketVersionUpdateWithoutResolvingRevisionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutVersionsNestedInput
   eventArea?: Prisma.AdministrativeAreaUpdateOneWithoutBaketVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
   verification?: Prisma.BaketVerificationUpdateOneWithoutBaketVersionNestedInput
   coverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutBaketVersionNestedInput
   requestedRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutRequestedAgainstVersionNestedInput
@@ -2027,7 +2027,7 @@ export type BaketVersionCreateWithoutVerificationInput = {
   createdAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutVersionsInput
   eventArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
   coverageChecks?: Prisma.BaketCoverageCheckCreateNestedManyWithoutBaketVersionInput
   requestedRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutRequestedAgainstVersionInput
   resolvingRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutResolvedByVersionInput
@@ -2109,7 +2109,7 @@ export type BaketVersionUpdateWithoutVerificationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutVersionsNestedInput
   eventArea?: Prisma.AdministrativeAreaUpdateOneWithoutBaketVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
   coverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutBaketVersionNestedInput
   requestedRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutRequestedAgainstVersionNestedInput
   resolvingRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutResolvedByVersionNestedInput
@@ -2175,7 +2175,7 @@ export type BaketVersionCreateWithoutCoverageChecksInput = {
   createdAt?: Date | string
   baket: Prisma.BaketCreateNestedOneWithoutVersionsInput
   eventArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketVersionsCreatedInput
   verification?: Prisma.BaketVerificationCreateNestedOneWithoutBaketVersionInput
   requestedRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutRequestedAgainstVersionInput
   resolvingRevisions?: Prisma.BaketRevisionRequestCreateNestedManyWithoutResolvedByVersionInput
@@ -2257,7 +2257,7 @@ export type BaketVersionUpdateWithoutCoverageChecksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutVersionsNestedInput
   eventArea?: Prisma.AdministrativeAreaUpdateOneWithoutBaketVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
   verification?: Prisma.BaketVerificationUpdateOneWithoutBaketVersionNestedInput
   requestedRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutRequestedAgainstVersionNestedInput
   resolvingRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutResolvedByVersionNestedInput
@@ -2469,7 +2469,7 @@ export type BaketVersionUpdateWithoutEventAreaInput = {
   revisionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baket?: Prisma.BaketUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
   verification?: Prisma.BaketVerificationUpdateOneWithoutBaketVersionNestedInput
   coverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutBaketVersionNestedInput
   requestedRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutRequestedAgainstVersionNestedInput
@@ -2589,7 +2589,7 @@ export type BaketVersionUpdateWithoutBaketInput = {
   revisionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   eventArea?: Prisma.AdministrativeAreaUpdateOneWithoutBaketVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutBaketVersionsCreatedNestedInput
   verification?: Prisma.BaketVerificationUpdateOneWithoutBaketVersionNestedInput
   coverageChecks?: Prisma.BaketCoverageCheckUpdateManyWithoutBaketVersionNestedInput
   requestedRevisions?: Prisma.BaketRevisionRequestUpdateManyWithoutRequestedAgainstVersionNestedInput
@@ -2753,7 +2753,7 @@ export type BaketVersionSelect<ExtArgs extends runtime.Types.Extensions.Internal
   createdAt?: boolean
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   eventArea?: boolean | Prisma.BaketVersion$eventAreaArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   verification?: boolean | Prisma.BaketVersion$verificationArgs<ExtArgs>
   coverageChecks?: boolean | Prisma.BaketVersion$coverageChecksArgs<ExtArgs>
   requestedRevisions?: boolean | Prisma.BaketVersion$requestedRevisionsArgs<ExtArgs>
@@ -2791,7 +2791,7 @@ export type BaketVersionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   createdAt?: boolean
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   eventArea?: boolean | Prisma.BaketVersion$eventAreaArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["baketVersion"]>
 
 export type BaketVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -2822,7 +2822,7 @@ export type BaketVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   createdAt?: boolean
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   eventArea?: boolean | Prisma.BaketVersion$eventAreaArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["baketVersion"]>
 
 export type BaketVersionSelectScalar = {
@@ -2857,7 +2857,7 @@ export type BaketVersionOmit<ExtArgs extends runtime.Types.Extensions.InternalAr
 export type BaketVersionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   eventArea?: boolean | Prisma.BaketVersion$eventAreaArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   verification?: boolean | Prisma.BaketVersion$verificationArgs<ExtArgs>
   coverageChecks?: boolean | Prisma.BaketVersion$coverageChecksArgs<ExtArgs>
   requestedRevisions?: boolean | Prisma.BaketVersion$requestedRevisionsArgs<ExtArgs>
@@ -2869,12 +2869,12 @@ export type BaketVersionInclude<ExtArgs extends runtime.Types.Extensions.Interna
 export type BaketVersionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   eventArea?: boolean | Prisma.BaketVersion$eventAreaArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type BaketVersionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   baket?: boolean | Prisma.BaketDefaultArgs<ExtArgs>
   eventArea?: boolean | Prisma.BaketVersion$eventAreaArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $BaketVersionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2882,7 +2882,7 @@ export type $BaketVersionPayload<ExtArgs extends runtime.Types.Extensions.Intern
   objects: {
     baket: Prisma.$BaketPayload<ExtArgs>
     eventArea: Prisma.$AdministrativeAreaPayload<ExtArgs> | null
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     verification: Prisma.$BaketVerificationPayload<ExtArgs> | null
     coverageChecks: Prisma.$BaketCoverageCheckPayload<ExtArgs>[]
     requestedRevisions: Prisma.$BaketRevisionRequestPayload<ExtArgs>[]
@@ -3312,7 +3312,7 @@ export interface Prisma__BaketVersionClient<T, Null = never, ExtArgs extends run
   readonly [Symbol.toStringTag]: "PrismaPromise"
   baket<T extends Prisma.BaketDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketDefaultArgs<ExtArgs>>): Prisma.Prisma__BaketClient<runtime.Types.Result.GetResult<Prisma.$BaketPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   eventArea<T extends Prisma.BaketVersion$eventAreaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVersion$eventAreaArgs<ExtArgs>>): Prisma.Prisma__AdministrativeAreaClient<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   verification<T extends Prisma.BaketVersion$verificationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVersion$verificationArgs<ExtArgs>>): Prisma.Prisma__BaketVerificationClient<runtime.Types.Result.GetResult<Prisma.$BaketVerificationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   coverageChecks<T extends Prisma.BaketVersion$coverageChecksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVersion$coverageChecksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketCoverageCheckPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   requestedRevisions<T extends Prisma.BaketVersion$requestedRevisionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVersion$requestedRevisionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketRevisionRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>

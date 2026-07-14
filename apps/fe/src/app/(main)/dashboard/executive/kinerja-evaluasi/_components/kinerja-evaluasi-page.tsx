@@ -1,16 +1,5 @@
-import { DensModulePage } from "@/app/(main)/dashboard/_components/dens-module-page";
+import { KpiEnginePage } from "@/app/(main)/dashboard/_components/kpi-engine/kpi-engine-page";
 
-export function KinerjaEvaluasiPage() {
-  return (
-    <DensModulePage
-      title="Kinerja & Evaluasi"
-      role="Eksekutif"
-      description="Halaman ini menjadi dasar untuk KPI pimpinan, evaluasi unit, dan pemantauan blind spot wilayah."
-      highlights={[
-        "Pemenuhan UUK/PIR dan produktivitas unit.",
-        "Kecepatan respons, validasi laporan, dan revisi.",
-        "Coverage wilayah, blind spot, dan evaluasi periodik.",
-      ]}
-    />
-  );
+export function KinerjaEvaluasiPage({ from, to }: { from?: string; to?: string }) {
+  return <KpiEnginePage mode="national" from={from} to={to} />;
 }

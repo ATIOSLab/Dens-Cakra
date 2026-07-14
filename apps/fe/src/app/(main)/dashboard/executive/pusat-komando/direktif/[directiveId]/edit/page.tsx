@@ -1,4 +1,4 @@
-import { DirectiveEditPage } from "@/features/directives/pages";
+import { DirectiveEditPage } from "../../_components/directive-pages";
 
 export const dynamic = "force-dynamic";
 

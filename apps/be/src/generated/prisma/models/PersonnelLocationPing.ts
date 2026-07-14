@@ -272,7 +272,7 @@ export type PersonnelLocationPingWhereInput = {
   capturedAt?: Prisma.DateTimeFilter<"PersonnelLocationPing"> | Date | string
   receivedAt?: Prisma.DateTimeFilter<"PersonnelLocationPing"> | Date | string
   isStealth?: Prisma.BoolFilter<"PersonnelLocationPing"> | boolean
-  positionAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  positionAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   area?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
 }
 
@@ -288,7 +288,7 @@ export type PersonnelLocationPingOrderByWithRelationInput = {
   capturedAt?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   isStealth?: Prisma.SortOrder
-  positionAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  positionAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   area?: Prisma.AdministrativeAreaOrderByWithRelationInput
 }
 
@@ -307,7 +307,7 @@ export type PersonnelLocationPingWhereUniqueInput = Prisma.AtLeast<{
   capturedAt?: Prisma.DateTimeFilter<"PersonnelLocationPing"> | Date | string
   receivedAt?: Prisma.DateTimeFilter<"PersonnelLocationPing"> | Date | string
   isStealth?: Prisma.BoolFilter<"PersonnelLocationPing"> | boolean
-  positionAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  positionAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   area?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
 }, "id">
 
@@ -357,7 +357,7 @@ export type PersonnelLocationPingUpdateInput = {
   capturedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isStealth?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  positionAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutLocationPingsNestedInput
+  positionAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutLocationPingsNestedInput
   area?: Prisma.AdministrativeAreaUpdateOneWithoutPersonnelLocationPingsNestedInput
 }
 
@@ -619,7 +619,7 @@ export type PersonnelLocationPingUpdateWithoutAreaInput = {
   capturedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isStealth?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  positionAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutLocationPingsNestedInput
+  positionAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutLocationPingsNestedInput
 }
 
 export type PersonnelLocationPingUncheckedUpdateWithoutAreaInput = {
@@ -662,7 +662,7 @@ export type PersonnelLocationPingSelect<ExtArgs extends runtime.Types.Extensions
   capturedAt?: boolean
   receivedAt?: boolean
   isStealth?: boolean
-  positionAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  positionAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.PersonnelLocationPing$areaArgs<ExtArgs>
 }, ExtArgs["result"]["personnelLocationPing"]>
 
@@ -679,7 +679,7 @@ export type PersonnelLocationPingSelectUpdateManyAndReturn<ExtArgs extends runti
   capturedAt?: boolean
   receivedAt?: boolean
   isStealth?: boolean
-  positionAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  positionAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.PersonnelLocationPing$areaArgs<ExtArgs>
 }, ExtArgs["result"]["personnelLocationPing"]>
 
@@ -699,18 +699,18 @@ export type PersonnelLocationPingSelectScalar = {
 
 export type PersonnelLocationPingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "positionAssignmentId" | "areaId" | "latitude" | "longitude" | "gpsAccuracyMeters" | "coordinateSource" | "areaResolutionMethod" | "capturedAt" | "receivedAt" | "isStealth", ExtArgs["result"]["personnelLocationPing"]>
 export type PersonnelLocationPingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  positionAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  positionAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.PersonnelLocationPing$areaArgs<ExtArgs>
 }
 export type PersonnelLocationPingIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  positionAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  positionAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   area?: boolean | Prisma.PersonnelLocationPing$areaArgs<ExtArgs>
 }
 
 export type $PersonnelLocationPingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "PersonnelLocationPing"
   objects: {
-    positionAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    positionAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     area: Prisma.$AdministrativeAreaPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1048,7 +1048,7 @@ readonly fields: PersonnelLocationPingFieldRefs;
  */
 export interface Prisma__PersonnelLocationPingClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  positionAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  positionAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   area<T extends Prisma.PersonnelLocationPing$areaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PersonnelLocationPing$areaArgs<ExtArgs>>): Prisma.Prisma__AdministrativeAreaClient<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.

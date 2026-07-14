@@ -208,7 +208,7 @@ export type BaketCoverageCheckWhereInput = {
   checkedAt?: Prisma.DateTimeFilter<"BaketCoverageCheck"> | Date | string
   baketVersion?: Prisma.XOR<Prisma.BaketVersionScalarRelationFilter, Prisma.BaketVersionWhereInput>
   area?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
-  positionAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  positionAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
 }
 
 export type BaketCoverageCheckOrderByWithRelationInput = {
@@ -222,7 +222,7 @@ export type BaketCoverageCheckOrderByWithRelationInput = {
   checkedAt?: Prisma.SortOrder
   baketVersion?: Prisma.BaketVersionOrderByWithRelationInput
   area?: Prisma.AdministrativeAreaOrderByWithRelationInput
-  positionAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  positionAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
 }
 
 export type BaketCoverageCheckWhereUniqueInput = Prisma.AtLeast<{
@@ -239,7 +239,7 @@ export type BaketCoverageCheckWhereUniqueInput = Prisma.AtLeast<{
   checkedAt?: Prisma.DateTimeFilter<"BaketCoverageCheck"> | Date | string
   baketVersion?: Prisma.XOR<Prisma.BaketVersionScalarRelationFilter, Prisma.BaketVersionWhereInput>
   area?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
-  positionAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  positionAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
 }, "id">
 
 export type BaketCoverageCheckOrderByWithAggregationInput = {
@@ -278,7 +278,7 @@ export type BaketCoverageCheckCreateInput = {
   checkedAt?: Date | string
   baketVersion: Prisma.BaketVersionCreateNestedOneWithoutCoverageChecksInput
   area?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketCoverageChecksInput
-  positionAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutBaketCoverageChecksInput
+  positionAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketCoverageChecksInput
 }
 
 export type BaketCoverageCheckUncheckedCreateInput = {
@@ -300,7 +300,7 @@ export type BaketCoverageCheckUpdateInput = {
   checkedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baketVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutCoverageChecksNestedInput
   area?: Prisma.AdministrativeAreaUpdateOneWithoutBaketCoverageChecksNestedInput
-  positionAssignment?: Prisma.PositionAssignmentUpdateOneWithoutBaketCoverageChecksNestedInput
+  positionAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutBaketCoverageChecksNestedInput
 }
 
 export type BaketCoverageCheckUncheckedUpdateInput = {
@@ -584,7 +584,7 @@ export type BaketCoverageCheckCreateWithoutAreaInput = {
   note?: string | null
   checkedAt?: Date | string
   baketVersion: Prisma.BaketVersionCreateNestedOneWithoutCoverageChecksInput
-  positionAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutBaketCoverageChecksInput
+  positionAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketCoverageChecksInput
 }
 
 export type BaketCoverageCheckUncheckedCreateWithoutAreaInput = {
@@ -630,7 +630,7 @@ export type BaketCoverageCheckCreateWithoutBaketVersionInput = {
   note?: string | null
   checkedAt?: Date | string
   area?: Prisma.AdministrativeAreaCreateNestedOneWithoutBaketCoverageChecksInput
-  positionAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutBaketCoverageChecksInput
+  positionAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutBaketCoverageChecksInput
 }
 
 export type BaketCoverageCheckUncheckedCreateWithoutBaketVersionInput = {
@@ -726,7 +726,7 @@ export type BaketCoverageCheckUpdateWithoutAreaInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   baketVersion?: Prisma.BaketVersionUpdateOneRequiredWithoutCoverageChecksNestedInput
-  positionAssignment?: Prisma.PositionAssignmentUpdateOneWithoutBaketCoverageChecksNestedInput
+  positionAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutBaketCoverageChecksNestedInput
 }
 
 export type BaketCoverageCheckUncheckedUpdateWithoutAreaInput = {
@@ -766,7 +766,7 @@ export type BaketCoverageCheckUpdateWithoutBaketVersionInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   area?: Prisma.AdministrativeAreaUpdateOneWithoutBaketCoverageChecksNestedInput
-  positionAssignment?: Prisma.PositionAssignmentUpdateOneWithoutBaketCoverageChecksNestedInput
+  positionAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutBaketCoverageChecksNestedInput
 }
 
 export type BaketCoverageCheckUncheckedUpdateWithoutBaketVersionInput = {
@@ -866,7 +866,7 @@ export type $BaketCoverageCheckPayload<ExtArgs extends runtime.Types.Extensions.
   objects: {
     baketVersion: Prisma.$BaketVersionPayload<ExtArgs>
     area: Prisma.$AdministrativeAreaPayload<ExtArgs> | null
-    positionAssignment: Prisma.$PositionAssignmentPayload<ExtArgs> | null
+    positionAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1273,7 +1273,7 @@ export interface Prisma__BaketCoverageCheckClient<T, Null = never, ExtArgs exten
   readonly [Symbol.toStringTag]: "PrismaPromise"
   baketVersion<T extends Prisma.BaketVersionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketVersionDefaultArgs<ExtArgs>>): Prisma.Prisma__BaketVersionClient<runtime.Types.Result.GetResult<Prisma.$BaketVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   area<T extends Prisma.BaketCoverageCheck$areaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketCoverageCheck$areaArgs<ExtArgs>>): Prisma.Prisma__AdministrativeAreaClient<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  positionAssignment<T extends Prisma.BaketCoverageCheck$positionAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketCoverageCheck$positionAssignmentArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  positionAssignment<T extends Prisma.BaketCoverageCheck$positionAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BaketCoverageCheck$positionAssignmentArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1735,18 +1735,18 @@ export type BaketCoverageCheck$areaArgs<ExtArgs extends runtime.Types.Extensions
  */
 export type BaketCoverageCheck$positionAssignmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**

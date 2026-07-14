@@ -10,14 +10,43 @@ async function forwardAuthRequest(request: NextRequest) {
 
   forwardedHeaders.delete("host");
   forwardedHeaders.delete("content-length");
+  forwardedHeaders.delete("connection");
+  forwardedHeaders.delete("expect");
+  forwardedHeaders.delete("keep-alive");
+  forwardedHeaders.delete("proxy-authenticate");
+  forwardedHeaders.delete("proxy-authorization");
+  forwardedHeaders.delete("te");
+  forwardedHeaders.delete("trailer");
+  forwardedHeaders.delete("transfer-encoding");
+  forwardedHeaders.delete("upgrade");
 
-  const response = await fetch(targetUrl, {
-    method: request.method,
-    headers: forwardedHeaders,
-    body: request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer(),
-    redirect: "manual",
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(targetUrl, {
+      method: request.method,
+      headers: forwardedHeaders,
+      body: request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer(),
+      redirect: "manual",
+      cache: "no-store",
+    });
+  } catch {
+    console.error(`[auth-proxy] ${request.method} ${targetUrl.pathname}: backend tidak dapat dijangkau.`);
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: "BACKEND_UNAVAILABLE",
+          message: "Layanan autentikasi belum tersedia. Pastikan backend berjalan pada port 3001.",
+        },
+        requestId: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+      },
+      {
+        status: 503,
+        headers: { "retry-after": "3" },
+      },
+    );
+  }
 
   const responseHeaders = new Headers(response.headers);
   const setCookies = response.headers.getSetCookie?.() ?? [];

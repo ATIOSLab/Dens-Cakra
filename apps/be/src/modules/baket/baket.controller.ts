@@ -31,7 +31,6 @@ import {
   NeedsDevelopmentDto,
   RejectVerificationDto,
   ReplaceAttachmentsDto,
-  ReplaceChecksDto,
   ReplaceCrossReferencesDto,
   ReplaceMessagesDto,
   ResolveAreaDto,
@@ -39,6 +38,7 @@ import {
   ResubmitDto,
   RevisionRequestQuery,
   UpdateVerificationDto,
+  UpdateBaketMetadataDto,
   ValidateCoverageDto,
   VerificationQuery,
 } from './baket.dto.js';
@@ -55,10 +55,25 @@ export class BaketController {
     operationId: 'apiBak001',
     contractId: 'API-BAK-001',
     summary: 'Daftar Baket',
-    permission: 'baket.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
-  async list(@Query() query: BaketQuery) {
-    return apiResult(await this.baketService.list(query));
+  async list(
+    @Query() query: BaketQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.baketService.list(query, context), undefined, {
+      availableActions: ['baket.open', 'verification.start'],
+      appliedScope: {
+        areaIds: context.areaScopes.map((scope) => scope.areaId),
+        routeType: context.commandRouteType,
+      },
+    });
   }
 
   @Post('bakets')
@@ -66,7 +81,7 @@ export class BaketController {
     operationId: 'apiBak002',
     contractId: 'API-BAK-002',
     summary: 'Buat Baket manual/from task',
-    permission: 'baket.create',
+    roles: ['field_officer'],
     successStatus: 201,
     idempotent: true,
   })
@@ -82,10 +97,36 @@ export class BaketController {
     operationId: 'apiBak003',
     contractId: 'API-BAK-003',
     summary: 'Detail Baket current version',
-    permission: 'baket.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
-  async get(@Param('baketId', ParseUUIDPipe) baketId: string) {
-    return apiResult(await this.baketService.get(baketId));
+  async get(
+    @Param('baketId', ParseUUIDPipe) baketId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.baketService.get(baketId, context));
+  }
+
+  @Patch('bakets/:baketId')
+  @ApiContract({
+    operationId: 'apiBak003b',
+    contractId: 'API-BAK-003B',
+    summary: 'Ubah metadata kategori Baket draft',
+    roles: ['field_officer'],
+  })
+  async updateMetadata(
+    @Param('baketId', ParseUUIDPipe) baketId: string,
+    @Body() body: UpdateBaketMetadataDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.baketService.updateMetadata(baketId, body, context),
+    );
   }
 
   @Get('bakets/:baketId/versions')
@@ -93,10 +134,19 @@ export class BaketController {
     operationId: 'apiBak004',
     contractId: 'API-BAK-004',
     summary: 'Riwayat versi Baket',
-    permission: 'baket.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
-  async versions(@Param('baketId', ParseUUIDPipe) baketId: string) {
-    return apiResult(await this.baketService.versions(baketId));
+  async versions(
+    @Param('baketId', ParseUUIDPipe) baketId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.baketService.versions(baketId, context));
   }
 
   @Post('bakets/:baketId/versions')
@@ -104,7 +154,7 @@ export class BaketController {
     operationId: 'apiBak005',
     contractId: 'API-BAK-005',
     summary: 'Buat versi revisi Baket',
-    permission: 'baket.update',
+    roles: ['field_officer'],
     successStatus: 201,
     idempotent: true,
   })
@@ -123,10 +173,19 @@ export class BaketController {
     operationId: 'apiBak006',
     contractId: 'API-BAK-006',
     summary: 'Detail versi Baket',
-    permission: 'baket.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
-  async getVersion(@Param('versionId', ParseUUIDPipe) versionId: string) {
-    return apiResult(await this.baketService.getVersion(versionId));
+  async getVersion(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.baketService.getVersion(versionId, context));
   }
 
   @Patch('baket-versions/:versionId')
@@ -134,7 +193,7 @@ export class BaketController {
     operationId: 'apiBak007',
     contractId: 'API-BAK-007',
     summary: 'Edit versi draft',
-    permission: 'baket.update',
+    roles: ['field_officer'],
   })
   async updateVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
@@ -151,7 +210,7 @@ export class BaketController {
     operationId: 'apiBak008',
     contractId: 'API-BAK-008',
     summary: 'Ganti/tambah sumber pesan draft',
-    permission: 'baket.update',
+    roles: ['field_officer'],
     idempotent: true,
   })
   async replaceMessages(
@@ -169,7 +228,7 @@ export class BaketController {
     operationId: 'apiBak009',
     contractId: 'API-BAK-009',
     summary: 'Ganti lampiran draft',
-    permission: 'baket.update',
+    roles: ['field_officer'],
     idempotent: true,
   })
   async replaceAttachments(
@@ -187,7 +246,7 @@ export class BaketController {
     operationId: 'apiBak010',
     contractId: 'API-BAK-010',
     summary: 'Resolve ulang area Baket',
-    permission: 'baket.update',
+    roles: ['field_officer'],
     idempotent: true,
   })
   async resolveArea(
@@ -205,7 +264,7 @@ export class BaketController {
     operationId: 'apiBak011',
     contractId: 'API-BAK-011',
     summary: 'Override area hasil spatial',
-    permission: 'baket.update',
+    roles: ['field_officer'],
     idempotent: true,
   })
   async manualAreaOverride(
@@ -223,7 +282,7 @@ export class BaketController {
     operationId: 'apiBak012',
     contractId: 'API-BAK-012',
     summary: 'Validasi coverage berlapis',
-    permission: 'baket.update',
+    roles: ['field_officer'],
     idempotent: true,
   })
   async validateCoverage(
@@ -241,7 +300,7 @@ export class BaketController {
     operationId: 'apiBak013',
     contractId: 'API-BAK-013',
     summary: 'Kirim Baket ke OIM',
-    permission: 'baket.submit',
+    roles: ['field_officer'],
     idempotent: true,
   })
   async submit(
@@ -257,7 +316,7 @@ export class BaketController {
     operationId: 'apiBak014',
     contractId: 'API-BAK-014',
     summary: 'Kirim ulang setelah revisi',
-    permission: 'baket.submit',
+    roles: ['field_officer'],
     idempotent: true,
   })
   async resubmit(
@@ -273,7 +332,13 @@ export class BaketController {
     operationId: 'apiBak015',
     contractId: 'API-BAK-015',
     summary: 'Daftar permintaan revisi',
-    permission: 'baket.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async revisionRequests(
     @Param('baketId', ParseUUIDPipe) baketId: string,
@@ -287,7 +352,7 @@ export class BaketController {
     operationId: 'apiBak016',
     contractId: 'API-BAK-016',
     summary: 'Minta pengembangan/revisi',
-    permission: 'baket.request-development',
+    roles: ['operational_intelligence_manager'],
     successStatus: 201,
     idempotent: true,
   })
@@ -306,7 +371,7 @@ export class BaketController {
     operationId: 'apiBak017',
     contractId: 'API-BAK-017',
     summary: 'Tutup permintaan revisi',
-    permission: 'baket.request-development',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async resolveRevisionRequest(
@@ -324,7 +389,7 @@ export class BaketController {
     operationId: 'apiBak018',
     contractId: 'API-BAK-018',
     summary: 'Batalkan permintaan revisi',
-    permission: 'baket.request-development',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async cancelRevisionRequest(
@@ -342,10 +407,19 @@ export class BaketController {
     operationId: 'apiBak019',
     contractId: 'API-BAK-019',
     summary: 'Timeline Baket',
-    permission: 'baket.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
-  async timeline(@Param('baketId', ParseUUIDPipe) baketId: string) {
-    return apiResult(await this.baketService.timeline(baketId));
+  async timeline(
+    @Param('baketId', ParseUUIDPipe) baketId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.baketService.timeline(baketId, context));
   }
 
   @Get('bakets/:baketId/traceability')
@@ -353,10 +427,19 @@ export class BaketController {
     operationId: 'apiBak020',
     contractId: 'API-BAK-020',
     summary: 'Traceability sumber-ke-produk',
-    permission: 'baket.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
-  async traceability(@Param('baketId', ParseUUIDPipe) baketId: string) {
-    return apiResult(await this.baketService.traceability(baketId));
+  async traceability(
+    @Param('baketId', ParseUUIDPipe) baketId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.baketService.traceability(baketId, context));
   }
 
   @Get('verifications')
@@ -364,10 +447,17 @@ export class BaketController {
     operationId: 'apiVer001',
     contractId: 'API-VER-001',
     summary: 'Daftar verification',
-    permission: 'verification.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
   })
-  async listVerifications(@Query() query: VerificationQuery) {
-    return apiResult(await this.baketService.listVerifications(query));
+  async listVerifications(
+    @Query() query: VerificationQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.baketService.listVerifications(query, context));
   }
 
   @Post('baket-versions/:versionId/verification')
@@ -375,7 +465,7 @@ export class BaketController {
     operationId: 'apiVer002',
     contractId: 'API-VER-002',
     summary: 'Buat canonical verification',
-    permission: 'verification.create',
+    roles: ['operational_intelligence_manager'],
     successStatus: 201,
     idempotent: true,
   })
@@ -394,12 +484,19 @@ export class BaketController {
     operationId: 'apiVer003',
     contractId: 'API-VER-003',
     summary: 'Detail verification',
-    permission: 'verification.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
   })
   async getVerification(
     @Param('verificationId', ParseUUIDPipe) verificationId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.baketService.getVerification(verificationId));
+    return apiResult(
+      await this.baketService.getVerification(verificationId, context),
+    );
   }
 
   @Post('verifications/:verificationId/start')
@@ -407,7 +504,7 @@ export class BaketController {
     operationId: 'apiVer004',
     contractId: 'API-VER-004',
     summary: 'Mulai verification',
-    permission: 'verification.update',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async startVerification(
@@ -424,7 +521,7 @@ export class BaketController {
     operationId: 'apiVer005',
     contractId: 'API-VER-005',
     summary: 'Edit draft/in-progress verification',
-    permission: 'verification.update',
+    roles: ['operational_intelligence_manager'],
   })
   async updateVerification(
     @Param('verificationId', ParseUUIDPipe) verificationId: string,
@@ -436,30 +533,12 @@ export class BaketController {
     );
   }
 
-  @Put('verifications/:verificationId/checks')
-  @ApiContract({
-    operationId: 'apiVer006',
-    contractId: 'API-VER-006',
-    summary: 'Ganti verification checklist',
-    permission: 'verification.update',
-    idempotent: true,
-  })
-  async replaceChecks(
-    @Param('verificationId', ParseUUIDPipe) verificationId: string,
-    @Body() body: ReplaceChecksDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(
-      await this.baketService.replaceChecks(verificationId, body, context),
-    );
-  }
-
   @Put('verifications/:verificationId/cross-references')
   @ApiContract({
     operationId: 'apiVer007',
     contractId: 'API-VER-007',
     summary: 'Ganti cross references',
-    permission: 'verification.update',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async replaceCrossReferences(
@@ -481,7 +560,7 @@ export class BaketController {
     operationId: 'apiVer008',
     contractId: 'API-VER-008',
     summary: 'Selesaikan verification valid',
-    permission: 'verification.complete',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async completeVerification(
@@ -503,7 +582,7 @@ export class BaketController {
     operationId: 'apiVer009',
     contractId: 'API-VER-009',
     summary: 'Kembalikan untuk pengembangan',
-    permission: 'verification.complete',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async needsDevelopment(
@@ -521,7 +600,7 @@ export class BaketController {
     operationId: 'apiVer010',
     contractId: 'API-VER-010',
     summary: 'Tolak Baket',
-    permission: 'verification.complete',
+    roles: ['operational_intelligence_manager'],
     idempotent: true,
   })
   async rejectVerification(
@@ -539,7 +618,11 @@ export class BaketController {
     operationId: 'apiVer011',
     contractId: 'API-VER-011',
     summary: 'Ringkasan Neraca Penilaian',
-    permission: 'verification.read',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
   })
   async verificationScore(
     @Param('verificationId', ParseUUIDPipe) verificationId: string,

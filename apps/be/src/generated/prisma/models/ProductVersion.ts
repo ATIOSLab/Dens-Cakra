@@ -286,7 +286,7 @@ export type ProductVersionWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"ProductVersion"> | Date | string
   product?: Prisma.XOR<Prisma.IntelligenceProductScalarRelationFilter, Prisma.IntelligenceProductWhereInput>
   template?: Prisma.XOR<Prisma.ProductTemplateScalarRelationFilter, Prisma.ProductTemplateWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   sourceVerifications?: Prisma.ProductSourceVerificationListRelationFilter
   sourceAnalyses?: Prisma.ProductSourceAnalysisListRelationFilter
   attachments?: Prisma.ProductAttachmentListRelationFilter
@@ -311,7 +311,7 @@ export type ProductVersionOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   product?: Prisma.IntelligenceProductOrderByWithRelationInput
   template?: Prisma.ProductTemplateOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   sourceVerifications?: Prisma.ProductSourceVerificationOrderByRelationAggregateInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisOrderByRelationAggregateInput
   attachments?: Prisma.ProductAttachmentOrderByRelationAggregateInput
@@ -340,7 +340,7 @@ export type ProductVersionWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"ProductVersion"> | Date | string
   product?: Prisma.XOR<Prisma.IntelligenceProductScalarRelationFilter, Prisma.IntelligenceProductWhereInput>
   template?: Prisma.XOR<Prisma.ProductTemplateScalarRelationFilter, Prisma.ProductTemplateWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   sourceVerifications?: Prisma.ProductSourceVerificationListRelationFilter
   sourceAnalyses?: Prisma.ProductSourceAnalysisListRelationFilter
   attachments?: Prisma.ProductAttachmentListRelationFilter
@@ -404,7 +404,7 @@ export type ProductVersionCreateInput = {
   createdAt?: Date | string
   product: Prisma.IntelligenceProductCreateNestedOneWithoutVersionsInput
   template: Prisma.ProductTemplateCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
   sourceVerifications?: Prisma.ProductSourceVerificationCreateNestedManyWithoutProductVersionInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutProductVersionInput
   attachments?: Prisma.ProductAttachmentCreateNestedManyWithoutProductVersionInput
@@ -448,7 +448,7 @@ export type ProductVersionUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.IntelligenceProductUpdateOneRequiredWithoutVersionsNestedInput
   template?: Prisma.ProductTemplateUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
   sourceVerifications?: Prisma.ProductSourceVerificationUpdateManyWithoutProductVersionNestedInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisUpdateManyWithoutProductVersionNestedInput
   attachments?: Prisma.ProductAttachmentUpdateManyWithoutProductVersionNestedInput
@@ -900,7 +900,7 @@ export type ProductVersionCreateWithoutTemplateInput = {
   changeReason?: string | null
   createdAt?: Date | string
   product: Prisma.IntelligenceProductCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
   sourceVerifications?: Prisma.ProductSourceVerificationCreateNestedManyWithoutProductVersionInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutProductVersionInput
   attachments?: Prisma.ProductAttachmentCreateNestedManyWithoutProductVersionInput
@@ -968,7 +968,7 @@ export type ProductVersionCreateWithoutProductInput = {
   changeReason?: string | null
   createdAt?: Date | string
   template: Prisma.ProductTemplateCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
   sourceVerifications?: Prisma.ProductSourceVerificationCreateNestedManyWithoutProductVersionInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutProductVersionInput
   attachments?: Prisma.ProductAttachmentCreateNestedManyWithoutProductVersionInput
@@ -1037,7 +1037,7 @@ export type ProductVersionCreateWithoutSourceVerificationsInput = {
   createdAt?: Date | string
   product: Prisma.IntelligenceProductCreateNestedOneWithoutVersionsInput
   template: Prisma.ProductTemplateCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutProductVersionInput
   attachments?: Prisma.ProductAttachmentCreateNestedManyWithoutProductVersionInput
   approvalWorkflow?: Prisma.ProductApprovalWorkflowCreateNestedOneWithoutProductVersionInput
@@ -1095,7 +1095,7 @@ export type ProductVersionUpdateWithoutSourceVerificationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.IntelligenceProductUpdateOneRequiredWithoutVersionsNestedInput
   template?: Prisma.ProductTemplateUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisUpdateManyWithoutProductVersionNestedInput
   attachments?: Prisma.ProductAttachmentUpdateManyWithoutProductVersionNestedInput
   approvalWorkflow?: Prisma.ProductApprovalWorkflowUpdateOneWithoutProductVersionNestedInput
@@ -1137,7 +1137,7 @@ export type ProductVersionCreateWithoutSourceAnalysesInput = {
   createdAt?: Date | string
   product: Prisma.IntelligenceProductCreateNestedOneWithoutVersionsInput
   template: Prisma.ProductTemplateCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
   sourceVerifications?: Prisma.ProductSourceVerificationCreateNestedManyWithoutProductVersionInput
   attachments?: Prisma.ProductAttachmentCreateNestedManyWithoutProductVersionInput
   approvalWorkflow?: Prisma.ProductApprovalWorkflowCreateNestedOneWithoutProductVersionInput
@@ -1195,7 +1195,7 @@ export type ProductVersionUpdateWithoutSourceAnalysesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.IntelligenceProductUpdateOneRequiredWithoutVersionsNestedInput
   template?: Prisma.ProductTemplateUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
   sourceVerifications?: Prisma.ProductSourceVerificationUpdateManyWithoutProductVersionNestedInput
   attachments?: Prisma.ProductAttachmentUpdateManyWithoutProductVersionNestedInput
   approvalWorkflow?: Prisma.ProductApprovalWorkflowUpdateOneWithoutProductVersionNestedInput
@@ -1237,7 +1237,7 @@ export type ProductVersionCreateWithoutAttachmentsInput = {
   createdAt?: Date | string
   product: Prisma.IntelligenceProductCreateNestedOneWithoutVersionsInput
   template: Prisma.ProductTemplateCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
   sourceVerifications?: Prisma.ProductSourceVerificationCreateNestedManyWithoutProductVersionInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutProductVersionInput
   approvalWorkflow?: Prisma.ProductApprovalWorkflowCreateNestedOneWithoutProductVersionInput
@@ -1295,7 +1295,7 @@ export type ProductVersionUpdateWithoutAttachmentsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.IntelligenceProductUpdateOneRequiredWithoutVersionsNestedInput
   template?: Prisma.ProductTemplateUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
   sourceVerifications?: Prisma.ProductSourceVerificationUpdateManyWithoutProductVersionNestedInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisUpdateManyWithoutProductVersionNestedInput
   approvalWorkflow?: Prisma.ProductApprovalWorkflowUpdateOneWithoutProductVersionNestedInput
@@ -1337,7 +1337,7 @@ export type ProductVersionCreateWithoutApprovalWorkflowInput = {
   createdAt?: Date | string
   product: Prisma.IntelligenceProductCreateNestedOneWithoutVersionsInput
   template: Prisma.ProductTemplateCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
   sourceVerifications?: Prisma.ProductSourceVerificationCreateNestedManyWithoutProductVersionInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutProductVersionInput
   attachments?: Prisma.ProductAttachmentCreateNestedManyWithoutProductVersionInput
@@ -1395,7 +1395,7 @@ export type ProductVersionUpdateWithoutApprovalWorkflowInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.IntelligenceProductUpdateOneRequiredWithoutVersionsNestedInput
   template?: Prisma.ProductTemplateUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
   sourceVerifications?: Prisma.ProductSourceVerificationUpdateManyWithoutProductVersionNestedInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisUpdateManyWithoutProductVersionNestedInput
   attachments?: Prisma.ProductAttachmentUpdateManyWithoutProductVersionNestedInput
@@ -1437,7 +1437,7 @@ export type ProductVersionCreateWithoutDistributionsInput = {
   createdAt?: Date | string
   product: Prisma.IntelligenceProductCreateNestedOneWithoutVersionsInput
   template: Prisma.ProductTemplateCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutProductVersionsCreatedInput
   sourceVerifications?: Prisma.ProductSourceVerificationCreateNestedManyWithoutProductVersionInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisCreateNestedManyWithoutProductVersionInput
   attachments?: Prisma.ProductAttachmentCreateNestedManyWithoutProductVersionInput
@@ -1495,7 +1495,7 @@ export type ProductVersionUpdateWithoutDistributionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.IntelligenceProductUpdateOneRequiredWithoutVersionsNestedInput
   template?: Prisma.ProductTemplateUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
   sourceVerifications?: Prisma.ProductSourceVerificationUpdateManyWithoutProductVersionNestedInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisUpdateManyWithoutProductVersionNestedInput
   attachments?: Prisma.ProductAttachmentUpdateManyWithoutProductVersionNestedInput
@@ -1626,7 +1626,7 @@ export type ProductVersionUpdateWithoutTemplateInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   product?: Prisma.IntelligenceProductUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
   sourceVerifications?: Prisma.ProductSourceVerificationUpdateManyWithoutProductVersionNestedInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisUpdateManyWithoutProductVersionNestedInput
   attachments?: Prisma.ProductAttachmentUpdateManyWithoutProductVersionNestedInput
@@ -1700,7 +1700,7 @@ export type ProductVersionUpdateWithoutProductInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   template?: Prisma.ProductTemplateUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutProductVersionsCreatedNestedInput
   sourceVerifications?: Prisma.ProductSourceVerificationUpdateManyWithoutProductVersionNestedInput
   sourceAnalyses?: Prisma.ProductSourceAnalysisUpdateManyWithoutProductVersionNestedInput
   attachments?: Prisma.ProductAttachmentUpdateManyWithoutProductVersionNestedInput
@@ -1820,7 +1820,7 @@ export type ProductVersionSelect<ExtArgs extends runtime.Types.Extensions.Intern
   createdAt?: boolean
   product?: boolean | Prisma.IntelligenceProductDefaultArgs<ExtArgs>
   template?: boolean | Prisma.ProductTemplateDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   sourceVerifications?: boolean | Prisma.ProductVersion$sourceVerificationsArgs<ExtArgs>
   sourceAnalyses?: boolean | Prisma.ProductVersion$sourceAnalysesArgs<ExtArgs>
   attachments?: boolean | Prisma.ProductVersion$attachmentsArgs<ExtArgs>
@@ -1846,7 +1846,7 @@ export type ProductVersionSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   createdAt?: boolean
   product?: boolean | Prisma.IntelligenceProductDefaultArgs<ExtArgs>
   template?: boolean | Prisma.ProductTemplateDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["productVersion"]>
 
 export type ProductVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1866,7 +1866,7 @@ export type ProductVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   createdAt?: boolean
   product?: boolean | Prisma.IntelligenceProductDefaultArgs<ExtArgs>
   template?: boolean | Prisma.ProductTemplateDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["productVersion"]>
 
 export type ProductVersionSelectScalar = {
@@ -1890,7 +1890,7 @@ export type ProductVersionOmit<ExtArgs extends runtime.Types.Extensions.Internal
 export type ProductVersionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   product?: boolean | Prisma.IntelligenceProductDefaultArgs<ExtArgs>
   template?: boolean | Prisma.ProductTemplateDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   sourceVerifications?: boolean | Prisma.ProductVersion$sourceVerificationsArgs<ExtArgs>
   sourceAnalyses?: boolean | Prisma.ProductVersion$sourceAnalysesArgs<ExtArgs>
   attachments?: boolean | Prisma.ProductVersion$attachmentsArgs<ExtArgs>
@@ -1901,12 +1901,12 @@ export type ProductVersionInclude<ExtArgs extends runtime.Types.Extensions.Inter
 export type ProductVersionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   product?: boolean | Prisma.IntelligenceProductDefaultArgs<ExtArgs>
   template?: boolean | Prisma.ProductTemplateDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type ProductVersionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   product?: boolean | Prisma.IntelligenceProductDefaultArgs<ExtArgs>
   template?: boolean | Prisma.ProductTemplateDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $ProductVersionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1914,7 +1914,7 @@ export type $ProductVersionPayload<ExtArgs extends runtime.Types.Extensions.Inte
   objects: {
     product: Prisma.$IntelligenceProductPayload<ExtArgs>
     template: Prisma.$ProductTemplatePayload<ExtArgs>
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     sourceVerifications: Prisma.$ProductSourceVerificationPayload<ExtArgs>[]
     sourceAnalyses: Prisma.$ProductSourceAnalysisPayload<ExtArgs>[]
     attachments: Prisma.$ProductAttachmentPayload<ExtArgs>[]
@@ -2332,7 +2332,7 @@ export interface Prisma__ProductVersionClient<T, Null = never, ExtArgs extends r
   readonly [Symbol.toStringTag]: "PrismaPromise"
   product<T extends Prisma.IntelligenceProductDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntelligenceProductDefaultArgs<ExtArgs>>): Prisma.Prisma__IntelligenceProductClient<runtime.Types.Result.GetResult<Prisma.$IntelligenceProductPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   template<T extends Prisma.ProductTemplateDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductTemplateDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductTemplateClient<runtime.Types.Result.GetResult<Prisma.$ProductTemplatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   sourceVerifications<T extends Prisma.ProductVersion$sourceVerificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductVersion$sourceVerificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductSourceVerificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sourceAnalyses<T extends Prisma.ProductVersion$sourceAnalysesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductVersion$sourceAnalysesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductSourceAnalysisPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   attachments<T extends Prisma.ProductVersion$attachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductVersion$attachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductAttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>

@@ -233,7 +233,7 @@ export type UukStrVersionWhereInput = {
   changeReason?: Prisma.StringNullableFilter<"UukStrVersion"> | string | null
   createdAt?: Prisma.DateTimeFilter<"UukStrVersion"> | Date | string
   uukStr?: Prisma.XOR<Prisma.UukStrScalarRelationFilter, Prisma.UukStrWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   sections?: Prisma.UukStrSectionListRelationFilter
   tasks?: Prisma.TaskListRelationFilter
 }
@@ -247,7 +247,7 @@ export type UukStrVersionOrderByWithRelationInput = {
   changeReason?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   uukStr?: Prisma.UukStrOrderByWithRelationInput
-  createdByAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   sections?: Prisma.UukStrSectionOrderByRelationAggregateInput
   tasks?: Prisma.TaskOrderByRelationAggregateInput
 }
@@ -265,7 +265,7 @@ export type UukStrVersionWhereUniqueInput = Prisma.AtLeast<{
   changeReason?: Prisma.StringNullableFilter<"UukStrVersion"> | string | null
   createdAt?: Prisma.DateTimeFilter<"UukStrVersion"> | Date | string
   uukStr?: Prisma.XOR<Prisma.UukStrScalarRelationFilter, Prisma.UukStrWhereInput>
-  createdByAssignment?: Prisma.XOR<Prisma.PositionAssignmentScalarRelationFilter, Prisma.PositionAssignmentWhereInput>
+  createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   sections?: Prisma.UukStrSectionListRelationFilter
   tasks?: Prisma.TaskListRelationFilter
 }, "id" | "uukStrId_versionNumber">
@@ -305,7 +305,7 @@ export type UukStrVersionCreateInput = {
   changeReason?: string | null
   createdAt?: Date | string
   uukStr: Prisma.UukStrCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutUukStrVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutUukStrVersionsCreatedInput
   sections?: Prisma.UukStrSectionCreateNestedManyWithoutUukStrVersionInput
   tasks?: Prisma.TaskCreateNestedManyWithoutUukStrVersionInput
 }
@@ -329,7 +329,7 @@ export type UukStrVersionUpdateInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   uukStr?: Prisma.UukStrUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutUukStrVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutUukStrVersionsCreatedNestedInput
   sections?: Prisma.UukStrSectionUpdateManyWithoutUukStrVersionNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutUukStrVersionNestedInput
 }
@@ -618,7 +618,7 @@ export type UukStrVersionCreateWithoutUukStrInput = {
   title: string
   changeReason?: string | null
   createdAt?: Date | string
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutUukStrVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutUukStrVersionsCreatedInput
   sections?: Prisma.UukStrSectionCreateNestedManyWithoutUukStrVersionInput
   tasks?: Prisma.TaskCreateNestedManyWithoutUukStrVersionInput
 }
@@ -667,7 +667,7 @@ export type UukStrVersionCreateWithoutSectionsInput = {
   changeReason?: string | null
   createdAt?: Date | string
   uukStr: Prisma.UukStrCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutUukStrVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutUukStrVersionsCreatedInput
   tasks?: Prisma.TaskCreateNestedManyWithoutUukStrVersionInput
 }
 
@@ -705,7 +705,7 @@ export type UukStrVersionUpdateWithoutSectionsInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   uukStr?: Prisma.UukStrUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutUukStrVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutUukStrVersionsCreatedNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutUukStrVersionNestedInput
 }
 
@@ -727,7 +727,7 @@ export type UukStrVersionCreateWithoutTasksInput = {
   changeReason?: string | null
   createdAt?: Date | string
   uukStr: Prisma.UukStrCreateNestedOneWithoutVersionsInput
-  createdByAssignment: Prisma.PositionAssignmentCreateNestedOneWithoutUukStrVersionsCreatedInput
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutUukStrVersionsCreatedInput
   sections?: Prisma.UukStrSectionCreateNestedManyWithoutUukStrVersionInput
 }
 
@@ -765,7 +765,7 @@ export type UukStrVersionUpdateWithoutTasksInput = {
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   uukStr?: Prisma.UukStrUpdateOneRequiredWithoutVersionsNestedInput
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutUukStrVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutUukStrVersionsCreatedNestedInput
   sections?: Prisma.UukStrSectionUpdateManyWithoutUukStrVersionNestedInput
 }
 
@@ -835,7 +835,7 @@ export type UukStrVersionUpdateWithoutUukStrInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   changeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  createdByAssignment?: Prisma.PositionAssignmentUpdateOneRequiredWithoutUukStrVersionsCreatedNestedInput
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutUukStrVersionsCreatedNestedInput
   sections?: Prisma.UukStrSectionUpdateManyWithoutUukStrVersionNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutUukStrVersionNestedInput
 }
@@ -909,7 +909,7 @@ export type UukStrVersionSelect<ExtArgs extends runtime.Types.Extensions.Interna
   changeReason?: boolean
   createdAt?: boolean
   uukStr?: boolean | Prisma.UukStrDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   sections?: boolean | Prisma.UukStrVersion$sectionsArgs<ExtArgs>
   tasks?: boolean | Prisma.UukStrVersion$tasksArgs<ExtArgs>
   _count?: boolean | Prisma.UukStrVersionCountOutputTypeDefaultArgs<ExtArgs>
@@ -924,7 +924,7 @@ export type UukStrVersionSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   changeReason?: boolean
   createdAt?: boolean
   uukStr?: boolean | Prisma.UukStrDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["uukStrVersion"]>
 
 export type UukStrVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -936,7 +936,7 @@ export type UukStrVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   changeReason?: boolean
   createdAt?: boolean
   uukStr?: boolean | Prisma.UukStrDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["uukStrVersion"]>
 
 export type UukStrVersionSelectScalar = {
@@ -952,25 +952,25 @@ export type UukStrVersionSelectScalar = {
 export type UukStrVersionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "uukStrId" | "versionNumber" | "title" | "createdByAssignmentId" | "changeReason" | "createdAt", ExtArgs["result"]["uukStrVersion"]>
 export type UukStrVersionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   uukStr?: boolean | Prisma.UukStrDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   sections?: boolean | Prisma.UukStrVersion$sectionsArgs<ExtArgs>
   tasks?: boolean | Prisma.UukStrVersion$tasksArgs<ExtArgs>
   _count?: boolean | Prisma.UukStrVersionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UukStrVersionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   uukStr?: boolean | Prisma.UukStrDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 export type UukStrVersionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   uukStr?: boolean | Prisma.UukStrDefaultArgs<ExtArgs>
-  createdByAssignment?: boolean | Prisma.PositionAssignmentDefaultArgs<ExtArgs>
+  createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
 }
 
 export type $UukStrVersionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "UukStrVersion"
   objects: {
     uukStr: Prisma.$UukStrPayload<ExtArgs>
-    createdByAssignment: Prisma.$PositionAssignmentPayload<ExtArgs>
+    createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     sections: Prisma.$UukStrSectionPayload<ExtArgs>[]
     tasks: Prisma.$TaskPayload<ExtArgs>[]
   }
@@ -1377,7 +1377,7 @@ readonly fields: UukStrVersionFieldRefs;
 export interface Prisma__UukStrVersionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   uukStr<T extends Prisma.UukStrDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UukStrDefaultArgs<ExtArgs>>): Prisma.Prisma__UukStrClient<runtime.Types.Result.GetResult<Prisma.$UukStrPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  createdByAssignment<T extends Prisma.PositionAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PositionAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   sections<T extends Prisma.UukStrVersion$sectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UukStrVersion$sectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UukStrSectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tasks<T extends Prisma.UukStrVersion$tasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UukStrVersion$tasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**

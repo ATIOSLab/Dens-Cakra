@@ -15,11 +15,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import {
-  Classification,
-  PriorityLevel,
-  TaskStatus,
-} from '../../generated/prisma/client.js';
+import { PriorityLevel, TaskStatus } from '../../generated/prisma/client.js';
 
 export class TaskQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
@@ -44,7 +40,6 @@ export class CreateTaskDto {
   @IsUUID() ownerUnitId!: string;
   @IsString() @MaxLength(300) title!: string;
   @IsString() @MaxLength(10000) description!: string;
-  @IsEnum(Classification) classification!: Classification;
   @IsEnum(PriorityLevel) priority!: PriorityLevel;
   @IsOptional() @IsDateString() dueDate?: string;
   @IsArray()
@@ -61,7 +56,10 @@ export class UpdateTaskDto {
 }
 
 export class TargetAreasDto {
-  @IsArray() @ArrayMinSize(1) @IsUUID(undefined, { each: true }) areaIds!: string[];
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID(undefined, { each: true })
+  areaIds!: string[];
   @IsOptional() @IsUUID() primaryAreaId?: string;
 }
 

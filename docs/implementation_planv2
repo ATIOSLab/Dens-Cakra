@@ -1,0 +1,347 @@
+# Analisis Normalisasi Schema — Dens Cakra
+
+> Analisis menyeluruh dari 2049 baris Prisma schema (50+ model) untuk menemukan peluang normalisasi.
+
+---
+
+## Kesimpulan Cepat
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ SCHEMA OVERALL NORMALIZATION SCORE: 8.5 / 10                     │
+│                                                                  │
+│ ✅ Sudah 3NF compliant secara umum                              │
+│ ✅ Closure table pattern sudah benar (Org + Area)               │
+│ ✅ Versioning pattern konsisten (Directive, UUK, Baket, Product)│
+│ ✅ FK references sudah well-defined                             │
+│ ✅ Composite PKs untuk junction tables sudah benar              │
+│                                                                  │
+│ ⚠️ 6 Peluang normalisasi ditemukan (ranked by impact)          │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 1. ⚠️ Kolom Lokasi Berulang (Repeated Geo Columns)
+
+**Severity: MEDIUM** | **Risk: LOW** | **Impact: Mengurangi ~40 kolom**
+
+### Problem
+
+Ada **5 model** yang punya set kolom geo yang identik:
+
+| Model | Kolom yang berulang |
+|-------|-------------------|
+| `WhatsAppMessage` | latitude, longitude, locationPoint, gpsAccuracyMeters, coordinateSource, areaResolutionMethod, areaResolutionConfidence, areaResolvedAt, locationCapturedAt |
+| `BaketVersion` | latitude, longitude, locationPoint, gpsAccuracyMeters, coordinateSource, areaResolutionMethod, areaResolutionConfidence, areaResolvedAt, locationCapturedAt |
+| `EmergencyIncident` | latitude, longitude, locationPoint, gpsAccuracyMeters, coordinateSource, areaResolutionMethod, locationCapturedAt |
+| `Alert` | latitude, longitude, locationPoint |
+| `PersonnelLocationPing` | latitude, longitude, locationPoint, gpsAccuracyMeters, coordinateSource, areaResolutionMethod |
+
+Itu **9 kolom** yang copy-paste di **5 tabel** = ~45 kolom duplikat.
+
+### Opsi Normalisasi
+
+**Opsi A: Extract `GeoLocation` model**
+```prisma
+model GeoLocation {
+  id                       String               @id @default(uuid()) @db.Uuid
+  latitude                 Decimal              @db.Decimal(10, 7)
+  longitude                Decimal              @db.Decimal(10, 7)
+  locationPoint            Unsupported("geometry(Point,4326)")
+  gpsAccuracyMeters        Decimal?             @db.Decimal(10, 2)
+  coordinateSource         CoordinateSource
+  areaResolutionMethod     AreaResolutionMethod @default(UNRESOLVED)
+  areaResolutionConfidence Decimal?             @db.Decimal(5, 2)
+  resolvedAreaId           String?              @db.Uuid
+  capturedAt               DateTime?
+  resolvedAt               DateTime?
+  createdAt                DateTime             @default(now())
+}
+```
+
+Lalu setiap model yang butuh lokasi cukup:
+```prisma
+model WhatsAppMessage {
+  // ...
+  geoLocationId  String?  @db.Uuid
+  geoLocation    GeoLocation? @relation(...)
+  // hapus 9 kolom geo
+}
+```
+
+### ❌ Rekomendasi: JANGAN Normalisasi
+
+**Alasan:**
+1. **Join overhead**: Setiap query WhatsApp/Baket/Emergency yang butuh lokasi akan butuh JOIN tambahan. Ini data yang **selalu diakses bareng** parent-nya.
+2. **Write amplification**: Setiap create message = 2 insert (GeoLocation + Message). Ini bottleneck di WhatsApp intake yang high-throughput.
+3. **Denormalization disini intentional**: Geo data itu *inherent attribute* dari event, bukan entitas terpisah yang punya lifecycle sendiri.
+
+> [!TIP]
+> **Tetap seperti sekarang.** Kalau ingin mengurangi boilerplate di Prisma schema, gunakan **generator plugin** seperti `prisma-generator-helper` untuk membuat template kolom geo — tapi di level schema generation, bukan normalisasi database.
+
+---
+
+## 2. ⚠️ Polymorphic FK Pattern — `DirectiveRecipient` & `ProductDistribution`
+
+**Severity: MEDIUM** | **Risk: MEDIUM** | **Impact: Data integrity**
+
+### Problem
+
+[DirectiveRecipient](file:///d:/Aplikasi/Dens-Cakra/apps/be/prisma/schema.prisma#L907-L925) punya:
+```prisma
+targetUnitId       String?  // nullable
+targetPositionId   String?  // nullable
+```
+
+[ProductDistribution](file:///d:/Aplikasi/Dens-Cakra/apps/be/prisma/schema.prisma#L1710-L1732) punya:
+```prisma
+targetUnitId        String?  // nullable
+targetPositionId    String?  // nullable
+targetUserProfileId String?  // nullable (3 nullable FKs!)
+```
+
+Ini **polymorphic association pattern** — persis 1 FK harus terisi, sisanya null. Tapi **database tidak bisa enforce constraint ini** lewat Prisma, jadi hanya di-enforce di application code.
+
+### Opsi Normalisasi
+
+**Opsi A: Discriminator enum + check constraint**
+```prisma
+enum RecipientTargetType {
+  UNIT
+  POSITION
+  USER_PROFILE
+}
+
+model ProductDistribution {
+  targetType       RecipientTargetType
+  targetUnitId     String?  @db.Uuid
+  targetPositionId String?  @db.Uuid
+  targetUserProfileId String? @db.Uuid
+}
+```
+
+Lalu tambahkan **database check constraint** via migration SQL:
+```sql
+ALTER TABLE "product_distribution"
+ADD CONSTRAINT chk_distribution_target CHECK (
+  CASE target_type
+    WHEN 'UNIT' THEN target_unit_id IS NOT NULL
+      AND target_position_id IS NULL AND target_user_profile_id IS NULL
+    WHEN 'POSITION' THEN target_position_id IS NOT NULL
+      AND target_unit_id IS NULL AND target_user_profile_id IS NULL
+    WHEN 'USER_PROFILE' THEN target_user_profile_id IS NOT NULL
+      AND target_unit_id IS NULL AND target_position_id IS NULL
+  END
+);
+```
+
+**Opsi B: Separate junction tables (full normalization)**
+```prisma
+model ProductDistributionToUnit {
+  distributionId String @db.Uuid
+  unitId         String @db.Uuid
+  @@id([distributionId, unitId])
+}
+model ProductDistributionToPosition { ... }
+model ProductDistributionToUser { ... }
+```
+
+### ✅ Rekomendasi: Opsi A (Discriminator + Check Constraint)
+
+**Alasan:**
+- Opsi B terlalu banyak tabel untuk sesuatu yang secara konsep satu row = satu target
+- Opsi A menambah kejelasan tanpa mengubah query patterns yang sudah ada
+- Check constraint di DB level mencegah data korupsi bahkan kalau ada bug di service layer
+
+---
+
+## 3. ⚠️ `PositionAssignment` — God Relation Table
+
+**Severity: LOW** | **Risk: HIGH jika diubah** | **Impact: Readability**
+
+### Problem
+
+[PositionAssignment](file:///d:/Aplikasi/Dens-Cakra/apps/be/prisma/schema.prisma#L618-L664) punya **29 reverse relations**:
+
+```
+filesCreated, directivesCreated, directiveVersionsCreated,
+uukStrsCreated, uukStrVersionsCreated, tasksCreated,
+taskAssignmentsGiven, taskAssignmentsReceived, taskProgressCreated,
+jaringCreated, jaringCaretakerAssignments, routedWhatsAppMessages,
+whatsappRoutingLogs, baketsCreated, baketVersionsCreated,
+baketRevisionRequests, verifications, baketCoverageChecks,
+analysisCasesCreated, analysisVersionsCreated, analysisVersionsValidated,
+productsCreated, productVersionsCreated, approvalDecisions,
+productDistributionsSent, emergencyReportsCreated, auditLogs,
+locationPings, areaScopes
+```
+
+Ini **bukan** masalah normalisasi — semua FK legitimate. Tapi ini **design smell** yang menunjukkan `PositionAssignment` menjadi *God Object* dari perspektif relasional.
+
+### ❌ Rekomendasi: JANGAN Normalisasi
+
+**Alasan:**
+- Semua relasi ini **correct by design** — `PositionAssignment` memang *the core identity* yang menghubungkan "siapa melakukan apa di posisi mana"
+- Memecah ini = breaking the core authorization model
+- **Impact 0** ke performance — Prisma tidak load reverse relations kecuali explicitly included
+
+> [!NOTE]
+> Ini bukan bug, ini consequence dari **position-centric authorization design**. 29 relasi banyak, tapi semuanya sah. Tidak perlu dinormalisasi.
+
+---
+
+## 4. ⚠️ Versioning Pattern — Bisa Distandarisasi
+
+**Severity: LOW** | **Risk: LOW** | **Impact: Consistency**
+
+### Problem
+
+Ada **4 entity** yang pakai versioning pattern, tapi tidak 100% konsisten:
+
+| Parent | Version Table | Version FK | Has `currentVersionNumber` |
+|--------|--------------|------------|---------------------------|
+| `Directive` | `DirectiveVersion` | `directiveId` | ✅ Ya |
+| `UukStr` | `UukStrVersion` | `uukStrId` | ✅ Ya |
+| `Baket` | `BaketVersion` | `baketId` | ✅ Ya |
+| `IntelligenceProduct` | `ProductVersion` | `productId` | ✅ Ya |
+
+✅ **Semuanya konsisten** — punya `currentVersionNumber` di parent dan `versionNumber` di child dengan `@@unique([parentId, versionNumber])`.
+
+**Tapi:** `DirectiveVersion` dan `UukStrVersion` punya `changeReason`, sementara `BaketVersion` punya `revisionReason` (nama berbeda untuk konsep yang sama).
+
+### ✅ Rekomendasi: Rename `revisionReason` → `changeReason`
+
+Cuma rename kolom agar konsisten:
+```prisma
+model BaketVersion {
+  // sebelum:
+  revisionReason  String? @db.Text
+  // sesudah:
+  changeReason    String? @db.Text
+}
+```
+
+Migration:
+```sql
+ALTER TABLE "baket_version" RENAME COLUMN "revision_reason" TO "change_reason";
+```
+
+---
+
+## 5. ⚠️ `Role` Model — Redundan dengan `RoleCode` Enum?
+
+**Severity: LOW** | **Risk: MEDIUM** | **Impact: Simplification**
+
+### Problem
+
+Ada dua representasi role:
+1. **Enum `RoleCode`** — dipakai di `ALLOWED_POSITION_CODES_BY_ROLE`, authorization logic, etc.
+2. **Model `Role`** (tabel) — punya `id`, `code`, `name`, `description`, `isActive`
+
+[Role model](file:///d:/Aplikasi/Dens-Cakra/apps/be/prisma/schema.prisma#L536-L546):
+```prisma
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        RoleCode @unique
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  positions   Position[]
+}
+```
+
+`Position` merujuk ke `Role` via `roleId` (UUID FK), padahal semua authorization logic di backend pakai `role.code` (enum). Jadi setiap kali butuh role check, harus include `role` relation lalu baca `.code`.
+
+### Opsi Normalisasi
+
+**Opsi A: Hapus `Role` table, pakai enum langsung**
+```prisma
+model Position {
+  roleCode  RoleCode  // langsung enum, tidak perlu join
+  // hapus roleId
+}
+```
+
+**Opsi B: Tetap seperti sekarang (keep table)**
+
+### ❌ Rekomendasi: JANGAN Hapus `Role` Table
+
+**Alasan:**
+- `Role` table berguna jika nanti ingin **menambah role baru tanpa migration** (runtime-configurable)
+- Kolom `name` dan `description` berguna untuk **UI display** tanpa hardcode
+- Kolom `isActive` memungkinkan **soft-disable** role tanpa hapus dari enum
+- **Overhead minimal** — satu extra join yang sudah di-handle baik
+
+> [!TIP]
+> Pertimbangkan menambah `roleCode` sebagai **denormalized column** di `Position` untuk menghindari join saat authorization. Ini tradeoff classic: 1 kolom redundan vs N join queries.
+
+---
+
+## 6. ⚠️ Coverage Tables — Structural Similarity
+
+**Severity: LOW** | **Risk: HIGH jika diubah** | **Impact: Mengurangi tabel**
+
+### Problem
+
+Ada **3 coverage/scope table** dengan struktur hampir identik:
+
+| Table | Parent FK | Area FK | Extra |
+|-------|----------|---------|-------|
+| `OrganizationAreaCoverage` | `organizationUnitId` | `areaId` | `isPrimary`, `validFrom/Until` |
+| `PositionAreaScope` | `positionAssignmentId` | `areaId` | `isPrimary`, `validFrom/Until` |
+| `JaringAreaCoverage` | `jaringId` | `areaId` | `isPrimary`, `validFrom/Until` |
+
+Semua punya: `id`, `{parent}Id`, `areaId`, `isPrimary`, `validFrom`, `validUntil`.
+
+### Opsi: Unified `AreaBinding` table
+
+```prisma
+enum AreaBindingType {
+  ORGANIZATION
+  POSITION_ASSIGNMENT
+  JARING
+}
+
+model AreaBinding {
+  id                   String          @id @default(uuid()) @db.Uuid
+  bindingType          AreaBindingType
+  organizationUnitId   String?         @db.Uuid
+  positionAssignmentId String?         @db.Uuid
+  jaringId             String?         @db.Uuid
+  areaId               String          @db.Uuid
+  isPrimary            Boolean         @default(false)
+  validFrom            DateTime        @default(now())
+  validUntil           DateTime?
+}
+```
+
+### ❌ Rekomendasi: JANGAN Gabungkan
+
+**Alasan:**
+1. **Polymorphic FK anti-pattern** — Kita baru saja membahas ini di item #2. Menggabungkan 3 tabel menjadi 1 dengan 3 nullable FK = membuat masalah baru
+2. **Constraint berbeda** — `OrganizationAreaCoverage` punya business rules berbeda dari `PositionAreaScope` (e.g., Binda max 1 area)
+3. **Query performance** — Terpisah = index lebih efisien per use case
+4. **Semantic clarity** — "Siapa cover area apa" punya makna berbeda per context
+
+---
+
+## Ringkasan Rekomendasi
+
+| # | Temuan | Aksi | Effort |
+|---|--------|------|--------|
+| 1 | Kolom geo berulang 5x | ❌ Biarkan (denormalization intentional) | — |
+| 2 | Polymorphic FK tanpa constraint | ✅ Tambah discriminator enum + DB check constraint | **~2 jam** |
+| 3 | PositionAssignment 29 relasi | ❌ Biarkan (correct by design) | — |
+| 4 | `revisionReason` vs `changeReason` | ✅ Rename untuk konsistensi | **~30 menit** |
+| 5 | Role table vs RoleCode enum | ❌ Biarkan (flexibility > simplicity) | — |
+| 6 | 3 coverage tables mirip | ❌ Biarkan (different constraints) | — |
+
+> [!IMPORTANT]
+> **Takeaway:** Schema ini sudah **sangat well-designed**. Dari 6 peluang yang ditemukan, hanya **2 yang layak dilakukan** dan keduanya minor:
+> 1. Discriminator + check constraint untuk polymorphic FKs
+> 2. Rename `revisionReason` → `changeReason` untuk konsistensi
+>
+> Sisanya adalah tradeoff yang sudah diambil dengan benar (geo denormalization, position-centric design, separated coverage tables).
+
+Mau saya implementasikan rekomendasi #2 dan #4?

@@ -39,7 +39,6 @@ export type TaskSummary = {
   id: string;
   title: string;
   description: string;
-  classification: string;
   priority: string;
   dueDate?: string | null;
   status: string;
@@ -47,6 +46,7 @@ export type TaskSummary = {
   ownerUnit?: OrganizationUnitOption | null;
   directiveVersion?: {
     id: string;
+    classification?: string;
     directive?: {
       id: string;
       commandNumber: string;
@@ -55,6 +55,16 @@ export type TaskSummary = {
   uukStrVersion?: {
     id: string;
     title: string;
+    uukStr?: {
+      directiveVersion?: {
+        id: string;
+        classification?: string;
+        directive?: {
+          id: string;
+          commandNumber: string;
+        } | null;
+      } | null;
+    } | null;
     sections?: Array<{
       id: string;
       sectionType: string;

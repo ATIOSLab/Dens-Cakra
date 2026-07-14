@@ -120,16 +120,6 @@ export const AreaScopeMode = {
 export type AreaScopeMode = (typeof AreaScopeMode)[keyof typeof AreaScopeMode]
 
 
-export const Classification = {
-  SANGAT_RAHASIA: 'SANGAT_RAHASIA',
-  RAHASIA: 'RAHASIA',
-  TERBATAS: 'TERBATAS',
-  BIASA: 'BIASA'
-} as const
-
-export type Classification = (typeof Classification)[keyof typeof Classification]
-
-
 export const PriorityLevel = {
   LOW: 'LOW',
   NORMAL: 'NORMAL',
@@ -138,6 +128,16 @@ export const PriorityLevel = {
 } as const
 
 export type PriorityLevel = (typeof PriorityLevel)[keyof typeof PriorityLevel]
+
+
+export const Classification = {
+  SANGAT_RAHASIA: 'SANGAT_RAHASIA',
+  RAHASIA: 'RAHASIA',
+  TERBATAS: 'TERBATAS',
+  BIASA: 'BIASA'
+} as const
+
+export type Classification = (typeof Classification)[keyof typeof Classification]
 
 
 export const DirectiveStatus = {
@@ -229,6 +229,7 @@ export const WhatsAppMessageStatus = {
   UNKNOWN_SENDER: 'UNKNOWN_SENDER',
   ROUTED: 'ROUTED',
   UNDER_REVIEW: 'UNDER_REVIEW',
+  READY_FOR_BAKET: 'READY_FOR_BAKET',
   PROCESSED: 'PROCESSED',
   DUPLICATE: 'DUPLICATE',
   SPAM: 'SPAM',
@@ -488,6 +489,18 @@ export const IntegrationStatus = {
 } as const
 
 export type IntegrationStatus = (typeof IntegrationStatus)[keyof typeof IntegrationStatus]
+
+
+export const WhatsAppBotConnectionStatus = {
+  DISCONNECTED: 'DISCONNECTED',
+  CONNECTING: 'CONNECTING',
+  QR_READY: 'QR_READY',
+  PAIRING_CODE_READY: 'PAIRING_CODE_READY',
+  CONNECTED: 'CONNECTED',
+  ERROR: 'ERROR'
+} as const
+
+export type WhatsAppBotConnectionStatus = (typeof WhatsAppBotConnectionStatus)[keyof typeof WhatsAppBotConnectionStatus]
 
 
 export const FileLifecycleStatus = {

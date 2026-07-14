@@ -4,6 +4,7 @@ import {
   Prisma,
   RecipientStatus,
   RoleCode,
+  TaskAssignmentStatus,
   TaskStatus,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
@@ -122,12 +123,10 @@ export class DirectiveService {
                       some: {
                         OR: [
                           {
-                            assigneeAssignmentId:
-                              context.primaryAssignmentId,
+                            assigneeAssignmentId: context.primaryAssignmentId,
                           },
                           {
-                            assignerAssignmentId:
-                              context.primaryAssignmentId,
+                            assignerAssignmentId: context.primaryAssignmentId,
                           },
                         ],
                       },
@@ -146,11 +145,7 @@ export class DirectiveService {
     }
 
     return {
-      AND: [
-        { deletedAt: null },
-        extra,
-        { OR: visibilityBranches },
-      ],
+      AND: [{ deletedAt: null }, extra, { OR: visibilityBranches }],
     };
   }
 
@@ -268,8 +263,12 @@ export class DirectiveService {
                 ownerUnit: true,
                 assignments: {
                   include: {
-                    assigner: { include: { position: true, userProfile: true } },
-                    assignee: { include: { position: true, userProfile: true } },
+                    assigner: {
+                      include: { position: true, userProfile: true },
+                    },
+                    assignee: {
+                      include: { position: true, userProfile: true },
+                    },
                   },
                 },
                 targetAreas: {
@@ -418,13 +417,6 @@ export class DirectiveService {
                 },
               },
             ],
-          }
-        : {}),
-      ...(query.classification
-        ? {
-            versions: {
-              some: { classification: query.classification },
-            },
           }
         : {}),
       ...(query.from || query.to
@@ -897,7 +889,7 @@ export class DirectiveService {
         const notifiedProfiles = new Set<string>();
 
         for (const recipient of version.recipients) {
-          const profiles = await tx.positionAssignment.findMany({
+          const profiles = await tx.userSeatAssignment.findMany({
             where: {
               isActive: true,
               validUntil: null,
@@ -1026,84 +1018,615 @@ export class DirectiveService {
     includeTasks = 'true',
     context: AuthorizationContext,
   ) {
-    const directive = await this.detail(directiveId, context);
-    const version = directive.versions.find(
-      (item) => item.versionNumber === directive.currentVersionNumber,
+    this.assertRole(
+      context,
+      [RoleCode.EXECUTIVE],
+      'Only Executive can access end-to-end directive tracking.',
     );
 
-    const tasks = (version?.tasks ?? []).filter((task) => {
-      const areaMatch = areaId
-        ? task.targetAreas.some(
-            (target) =>
-              target.areaId === areaId ||
-              target.area.ancestorLinks.some(
-                (link) => link.ancestorId === areaId,
-              ) ||
-              target.area.descendantLinks.some(
-                (link) => link.descendantId === areaId,
-              ),
-          )
-        : true;
-      const unitMatch = unitId ? task.ownerUnitId === unitId : true;
-      const visibilityMatch =
-        directive.ownerUnitId === context.organizationUnitId ||
-        directive.createdByAssignmentId === context.primaryAssignmentId ||
-        task.ownerUnitId === context.organizationUnitId ||
-        task.assignments.some(
-          (assignment) =>
-            assignment.assigneeAssignmentId === context.primaryAssignmentId ||
-            assignment.assignerAssignmentId === context.primaryAssignmentId,
-        );
+    const directive = await this.prisma.directive.findFirstOrThrow({
+      where: this.detailWhere(directiveId, context),
+      select: {
+        id: true,
+        currentVersionNumber: true,
+      },
+    });
 
-      return areaMatch && unitMatch && visibilityMatch;
+    const version = await this.prisma.directiveVersion.findFirstOrThrow({
+      where: {
+        directiveId,
+        versionNumber: directive.currentVersionNumber,
+      },
+      include: {
+        recipients: {
+          include: {
+            targetUnit: true,
+            targetPosition: {
+              include: {
+                organizationUnit: true,
+                role: true,
+                assignments: {
+                  where: {
+                    isActive: true,
+                    validUntil: null,
+                    userProfile: {
+                      deletedAt: null,
+                      isActive: true,
+                    },
+                  },
+                  orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+                  take: 1,
+                  include: {
+                    userProfile: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        uukStrs: {
+          where: { deletedAt: null },
+          include: {
+            ownerUnit: true,
+            createdByAssignment: {
+              include: {
+                userProfile: true,
+                position: {
+                  include: {
+                    organizationUnit: true,
+                    role: true,
+                  },
+                },
+              },
+            },
+            versions: {
+              orderBy: { versionNumber: 'desc' },
+              take: 1,
+              include: {
+                createdByAssignment: {
+                  include: {
+                    userProfile: true,
+                    position: {
+                      include: {
+                        organizationUnit: true,
+                        role: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const relatedTasks = await this.prisma.task.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { directiveVersionId: version.id },
+          {
+            uukStrVersion: {
+              uukStr: {
+                directiveVersionId: version.id,
+                deletedAt: null,
+              },
+            },
+          },
+        ],
+      },
+      orderBy: [{ createdAt: 'asc' }],
+      include: {
+        ownerUnit: true,
+        createdByAssignment: {
+          include: {
+            userProfile: true,
+            position: {
+              include: {
+                organizationUnit: true,
+                role: true,
+              },
+            },
+          },
+        },
+        uukStrVersion: {
+          include: {
+            uukStr: {
+              include: {
+                ownerUnit: true,
+              },
+            },
+          },
+        },
+        targetAreas: {
+          include: {
+            area: {
+              include: {
+                ancestorLinks: true,
+                descendantLinks: true,
+              },
+            },
+          },
+        },
+        assignments: {
+          orderBy: [{ assignedAt: 'asc' }],
+          include: {
+            assigner: {
+              include: {
+                userProfile: true,
+                position: {
+                  include: {
+                    organizationUnit: true,
+                    role: true,
+                  },
+                },
+                areaScopes: {
+                  where: { validUntil: null },
+                  include: {
+                    area: true,
+                  },
+                },
+              },
+            },
+            assignee: {
+              include: {
+                userProfile: true,
+                position: {
+                  include: {
+                    organizationUnit: true,
+                    role: true,
+                  },
+                },
+                areaScopes: {
+                  where: { validUntil: null },
+                  include: {
+                    area: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     const baketCount = await this.prisma.baket.count({
       where: {
         taskAssignment: {
           task: {
-            directiveVersionId: version?.id,
+            deletedAt: null,
+            OR: [
+              { directiveVersionId: version.id },
+              {
+                uukStrVersion: {
+                  uukStr: {
+                    directiveVersionId: version.id,
+                    deletedAt: null,
+                  },
+                },
+              },
+            ],
           },
         },
       },
     });
 
+    const includeTaskDetails = includeTasks === 'true';
+    const assignmentReadStatuses = new Set<TaskAssignmentStatus>([
+      TaskAssignmentStatus.READ,
+      TaskAssignmentStatus.ACKNOWLEDGED,
+      TaskAssignmentStatus.IN_PROGRESS,
+      TaskAssignmentStatus.COMPLETED,
+      TaskAssignmentStatus.OVERDUE,
+      TaskAssignmentStatus.REASSIGNED,
+    ]);
+    const recipientReadStatuses = new Set<RecipientStatus>([
+      RecipientStatus.READ,
+      RecipientStatus.ACKNOWLEDGED,
+    ]);
+
+    const taskMatchesArea = (task: any) =>
+      areaId
+        ? task.targetAreas.some(
+            (target: any) =>
+              target.areaId === areaId ||
+              target.area.ancestorLinks.some(
+                (link: any) => link.ancestorId === areaId,
+              ) ||
+              target.area.descendantLinks.some(
+                (link: any) => link.descendantId === areaId,
+              ),
+          )
+        : true;
+
+    const filteredTasks = relatedTasks.filter((task) => {
+      const areaMatch = taskMatchesArea(task);
+      const unitMatch = unitId ? task.ownerUnitId === unitId : true;
+      return areaMatch && unitMatch;
+    });
+
+    const mapAreaScope = (scope: any) => ({
+      areaId: scope.areaId,
+      code: scope.area?.code ?? null,
+      name: scope.area?.name ?? '-',
+      level: scope.area?.level ?? '-',
+      isPrimary: Boolean(scope.isPrimary),
+    });
+
+    const mapAssignmentActor = (assignment: any) =>
+      assignment
+        ? {
+            assignmentId: assignment.id,
+            fullName: assignment.userProfile?.fullName ?? null,
+            username: assignment.userProfile?.username ?? null,
+            positionId: assignment.position?.id ?? null,
+            positionTitle: assignment.position?.title ?? null,
+            organizationUnitId:
+              assignment.position?.organizationUnit?.id ?? null,
+            organizationUnitName:
+              assignment.position?.organizationUnit?.name ?? null,
+            roleCode: assignment.position?.role?.code ?? null,
+            areaScopes: (assignment.areaScopes ?? []).map(mapAreaScope),
+          }
+        : null;
+
+    const summarizeAssignments = (assignments: any[]) => ({
+      total: assignments.length,
+      sent: assignments.filter(
+        (assignment) => assignment.status === TaskAssignmentStatus.SENT,
+      ).length,
+      read: assignments.filter(
+        (assignment) =>
+          Boolean(assignment.readAt) ||
+          assignmentReadStatuses.has(assignment.status),
+      ).length,
+      acknowledged: assignments.filter(
+        (assignment) =>
+          Boolean(assignment.acknowledgedAt) ||
+          assignment.status === TaskAssignmentStatus.ACKNOWLEDGED,
+      ).length,
+      inProgress: assignments.filter(
+        (assignment) => assignment.status === TaskAssignmentStatus.IN_PROGRESS,
+      ).length,
+      completed: assignments.filter(
+        (assignment) => assignment.status === TaskAssignmentStatus.COMPLETED,
+      ).length,
+      overdue: assignments.filter(
+        (assignment) => assignment.status === TaskAssignmentStatus.OVERDUE,
+      ).length,
+      reassigned: assignments.filter(
+        (assignment) => assignment.status === TaskAssignmentStatus.REASSIGNED,
+      ).length,
+      cancelled: assignments.filter(
+        (assignment) => assignment.status === TaskAssignmentStatus.CANCELLED,
+      ).length,
+    });
+
+    const buildAssignmentNode = (
+      assignment: any,
+      downstreamAssignments: any[] = [],
+    ): any => ({
+      id: assignment.id,
+      status: assignment.status,
+      assignedAt: assignment.assignedAt,
+      readAt: assignment.readAt,
+      acknowledgedAt: assignment.acknowledgedAt,
+      startedAt: assignment.startedAt,
+      completedAt: assignment.completedAt,
+      dueDate: assignment.dueDate,
+      assignmentNote: assignment.assignmentNote,
+      assigner: mapAssignmentActor(assignment.assigner),
+      assignee: mapAssignmentActor(assignment.assignee),
+      downstreamAssignments: downstreamAssignments.map((item) =>
+        buildAssignmentNode(item),
+      ),
+    });
+
+    const mappedTasks = filteredTasks.map((task: any) => {
+      const fieldCoordinatorAssignments = task.assignments.filter(
+        (assignment: any) =>
+          assignment.assignee?.position?.role?.code ===
+          RoleCode.FIELD_COORDINATOR,
+      );
+
+      const fcAssignmentsWithChildren = fieldCoordinatorAssignments.map(
+        (assignment: any) => {
+          const downstreamAssignments = task.assignments.filter(
+            (candidate: any) =>
+              candidate.assignerAssignmentId ===
+                assignment.assigneeAssignmentId &&
+              candidate.assignee?.position?.role?.code ===
+                RoleCode.FIELD_OFFICER,
+          );
+
+          return buildAssignmentNode(assignment, downstreamAssignments);
+        },
+      );
+
+      const korwilAssignments = fcAssignmentsWithChildren.flatMap(
+        (assignment: any) => assignment.downstreamAssignments ?? [],
+      );
+
+      return {
+        id: task.id,
+        title: task.title,
+        status: task.status,
+        priority: task.priority,
+        createdAt: task.createdAt,
+        dueDate: task.dueDate,
+        ownerUnitId: task.ownerUnitId,
+        ownerUnit: task.ownerUnit,
+        createdBy: {
+          assignmentId: task.createdByAssignment?.id ?? null,
+          fullName: task.createdByAssignment?.userProfile?.fullName ?? null,
+          positionTitle: task.createdByAssignment?.position?.title ?? null,
+          organizationUnitName:
+            task.createdByAssignment?.position?.organizationUnit?.name ?? null,
+        },
+        targetAreas: task.targetAreas.map((target: any) => ({
+          areaId: target.areaId,
+          isPrimary: Boolean(target.isPrimary),
+          area: {
+            id: target.area.id,
+            code: target.area.code,
+            name: target.area.name,
+            level: target.area.level,
+          },
+        })),
+        oimStage: {
+          hasRead: true,
+          hasForwardedToFieldCoordinator:
+            fieldCoordinatorAssignments.length > 0,
+          fieldCoordinatorAssignmentCount: fieldCoordinatorAssignments.length,
+        },
+        fieldCoordinatorSummary: {
+          ...summarizeAssignments(fieldCoordinatorAssignments),
+          distributed: fcAssignmentsWithChildren.filter(
+            (assignment: any) =>
+              (assignment.downstreamAssignments?.length ?? 0) > 0,
+          ).length,
+        },
+        korwilSummary: summarizeAssignments(korwilAssignments),
+        fieldCoordinatorAssignments: includeTaskDetails
+          ? fcAssignmentsWithChildren
+          : undefined,
+        uukStr: task.uukStrVersion?.uukStr
+          ? {
+              id: task.uukStrVersion.uukStr.id,
+              ownerUnitId: task.uukStrVersion.uukStr.ownerUnitId,
+              ownerUnit: task.uukStrVersion.uukStr.ownerUnit,
+              versionId: task.uukStrVersion.id,
+              versionNumber: task.uukStrVersion.versionNumber,
+              title: task.uukStrVersion.title,
+            }
+          : null,
+      };
+    });
+
+    const tasksByUukId = new Map<string, typeof mappedTasks>();
+    const unlinkedTasks: typeof mappedTasks = [];
+
+    for (const task of mappedTasks) {
+      const uukStrId = task.uukStr?.id;
+      if (!uukStrId) {
+        unlinkedTasks.push(task);
+        continue;
+      }
+
+      const bucket = tasksByUukId.get(uukStrId) ?? [];
+      bucket.push(task);
+      tasksByUukId.set(uukStrId, bucket);
+    }
+
+    const orderedForwardings = [...version.uukStrs].sort(
+      (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
+    );
+
+    const regionalChains = version.recipients.map((recipient: any) => {
+      const recipientUnitId =
+        recipient.targetUnitId ??
+        recipient.targetPosition?.organizationUnit?.id ??
+        null;
+      const forwarding =
+        orderedForwardings.find(
+          (item) => item.ownerUnitId === recipientUnitId,
+        ) ?? null;
+      const relatedTaskItems = forwarding
+        ? (tasksByUukId.get(forwarding.id) ?? [])
+        : [];
+      const fcAssignments = relatedTaskItems.flatMap(
+        (task) => task.fieldCoordinatorAssignments ?? [],
+      );
+      const korwilAssignments = fcAssignments.flatMap(
+        (assignment: any) => assignment.downstreamAssignments ?? [],
+      );
+      const currentUukVersion = forwarding?.versions[0] ?? null;
+
+      return {
+        regionalRecipient: {
+          id: recipient.id,
+          status: recipient.status,
+          sentAt: recipient.sentAt,
+          deliveredAt: recipient.deliveredAt,
+          readAt: recipient.readAt,
+          acknowledgedAt: recipient.acknowledgedAt,
+          failureReason: recipient.failureReason,
+          targetUnit: recipient.targetUnit,
+          targetPosition: recipient.targetPosition
+            ? {
+                id: recipient.targetPosition.id,
+                title: recipient.targetPosition.title,
+                seatCode: recipient.targetPosition.seatCode,
+                role: {
+                  code: recipient.targetPosition.role?.code ?? null,
+                  name: recipient.targetPosition.role?.name ?? null,
+                },
+                organizationUnit:
+                  recipient.targetPosition.organizationUnit ?? null,
+                assigneeName:
+                  recipient.targetPosition.assignments[0]?.userProfile
+                    ?.fullName ?? null,
+                assigneeUsername:
+                  recipient.targetPosition.assignments[0]?.userProfile
+                    ?.username ?? null,
+              }
+            : null,
+        },
+        forwarding: forwarding
+          ? {
+              id: forwarding.id,
+              status: forwarding.status,
+              createdAt: forwarding.createdAt,
+              updatedAt: forwarding.updatedAt,
+              ownerUnitId: forwarding.ownerUnitId,
+              ownerUnit: forwarding.ownerUnit,
+              createdBy: {
+                assignmentId: forwarding.createdByAssignment?.id ?? null,
+                fullName:
+                  forwarding.createdByAssignment?.userProfile?.fullName ?? null,
+                positionTitle:
+                  forwarding.createdByAssignment?.position?.title ?? null,
+                organizationUnitName:
+                  forwarding.createdByAssignment?.position?.organizationUnit
+                    ?.name ?? null,
+              },
+              currentVersion: currentUukVersion
+                ? {
+                    id: currentUukVersion.id,
+                    versionNumber: currentUukVersion.versionNumber,
+                    title: currentUukVersion.title,
+                    createdAt: currentUukVersion.createdAt,
+                    createdBy: {
+                      assignmentId:
+                        currentUukVersion.createdByAssignment?.id ?? null,
+                      fullName:
+                        currentUukVersion.createdByAssignment?.userProfile
+                          ?.fullName ?? null,
+                      positionTitle:
+                        currentUukVersion.createdByAssignment?.position
+                          ?.title ?? null,
+                    },
+                  }
+                : null,
+            }
+          : null,
+        oimStage: {
+          hasRead: relatedTaskItems.length > 0,
+          taskCount: relatedTaskItems.length,
+          hasForwardedToFieldCoordinator: fcAssignments.length > 0,
+          fieldCoordinatorAssignmentCount: fcAssignments.length,
+        },
+        fieldCoordinatorStage: {
+          totalAssignments: fcAssignments.length,
+          readCount: fcAssignments.filter(
+            (assignment: any) =>
+              Boolean(assignment.readAt) ||
+              assignmentReadStatuses.has(assignment.status),
+          ).length,
+          distributedCount: fcAssignments.filter(
+            (assignment: any) =>
+              (assignment.downstreamAssignments?.length ?? 0) > 0,
+          ).length,
+        },
+        korwilStage: summarizeAssignments(korwilAssignments),
+        oimTasks: includeTaskDetails ? relatedTaskItems : undefined,
+      };
+    });
+
+    const allFieldCoordinatorAssignments = mappedTasks.flatMap(
+      (task) => task.fieldCoordinatorAssignments ?? [],
+    );
+    const allKorwilAssignments = allFieldCoordinatorAssignments.flatMap(
+      (assignment: any) => assignment.downstreamAssignments ?? [],
+    );
+
     return {
       directiveId,
-      versionId: version?.id ?? null,
+      versionId: version.id,
       recipientSummary: {
-        total: version?.recipients.length ?? 0,
-        acknowledged:
-          version?.recipients.filter(
-            (recipient) => recipient.status === RecipientStatus.ACKNOWLEDGED,
-          ).length ?? 0,
-        read:
-          version?.recipients.filter(
-            (recipient) => recipient.status === RecipientStatus.READ,
-          ).length ?? 0,
-        delivered:
-          version?.recipients.filter(
-            (recipient) => recipient.status === RecipientStatus.DELIVERED,
-          ).length ?? 0,
-        failed:
-          version?.recipients.filter(
-            (recipient) => recipient.status === RecipientStatus.FAILED,
-          ).length ?? 0,
+        total: version.recipients.length,
+        acknowledged: version.recipients.filter(
+          (recipient) => recipient.status === RecipientStatus.ACKNOWLEDGED,
+        ).length,
+        read: version.recipients.filter(
+          (recipient) => recipient.status === RecipientStatus.READ,
+        ).length,
+        delivered: version.recipients.filter(
+          (recipient) => recipient.status === RecipientStatus.DELIVERED,
+        ).length,
+        failed: version.recipients.filter(
+          (recipient) => recipient.status === RecipientStatus.FAILED,
+        ).length,
       },
       taskSummary: {
-        total: tasks.length,
-        assigned: tasks.filter((task) => task.status === TaskStatus.ASSIGNED)
-          .length,
-        inProgress: tasks.filter(
+        total: mappedTasks.length,
+        assigned: mappedTasks.filter(
+          (task) => task.status === TaskStatus.ASSIGNED,
+        ).length,
+        inProgress: mappedTasks.filter(
           (task) => task.status === TaskStatus.IN_PROGRESS,
         ).length,
-        completed: tasks.filter((task) => task.status === TaskStatus.COMPLETED)
-          .length,
-        cancelled: tasks.filter((task) => task.status === TaskStatus.CANCELLED)
-          .length,
+        completed: mappedTasks.filter(
+          (task) => task.status === TaskStatus.COMPLETED,
+        ).length,
+        cancelled: mappedTasks.filter(
+          (task) => task.status === TaskStatus.CANCELLED,
+        ).length,
+      },
+      stageSummary: {
+        regional: {
+          totalRecipients: version.recipients.length,
+          readCount: version.recipients.filter(
+            (recipient) =>
+              Boolean(recipient.readAt) ||
+              recipientReadStatuses.has(recipient.status),
+          ).length,
+          acknowledgedCount: version.recipients.filter(
+            (recipient) =>
+              Boolean(recipient.acknowledgedAt) ||
+              recipient.status === RecipientStatus.ACKNOWLEDGED,
+          ).length,
+          forwardedCount: regionalChains.filter((chain) => chain.forwarding)
+            .length,
+          failedCount: version.recipients.filter(
+            (recipient) => recipient.status === RecipientStatus.FAILED,
+          ).length,
+        },
+        oim: {
+          totalForwardedRegionalStr: regionalChains.filter(
+            (chain) => chain.forwarding,
+          ).length,
+          readCount: regionalChains.filter((chain) => chain.oimStage.hasRead)
+            .length,
+          taskCount: mappedTasks.length,
+          forwardedToFieldCoordinatorCount: regionalChains.filter(
+            (chain) => chain.oimStage.hasForwardedToFieldCoordinator,
+          ).length,
+        },
+        fieldCoordinator: {
+          totalAssignments: allFieldCoordinatorAssignments.length,
+          readCount: allFieldCoordinatorAssignments.filter(
+            (assignment: any) =>
+              Boolean(assignment.readAt) ||
+              assignmentReadStatuses.has(assignment.status),
+          ).length,
+          acknowledgedCount: allFieldCoordinatorAssignments.filter(
+            (assignment: any) =>
+              Boolean(assignment.acknowledgedAt) ||
+              assignment.status === TaskAssignmentStatus.ACKNOWLEDGED,
+          ).length,
+          distributedCount: allFieldCoordinatorAssignments.filter(
+            (assignment: any) =>
+              (assignment.downstreamAssignments?.length ?? 0) > 0,
+          ).length,
+        },
+        korwil: summarizeAssignments(allKorwilAssignments),
       },
       baketCount,
-      tasks: includeTasks === 'true' ? tasks : undefined,
+      regionalChains,
+      tasks: includeTaskDetails ? mappedTasks : undefined,
+      unlinkedTasks: includeTaskDetails ? unlinkedTasks : undefined,
     };
   }
 

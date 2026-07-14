@@ -10,7 +10,6 @@ apps/be/node_modules/
 dist/
 apps/be/dist/
 coverage/
-apps/wilayah
 
 # Local environment files
 .env

@@ -46,6 +46,7 @@ export type WhatsAppMessageMinAggregateOutputType = {
   externalMessageId: string | null
   senderPhone: string | null
   jaringId: string | null
+  categoryId: string | null
   routedToFieldOfficerAssignmentId: string | null
   title: string | null
   content: string | null
@@ -63,6 +64,7 @@ export type WhatsAppMessageMinAggregateOutputType = {
   contentChecksum: string | null
   receivedAt: Date | null
   processedAt: Date | null
+  convertedBaketId: string | null
   createdAt: Date | null
 }
 
@@ -72,6 +74,7 @@ export type WhatsAppMessageMaxAggregateOutputType = {
   externalMessageId: string | null
   senderPhone: string | null
   jaringId: string | null
+  categoryId: string | null
   routedToFieldOfficerAssignmentId: string | null
   title: string | null
   content: string | null
@@ -89,6 +92,7 @@ export type WhatsAppMessageMaxAggregateOutputType = {
   contentChecksum: string | null
   receivedAt: Date | null
   processedAt: Date | null
+  convertedBaketId: string | null
   createdAt: Date | null
 }
 
@@ -98,6 +102,7 @@ export type WhatsAppMessageCountAggregateOutputType = {
   externalMessageId: number
   senderPhone: number
   jaringId: number
+  categoryId: number
   routedToFieldOfficerAssignmentId: number
   title: number
   content: number
@@ -116,6 +121,7 @@ export type WhatsAppMessageCountAggregateOutputType = {
   contentChecksum: number
   receivedAt: number
   processedAt: number
+  convertedBaketId: number
   createdAt: number
   _all: number
 }
@@ -141,6 +147,7 @@ export type WhatsAppMessageMinAggregateInputType = {
   externalMessageId?: true
   senderPhone?: true
   jaringId?: true
+  categoryId?: true
   routedToFieldOfficerAssignmentId?: true
   title?: true
   content?: true
@@ -158,6 +165,7 @@ export type WhatsAppMessageMinAggregateInputType = {
   contentChecksum?: true
   receivedAt?: true
   processedAt?: true
+  convertedBaketId?: true
   createdAt?: true
 }
 
@@ -167,6 +175,7 @@ export type WhatsAppMessageMaxAggregateInputType = {
   externalMessageId?: true
   senderPhone?: true
   jaringId?: true
+  categoryId?: true
   routedToFieldOfficerAssignmentId?: true
   title?: true
   content?: true
@@ -184,6 +193,7 @@ export type WhatsAppMessageMaxAggregateInputType = {
   contentChecksum?: true
   receivedAt?: true
   processedAt?: true
+  convertedBaketId?: true
   createdAt?: true
 }
 
@@ -193,6 +203,7 @@ export type WhatsAppMessageCountAggregateInputType = {
   externalMessageId?: true
   senderPhone?: true
   jaringId?: true
+  categoryId?: true
   routedToFieldOfficerAssignmentId?: true
   title?: true
   content?: true
@@ -211,6 +222,7 @@ export type WhatsAppMessageCountAggregateInputType = {
   contentChecksum?: true
   receivedAt?: true
   processedAt?: true
+  convertedBaketId?: true
   createdAt?: true
   _all?: true
 }
@@ -307,6 +319,7 @@ export type WhatsAppMessageGroupByOutputType = {
   externalMessageId: string
   senderPhone: string
   jaringId: string | null
+  categoryId: string | null
   routedToFieldOfficerAssignmentId: string | null
   title: string | null
   content: string | null
@@ -325,6 +338,7 @@ export type WhatsAppMessageGroupByOutputType = {
   contentChecksum: string | null
   receivedAt: Date
   processedAt: Date | null
+  convertedBaketId: string | null
   createdAt: Date
   _count: WhatsAppMessageCountAggregateOutputType | null
   _avg: WhatsAppMessageAvgAggregateOutputType | null
@@ -357,6 +371,7 @@ export type WhatsAppMessageWhereInput = {
   externalMessageId?: Prisma.StringFilter<"WhatsAppMessage"> | string
   senderPhone?: Prisma.StringFilter<"WhatsAppMessage"> | string
   jaringId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
+  categoryId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
   routedToFieldOfficerAssignmentId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
   title?: Prisma.StringNullableFilter<"WhatsAppMessage"> | string | null
   content?: Prisma.StringNullableFilter<"WhatsAppMessage"> | string | null
@@ -375,11 +390,14 @@ export type WhatsAppMessageWhereInput = {
   contentChecksum?: Prisma.StringNullableFilter<"WhatsAppMessage"> | string | null
   receivedAt?: Prisma.DateTimeFilter<"WhatsAppMessage"> | Date | string
   processedAt?: Prisma.DateTimeNullableFilter<"WhatsAppMessage"> | Date | string | null
+  convertedBaketId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WhatsAppMessage"> | Date | string
   integrationChannel?: Prisma.XOR<Prisma.IntegrationChannelScalarRelationFilter, Prisma.IntegrationChannelWhereInput>
   jaring?: Prisma.XOR<Prisma.JaringNullableScalarRelationFilter, Prisma.JaringWhereInput> | null
-  routedToFieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  category?: Prisma.XOR<Prisma.ReportCategoryNullableScalarRelationFilter, Prisma.ReportCategoryWhereInput> | null
+  routedToFieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   resolvedArea?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
+  convertedBaket?: Prisma.XOR<Prisma.BaketNullableScalarRelationFilter, Prisma.BaketWhereInput> | null
   media?: Prisma.WhatsAppMessageMediaListRelationFilter
   routingLogs?: Prisma.WhatsAppRoutingLogListRelationFilter
   baketLinks?: Prisma.BaketVersionSourceMessageListRelationFilter
@@ -392,6 +410,7 @@ export type WhatsAppMessageOrderByWithRelationInput = {
   externalMessageId?: Prisma.SortOrder
   senderPhone?: Prisma.SortOrder
   jaringId?: Prisma.SortOrderInput | Prisma.SortOrder
+  categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
   routedToFieldOfficerAssignmentId?: Prisma.SortOrderInput | Prisma.SortOrder
   title?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -410,11 +429,14 @@ export type WhatsAppMessageOrderByWithRelationInput = {
   contentChecksum?: Prisma.SortOrderInput | Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  convertedBaketId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   integrationChannel?: Prisma.IntegrationChannelOrderByWithRelationInput
   jaring?: Prisma.JaringOrderByWithRelationInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentOrderByWithRelationInput
+  category?: Prisma.ReportCategoryOrderByWithRelationInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   resolvedArea?: Prisma.AdministrativeAreaOrderByWithRelationInput
+  convertedBaket?: Prisma.BaketOrderByWithRelationInput
   media?: Prisma.WhatsAppMessageMediaOrderByRelationAggregateInput
   routingLogs?: Prisma.WhatsAppRoutingLogOrderByRelationAggregateInput
   baketLinks?: Prisma.BaketVersionSourceMessageOrderByRelationAggregateInput
@@ -423,6 +445,7 @@ export type WhatsAppMessageOrderByWithRelationInput = {
 
 export type WhatsAppMessageWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  convertedBaketId?: string
   integrationChannelId_externalMessageId?: Prisma.WhatsAppMessageIntegrationChannelIdExternalMessageIdCompoundUniqueInput
   AND?: Prisma.WhatsAppMessageWhereInput | Prisma.WhatsAppMessageWhereInput[]
   OR?: Prisma.WhatsAppMessageWhereInput[]
@@ -431,6 +454,7 @@ export type WhatsAppMessageWhereUniqueInput = Prisma.AtLeast<{
   externalMessageId?: Prisma.StringFilter<"WhatsAppMessage"> | string
   senderPhone?: Prisma.StringFilter<"WhatsAppMessage"> | string
   jaringId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
+  categoryId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
   routedToFieldOfficerAssignmentId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
   title?: Prisma.StringNullableFilter<"WhatsAppMessage"> | string | null
   content?: Prisma.StringNullableFilter<"WhatsAppMessage"> | string | null
@@ -452,13 +476,15 @@ export type WhatsAppMessageWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"WhatsAppMessage"> | Date | string
   integrationChannel?: Prisma.XOR<Prisma.IntegrationChannelScalarRelationFilter, Prisma.IntegrationChannelWhereInput>
   jaring?: Prisma.XOR<Prisma.JaringNullableScalarRelationFilter, Prisma.JaringWhereInput> | null
-  routedToFieldOfficerAssignment?: Prisma.XOR<Prisma.PositionAssignmentNullableScalarRelationFilter, Prisma.PositionAssignmentWhereInput> | null
+  category?: Prisma.XOR<Prisma.ReportCategoryNullableScalarRelationFilter, Prisma.ReportCategoryWhereInput> | null
+  routedToFieldOfficerAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentNullableScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput> | null
   resolvedArea?: Prisma.XOR<Prisma.AdministrativeAreaNullableScalarRelationFilter, Prisma.AdministrativeAreaWhereInput> | null
+  convertedBaket?: Prisma.XOR<Prisma.BaketNullableScalarRelationFilter, Prisma.BaketWhereInput> | null
   media?: Prisma.WhatsAppMessageMediaListRelationFilter
   routingLogs?: Prisma.WhatsAppRoutingLogListRelationFilter
   baketLinks?: Prisma.BaketVersionSourceMessageListRelationFilter
   validationIssues?: Prisma.WhatsAppValidationIssueListRelationFilter
-}, "id" | "integrationChannelId_externalMessageId">
+}, "id" | "convertedBaketId" | "integrationChannelId_externalMessageId">
 
 export type WhatsAppMessageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -466,6 +492,7 @@ export type WhatsAppMessageOrderByWithAggregationInput = {
   externalMessageId?: Prisma.SortOrder
   senderPhone?: Prisma.SortOrder
   jaringId?: Prisma.SortOrderInput | Prisma.SortOrder
+  categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
   routedToFieldOfficerAssignmentId?: Prisma.SortOrderInput | Prisma.SortOrder
   title?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -484,6 +511,7 @@ export type WhatsAppMessageOrderByWithAggregationInput = {
   contentChecksum?: Prisma.SortOrderInput | Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  convertedBaketId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.WhatsAppMessageCountOrderByAggregateInput
   _avg?: Prisma.WhatsAppMessageAvgOrderByAggregateInput
@@ -501,6 +529,7 @@ export type WhatsAppMessageScalarWhereWithAggregatesInput = {
   externalMessageId?: Prisma.StringWithAggregatesFilter<"WhatsAppMessage"> | string
   senderPhone?: Prisma.StringWithAggregatesFilter<"WhatsAppMessage"> | string
   jaringId?: Prisma.UuidNullableWithAggregatesFilter<"WhatsAppMessage"> | string | null
+  categoryId?: Prisma.UuidNullableWithAggregatesFilter<"WhatsAppMessage"> | string | null
   routedToFieldOfficerAssignmentId?: Prisma.UuidNullableWithAggregatesFilter<"WhatsAppMessage"> | string | null
   title?: Prisma.StringNullableWithAggregatesFilter<"WhatsAppMessage"> | string | null
   content?: Prisma.StringNullableWithAggregatesFilter<"WhatsAppMessage"> | string | null
@@ -519,6 +548,7 @@ export type WhatsAppMessageScalarWhereWithAggregatesInput = {
   contentChecksum?: Prisma.StringNullableWithAggregatesFilter<"WhatsAppMessage"> | string | null
   receivedAt?: Prisma.DateTimeWithAggregatesFilter<"WhatsAppMessage"> | Date | string
   processedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"WhatsAppMessage"> | Date | string | null
+  convertedBaketId?: Prisma.UuidNullableWithAggregatesFilter<"WhatsAppMessage"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"WhatsAppMessage"> | Date | string
 }
 
@@ -545,8 +575,10 @@ export type WhatsAppMessageCreateInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
@@ -559,6 +591,7 @@ export type WhatsAppMessageUncheckedCreateInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -577,6 +610,7 @@ export type WhatsAppMessageUncheckedCreateInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
@@ -607,8 +641,10 @@ export type WhatsAppMessageUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
@@ -621,6 +657,7 @@ export type WhatsAppMessageUncheckedUpdateInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -639,6 +676,7 @@ export type WhatsAppMessageUncheckedUpdateInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedUpdateManyWithoutMessageNestedInput
@@ -652,6 +690,7 @@ export type WhatsAppMessageCreateManyInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -670,6 +709,7 @@ export type WhatsAppMessageCreateManyInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
 }
 
@@ -702,6 +742,7 @@ export type WhatsAppMessageUncheckedUpdateManyInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -720,6 +761,7 @@ export type WhatsAppMessageUncheckedUpdateManyInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -744,6 +786,7 @@ export type WhatsAppMessageCountOrderByAggregateInput = {
   externalMessageId?: Prisma.SortOrder
   senderPhone?: Prisma.SortOrder
   jaringId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrder
   routedToFieldOfficerAssignmentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
@@ -762,6 +805,7 @@ export type WhatsAppMessageCountOrderByAggregateInput = {
   contentChecksum?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrder
+  convertedBaketId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -778,6 +822,7 @@ export type WhatsAppMessageMaxOrderByAggregateInput = {
   externalMessageId?: Prisma.SortOrder
   senderPhone?: Prisma.SortOrder
   jaringId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrder
   routedToFieldOfficerAssignmentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
@@ -795,6 +840,7 @@ export type WhatsAppMessageMaxOrderByAggregateInput = {
   contentChecksum?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrder
+  convertedBaketId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -804,6 +850,7 @@ export type WhatsAppMessageMinOrderByAggregateInput = {
   externalMessageId?: Prisma.SortOrder
   senderPhone?: Prisma.SortOrder
   jaringId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrder
   routedToFieldOfficerAssignmentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
@@ -821,6 +868,7 @@ export type WhatsAppMessageMinOrderByAggregateInput = {
   contentChecksum?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrder
+  convertedBaketId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -962,6 +1010,48 @@ export type WhatsAppMessageUncheckedUpdateManyWithoutJaringNestedInput = {
   deleteMany?: Prisma.WhatsAppMessageScalarWhereInput | Prisma.WhatsAppMessageScalarWhereInput[]
 }
 
+export type WhatsAppMessageCreateNestedManyWithoutCategoryInput = {
+  create?: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutCategoryInput, Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput> | Prisma.WhatsAppMessageCreateWithoutCategoryInput[] | Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.WhatsAppMessageCreateOrConnectWithoutCategoryInput | Prisma.WhatsAppMessageCreateOrConnectWithoutCategoryInput[]
+  createMany?: Prisma.WhatsAppMessageCreateManyCategoryInputEnvelope
+  connect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+}
+
+export type WhatsAppMessageUncheckedCreateNestedManyWithoutCategoryInput = {
+  create?: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutCategoryInput, Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput> | Prisma.WhatsAppMessageCreateWithoutCategoryInput[] | Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.WhatsAppMessageCreateOrConnectWithoutCategoryInput | Prisma.WhatsAppMessageCreateOrConnectWithoutCategoryInput[]
+  createMany?: Prisma.WhatsAppMessageCreateManyCategoryInputEnvelope
+  connect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+}
+
+export type WhatsAppMessageUpdateManyWithoutCategoryNestedInput = {
+  create?: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutCategoryInput, Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput> | Prisma.WhatsAppMessageCreateWithoutCategoryInput[] | Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.WhatsAppMessageCreateOrConnectWithoutCategoryInput | Prisma.WhatsAppMessageCreateOrConnectWithoutCategoryInput[]
+  upsert?: Prisma.WhatsAppMessageUpsertWithWhereUniqueWithoutCategoryInput | Prisma.WhatsAppMessageUpsertWithWhereUniqueWithoutCategoryInput[]
+  createMany?: Prisma.WhatsAppMessageCreateManyCategoryInputEnvelope
+  set?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  disconnect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  delete?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  connect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  update?: Prisma.WhatsAppMessageUpdateWithWhereUniqueWithoutCategoryInput | Prisma.WhatsAppMessageUpdateWithWhereUniqueWithoutCategoryInput[]
+  updateMany?: Prisma.WhatsAppMessageUpdateManyWithWhereWithoutCategoryInput | Prisma.WhatsAppMessageUpdateManyWithWhereWithoutCategoryInput[]
+  deleteMany?: Prisma.WhatsAppMessageScalarWhereInput | Prisma.WhatsAppMessageScalarWhereInput[]
+}
+
+export type WhatsAppMessageUncheckedUpdateManyWithoutCategoryNestedInput = {
+  create?: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutCategoryInput, Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput> | Prisma.WhatsAppMessageCreateWithoutCategoryInput[] | Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.WhatsAppMessageCreateOrConnectWithoutCategoryInput | Prisma.WhatsAppMessageCreateOrConnectWithoutCategoryInput[]
+  upsert?: Prisma.WhatsAppMessageUpsertWithWhereUniqueWithoutCategoryInput | Prisma.WhatsAppMessageUpsertWithWhereUniqueWithoutCategoryInput[]
+  createMany?: Prisma.WhatsAppMessageCreateManyCategoryInputEnvelope
+  set?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  disconnect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  delete?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  connect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  update?: Prisma.WhatsAppMessageUpdateWithWhereUniqueWithoutCategoryInput | Prisma.WhatsAppMessageUpdateWithWhereUniqueWithoutCategoryInput[]
+  updateMany?: Prisma.WhatsAppMessageUpdateManyWithWhereWithoutCategoryInput | Prisma.WhatsAppMessageUpdateManyWithWhereWithoutCategoryInput[]
+  deleteMany?: Prisma.WhatsAppMessageScalarWhereInput | Prisma.WhatsAppMessageScalarWhereInput[]
+}
+
 export type NullableEnumCoordinateSourceFieldUpdateOperationsInput = {
   set?: $Enums.CoordinateSource | null
 }
@@ -1018,6 +1108,48 @@ export type WhatsAppMessageUpdateOneRequiredWithoutRoutingLogsNestedInput = {
   upsert?: Prisma.WhatsAppMessageUpsertWithoutRoutingLogsInput
   connect?: Prisma.WhatsAppMessageWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.WhatsAppMessageUpdateToOneWithWhereWithoutRoutingLogsInput, Prisma.WhatsAppMessageUpdateWithoutRoutingLogsInput>, Prisma.WhatsAppMessageUncheckedUpdateWithoutRoutingLogsInput>
+}
+
+export type WhatsAppMessageCreateNestedManyWithoutConvertedBaketInput = {
+  create?: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput, Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput> | Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput[] | Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput[]
+  connectOrCreate?: Prisma.WhatsAppMessageCreateOrConnectWithoutConvertedBaketInput | Prisma.WhatsAppMessageCreateOrConnectWithoutConvertedBaketInput[]
+  createMany?: Prisma.WhatsAppMessageCreateManyConvertedBaketInputEnvelope
+  connect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+}
+
+export type WhatsAppMessageUncheckedCreateNestedManyWithoutConvertedBaketInput = {
+  create?: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput, Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput> | Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput[] | Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput[]
+  connectOrCreate?: Prisma.WhatsAppMessageCreateOrConnectWithoutConvertedBaketInput | Prisma.WhatsAppMessageCreateOrConnectWithoutConvertedBaketInput[]
+  createMany?: Prisma.WhatsAppMessageCreateManyConvertedBaketInputEnvelope
+  connect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+}
+
+export type WhatsAppMessageUpdateManyWithoutConvertedBaketNestedInput = {
+  create?: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput, Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput> | Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput[] | Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput[]
+  connectOrCreate?: Prisma.WhatsAppMessageCreateOrConnectWithoutConvertedBaketInput | Prisma.WhatsAppMessageCreateOrConnectWithoutConvertedBaketInput[]
+  upsert?: Prisma.WhatsAppMessageUpsertWithWhereUniqueWithoutConvertedBaketInput | Prisma.WhatsAppMessageUpsertWithWhereUniqueWithoutConvertedBaketInput[]
+  createMany?: Prisma.WhatsAppMessageCreateManyConvertedBaketInputEnvelope
+  set?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  disconnect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  delete?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  connect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  update?: Prisma.WhatsAppMessageUpdateWithWhereUniqueWithoutConvertedBaketInput | Prisma.WhatsAppMessageUpdateWithWhereUniqueWithoutConvertedBaketInput[]
+  updateMany?: Prisma.WhatsAppMessageUpdateManyWithWhereWithoutConvertedBaketInput | Prisma.WhatsAppMessageUpdateManyWithWhereWithoutConvertedBaketInput[]
+  deleteMany?: Prisma.WhatsAppMessageScalarWhereInput | Prisma.WhatsAppMessageScalarWhereInput[]
+}
+
+export type WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketNestedInput = {
+  create?: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput, Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput> | Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput[] | Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput[]
+  connectOrCreate?: Prisma.WhatsAppMessageCreateOrConnectWithoutConvertedBaketInput | Prisma.WhatsAppMessageCreateOrConnectWithoutConvertedBaketInput[]
+  upsert?: Prisma.WhatsAppMessageUpsertWithWhereUniqueWithoutConvertedBaketInput | Prisma.WhatsAppMessageUpsertWithWhereUniqueWithoutConvertedBaketInput[]
+  createMany?: Prisma.WhatsAppMessageCreateManyConvertedBaketInputEnvelope
+  set?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  disconnect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  delete?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  connect?: Prisma.WhatsAppMessageWhereUniqueInput | Prisma.WhatsAppMessageWhereUniqueInput[]
+  update?: Prisma.WhatsAppMessageUpdateWithWhereUniqueWithoutConvertedBaketInput | Prisma.WhatsAppMessageUpdateWithWhereUniqueWithoutConvertedBaketInput[]
+  updateMany?: Prisma.WhatsAppMessageUpdateManyWithWhereWithoutConvertedBaketInput | Prisma.WhatsAppMessageUpdateManyWithWhereWithoutConvertedBaketInput[]
+  deleteMany?: Prisma.WhatsAppMessageScalarWhereInput | Prisma.WhatsAppMessageScalarWhereInput[]
 }
 
 export type WhatsAppMessageCreateNestedOneWithoutBaketLinksInput = {
@@ -1099,7 +1231,9 @@ export type WhatsAppMessageCreateWithoutRoutedToFieldOfficerAssignmentInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
@@ -1112,6 +1246,7 @@ export type WhatsAppMessageUncheckedCreateWithoutRoutedToFieldOfficerAssignmentI
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   title?: string | null
   content?: string | null
   latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1129,6 +1264,7 @@ export type WhatsAppMessageUncheckedCreateWithoutRoutedToFieldOfficerAssignmentI
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
@@ -1171,6 +1307,7 @@ export type WhatsAppMessageScalarWhereInput = {
   externalMessageId?: Prisma.StringFilter<"WhatsAppMessage"> | string
   senderPhone?: Prisma.StringFilter<"WhatsAppMessage"> | string
   jaringId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
+  categoryId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
   routedToFieldOfficerAssignmentId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
   title?: Prisma.StringNullableFilter<"WhatsAppMessage"> | string | null
   content?: Prisma.StringNullableFilter<"WhatsAppMessage"> | string | null
@@ -1189,6 +1326,7 @@ export type WhatsAppMessageScalarWhereInput = {
   contentChecksum?: Prisma.StringNullableFilter<"WhatsAppMessage"> | string | null
   receivedAt?: Prisma.DateTimeFilter<"WhatsAppMessage"> | Date | string
   processedAt?: Prisma.DateTimeNullableFilter<"WhatsAppMessage"> | Date | string | null
+  convertedBaketId?: Prisma.UuidNullableFilter<"WhatsAppMessage"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WhatsAppMessage"> | Date | string
 }
 
@@ -1215,7 +1353,9 @@ export type WhatsAppMessageCreateWithoutResolvedAreaInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
@@ -1228,6 +1368,7 @@ export type WhatsAppMessageUncheckedCreateWithoutResolvedAreaInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -1245,6 +1386,7 @@ export type WhatsAppMessageUncheckedCreateWithoutResolvedAreaInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
@@ -1300,8 +1442,10 @@ export type WhatsAppMessageCreateWithoutJaringInput = {
   processedAt?: Date | string | null
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
@@ -1313,6 +1457,7 @@ export type WhatsAppMessageUncheckedCreateWithoutJaringInput = {
   integrationChannelId: string
   externalMessageId: string
   senderPhone: string
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -1331,6 +1476,7 @@ export type WhatsAppMessageUncheckedCreateWithoutJaringInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
@@ -1364,7 +1510,7 @@ export type WhatsAppMessageUpdateManyWithWhereWithoutJaringInput = {
   data: Prisma.XOR<Prisma.WhatsAppMessageUpdateManyMutationInput, Prisma.WhatsAppMessageUncheckedUpdateManyWithoutJaringInput>
 }
 
-export type WhatsAppMessageCreateWithoutValidationIssuesInput = {
+export type WhatsAppMessageCreateWithoutCategoryInput = {
   id?: string
   externalMessageId: string
   senderPhone: string
@@ -1387,14 +1533,16 @@ export type WhatsAppMessageCreateWithoutValidationIssuesInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
+  validationIssues?: Prisma.WhatsAppValidationIssueCreateNestedManyWithoutWhatsAppMessageInput
 }
 
-export type WhatsAppMessageUncheckedCreateWithoutValidationIssuesInput = {
+export type WhatsAppMessageUncheckedCreateWithoutCategoryInput = {
   id?: string
   integrationChannelId: string
   externalMessageId: string
@@ -1418,6 +1566,98 @@ export type WhatsAppMessageUncheckedCreateWithoutValidationIssuesInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
+  createdAt?: Date | string
+  media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
+  routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
+  baketLinks?: Prisma.BaketVersionSourceMessageUncheckedCreateNestedManyWithoutMessageInput
+  validationIssues?: Prisma.WhatsAppValidationIssueUncheckedCreateNestedManyWithoutWhatsAppMessageInput
+}
+
+export type WhatsAppMessageCreateOrConnectWithoutCategoryInput = {
+  where: Prisma.WhatsAppMessageWhereUniqueInput
+  create: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutCategoryInput, Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput>
+}
+
+export type WhatsAppMessageCreateManyCategoryInputEnvelope = {
+  data: Prisma.WhatsAppMessageCreateManyCategoryInput | Prisma.WhatsAppMessageCreateManyCategoryInput[]
+  skipDuplicates?: boolean
+}
+
+export type WhatsAppMessageUpsertWithWhereUniqueWithoutCategoryInput = {
+  where: Prisma.WhatsAppMessageWhereUniqueInput
+  update: Prisma.XOR<Prisma.WhatsAppMessageUpdateWithoutCategoryInput, Prisma.WhatsAppMessageUncheckedUpdateWithoutCategoryInput>
+  create: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutCategoryInput, Prisma.WhatsAppMessageUncheckedCreateWithoutCategoryInput>
+}
+
+export type WhatsAppMessageUpdateWithWhereUniqueWithoutCategoryInput = {
+  where: Prisma.WhatsAppMessageWhereUniqueInput
+  data: Prisma.XOR<Prisma.WhatsAppMessageUpdateWithoutCategoryInput, Prisma.WhatsAppMessageUncheckedUpdateWithoutCategoryInput>
+}
+
+export type WhatsAppMessageUpdateManyWithWhereWithoutCategoryInput = {
+  where: Prisma.WhatsAppMessageScalarWhereInput
+  data: Prisma.XOR<Prisma.WhatsAppMessageUpdateManyMutationInput, Prisma.WhatsAppMessageUncheckedUpdateManyWithoutCategoryInput>
+}
+
+export type WhatsAppMessageCreateWithoutValidationIssuesInput = {
+  id?: string
+  externalMessageId: string
+  senderPhone: string
+  title?: string | null
+  content?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Date | string | null
+  coordinateSource?: $Enums.CoordinateSource | null
+  areaResolutionMethod?: $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Date | string | null
+  status?: $Enums.WhatsAppMessageStatus
+  validationSummary?: $Enums.WhatsAppValidationSummary
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: string | null
+  receivedAt: Date | string
+  processedAt?: Date | string | null
+  createdAt?: Date | string
+  integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
+  jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
+  media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
+  routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
+  baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
+}
+
+export type WhatsAppMessageUncheckedCreateWithoutValidationIssuesInput = {
+  id?: string
+  integrationChannelId: string
+  externalMessageId: string
+  senderPhone: string
+  jaringId?: string | null
+  categoryId?: string | null
+  routedToFieldOfficerAssignmentId?: string | null
+  title?: string | null
+  content?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Date | string | null
+  coordinateSource?: $Enums.CoordinateSource | null
+  resolvedAreaId?: string | null
+  areaResolutionMethod?: $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Date | string | null
+  status?: $Enums.WhatsAppMessageStatus
+  validationSummary?: $Enums.WhatsAppValidationSummary
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: string | null
+  receivedAt: Date | string
+  processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
@@ -1463,8 +1703,10 @@ export type WhatsAppMessageUpdateWithoutValidationIssuesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
@@ -1476,6 +1718,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutValidationIssuesInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1494,6 +1737,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutValidationIssuesInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedUpdateManyWithoutMessageNestedInput
@@ -1523,8 +1767,10 @@ export type WhatsAppMessageCreateWithoutMediaInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
   validationIssues?: Prisma.WhatsAppValidationIssueCreateNestedManyWithoutWhatsAppMessageInput
@@ -1536,6 +1782,7 @@ export type WhatsAppMessageUncheckedCreateWithoutMediaInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -1554,6 +1801,7 @@ export type WhatsAppMessageUncheckedCreateWithoutMediaInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageUncheckedCreateNestedManyWithoutMessageInput
@@ -1599,8 +1847,10 @@ export type WhatsAppMessageUpdateWithoutMediaInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
   validationIssues?: Prisma.WhatsAppValidationIssueUpdateManyWithoutWhatsAppMessageNestedInput
@@ -1612,6 +1862,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutMediaInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1630,6 +1881,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutMediaInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUncheckedUpdateManyWithoutMessageNestedInput
@@ -1659,8 +1911,10 @@ export type WhatsAppMessageCreateWithoutRoutingLogsInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
   validationIssues?: Prisma.WhatsAppValidationIssueCreateNestedManyWithoutWhatsAppMessageInput
@@ -1672,6 +1926,7 @@ export type WhatsAppMessageUncheckedCreateWithoutRoutingLogsInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -1690,6 +1945,7 @@ export type WhatsAppMessageUncheckedCreateWithoutRoutingLogsInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageUncheckedCreateNestedManyWithoutMessageInput
@@ -1735,8 +1991,10 @@ export type WhatsAppMessageUpdateWithoutRoutingLogsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
   validationIssues?: Prisma.WhatsAppValidationIssueUpdateManyWithoutWhatsAppMessageNestedInput
@@ -1748,6 +2006,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutRoutingLogsInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1766,10 +2025,101 @@ export type WhatsAppMessageUncheckedUpdateWithoutRoutingLogsInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUncheckedUpdateManyWithoutMessageNestedInput
   validationIssues?: Prisma.WhatsAppValidationIssueUncheckedUpdateManyWithoutWhatsAppMessageNestedInput
+}
+
+export type WhatsAppMessageCreateWithoutConvertedBaketInput = {
+  id?: string
+  externalMessageId: string
+  senderPhone: string
+  title?: string | null
+  content?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Date | string | null
+  coordinateSource?: $Enums.CoordinateSource | null
+  areaResolutionMethod?: $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Date | string | null
+  status?: $Enums.WhatsAppMessageStatus
+  validationSummary?: $Enums.WhatsAppValidationSummary
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: string | null
+  receivedAt: Date | string
+  processedAt?: Date | string | null
+  createdAt?: Date | string
+  integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
+  jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
+  routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
+  baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
+  validationIssues?: Prisma.WhatsAppValidationIssueCreateNestedManyWithoutWhatsAppMessageInput
+}
+
+export type WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput = {
+  id?: string
+  integrationChannelId: string
+  externalMessageId: string
+  senderPhone: string
+  jaringId?: string | null
+  categoryId?: string | null
+  routedToFieldOfficerAssignmentId?: string | null
+  title?: string | null
+  content?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Date | string | null
+  coordinateSource?: $Enums.CoordinateSource | null
+  resolvedAreaId?: string | null
+  areaResolutionMethod?: $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Date | string | null
+  status?: $Enums.WhatsAppMessageStatus
+  validationSummary?: $Enums.WhatsAppValidationSummary
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: string | null
+  receivedAt: Date | string
+  processedAt?: Date | string | null
+  createdAt?: Date | string
+  media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
+  routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
+  baketLinks?: Prisma.BaketVersionSourceMessageUncheckedCreateNestedManyWithoutMessageInput
+  validationIssues?: Prisma.WhatsAppValidationIssueUncheckedCreateNestedManyWithoutWhatsAppMessageInput
+}
+
+export type WhatsAppMessageCreateOrConnectWithoutConvertedBaketInput = {
+  where: Prisma.WhatsAppMessageWhereUniqueInput
+  create: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput, Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput>
+}
+
+export type WhatsAppMessageCreateManyConvertedBaketInputEnvelope = {
+  data: Prisma.WhatsAppMessageCreateManyConvertedBaketInput | Prisma.WhatsAppMessageCreateManyConvertedBaketInput[]
+  skipDuplicates?: boolean
+}
+
+export type WhatsAppMessageUpsertWithWhereUniqueWithoutConvertedBaketInput = {
+  where: Prisma.WhatsAppMessageWhereUniqueInput
+  update: Prisma.XOR<Prisma.WhatsAppMessageUpdateWithoutConvertedBaketInput, Prisma.WhatsAppMessageUncheckedUpdateWithoutConvertedBaketInput>
+  create: Prisma.XOR<Prisma.WhatsAppMessageCreateWithoutConvertedBaketInput, Prisma.WhatsAppMessageUncheckedCreateWithoutConvertedBaketInput>
+}
+
+export type WhatsAppMessageUpdateWithWhereUniqueWithoutConvertedBaketInput = {
+  where: Prisma.WhatsAppMessageWhereUniqueInput
+  data: Prisma.XOR<Prisma.WhatsAppMessageUpdateWithoutConvertedBaketInput, Prisma.WhatsAppMessageUncheckedUpdateWithoutConvertedBaketInput>
+}
+
+export type WhatsAppMessageUpdateManyWithWhereWithoutConvertedBaketInput = {
+  where: Prisma.WhatsAppMessageScalarWhereInput
+  data: Prisma.XOR<Prisma.WhatsAppMessageUpdateManyMutationInput, Prisma.WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketInput>
 }
 
 export type WhatsAppMessageCreateWithoutBaketLinksInput = {
@@ -1795,8 +2145,10 @@ export type WhatsAppMessageCreateWithoutBaketLinksInput = {
   createdAt?: Date | string
   integrationChannel: Prisma.IntegrationChannelCreateNestedOneWithoutWhatsAppMessagesInput
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   validationIssues?: Prisma.WhatsAppValidationIssueCreateNestedManyWithoutWhatsAppMessageInput
@@ -1808,6 +2160,7 @@ export type WhatsAppMessageUncheckedCreateWithoutBaketLinksInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -1826,6 +2179,7 @@ export type WhatsAppMessageUncheckedCreateWithoutBaketLinksInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
@@ -1871,8 +2225,10 @@ export type WhatsAppMessageUpdateWithoutBaketLinksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   validationIssues?: Prisma.WhatsAppValidationIssueUpdateManyWithoutWhatsAppMessageNestedInput
@@ -1884,6 +2240,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutBaketLinksInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1902,6 +2259,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutBaketLinksInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedUpdateManyWithoutMessageNestedInput
@@ -1930,8 +2288,10 @@ export type WhatsAppMessageCreateWithoutIntegrationChannelInput = {
   processedAt?: Date | string | null
   createdAt?: Date | string
   jaring?: Prisma.JaringCreateNestedOneWithoutMessagesInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
+  category?: Prisma.ReportCategoryCreateNestedOneWithoutWhatsAppMessagesInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentCreateNestedOneWithoutRoutedWhatsAppMessagesInput
   resolvedArea?: Prisma.AdministrativeAreaCreateNestedOneWithoutResolvedWhatsAppMessagesInput
+  convertedBaket?: Prisma.BaketCreateNestedOneWithoutConvertedSourceMessagesInput
   media?: Prisma.WhatsAppMessageMediaCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogCreateNestedManyWithoutMessageInput
   baketLinks?: Prisma.BaketVersionSourceMessageCreateNestedManyWithoutMessageInput
@@ -1943,6 +2303,7 @@ export type WhatsAppMessageUncheckedCreateWithoutIntegrationChannelInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -1961,6 +2322,7 @@ export type WhatsAppMessageUncheckedCreateWithoutIntegrationChannelInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedCreateNestedManyWithoutMessageInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedCreateNestedManyWithoutMessageInput
@@ -2000,6 +2362,7 @@ export type WhatsAppMessageCreateManyRoutedToFieldOfficerAssignmentInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   title?: string | null
   content?: string | null
   latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -2017,6 +2380,7 @@ export type WhatsAppMessageCreateManyRoutedToFieldOfficerAssignmentInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
 }
 
@@ -2043,7 +2407,9 @@ export type WhatsAppMessageUpdateWithoutRoutedToFieldOfficerAssignmentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
@@ -2056,6 +2422,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutRoutedToFieldOfficerAssignmentI
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -2073,6 +2440,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutRoutedToFieldOfficerAssignmentI
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedUpdateManyWithoutMessageNestedInput
@@ -2086,6 +2454,7 @@ export type WhatsAppMessageUncheckedUpdateManyWithoutRoutedToFieldOfficerAssignm
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -2103,6 +2472,7 @@ export type WhatsAppMessageUncheckedUpdateManyWithoutRoutedToFieldOfficerAssignm
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -2112,6 +2482,7 @@ export type WhatsAppMessageCreateManyResolvedAreaInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -2129,6 +2500,7 @@ export type WhatsAppMessageCreateManyResolvedAreaInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
 }
 
@@ -2155,7 +2527,9 @@ export type WhatsAppMessageUpdateWithoutResolvedAreaInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
@@ -2168,6 +2542,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutResolvedAreaInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2185,6 +2560,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutResolvedAreaInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedUpdateManyWithoutMessageNestedInput
@@ -2198,6 +2574,7 @@ export type WhatsAppMessageUncheckedUpdateManyWithoutResolvedAreaInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2215,6 +2592,7 @@ export type WhatsAppMessageUncheckedUpdateManyWithoutResolvedAreaInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -2223,6 +2601,7 @@ export type WhatsAppMessageCreateManyJaringInput = {
   integrationChannelId: string
   externalMessageId: string
   senderPhone: string
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -2241,6 +2620,7 @@ export type WhatsAppMessageCreateManyJaringInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
 }
 
@@ -2266,8 +2646,10 @@ export type WhatsAppMessageUpdateWithoutJaringInput = {
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
@@ -2279,6 +2661,248 @@ export type WhatsAppMessageUncheckedUpdateWithoutJaringInput = {
   integrationChannelId?: Prisma.StringFieldUpdateOperationsInput | string
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  coordinateSource?: Prisma.NullableEnumCoordinateSourceFieldUpdateOperationsInput | $Enums.CoordinateSource | null
+  resolvedAreaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  areaResolutionMethod?: Prisma.EnumAreaResolutionMethodFieldUpdateOperationsInput | $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumWhatsAppMessageStatusFieldUpdateOperationsInput | $Enums.WhatsAppMessageStatus
+  validationSummary?: Prisma.EnumWhatsAppValidationSummaryFieldUpdateOperationsInput | $Enums.WhatsAppValidationSummary
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  media?: Prisma.WhatsAppMessageMediaUncheckedUpdateManyWithoutMessageNestedInput
+  routingLogs?: Prisma.WhatsAppRoutingLogUncheckedUpdateManyWithoutMessageNestedInput
+  baketLinks?: Prisma.BaketVersionSourceMessageUncheckedUpdateManyWithoutMessageNestedInput
+  validationIssues?: Prisma.WhatsAppValidationIssueUncheckedUpdateManyWithoutWhatsAppMessageNestedInput
+}
+
+export type WhatsAppMessageUncheckedUpdateManyWithoutJaringInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  integrationChannelId?: Prisma.StringFieldUpdateOperationsInput | string
+  externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  coordinateSource?: Prisma.NullableEnumCoordinateSourceFieldUpdateOperationsInput | $Enums.CoordinateSource | null
+  resolvedAreaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  areaResolutionMethod?: Prisma.EnumAreaResolutionMethodFieldUpdateOperationsInput | $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumWhatsAppMessageStatusFieldUpdateOperationsInput | $Enums.WhatsAppMessageStatus
+  validationSummary?: Prisma.EnumWhatsAppValidationSummaryFieldUpdateOperationsInput | $Enums.WhatsAppValidationSummary
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type WhatsAppMessageCreateManyCategoryInput = {
+  id?: string
+  integrationChannelId: string
+  externalMessageId: string
+  senderPhone: string
+  jaringId?: string | null
+  routedToFieldOfficerAssignmentId?: string | null
+  title?: string | null
+  content?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Date | string | null
+  coordinateSource?: $Enums.CoordinateSource | null
+  resolvedAreaId?: string | null
+  areaResolutionMethod?: $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Date | string | null
+  status?: $Enums.WhatsAppMessageStatus
+  validationSummary?: $Enums.WhatsAppValidationSummary
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: string | null
+  receivedAt: Date | string
+  processedAt?: Date | string | null
+  convertedBaketId?: string | null
+  createdAt?: Date | string
+}
+
+export type WhatsAppMessageUpdateWithoutCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  coordinateSource?: Prisma.NullableEnumCoordinateSourceFieldUpdateOperationsInput | $Enums.CoordinateSource | null
+  areaResolutionMethod?: Prisma.EnumAreaResolutionMethodFieldUpdateOperationsInput | $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumWhatsAppMessageStatusFieldUpdateOperationsInput | $Enums.WhatsAppMessageStatus
+  validationSummary?: Prisma.EnumWhatsAppValidationSummaryFieldUpdateOperationsInput | $Enums.WhatsAppValidationSummary
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
+  jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
+  media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
+  routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
+  baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
+  validationIssues?: Prisma.WhatsAppValidationIssueUpdateManyWithoutWhatsAppMessageNestedInput
+}
+
+export type WhatsAppMessageUncheckedUpdateWithoutCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  integrationChannelId?: Prisma.StringFieldUpdateOperationsInput | string
+  externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  coordinateSource?: Prisma.NullableEnumCoordinateSourceFieldUpdateOperationsInput | $Enums.CoordinateSource | null
+  resolvedAreaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  areaResolutionMethod?: Prisma.EnumAreaResolutionMethodFieldUpdateOperationsInput | $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumWhatsAppMessageStatusFieldUpdateOperationsInput | $Enums.WhatsAppMessageStatus
+  validationSummary?: Prisma.EnumWhatsAppValidationSummaryFieldUpdateOperationsInput | $Enums.WhatsAppValidationSummary
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  media?: Prisma.WhatsAppMessageMediaUncheckedUpdateManyWithoutMessageNestedInput
+  routingLogs?: Prisma.WhatsAppRoutingLogUncheckedUpdateManyWithoutMessageNestedInput
+  baketLinks?: Prisma.BaketVersionSourceMessageUncheckedUpdateManyWithoutMessageNestedInput
+  validationIssues?: Prisma.WhatsAppValidationIssueUncheckedUpdateManyWithoutWhatsAppMessageNestedInput
+}
+
+export type WhatsAppMessageUncheckedUpdateManyWithoutCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  integrationChannelId?: Prisma.StringFieldUpdateOperationsInput | string
+  externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  coordinateSource?: Prisma.NullableEnumCoordinateSourceFieldUpdateOperationsInput | $Enums.CoordinateSource | null
+  resolvedAreaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  areaResolutionMethod?: Prisma.EnumAreaResolutionMethodFieldUpdateOperationsInput | $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumWhatsAppMessageStatusFieldUpdateOperationsInput | $Enums.WhatsAppMessageStatus
+  validationSummary?: Prisma.EnumWhatsAppValidationSummaryFieldUpdateOperationsInput | $Enums.WhatsAppValidationSummary
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type WhatsAppMessageCreateManyConvertedBaketInput = {
+  id?: string
+  integrationChannelId: string
+  externalMessageId: string
+  senderPhone: string
+  jaringId?: string | null
+  categoryId?: string | null
+  routedToFieldOfficerAssignmentId?: string | null
+  title?: string | null
+  content?: string | null
+  latitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Date | string | null
+  coordinateSource?: $Enums.CoordinateSource | null
+  resolvedAreaId?: string | null
+  areaResolutionMethod?: $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Date | string | null
+  status?: $Enums.WhatsAppMessageStatus
+  validationSummary?: $Enums.WhatsAppValidationSummary
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: string | null
+  receivedAt: Date | string
+  processedAt?: Date | string | null
+  createdAt?: Date | string
+}
+
+export type WhatsAppMessageUpdateWithoutConvertedBaketInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  longitude?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  gpsAccuracyMeters?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  locationCapturedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  coordinateSource?: Prisma.NullableEnumCoordinateSourceFieldUpdateOperationsInput | $Enums.CoordinateSource | null
+  areaResolutionMethod?: Prisma.EnumAreaResolutionMethodFieldUpdateOperationsInput | $Enums.AreaResolutionMethod
+  areaResolutionConfidence?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  areaResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumWhatsAppMessageStatusFieldUpdateOperationsInput | $Enums.WhatsAppMessageStatus
+  validationSummary?: Prisma.EnumWhatsAppValidationSummaryFieldUpdateOperationsInput | $Enums.WhatsAppValidationSummary
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  integrationChannel?: Prisma.IntegrationChannelUpdateOneRequiredWithoutWhatsAppMessagesNestedInput
+  jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
+  routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
+  baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
+  validationIssues?: Prisma.WhatsAppValidationIssueUpdateManyWithoutWhatsAppMessageNestedInput
+}
+
+export type WhatsAppMessageUncheckedUpdateWithoutConvertedBaketInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  integrationChannelId?: Prisma.StringFieldUpdateOperationsInput | string
+  externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2304,11 +2928,13 @@ export type WhatsAppMessageUncheckedUpdateWithoutJaringInput = {
   validationIssues?: Prisma.WhatsAppValidationIssueUncheckedUpdateManyWithoutWhatsAppMessageNestedInput
 }
 
-export type WhatsAppMessageUncheckedUpdateManyWithoutJaringInput = {
+export type WhatsAppMessageUncheckedUpdateManyWithoutConvertedBaketInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   integrationChannelId?: Prisma.StringFieldUpdateOperationsInput | string
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2335,6 +2961,7 @@ export type WhatsAppMessageCreateManyIntegrationChannelInput = {
   externalMessageId: string
   senderPhone: string
   jaringId?: string | null
+  categoryId?: string | null
   routedToFieldOfficerAssignmentId?: string | null
   title?: string | null
   content?: string | null
@@ -2353,6 +2980,7 @@ export type WhatsAppMessageCreateManyIntegrationChannelInput = {
   contentChecksum?: string | null
   receivedAt: Date | string
   processedAt?: Date | string | null
+  convertedBaketId?: string | null
   createdAt?: Date | string
 }
 
@@ -2378,8 +3006,10 @@ export type WhatsAppMessageUpdateWithoutIntegrationChannelInput = {
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   jaring?: Prisma.JaringUpdateOneWithoutMessagesNestedInput
-  routedToFieldOfficerAssignment?: Prisma.PositionAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
+  category?: Prisma.ReportCategoryUpdateOneWithoutWhatsAppMessagesNestedInput
+  routedToFieldOfficerAssignment?: Prisma.UserSeatAssignmentUpdateOneWithoutRoutedWhatsAppMessagesNestedInput
   resolvedArea?: Prisma.AdministrativeAreaUpdateOneWithoutResolvedWhatsAppMessagesNestedInput
+  convertedBaket?: Prisma.BaketUpdateOneWithoutConvertedSourceMessagesNestedInput
   media?: Prisma.WhatsAppMessageMediaUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUpdateManyWithoutMessageNestedInput
   baketLinks?: Prisma.BaketVersionSourceMessageUpdateManyWithoutMessageNestedInput
@@ -2391,6 +3021,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutIntegrationChannelInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2409,6 +3040,7 @@ export type WhatsAppMessageUncheckedUpdateWithoutIntegrationChannelInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   media?: Prisma.WhatsAppMessageMediaUncheckedUpdateManyWithoutMessageNestedInput
   routingLogs?: Prisma.WhatsAppRoutingLogUncheckedUpdateManyWithoutMessageNestedInput
@@ -2421,6 +3053,7 @@ export type WhatsAppMessageUncheckedUpdateManyWithoutIntegrationChannelInput = {
   externalMessageId?: Prisma.StringFieldUpdateOperationsInput | string
   senderPhone?: Prisma.StringFieldUpdateOperationsInput | string
   jaringId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   routedToFieldOfficerAssignmentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2439,6 +3072,7 @@ export type WhatsAppMessageUncheckedUpdateManyWithoutIntegrationChannelInput = {
   contentChecksum?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  convertedBaketId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -2506,6 +3140,7 @@ export type WhatsAppMessageSelect<ExtArgs extends runtime.Types.Extensions.Inter
   externalMessageId?: boolean
   senderPhone?: boolean
   jaringId?: boolean
+  categoryId?: boolean
   routedToFieldOfficerAssignmentId?: boolean
   title?: boolean
   content?: boolean
@@ -2524,11 +3159,14 @@ export type WhatsAppMessageSelect<ExtArgs extends runtime.Types.Extensions.Inter
   contentChecksum?: boolean
   receivedAt?: boolean
   processedAt?: boolean
+  convertedBaketId?: boolean
   createdAt?: boolean
   integrationChannel?: boolean | Prisma.IntegrationChannelDefaultArgs<ExtArgs>
   jaring?: boolean | Prisma.WhatsAppMessage$jaringArgs<ExtArgs>
+  category?: boolean | Prisma.WhatsAppMessage$categoryArgs<ExtArgs>
   routedToFieldOfficerAssignment?: boolean | Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>
   resolvedArea?: boolean | Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs>
+  convertedBaket?: boolean | Prisma.WhatsAppMessage$convertedBaketArgs<ExtArgs>
   media?: boolean | Prisma.WhatsAppMessage$mediaArgs<ExtArgs>
   routingLogs?: boolean | Prisma.WhatsAppMessage$routingLogsArgs<ExtArgs>
   baketLinks?: boolean | Prisma.WhatsAppMessage$baketLinksArgs<ExtArgs>
@@ -2542,6 +3180,7 @@ export type WhatsAppMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   externalMessageId?: boolean
   senderPhone?: boolean
   jaringId?: boolean
+  categoryId?: boolean
   routedToFieldOfficerAssignmentId?: boolean
   title?: boolean
   content?: boolean
@@ -2560,11 +3199,14 @@ export type WhatsAppMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   contentChecksum?: boolean
   receivedAt?: boolean
   processedAt?: boolean
+  convertedBaketId?: boolean
   createdAt?: boolean
   integrationChannel?: boolean | Prisma.IntegrationChannelDefaultArgs<ExtArgs>
   jaring?: boolean | Prisma.WhatsAppMessage$jaringArgs<ExtArgs>
+  category?: boolean | Prisma.WhatsAppMessage$categoryArgs<ExtArgs>
   routedToFieldOfficerAssignment?: boolean | Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>
   resolvedArea?: boolean | Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs>
+  convertedBaket?: boolean | Prisma.WhatsAppMessage$convertedBaketArgs<ExtArgs>
 }, ExtArgs["result"]["whatsAppMessage"]>
 
 export type WhatsAppMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -2573,6 +3215,7 @@ export type WhatsAppMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   externalMessageId?: boolean
   senderPhone?: boolean
   jaringId?: boolean
+  categoryId?: boolean
   routedToFieldOfficerAssignmentId?: boolean
   title?: boolean
   content?: boolean
@@ -2591,11 +3234,14 @@ export type WhatsAppMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   contentChecksum?: boolean
   receivedAt?: boolean
   processedAt?: boolean
+  convertedBaketId?: boolean
   createdAt?: boolean
   integrationChannel?: boolean | Prisma.IntegrationChannelDefaultArgs<ExtArgs>
   jaring?: boolean | Prisma.WhatsAppMessage$jaringArgs<ExtArgs>
+  category?: boolean | Prisma.WhatsAppMessage$categoryArgs<ExtArgs>
   routedToFieldOfficerAssignment?: boolean | Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>
   resolvedArea?: boolean | Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs>
+  convertedBaket?: boolean | Prisma.WhatsAppMessage$convertedBaketArgs<ExtArgs>
 }, ExtArgs["result"]["whatsAppMessage"]>
 
 export type WhatsAppMessageSelectScalar = {
@@ -2604,6 +3250,7 @@ export type WhatsAppMessageSelectScalar = {
   externalMessageId?: boolean
   senderPhone?: boolean
   jaringId?: boolean
+  categoryId?: boolean
   routedToFieldOfficerAssignmentId?: boolean
   title?: boolean
   content?: boolean
@@ -2622,15 +3269,18 @@ export type WhatsAppMessageSelectScalar = {
   contentChecksum?: boolean
   receivedAt?: boolean
   processedAt?: boolean
+  convertedBaketId?: boolean
   createdAt?: boolean
 }
 
-export type WhatsAppMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "integrationChannelId" | "externalMessageId" | "senderPhone" | "jaringId" | "routedToFieldOfficerAssignmentId" | "title" | "content" | "latitude" | "longitude" | "gpsAccuracyMeters" | "locationCapturedAt" | "coordinateSource" | "resolvedAreaId" | "areaResolutionMethod" | "areaResolutionConfidence" | "areaResolvedAt" | "status" | "validationSummary" | "rawPayload" | "contentChecksum" | "receivedAt" | "processedAt" | "createdAt", ExtArgs["result"]["whatsAppMessage"]>
+export type WhatsAppMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "integrationChannelId" | "externalMessageId" | "senderPhone" | "jaringId" | "categoryId" | "routedToFieldOfficerAssignmentId" | "title" | "content" | "latitude" | "longitude" | "gpsAccuracyMeters" | "locationCapturedAt" | "coordinateSource" | "resolvedAreaId" | "areaResolutionMethod" | "areaResolutionConfidence" | "areaResolvedAt" | "status" | "validationSummary" | "rawPayload" | "contentChecksum" | "receivedAt" | "processedAt" | "convertedBaketId" | "createdAt", ExtArgs["result"]["whatsAppMessage"]>
 export type WhatsAppMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   integrationChannel?: boolean | Prisma.IntegrationChannelDefaultArgs<ExtArgs>
   jaring?: boolean | Prisma.WhatsAppMessage$jaringArgs<ExtArgs>
+  category?: boolean | Prisma.WhatsAppMessage$categoryArgs<ExtArgs>
   routedToFieldOfficerAssignment?: boolean | Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>
   resolvedArea?: boolean | Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs>
+  convertedBaket?: boolean | Prisma.WhatsAppMessage$convertedBaketArgs<ExtArgs>
   media?: boolean | Prisma.WhatsAppMessage$mediaArgs<ExtArgs>
   routingLogs?: boolean | Prisma.WhatsAppMessage$routingLogsArgs<ExtArgs>
   baketLinks?: boolean | Prisma.WhatsAppMessage$baketLinksArgs<ExtArgs>
@@ -2640,14 +3290,18 @@ export type WhatsAppMessageInclude<ExtArgs extends runtime.Types.Extensions.Inte
 export type WhatsAppMessageIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   integrationChannel?: boolean | Prisma.IntegrationChannelDefaultArgs<ExtArgs>
   jaring?: boolean | Prisma.WhatsAppMessage$jaringArgs<ExtArgs>
+  category?: boolean | Prisma.WhatsAppMessage$categoryArgs<ExtArgs>
   routedToFieldOfficerAssignment?: boolean | Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>
   resolvedArea?: boolean | Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs>
+  convertedBaket?: boolean | Prisma.WhatsAppMessage$convertedBaketArgs<ExtArgs>
 }
 export type WhatsAppMessageIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   integrationChannel?: boolean | Prisma.IntegrationChannelDefaultArgs<ExtArgs>
   jaring?: boolean | Prisma.WhatsAppMessage$jaringArgs<ExtArgs>
+  category?: boolean | Prisma.WhatsAppMessage$categoryArgs<ExtArgs>
   routedToFieldOfficerAssignment?: boolean | Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>
   resolvedArea?: boolean | Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs>
+  convertedBaket?: boolean | Prisma.WhatsAppMessage$convertedBaketArgs<ExtArgs>
 }
 
 export type $WhatsAppMessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2655,8 +3309,10 @@ export type $WhatsAppMessagePayload<ExtArgs extends runtime.Types.Extensions.Int
   objects: {
     integrationChannel: Prisma.$IntegrationChannelPayload<ExtArgs>
     jaring: Prisma.$JaringPayload<ExtArgs> | null
-    routedToFieldOfficerAssignment: Prisma.$PositionAssignmentPayload<ExtArgs> | null
+    category: Prisma.$ReportCategoryPayload<ExtArgs> | null
+    routedToFieldOfficerAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs> | null
     resolvedArea: Prisma.$AdministrativeAreaPayload<ExtArgs> | null
+    convertedBaket: Prisma.$BaketPayload<ExtArgs> | null
     media: Prisma.$WhatsAppMessageMediaPayload<ExtArgs>[]
     routingLogs: Prisma.$WhatsAppRoutingLogPayload<ExtArgs>[]
     baketLinks: Prisma.$BaketVersionSourceMessagePayload<ExtArgs>[]
@@ -2668,6 +3324,7 @@ export type $WhatsAppMessagePayload<ExtArgs extends runtime.Types.Extensions.Int
     externalMessageId: string
     senderPhone: string
     jaringId: string | null
+    categoryId: string | null
     routedToFieldOfficerAssignmentId: string | null
     title: string | null
     content: string | null
@@ -2686,6 +3343,7 @@ export type $WhatsAppMessagePayload<ExtArgs extends runtime.Types.Extensions.Int
     contentChecksum: string | null
     receivedAt: Date
     processedAt: Date | null
+    convertedBaketId: string | null
     createdAt: Date
   }, ExtArgs["result"]["whatsAppMessage"]>
   composites: {}
@@ -3083,8 +3741,10 @@ export interface Prisma__WhatsAppMessageClient<T, Null = never, ExtArgs extends 
   readonly [Symbol.toStringTag]: "PrismaPromise"
   integrationChannel<T extends Prisma.IntegrationChannelDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.IntegrationChannelDefaultArgs<ExtArgs>>): Prisma.Prisma__IntegrationChannelClient<runtime.Types.Result.GetResult<Prisma.$IntegrationChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   jaring<T extends Prisma.WhatsAppMessage$jaringArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$jaringArgs<ExtArgs>>): Prisma.Prisma__JaringClient<runtime.Types.Result.GetResult<Prisma.$JaringPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  routedToFieldOfficerAssignment<T extends Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>>): Prisma.Prisma__PositionAssignmentClient<runtime.Types.Result.GetResult<Prisma.$PositionAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  category<T extends Prisma.WhatsAppMessage$categoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$categoryArgs<ExtArgs>>): Prisma.Prisma__ReportCategoryClient<runtime.Types.Result.GetResult<Prisma.$ReportCategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  routedToFieldOfficerAssignment<T extends Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   resolvedArea<T extends Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$resolvedAreaArgs<ExtArgs>>): Prisma.Prisma__AdministrativeAreaClient<runtime.Types.Result.GetResult<Prisma.$AdministrativeAreaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  convertedBaket<T extends Prisma.WhatsAppMessage$convertedBaketArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$convertedBaketArgs<ExtArgs>>): Prisma.Prisma__BaketClient<runtime.Types.Result.GetResult<Prisma.$BaketPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   media<T extends Prisma.WhatsAppMessage$mediaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$mediaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppMessageMediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   routingLogs<T extends Prisma.WhatsAppMessage$routingLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$routingLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppRoutingLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   baketLinks<T extends Prisma.WhatsAppMessage$baketLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WhatsAppMessage$baketLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BaketVersionSourceMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -3123,6 +3783,7 @@ export interface WhatsAppMessageFieldRefs {
   readonly externalMessageId: Prisma.FieldRef<"WhatsAppMessage", 'String'>
   readonly senderPhone: Prisma.FieldRef<"WhatsAppMessage", 'String'>
   readonly jaringId: Prisma.FieldRef<"WhatsAppMessage", 'String'>
+  readonly categoryId: Prisma.FieldRef<"WhatsAppMessage", 'String'>
   readonly routedToFieldOfficerAssignmentId: Prisma.FieldRef<"WhatsAppMessage", 'String'>
   readonly title: Prisma.FieldRef<"WhatsAppMessage", 'String'>
   readonly content: Prisma.FieldRef<"WhatsAppMessage", 'String'>
@@ -3141,6 +3802,7 @@ export interface WhatsAppMessageFieldRefs {
   readonly contentChecksum: Prisma.FieldRef<"WhatsAppMessage", 'String'>
   readonly receivedAt: Prisma.FieldRef<"WhatsAppMessage", 'DateTime'>
   readonly processedAt: Prisma.FieldRef<"WhatsAppMessage", 'DateTime'>
+  readonly convertedBaketId: Prisma.FieldRef<"WhatsAppMessage", 'String'>
   readonly createdAt: Prisma.FieldRef<"WhatsAppMessage", 'DateTime'>
 }
     
@@ -3562,22 +4224,41 @@ export type WhatsAppMessage$jaringArgs<ExtArgs extends runtime.Types.Extensions.
 }
 
 /**
+ * WhatsAppMessage.category
+ */
+export type WhatsAppMessage$categoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ReportCategory
+   */
+  select?: Prisma.ReportCategorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ReportCategory
+   */
+  omit?: Prisma.ReportCategoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReportCategoryInclude<ExtArgs> | null
+  where?: Prisma.ReportCategoryWhereInput
+}
+
+/**
  * WhatsAppMessage.routedToFieldOfficerAssignment
  */
 export type WhatsAppMessage$routedToFieldOfficerAssignmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the PositionAssignment
+   * Select specific fields to fetch from the UserSeatAssignment
    */
-  select?: Prisma.PositionAssignmentSelect<ExtArgs> | null
+  select?: Prisma.UserSeatAssignmentSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the PositionAssignment
+   * Omit specific fields from the UserSeatAssignment
    */
-  omit?: Prisma.PositionAssignmentOmit<ExtArgs> | null
+  omit?: Prisma.UserSeatAssignmentOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PositionAssignmentInclude<ExtArgs> | null
-  where?: Prisma.PositionAssignmentWhereInput
+  include?: Prisma.UserSeatAssignmentInclude<ExtArgs> | null
+  where?: Prisma.UserSeatAssignmentWhereInput
 }
 
 /**
@@ -3597,6 +4278,25 @@ export type WhatsAppMessage$resolvedAreaArgs<ExtArgs extends runtime.Types.Exten
    */
   include?: Prisma.AdministrativeAreaInclude<ExtArgs> | null
   where?: Prisma.AdministrativeAreaWhereInput
+}
+
+/**
+ * WhatsAppMessage.convertedBaket
+ */
+export type WhatsAppMessage$convertedBaketArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Baket
+   */
+  select?: Prisma.BaketSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Baket
+   */
+  omit?: Prisma.BaketOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BaketInclude<ExtArgs> | null
+  where?: Prisma.BaketWhereInput
 }
 
 /**
