@@ -12,16 +12,18 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3001}
-      LOCAL_STORAGE_ROOT: ${LOCAL_STORAGE_ROOT:-/app/storage}
-      WHATSAPP_AUTH_ROOT: ${WHATSAPP_AUTH_ROOT:-/app/wa_auth}
+      # Keep container storage paths absolute so Dokploy volume mounts never
+      # break when UI/.env values use local relative paths like ./storage.
+      LOCAL_STORAGE_ROOT: /app/storage
+      WHATSAPP_AUTH_ROOT: /app/wa_auth
       RUN_MIGRATIONS_ON_STARTUP: ${RUN_MIGRATIONS_ON_STARTUP:-true}
       RUN_SEED_ON_STARTUP: ${RUN_SEED_ON_STARTUP:-false}
       RUN_JAKARTA_SEED_ON_STARTUP: ${RUN_JAKARTA_SEED_ON_STARTUP:-false}
       WAIT_FOR_DB_TIMEOUT_MS: ${WAIT_FOR_DB_TIMEOUT_MS:-60000}
       WAIT_FOR_DB_INTERVAL_MS: ${WAIT_FOR_DB_INTERVAL_MS:-2000}
     volumes:
-      - dens_cakra_storage:${LOCAL_STORAGE_ROOT:-/app/storage}
-      - dens_cakra_wa_auth:${WHATSAPP_AUTH_ROOT:-/app/wa_auth}
+      - dens_cakra_storage:/app/storage
+      - dens_cakra_wa_auth:/app/wa_auth
     expose:
       - '${PORT:-3001}'
     healthcheck:

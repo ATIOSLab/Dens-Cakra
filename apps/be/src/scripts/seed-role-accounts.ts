@@ -370,9 +370,6 @@ function buildSeedPlan(
   provinces: ProvinceArea[],
   regencyCities: RegencyCityArea[],
 ): SeedPlan {
-  const provinceById = new Map(
-    provinces.map((province) => [province.id, province]),
-  );
   const provinceByCode = new Map(
     provinces.map((province) => [province.officialCode, province]),
   );
@@ -1465,7 +1462,46 @@ async function seedRoleAccounts() {
   const { provinces, regencyCities } = await loadAreaTopology();
   const plan = buildSeedPlan(provinces, regencyCities);
 
+  const existingAccounts = await prisma.user.findMany({
+    where: {
+      email: {
+        in: plan.accounts.map((account) => account.email),
+      },
+    },
+    select: {
+      email: true,
+      name: true,
+      emailVerified: true,
+      role: true,
+      banned: true,
+      banReason: true,
+      banExpires: true,
+      profile: {
+        select: {
+          status: true,
+        },
+      },
+    },
+  });
+  const existingAccountByEmail = new Map(
+    existingAccounts.map((account) => [account.email, account]),
+  );
+
   for (const account of plan.accounts) {
+    const existing = existingAccountByEmail.get(account.email);
+    const isSynchronized =
+      existing?.name === account.name &&
+      existing.emailVerified &&
+      existing.role === account.role &&
+      !existing.banned &&
+      existing.banReason === null &&
+      existing.banExpires === null &&
+      existing.profile?.status === UserProfileStatus.ACTIVE;
+
+    if (isSynchronized) {
+      continue;
+    }
+
     await ensureUser(account);
   }
 
