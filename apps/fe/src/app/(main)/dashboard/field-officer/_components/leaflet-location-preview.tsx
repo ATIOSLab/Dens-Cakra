@@ -43,7 +43,17 @@ export function LeafletLocationPreview({ latitude, longitude, title }: LeafletLo
         maxZoom: 19,
       }).addTo(map);
 
-      L.marker([latitude, longitude]).addTo(map).bindPopup(title);
+      const pinIcon = L.divIcon({
+        className: "dc-leaflet-location-pin",
+        html: '<span class="dc-leaflet-location-pin__body"><span class="dc-leaflet-location-pin__dot"></span></span>',
+        iconAnchor: [16, 40],
+        iconSize: [32, 40],
+        popupAnchor: [0, -36],
+      });
+
+      L.marker([latitude, longitude], { icon: pinIcon })
+        .addTo(map)
+        .bindPopup(title);
     }
 
     void mount();

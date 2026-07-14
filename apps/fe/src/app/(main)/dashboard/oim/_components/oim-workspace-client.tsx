@@ -55,6 +55,7 @@ import { BaketAdministrativeArea } from "@/features/baket/components/baket-admin
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
 import type { OimPageData, OimView } from "./oim-types";
+import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 
 const SituationMap = dynamic(() => import("./oim-situation-map").then((module) => module.OimSituationMap), {
   ssr: false,
@@ -155,10 +156,31 @@ function fmtDate(value?: string) {
     : "—";
 }
 
+function baketStatusLabel(value?: string) {
+  switch ((value ?? "").toUpperCase()) {
+    case "SENT_TO_OIM":
+      return "Sudah dikirim";
+    case "UNDER_VERIFICATION":
+      return "Sedang diverifikasi";
+    case "NEEDS_DEVELOPMENT":
+      return "Perlu pengembangan";
+    case "VERIFIED":
+      return "Terverifikasi";
+    case "REJECTED":
+      return "Ditolak";
+    case "READY_TO_SEND":
+      return "Siap dikirim";
+    case "DRAFT":
+      return "Draf";
+    default:
+      return value ?? "Belum ada";
+  }
+}
+
 function StatusBadge({ value }: { value?: string }) {
   const danger = value === "REJECTED" || value === "URGENT";
   const success = value === "VERIFIED" || value === "VALIDATED" || value?.startsWith("APPROVED");
-  const label = value === "VALIDATED" ? "FINAL" : (value ?? "BELUM ADA").replaceAll("_", " ");
+  const label = value === "VALIDATED" ? "FINAL" : baketStatusLabel(value);
   return <Badge variant={danger ? "destructive" : success ? "default" : "secondary"}>{label}</Badge>;
 }
 
@@ -357,8 +379,20 @@ function Kpis({ data }: { data: OimPageData }) {
   );
 }
 
-function Filters({ areas, mode = "baket" }: { areas?: unknown; mode?: "baket" | "verification" | "product" }) {
+function Filters({
+  areas,
+  reportCategories,
+  jaringClusters,
+  mode = "baket",
+}: {
+  areas?: unknown;
+  reportCategories?: unknown;
+  jaringClusters?: unknown;
+  mode?: "baket" | "verification" | "product";
+}) {
   const root = (areas ?? {}) as Row;
+  const categories = rows(reportCategories);
+  const clusters = rows(jaringClusters);
   const topLevel = rows(root.children);
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
   const [provinceId, setProvinceId] = useState("");
@@ -441,6 +475,26 @@ function Filters({ areas, mode = "baket" }: { areas?: unknown; mode?: "baket" | 
         <option>HIGH</option>
         <option>URGENT</option>
       </select>
+      {mode === "baket" ? (
+        <select name="categoryId" className="h-9 rounded-lg border bg-background px-3 text-sm">
+          <option value="">Semua kategori</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      {mode === "baket" ? (
+        <select name="jaringClusterId" className="h-9 rounded-lg border bg-background px-3 text-sm">
+          <option value="">Semua klaster</option>
+          {clusters.map((cluster) => (
+            <option key={cluster.id} value={cluster.id}>
+              {cluster.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
       <Input type="date" name="periodStart" aria-label="Tanggal mulai" />
       <Input type="date" name="periodEnd" aria-label="Tanggal selesai" />
       <Button type="submit" variant="outline">
@@ -474,7 +528,7 @@ function BaketList({ data }: { data: OimPageData }) {
                         borderColor: item.status === "SENT_TO_OIM" ? "#06B6D430" : "#10B98130",
                       }}
                     >
-                      {item.status.replaceAll("_", " ")}
+                      {baketStatusLabel(item.status)}
                     </span>
                     <span 
                       className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
@@ -488,7 +542,7 @@ function BaketList({ data }: { data: OimPageData }) {
                     </span>
                     
                     <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                      {item.reportCategory?.name ?? "KATEGORI SECURE"}
+                      KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
                     </span>
                     
                     <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
@@ -610,7 +664,7 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
             <div className="flex gap-2">
               <StatusBadge value={baket.status} />
               <StatusBadge value={version.urgency} />
-              <Badge variant="outline">{baket.reportCategory?.name ?? "Kategori legacy"}</Badge>
+              <Badge variant="outline">KATEGORI: {baket.reportCategory?.name ?? "Kategori legacy"}</Badge>
               <Badge variant="outline">
                 {baket.jaringCluster?.name ?? baket.primaryJaring?.cluster?.name ?? "Klaster legacy"}
               </Badge>
@@ -662,11 +716,14 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
             {primaryPhoto ? (
               <div className="space-y-2">
                 <p className="text-sm font-medium">Foto bukti</p>
-                <img
-                  src={`/api/files/${primaryPhoto.fileId ?? primaryPhoto.file?.id}`}
-                  alt={primaryPhoto.file?.originalName ?? "Foto bukti laporan Baket"}
-                  className="max-h-96 w-full rounded-lg border bg-muted object-contain"
-                />
+                <div className="max-w-sm overflow-hidden rounded-lg border bg-muted">
+                  <EvidenceImageViewer
+                    src={`/api/files/${primaryPhoto.fileId ?? primaryPhoto.file?.id}`}
+                    alt={primaryPhoto.file?.originalName ?? "Foto bukti laporan Baket"}
+                    fileName={primaryPhoto.file?.originalName ?? String(primaryPhoto.fileId ?? primaryPhoto.file?.id ?? "bukti")}
+                    caption={primaryPhoto.caption ?? primaryPhoto.file?.mimeType}
+                  />
+                </div>
               </div>
             ) : null}
           </CardContent>
@@ -699,6 +756,7 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
                     longitude={Number(version.longitude)}
                     title={version.title ?? "Lokasi Baket"}
                     areaLabel={eventAreaLabel}
+                    urgency={version.urgency}
                   />
                 </div>
               </div>
@@ -716,10 +774,11 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
                   return (
                     <div key={fileId} className="overflow-hidden rounded-lg border">
                       {isImage ? (
-                        <img
+                        <EvidenceImageViewer
                           src={`/api/files/${fileId}`}
                           alt={file.originalName ?? "Foto bukti Baket"}
-                          className="aspect-video w-full bg-muted object-cover"
+                          fileName={file.originalName ?? fileId}
+                          caption={entry.caption ?? file.mimeType}
                         />
                       ) : null}
                       <div className="p-3">
@@ -2331,7 +2390,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
       {view === "reports" && (
         <>
           <ReportStatusTabs activeStatus={data.activeStatus} />
-          <Filters areas={data.areas} />
+          <Filters areas={data.areas} reportCategories={data.reportCategories} jaringClusters={data.jaringClusters} />
           <Kpis data={data} />
           <BaketList data={data} />
         </>
@@ -2562,7 +2621,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
       )}
       {view === "map" && (
         <>
-          <Filters areas={data.areas} />
+          <Filters areas={data.areas} reportCategories={data.reportCategories} jaringClusters={data.jaringClusters} />
           <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
             <SituationMap reports={data.map} boundaries={data.boundaries} />
             <Card>

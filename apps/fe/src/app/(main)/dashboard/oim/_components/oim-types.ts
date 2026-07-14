@@ -30,6 +30,8 @@ export type OimView =
 export type OimPageData = {
   bakets?: unknown;
   baket?: unknown;
+  reportCategories?: unknown;
+  jaringClusters?: unknown;
   version?: unknown;
   verifications?: unknown;
   verification?: unknown;

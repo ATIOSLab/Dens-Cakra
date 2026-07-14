@@ -42,9 +42,11 @@ import { LocalStorageService } from '../infrastructure/local-storage.service.js'
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
+import { WhatsAppChannelScopeService } from '../whatsapp/whatsapp-channel-scope.service.js';
 
 type RuntimeState = {
   connecting: boolean;
+  credsSavePromise: Promise<void>;
   socket?: WASocket;
 };
 
@@ -67,22 +69,6 @@ type InboundMessagePayload = {
   gpsAccuracyMeters?: number;
   rawPayload?: Record<string, unknown>;
 };
-
-type BotCommandJaring = Prisma.JaringGetPayload<{
-  include: {
-    areaCoverages: {
-      include: { area: true };
-    };
-    cluster: true;
-    caretakerAssignments: {
-      include: {
-        fieldOfficerAssignment: {
-          include: { userProfile: true };
-        };
-      };
-    };
-  };
-}>;
 
 type ReportSessionStep =
   | 'AWAITING_CODE'
@@ -127,6 +113,7 @@ export class WhatsappBotRuntimeService
     private readonly jobs: AsyncJobService,
     private readonly storage: LocalStorageService,
     private readonly spatial: SpatialRepository,
+    private readonly channelScope: WhatsAppChannelScopeService,
   ) {}
 
   async onModuleInit() {
@@ -186,6 +173,7 @@ export class WhatsappBotRuntimeService
         qrCodeText: null,
         qrCodeDataUrl: null,
         pairingCode: null,
+        sessionJid: null,
         lastDisconnectedAt: new Date(),
         lastError: null,
       },
@@ -261,6 +249,7 @@ export class WhatsappBotRuntimeService
 
     const runtime: RuntimeState = {
       connecting: true,
+      credsSavePromise: Promise.resolve(),
     };
     this.runtimes.set(channel.id, runtime);
 
@@ -297,7 +286,15 @@ export class WhatsappBotRuntimeService
       });
 
       runtime.socket = socket;
-      socket.ev.on('creds.update', saveCreds);
+      socket.ev.on('creds.update', () => {
+        runtime.credsSavePromise = runtime.credsSavePromise
+          .then(() => saveCreds())
+          .catch((error: unknown) => {
+            this.logger.error(
+              `Failed to save WhatsApp credentials for ${channel.code}: ${this.messageOf(error)}`,
+            );
+          });
+      });
       socket.ev.on('connection.update', async (update) => {
         await this.handleConnectionUpdate(
           channel,
@@ -344,7 +341,7 @@ export class WhatsappBotRuntimeService
     botPhoneNumber: string | null,
   ) {
     const runtime = this.runtimes.get(channel.id);
-    if (!runtime) {
+    if (!runtime || runtime.socket !== socket) {
       return;
     }
 
@@ -407,6 +404,33 @@ export class WhatsappBotRuntimeService
     }
 
     if (connection === 'open') {
+      await runtime.credsSavePromise;
+      const creds = socket.authState.creds;
+      const hasQrAuthentication = Boolean(
+        creds.me?.id && creds.account && creds.signalIdentities?.length,
+      );
+      if (!creds.registered && !hasQrAuthentication) {
+        this.runtimes.delete(channel.id);
+        try {
+          socket.ws?.close();
+        } catch {}
+        await this.persistState(
+          channel.id,
+          {
+            connectionStatus: WhatsAppBotConnectionStatus.DISCONNECTED,
+            qrCodeText: null,
+            qrCodeDataUrl: null,
+            pairingCode: null,
+            sessionJid: null,
+            lastDisconnectedAt: new Date(),
+            lastError:
+              'Pendaftaran perangkat WhatsApp belum selesai. Hubungkan ulang dengan QR baru.',
+          },
+          IntegrationStatus.INACTIVE,
+        );
+        return;
+      }
+
       runtime.connecting = false;
       await this.persistState(
         channel.id,
@@ -445,36 +469,55 @@ export class WhatsappBotRuntimeService
 
       const statusCode = (lastDisconnect?.error as Boom | undefined)?.output
         ?.statusCode;
-      const loggedOut = statusCode === DisconnectReason.loggedOut;
+      const requiresPairing = [
+        DisconnectReason.loggedOut,
+        DisconnectReason.badSession,
+        DisconnectReason.multideviceMismatch,
+        DisconnectReason.forbidden,
+      ].includes(statusCode as DisconnectReason);
+      const reconnectDelayMs =
+        statusCode === DisconnectReason.restartRequired
+          ? 1_000
+          : statusCode === DisconnectReason.unavailableService
+            ? 30_000
+            : 10_000;
+      this.logger.warn(
+        `WhatsApp channel ${channel.code} closed with status ${statusCode ?? 'unknown'}: ${this.messageOf(lastDisconnect?.error)}`,
+      );
 
       await this.persistState(
         channel.id,
         {
-          connectionStatus: loggedOut
+          connectionStatus: requiresPairing
             ? WhatsAppBotConnectionStatus.DISCONNECTED
             : WhatsAppBotConnectionStatus.ERROR,
           qrCodeText: null,
           qrCodeDataUrl: null,
           pairingCode: null,
-          sessionJid: loggedOut ? null : undefined,
+          sessionJid: requiresPairing ? null : undefined,
           lastDisconnectedAt: new Date(),
-          lastError: loggedOut
-            ? 'WhatsApp session logged out.'
+          lastError: requiresPairing
+            ? 'Sesi WhatsApp tidak dapat digunakan. Hubungkan ulang dengan QR baru.'
             : `Connection closed with status ${statusCode ?? 'unknown'}.`,
         },
-        loggedOut ? IntegrationStatus.INACTIVE : IntegrationStatus.ERROR,
+        requiresPairing ? IntegrationStatus.INACTIVE : IntegrationStatus.ERROR,
       );
 
-      if (!loggedOut) {
+      if (!requiresPairing) {
         setTimeout(() => {
-          void this.connectChannel(channel, { force: true }).catch(
-            (error: unknown) => {
-              this.logger.error(
-                `Failed to reconnect WhatsApp channel ${channel.code}: ${this.messageOf(error)}`,
-              );
-            },
-          );
-        }, 5_000);
+          void (async () => {
+            await runtime.credsSavePromise;
+            if (this.runtimes.get(channel.id) !== runtime) {
+              return;
+            }
+
+            await this.connectChannel(channel);
+          })().catch((error: unknown) => {
+            this.logger.error(
+              `Failed to reconnect WhatsApp channel ${channel.code}: ${this.messageOf(error)}`,
+            );
+          });
+        }, reconnectDelayMs);
       }
     }
   }
@@ -754,7 +797,8 @@ export class WhatsappBotRuntimeService
     }
 
     try {
-      return normalizeIndonesianPhoneNumber(value);
+      const jidUser = value.trim().split('@')[0]?.split(':')[0];
+      return jidUser ? normalizeIndonesianPhoneNumber(jidUser) : null;
     } catch {
       return null;
     }
@@ -840,78 +884,6 @@ export class WhatsappBotRuntimeService
     });
   }
 
-  private async handleBotCommand(
-    channel: WhatsAppChannelRecord,
-    socket: WASocket,
-    message: WAMessage,
-    payload: InboundMessagePayload,
-  ) {
-    const remoteJid = message.key.remoteJid;
-    const text = payload.content?.trim() ?? '';
-
-    if (!remoteJid || text.toLowerCase() !== '/start') {
-      return;
-    }
-
-    this.logger.log(
-      `Received /start from ${payload.senderPhone} on WhatsApp channel`,
-    );
-
-    const jaring = await this.prisma.jaring.findFirst({
-      where: {
-        whatsappNumber: payload.senderPhone,
-        status: 'ACTIVE',
-        deletedAt: null,
-      },
-      include: {
-        areaCoverages: {
-          where: { validUntil: null },
-          include: { area: true },
-        },
-        cluster: true,
-        caretakerAssignments: {
-          where: { isActive: true, validUntil: null },
-          take: 1,
-          include: {
-            fieldOfficerAssignment: {
-              include: { userProfile: true },
-            },
-          },
-        },
-      },
-    });
-    const isInChannelScope = jaring
-      ? await this.isJaringAllowedForChannel(channel, jaring)
-      : false;
-
-    const caretakerName =
-      jaring?.caretakerAssignments[0]?.fieldOfficerAssignment.userProfile
-        ?.fullName ?? 'Field Officer';
-    const jaringLabel = jaring?.aliasName || jaring?.code || 'Jaring';
-    const clusterLabel = jaring?.cluster?.name
-      ? `\nCluster: ${jaring.cluster.name}`
-      : '';
-
-    const replies =
-      jaring && isInChannelScope
-        ? [
-            `Halo, ${jaringLabel}. Akun WhatsApp Anda sudah terhubung ke DENS CAKRA.${clusterLabel}`,
-            `Laporan Anda akan diterima dan diteruskan ke ${caretakerName}. Kirim teks, foto, atau lokasi sesuai kebutuhan laporan.`,
-          ]
-        : jaring
-          ? [
-              'Halo. Nomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah layanan WhatsApp ini.',
-              'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda atau hubungi Field Officer penanggung jawab.',
-            ]
-          : [
-              'Halo. Layanan DENS CAKRA sudah aktif.',
-              'Nomor WhatsApp ini belum terdaftar sebagai Jaring aktif. Silakan hubungi Field Officer untuk registrasi terlebih dahulu.',
-            ];
-
-    await this.sendHumanLikeReplies(socket, remoteJid, [message.key], replies);
-    this.logger.log(`Sent /start response to ${payload.senderPhone}`);
-  }
-
   private async handleBotInteraction(
     channel: WhatsAppChannelRecord,
     socket: WASocket,
@@ -956,11 +928,6 @@ export class WhatsappBotRuntimeService
       return true;
     }
 
-    if (text.toLowerCase() === '/start') {
-      await this.handleBotCommand(channel, socket, message, payload);
-      return true;
-    }
-
     if (this.isReportIntent(text)) {
       await this.startReportSession(
         channel,
@@ -972,7 +939,7 @@ export class WhatsappBotRuntimeService
       return true;
     }
 
-    return false;
+    return true;
   }
 
   private async startReportSession(
@@ -989,19 +956,13 @@ export class WhatsappBotRuntimeService
 
     const jaring = await this.findActiveJaring(payload.senderPhone);
     const isInChannelScope = jaring
-      ? await this.isJaringAllowedForChannel(channel, jaring)
+      ? await this.channelScope.isJaringAllowed(
+          channel,
+          jaring.areaCoverages.map((coverage) => coverage.areaId),
+        )
       : false;
 
     if (!jaring) {
-      await this.sendHumanLikeReplies(
-        socket,
-        remoteJid,
-        [message.key],
-        [
-          'Akses Ditolak\n\nNomor WhatsApp Anda belum terdaftar sebagai Jaring aktif.',
-          `Nomor WhatsApp Anda: ${payload.senderPhone}\n\nSilakan hubungi Field Officer untuk registrasi terlebih dahulu.`,
-        ],
-      );
       return;
     }
 
@@ -1245,10 +1206,7 @@ export class WhatsappBotRuntimeService
   }
 
   private isReportIntent(text: string) {
-    const command = text.trim().split(/\s+/)[0]?.toLowerCase();
-    return (
-      command === 'lapor' || command === '/lapor' || command === '/laporan'
-    );
+    return text.trim().toLowerCase() === 'lapor';
   }
 
   private isCancelIntent(text: string) {
@@ -1449,61 +1407,6 @@ export class WhatsappBotRuntimeService
         },
       },
     });
-  }
-
-  private async isJaringAllowedForChannel(
-    channel: WhatsAppChannelRecord,
-    jaring: BotCommandJaring,
-  ) {
-    const config = this.readConfig(channel.config);
-    const userId = typeof config.userId === 'string' ? config.userId : null;
-
-    if (!userId) {
-      return true;
-    }
-
-    const channelUser = await this.prisma.userProfile.findUnique({
-      where: { id: userId },
-      include: {
-        positionAssignments: {
-          where: { isActive: true, validUntil: null },
-          include: {
-            areaScopes: {
-              where: { validUntil: null },
-              select: { areaId: true },
-            },
-          },
-        },
-      },
-    });
-
-    const channelAreaIds =
-      channelUser?.positionAssignments.flatMap((assignment) =>
-        assignment.areaScopes.map((scope) => scope.areaId),
-      ) ?? [];
-    const jaringAreaIds = jaring.areaCoverages.map(
-      (coverage) => coverage.areaId,
-    );
-
-    if (channelAreaIds.length === 0 || jaringAreaIds.length === 0) {
-      return true;
-    }
-
-    if (jaringAreaIds.some((areaId) => channelAreaIds.includes(areaId))) {
-      return true;
-    }
-
-    const ancestorMatch = await this.prisma.administrativeAreaClosure.findFirst(
-      {
-        where: {
-          ancestorId: { in: channelAreaIds },
-          descendantId: { in: jaringAreaIds },
-        },
-        select: { ancestorId: true },
-      },
-    );
-
-    return Boolean(ancestorMatch);
   }
 
   private async sendHumanLikeReplies(

@@ -309,6 +309,10 @@ These serve as the fallback; there is no separate default.css file. */
     cursor: not-allowed !important;
   }
 
+  [data-slot="command-item"][data-disabled="false"] {
+    cursor: pointer !important;
+  }
+
   ::selection {
     background: var(--dc-primary-soft);
     color: var(--dc-text-primary);
@@ -634,6 +638,83 @@ html {
 
 .disable-transitions * {
   transition: none !important;
+}
+
+/* Shared priority colors for every dashboard surface. */
+.dc-priority {
+  border-color: color-mix(in srgb, var(--dc-priority-color) 48%, transparent) !important;
+  background-color: color-mix(in srgb, var(--dc-priority-color) 12%, transparent) !important;
+  color: var(--dc-priority-color) !important;
+}
+
+.dc-priority[data-priority="LOW"] {
+  --dc-priority-color: #2563eb;
+}
+
+.dc-priority[data-priority="NORMAL"] {
+  --dc-priority-color: #16a34a;
+}
+
+.dc-priority[data-priority="HIGH"] {
+  --dc-priority-color: #ca8a04;
+}
+
+.dc-priority[data-priority="URGENT"] {
+  --dc-priority-color: #dc2626;
+}
+
+.dark .dc-priority[data-priority="LOW"] {
+  --dc-priority-color: #60a5fa;
+}
+
+.dark .dc-priority[data-priority="NORMAL"] {
+  --dc-priority-color: #4ade80;
+}
+
+.dark .dc-priority[data-priority="HIGH"] {
+  --dc-priority-color: #facc15;
+}
+
+.dark .dc-priority[data-priority="URGENT"] {
+  --dc-priority-color: #f87171;
+}
+
+.dc-leaflet-location-pin {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.dc-leaflet-location-pin__body {
+  position: relative;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+}
+
+.dc-leaflet-location-pin__body::after {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 3px solid #ffffff;
+  border-bottom: 3px solid #ffffff;
+  border-radius: 0 0 4px 0;
+  background: #dc2626;
+  content: "";
+}
+
+.dc-leaflet-location-pin__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ffffff;
 }
 
 /* ==========================================
