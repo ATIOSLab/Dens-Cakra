@@ -33,6 +33,7 @@
     "seed:wilayah-boundaries": "npm run build && node dist/src/scripts/seed-wilayah-boundaries.js",
     "seed:str-hierarchy": "npm run build && node dist/src/scripts/seed-str-hierarchy.js",
     "seed:baket": "npm run build && node dist/src/scripts/seed-baket.js",
+    "seed:demo:jakarta": "npm run build && node dist/src/scripts/seed-jakarta-demo.js",
     "seed:all": "npm run build && node dist/src/scripts/seed-all.js",
     "repair:baket-intake": "npm run build && node dist/src/scripts/repair-baket-intake-duplicates.js",
     "repair:baket-areas": "npm run build && node dist/src/scripts/repair-baket-area-resolution.js"

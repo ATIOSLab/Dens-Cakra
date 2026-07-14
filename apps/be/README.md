@@ -40,6 +40,22 @@ npm run seed:admin
 npm run start:dev
 ```
 
+## Dokploy Deployment
+
+- Use compose path `apps/be/docker-compose.dokploy.yml`.
+- Keep routing/domain setup in Dokploy's Domains UI instead of adding Traefik labels manually.
+- Dokploy writes panel environment variables to a `.env` file; this compose loads them with `env_file: .env` and only adds a few startup defaults.
+- Recommended startup flags in Dokploy:
+  - `RUN_MIGRATIONS_ON_STARTUP=true`
+  - `RUN_SEED_ON_STARTUP=false`
+  - `RUN_JAKARTA_SEED_ON_STARTUP=false`
+- `RUN_SEED_ON_STARTUP=true` runs the full baseline seed (`master -> wilayah -> accounts -> STR hierarchy -> Baket`).
+- `RUN_JAKARTA_SEED_ON_STARTUP=true` runs only the DKI Jakarta presentation dataset. It requires the baseline data to exist first.
+- For a fresh presentation database, set all three flags to `true` for one deployment. The baseline runs before the Jakarta seed.
+- For an existing initialized database, use `RUN_SEED_ON_STARTUP=false` and `RUN_JAKARTA_SEED_ON_STARTUP=true` to add only Jakarta data.
+- After the initial seed deployment, switch both seed flags back to `false` to avoid unnecessary startup work.
+- The container persists upload data and WhatsApp auth state through Docker named volumes.
+
 ## Main Endpoints
 
 - `GET /v1/health`
