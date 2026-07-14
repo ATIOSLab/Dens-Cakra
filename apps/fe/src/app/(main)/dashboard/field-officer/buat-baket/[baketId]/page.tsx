@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { administrativeAreaLabel } from "@/features/baket/administrative-area";
 import { BaketAdministrativeArea } from "@/features/baket/components/baket-administrative-area";
 import { BaketLocationMap } from "@/features/baket/components/baket-location-map";
+import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
@@ -94,9 +95,7 @@ export default async function Page({ params }: PageProps) {
       <Card>
         <CardHeader>
           <CardTitle>Peta lokasi kejadian</CardTitle>
-          <CardDescription>
-            {areaLabel} · {hasCoordinates ? `${latitude}, ${longitude}` : "Koordinat tidak tersedia"}
-          </CardDescription>
+          <CardDescription>{areaLabel}</CardDescription>
         </CardHeader>
         <CardContent>
           {hasCoordinates ? (
@@ -106,6 +105,7 @@ export default async function Page({ params }: PageProps) {
                 longitude={longitude}
                 title={version.title ?? "Lokasi Baket"}
                 areaLabel={areaLabel}
+                urgency={version.urgency}
               />
             </div>
           ) : (
@@ -129,10 +129,11 @@ export default async function Page({ params }: PageProps) {
                 return (
                   <div key={fileId} className="overflow-hidden rounded-lg border">
                     {String(file.mimeType ?? "").startsWith("image/") ? (
-                      <img
+                      <EvidenceImageViewer
                         src={`/api/files/${fileId}`}
                         alt={file.originalName ?? "Foto evidence Baket"}
-                        className="aspect-video w-full object-cover"
+                        fileName={file.originalName ?? entry.caption ?? "Evidence Baket"}
+                        caption={entry.caption}
                       />
                     ) : null}
                     <p className="p-3 text-sm">{file.originalName ?? entry.caption ?? "Evidence Baket"}</p>

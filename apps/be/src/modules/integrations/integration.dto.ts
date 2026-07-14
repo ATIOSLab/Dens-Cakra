@@ -8,6 +8,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   Max,
   MaxLength,
@@ -39,6 +40,7 @@ export class UpdateWhatsappControlDto {
   @IsOptional() @IsString() @MaxLength(180) botLabel?: string;
   @IsOptional() @IsString() @MaxLength(120) provider?: string;
   @IsOptional() @IsString() @MaxLength(30) botPhoneNumber?: string;
+  @IsOptional() @IsUUID() userId?: string;
   @IsOptional() @IsIn(['qr', 'code']) pairingMethod?: 'qr' | 'code';
   @IsOptional()
   @IsArray()

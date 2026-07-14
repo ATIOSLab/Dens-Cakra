@@ -3530,9 +3530,10 @@ export function TaskDetailClient({
             </Badge>
             <Badge
               variant="outline"
-              className="border-[var(--dc-warning)]/40 text-[var(--dc-warning)] bg-[var(--dc-warning-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+              className="dc-priority font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+              data-priority={(task.priority || "NORMAL").toUpperCase()}
             >
-              {task.priority || "MEDIUM"}
+              {task.priority || "NORMAL"}
             </Badge>
             <Badge
               variant="outline"
@@ -3608,7 +3609,12 @@ export function TaskDetailClient({
               </div>
               <div className="space-y-1">
                 <div className="text-muted-foreground/60 text-[9px] uppercase">Level</div>
-                <div className="text-[var(--dc-text-primary)] font-semibold truncate">{task.priority || "MEDIUM"}</div>
+                <div
+                  className="dc-priority font-semibold truncate"
+                  data-priority={(task.priority || "NORMAL").toUpperCase()}
+                >
+                  {task.priority || "NORMAL"}
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="text-muted-foreground/60 text-[9px] uppercase">Classification</div>

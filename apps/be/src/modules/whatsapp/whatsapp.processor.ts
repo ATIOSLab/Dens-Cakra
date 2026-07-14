@@ -9,6 +9,7 @@ import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normali
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JobHandlerRegistry } from '../runtime/job-handler.registry.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
+import { WhatsAppChannelScopeService } from './whatsapp-channel-scope.service.js';
 type MessagePayload = {
   externalMessageId: string;
   senderPhone: string;
@@ -26,6 +27,7 @@ export class WhatsAppProcessor implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly handlers: JobHandlerRegistry,
     private readonly spatial: SpatialRepository,
+    private readonly channelScope: WhatsAppChannelScopeService,
   ) {}
   onModuleInit() {
     this.handlers.register('WHATSAPP_PROCESS', (payload) =>
@@ -35,6 +37,7 @@ export class WhatsAppProcessor implements OnModuleInit {
   private async process(input: { eventId: string; message: MessagePayload }) {
     const event = await this.prisma.integrationWebhookEvent.findUniqueOrThrow({
       where: { id: input.eventId },
+      include: { channel: true },
     });
     const phone = normalizeIndonesianPhoneNumber(input.message.senderPhone);
     const jaring = await this.prisma.jaring.findFirst({
@@ -44,8 +47,26 @@ export class WhatsAppProcessor implements OnModuleInit {
           where: { isActive: true, validUntil: null },
           take: 1,
         },
+        areaCoverages: {
+          where: { validUntil: null },
+          select: { areaId: true },
+        },
       },
     });
+    const isInChannelScope = jaring
+      ? await this.channelScope.isJaringAllowed(
+          event.channel,
+          jaring.areaCoverages.map((coverage) => coverage.areaId),
+        )
+      : false;
+
+    if (!jaring || !isInChannelScope) {
+      await this.prisma.integrationWebhookEvent.update({
+        where: { id: event.id },
+        data: { processedAt: new Date(), success: true, errorMessage: null },
+      });
+      return { messageId: null, ignored: true };
+    }
     const hasCoordinates =
       Number.isFinite(input.message.latitude) &&
       Number.isFinite(input.message.longitude);
@@ -75,9 +96,9 @@ export class WhatsAppProcessor implements OnModuleInit {
         integrationChannelId: event.channelId,
         externalMessageId: input.message.externalMessageId,
         senderPhone: phone,
-        jaringId: jaring?.id,
+        jaringId: jaring.id,
         routedToFieldOfficerAssignmentId:
-          jaring?.caretakerAssignments[0]?.fieldOfficerAssignmentId,
+          jaring.caretakerAssignments[0]?.fieldOfficerAssignmentId,
         title: input.message.title,
         content: input.message.content,
         latitude: input.message.latitude,
@@ -89,9 +110,7 @@ export class WhatsAppProcessor implements OnModuleInit {
             : null,
         areaResolutionMethod: AreaResolutionMethod.UNRESOLVED,
         ...areaResolutionData,
-        status: jaring
-          ? WhatsAppMessageStatus.RECEIVED
-          : WhatsAppMessageStatus.UNKNOWN_SENDER,
+        status: WhatsAppMessageStatus.RECEIVED,
         rawPayload: (input.message.rawPayload ??
           input.message) as unknown as Prisma.InputJsonValue,
         receivedAt: new Date(input.message.receivedAt),

@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import type {
   FieldOfficerIncoming,
   FieldOfficerTask,
@@ -64,6 +65,19 @@ import { LeafletLocationPreview } from "./leaflet-location-preview";
 type FieldOfficerView = "overview" | "tasks" | "jaring" | "incoming" | "baket" | "reports" | "map" | "alert";
 
 const FORWARDED_STORAGE_KEY = "dens-cakra-forwarded-assignments";
+const EMPTY_BAKET_FILTERS = {
+  categoryId: "",
+  jaringClusterId: "",
+  from: "",
+  to: "",
+};
+
+type PendingFieldOfficerAction = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+};
 
 function formatDateTime(value?: string | null) {
   if (!value) {
@@ -74,6 +88,27 @@ function formatDateTime(value?: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function baketStatusLabel(status?: string | null) {
+  switch ((status || "").toUpperCase()) {
+    case "DRAFT":
+      return "Draf";
+    case "READY_TO_SEND":
+      return "Siap dikirim";
+    case "SENT_TO_OIM":
+      return "Sudah dikirim";
+    case "UNDER_VERIFICATION":
+      return "Sedang diverifikasi";
+    case "NEEDS_DEVELOPMENT":
+      return "Perlu pengembangan";
+    case "VERIFIED":
+      return "Terverifikasi";
+    case "REJECTED":
+      return "Ditolak";
+    default:
+      return status || "-";
+  }
 }
 
 function statusTone(status: string) {
@@ -149,8 +184,11 @@ export function FieldOfficerOperationsPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState<string | null>(null);
   const [baketTab, setBaketTab] = useState(
-    view === "reports" ? "sent" : "ready",
+    view === "reports" ? "sent" : "ready-to-send",
   );
+  const [readyToSendPage, setReadyToSendPage] = useState(1);
+  const [sentPage, setSentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
   const [forwardedAssignments, setForwardedAssignments] = useState<string[]>(
     [],
   );
@@ -163,6 +201,10 @@ export function FieldOfficerOperationsPage({
     areaId: "",
   });
   const [showSaveJaringConfirm, setShowSaveJaringConfirm] = useState(false);
+  const [baketFilterDraft, setBaketFilterDraft] = useState(EMPTY_BAKET_FILTERS);
+  const [appliedBaketFilters, setAppliedBaketFilters] = useState(EMPTY_BAKET_FILTERS);
+  const [pendingAction, setPendingAction] =
+    useState<PendingFieldOfficerAction | null>(null);
 
   useEffect(() => {
     const raw = window.sessionStorage.getItem(FORWARDED_STORAGE_KEY);
@@ -178,10 +220,16 @@ export function FieldOfficerOperationsPage({
     }
   }, []);
 
-  const loadWorkspace = async () => {
+  const loadWorkspace = async (filters = appliedBaketFilters) => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/field-officer/workspace", {
+      const params = new URLSearchParams();
+      if (filters.categoryId) params.set("categoryId", filters.categoryId);
+      if (filters.jaringClusterId) params.set("jaringClusterId", filters.jaringClusterId);
+      if (filters.from) params.set("from", filters.from);
+      if (filters.to) params.set("to", filters.to);
+
+      const response = await fetch(`/api/field-officer/workspace${params.toString() ? `?${params.toString()}` : ""}`, {
         cache: "no-store",
       });
       const body = (await response.json()) as
@@ -209,8 +257,8 @@ export function FieldOfficerOperationsPage({
   };
 
   useEffect(() => {
-    void loadWorkspace();
-  }, []);
+    void loadWorkspace(appliedBaketFilters);
+  }, [appliedBaketFilters]);
 
   const metrics = useMemo(() => {
     if (!workspace) {
@@ -226,9 +274,11 @@ export function FieldOfficerOperationsPage({
       pendingIncoming: workspace.incoming.filter(
         (item) => item.validationSummary !== "VALID",
       ).length,
-      readyToSendBakets: workspace.bakets.filter(
-        (item) => item.status === "DRAFT" || item.status === "READY_TO_SEND",
-      ).length,
+      readyToSendBakets:
+        workspace.baketCandidates.length +
+        workspace.bakets.filter(
+          (item) => item.status === "DRAFT" || item.status === "READY_TO_SEND",
+        ).length,
     };
   }, [workspace]);
 
@@ -248,6 +298,8 @@ export function FieldOfficerOperationsPage({
       ) ?? [],
     [workspace],
   );
+  const pendingOutgoingCount =
+    (workspace?.baketCandidates.length ?? 0) + readyToSendBakets.length;
 
   const runAction = async (key: string, callback: () => Promise<void>) => {
     try {
@@ -352,7 +404,7 @@ export function FieldOfficerOperationsPage({
       if (!response.ok) {
         throw new Error(
           (body && "message" in body ? body.message : null) ||
-            "Gagal memvalidasi laporan.",
+          "Gagal memvalidasi laporan.",
         );
       }
 
@@ -360,8 +412,8 @@ export function FieldOfficerOperationsPage({
         body && "validationSummary" in body ? body.validationSummary : null;
       setActionNotice(
         result === "VALID"
-          ? "Validasi berhasil. Laporan sudah lengkap dan siap dibuat menjadi Baket."
-          : "Validasi selesai. Cek badge dan kelengkapan laporan sebelum dibuat menjadi Baket.",
+          ? "Validasi berhasil. Laporan sudah lengkap dan langsung masuk ke antrian Siap Dikirim."
+          : "Validasi selesai. Cek badge dan kelengkapan laporan sebelum dimasukkan ke antrian Siap Dikirim.",
       );
     });
   };
@@ -500,6 +552,10 @@ export function FieldOfficerOperationsPage({
     });
   };
 
+  const requestConfirmation = (action: PendingFieldOfficerAction) => {
+    setPendingAction(action);
+  };
+
   const mapPoints = useMemo(() => {
     if (!workspace) {
       return [];
@@ -518,15 +574,15 @@ export function FieldOfficerOperationsPage({
 
     const ownPoint = workspace.latestLocation
       ? [
-          {
-            id: workspace.latestLocation.id,
-            kind: "self" as const,
-            latitude: workspace.latestLocation.latitude,
-            longitude: workspace.latestLocation.longitude,
-            title: "Posisi Saya",
-            subtitle: workspace.latestLocation.areaName || "Lokasi terbaru",
-          },
-        ]
+        {
+          id: workspace.latestLocation.id,
+          kind: "self" as const,
+          latitude: workspace.latestLocation.latitude,
+          longitude: workspace.latestLocation.longitude,
+          title: "Posisi Saya",
+          subtitle: workspace.latestLocation.areaName || "Lokasi terbaru",
+        },
+      ]
       : [];
 
     return [...ownPoint, ...incomingPoints];
@@ -546,6 +602,34 @@ export function FieldOfficerOperationsPage({
 
     return [lng, lat] as [number, number];
   }, [mapPoints]);
+
+  const PaginationControls = ({ currentPage, totalItems, setPage }: { currentPage: number, totalItems: number, setPage: (p: number) => void }) => {
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex justify-between items-center mt-4 border-t border-[var(--tactical-border)] pt-4">
+        <span className="text-xs text-[var(--tactical-text-muted)] font-mono">
+          PAGE {currentPage} OF {totalPages} &middot; TOTAL {totalItems}
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 text-xs font-mono font-medium rounded border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] hover:bg-[var(--tactical-text-secondary)]/10 disabled:opacity-50 transition-colors cursor-pointer"
+          >
+            PREV
+          </button>
+          <button
+            onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 text-xs font-mono font-medium rounded border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] hover:bg-[var(--tactical-text-secondary)]/10 disabled:opacity-50 transition-colors cursor-pointer"
+          >
+            NEXT
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -682,17 +766,14 @@ export function FieldOfficerOperationsPage({
                 <span className="size-1.5 rounded-full bg-[var(--tactical-green)] animate-pulse" />
                 LIVE
               </div>
-              <span className="tactical-badge px-2 py-0.5 rounded-[3px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                {workspace.profile.role.toUpperCase()}
-              </span>
             </div>
             <p className="text-sm text-[var(--tactical-text-secondary)] mt-1.5 font-mono">
-              {workspace.context.positionTitle.toUpperCase()} &middot; {workspace.context.organizationUnitName.toUpperCase()}
+              {workspace.context.positionTitle.toUpperCase()}
             </p>
           </div>
 
           {/* Mission Status Strip */}
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 border-t border-[var(--tactical-border)] pt-4 mt-2 font-mono">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 border-t border-[var(--tactical-border)] pt-4 mt-2 font-mono">
             <div className="space-y-1">
               <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--tactical-text-muted)] block">
                 STATUS
@@ -709,14 +790,6 @@ export function FieldOfficerOperationsPage({
                 {workspace.latestLocation
                   ? formatDateTime(workspace.latestLocation.capturedAt)
                   : "N/A"}
-              </p>
-            </div>
-            <div className="space-y-1 md:border-l md:border-[var(--tactical-border)] md:pl-4">
-              <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--tactical-text-muted)] block">
-                ASSIGNMENT ID
-              </span>
-              <p className="text-xs text-[var(--tactical-text-secondary)] truncate" title={workspace.context.primaryAssignmentId}>
-                {workspace.context.primaryAssignmentId.slice(0, 8).toUpperCase()}...
               </p>
             </div>
             <div className="space-y-1 md:border-l md:border-[var(--tactical-border)] md:pl-4">
@@ -747,7 +820,17 @@ export function FieldOfficerOperationsPage({
             </span>
             <button
               disabled={isBusy === "location:publish"}
-              onClick={() => void publishOwnLocation()}
+              onClick={() =>
+                requestConfirmation({
+                  title: "KONFIRMASI SYNC GPS",
+                  description:
+                    "Kirim posisi GPS terbaru Anda ke workspace lapangan sekarang?",
+                  confirmLabel: "YA, KIRIM",
+                  onConfirm: () => {
+                    void publishOwnLocation();
+                  },
+                })
+              }
               className="h-8 px-3 rounded-[6px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] font-semibold font-mono text-[10px] transition-all duration-200 hover:-translate-y-[0.5px] hover:brightness-105 disabled:opacity-50 uppercase shrink-0 cursor-pointer"
             >
               SYNC GPS
@@ -773,7 +856,7 @@ export function FieldOfficerOperationsPage({
       )}
 
       {/* MODULES LIST */}
-      
+
       {/* MOD-01: TUGAS SAYA */}
       {(view === "overview" || view === "tasks") && (
         <>
@@ -828,237 +911,264 @@ export function FieldOfficerOperationsPage({
               { label: "AKTIF", value: metrics.activeJaring }
             ]}
           >
-          <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-            {/* Registrasi Jaring Baru Form */}
-            <div className="tactical-card space-y-4">
-              <h3 className="text-lg font-semibold tracking-tight text-[var(--tactical-text-primary)] border-b border-[var(--tactical-border)] pb-2">
-                Registrasi Jaring Baru
-              </h3>
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
-                    Kode Jaring
-                  </label>
-                  <Input
-                    className="tactical-input w-full"
-                    placeholder="Contoh: J-01"
-                    value={jaringForm.code}
-                    onChange={(event) =>
-                      setJaringForm((current) => ({
-                        ...current,
-                        code: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
-                    Alias / Nama Sandi
-                  </label>
-                  <Input
-                    className="tactical-input w-full"
-                    placeholder="Contoh: Elang Malam"
-                    value={jaringForm.aliasName}
-                    onChange={(event) =>
-                      setJaringForm((current) => ({
-                        ...current,
-                        aliasName: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
-                    Nomor WhatsApp
-                  </label>
-                  <Input
-                    className="tactical-input w-full"
-                    placeholder="Contoh: 628123456789"
-                    value={jaringForm.whatsappNumber}
-                    onChange={(event) =>
-                      setJaringForm((current) => ({
-                        ...current,
-                        whatsappNumber: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
-                    Cluster Jaring
-                  </label>
-                  <select
-                    className="flex h-10 w-full tactical-input px-3 text-sm text-[var(--tactical-text-primary)] focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition-all font-mono"
-                    value={jaringForm.clusterId}
-                    onChange={(event) =>
-                      setJaringForm((current) => ({
-                        ...current,
-                        clusterId: event.target.value,
-                      }))
-                    }
+            <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+              {/* Registrasi Jaring Baru Form */}
+              <div className="tactical-card space-y-4">
+                <h3 className="text-lg font-semibold tracking-tight text-[var(--tactical-text-primary)] border-b border-[var(--tactical-border)] pb-2">
+                  Registrasi Jaring Baru
+                </h3>
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                      Kode Jaring
+                    </label>
+                    <Input
+                      className="tactical-input w-full"
+                      placeholder="Contoh: J-01"
+                      value={jaringForm.code}
+                      onChange={(event) =>
+                        setJaringForm((current) => ({
+                          ...current,
+                          code: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                      Alias / Nama Sandi
+                    </label>
+                    <Input
+                      className="tactical-input w-full"
+                      placeholder="Contoh: Elang Malam"
+                      value={jaringForm.aliasName}
+                      onChange={(event) =>
+                        setJaringForm((current) => ({
+                          ...current,
+                          aliasName: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                      Nomor WhatsApp
+                    </label>
+                    <Input
+                      className="tactical-input w-full"
+                      placeholder="Contoh: 628123456789"
+                      value={jaringForm.whatsappNumber}
+                      onChange={(event) =>
+                        setJaringForm((current) => ({
+                          ...current,
+                          whatsappNumber: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                      Cluster Jaring
+                    </label>
+                    <select
+                      className="flex h-10 w-full tactical-input px-3 text-sm text-[var(--tactical-text-primary)] focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition-all font-mono"
+                      value={jaringForm.clusterId}
+                      onChange={(event) =>
+                        setJaringForm((current) => ({
+                          ...current,
+                          clusterId: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">PILIH CLUSTER JARING</option>
+                      {workspace.jaringClusters.map((cluster) => (
+                        <option key={cluster.id} value={cluster.id}>
+                          {cluster.name.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                      Area Utama
+                    </label>
+                    <select
+                      className="flex h-10 w-full tactical-input px-3 text-sm text-[var(--tactical-text-primary)] focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition-all font-mono"
+                      value={jaringForm.areaId}
+                      onChange={(event) =>
+                        setJaringForm((current) => ({
+                          ...current,
+                          areaId: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">PILIH AREA UTAMA</option>
+                      {workspace.context.areaScopes.map((area) => (
+                        <option key={area.areaId} value={area.areaId}>
+                          {area.name.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                      Catatan Pembinaan
+                    </label>
+                    <Textarea
+                      className="tactical-input w-full"
+                      placeholder="Catatan intelijen/pembinaan..."
+                      value={jaringForm.notes}
+                      onChange={(event) =>
+                        setJaringForm((current) => ({
+                          ...current,
+                          notes: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <button
+                    disabled={isBusy === "jaring:create"}
+                    onClick={() => setShowSaveJaringConfirm(true)}
+                    className="w-full h-[40px] px-[18px] rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white font-semibold font-mono tracking-[0.04em] text-sm uppercase transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] shadow-[0_0_18px_rgba(22,163,74,0.25)] disabled:opacity-50 cursor-pointer"
                   >
-                    <option value="">PILIH CLUSTER JARING</option>
-                    {workspace.jaringClusters.map((cluster) => (
-                      <option key={cluster.id} value={cluster.id}>
-                        {cluster.name.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
-                    Area Utama
-                  </label>
-                  <select
-                    className="flex h-10 w-full tactical-input px-3 text-sm text-[var(--tactical-text-primary)] focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9] transition-all font-mono"
-                    value={jaringForm.areaId}
-                    onChange={(event) =>
-                      setJaringForm((current) => ({
-                        ...current,
-                        areaId: event.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">PILIH AREA UTAMA</option>
-                    {workspace.context.areaScopes.map((area) => (
-                      <option key={area.areaId} value={area.areaId}>
-                        {area.name.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
-                    Catatan Pembinaan
-                  </label>
-                  <Textarea
-                    className="tactical-input w-full"
-                    placeholder="Catatan intelijen/pembinaan..."
-                    value={jaringForm.notes}
-                    onChange={(event) =>
-                      setJaringForm((current) => ({
-                        ...current,
-                        notes: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <button
-                  disabled={isBusy === "jaring:create"}
-                  onClick={() => setShowSaveJaringConfirm(true)}
-                  className="w-full h-[40px] px-[18px] rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white font-semibold font-mono tracking-[0.04em] text-sm uppercase transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] shadow-[0_0_18px_rgba(22,163,74,0.25)] disabled:opacity-50 cursor-pointer"
-                >
-                  {isBusy === "jaring:create" ? "SAVING..." : "SIMPAN JARING"}
-                </button>
+                    {isBusy === "jaring:create" ? "SAVING..." : "SIMPAN JARING"}
+                  </button>
 
-                <AlertDialog open={showSaveJaringConfirm} onOpenChange={setShowSaveJaringConfirm}>
-                  <AlertDialogContent className="border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] text-[var(--tactical-text-primary)] rounded-[6px] font-mono">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">KONFIRMASI REGISTRASI</AlertDialogTitle>
-                      <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
-                        Apakah Anda yakin ingin menyimpan dan meregistrasikan Jaring Binaan baru ini?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
-                      <AlertDialogCancel className="h-9 px-4 rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] text-xs font-semibold uppercase tracking-wider cursor-pointer">
-                        BATAL
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => {
-                          setShowSaveJaringConfirm(false);
-                          void createJaring();
-                        }}
-                        className="h-9 px-4 rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
-                      >
-                        YA, SIMPAN
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                  <AlertDialog open={showSaveJaringConfirm} onOpenChange={setShowSaveJaringConfirm}>
+                    <AlertDialogContent className="border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] text-[var(--tactical-text-primary)] rounded-[6px] font-mono">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">KONFIRMASI REGISTRASI</AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
+                          Apakah Anda yakin ingin menyimpan dan meregistrasikan Jaring Binaan baru ini?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
+                        <AlertDialogCancel className="h-9 px-4 rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] text-xs font-semibold uppercase tracking-wider cursor-pointer">
+                          BATAL
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            setShowSaveJaringConfirm(false);
+                            void createJaring();
+                          }}
+                          className="h-9 px-4 rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
+                        >
+                          YA, SIMPAN
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+
+              {/* Jaring Binaan List */}
+              <div className="space-y-4">
+                {workspace.jaring.length === 0 ? (
+                  <TacticalEmptyState
+                    title="Tidak ada Jaring binaan"
+                    description="Daftarkan Jaring operasional baru di formulir sebelah kiri."
+                    icon={Users}
+                  />
+                ) : (
+                  workspace.jaring.map((jaring) => (
+                    <div
+                      key={jaring.id}
+                      className="tactical-card space-y-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(jaring.status)}`}>
+                              {jaring.status}
+                            </span>
+                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                              CODE: {jaring.code}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
+                            {jaring.aliasName}
+                          </h3>
+                          <p className="text-sm text-[var(--tactical-text-secondary)] font-mono">
+                            {jaring.whatsappNumber}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 text-xs text-[var(--tactical-text-secondary)] font-mono">
+                            <span className="text-[var(--tactical-blue)]">{jaring.clusterName || "NO_CLUSTER"}</span>
+                            <span>&middot;</span>
+                            <span>{jaring.areaNames.join(", ") || "NO_AREA"}</span>
+                          </div>
+                          {jaring.notes && (
+                            <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed italic bg-black/5 dark:bg-white/[0.01] p-2.5 rounded border border-[var(--tactical-border)]">
+                              {jaring.notes}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 shrink-0">
+                          {jaring.status !== "ACTIVE" ? (
+                            <button
+                              disabled={isBusy === `jaring:${jaring.id}:activate`}
+                              onClick={() =>
+                                requestConfirmation({
+                                  title: "KONFIRMASI AKTIVASI JARING",
+                                  description: `Aktifkan kembali jaring ${jaring.aliasName}?`,
+                                  confirmLabel: "YA, AKTIFKAN",
+                                  onConfirm: () => {
+                                    void changeJaringStatus(jaring.id, "activate");
+                                  },
+                                })
+                              }
+                              className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                            >
+                              AKTIFKAN
+                            </button>
+                          ) : (
+                            <button
+                              disabled={isBusy === `jaring:${jaring.id}:deactivate`}
+                              onClick={() =>
+                                requestConfirmation({
+                                  title: "KONFIRMASI NONAKTIFKAN JARING",
+                                  description: `Nonaktifkan sementara jaring ${jaring.aliasName}?`,
+                                  confirmLabel: "YA, NONAKTIFKAN",
+                                  onConfirm: () => {
+                                    void changeJaringStatus(jaring.id, "deactivate");
+                                  },
+                                })
+                              }
+                              className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#B45309] hover:bg-[#D97706] active:bg-[#92400E] text-white shadow-[0_0_18px_rgba(217,119,6,0.20)] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                            >
+                              NONAKTIFKAN
+                            </button>
+                          )}
+                          <button
+                            disabled={isBusy === `jaring:${jaring.id}:archive`}
+                            onClick={() =>
+                              requestConfirmation({
+                                title: "KONFIRMASI ARSIP JARING",
+                                description: `Arsipkan jaring ${jaring.aliasName} dari daftar aktif?`,
+                                confirmLabel: "YA, ARSIPKAN",
+                                onConfirm: () => {
+                                  void changeJaringStatus(jaring.id, "archive");
+                                },
+                              })
+                            }
+                            className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#991B1B] hover:bg-[#DC2626] text-white transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                          >
+                            ARSIPKAN
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 text-[11px] font-mono text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)] pt-2.5">
+                        <span>SYS REV: {jaring.id.slice(0, 8).toUpperCase()}</span>
+                        <span>&middot;</span>
+                        <span>VOLUME: {jaring.messageCount} MSG</span>
+                        <span>&middot;</span>
+                        <span>BAKET: {jaring.baketCount} BKT</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
-
-            {/* Jaring Binaan List */}
-            <div className="space-y-4">
-              {workspace.jaring.length === 0 ? (
-                <TacticalEmptyState
-                  title="Tidak ada Jaring binaan"
-                  description="Daftarkan Jaring operasional baru di formulir sebelah kiri."
-                  icon={Users}
-                />
-              ) : (
-                workspace.jaring.map((jaring) => (
-                  <div
-                    key={jaring.id}
-                    className="tactical-card space-y-3"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(jaring.status)}`}>
-                            {jaring.status}
-                          </span>
-                          <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                            CODE: {jaring.code}
-                          </span>
-                        </div>
-                        <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
-                          {jaring.aliasName}
-                        </h3>
-                        <p className="text-sm text-[var(--tactical-text-secondary)] font-mono">
-                          {jaring.whatsappNumber}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-3 text-xs text-[var(--tactical-text-secondary)] font-mono">
-                          <span className="text-[var(--tactical-blue)]">{jaring.clusterName || "NO_CLUSTER"}</span>
-                          <span>&middot;</span>
-                          <span>{jaring.areaNames.join(", ") || "NO_AREA"}</span>
-                        </div>
-                        {jaring.notes && (
-                          <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed italic bg-black/5 dark:bg-white/[0.01] p-2.5 rounded border border-[var(--tactical-border)]">
-                            {jaring.notes}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2 shrink-0">
-                        {jaring.status !== "ACTIVE" ? (
-                          <button
-                            disabled={isBusy === `jaring:${jaring.id}:activate`}
-                            onClick={() => void changeJaringStatus(jaring.id, "activate")}
-                            className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                          >
-                            AKTIFKAN
-                          </button>
-                        ) : (
-                          <button
-                            disabled={isBusy === `jaring:${jaring.id}:deactivate`}
-                            onClick={() => void changeJaringStatus(jaring.id, "deactivate")}
-                            className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#B45309] hover:bg-[#D97706] active:bg-[#92400E] text-white shadow-[0_0_18px_rgba(217,119,6,0.20)] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                          >
-                            NONAKTIFKAN
-                          </button>
-                        )}
-                        <button
-                          disabled={isBusy === `jaring:${jaring.id}:archive`}
-                          onClick={() => void changeJaringStatus(jaring.id, "archive")}
-                          className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#991B1B] hover:bg-[#DC2626] text-white transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                        >
-                          ARSIPKAN
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex gap-4 text-[11px] font-mono text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)] pt-2.5">
-                      <span>SYS REV: {jaring.id.slice(0, 8).toUpperCase()}</span>
-                      <span>&middot;</span>
-                      <span>VOLUME: {jaring.messageCount} MSG</span>
-                      <span>&middot;</span>
-                      <span>BAKET: {jaring.baketCount} BKT</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </TacticalSection>
+          </TacticalSection>
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>
       )}
@@ -1075,137 +1185,162 @@ export function FieldOfficerOperationsPage({
               { label: "SOURCE NODE", value: workspace.incoming.length }
             ]}
           >
-          {workspace.incoming.length === 0 ? (
-            <TacticalEmptyState
-              title="Tidak ada laporan masuk"
-              description="Semua pesan masuk dari Jaring telah divalidasi dan diarsipkan."
-              icon={Inbox}
-            />
-          ) : (
-            <div className="grid gap-4">
-              {workspace.incoming.map((message) => (
-                <div
-                  key={message.id}
-                  className="tactical-card space-y-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-2 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(message.status)}`}>
-                          {message.status}
-                        </span>
-                        <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                          VAL: {message.validationSummary}
-                        </span>
-                        <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                          JARING: {message.jaringCode}
-                        </span>
-                      </div>
-                      <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
-                        {message.title || message.jaringAlias}
-                      </h3>
-                      <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed">
-                        {message.content || "Pesan belum memiliki isi teks."}
-                      </p>
-                      
-                      <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 border-t border-[var(--tactical-border)] pt-3 text-[11px] font-mono text-[var(--tactical-text-muted)]">
-                        <span>RECEIVED: {formatDateTime(message.receivedAt)}</span>
-                        <span>EVENT TIME: {formatDateTime(message.eventDateTime)}</span>
-                        <span>GPS TIME: {formatDateTime(message.gpsSharedAt)}</span>
-                        <span>TIMESTAMP: {formatDateTime(message.reportTimestamp)}</span>
-                        <span>SENDER: {message.senderPhone}</span>
-                        <span>AREA: {message.areaName || "-"}</span>
-                      </div>
-
-                      {message.hasPhoto && (
-                        <div className="rounded-lg border border-[var(--tactical-green)]/20 bg-[var(--tactical-green)]/[0.02] p-3 text-[var(--tactical-green)] text-sm space-y-2">
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <CheckCircle2 className="size-4 shrink-0" />
-                            <span>FOTO BUKTI TERVERIFIKASI</span>
-                          </div>
-                          {message.photoUrl ? (
-                            <img
-                              src={message.photoUrl}
-                              alt={`Foto bukti ${message.title || message.jaringAlias}`}
-                              className="max-h-64 rounded-lg border border-[var(--tactical-border)] object-cover shadow-sm"
-                            />
-                          ) : (
-                            <p className="text-xs text-[var(--tactical-text-secondary)] opacity-80">
-                              Foto diterima oleh bot, tetapi file visual belum tersedia di storage. Kiriman lama sebelum patch hanya punya metadata WA.
-                            </p>
-                          )}
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[var(--tactical-text-muted)] text-[10px] font-mono">
-                            <span>MEDIA DB: {message.mediaCount}</span>
-                            <span>FILE ID: {message.photoFileId || "-"}</span>
-                            <span>WA ID: {message.photoMessageId || "-"}</span>
-                            {message.photoCaption && <span>CAPTION: {message.photoCaption}</span>}
-                          </div>
+            {workspace.incoming.length === 0 ? (
+              <TacticalEmptyState
+                title="Tidak ada laporan masuk"
+                description="Semua pesan masuk dari Jaring telah divalidasi dan diarsipkan."
+                icon={Inbox}
+              />
+            ) : (
+              <div className="grid gap-4">
+                {workspace.incoming.map((message) => (
+                  <div
+                    key={message.id}
+                    className="tactical-card space-y-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(message.status)}`}>
+                            {message.status}
+                          </span>
+                          <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                            VAL: {message.validationSummary}
+                          </span>
+                          <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                            JARING: {message.jaringCode}
+                          </span>
                         </div>
-                      )}
+                        <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
+                          {message.title || message.jaringAlias}
+                        </h3>
+                        <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed">
+                          {message.content || "Pesan belum memiliki isi teks."}
+                        </p>
 
-                      {message.latitude !== null && message.longitude !== null && (
-                        <div className="grid gap-3 rounded-lg border border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.01] p-3 md:grid-cols-[1fr_14rem]">
-                          <div className="space-y-1.5 text-sm text-[var(--tactical-text-secondary)]">
-                            <p className="font-medium text-[var(--tactical-text-primary)]">
-                              LOKASI KEJADIAN
-                            </p>
-                            <p className="font-mono text-xs">
-                              {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)}
-                            </p>
-                            <p className="text-xs text-[var(--tactical-text-muted)] font-mono">
-                              AKURASI: {message.gpsAccuracyMeters !== null ? `${message.gpsAccuracyMeters} M` : "-"}
-                            </p>
-                            <button
-                              className="mt-2 text-xs font-mono font-medium rounded border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] hover:bg-[var(--tactical-text-secondary)]/10 px-3 py-1.5 transition-colors"
-                            >
+                        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 border-t border-[var(--tactical-border)] pt-3 text-[11px] font-mono text-[var(--tactical-text-muted)]">
+                          <span>RECEIVED: {formatDateTime(message.receivedAt)}</span>
+                          <span>EVENT TIME: {formatDateTime(message.eventDateTime)}</span>
+                          <span>GPS TIME: {formatDateTime(message.gpsSharedAt)}</span>
+                          <span>TIMESTAMP: {formatDateTime(message.reportTimestamp)}</span>
+                          <span>SENDER: {message.senderPhone}</span>
+                          <span>AREA: {message.areaName || "-"}</span>
+                        </div>
+
+                        {message.hasPhoto && (
+                          <div className="rounded-lg border border-[var(--tactical-green)]/20 bg-[var(--tactical-green)]/[0.02] p-3 text-[var(--tactical-green)] text-sm space-y-2">
+                            <div className="flex items-center gap-1.5 font-medium">
+                              <CheckCircle2 className="size-4 shrink-0" />
+                              <span>FOTO BUKTI TERVERIFIKASI</span>
+                            </div>
+                            {message.photoUrl ? (
+                              <div className="max-w-xs overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm">
+                                <EvidenceImageViewer
+                                  src={message.photoUrl}
+                                  alt={`Foto bukti ${message.title || message.jaringAlias}`}
+                                  fileName={message.photoFileId || `${message.id}.jpg`}
+                                  caption={message.photoCaption || `Jaring ${message.jaringCode}`}
+                                />
+                              </div>
+                            ) : (
+                              <p className="text-xs text-[var(--tactical-text-secondary)] opacity-80">
+                                Foto diterima oleh bot, tetapi file visual belum tersedia di storage. Kiriman lama sebelum patch hanya punya metadata WA.
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[var(--tactical-text-muted)] text-[10px] font-mono">
+                              <span>MEDIA DB: {message.mediaCount}</span>
+                              <span>FILE ID: {message.photoFileId || "-"}</span>
+                              <span>WA ID: {message.photoMessageId || "-"}</span>
+                              {message.photoCaption && <span>CAPTION: {message.photoCaption}</span>}
+                            </div>
+                          </div>
+                        )}
+
+                        {message.latitude !== null && message.longitude !== null && (
+                          <div className="grid gap-3 rounded-lg border border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.01] p-3 md:grid-cols-[1fr_14rem]">
+                            <div className="space-y-1.5 text-sm text-[var(--tactical-text-secondary)]">
+                              <p className="font-medium text-[var(--tactical-text-primary)]">
+                                LOKASI KEJADIAN
+                              </p>
+                              <p className="font-mono text-xs">
+                                {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)}
+                              </p>
+                              <p className="text-xs text-[var(--tactical-text-muted)] font-mono">
+                                AKURASI: {message.gpsAccuracyMeters !== null ? `${message.gpsAccuracyMeters} M` : "-"}
+                              </p>
                               <a
                                 href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
                                 rel="noreferrer"
                                 target="_blank"
+                                className="mt-2 inline-flex items-center gap-1 rounded border border-[var(--tactical-border)] px-3 py-1.5 text-xs font-mono font-medium text-[var(--tactical-text-secondary)] transition-colors hover:bg-[var(--tactical-text-secondary)]/10"
                               >
-                                [ BUKA DI GOOGLE MAPS ]
+                                <MapPin className="size-3.5" />
+                                Buka di Google Maps
                               </a>
-                            </button>
+                            </div>
+                            <a
+                              href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
+                              rel="noreferrer"
+                              target="_blank"
+                              aria-label="Buka koordinat laporan di Google Maps"
+                              className="block rounded-lg overflow-hidden border border-[var(--tactical-border)]"
+                            >
+                              <LeafletLocationPreview
+                                latitude={message.latitude}
+                                longitude={message.longitude}
+                                title={message.title || message.jaringAlias}
+                              />
+                            </a>
                           </div>
-                          <a
-                            href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
-                            rel="noreferrer"
-                            target="_blank"
-                            aria-label="Buka koordinat laporan di Google Maps"
-                            className="block rounded-lg overflow-hidden border border-[var(--tactical-border)]"
-                          >
-                            <LeafletLocationPreview
-                              latitude={message.latitude}
-                              longitude={message.longitude}
-                              title={message.title || message.jaringAlias}
-                            />
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-col gap-2 shrink-0 font-mono">
-                      <button
-                        disabled={isBusy === `validate:${message.id}`}
-                        onClick={() => void validateIncoming(message.id)}
-                        className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
-                      >
-                        {isBusy === `validate:${message.id}` ? "VALIDATING..." : message.validationSummary === "VALID" ? "VALIDASI ULANG" : "VALIDASI"}
-                      </button>
-                      <button
-                        disabled={isBusy === `delete:${message.id}`}
-                        onClick={() => void deleteIncoming(message.id)}
-                        className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#991B1B] hover:bg-[#DC2626] text-white transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
-                      >
-                        TOLAK
-                      </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-2 shrink-0 font-mono">
+                        <button
+                          disabled={isBusy === `validate:${message.id}`}
+                          onClick={() =>
+                            requestConfirmation({
+                              title: "KONFIRMASI VALIDASI",
+                              description:
+                                "Jalankan validasi ulang untuk laporan masuk ini sekarang?",
+                              confirmLabel: "YA, VALIDASI",
+                              onConfirm: () => {
+                                void validateIncoming(message.id);
+                              },
+                            })
+                          }
+                          className={`h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] border transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer ${
+                            message.validationSummary === "VALID"
+                              ? "bg-[#16A34A] border-[#16A34A] text-white hover:bg-[#15803D]"
+                              : "border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B]"
+                          }`}
+                        >
+                          {isBusy === `validate:${message.id}` ? "VALIDATING..." : message.validationSummary === "VALID" ? "VERIFIKASI" : "VALIDASI"}
+                        </button>
+                        <button
+                          disabled={isBusy === `delete:${message.id}`}
+                          onClick={() =>
+                            requestConfirmation({
+                              title: "KONFIRMASI TOLAK LAPORAN",
+                              description:
+                                "Tolak dan keluarkan laporan ini dari antrean kotak masuk jaring?",
+                              confirmLabel: "YA, TOLAK",
+                              onConfirm: () => {
+                                void deleteIncoming(message.id);
+                              },
+                            })
+                          }
+                          className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#991B1B] hover:bg-[#DC2626] text-white transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
+                        >
+                          TOLAK
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TacticalSection>
+                ))}
+              </div>
+            )}
+          </TacticalSection>
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>
       )}
@@ -1218,155 +1353,277 @@ export function FieldOfficerOperationsPage({
             title={view === "reports" ? "LAPORAN SAYA" : "FORMULASI BAKET"}
             description="Bentuk Baket dari laporan Jaring, kirim ke OIM, dan pantau statusnya."
             metadata={[
-              { label: "SIAP DIKIRIM", value: readyToSendBakets.length },
+              { label: "SIAP DIKIRIM", value: pendingOutgoingCount },
               { label: "TERKIRIM", value: submittedBakets.length }
             ]}
           >
-          <div className="tactical-card !p-1 bg-black/5 dark:bg-white/[0.01] rounded-[6px]">
-            <Tabs value={baketTab} onValueChange={setBaketTab} className="space-y-4">
-              <TabsList className="bg-black/10 dark:bg-white/[0.02] border border-[var(--tactical-border)] rounded-[4px] p-1 font-mono text-xs flex flex-wrap gap-1">
-                <TabsTrigger value="ready" className="rounded-[4px] px-4 py-1.5 data-[state=active]:bg-[var(--tactical-card-bg)] data-[state=active]:text-[var(--tactical-blue)] data-[state=active]:shadow-none border border-transparent data-[state=active]:border-[var(--tactical-border)] transition-all font-semibold uppercase tracking-wider">
-                  SIAP DIBUAT ({workspace.baketCandidates.length})
-                </TabsTrigger>
-                <TabsTrigger value="ready-to-send" className="rounded-[4px] px-4 py-1.5 data-[state=active]:bg-[var(--tactical-card-bg)] data-[state=active]:text-[var(--tactical-blue)] data-[state=active]:shadow-none border border-transparent data-[state=active]:border-[var(--tactical-border)] transition-all font-semibold uppercase tracking-wider">
-                  SIAP DIKIRIM ({readyToSendBakets.length})
-                </TabsTrigger>
-                <TabsTrigger value="sent" className="rounded-[4px] px-4 py-1.5 data-[state=active]:bg-[var(--tactical-card-bg)] data-[state=active]:text-[var(--tactical-blue)] data-[state=active]:shadow-none border border-transparent data-[state=active]:border-[var(--tactical-border)] transition-all font-semibold uppercase tracking-wider">
-                  TERKIRIM ({submittedBakets.length})
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="ready" className="grid gap-4 pt-2">
-                {workspace.baketCandidates.length === 0 ? (
-                  <TacticalEmptyState
-                    title="Tidak ada Baket aktif"
-                    description="Belum ada pesan valid yang menunggu pembentukan Baket."
-                    icon={Radio}
-                  />
-                ) : (
-                  workspace.baketCandidates.map((message) => (
-                    <BaketCandidateForm
-                      key={message.id}
-                      message={message}
-                      categories={workspace.reportCategories}
-                      tasks={workspace.tasks}
-                      busy={isBusy === `baket:${message.id}`}
-                      onCreate={(payload) => createBaket(message.id, payload)}
-                    />
-                  ))
-                )}
-              </TabsContent>
-              
-              <TabsContent value="ready-to-send" className="grid gap-4 pt-2">
-                {readyToSendBakets.length === 0 ? (
-                  <TacticalEmptyState
-                    title="Semua Laporan Telah Diproses"
-                    description="Belum ada Baket yang menunggu pengiriman ke OIM."
-                    icon={Send}
-                  />
-                ) : (
-                  readyToSendBakets.map((baket) => (
-                    <div
-                      key={baket.id}
-                      className="tactical-card space-y-3"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-1.5 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(baket.status)}`}>
-                              SIAP DIKIRIM
-                            </span>
-                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                              CAT: {baket.categoryName || "LEGACY"}
-                            </span>
-                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                              KLASTER: {baket.clusterName || "LEGACY"}
-                            </span>
-                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                              URGENCY: {baket.urgency || "-"}
-                            </span>
-                          </div>
-                          <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
-                            {baket.currentVersionTitle || "Tanpa judul versi aktif"}
-                          </h3>
-                          <p className="text-sm text-[var(--tactical-text-secondary)]">
-                            Jaring: {baket.primaryJaringAlias || baket.primaryJaringCode || "-"}
-                          </p>
-                          <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed italic bg-black/5 dark:bg-white/[0.01] p-2.5 rounded border border-[var(--tactical-border)]">
-                            {baket.summary || "Catatan Field Officer belum ditambahkan."}
-                          </p>
-                        </div>
-                        <button
-                          disabled={isBusy === `submit:${baket.id}`}
-                          onClick={() => void submitBaket(baket.id)}
-                          className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
-                        >
-                          KIRIM KE OIM
-                        </button>
-                      </div>
-                      <div className="flex gap-4 text-[11px] font-mono text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)] pt-2.5">
-                        <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
-                        <span>&middot;</span>
-                        <span>CREATED: {formatDateTime(baket.createdAt)}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </TabsContent>
+            <div className="tactical-card !p-1 bg-black/5 dark:bg-white/[0.01] rounded-[6px]">
+              <Tabs value={baketTab} onValueChange={setBaketTab} className="space-y-4">
+                <TabsList className="bg-black/10 dark:bg-white/[0.02] border border-[var(--tactical-border)] rounded-[4px] p-1 font-mono text-xs flex flex-wrap gap-1">
+                  <TabsTrigger value="ready-to-send" className="rounded-[4px] px-4 py-1.5 data-[state=active]:bg-[var(--tactical-card-bg)] data-[state=active]:text-[var(--tactical-blue)] data-[state=active]:shadow-none border border-transparent data-[state=active]:border-[var(--tactical-border)] transition-all font-semibold uppercase tracking-wider">
+                    SIAP DIKIRIM ({pendingOutgoingCount})
+                  </TabsTrigger>
+                  <TabsTrigger value="sent" className="rounded-[4px] px-4 py-1.5 data-[state=active]:bg-[var(--tactical-card-bg)] data-[state=active]:text-[var(--tactical-blue)] data-[state=active]:shadow-none border border-transparent data-[state=active]:border-[var(--tactical-border)] transition-all font-semibold uppercase tracking-wider">
+                    TERKIRIM ({submittedBakets.length})
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="sent" className="grid gap-4 pt-2">
-                {submittedBakets.length === 0 ? (
-                  <TacticalEmptyState
-                    title="Tidak ada Baket terkirim"
-                    description="Belum ada Baket yang telah dikirim ke OIM."
-                    icon={Send}
+                <div className="grid gap-3 rounded-[6px] border border-[var(--tactical-border)] bg-black/5 p-3 dark:bg-white/[0.01] md:grid-cols-2 xl:grid-cols-[1fr_1fr_180px_180px_auto_auto]">
+                  <select
+                    value={baketFilterDraft.categoryId}
+                    onChange={(event) =>
+                      setBaketFilterDraft((current) => ({
+                        ...current,
+                        categoryId: event.target.value,
+                      }))
+                    }
+                    className="tactical-input h-10 w-full px-3 text-sm"
+                    aria-label="Filter kategori baket"
+                  >
+                    <option value="">Semua kategori</option>
+                    {workspace.reportCategories
+                      .filter((item) => item.isActive)
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
+
+                  <select
+                    value={baketFilterDraft.jaringClusterId}
+                    onChange={(event) =>
+                      setBaketFilterDraft((current) => ({
+                        ...current,
+                        jaringClusterId: event.target.value,
+                      }))
+                    }
+                    className="tactical-input h-10 w-full px-3 text-sm"
+                    aria-label="Filter klaster baket"
+                  >
+                    <option value="">Semua klaster</option>
+                    {workspace.jaringClusters
+                      .filter((item) => item.isActive)
+                      .map((cluster) => (
+                        <option key={cluster.id} value={cluster.id}>
+                          {cluster.name}
+                        </option>
+                      ))}
+                  </select>
+
+                  <Input
+                    type="date"
+                    value={baketFilterDraft.from}
+                    onChange={(event) =>
+                      setBaketFilterDraft((current) => ({
+                        ...current,
+                        from: event.target.value,
+                      }))
+                    }
+                    className="tactical-input h-10"
+                    aria-label="Tanggal mulai baket"
                   />
-                ) : (
-                  submittedBakets.map((baket) => (
-                    <div
-                      key={baket.id}
-                      className="tactical-card space-y-3"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-1.5 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(baket.status)}`}>
-                              {baket.status}
-                            </span>
-                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                              CAT: {baket.categoryName || "LEGACY"}
-                            </span>
-                            <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                              URGENCY: {baket.urgency || "-"}
-                            </span>
+
+                  <Input
+                    type="date"
+                    value={baketFilterDraft.to}
+                    onChange={(event) =>
+                      setBaketFilterDraft((current) => ({
+                        ...current,
+                        to: event.target.value,
+                      }))
+                    }
+                    className="tactical-input h-10"
+                    aria-label="Tanggal akhir baket"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReadyToSendPage(1);
+                      setSentPage(1);
+                      setAppliedBaketFilters({ ...baketFilterDraft });
+                    }}
+                    className="h-10 rounded-[4px] bg-[var(--tactical-blue)] px-4 text-sm font-semibold text-white transition hover:brightness-110"
+                  >
+                    Terapkan
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReadyToSendPage(1);
+                      setSentPage(1);
+                      setBaketFilterDraft(EMPTY_BAKET_FILTERS);
+                      setAppliedBaketFilters(EMPTY_BAKET_FILTERS);
+                    }}
+                    className="h-10 rounded-[4px] border border-[var(--tactical-border)] px-4 text-sm font-semibold text-[var(--tactical-text-secondary)] transition hover:bg-[var(--tactical-text-secondary)]/10"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <TabsContent value="ready-to-send" className="grid gap-4 pt-2">
+                  {pendingOutgoingCount === 0 ? (
+                    <TacticalEmptyState
+                      title="Semua Laporan Telah Diproses"
+                      description="Belum ada laporan valid atau baket yang menunggu pengiriman ke OIM."
+                      icon={Send}
+                    />
+                  ) : (
+                    <>
+                      {workspace.baketCandidates.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 border-b border-[var(--tactical-border)] pb-2">
+                            <Radio className="size-4 text-[var(--tactical-blue)]" />
+                            <p className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                              Laporan valid siap diformulasikan
+                            </p>
                           </div>
-                          <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
-                            {baket.currentVersionTitle || "Tanpa judul versi aktif"}
-                          </h3>
-                          <p className="text-sm text-[var(--tactical-text-secondary)]">
-                            Dikirim ke OIM &middot; data terkunci dan hanya dapat dilihat.
-                          </p>
+                          {workspace.baketCandidates.map((message) => (
+                            <BaketCandidateForm
+                              key={message.id}
+                              message={message}
+                              categories={workspace.reportCategories}
+                              tasks={workspace.tasks}
+                              busy={isBusy === `baket:${message.id}`}
+                              onCreate={(payload) => createBaket(message.id, payload)}
+                            />
+                          ))}
                         </div>
-                        <button className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] shrink-0 uppercase cursor-pointer">
-                          <Link
-                            href={`/dashboard/field-officer/buat-baket/${baket.id}`}
-                          >
-                            LIHAT BAKET
-                          </Link>
-                        </button>
+                      )}
+
+                      {readyToSendBakets.length > 0 && (
+                        <div className="space-y-4">
+                          {workspace.baketCandidates.length > 0 && (
+                            <div className="flex items-center gap-2 border-b border-[var(--tactical-border)] pb-2 pt-2">
+                              <Send className="size-4 text-[var(--tactical-green)]" />
+                              <p className="text-xs font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                                Baket siap dikirim ke OIM
+                              </p>
+                            </div>
+                          )}
+                          {readyToSendBakets.slice((readyToSendPage - 1) * ITEMS_PER_PAGE, readyToSendPage * ITEMS_PER_PAGE).map((baket) => (
+                            <div
+                              key={baket.id}
+                              className="tactical-card space-y-3"
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="space-y-1.5 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(baket.status)}`}>
+                                      SIAP DIKIRIM
+                                    </span>
+                                    <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                                      KATEGORI: {baket.categoryName || "LEGACY"}
+                                    </span>
+                                    <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                                      KLASTER: {baket.clusterName || "LEGACY"}
+                                    </span>
+                                    <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                                      URGENCY: {baket.urgency || "-"}
+                                    </span>
+                                  </div>
+                                  <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
+                                    {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                                  </h3>
+                                  <p className="text-sm text-[var(--tactical-text-secondary)]">
+                                    Jaring: {baket.primaryJaringAlias || baket.primaryJaringCode || "-"}
+                                  </p>
+                                  <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed italic bg-black/5 dark:bg-white/[0.01] p-2.5 rounded border border-[var(--tactical-border)]">
+                                    {baket.summary || "Catatan Field Officer belum ditambahkan."}
+                                  </p>
+                                </div>
+                                <button
+                                  disabled={isBusy === `submit:${baket.id}`}
+                                  onClick={() =>
+                                    requestConfirmation({
+                                      title: "KONFIRMASI KIRIM OIM",
+                                      description:
+                                        "Kirim baket ini ke OIM dan masukkan ke antrean laporan masuk?",
+                                      confirmLabel: "YA, KIRIM",
+                                      onConfirm: () => {
+                                        void submitBaket(baket.id);
+                                      },
+                                    })
+                                  }
+                                  className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
+                                >
+                                  KIRIM KE OIM
+                                </button>
+                              </div>
+                              <div className="flex gap-4 text-[11px] font-mono text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)] pt-2.5">
+                                <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
+                                <span>&middot;</span>
+                                <span>CREATED: {formatDateTime(baket.createdAt)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {readyToSendBakets.length > 0 && (
+                    <PaginationControls currentPage={readyToSendPage} totalItems={readyToSendBakets.length} setPage={setReadyToSendPage} />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="sent" className="grid gap-4 pt-2">
+                  {submittedBakets.length === 0 ? (
+                    <TacticalEmptyState
+                      title="Tidak ada Baket terkirim"
+                      description="Belum ada Baket yang telah dikirim ke OIM."
+                      icon={Send}
+                    />
+                  ) : (
+                    submittedBakets.slice((sentPage - 1) * ITEMS_PER_PAGE, sentPage * ITEMS_PER_PAGE).map((baket) => (
+                      <div
+                        key={baket.id}
+                        className="tactical-card space-y-3"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="space-y-1.5 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(baket.status)}`}>
+                                {baketStatusLabel(baket.status)}
+                              </span>
+                              <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                                KATEGORI: {baket.categoryName || "LEGACY"}
+                              </span>
+                              <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+                                URGENCY: {baket.urgency || "-"}
+                              </span>
+                            </div>
+                            <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
+                              {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                            </h3>
+                            <p className="text-sm text-[var(--tactical-text-secondary)]">
+                              Dikirim ke OIM &middot; data terkunci dan hanya dapat dilihat.
+                            </p>
+                          </div>
+                          <button className="h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] shrink-0 uppercase cursor-pointer">
+                            <Link
+                              href={`/dashboard/field-officer/buat-baket/${baket.id}`}
+                            >
+                              LIHAT BAKET
+                            </Link>
+                          </button>
+                        </div>
+                        <div className="flex gap-4 text-[11px] font-mono text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)] pt-2.5">
+                          <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
+                          <span>&middot;</span>
+                          <span>SUBMITTED: {formatDateTime(baket.createdAt)}</span>
+                        </div>
                       </div>
-                      <div className="flex gap-4 text-[11px] font-mono text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)] pt-2.5">
-                        <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
-                        <span>&middot;</span>
-                        <span>SUBMITTED: {formatDateTime(baket.createdAt)}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-        </TacticalSection>
+                    ))
+                  )}
+                  {submittedBakets.length > 0 && (
+                    <PaginationControls currentPage={sentPage} totalItems={submittedBakets.length} setPage={setSentPage} />
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </TacticalSection>
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>
       )}
@@ -1392,118 +1649,127 @@ export function FieldOfficerOperationsPage({
                 <div className="relative dc-map-shell rounded-[6px] overflow-hidden border border-[var(--tactical-border)]">
                   {/* Tactical Overlay */}
                   <div className="absolute top-3 right-3 z-[1000] p-3 rounded-[4px] border border-[var(--tactical-border)] bg-[#ffffff]/90 dark:bg-[#131A26]/90 backdrop-blur-sm text-[10px] font-mono text-[var(--tactical-text-secondary)] space-y-1.5 shadow-lg w-52">
-                  <div className="flex items-center justify-between border-b border-[var(--tactical-border)] pb-1.5 mb-1.5">
-                    <span className="font-semibold text-[var(--tactical-text-primary)] uppercase tracking-wider">TACTICAL MAP OVERLAY</span>
-                    <span className="flex items-center gap-1 px-1 rounded bg-[var(--tactical-green)]/15 text-[var(--tactical-green)] font-bold text-[9px]">
-                      <span className="size-1 rounded-full bg-[var(--tactical-green)] animate-ping" />
-                      LIVE
-                    </span>
+                    <div className="flex items-center justify-between border-b border-[var(--tactical-border)] pb-1.5 mb-1.5">
+                      <span className="font-semibold text-[var(--tactical-text-primary)] uppercase tracking-wider">TACTICAL MAP OVERLAY</span>
+                      <span className="flex items-center gap-1 px-1 rounded bg-[var(--tactical-green)]/15 text-[var(--tactical-green)] font-bold text-[9px]">
+                        <span className="size-1 rounded-full bg-[var(--tactical-green)] animate-ping" />
+                        LIVE
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>GPS STATUS:</span>
+                      <span className="text-[var(--tactical-text-primary)] font-medium">OPTIMAL</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>MARKER COUNT:</span>
+                      <span className="text-[var(--tactical-text-primary)] font-medium">{mapPoints.length} NODES</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>COORDINATE:</span>
+                      <span className="text-[var(--tactical-text-primary)] font-medium truncate max-w-[100px]" title={`${mapCenter[1].toFixed(5)}, ${mapCenter[0].toFixed(5)}`}>
+                        {mapCenter[1].toFixed(5)}, {mapCenter[0].toFixed(5)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>LAST PING:</span>
+                      <span className="text-[var(--tactical-text-primary)] font-medium">
+                        {workspace.latestLocation ? "ACTIVE" : "N/A"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>GPS STATUS:</span>
-                    <span className="text-[var(--tactical-text-primary)] font-medium">OPTIMAL</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>MARKER COUNT:</span>
-                    <span className="text-[var(--tactical-text-primary)] font-medium">{mapPoints.length} NODES</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>COORDINATE:</span>
-                    <span className="text-[var(--tactical-text-primary)] font-medium truncate max-w-[100px]" title={`${mapCenter[1].toFixed(5)}, ${mapCenter[0].toFixed(5)}`}>
-                      {mapCenter[1].toFixed(5)}, {mapCenter[0].toFixed(5)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>LAST PING:</span>
-                    <span className="text-[var(--tactical-text-primary)] font-medium">
-                      {workspace.latestLocation ? "ACTIVE" : "N/A"}
-                    </span>
-                  </div>
-                </div>
 
-                <Map className="h-[28rem]" center={mapCenter} zoom={7}>
-                  {mapPoints.map((point) => (
-                    <MapMarker
-                      key={point.id}
-                      longitude={point.longitude}
-                      latitude={point.latitude}
-                    >
-                      <MarkerContent>
-                        <div
-                          className={`flex size-4 items-center justify-center rounded-full border-2 ${
-                            point.kind === "self"
-                              ? "border-[var(--tactical-card-bg)] bg-[var(--tactical-blue)]"
-                              : "border-[var(--tactical-card-bg)] bg-[var(--tactical-green)]"
-                          }`}
-                        />
-                      </MarkerContent>
-                      <MarkerPopup>
-                        <div className="space-y-1 text-sm font-mono p-1">
-                          <p className="font-semibold">{point.title}</p>
-                          <p className="text-[var(--tactical-text-secondary)] text-xs">
-                            {point.subtitle}
-                          </p>
-                          <p className="text-[var(--tactical-text-muted)] text-[10px]">
-                            {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}
-                          </p>
-                        </div>
-                      </MarkerPopup>
-                    </MapMarker>
-                  ))}
-                  <MapControls showZoom showLocate position="bottom-right" />
-                </Map>
+                  <Map className="h-[28rem]" center={mapCenter} zoom={7}>
+                    {mapPoints.map((point) => (
+                      <MapMarker
+                        key={point.id}
+                        longitude={point.longitude}
+                        latitude={point.latitude}
+                      >
+                        <MarkerContent>
+                          <div
+                            className={`flex size-4 items-center justify-center rounded-full border-2 ${point.kind === "self"
+                                ? "border-[var(--tactical-card-bg)] bg-[var(--tactical-blue)]"
+                                : "border-[var(--tactical-card-bg)] bg-[var(--tactical-green)]"
+                              }`}
+                          />
+                        </MarkerContent>
+                        <MarkerPopup>
+                          <div className="space-y-1 text-sm font-mono p-1">
+                            <p className="font-semibold">{point.title}</p>
+                            <p className="text-[var(--tactical-text-secondary)] text-xs">
+                              {point.subtitle}
+                            </p>
+                            <p className="text-[var(--tactical-text-muted)] text-[10px]">
+                              {point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}
+                            </p>
+                          </div>
+                        </MarkerPopup>
+                      </MapMarker>
+                    ))}
+                    <MapControls showZoom showLocate position="bottom-right" />
+                  </Map>
+                </div>
+              </div>
+
+              {/* Live Location Card */}
+              <div className="tactical-card space-y-4">
+                <h3 className="text-lg font-semibold tracking-tight text-[var(--tactical-text-primary)] border-b border-[var(--tactical-border)] pb-2">
+                  Live Location
+                </h3>
+
+                <div className="space-y-3">
+                  <div className="rounded-[6px] border border-[var(--tactical-border)] bg-black/5 dark:bg-[#0F172A] p-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-[4px] bg-[var(--tactical-blue)]/10 text-[var(--tactical-blue)]">
+                        <Crosshair className="size-5 shrink-0" strokeWidth={2} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[var(--tactical-text-primary)]">Posisi terbaru</p>
+                        <p className="text-xs text-[var(--tactical-text-secondary)] font-mono">
+                          {workspace.latestLocation
+                            ? formatDateTime(workspace.latestLocation.capturedAt)
+                            : "Belum ada ping aktif."}
+                        </p>
+                      </div>
+                    </div>
+                    {workspace.latestLocation && (
+                      <div className="space-y-1.5 text-xs font-mono text-[var(--tactical-text-secondary)] border-t border-[var(--tactical-border)] pt-3">
+                        <p>
+                          <span className="text-[var(--tactical-text-muted)]">KOORDINAT:</span>{" "}
+                          {workspace.latestLocation.latitude.toFixed(5)}, {workspace.latestLocation.longitude.toFixed(5)}
+                        </p>
+                        <p>
+                          <span className="text-[var(--tactical-text-muted)]">AKURASI:</span>{" "}
+                          {workspace.latestLocation.gpsAccuracyMeters ?? "-"} m
+                        </p>
+                        <p>
+                          <span className="text-[var(--tactical-text-muted)]">WILAYAH:</span>{" "}
+                          {workspace.latestLocation.areaName || "-"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    disabled={isBusy === "location:publish"}
+                    onClick={() =>
+                      requestConfirmation({
+                        title: "KONFIRMASI PING LOKASI",
+                        description:
+                          "Kirim ping lokasi terbaru ke monitor live workspace sekarang?",
+                        confirmLabel: "YA, KIRIM",
+                        onConfirm: () => {
+                          void publishOwnLocation();
+                        },
+                      })
+                    }
+                    className="w-full h-[40px] px-[18px] rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] font-semibold font-mono tracking-[0.04em] text-sm transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
+                  >
+                    KIRIM PING LOKASI
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* Live Location Card */}
-            <div className="tactical-card space-y-4">
-              <h3 className="text-lg font-semibold tracking-tight text-[var(--tactical-text-primary)] border-b border-[var(--tactical-border)] pb-2">
-                Live Location
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="rounded-[6px] border border-[var(--tactical-border)] bg-black/5 dark:bg-[#0F172A] p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-[4px] bg-[var(--tactical-blue)]/10 text-[var(--tactical-blue)]">
-                      <Crosshair className="size-5 shrink-0" strokeWidth={2} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-[var(--tactical-text-primary)]">Posisi terbaru</p>
-                      <p className="text-xs text-[var(--tactical-text-secondary)] font-mono">
-                        {workspace.latestLocation
-                          ? formatDateTime(workspace.latestLocation.capturedAt)
-                          : "Belum ada ping aktif."}
-                      </p>
-                    </div>
-                  </div>
-                  {workspace.latestLocation && (
-                    <div className="space-y-1.5 text-xs font-mono text-[var(--tactical-text-secondary)] border-t border-[var(--tactical-border)] pt-3">
-                      <p>
-                        <span className="text-[var(--tactical-text-muted)]">KOORDINAT:</span>{" "}
-                        {workspace.latestLocation.latitude.toFixed(5)}, {workspace.latestLocation.longitude.toFixed(5)}
-                      </p>
-                      <p>
-                        <span className="text-[var(--tactical-text-muted)]">AKURASI:</span>{" "}
-                        {workspace.latestLocation.gpsAccuracyMeters ?? "-"} m
-                      </p>
-                      <p>
-                        <span className="text-[var(--tactical-text-muted)]">WILAYAH:</span>{" "}
-                        {workspace.latestLocation.areaName || "-"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <button
-                  disabled={isBusy === "location:publish"}
-                  onClick={() => void publishOwnLocation()}
-                  className="w-full h-[40px] px-[18px] rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] hover:border-[#64748B] font-semibold font-mono tracking-[0.04em] text-sm transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
-                >
-                  KIRIM PING LOKASI
-                </button>
-              </div>
-            </div>
-          </div>
-        </TacticalSection>
+          </TacticalSection>
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>
       )}
@@ -1546,11 +1812,21 @@ export function FieldOfficerOperationsPage({
                 title="3. ESKALASI"
                 description="Laporan diteruskan ke regional atau posko menggunakan channel resmi di level coordinator."
               />
-              
+
               <div className="xl:col-span-3 pt-2">
                 <button
                   disabled={isBusy === "location:publish"}
-                  onClick={() => void publishOwnLocation()}
+                  onClick={() =>
+                    requestConfirmation({
+                      title: "KONFIRMASI LOKASI DARURAT",
+                      description:
+                        "Kirim lokasi darurat terbaru ke coordinator sekarang?",
+                      confirmLabel: "YA, KIRIM DARURAT",
+                      onConfirm: () => {
+                        void publishOwnLocation();
+                      },
+                    })
+                  }
                   className="h-[40px] px-[18px] rounded-[4px] bg-[#991B1B] hover:bg-[#DC2626] text-white font-semibold font-mono tracking-[0.04em] text-xs transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 uppercase cursor-pointer"
                 >
                   {isBusy === "location:publish" ? "SENDING..." : "KIRIM LOKASI DARURAT"}
@@ -1560,6 +1836,40 @@ export function FieldOfficerOperationsPage({
           </div>
         </TacticalSection>
       )}
+
+      <AlertDialog
+        open={Boolean(pendingAction)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingAction(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] text-[var(--tactical-text-primary)] rounded-[6px] font-mono">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">
+              {pendingAction?.title || "KONFIRMASI AKSI"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
+              {pendingAction?.description || "Lanjutkan aksi ini?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
+            <AlertDialogCancel className="h-9 px-4 rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] text-xs font-semibold uppercase tracking-wider cursor-pointer">
+              TIDAK
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                pendingAction?.onConfirm();
+                setPendingAction(null);
+              }}
+              className="h-9 px-4 rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
+            >
+              {pendingAction?.confirmLabel || "YA"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -1675,10 +1985,8 @@ function TaskCard({
   const [showForwardConfirm, setShowForwardConfirm] = useState(false);
 
   const handleActionClick = () => {
-    if (action?.nextStatus === "READ") {
+    if (action) {
       setShowStatusConfirm(true);
-    } else if (action) {
-      onUpdateStatus(action.nextStatus);
     }
   };
 
@@ -1698,7 +2006,10 @@ function TaskCard({
           <span className={`tactical-badge px-2 py-0.5 rounded text-[10px] ${statusTone(task.assignmentStatus)}`}>
             {task.assignmentStatus}
           </span>
-          <span className="tactical-badge px-2 py-0.5 rounded text-[10px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
+          <span
+            className="tactical-badge dc-priority px-2 py-0.5 rounded text-[10px] font-mono"
+            data-priority={(task.priority || "NORMAL").toUpperCase()}
+          >
             PRIORITY: {task.priority}
           </span>
           {forwarded && (
@@ -1741,7 +2052,13 @@ function TaskCard({
                     <AlertDialogHeader>
                       <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">KONFIRMASI STATUS</AlertDialogTitle>
                       <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
-                        Apakah Anda yakin ingin menandai tugas lapangan ini sebagai selesai/dibaca?
+                        {action?.nextStatus === "READ"
+                          ? "Apakah Anda yakin ingin menandai tugas ini sebagai sudah dibaca?"
+                          : action?.nextStatus === "ACKNOWLEDGED"
+                            ? "Apakah Anda yakin ingin mengakui penerimaan tugas ini?"
+                            : action?.nextStatus === "IN_PROGRESS"
+                              ? "Apakah Anda yakin ingin memulai tugas lapangan ini?"
+                              : "Apakah Anda yakin ingin menandai tugas lapangan ini sebagai selesai?"}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
@@ -1755,7 +2072,13 @@ function TaskCard({
                         }}
                         className="h-9 px-4 rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
                       >
-                        YA, DIBACA
+                        {action?.nextStatus === "READ"
+                          ? "YA, DIBACA"
+                          : action?.nextStatus === "ACKNOWLEDGED"
+                            ? "YA, AKUI"
+                            : action?.nextStatus === "IN_PROGRESS"
+                              ? "YA, MULAI"
+                              : "YA, SELESAIKAN"}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -1764,11 +2087,10 @@ function TaskCard({
             )}
             <button
               onClick={handleForwardClick}
-              className={`h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] uppercase tracking-[0.04em] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] flex items-center justify-center cursor-pointer ${
-                forwarded
+              className={`h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] uppercase tracking-[0.04em] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] flex items-center justify-center cursor-pointer ${forwarded
                   ? "bg-[#991B1B] text-white hover:bg-[#DC2626]"
                   : "bg-[#B45309] text-white hover:bg-[#D97706] active:bg-[#92400E] shadow-[0_0_18px_rgba(217,119,6,0.20)]"
-              }`}
+                }`}
             >
               {forwarded ? "BATAL FORWARD" : "FORWARD"}
             </button>
@@ -1909,17 +2231,19 @@ function BaketCandidateForm({
     "NORMAL",
   );
   const [urgencyConfirmed, setUrgencyConfirmed] = useState(false);
+  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
   const [title, setTitle] = useState(message.title || "");
   const [normalizedContent, setNormalizedContent] = useState(
     message.content || "",
   );
   const [fieldOfficerNote, setFieldOfficerNote] = useState("");
   const [taskAssignmentId, setTaskAssignmentId] = useState("");
-  const [eventTime, setEventTime] = useState(
-    message.eventDateTime
-      ? new Date(message.eventDateTime).toISOString().slice(0, 16)
-      : "",
-  );
+  const [eventTime, setEventTime] = useState(() => {
+    if (!message.eventDateTime) return "";
+    const date = new Date(message.eventDateTime);
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
+  });
   const canCreate = Boolean(
     categoryId && urgencyConfirmed && title.trim() && normalizedContent.trim(),
   );
@@ -1961,21 +2285,42 @@ function BaketCandidateForm({
               <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
                 BUKTI DOKUMENTASI
               </span>
-              <img
-                src={message.photoUrl}
-                alt={`Evidence ${message.title || message.jaringAlias}`}
-                className="max-h-56 w-full rounded-lg border border-[var(--tactical-border)] object-cover shadow-sm animate-fade-in"
-              />
+              <div className="overflow-hidden rounded-lg border border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.01] shadow-sm">
+                <EvidenceImageViewer
+                  src={message.photoUrl}
+                  alt={`Evidence ${message.title || message.jaringAlias}`}
+                  fileName={`${message.id}.jpg`}
+                  caption={`Jaring ${message.jaringCode}`}
+                />
+              </div>
             </div>
           )}
 
           {message.latitude !== null && message.longitude !== null && (
-            <div className="space-y-1">
+            <div className="space-y-2">
               <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
                 KOORDINAT GPS
               </span>
-              <div className="p-3 rounded-lg bg-black/10 dark:bg-white/[0.01] border border-[var(--tactical-border)] font-mono text-xs text-[var(--tactical-text-secondary)]">
-                {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)} &middot; AKURASI {message.gpsAccuracyMeters ?? "-"} M
+              <div className="overflow-hidden rounded-lg border border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.01]">
+                <LeafletLocationPreview
+                  latitude={message.latitude}
+                  longitude={message.longitude}
+                  title={message.title || message.jaringAlias || "Lokasi laporan jaring"}
+                />
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--tactical-border)] bg-black/10 px-3 py-2 font-mono text-xs text-[var(--tactical-text-secondary)] dark:bg-white/[0.01]">
+                <span>
+                  {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)} &middot; AKURASI {message.gpsAccuracyMeters ?? "-"} M
+                </span>
+                <a
+                  href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[var(--tactical-blue)] hover:underline"
+                >
+                  <MapPin className="size-3.5" />
+                  Buka di Google Maps
+                </a>
               </div>
             </div>
           )}
@@ -2122,24 +2467,49 @@ function BaketCandidateForm({
 
             <button
               disabled={!canCreate || busy}
-              onClick={() =>
-                void onCreate({
-                  categoryId,
-                  urgency,
-                  title: title.trim(),
-                  normalizedContent: normalizedContent.trim(),
-                  fieldOfficerNote: fieldOfficerNote.trim() || undefined,
-                  taskAssignmentId: taskAssignmentId || undefined,
-                  eventTime: eventTime
-                    ? new Date(eventTime).toISOString()
-                    : undefined,
-                })
-              }
+              onClick={() => setShowCreateConfirm(true)}
               className="h-[40px] px-[18px] rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] active:bg-[#166534] text-white font-semibold tracking-[0.04em] text-xs transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] shadow-[0_0_18px_rgba(22,163,74,0.25)] disabled:opacity-50 uppercase cursor-pointer"
             >
               {busy ? "SAVING..." : "FORMULASIKAN BAKET"}
             </button>
           </div>
+
+          <AlertDialog open={showCreateConfirm} onOpenChange={setShowCreateConfirm}>
+            <AlertDialogContent className="border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] text-[var(--tactical-text-primary)] rounded-[6px] font-mono">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">
+                  KONFIRMASI BAKET
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
+                  Buat baket dari laporan jaring ini sekarang?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
+                <AlertDialogCancel className="h-9 px-4 rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] text-xs font-semibold uppercase tracking-wider cursor-pointer">
+                  TIDAK
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setShowCreateConfirm(false);
+                    void onCreate({
+                      categoryId,
+                      urgency,
+                      title: title.trim(),
+                      normalizedContent: normalizedContent.trim(),
+                      fieldOfficerNote: fieldOfficerNote.trim() || undefined,
+                      taskAssignmentId: taskAssignmentId || undefined,
+                      eventTime: eventTime
+                        ? new Date(eventTime).toISOString()
+                        : undefined,
+                    });
+                  }}
+                  className="h-9 px-4 rounded-[4px] bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
+                >
+                  YA, BUAT BAKET
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>

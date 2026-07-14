@@ -202,8 +202,17 @@ export class IntegrationService {
   }
 
   async create(body: CreateIntegrationDto, context: AuthorizationContext) {
+    const config = this.whatsappBotRuntime.isWhatsAppChannel(body.channelType)
+      ? {
+          ...body.config,
+          userId:
+            typeof body.config.userId === 'string'
+              ? body.config.userId
+              : context.userProfileId,
+        }
+      : body.config;
     const channel = await this.prisma.integrationChannel.create({
-      data: { ...body, config: this.vault.encrypt(body.config) },
+      data: { ...body, config: this.vault.encrypt(config) },
     });
     await this.audit(context, 'INTEGRATION.CREATE', channel.id);
     return this.view(channel);
@@ -262,6 +271,7 @@ export class IntegrationService {
       ...(body.pairingMethod !== undefined
         ? { pairingMethod: body.pairingMethod }
         : {}),
+      ...(body.userId !== undefined ? { userId: body.userId } : {}),
       ...(senderNumbers !== undefined ? { senderNumbers } : {}),
     };
 

@@ -52,4 +52,39 @@ describe('BaketQueryService detail serialization', () => {
     expect(sourceFileSelect).not.toHaveProperty('sizeBytes');
     expect(attachmentFileSelect).not.toHaveProperty('sizeBytes');
   });
+
+  it('applies category, cluster, and Baket creation period filters', async () => {
+    const findMany = jest.fn(() => []);
+    const count = jest.fn(() => 0);
+    const service = new BaketQueryService(
+      { baket: { findMany, count } } as never,
+      { baketWhere: jest.fn(() => ({})) } as never,
+    );
+
+    await service.list(
+      {
+        page: 1,
+        limit: 20,
+        categoryId: '11111111-1111-4111-8111-111111111111',
+        jaringClusterId: '22222222-2222-4222-8222-222222222222',
+        from: '2026-07-01T00:00:00.000+07:00',
+        to: '2026-07-14T23:59:59.999+07:00',
+      },
+      { roleCode: 'FIELD_OFFICER' } as never,
+    );
+
+    const query = findMany.mock.calls[0]?.[0] as {
+      where?: Record<string, unknown>;
+    };
+    expect(query.where).toEqual(
+      expect.objectContaining({
+        reportCategoryId: '11111111-1111-4111-8111-111111111111',
+        jaringClusterId: '22222222-2222-4222-8222-222222222222',
+        createdAt: {
+          gte: new Date('2026-07-01T00:00:00.000+07:00'),
+          lte: new Date('2026-07-14T23:59:59.999+07:00'),
+        },
+      }),
+    );
+  });
 });
