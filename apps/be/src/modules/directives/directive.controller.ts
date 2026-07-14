@@ -22,6 +22,7 @@ import {
   CreateDirectiveRevisionDto,
   DirectiveQuery,
   DistributeDirectiveDto,
+  GenerateDirectiveAiDto,
   OptionalNoteDto,
   PublishDirectiveDto,
   ReplaceAreasDto,
@@ -30,12 +31,28 @@ import {
   UpdateDirectiveVersionDto,
 } from './directive.dto.js';
 import { DirectiveService } from './directive.service.js';
+import { DirectiveAiService } from './directive-ai.service.js';
 
 @ApiTags('08. Directives')
 @UseGuards(SessionGuard, DomainAccessGuard)
 @Controller()
 export class DirectiveController {
-  constructor(private readonly directiveService: DirectiveService) {}
+  constructor(
+    private readonly directiveService: DirectiveService,
+    private readonly directiveAiService: DirectiveAiService,
+  ) {}
+
+  @Post('directives/ai-recommendation')
+  @ApiContract({
+    operationId: 'apiDirAi001',
+    contractId: 'API-DIR-AI-001',
+    summary: 'Generate rekomendasi AI untuk Direktif Strategis',
+    roles: ['executive'],
+    successStatus: 201,
+  })
+  async generateAiRecommendation(@Body() body: GenerateDirectiveAiDto) {
+    return apiResult(await this.directiveAiService.generate(body));
+  }
 
   @Get('directives')
   @ApiContract({
