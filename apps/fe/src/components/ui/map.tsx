@@ -173,6 +173,30 @@ function useMapContext() {
   return useContext(MapContext);
 }
 
+function isMapStyleAvailable(map: MapLibreMap) {
+  try {
+    return Boolean(map.getStyle());
+  } catch {
+    return false;
+  }
+}
+
+function hasMapLayer(map: MapLibreMap, layerId: string) {
+  try {
+    return isMapStyleAvailable(map) && Boolean(map.getLayer(layerId));
+  } catch {
+    return false;
+  }
+}
+
+function hasMapSource(map: MapLibreMap, sourceId: string) {
+  try {
+    return isMapStyleAvailable(map) && Boolean(map.getSource(sourceId));
+  } catch {
+    return false;
+  }
+}
+
 function getResolvedStyle(styles?: MapStyles, blank?: boolean) {
   if (blank) {
     return BLANK_STYLE;
@@ -353,7 +377,9 @@ export const Map = forwardRef<MapRef, MapProps>(function Map(
           className,
         )}
       >
-        <div ref={containerRef} className="absolute inset-0" />
+        <div className="absolute inset-0">
+          <div ref={containerRef} className="h-full w-full" />
+        </div>
         {children}
       </div>
     </MapContext.Provider>
@@ -598,8 +624,14 @@ export function MapGeoJSON({
             "line-opacity": 0.9,
           });
 
+    let isMounted = true;
+
     const ensureLayers = () => {
-      if (!map.getSource(sourceId)) {
+      if (!isMounted || !isMapStyleAvailable(map)) {
+        return;
+      }
+
+      if (!hasMapSource(map, sourceId)) {
         map.addSource(sourceId, {
           type: "geojson",
           data,
@@ -607,7 +639,7 @@ export function MapGeoJSON({
         });
       }
 
-      if (!map.getLayer(fillLayerId)) {
+      if (!hasMapLayer(map, fillLayerId)) {
         map.addLayer({
           id: fillLayerId,
           type: "fill",
@@ -619,7 +651,7 @@ export function MapGeoJSON({
         });
       }
 
-      if (fillHoverPaint && !map.getLayer(hoverLayerId)) {
+      if (fillHoverPaint && !hasMapLayer(map, hoverLayerId)) {
         map.addLayer({
           id: hoverLayerId,
           type: "fill",
@@ -629,7 +661,7 @@ export function MapGeoJSON({
         });
       }
 
-      if (resolvedLinePaint && !map.getLayer(lineLayerId)) {
+      if (resolvedLinePaint && !hasMapLayer(map, lineLayerId)) {
         map.addLayer({
           id: lineLayerId,
           type: "line",
@@ -661,7 +693,7 @@ export function MapGeoJSON({
     };
 
     const setHoverLayerFilter = (featureId: string | number | null) => {
-      if (!fillHoverPaint || !map.getLayer(hoverLayerId)) {
+      if (!fillHoverPaint || !hasMapLayer(map, hoverLayerId)) {
         return;
       }
 
@@ -707,6 +739,7 @@ export function MapGeoJSON({
     }
 
     return () => {
+      isMounted = false;
       map.off("styledata", ensureLayers);
 
       if (interactive) {
@@ -715,16 +748,20 @@ export function MapGeoJSON({
         map.off("click", fillLayerId, handleClick);
       }
 
-      if (map.getLayer(lineLayerId)) {
+      if (!isMapStyleAvailable(map)) {
+        return;
+      }
+
+      if (hasMapLayer(map, lineLayerId)) {
         map.removeLayer(lineLayerId);
       }
-      if (map.getLayer(hoverLayerId)) {
+      if (hasMapLayer(map, hoverLayerId)) {
         map.removeLayer(hoverLayerId);
       }
-      if (map.getLayer(fillLayerId)) {
+      if (hasMapLayer(map, fillLayerId)) {
         map.removeLayer(fillLayerId);
       }
-      if (map.getSource(sourceId)) {
+      if (hasMapSource(map, sourceId)) {
         map.removeSource(sourceId);
       }
     };

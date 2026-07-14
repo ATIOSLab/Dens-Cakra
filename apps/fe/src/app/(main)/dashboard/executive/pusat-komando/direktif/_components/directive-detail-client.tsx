@@ -32,9 +32,6 @@ type DirectiveDetailClientProps = {
   directive: DirectiveDetail;
 };
 
-
-import { ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
-
 function StatusBadge({ status }: { status: string }) {
   let badgeClass = "border-muted text-muted-foreground bg-muted/5";
   
@@ -52,34 +49,6 @@ function StatusBadge({ status }: { status: string }) {
     <Badge variant="outline" className={`font-mono text-[10px] tracking-wider rounded-[4px] px-2 py-0.5 uppercase ${badgeClass}`}>
       {status}
     </Badge>
-  );
-}
-
-function SummaryMetric({
-  label,
-  value,
-  variant = "neutral",
-}: {
-  label: string;
-  value: React.ReactNode;
-  variant?: "primary" | "success" | "warning" | "danger" | "info" | "neutral";
-}) {
-  let colorClass = "text-muted-foreground";
-  if (variant === "primary") colorClass = "text-[var(--dc-primary)]";
-  else if (variant === "success") colorClass = "text-[var(--dc-success)]";
-  else if (variant === "warning") colorClass = "text-[var(--dc-warning)]";
-  else if (variant === "danger") colorClass = "text-[var(--dc-danger)]";
-  else if (variant === "info") colorClass = "text-[var(--dc-info)]";
-
-  return (
-    <div className="flex flex-col justify-between rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3 h-24 min-w-[120px] flex-1">
-      <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
-        {label}
-      </div>
-      <div className={`mt-1 font-sans text-sm font-semibold truncate ${colorClass}`}>
-        {value}
-      </div>
-    </div>
   );
 }
 
@@ -150,42 +119,57 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
     return list;
   }, [allSections]);
 
-  const [activeSectionId, setActiveSectionId] = useState<string>("");
+  // Section Wizard States
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const [isFading, setIsFading] = useState(false);
+  const [isSupportingVisible, setIsSupportingVisible] = useState(false);
 
+  // Monitor Supporting Info scroll boundary to auto-highlight tab 10
   useEffect(() => {
-    const observerOptions = {
+    const element = document.getElementById("section-SUPPORTING_INFO");
+    if (!element) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsSupportingVisible(entry.isIntersecting);
+    }, {
       root: null,
-      rootMargin: "-25% 0px -55% 0px", // triggers when centered in viewport
+      rootMargin: "-20% 0px -60% 0px",
       threshold: 0,
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveSectionId(entry.target.id.replace("section-", ""));
-        }
-      });
-    }, observerOptions);
-
-    allSectionsWithSupport.forEach((section) => {
-      const element = document.getElementById(`section-${section.sectionType}`);
-      if (element) {
-        observer.observe(element);
-      }
     });
 
-    return () => {
-      observer.disconnect();
-    };
-  }, [allSectionsWithSupport]);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
-  const scrollToSection = (sectionType: string) => {
-    const element = document.getElementById(`section-${sectionType}`);
+  const handleSelectSection = (index: number) => {
+    if (index === 9) {
+      scrollToSupportingInfo();
+      return;
+    }
+
+    setIsFading(true);
+    setTimeout(() => {
+      setActiveSectionIndex(index);
+      setIsFading(false);
+      scrollToActiveSection();
+    }, 150);
+  };
+
+  const scrollToActiveSection = () => {
+    const element = document.getElementById("active-section-container");
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveSectionId(sectionType);
     }
   };
+
+  const scrollToSupportingInfo = () => {
+    const element = document.getElementById("section-SUPPORTING_INFO");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const activeSection = allSections[activeSectionIndex];
 
   const getShortNavTitle = (sectionType: string, index: number) => {
     const numberStr = (index + 1).toString().padStart(2, "0");
@@ -218,7 +202,7 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
 
   const formatContent = (text: string) => {
     if (!text || text.trim() === "" || text.trim() === "Belum diisi.") {
-      return <p className="text-muted-foreground/45 italic text-[11px]">Belum diisi.</p>;
+      return <p className="text-muted-foreground/45 italic text-[11px] py-1">Belum ada konten.</p>;
     }
 
     const lines = text.split("\n");
@@ -231,13 +215,13 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
       if (currentList.length > 0) {
         if (listType === "ol") {
           formattedBlocks.push(
-            <ol key={`ol-${key}`} className="list-decimal pl-5 space-y-1 text-xs leading-[1.5] text-foreground/95 my-1.5">
+            <ol key={`ol-${key}`} className="list-decimal pl-5 space-y-0.5 text-xs leading-relaxed text-foreground/95 my-1">
               {currentList}
             </ol>
           );
         } else {
           formattedBlocks.push(
-            <ul key={`ul-${key}`} className="list-disc pl-5 space-y-1 text-xs leading-[1.5] text-foreground/95 my-1.5">
+            <ul key={`ul-${key}`} className="list-disc pl-5 space-y-0.5 text-xs leading-relaxed text-foreground/95 my-1">
               {currentList}
             </ul>
           );
@@ -250,7 +234,7 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
     const flushQuote = (key: number) => {
       if (blockquoteContent.length > 0) {
         formattedBlocks.push(
-          <blockquote key={`quote-${key}`} className="border-l border-primary/60 bg-secondary/20 p-2 rounded-r-[3px] italic text-muted-foreground text-xs my-1.5 leading-[1.5]">
+          <blockquote key={`quote-${key}`} className="border-l-2 border-primary/60 bg-secondary/10 p-2 rounded-r-[3px] italic text-muted-foreground text-xs my-1 leading-relaxed">
             {blockquoteContent.join("\n")}
           </blockquote>
         );
@@ -296,7 +280,7 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
       flushList(index);
       if (trimmed !== "") {
         formattedBlocks.push(
-          <p key={`p-${index}`} className="text-xs leading-[1.5] text-foreground/90 mb-2 whitespace-pre-wrap">
+          <p key={`p-${index}`} className="text-xs leading-relaxed text-foreground/90 mb-1.5 whitespace-pre-wrap">
             {trimmed}
           </p>
         );
@@ -306,11 +290,14 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
     flushList(lines.length);
     flushQuote(lines.length);
 
-    return <div className="space-y-1.5">{formattedBlocks}</div>;
+    return <div className="space-y-1">{formattedBlocks}</div>;
   };
 
+  const stepperHighlightIndex = isSupportingVisible ? 9 : activeSectionIndex;
+  const activeSectionIsCompleted = activeSection?.content.trim().length > 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* 1. COMPACT HORIZONTAL HEADER CARD */}
       <Card className="border border-border bg-card rounded-[12px] shadow-sm overflow-hidden">
         <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 bg-secondary/10">
@@ -339,7 +326,8 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
                 <Button
                   size="sm"
                   disabled={isActionDisabled}
-                  className="h-8 rounded-[4px] text-xs border-transparent bg-emerald-600 text-white shadow-sm hover:bg-emerald-500 cursor-pointer"
+                  variant="success"
+                  className="h-8 rounded-[4px] text-xs"
                 >
                   {isSubmitting === "publish" ? "Memproses..." : "Publish"}
                 </Button>
@@ -348,7 +336,7 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
                 <AlertDialogHeader>
                   <AlertDialogTitle>Publish STR?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    STR {directive.commandNumber} akan dipublish dan siap masuk tahap distribusi. Pastikan metadata,
+                    STR {directive.commandNumber} akan dipublish and siap masuk tahap distribusi. Pastikan metadata,
                     UUK/KIQ/PIR, wilayah sasaran, dan penerima sudah benar.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -357,14 +345,14 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
                   <AlertDialogAction
                     disabled={isActionDisabled}
                     onClick={() => triggerAction("publish")}
-                    className="border-transparent bg-emerald-600 text-white hover:bg-emerald-500"
+                    variant="success"
                   >
                     {isSubmitting === "publish" ? "Memproses..." : "Ya, Publish"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button size="sm" className="h-8 rounded-[4px] text-xs cursor-pointer" onClick={() => triggerAction("distribute")} disabled={isActionDisabled} variant="secondary">
+            <Button size="sm" className="h-8 rounded-[4px] text-xs" onClick={() => triggerAction("distribute")} disabled={isActionDisabled} variant="success">
               {isSubmitting === "distribute" ? "Memproses..." : "Distribusikan"}
             </Button>
             <AlertDialog>
@@ -435,14 +423,17 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
         </div>
       </Card>
 
-      {/* 2. STICKY HORIZONTAL NAVIGATION */}
-      <div className="sticky top-[56px] md:top-[60px] z-30 bg-background/95 backdrop-blur-md border-b border-border/80 py-3 px-1 -mx-4 md:-mx-6 px-4 md:px-6 shadow-sm overflow-x-auto no-scrollbar flex items-center gap-2 scroll-smooth">
+      {/* 2. HORIZONTAL STEP NAVIGATION (01–10) */}
+      <div className="sticky top-[56px] md:top-[60px] z-30 bg-background/95 backdrop-blur-md border-b border-border/80 py-2.5 px-1 -mx-4 md:-mx-6 px-4 md:px-6 shadow-sm overflow-x-auto no-scrollbar flex items-center gap-1.5 scroll-smooth shrink-0">
         {allSectionsWithSupport.map((section, index) => {
-          const isSelected = activeSectionId === section.sectionType;
+          const isSelected = stepperHighlightIndex === index;
+          const isCompleted = section.sectionType === "SUPPORTING_INFO"
+            ? true
+            : section.content.trim().length > 0;
           return (
             <button
               key={section.sectionType}
-              onClick={() => scrollToSection(section.sectionType)}
+              onClick={() => handleSelectSection(index)}
               className={cn(
                 "px-3.5 py-1.5 rounded-full text-[11px] font-mono font-bold border transition-all shrink-0 whitespace-nowrap cursor-pointer",
                 isSelected
@@ -451,101 +442,117 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
               )}
             >
               {getShortNavTitle(section.sectionType, index)}
+              <span className="ml-1 text-[9px] opacity-60">
+                {isCompleted ? "✓" : "○"}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {/* 3. CORE DOCUMENT SECTIONS FLOW */}
-      <div className="space-y-0">
-        {allSections.map((section, index) => {
-          return (
-            <div
-              key={section.sectionType}
-              id={`section-${section.sectionType}`}
-              className="scroll-mt-36 first:mt-4 my-4"
-            >
-              <Card className="border border-border/80 bg-card/65 backdrop-blur-md rounded-[8px] p-3 md:p-4 shadow-sm">
-                <div className="space-y-2.5">
-                  {/* Card Section Header */}
-                  <div className="space-y-1">
-                    <span className="text-[8px] uppercase font-mono font-bold tracking-widest text-primary">
-                      SECTION {(index + 1).toString().padStart(2, "0")} | {section.sectionType}
-                    </span>
-                    <h2 className="text-sm md:text-base font-bold font-sans text-foreground leading-tight tracking-wide mt-0.5 uppercase">
-                      {section.title}
-                    </h2>
-                    
-                    {/* Metadata kecil */}
-                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[9px] font-mono text-muted-foreground/60">
-                      <span>CLASSIFICATION: <span className="text-foreground font-semibold">{currentVersion?.classification ?? "RAHASIA"}</span></span>
-                      <span className="text-muted-foreground/20">|</span>
-                      <span>OWNER: <span className="text-foreground font-semibold">{directive.ownerUnit?.name ?? "-"}</span></span>
-                      <span className="text-muted-foreground/20">|</span>
-                      <span>LAST UPDATED: <span className="text-foreground font-semibold">{currentVersion?.commandDate ? formatDate(currentVersion.commandDate) : "-"}</span></span>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-border/40 my-2" />
-                  
-                  {/* Card Section Content Body */}
-                  <div className="pr-1">
-                    {formatContent(section.content)}
-                  </div>
-                  
-                  <div className="border-t border-border/40 my-2" />
-                  
-                  {/* Card Section Footer */}
-                  <div className="flex flex-wrap items-center justify-end gap-2.5 text-[8px] font-mono text-muted-foreground/50">
-                    <span>EDITOR: <span className="text-foreground">{directive.createdByAssignment?.userProfile?.fullName || "COMMAND CENTER"}</span></span>
-                    <span>|</span>
-                    <span>TIMESTAMP: <span className="text-foreground">{currentVersion?.commandDate ? formatDate(currentVersion.commandDate) : "-"}</span></span>
-                  </div>
+      {/* 3. ACTIVE SECTION CARD (WIZARD MODE) */}
+      <div id="active-section-container" className="scroll-mt-36">
+        <div className={cn(
+          "transition-all duration-150 ease-in-out",
+          isFading ? "opacity-30 translate-y-1" : "opacity-100 translate-y-0"
+        )}>
+          {activeSectionIndex < 9 && activeSection && (
+            <Card className="border border-border/80 bg-card rounded-[8px] p-4 shadow-sm space-y-3">
+              {/* Card Header */}
+              <div className="space-y-1">
+                <span className="text-[8px] uppercase font-mono font-bold tracking-widest text-primary">
+                  SECTION {(activeSectionIndex + 1).toString().padStart(2, "0")} | {activeSection.sectionType}
+                </span>
+                <h2 className="text-sm font-bold font-sans text-foreground leading-tight tracking-wide uppercase mt-0.5">
+                  {activeSection.title}
+                </h2>
+                
+                {/* Compact Single-line Metadata */}
+                <div className="flex flex-wrap items-center gap-1.5 text-[9.5px] font-mono text-muted-foreground/60 mt-1">
+                  <span>Classification: <strong className="text-foreground">{currentVersion?.classification ?? "RAHASIA"}</strong></span>
+                  <span className="opacity-40">•</span>
+                  <span>Owner: <strong className="text-foreground">{directive.ownerUnit?.name ?? "-"}</strong></span>
+                  <span className="opacity-40">•</span>
+                  <span>Last Update: <strong className="text-foreground">{currentVersion?.commandDate ? formatDate(currentVersion.commandDate) : "-"}</strong></span>
+                  <span className="opacity-40">•</span>
+                  <span>Status: <strong className={cn(activeSectionIsCompleted ? "text-emerald-500" : "text-muted-foreground/70")}>{activeSectionIsCompleted ? "Selesai" : "Belum diisi"}</strong></span>
                 </div>
-              </Card>
-            </div>
-          );
-        })}
+              </div>
+              
+              <div className="border-t border-border/30 my-2" />
+              
+              {/* Card Body content (auto height) */}
+              <div className="text-xs leading-relaxed text-foreground/90">
+                {formatContent(activeSection.content)}
+              </div>
+              
+              <div className="border-t border-border/30 my-2" />
+              
+              {/* Previous — Next Navigation Controls */}
+              <div className="flex items-center justify-between text-xs pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSelectSection(activeSectionIndex - 1)}
+                  disabled={activeSectionIndex === 0}
+                  className="h-8 px-3 text-xs"
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSelectSection(activeSectionIndex + 1)}
+                  className="h-8 px-3 text-xs"
+                >
+                  Next
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
 
-      {/* 4. SUPPORTING INFORMATION SECTION */}
-      <div id="section-SUPPORTING_INFO" className="scroll-mt-36 my-10 pt-4 border-t border-border/40">
-        <div className="space-y-1 mb-6">
-          <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
-            SUPPORTING_INFORMATION
-          </div>
-          <h2 className="font-sans text-xl font-bold uppercase tracking-tight text-foreground">
+      {/* 4. INFORMASI PENDUKUNG (SUPPORTING INFO - Always visible at bottom) */}
+      <div
+        id="section-SUPPORTING_INFO"
+        className="scroll-mt-36 pt-6 border-t border-border/30 space-y-4"
+      >
+        <div className="space-y-1">
+          <span className="text-[8px] uppercase font-mono font-bold tracking-widest text-primary">
+            SECTION 10 | SUPPORTING_INFO
+          </span>
+          <h2 className="text-sm font-bold font-sans text-foreground leading-tight tracking-wide uppercase mt-0.5">
             Informasi Pendukung
           </h2>
         </div>
 
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+          
           {/* Narrative description */}
-          <div className="rounded-[12px] border border-border bg-card p-5 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">
-                  OPERATIONAL_NARRATIVE
-                </span>
-                <h3 className="font-sans text-sm font-bold uppercase tracking-tight text-foreground">
-                  Isu Strategis & Uraian Perintah
-                </h3>
-              </div>
+          <div className="rounded-[8px] border border-border bg-card p-4 space-y-3 shadow-xs">
+            <div className="space-y-0.5">
+              <span className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/50">
+                OPERATIONAL_NARRATIVE
+              </span>
+              <h3 className="font-sans text-xs font-bold uppercase text-foreground">
+                Isu Strategis & Uraian Perintah
+              </h3>
             </div>
-            <div className="border-t border-border pt-4 space-y-4">
-              <div className="space-y-1.5">
-                <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+            <div className="border-t border-border pt-3 space-y-3">
+              <div className="space-y-1">
+                <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">
                   ISU_STRATEGIS
                 </div>
-                <p className="text-sm text-foreground leading-relaxed font-sans bg-secondary/40 border border-border/40 p-3 rounded-[4px]">
+                <p className="text-xs text-foreground bg-secondary/30 border border-border/40 p-2.5 rounded-[4px]">
                   {currentVersion?.strategicIssue ?? "Belum diisi."}
                 </p>
               </div>
-              <div className="space-y-1.5">
-                <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+              <div className="space-y-1">
+                <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">
                   URAIAN_PERINTAH
                 </div>
-                <p className="text-sm text-foreground leading-relaxed font-sans bg-secondary/40 border border-border/40 p-3 rounded-[4px] whitespace-pre-wrap">
+                <p className="text-xs text-foreground bg-secondary/30 border border-border/40 p-2.5 rounded-[4px] whitespace-pre-wrap">
                   {parsedDescription.commandNarrative || "-"}
                 </p>
               </div>
@@ -553,125 +560,121 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
           </div>
 
           {/* Recipients & Target Areas */}
-          <div className="rounded-[12px] border border-border bg-card p-5 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">
-                  RECIPIENTS_AND_TARGETS
-                </span>
-                <h3 className="font-sans text-sm font-bold uppercase tracking-tight text-foreground">
-                  Penerima & Wilayah Sasaran
-                </h3>
-              </div>
+          <div className="rounded-[8px] border border-border bg-card p-4 space-y-3 shadow-xs">
+            <div className="space-y-0.5">
+              <span className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/50">
+                RECIPIENTS_AND_TARGETS
+              </span>
+              <h3 className="font-sans text-xs font-bold uppercase text-foreground">
+                Penerima & Wilayah Sasaran
+              </h3>
             </div>
             
-            <div className="border-t border-border pt-4 space-y-4">
-              <div className="space-y-2">
-                <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+            <div className="border-t border-border pt-3 space-y-3">
+              <div className="space-y-1.5">
+                <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">
                   WILAYAH_SASARAN
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1">
                   {currentVersion?.targetAreas.map((item) => (
-                    <Badge key={item.areaId} variant="outline" className="font-mono text-[10px] tracking-wider rounded-[4px] border-border text-muted-foreground bg-secondary/30">
+                    <Badge key={item.areaId} variant="outline" className="font-mono text-[9px] tracking-wider rounded-[4px] border-border text-muted-foreground bg-secondary/20 px-1.5 py-0">
                       {item.area.name}
                     </Badge>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+              <div className="space-y-1.5">
+                <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">
                   DAFTAR_PENERIMA
                 </div>
-                <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
                   {currentVersion?.recipients.length ? (
                     currentVersion.recipients.map((recipient) => (
-                      <div key={recipient.id} className="flex items-center justify-between rounded-[4px] bg-secondary/30 border border-border/40 p-3 text-sm">
-                        <div>
-                          <div className="font-medium text-xs text-foreground">{renderRecipientLabel(recipient)}</div>
-                          <div className="mt-0.5 text-muted-foreground/60 text-[10px] font-mono">
+                      <div key={recipient.id} className="flex items-center justify-between rounded-[4px] bg-secondary/20 border border-border/30 p-2 text-xs">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-xs text-foreground truncate max-w-[150px]">{renderRecipientLabel(recipient)}</div>
+                          <div className="text-muted-foreground/60 text-[9px] font-mono mt-0.5">
                             {recipient.targetPosition ? "JABATAN" : "UNIT"}
                           </div>
                         </div>
-                        <Badge variant="outline" className={`font-mono text-[10px] tracking-wider rounded-[4px] px-2 py-0.5 uppercase ${badgeVariant(recipient.status) === "destructive" ? "border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10" : badgeVariant(recipient.status) === "default" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : "border-border text-muted-foreground bg-secondary/30"}`}>
+                        <Badge variant="outline" className={`font-mono text-[9px] scale-90 px-1.5 py-0 uppercase ${badgeVariant(recipient.status) === "destructive" ? "border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10" : badgeVariant(recipient.status) === "default" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : "border-border text-muted-foreground bg-secondary/30"}`}>
                           {recipient.status}
                         </Badge>
                       </div>
                     ))
                   ) : (
-                    <div className="text-muted-foreground text-sm italic">Belum ada penerima.</div>
+                    <div className="text-muted-foreground text-xs italic">Belum ada penerima.</div>
                   )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Derivative Artifacts */}
-          <div className="rounded-[12px] border border-border bg-card p-5 space-y-4 shadow-sm lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50">
-                  DERIVATIVE_ARTIFACTS
-                </span>
-                <h3 className="font-sans text-sm font-bold uppercase tracking-tight text-foreground">
-                  Artefak Turunan STR
-                </h3>
-              </div>
+          {/* Derivative Artifacts (Artefak Turunan STR) */}
+          <div className="rounded-[8px] border border-border bg-card p-4 space-y-3 shadow-xs md:col-span-2">
+            <div className="space-y-0.5">
+              <span className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/50">
+                DERIVATIVE_ARTIFACTS
+              </span>
+              <h3 className="font-sans text-xs font-bold uppercase text-foreground">
+                Artefak Turunan STR
+              </h3>
             </div>
 
-            <div className="border-t border-border pt-4 grid gap-6 md:grid-cols-2">
-              <div className="space-y-3">
-                <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+            <div className="border-t border-border pt-3 grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">
                   REGIONAL_EXPANSIONS
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {currentVersion?.uukStrs?.length ? (
                     currentVersion.uukStrs.map((uuk) => (
-                      <div key={uuk.id} className="flex items-center justify-between rounded-[4px] bg-secondary/30 border border-border/40 p-3 text-sm">
-                        <div>
-                          <div className="font-medium text-xs text-foreground truncate max-w-[200px]">
+                      <div key={uuk.id} className="flex items-center justify-between rounded-[4px] bg-secondary/20 border border-border/30 p-2 text-xs">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-xs text-foreground truncate max-w-[150px]">
                             {uuk.versions?.[0]?.title ?? "Penjabaran Regional"}
                           </div>
-                          <div className="mt-0.5 text-muted-foreground/60 text-[10px] font-mono">
+                          <div className="text-muted-foreground/60 text-[9px] font-mono mt-0.5">
                             {uuk.ownerUnit?.name ?? "-"}
                           </div>
                         </div>
-                        <Badge variant="outline" className={`font-mono text-[10px] tracking-wider rounded-[4px] px-2 py-0.5 uppercase ${badgeVariant(uuk.status) === "destructive" ? "border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10" : badgeVariant(uuk.status) === "default" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : "border-border text-muted-foreground bg-secondary/30"}`}>
+                        <Badge variant="outline" className={`font-mono text-[9px] scale-90 px-1.5 py-0 uppercase ${badgeVariant(uuk.status) === "destructive" ? "border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10" : badgeVariant(uuk.status) === "default" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : "border-border text-muted-foreground bg-secondary/30"}`}>
                           {uuk.status}
                         </Badge>
                       </div>
                     ))
                   ) : (
-                    <div className="text-muted-foreground/60 text-xs italic p-3 border border-dashed border-border/60 rounded-[4px] text-center">
+                    <div className="text-muted-foreground/50 text-[10px] italic p-2.5 border border-dashed border-border/60 rounded-[4px] text-center">
                       Belum ada penjabaran regional.
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+              <div className="space-y-2">
+                <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60">
                   OPERATIONAL_TASKS
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {currentVersion?.tasks?.length ? (
                     currentVersion.tasks.map((task) => (
-                      <div key={task.id} className="flex items-center justify-between rounded-[4px] bg-secondary/30 border border-border/40 p-3 text-sm">
-                        <div>
-                          <div className="font-medium text-xs text-foreground truncate max-w-[200px]">
+                      <div key={task.id} className="flex items-center justify-between rounded-[4px] bg-secondary/20 border border-border/30 p-2 text-xs">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-xs text-foreground truncate max-w-[150px]">
                             {task.title}
                           </div>
-                          <div className="mt-0.5 text-muted-foreground/60 text-[10px] font-mono">
+                          <div className="text-muted-foreground/60 text-[9px] font-mono mt-0.5">
                             {task.ownerUnit?.name ?? "-"}
                           </div>
                         </div>
-                        <Badge variant="outline" className={`font-mono text-[10px] tracking-wider rounded-[4px] px-2 py-0.5 uppercase ${badgeVariant(task.status) === "destructive" ? "border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10" : badgeVariant(task.status) === "default" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : "border-border text-muted-foreground bg-secondary/30"}`}>
+                        <Badge variant="outline" className={`font-mono text-[9px] scale-90 px-1.5 py-0 uppercase ${badgeVariant(task.status) === "destructive" ? "border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10" : badgeVariant(task.status) === "default" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : "border-border text-muted-foreground bg-secondary/30"}`}>
                           {task.status}
                         </Badge>
                       </div>
                     ))
                   ) : (
-                    <div className="text-muted-foreground/60 text-xs italic p-3 border border-dashed border-border/60 rounded-[4px] text-center">
+                    <div className="text-muted-foreground/50 text-[10px] italic p-2.5 border border-dashed border-border/60 rounded-[4px] text-center">
                       Belum ada task turunan.
                     </div>
                   )}
@@ -679,8 +682,10 @@ export function DirectiveDetailClient({ directive }: DirectiveDetailClientProps)
               </div>
             </div>
           </div>
+
         </div>
       </div>
+
     </div>
   );
 }

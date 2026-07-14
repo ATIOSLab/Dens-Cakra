@@ -12,7 +12,7 @@ type BrowserRequestOptions = {
 };
 
 function getBrowserBackendUrl() {
-  return (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001").replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_BROWSER_API_BASE_URL ?? "").replace(/\/$/, "");
 }
 
 async function parseEnvelope<T>(response: Response): Promise<ApiResolvedEnvelope<T>> {

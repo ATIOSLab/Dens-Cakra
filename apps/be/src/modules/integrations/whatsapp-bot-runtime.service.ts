@@ -706,9 +706,9 @@ export class WhatsappBotRuntimeService
 
   private async resolvePhoneNumberForLid(socket: WASocket, lidUser: string) {
     const reverseKey = `${lidUser}_reverse`;
-    const stored = await Promise.resolve(
+    const stored: Record<string, string> = await Promise.resolve(
       socket.authState.keys.get('lid-mapping', [reverseKey]),
-    ).catch(() => ({}));
+    ).catch(() => ({} as Record<string, string>));
     const mappedUser = stored[reverseKey];
 
     if (typeof mappedUser !== 'string' || mappedUser.length === 0) {

@@ -979,7 +979,7 @@ export function DirectiveFormClient({
                   type="button"
                   onClick={() => applyGeneratedDirectiveDraft("full")}
                   disabled={hasGeneratedDraft}
-                  className="h-auto min-h-12 w-full border border-emerald-300/60 bg-emerald-400 px-4 font-semibold text-slate-950 shadow-[0_0_0_1px_rgba(16,185,129,0.22),0_14px_34px_rgba(16,185,129,0.24)] hover:bg-emerald-300"
+                  className="h-auto min-h-12 w-full px-4 font-semibold"
                 >
                   <Cpu className="mr-2 size-4" />
                   {hasGeneratedDraft ? "UK/STR Sudah Digenerate" : "Generate UK/STR Lengkap"}
@@ -997,7 +997,7 @@ export function DirectiveFormClient({
                     type="button"
                     variant="outline"
                     onClick={() => applyGeneratedDirectiveDraft("collection")}
-                    className="h-auto min-h-11 whitespace-normal border-amber-300/25 bg-amber-300/[0.04] px-3 text-center leading-tight hover:bg-amber-300/10 hover:text-amber-100"
+                    className="h-auto min-h-11 whitespace-normal px-3 text-center leading-tight"
                   >
                     Generate Rencana Pengumpulan
                   </Button>
@@ -1005,7 +1005,7 @@ export function DirectiveFormClient({
                     type="button"
                     variant="outline"
                     onClick={() => applyGeneratedDirectiveDraft("recommendation")}
-                    className="h-auto min-h-11 whitespace-normal border-emerald-300/25 bg-emerald-300/[0.04] px-3 text-center leading-tight hover:bg-emerald-300/10 hover:text-emerald-100"
+                    className="h-auto min-h-11 whitespace-normal px-3 text-center leading-tight"
                   >
                     Generate Saran Tindak
                   </Button>

@@ -385,13 +385,13 @@ function ApprovalActions({ step }: { step: DataRecord }) {
             disabled={!isActive || pending}
           />
         </div>
-        <Button className="w-full" disabled={!isActive || pending} onClick={() => decide("approve")}>
+        <Button variant="success" className="w-full" disabled={!isActive || pending} onClick={() => decide("approve")}>
           <ShieldCheck />
           Approve produk
         </Button>
         <Button
           className="w-full"
-          variant="outline"
+          variant="warning"
           disabled={!isActive || pending || !note.trim()}
           onClick={() => decide("request-revision")}
         >

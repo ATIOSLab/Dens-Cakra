@@ -4208,47 +4208,96 @@ export class IntelligenceProductsService {
     context: AuthorizationContext,
   ) {
     await this.scope.assertArea(context, query.areaId);
-    const [alerts, emergencies, bakets, boundary] = await Promise.all([
-      this.prisma.alert.count({
-        where: {
-          OR: [
-            { areaId: query.areaId },
-            { area: { ancestorLinks: { some: { ancestorId: query.areaId } } } },
-          ],
-          ...this.buildCommonDateWhere('createdAt', query.from, query.to),
-        },
-      }),
-      this.prisma.emergencyIncident.count({
-        where: {
-          OR: [
-            { areaId: query.areaId },
-            { area: { ancestorLinks: { some: { ancestorId: query.areaId } } } },
-          ],
-          ...this.buildCommonDateWhere('createdAt', query.from, query.to),
-        },
-      }),
-      this.prisma.baket.count({
-        where: {
-          versions: {
-            some: {
-              OR: [
-                { eventAreaId: query.areaId },
-                {
-                  eventArea: {
-                    ancestorLinks: { some: { ancestorId: query.areaId } },
+    const scope = await this.scope.resolve(context);
+    const now = new Date();
+    const [alerts, emergencies, bakets, personnelAssignments, boundary] =
+      await Promise.all([
+        this.prisma.alert.count({
+          where: {
+            OR: [
+              { areaId: query.areaId },
+              {
+                area: { ancestorLinks: { some: { ancestorId: query.areaId } } },
+              },
+            ],
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+        this.prisma.emergencyIncident.count({
+          where: {
+            OR: [
+              { areaId: query.areaId },
+              {
+                area: { ancestorLinks: { some: { ancestorId: query.areaId } } },
+              },
+            ],
+            ...this.buildCommonDateWhere('createdAt', query.from, query.to),
+          },
+        }),
+        this.prisma.baket.count({
+          where: {
+            versions: {
+              some: {
+                OR: [
+                  { eventAreaId: query.areaId },
+                  {
+                    eventArea: {
+                      ancestorLinks: { some: { ancestorId: query.areaId } },
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
           },
-        },
-      }),
-      this.spatial.getActiveBoundaryGeoJson(query.areaId),
-    ]);
+        }),
+        this.prisma.userSeatAssignment.findMany({
+          where: {
+            id: { in: scope.assignmentIds },
+            isActive: true,
+            OR: [{ validUntil: null }, { validUntil: { gt: now } }],
+            userProfile: { isActive: true, deletedAt: null },
+            position: {
+              code: PositionCode.PETUGAS_ORGANIK,
+              isActive: true,
+            },
+            areaScopes: {
+              some: {
+                validUntil: null,
+                OR: [
+                  { areaId: query.areaId },
+                  {
+                    area: {
+                      ancestorLinks: {
+                        some: { ancestorId: query.areaId },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          select: {
+            position: { select: { organizationUnitId: true } },
+          },
+        }),
+        this.spatial.getActiveBoundaryGeoJson(query.areaId),
+      ]);
+    const units = new Set(
+      personnelAssignments.map(
+        (assignment) => assignment.position.organizationUnitId,
+      ),
+    ).size;
+
     return {
       areaId: query.areaId,
       boundary,
-      kpis: { alerts, emergencies, bakets },
+      kpis: {
+        personnel: personnelAssignments.length,
+        units,
+        alerts,
+        emergencies,
+        bakets,
+      },
     };
   }
 
@@ -5076,11 +5125,19 @@ export class IntelligenceProductsService {
 
   async latestLocation(assignmentId: string, context: AuthorizationContext) {
     await this.ensureLocationAccess(assignmentId, context);
-    return this.prisma.personnelLocationPing.findFirstOrThrow({
+    const ping = await this.prisma.personnelLocationPing.findFirst({
       where: { positionAssignmentId: assignmentId },
       orderBy: { capturedAt: 'desc' },
       select: this.locationPingSelect,
     });
+    if (!ping) {
+      throw new ApiException(
+        'LOCATION_PING_NOT_FOUND',
+        'Personnel has not submitted a location ping.',
+        404,
+      );
+    }
+    return ping;
   }
 
   async locationHistory(

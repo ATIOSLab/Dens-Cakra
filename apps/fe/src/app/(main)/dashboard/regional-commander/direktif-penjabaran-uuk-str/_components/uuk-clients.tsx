@@ -200,7 +200,12 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                       <TableCell>{formatDate(currentVersion?.commandDate)}</TableCell>
                       <TableCell>
                         {relatedUuk ? (
-                          <Badge variant={badgeVariant(relatedUuk.status)}>{statusLabel(relatedUuk.status)}</Badge>
+                          <Badge
+                            variant={badgeVariant(relatedUuk.status)}
+                            className={relatedUuk.status === "PUBLISHED" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : ""}
+                          >
+                            {statusLabel(relatedUuk.status)}
+                          </Badge>
                         ) : (
                           <Badge variant="outline">Belum diteruskan</Badge>
                         )}
@@ -496,7 +501,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
               </Label>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button type="button" disabled={!hasReadSource || !selectedDirective || isSaving}>
+                  <Button variant="success" type="button" disabled={!hasReadSource || !selectedDirective || isSaving}>
                     {isSaving ? "Meneruskan..." : "Teruskan STR"}
                   </Button>
                 </AlertDialogTrigger>
@@ -510,7 +515,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel disabled={isSaving}>Kembali</AlertDialogCancel>
-                    <AlertDialogAction disabled={isSaving} onClick={handleForward}>
+                  <AlertDialogAction variant="success" disabled={isSaving} onClick={handleForward}>
                       {isSaving ? "Meneruskan..." : "Ya, Teruskan"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -824,7 +829,12 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
             <div className="space-y-1 text-xs font-mono">
               <div className="flex justify-between items-center py-0.5 border-b border-white/[0.04]">
                 <span className="text-muted-foreground/60">STATUS:</span>
-                <Badge variant={badgeVariant(uuk.status)}>{statusLabel(uuk.status)}</Badge>
+                <Badge
+                  variant={badgeVariant(uuk.status)}
+                  className={uuk.status === "PUBLISHED" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : ""}
+                >
+                  {statusLabel(uuk.status)}
+                </Badge>
               </div>
               <div className="flex justify-between items-center py-0.5 border-b border-white/[0.04]">
                 <span className="text-muted-foreground/60">KLASIFIKASI:</span>
@@ -940,8 +950,8 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
               <AlertDialogTrigger asChild>
                 <Button
                   disabled={isActionDisabled}
-                  variant="outline"
-                  className="h-8 rounded-[4px] border-white/10 px-3 font-mono text-xs hover:bg-white/[0.04]"
+                  variant="destructive"
+                  className="h-8 rounded-[4px] px-3 font-mono text-xs"
                 >
                   Batalkan
                 </Button>
@@ -977,7 +987,8 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
               <AlertDialogTrigger asChild>
                 <Button
                   disabled={isActionDisabled}
-                  className="h-8 rounded-[4px] bg-[var(--dc-primary)] px-4 font-mono text-[var(--dc-text-inverse)] text-xs shadow-none hover:bg-[var(--dc-primary-hover)]"
+                  variant="success"
+                  className="h-8 rounded-[4px] px-4 font-mono text-xs"
                 >
                   {action === "publish" ? "Memproses..." : "Buat Penjabaran UUK"}
                 </Button>
@@ -992,7 +1003,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel disabled={isActionDisabled}>Kembali</AlertDialogCancel>
-                  <AlertDialogAction disabled={isActionDisabled} onClick={() => triggerAction("publish")}>
+                  <AlertDialogAction variant="success" disabled={isActionDisabled} onClick={() => triggerAction("publish")}>
                     {action === "publish" ? "Memproses..." : "Ya, Teruskan"}
                   </AlertDialogAction>
                 </AlertDialogFooter>

@@ -449,6 +449,7 @@ export function PenggunaDetailClient({
             </Button>
             <Button
               type="button"
+              variant="success"
               disabled={submittingAction === "activate" || activateReason.trim().length < 2}
               onClick={() =>
                 executeAction({
@@ -503,6 +504,7 @@ export function PenggunaDetailClient({
             </Button>
             <Button
               type="button"
+              variant="warning"
               disabled={submittingAction === "suspend" || suspendReason.trim().length < 2}
               onClick={() =>
                 executeAction({
@@ -557,6 +559,7 @@ export function PenggunaDetailClient({
             </Button>
             <Button
               type="button"
+              variant="destructive"
               disabled={submittingAction === "lock" || lockReason.trim().length < 2}
               onClick={() =>
                 executeAction({
@@ -598,6 +601,7 @@ export function PenggunaDetailClient({
             </Button>
             <Button
               type="button"
+              variant="success"
               disabled={submittingAction === "unlock" || unlockReason.trim().length < 2}
               onClick={() =>
                 executeAction({

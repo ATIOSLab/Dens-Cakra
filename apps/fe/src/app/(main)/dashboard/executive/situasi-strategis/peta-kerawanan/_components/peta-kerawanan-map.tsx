@@ -29,7 +29,7 @@ type RiskPoint = {
   correlation: string;
 };
 
-const openStreetMap3dStyle = "https://tiles.openfreemap.org/styles/liberty";
+const cartoMapStyle = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
 const layerOptions = [
   { key: "semua", label: "Semua" },
@@ -201,8 +201,8 @@ export function PetaKerawananMap() {
           center={[107.05, -6.4]}
           pitch={58}
           styles={{
-            dark: openStreetMap3dStyle,
-            light: openStreetMap3dStyle,
+            dark: cartoMapStyle,
+            light: cartoMapStyle,
           }}
           zoom={7.55}
           onViewportChange={(v) => setZoom(v.zoom)}

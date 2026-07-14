@@ -519,9 +519,9 @@ export function AdminWaCenterPage() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
+                          variant="destructive"
                           onClick={() => void deleteChannel(channel.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                           Hapus
                         </AlertDialogAction>
@@ -560,7 +560,7 @@ export function AdminWaCenterPage() {
                   <div className="flex w-full gap-2">
                     <Button
                       size="sm"
-                      className="w-full bg-emerald-500 text-white hover:bg-emerald-600 dark:bg-emerald-400 dark:text-slate-950 dark:hover:bg-emerald-300"
+                      className="w-full"
                       disabled={busyKey === `test:${channel.id}`}
                       onClick={() => void runAction(channel.id, "test")}
                     >
@@ -569,8 +569,8 @@ export function AdminWaCenterPage() {
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
-                      className="w-full border-destructive/30 text-destructive hover:bg-destructive/10"
+                      variant="warning"
+                      className="w-full"
                       disabled={busyKey === `deactivate:${channel.id}`}
                       onClick={() => void runAction(channel.id, "deactivate")}
                     >
@@ -641,7 +641,8 @@ export function AdminWaCenterPage() {
                     <DialogTrigger asChild>
                       <Button
                         size="sm"
-                        className="w-full bg-emerald-500 text-white hover:bg-emerald-600 dark:bg-emerald-400 dark:text-slate-950 dark:hover:bg-emerald-300"
+                        variant="success"
+                        className="w-full"
                         disabled={busyKey === `request-qr:${channel.id}`}
                         onClick={() => void runAction(channel.id, "request-qr")}
                       >

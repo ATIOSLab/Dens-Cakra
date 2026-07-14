@@ -4,21 +4,27 @@ import { getBackendInternalUrl } from "@/lib/auth/backend-url";
 
 export const dynamic = "force-dynamic";
 
-async function forwardAuthRequest(request: NextRequest) {
+const hopByHopHeaders = [
+  "host",
+  "content-length",
+  "connection",
+  "expect",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+];
+
+async function forwardApiRequest(request: NextRequest) {
   const targetUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, getBackendInternalUrl());
   const forwardedHeaders = new Headers(request.headers);
 
-  forwardedHeaders.delete("host");
-  forwardedHeaders.delete("content-length");
-  forwardedHeaders.delete("connection");
-  forwardedHeaders.delete("expect");
-  forwardedHeaders.delete("keep-alive");
-  forwardedHeaders.delete("proxy-authenticate");
-  forwardedHeaders.delete("proxy-authorization");
-  forwardedHeaders.delete("te");
-  forwardedHeaders.delete("trailer");
-  forwardedHeaders.delete("transfer-encoding");
-  forwardedHeaders.delete("upgrade");
+  for (const header of hopByHopHeaders) {
+    forwardedHeaders.delete(header);
+  }
 
   let response: Response;
   try {
@@ -30,13 +36,13 @@ async function forwardAuthRequest(request: NextRequest) {
       cache: "no-store",
     });
   } catch {
-    console.error(`[auth-proxy] ${request.method} ${targetUrl.pathname}: backend tidak dapat dijangkau.`);
+    console.error(`[api-proxy] ${request.method} ${targetUrl.pathname}: backend tidak dapat dijangkau.`);
     return NextResponse.json(
       {
         success: false,
         error: {
           code: "BACKEND_UNAVAILABLE",
-          message: "Layanan autentikasi belum tersedia. Pastikan backend berjalan pada port 3001.",
+          message: "Layanan backend belum tersedia. Pastikan backend berjalan pada port 3001.",
         },
         requestId: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
@@ -61,19 +67,29 @@ async function forwardAuthRequest(request: NextRequest) {
     headers: responseHeaders,
   });
 
-  if (setCookies.length > 0) {
-    for (const cookie of setCookies) {
-      proxyResponse.headers.append("set-cookie", cookie);
-    }
+  for (const cookie of setCookies) {
+    proxyResponse.headers.append("set-cookie", cookie);
   }
 
   return proxyResponse;
 }
 
 export async function GET(request: NextRequest) {
-  return forwardAuthRequest(request);
+  return forwardApiRequest(request);
 }
 
 export async function POST(request: NextRequest) {
-  return forwardAuthRequest(request);
+  return forwardApiRequest(request);
+}
+
+export async function PUT(request: NextRequest) {
+  return forwardApiRequest(request);
+}
+
+export async function PATCH(request: NextRequest) {
+  return forwardApiRequest(request);
+}
+
+export async function DELETE(request: NextRequest) {
+  return forwardApiRequest(request);
 }
