@@ -1,7 +1,18 @@
-import { ExecutiveCommandPage } from "@/app/(main)/dashboard/_components/executive-command-page";
+﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
 
 export const dynamic = "force-dynamic";
 
-export default function Page() {
-  return <ExecutiveCommandPage />;
+type PageProps = {
+  params?: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Page({ params, searchParams }: PageProps) {
+  return (
+    <UniversalDensRoutePage
+      routePattern="/dashboard/executive"
+      params={(await params) ?? {}}
+      searchParams={(await searchParams) ?? {}}
+    />
+  );
 }

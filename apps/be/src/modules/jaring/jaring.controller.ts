@@ -74,14 +74,7 @@ export class JaringController {
     operationId: 'apiJarCluster001',
     contractId: 'API-JAR-CLUSTER-001',
     summary: 'Daftar Cluster Jaring',
-    roles: [
-      'admin_system',
-      'executive',
-      'regional_commander',
-      'operational_intelligence_manager',
-      'field_coordinator',
-      'field_officer',
-    ],
+    roles: ['admin_system', 'field_officer'],
   })
   async listClusters(@Query() query: JaringClusterQuery) {
     return apiResult(await this.jaringService.listClusters(query));

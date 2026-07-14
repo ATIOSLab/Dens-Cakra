@@ -1,9 +1,6 @@
 "use client";
 
 import { useState } from "react";
-
-import Link from "next/link";
-
 import {
   AlertCircle,
   Archive,
@@ -24,6 +21,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,29 +85,11 @@ const initialProducts: IntelligenceProduct[] = [
       "Laporan mendeteksi adanya konsolidasi aliansi ormas tertentu di wilayah penyangga ibu kota (Depok, Bekasi, Bogor) yang berpotensi memicu unjuk rasa besar-besaran apabila calon pilihan mereka tidak lolos seleksi berkas administratif. Pengamanan ketat KPU dan KPUD direkomendasikan.",
     content:
       "Berdasarkan UUK No. 22/2026, jaring intelijen lapangan melaporkan pergerakan logistik non-formal dari aktor politik regional untuk mendanai aksi demonstrasi terencana. Konsolidasi massa diprediksi mencapai puncak pada pertengahan Juli 2026 di depan kantor KPUD Jabar di Bandung.",
-    evidence: [
-      "foto_satelit_titik_kumpul_bandung.jpg",
-      "rekaman_diskusi_konsolidasi_ormas.mp3",
-      "daftar_pemodal_logistik_lapangan.pdf",
-    ],
-    sources: [
-      "BAKET-2026-0709-014 (Nilai A-1)",
-      "Laporan Harian Korwil Bandung (Nilai B-2)",
-      "Sinyal Penyadapan spektrum komunikasi taktis regional",
-    ],
+    evidence: ["foto_satelit_titik_kumpul_bandung.jpg", "rekaman_diskusi_konsolidasi_ormas.mp3", "daftar_pemodal_logistik_lapangan.pdf"],
+    sources: ["BAKET-2026-0709-014 (Nilai A-1)", "Laporan Harian Korwil Bandung (Nilai B-2)", "Sinyal Penyadapan spektrum komunikasi taktis regional"],
     versions: [
-      {
-        version: "v1.2",
-        date: "10 Jul 2026, 09.00 WIB",
-        actor: "OIM Jabar / Heru K.",
-        description: "Kompilasi final data logistik dan daftar ormas",
-      },
-      {
-        version: "v1.1",
-        date: "09 Jul 2026, 14.15 WIB",
-        actor: "Analang Jabar / Dedi R.",
-        description: "Penyusunan kerangka analisis ancaman taktis",
-      },
+      { version: "v1.2", date: "10 Jul 2026, 09.00 WIB", actor: "OIM Jabar / Heru K.", description: "Kompilasi final data logistik dan daftar ormas" },
+      { version: "v1.1", date: "09 Jul 2026, 14.15 WIB", actor: "Analang Jabar / Dedi R.", description: "Penyusunan kerangka analisis ancaman taktis" },
     ],
     distribution: ["Presiden RI", "Seskab", "Menko Polhukam"],
     cc: ["Kepala BIN", "Kabinda Jawa Barat", "Deputi II BIN"],
@@ -129,12 +109,7 @@ const initialProducts: IntelligenceProduct[] = [
     evidence: ["koordinat_radar_sat-04.xlsx", "logbook_kapal_mini_kargo.pdf"],
     sources: ["BAKET-2026-0708-009 (Nilai A-2)", "Laporan Analis Maritim Kepri"],
     versions: [
-      {
-        version: "v1.1",
-        date: "10 Jul 2026, 08.30 WIB",
-        actor: "OIM Kepri / Syamsul B.",
-        description: "Validasi data radar satelit kargo",
-      },
+      { version: "v1.1", date: "10 Jul 2026, 08.30 WIB", actor: "OIM Kepri / Syamsul B.", description: "Validasi data radar satelit kargo" },
     ],
     distribution: ["Menko Polhukam", "Menteri Perhubungan", "KSAL"],
     cc: ["Kepala BIN", "Kabinda Kepri", "Deputi I BIN"],
@@ -154,12 +129,7 @@ const initialProducts: IntelligenceProduct[] = [
     evidence: ["tabel_produksi_lumbung_regional.xlsx", "data_sentimen_harga_pasar_rakyat.pdf"],
     sources: ["Data BPS Regional Jatim", "Laporan Khusus Ketahanan Pangan Deputi II"],
     versions: [
-      {
-        version: "v1.0",
-        date: "09 Jul 2026, 16.00 WIB",
-        actor: "Analis Utama Deputi II",
-        description: "Pengesahan draft awal produk strategis pangan",
-      },
+      { version: "v1.0", date: "09 Jul 2026, 16.00 WIB", actor: "Analis Utama Deputi II", description: "Pengesahan draft awal produk strategis pangan" },
     ],
     distribution: ["Presiden RI", "Menteri Pertanian", "Menteri Perdagangan"],
     cc: ["Kepala BIN", "Deputi II BIN"],
@@ -179,17 +149,11 @@ const initialProducts: IntelligenceProduct[] = [
     evidence: ["foto_cctv_pelaku_mencurigakan.png"],
     sources: ["BAKET-2026-0707-005 (Nilai B-2)", "Laporan Lapangan FO-09"],
     versions: [
-      {
-        version: "v1.1",
-        date: "08 Jul 2026, 11.20 WIB",
-        actor: "OIM Banten / Hendra W.",
-        description: "Kompilasi berkas CCTV lapangan",
-      },
+      { version: "v1.1", date: "08 Jul 2026, 11.20 WIB", actor: "OIM Banten / Hendra W.", description: "Kompilasi berkas CCTV lapangan" },
     ],
     distribution: ["Kepala BIN"],
     cc: ["Kabinda Banten", "Deputi I BIN"],
-    revisionNote:
-      "Koordinat titik rawan penyerangan gardu induk harus dipastikan secara GPS agar unit Polda dapat langsung bergerak presisi. Mohon perbaiki dan ajukan ulang.",
+    revisionNote: "Koordinat titik rawan penyerangan gardu induk harus dipastikan secara GPS agar unit Polda dapat langsung bergerak presisi. Mohon perbaiki dan ajukan ulang.",
   },
   {
     id: "PROD-2026-INT-005",
@@ -206,12 +170,7 @@ const initialProducts: IntelligenceProduct[] = [
     evidence: ["peta_jalur_patroli_maritim_asing.pdf"],
     sources: ["Data Radar Luar Negeri BIN", "Laporan Atase Pertahanan"],
     versions: [
-      {
-        version: "v1.0",
-        date: "05 Jul 2026, 10.00 WIB",
-        actor: "OIM Deputi I",
-        description: "Pengarsipan berkas operasi patroli asing",
-      },
+      { version: "v1.0", date: "05 Jul 2026, 10.00 WIB", actor: "OIM Deputi I", description: "Pengarsipan berkas operasi patroli asing" },
     ],
     distribution: ["Kepala BIN", "Panglima TNI"],
     cc: ["Deputi I BIN"],
@@ -247,12 +206,9 @@ export function ProdukIntelijenPage() {
     const matchesType = typeFilter === "Semua" || p.type === typeFilter;
 
     // 4. Tab status
-    if (activeTab === "menunggu")
-      return matchesSearch && matchesClassification && matchesType && p.status === "Menunggu Tindakan";
-    if (activeTab === "disahkan")
-      return matchesSearch && matchesClassification && matchesType && p.status === "Disahkan";
-    if (activeTab === "dikembalikan")
-      return matchesSearch && matchesClassification && matchesType && p.status === "Dikembalikan";
+    if (activeTab === "menunggu") return matchesSearch && matchesClassification && matchesType && p.status === "Menunggu Tindakan";
+    if (activeTab === "disahkan") return matchesSearch && matchesClassification && matchesType && p.status === "Disahkan";
+    if (activeTab === "dikembalikan") return matchesSearch && matchesClassification && matchesType && p.status === "Dikembalikan";
     if (activeTab === "arsip") return matchesSearch && matchesClassification && matchesType && p.status === "Arsip";
 
     return matchesSearch && matchesClassification && matchesType;
@@ -276,7 +232,7 @@ export function ProdukIntelijenPage() {
             ...p.versions,
           ],
         };
-      }),
+      })
     );
   };
 
@@ -297,7 +253,7 @@ export function ProdukIntelijenPage() {
             ...p.versions,
           ],
         };
-      }),
+      })
     );
   };
 
@@ -321,7 +277,7 @@ export function ProdukIntelijenPage() {
             ...p.versions,
           ],
         };
-      }),
+      })
     );
 
     setIsRevisionModalOpen(false);
@@ -346,38 +302,10 @@ export function ProdukIntelijenPage() {
       {/* Summary Metrics */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         {[
-          {
-            label: "Menunggu Tindakan",
-            value: activeCount,
-            desc: "Butuh pengesahan segera",
-            icon: AlertCircle,
-            tone: "text-amber-500 bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/[0.12]",
-            tabId: "menunggu",
-          },
-          {
-            label: "Disahkan",
-            value: approvedCount,
-            desc: "Produk siap didiseminasikan",
-            icon: CheckCircle2,
-            tone: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/[0.12]",
-            tabId: "disahkan",
-          },
-          {
-            label: "Dikembalikan",
-            value: products.filter((p) => p.status === "Dikembalikan").length,
-            desc: "Dalam proses revisi taktis",
-            icon: RotateCcw,
-            tone: "text-rose-500 bg-rose-500/10 border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/[0.12]",
-            tabId: "dikembalikan",
-          },
-          {
-            label: "Total Arsip",
-            value: products.filter((p) => p.status === "Arsip").length,
-            desc: "Dokumen operasi selesai",
-            icon: Archive,
-            tone: "text-slate-500 bg-slate-500/10 border-slate-500/20 hover:border-slate-500/40 hover:bg-slate-500/[0.12]",
-            tabId: "arsip",
-          },
+          { label: "Menunggu Tindakan", value: activeCount, desc: "Butuh pengesahan segera", icon: AlertCircle, tone: "text-amber-500 bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/[0.12]", tabId: "menunggu" },
+          { label: "Disahkan", value: approvedCount, desc: "Produk siap didiseminasikan", icon: CheckCircle2, tone: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/[0.12]", tabId: "disahkan" },
+          { label: "Dikembalikan", value: products.filter((p) => p.status === "Dikembalikan").length, desc: "Dalam proses revisi taktis", icon: RotateCcw, tone: "text-rose-500 bg-rose-500/10 border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/[0.12]", tabId: "dikembalikan" },
+          { label: "Total Arsip", value: products.filter((p) => p.status === "Arsip").length, desc: "Dokumen operasi selesai", icon: Archive, tone: "text-slate-500 bg-slate-500/10 border-slate-500/20 hover:border-slate-500/40 hover:bg-slate-500/[0.12]", tabId: "arsip" },
         ].map((metric, idx) => {
           const Icon = metric.icon;
           const isSelectedTab = activeTab === metric.tabId;
@@ -400,13 +328,11 @@ export function ProdukIntelijenPage() {
               className="text-left w-full focus:outline-none block"
               type="button"
             >
-              <Card
-                className={cn(
-                  "border transition-all duration-200 cursor-pointer",
-                  metric.tone,
-                  isSelectedTab ? "ring-2 ring-sky-500/50 border-sky-500/50" : "",
-                )}
-              >
+              <Card className={cn(
+                "border transition-all duration-200 cursor-pointer",
+                metric.tone,
+                isSelectedTab ? "ring-2 ring-sky-500/50 border-sky-500/50" : ""
+              )}>
                 <CardContent className="p-4 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs opacity-80">{metric.label}</p>
@@ -487,7 +413,6 @@ export function ProdukIntelijenPage() {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  type="button"
                   onClick={() => {
                     setActiveTab(tab.id);
                     // Reset selected product if not in the new tab's filtered list
@@ -504,7 +429,9 @@ export function ProdukIntelijenPage() {
                   }}
                   className={cn(
                     "rounded px-2.5 py-1 text-[11px] font-medium transition-colors",
-                    activeTab === tab.id ? "bg-sky-500/10 text-sky-500" : "text-muted-foreground hover:bg-muted",
+                    activeTab === tab.id
+                      ? "bg-sky-500/10 text-sky-500"
+                      : "text-muted-foreground hover:bg-muted"
                   )}
                 >
                   {tab.label}
@@ -522,19 +449,16 @@ export function ProdukIntelijenPage() {
                       key={p.id}
                       onClick={() => setSelectedProductId(p.id)}
                       className={cn(
-                        "w-full flex flex-col gap-2 rounded-md border p-3.5 text-left transition-all duration-200",
+                        "w-full flex flex-col gap-2 rounded-xl border p-3.5 text-left transition-all duration-200",
                         isSelected
                           ? "border-sky-500 bg-sky-500/[0.02] ring-1 ring-sky-500/25"
-                          : "border-border bg-card hover:bg-muted/40",
+                          : "border-border bg-card hover:bg-muted/40"
                       )}
                       type="button"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span className="font-mono text-[10px] text-muted-foreground">{p.id}</span>
-                        <Badge
-                          className={cn("text-[9px] py-0 px-1.5", classificationClass[p.classification])}
-                          variant="outline"
-                        >
+                        <Badge className={cn("text-[9px] py-0 px-1.5", classificationClass[p.classification])} variant="outline">
                           {p.classification}
                         </Badge>
                       </div>
@@ -583,17 +507,11 @@ export function ProdukIntelijenPage() {
                   </div>
                   <CardTitle className="text-base font-bold mt-1 leading-snug">{selectedProduct.title}</CardTitle>
                   <CardDescription className="text-xs flex items-center gap-3">
-                    <span>
-                      Jenis: <strong className="text-foreground">{selectedProduct.type}</strong>
-                    </span>
+                    <span>Jenis: <strong className="text-foreground">{selectedProduct.type}</strong></span>
                     <span>•</span>
-                    <span>
-                      Asal: <strong className="text-foreground">{selectedProduct.origin}</strong>
-                    </span>
+                    <span>Asal: <strong className="text-foreground">{selectedProduct.origin}</strong></span>
                     <span>•</span>
-                    <span>
-                      Tanggal: <strong className="text-foreground">{selectedProduct.date}</strong>
-                    </span>
+                    <span>Tanggal: <strong className="text-foreground">{selectedProduct.date}</strong></span>
                   </CardDescription>
                 </div>
 
@@ -601,7 +519,12 @@ export function ProdukIntelijenPage() {
                 <div className="flex items-center gap-2">
                   {selectedProduct.status === "Menunggu Tindakan" && (
                     <>
-                      <Button onClick={handleApprove} className="h-8 text-xs" variant="success" size="sm">
+                      <Button
+                        onClick={handleApprove}
+                        className="h-8 text-xs"
+                        variant="success"
+                        size="sm"
+                      >
                         <Check className="size-3.5" />
                         Sahkan & Otorisasi
                       </Button>
@@ -617,7 +540,12 @@ export function ProdukIntelijenPage() {
                     </>
                   )}
                   {selectedProduct.status !== "Arsip" && (
-                    <Button onClick={handleArchive} variant="warning" className="h-8 text-xs" size="sm">
+                    <Button
+                      onClick={handleArchive}
+                      variant="warning"
+                      className="h-8 text-xs"
+                      size="sm"
+                    >
                       <Archive className="size-3.5" />
                       Arsipkan
                     </Button>
@@ -677,26 +605,13 @@ export function ProdukIntelijenPage() {
                     </h3>
                     <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
                       {selectedProduct.evidence.map((file, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between gap-3 rounded border bg-background p-2.5 text-[11px]"
-                        >
+                        <div key={idx} className="flex items-center justify-between gap-3 rounded border bg-background p-2.5 text-[11px]">
                           <span className="font-mono text-muted-foreground truncate">{file}</span>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="size-6 text-muted-foreground hover:text-foreground"
-                              type="button"
-                            >
+                            <Button size="icon" variant="ghost" className="size-6 text-muted-foreground hover:text-foreground" type="button">
                               <Eye className="size-3.5" />
                             </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="size-6 text-muted-foreground hover:text-foreground"
-                              type="button"
-                            >
+                            <Button size="icon" variant="ghost" className="size-6 text-muted-foreground hover:text-foreground" type="button">
                               <Download className="size-3.5" />
                             </Button>
                           </div>
@@ -712,10 +627,7 @@ export function ProdukIntelijenPage() {
                     </h3>
                     <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
                       {selectedProduct.sources.map((src, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-2 rounded border bg-background p-2.5 text-[11px] font-mono text-muted-foreground"
-                        >
+                        <div key={idx} className="flex items-center gap-2 rounded border bg-background p-2.5 text-[11px] font-mono text-muted-foreground">
                           <span className="size-1.5 rounded-full bg-amber-500" />
                           <span>{src}</span>
                         </div>
@@ -758,11 +670,7 @@ export function ProdukIntelijenPage() {
                         <span className="font-semibold text-foreground">Distribusi Utama:</span>
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                           {selectedProduct.distribution.map((dist) => (
-                            <Badge
-                              key={dist}
-                              variant="outline"
-                              className="border-purple-500/30 bg-purple-500/5 text-purple-600 dark:text-purple-400"
-                            >
+                            <Badge key={dist} variant="outline" className="border-purple-500/30 bg-purple-500/5 text-purple-600 dark:text-purple-400">
                               {dist}
                             </Badge>
                           ))}
@@ -772,11 +680,7 @@ export function ProdukIntelijenPage() {
                         <span className="font-semibold text-foreground">Tembusan (CC):</span>
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                           {selectedProduct.cc.map((ccUser) => (
-                            <Badge
-                              key={ccUser}
-                              variant="outline"
-                              className="border-slate-500/30 bg-slate-500/5 text-slate-600 dark:text-slate-400"
-                            >
+                            <Badge key={ccUser} variant="outline" className="border-slate-500/30 bg-slate-500/5 text-slate-600 dark:text-slate-400">
                               {ccUser}
                             </Badge>
                           ))}

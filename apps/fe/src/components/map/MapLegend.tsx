@@ -1,70 +1,30 @@
 import React from "react";
-
-import { type PersonnelStatus, STATUS_COLORS, STATUS_LABELS } from "./utils/mapHelpers";
-
-export const REPORT_URGENCY_COLORS = {
-  LOW: "#3b82f6",
-  NORMAL: "#10b981",
-  HIGH: "#f97316",
-  URGENT: "#ef4444",
-} as const;
-
-export const REPORT_URGENCY_LABELS = {
-  LOW: "Rendah",
-  NORMAL: "Normal",
-  HIGH: "Tinggi",
-  URGENT: "Mendesak",
-} as const;
+import { STATUS_COLORS, STATUS_LABELS, type PersonnelStatus } from "./utils/mapHelpers";
 
 export function MapLegend() {
   const statuses: PersonnelStatus[] = ["ACTIVE", "SUPERVISOR", "DUTY", "EMERGENCY", "OFFLINE"];
-  const urgencies = Object.entries(REPORT_URGENCY_COLORS);
 
   return (
-    <div className="flex w-full flex-col gap-3 border border-border/80 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <LegendGroup title="Status Personel">
-        {statuses.map((status) => (
-          <LegendItem key={status} color={STATUS_COLORS[status]} label={STATUS_LABELS[status]} />
-        ))}
-      </LegendGroup>
-
-      <div className="hidden h-6 w-px bg-border/70 sm:block" />
-
-      <LegendGroup title="Urgensi Baket">
-        {urgencies.map(([urgency, color]) => (
-          <LegendItem
-            key={urgency}
-            color={color}
-            label={REPORT_URGENCY_LABELS[urgency as keyof typeof REPORT_URGENCY_LABELS]}
-          />
-        ))}
-      </LegendGroup>
-    </div>
-  );
-}
-
-function LegendGroup({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-      <span className="shrink-0 font-mono text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-        {title}
+    <div className="absolute bottom-4 left-4 z-10 rounded-[8px] border border-border/80 bg-background/90 backdrop-blur-md px-3.5 py-2.5 shadow-md flex flex-col gap-2 pointer-events-auto">
+      <span className="font-mono text-[9px] uppercase font-bold tracking-wider text-muted-foreground">
+        Status Personel
       </span>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>
-    </div>
-  );
-}
-
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <span
-        className="size-2 shrink-0 rounded-full"
-        style={{
-          backgroundColor: color,
-          boxShadow: `0 0 8px ${color}50`,
-        }}
-      />
-      <span className="whitespace-nowrap text-[11px] font-medium text-foreground/90">{label}</span>
+      <div className="flex flex-col gap-1.5">
+        {statuses.map((status) => (
+          <div key={status} className="flex items-center gap-2 text-xs">
+            <span
+              className="size-2 rounded-full shrink-0 shadow-[0_0_6px_rgba(255,255,255,0.1)]"
+              style={{
+                backgroundColor: STATUS_COLORS[status],
+                boxShadow: `0 0 8px ${STATUS_COLORS[status]}50`
+              }}
+            />
+            <span className="text-[11px] font-medium text-foreground/90">
+              {STATUS_LABELS[status]}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

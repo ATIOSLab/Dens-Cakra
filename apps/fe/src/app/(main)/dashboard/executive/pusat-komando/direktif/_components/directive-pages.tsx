@@ -1,17 +1,17 @@
+import { ApiClientError } from "@/lib/api/errors";
+import { apiServerGet } from "@/lib/api/server-client";
+import { requireRole } from "@/lib/auth/server-session";
+import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 import type {
   AccessContextResource,
   DirectiveDetail,
+  RegionalMasterOverview,
   DirectiveSummary,
   DirectiveTracking,
   ProvinceBoundaryCollection,
   ProvinceOption,
   RegionalAssignmentOption,
-  RegionalMasterOverview,
 } from "@/features/directives/types";
-import { ApiClientError } from "@/lib/api/errors";
-import { apiServerGet } from "@/lib/api/server-client";
-import { requireRole } from "@/lib/auth/server-session";
-import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 import { DirectiveDetailClient } from "./directive-detail-client";
 import { DirectiveFormClient } from "./directive-form-client";
@@ -162,12 +162,9 @@ export async function DirectiveCreatePage() {
 
 export async function DirectiveDetailPage({ directiveId }: { directiveId: string }) {
   await requireRole(SYSTEM_ROLES.EXECUTIVE);
-  const [directive, tracking] = await Promise.all([
-    apiServerGet<DirectiveDetail>(`/directives/${directiveId}`),
-    apiServerGet<DirectiveTracking>(`/directives/${directiveId}/tracking`, { includeTasks: true }),
-  ]);
+  const directive = await apiServerGet<DirectiveDetail>(`/directives/${directiveId}`);
 
-  return <DirectiveDetailClient directive={directive} tracking={tracking} />;
+  return <DirectiveDetailClient directive={directive} />;
 }
 
 export async function DirectiveEditPage({ directiveId }: { directiveId: string }) {
@@ -204,9 +201,7 @@ export async function DirectiveVersionPage({ directiveId, versionId }: { directi
     ),
   };
 
-  const tracking = await apiServerGet<DirectiveTracking>(`/directives/${directiveId}/tracking`, { includeTasks: true });
-
-  return <DirectiveDetailClient directive={augmentedDirective} tracking={tracking} />;
+  return <DirectiveDetailClient directive={augmentedDirective} />;
 }
 
 export async function DirectiveTrackingPage({ directiveId }: { directiveId: string }) {

@@ -112,11 +112,8 @@ export class SpatialRepository {
       SELECT boundary."id", boundary."areaId", boundary."versionNumber",
         boundary."qualityStatus",
         ST_AsGeoJSON(
-          CASE WHEN ${simplification}::double precision > 0
-            THEN ST_SimplifyPreserveTopology(
-              boundary."boundary",
-              ${simplification}::double precision
-            )
+          CASE WHEN ${simplification} > 0
+            THEN ST_SimplifyPreserveTopology(boundary."boundary", ${simplification})
             ELSE boundary."boundary"
           END
         ) AS geometry

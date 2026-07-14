@@ -1,19 +1,45 @@
 "use client";
 
 import { useDeferredValue, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { ArrowRight, Filter, Search, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Filter,
+  Lock,
+  Search,
+  ShieldAlert,
+  UserRound,
+  Users,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import {
   Pagination,
   PaginationContent,
@@ -35,11 +61,13 @@ import type {
   UserListQueryState,
 } from "./pengguna-types";
 import {
+  POSITION_CODE_OPTIONS,
+  ROLE_CODE_OPTIONS,
+  USER_STATUS_OPTIONS,
   formatDateTime,
   getPrimaryAssignment,
+  getRoleLabel,
   isUserLocked,
-  POSITION_CODE_OPTIONS,
-  USER_STATUS_OPTIONS,
 } from "./pengguna-types";
 
 type PenggunaListClientProps = {
@@ -73,9 +101,42 @@ function buildHref(pathname: string, queryState: UserListQueryState, overrides: 
   return queryString ? `${pathname}?${queryString}` : pathname;
 }
 
-function SelectionSummary({ label, value, onClear }: { label: string; value: string; onClear: () => void }) {
+function StatCard({
+  title,
+  value,
+  description,
+  icon,
+}: {
+  title: string;
+  value: number;
+  description: string;
+  icon: ReactNode;
+}) {
   return (
-    <div className="flex items-center justify-between rounded-[2px] border border-border/70 bg-muted/30 px-3 py-2">
+    <Card className="border border-border/70">
+      <CardHeader className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <Badge variant="outline">{title}</Badge>
+          <div className="rounded-lg bg-muted p-2 text-muted-foreground">{icon}</div>
+        </div>
+        <CardTitle className="text-3xl">{value}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+    </Card>
+  );
+}
+
+function SelectionSummary({
+  label,
+  value,
+  onClear,
+}: {
+  label: string;
+  value: string;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
       <div>
         <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{label}</div>
         <div className="mt-1 text-sm font-medium">{value}</div>
@@ -122,11 +183,13 @@ export function PenggunaListClient({
     setActiveUnit(selectedUnit);
     setActiveArea(selectedArea);
   }, [
+    queryState.areaId,
     queryState.limit,
     queryState.positionCode,
     queryState.q,
     queryState.roleCode,
     queryState.status,
+    queryState.unitId,
     selectedArea,
     selectedUnit,
   ]);
@@ -227,29 +290,68 @@ export function PenggunaListClient({
     router.push(pathname);
   }
 
+  const activeCount = facets?.status?.ACTIVE ?? 0;
+  const pendingCount = facets?.status?.PENDING ?? 0;
+  const suspendedCount = facets?.status?.SUSPENDED ?? 0;
   const lockedCount = facets?.security?.locked ?? 0;
+  const selectedPrimaryAssignment = selectedUser ? getPrimaryAssignment(selectedUser) : null;
   const totalPages = pagination?.totalPages ?? 1;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="font-heading text-[32px] font-bold leading-tight tracking-tight">Pengguna</h1>
-        <p className="max-w-4xl text-[15px] font-medium text-muted-foreground">
-          Workspace admin untuk provisioning akun, memantau sinkronisasi role auth dengan jabatan aktif, dan menjalankan
-          aksi keamanan tanpa meninggalkan konteks tabel utama.
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">User Provisioning</Badge>
+          <Badge variant="outline">{pagination?.total ?? items.length} user terdeteksi</Badge>
+          <Badge variant="outline">{lockedCount} profile sedang terkunci</Badge>
+        </div>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">Pengguna</h1>
+        <p className="max-w-4xl text-muted-foreground text-sm">
+          Workspace admin untuk provisioning akun, memantau sinkronisasi role auth dengan jabatan aktif,
+          dan menjalankan aksi keamanan tanpa meninggalkan konteks tabel utama.
         </p>
       </div>
 
-      <Card className="rounded-[2px] border border-border/70 shadow-none">
-        <CardHeader className="border-b border-border/70 pb-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Aktif"
+          value={activeCount}
+          description="User profile yang siap masuk workspace domain."
+          icon={<BadgeCheck className="size-4" />}
+        />
+        <StatCard
+          title="Pending"
+          value={pendingCount}
+          description="Provisioning baru yang masih perlu pengecekan lanjutan."
+          icon={<Users className="size-4" />}
+        />
+        <StatCard
+          title="Suspended"
+          value={suspendedCount}
+          description="Akses dibekukan tanpa menghapus histori assignment."
+          icon={<ShieldAlert className="size-4" />}
+        />
+        <StatCard
+          title="Locked"
+          value={lockedCount}
+          description="Operational lock aktif sehingga sesi akan selalu ditolak."
+          icon={<Lock className="size-4" />}
+        />
+      </div>
+
+      <Card className="border border-border/70">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Filter className="size-[18px] text-sky-500" />
+            <Filter className="size-4" />
             Filter Operasional
           </CardTitle>
+          <CardDescription>
+            Filter URL tetap sinkron agar daftar, preview, dan pagination bisa dibagikan sebagai deep link.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 pt-4">
-          <div className="grid items-end gap-3 xl:grid-cols-12">
-            <div className="space-y-2 xl:col-span-6">
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 xl:grid-cols-6">
+            <div className="space-y-2 xl:col-span-2">
               <Label htmlFor="user-search">Cari user</Label>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -263,7 +365,7 @@ export function PenggunaListClient({
               </div>
             </div>
 
-            <div className="space-y-2 xl:col-span-3">
+            <div className="space-y-2">
               <Label>Status</Label>
               <NativeSelect value={status} onChange={(event) => setStatus(event.target.value)}>
                 <NativeSelectOption value="">Semua status</NativeSelectOption>
@@ -275,7 +377,8 @@ export function PenggunaListClient({
               </NativeSelect>
             </div>
 
-            <div className="space-y-2 xl:col-span-3">
+
+            <div className="space-y-2">
               <Label>Jabatan</Label>
               <NativeSelect value={positionCode} onChange={(event) => setPositionCode(event.target.value)}>
                 <NativeSelectOption value="">Semua jabatan</NativeSelectOption>
@@ -286,9 +389,20 @@ export function PenggunaListClient({
                 ))}
               </NativeSelect>
             </div>
+
+            <div className="space-y-2">
+              <Label>Baris per halaman</Label>
+              <NativeSelect value={limit} onChange={(event) => setLimit(event.target.value)}>
+                {[10, 20, 50, 100].map((value) => (
+                  <NativeSelectOption key={value} value={String(value)}>
+                    {value} baris
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </div>
           </div>
 
-          <div className="grid gap-4 border-t border-border/70 pt-4 xl:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-2">
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="unit-search">Filter unit organisasi</Label>
@@ -307,7 +421,7 @@ export function PenggunaListClient({
                 />
               ) : null}
               {unitResults.length ? (
-                <div className="rounded-[2px] border border-border/70 bg-muted/10">
+                <div className="rounded-xl border border-border/70">
                   {unitResults.map((unit) => (
                     <button
                       key={unit.id}
@@ -350,7 +464,7 @@ export function PenggunaListClient({
                 />
               ) : null}
               {areaResults.length ? (
-                <div className="rounded-[2px] border border-border/70 bg-muted/10">
+                <div className="rounded-xl border border-border/70">
                   {areaResults.map((area) => (
                     <button
                       key={area.id}
@@ -376,171 +490,105 @@ export function PenggunaListClient({
             </div>
           </div>
         </CardContent>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-6 py-4">
-          <div className="text-[13px] text-muted-foreground">
-            {pagination?.total ?? items.length} pengguna terdeteksi · {lockedCount} profil dikunci
+        <CardFooter className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={clearFilters}
-              className="rounded-[3px] border-slate-600 text-slate-300"
-            >
-              Atur ulang
+            <Button type="button" variant="outline" onClick={clearFilters}>
+              Reset
             </Button>
-            <Button
-              type="button"
-              onClick={applyFilters}
-              className="rounded-[3px] bg-sky-600 text-white hover:bg-sky-700"
-            >
+            <Button type="button" onClick={applyFilters}>
               Terapkan filter
             </Button>
           </div>
-        </div>
+        </CardFooter>
       </Card>
 
-      <Card className="rounded-[2px] border border-border/70 shadow-none">
-        <CardHeader className="flex flex-row items-start justify-between gap-4 border-b border-border/70">
-          <div className="space-y-1">
-            <CardTitle className="text-[18px]">Daftar Pengguna</CardTitle>
-            <div className="text-[13px] text-muted-foreground">
-              {pagination?.total ?? items.length} record · Halaman {queryState.page} dari {totalPages}
+      <div className="grid gap-4">
+        <Card className="border border-border/70">
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle>Daftar Pengguna</CardTitle>
             </div>
-          </div>
-          <Button asChild className="rounded-[3px] bg-green-600 text-white hover:bg-green-700">
-            <Link href="/dashboard/admin-system/pengguna/baru">Tambah pengguna</Link>
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-0">
-          {items.length ? (
-            <div className="overflow-x-auto rounded-[2px] border border-border/70">
-              <Table>
-                <TableHeader className="bg-muted/40">
-                  <TableRow>
-                    <TableHead className="text-[13px] uppercase tracking-wide">Pengguna</TableHead>
-                    <TableHead className="text-[13px] uppercase tracking-wide">Jabatan</TableHead>
-                    <TableHead className="text-[13px] uppercase tracking-wide">Unit</TableHead>
-                    <TableHead className="text-[13px] uppercase tracking-wide">Status</TableHead>
-                    <TableHead className="text-[13px] uppercase tracking-wide">Login terakhir</TableHead>
-                    <TableHead className="text-right text-[13px] uppercase tracking-wide">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((user) => {
-                    const assignment = getPrimaryAssignment(user);
-                    const locked = isUserLocked(user);
-                    const isSelected = selectedUser?.id === user.id;
+            <Button asChild>
+              <Link href="/dashboard/admin-system/pengguna/baru">Tambah pengguna</Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {items.length ? (
+              <div className="overflow-hidden rounded-xl border border-border/70">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Pengguna</TableHead>
+                      <TableHead>Jabatan</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Login terakhir</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((user) => {
+                      const assignment = getPrimaryAssignment(user);
+                      const locked = isUserLocked(user);
+                      const isSelected = selectedUser?.id === user.id;
 
-                    return (
-                      <TableRow
-                        key={user.id}
-                        className={isSelected ? "bg-sky-500/5 outline outline-1 outline-sky-500/50" : undefined}
-                      >
-                        <TableCell>
-                          <Link
-                            href={`/dashboard/admin-system/pengguna/${user.id}`}
-                            className="block space-y-1 hover:underline"
-                          >
-                            <div className="font-medium">
-                              {user.fullName || user.authUser.name || user.authUser.email}
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <Link
+                              href={`/dashboard/admin-system/pengguna/${user.id}`}
+                              className="block space-y-1 hover:underline"
+                            >
+                              <div className="font-medium">{user.fullName || user.authUser.name || user.authUser.email}</div>
+                              <div className="text-xs text-muted-foreground">
+                                @{user.username || "-"} • {user.authUser.email}
+                              </div>
+                            </Link>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm font-medium">{assignment?.position.title || "-"}</div>
+                            <div className="text-xs text-muted-foreground">{assignment?.position.seatCode || "-"}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {assignment?.position.organizationUnit?.name?.replace("Field Coordination Unit ", "") || "-"}
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              @{user.username || "-"} • {user.authUser.email}
+                            <div className="text-xs text-muted-foreground">{assignment?.position.organizationUnit?.code || "-"}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant={user.status === "ACTIVE" ? "default" : "secondary"}>
+                                {USER_STATUS_OPTIONS.find((option) => option.value === user.status)?.label || user.status}
+                              </Badge>
+                              {locked ? <Badge variant="destructive">Locked</Badge> : null}
                             </div>
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm font-medium">{assignment?.position.title || "-"}</div>
-                          <div className="text-xs text-muted-foreground">{assignment?.position.seatCode || "-"}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {assignment?.position.organizationUnit?.name?.replace("Field Coordination Unit ", "") ||
-                              "-"}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {assignment?.position.organizationUnit?.code || "-"}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant={user.status === "ACTIVE" ? "default" : "secondary"}>
-                              {USER_STATUS_OPTIONS.find((option) => option.value === user.status)?.label || user.status}
-                            </Badge>
-                            {locked ? <Badge variant="destructive">Dikunci</Badge> : null}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDateTime(user.lastLoginAt)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            asChild
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="rounded-[3px] border-sky-700 text-sky-400 hover:bg-sky-500/10"
-                          >
-                            <Link href={`/dashboard/admin-system/pengguna/${user.id}`}>Detail</Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <Empty className="border border-dashed border-border/70">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Users className="size-4" />
-                </EmptyMedia>
-                <EmptyTitle>Belum ada user yang cocok</EmptyTitle>
-                <EmptyDescription>
-                  Ubah kombinasi filter atau mulai provisioning user baru jika roster masih kosong.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {formatDateTime(user.lastLoginAt)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <Empty className="border border-dashed border-border/70">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Users className="size-4" />
+                  </EmptyMedia>
+                  <EmptyTitle>Belum ada user yang cocok</EmptyTitle>
+                  <EmptyDescription>
+                    Ubah kombinasi filter atau mulai provisioning user baru jika roster masih kosong.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
 
-          <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-border/70">
-            {/* Left side: Rows per page selector */}
-            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground select-none">
-              <span>Baris per halaman:</span>
-              <select
-                value={limit}
-                onChange={(event) => {
-                  const nextLimit = event.target.value;
-                  setLimit(nextLimit);
-                  router.push(
-                    buildHref(pathname, queryState, {
-                      q,
-                      status,
-                      roleCode,
-                      positionCode,
-                      unitId: activeUnit?.id ?? "",
-                      areaId: activeArea?.id ?? "",
-                      limit: Number(nextLimit) || 20,
-                      page: 1,
-                      selected: "",
-                    })
-                  );
-                }}
-                className="h-8 rounded-[4px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-xs text-slate-700 dark:text-slate-300 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
-              >
-                {[10, 20, 50, 100].map((value) => (
-                  <option key={value} value={String(value)} className="bg-white dark:bg-slate-950">
-                    {value} baris
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Right side: Pagination */}
             {pagination && totalPages > 1 ? (
-              <Pagination className="mx-0 w-auto justify-end">
+              <Pagination className="justify-end">
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
@@ -553,9 +601,10 @@ export function PenggunaListClient({
                     />
                   </PaginationItem>
                   {Array.from({ length: totalPages }, (_, index): number => index + 1)
-                    .filter(
-                      (pageNumber) =>
-                        pageNumber === 1 || pageNumber === totalPages || Math.abs(pageNumber - queryState.page) <= 1,
+                    .filter((pageNumber) =>
+                      pageNumber === 1 ||
+                      pageNumber === totalPages ||
+                      Math.abs(pageNumber - queryState.page) <= 1,
                     )
                     .map((pageNumber) => (
                       <PaginationItem key={pageNumber}>
@@ -573,16 +622,18 @@ export function PenggunaListClient({
                         page: Math.min(queryState.page + 1, totalPages),
                       })}
                       aria-disabled={queryState.page >= totalPages}
-                      className={queryState.page >= totalPages ? "pointer-events-none opacity-50" : undefined}
+                      className={
+                        queryState.page >= totalPages ? "pointer-events-none opacity-50" : undefined
+                      }
                       text="Berikutnya"
                     />
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
             ) : null}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
