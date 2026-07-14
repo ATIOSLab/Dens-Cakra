@@ -64,189 +64,13 @@ type DirectiveRecipientPreviewRow = {
   missing?: boolean;
 };
 
-type GeneratedDirectiveDraft = {
-  title: string;
-  strategicIssue: string;
-  commandNarrative: string;
+type DirectiveAiScope = "full" | "eei" | "collection" | "recommendation" | "polish";
+
+type DirectiveAiResponse = {
+  title?: string;
+  commandNarrative?: string;
   sections: Record<string, string>;
 };
-
-function buildGeneratedDirectiveDraft(input: {
-  title: string;
-  focus: string;
-  area: string;
-  actor: string;
-  indicator: string;
-  method: string;
-}): GeneratedDirectiveDraft {
-  return {
-    title: input.title,
-    strategicIssue: `${input.focus} di ${input.area} memerlukan penguatan pengumpulan informasi, validasi indikator, dan koordinasi lintas penerima STR.`,
-    commandNarrative: `Laksanakan pendalaman terhadap ${input.actor}, petakan ${input.indicator}, dan susun laporan perkembangan yang dapat langsung ditindaklanjuti oleh rantai komando.`,
-    sections: {
-      BASIS_BACKGROUND: `Dasar pelaksanaan adalah kebutuhan pembaruan gambaran situasi terkait ${input.focus} pada ${input.area}.`,
-      INVESTIGATION_TARGETS: `Sasaran penyelidikan meliputi ${input.actor}, lokasi terkait, pola aktivitas, dan pihak yang berperan sebagai penghubung.`,
-      EEI_PIR: `EEI/PIR: identitas aktor kunci, pola komunikasi, titik aktivitas, sumber dukungan, waktu kejadian, serta ${input.indicator}.`,
-      COLLECTION_PLAN: `Pengumpulan dilakukan melalui ${input.method}, validasi silang sumber, pemetaan lokasi, dan kompilasi laporan periodik.`,
-      THREAT_RISK_ANALYSIS: `Risiko yang perlu dimonitor mencakup perubahan pola aktivitas, pengalihan jalur, disinformasi, dan eskalasi terbatas.`,
-      IMPLEMENTATION_MECHANISM:
-        "Penerima STR menetapkan sektor pantau, PIC pelaporan, ritme update, dan mekanisme eskalasi saat ditemukan indikator kritis.",
-      COORDINATION_REPORTING:
-        "Koordinasi menggunakan kanal resmi. Laporan ringkas memuat kronologi, aktor, lokasi, bukti pendukung, analisis awal, dan rekomendasi.",
-      RECOMMENDATION: `Prioritaskan pendalaman pada simpul berisiko tinggi, perbarui matriks indikator, dan siapkan opsi mitigasi untuk ${input.area}.`,
-      AUTHENTICATION:
-        "Draft ini digunakan sebagai dasar operasional awal dan dapat diperbarui setelah evaluasi pimpinan.",
-    },
-  };
-}
-
-const GENERATED_DIRECTIVE_DRAFTS: GeneratedDirectiveDraft[] = [
-  {
-    title: "Penguatan Operasi Intelijen Terpadu Wilayah Aceh",
-    strategicIssue:
-      "Peningkatan dinamika sosial, perlintasan orang/barang, dan potensi konsolidasi jaringan lokal di wilayah Aceh memerlukan penguatan deteksi dini lintas satuan.",
-    commandNarrative:
-      "Laksanakan pengumpulan bahan keterangan secara terarah pada simpul wilayah prioritas, lakukan validasi berlapis terhadap temuan lapangan, dan laporkan perkembangan signifikan melalui jalur komando yang berlaku.",
-    sections: {
-      BASIS_BACKGROUND:
-        "Dasar pelaksanaan mengacu pada kebutuhan penguatan deteksi dini dan pemetaan aktor, lokasi, serta pola aktivitas yang berpotensi memengaruhi stabilitas wilayah.",
-      INVESTIGATION_TARGETS:
-        "Sasaran penyelidikan meliputi simpul komunikasi, jalur mobilitas, titik konsentrasi kegiatan, serta aktor penghubung yang berpengaruh pada dinamika lokal.",
-      EEI_PIR:
-        "EEI/PIR: identitas aktor utama, pola komunikasi, sumber dukungan, wilayah operasi, rencana kegiatan, serta indikator eskalasi yang perlu dimonitor harian.",
-      COLLECTION_PLAN:
-        "Pengumpulan dilakukan melalui observasi terbatas, pendalaman jaringan, verifikasi silang sumber, dan kompilasi laporan periodik dari satuan kewilayahan.",
-      THREAT_RISK_ANALYSIS:
-        "Risiko utama mencakup disinformasi, mobilisasi massa terbatas, perpindahan logistik, dan resistensi terhadap kegiatan pemantauan resmi.",
-      IMPLEMENTATION_MECHANISM:
-        "Pelaksanaan dikoordinasikan oleh penerima STR dengan pembagian sektor wilayah, penetapan PIC, dan ritme laporan perkembangan minimal setiap 24 jam.",
-      COORDINATION_REPORTING:
-        "Koordinasi dilakukan melalui kanal resmi. Laporan awal disampaikan setelah validasi lapangan, sedangkan laporan insidental dikirim segera saat ditemukan indikator kritis.",
-      RECOMMENDATION:
-        "Rekomendasikan peningkatan monitoring pada area prioritas, pendalaman sumber lokal, dan penyusunan matriks risiko per kabupaten/kota.",
-      AUTHENTICATION:
-        "Dokumen ini menjadi dasar pelaksanaan sementara sampai terdapat direktif lanjutan atau pembaruan hasil evaluasi pimpinan.",
-    },
-  },
-  {
-    title: "STR Pemantauan Kerawanan dan Jalur Distribusi Strategis",
-    strategicIssue:
-      "Terdapat kebutuhan pemetaan ulang terhadap jalur distribusi strategis dan titik rawan yang berpotensi dimanfaatkan untuk aktivitas tertutup.",
-    commandNarrative:
-      "Fokuskan operasi pada pemetaan jalur, aktor pendukung, dan titik temu yang memiliki relevansi dengan potensi gangguan keamanan wilayah.",
-    sections: {
-      BASIS_BACKGROUND:
-        "Latar belakang kegiatan adalah meningkatnya kebutuhan validasi data jalur distribusi, perubahan pola mobilitas, dan keterlibatan aktor lokal pada area tertentu.",
-      INVESTIGATION_TARGETS:
-        "Target penyelidikan mencakup jalur darat, titik transit, pelabuhan kecil, gudang sementara, serta pihak yang memiliki akses operasional terhadap lokasi tersebut.",
-      EEI_PIR:
-        "Kebutuhan informasi utama: pola pergerakan, frekuensi aktivitas, pihak pengendali, jenis barang/orang yang berpindah, dan relasi antar simpul.",
-      COLLECTION_PLAN:
-        "Rencana pengumpulan mencakup pemantauan waktu tertentu, pembandingan data lapangan, dan pembaruan peta simpul prioritas secara bertahap.",
-      THREAT_RISK_ANALYSIS:
-        "Potensi risiko berupa perubahan rute mendadak, penggunaan perantara baru, dan upaya mengaburkan pola aktivitas melalui kegiatan legal.",
-      IMPLEMENTATION_MECHANISM:
-        "Tiap penerima STR menetapkan sektor pemantauan, jadwal update, dan metode eskalasi apabila ditemukan indikator ancaman yang meningkat.",
-      COORDINATION_REPORTING:
-        "Setiap temuan diverifikasi minimal dari dua sumber sebelum dilaporkan. Laporan ringkas disusun dalam format kronologi, aktor, lokasi, dan rekomendasi.",
-      RECOMMENDATION:
-        "Perkuat koordinasi dengan satuan wilayah, prioritaskan titik dengan intensitas tinggi, dan susun daftar aktor untuk pendalaman lanjutan.",
-      AUTHENTICATION:
-        "Pengesahan mengikuti otorisasi Deputi II dan dapat diperbarui berdasarkan hasil monitoring periode pertama.",
-    },
-  },
-  {
-    title: "Direktif Kesiapsiagaan Deteksi Dini Terhadap Eskalasi Regional",
-    strategicIssue:
-      "Perubahan situasi regional membutuhkan kesiapsiagaan deteksi dini, sinkronisasi laporan, dan respon cepat terhadap indikator eskalasi.",
-    commandNarrative:
-      "Bangun baseline situasi, kumpulkan indikator awal, dan pastikan setiap perubahan signifikan terhubung dengan analisis risiko serta rekomendasi tindak lanjut.",
-    sections: {
-      BASIS_BACKGROUND:
-        "Direktif ini disusun untuk memastikan seluruh penerima memiliki acuan yang sama dalam membaca indikator awal dan perubahan situasi lapangan.",
-      INVESTIGATION_TARGETS:
-        "Sasaran meliputi aktor penggerak opini, kelompok rentan terpengaruh, lokasi berkumpul, kanal komunikasi, dan agenda publik yang berpotensi menjadi pemicu.",
-      EEI_PIR:
-        "PIR: siapa aktor kunci, apa isu pemicu, kapan potensi eskalasi terjadi, di mana titik konsentrasi, dan bagaimana pola koordinasinya.",
-      COLLECTION_PLAN:
-        "Pengumpulan diarahkan pada indikator terbuka dan tertutup, validasi narasi lapangan, serta analisis tren laporan dari jaringan kewilayahan.",
-      THREAT_RISK_ANALYSIS:
-        "Ancaman yang perlu diperhatikan adalah eskalasi spontan, provokasi terarah, penyebaran narasi menyesatkan, dan gesekan antar kelompok.",
-      IMPLEMENTATION_MECHANISM:
-        "Penerima STR mengaktifkan pemantauan berjenjang, menetapkan ambang eskalasi, dan menyiapkan kanal laporan cepat untuk kejadian menonjol.",
-      COORDINATION_REPORTING:
-        "Koordinasi dilakukan secara periodik dengan ringkasan situasi harian, sedangkan kejadian menonjol dilaporkan segera dengan bukti pendukung.",
-      RECOMMENDATION:
-        "Susun matriks indikator eskalasi, tingkatkan validasi sumber, dan siapkan opsi mitigasi sesuai karakter wilayah masing-masing.",
-      AUTHENTICATION:
-        "Draft ini bersifat operasional dan digunakan sebagai dasar awal sebelum arahan tambahan diterbitkan.",
-    },
-  },
-  buildGeneratedDirectiveDraft({
-    title: "STR Pemetaan Simpul Komunikasi dan Mobilisasi Lokal",
-    focus: "Pergeseran simpul komunikasi dan potensi mobilisasi lokal",
-    area: "wilayah prioritas Sumatera bagian utara",
-    actor: "aktor penghubung, simpul komunikasi, dan kelompok pendukung",
-    indicator: "indikator konsolidasi dan perubahan narasi lapangan",
-    method: "observasi terbatas, pendalaman sumber lokal, dan analisis kanal komunikasi",
-  }),
-  buildGeneratedDirectiveDraft({
-    title: "Direktif Pengumpulan Informasi Jalur Perlintasan Rawan",
-    focus: "Aktivitas pada jalur perlintasan rawan",
-    area: "koridor pesisir dan titik transit strategis",
-    actor: "pengelola titik transit, perantara lapangan, dan pengguna jalur",
-    indicator: "perubahan frekuensi pergerakan dan pola transit",
-    method: "pemantauan waktu tertentu, pencocokan data lapangan, dan verifikasi titik lokasi",
-  }),
-  buildGeneratedDirectiveDraft({
-    title: "STR Monitoring Dinamika Opini dan Isu Publik",
-    focus: "Dinamika opini yang berpotensi memicu eskalasi",
-    area: "kawasan perkotaan dan pusat aktivitas publik",
-    actor: "penggerak opini, pengelola kanal informasi, dan komunitas terdampak",
-    indicator: "narasi dominan, agenda pemicu, dan sentimen kelompok",
-    method: "analisis narasi terbuka, konfirmasi sumber tertutup, dan pemetaan aktor pengaruh",
-  }),
-  buildGeneratedDirectiveDraft({
-    title: "Direktif Validasi Jaringan Dukungan Logistik",
-    focus: "Dugaan jaringan dukungan logistik tertutup",
-    area: "wilayah penghubung antarkabupaten",
-    actor: "penyedia fasilitas, penghubung logistik, dan penerima manfaat",
-    indicator: "pola penyimpanan, perpindahan barang, dan dukungan pembiayaan",
-    method: "pemetaan simpul, observasi lapangan, dan validasi berlapis terhadap sumber",
-  }),
-  buildGeneratedDirectiveDraft({
-    title: "STR Kesiapan Respons Terhadap Kejadian Menonjol",
-    focus: "Kesiapan respons terhadap kejadian menonjol",
-    area: "wilayah regional dengan eskalasi cepat",
-    actor: "koordinator lapangan, simpul massa, dan aktor pemicu",
-    indicator: "titik kumpul, rencana aksi, dan sinyal eskalasi cepat",
-    method: "monitoring intensif, laporan cepat, dan penguatan kanal koordinasi",
-  }),
-  buildGeneratedDirectiveDraft({
-    title: "Direktif Pendalaman Aktivitas Kelompok Rentan",
-    focus: "Aktivitas kelompok rentan yang mudah dipengaruhi narasi provokatif",
-    area: "zona sosial ekonomi sensitif",
-    actor: "tokoh informal, kelompok rentan, dan aktor penyebar narasi",
-    indicator: "perubahan sikap, agenda pertemuan, dan pola rekrutmen informal",
-    method: "pendalaman human source, observasi kegiatan, dan analisis perubahan perilaku",
-  }),
-  buildGeneratedDirectiveDraft({
-    title: "STR Pemetaan Risiko Infrastruktur Vital",
-    focus: "Risiko terhadap infrastruktur vital dan objek strategis",
-    area: "kawasan objek vital regional",
-    actor: "pihak dengan akses operasional, kelompok berkepentingan, dan simpul pengamanan",
-    indicator: "kerentanan akses, pola pengawasan, dan potensi gangguan operasional",
-    method: "assessment lapangan, pengumpulan indikator keamanan, dan koordinasi satuan terkait",
-  }),
-  buildGeneratedDirectiveDraft({
-    title: "Direktif Sinkronisasi Laporan Intelijen Kewilayahan",
-    focus: "Kebutuhan sinkronisasi laporan intelijen kewilayahan",
-    area: "seluruh wilayah sasaran STR",
-    actor: "penerima STR, analis wilayah, dan koordinator pelaporan",
-    indicator: "kesenjangan data, duplikasi laporan, dan perubahan indikator prioritas",
-    method: "rekonsiliasi laporan, validasi lintas sumber, dan pembaruan matriks prioritas",
-  }),
-];
 
 function uniqBy<T>(items: T[], getKey: (item: T) => string) {
   const seen = new Set<string>();
@@ -592,8 +416,8 @@ export function DirectiveFormClient({
   const [uukSections, setUukSections] = useState<StructuredDirectiveUukSection[]>(
     parsedDescription.uukSections.length ? parsedDescription.uukSections : buildStructuredDirectiveUukSections(),
   );
-  const [generatedDraftIndex, setGeneratedDraftIndex] = useState(0);
   const [hasGeneratedDraft, setHasGeneratedDraft] = useState(false);
+  const [generatingScope, setGeneratingScope] = useState<DirectiveAiScope | null>(null);
   const [targetMode, setTargetMode] = useState<DirectiveTargetMode>(() => inferTargetMode(directive));
   const selectableProvinceIds = new Set(provinceOptions.map((item) => item.id));
   const [targetAreaIds, setTargetAreaIds] = useState<string[]>(
@@ -623,11 +447,16 @@ export function DirectiveFormClient({
   );
   const uncoveredScopeNames = recipientPreviewRows.filter((item) => item.missing).map((item) => item.scopeLabel);
   let submitLabel = "Perbarui Draft STR";
+  let generateFullLabel = hasGeneratedDraft ? "Generate Ulang UK/STR Lengkap" : "Generate UK/STR Lengkap";
 
   if (isSaving) {
     submitLabel = "Menyimpan...";
   } else if (mode === "create") {
     submitLabel = "Simpan Draft STR";
+  }
+
+  if (generatingScope === "full") {
+    generateFullLabel = "AI Sedang Menyusun...";
   }
 
   function updateUukSection(sectionType: string, content: string) {
@@ -636,53 +465,67 @@ export function DirectiveFormClient({
     );
   }
 
-  function applyGeneratedDirectiveDraft(scope: "full" | "eei" | "collection" | "recommendation" | "polish") {
-    const draft = GENERATED_DIRECTIVE_DRAFTS[generatedDraftIndex % GENERATED_DIRECTIVE_DRAFTS.length];
+  async function generateDirectiveRecommendation(scope: DirectiveAiScope) {
+    if (!strategicIssue.trim()) {
+      toast.error("Isu Strategis wajib diisi sebelum menggunakan AI Recommendation.");
+      return;
+    }
 
-    if (scope === "full") {
-      if (hasGeneratedDraft) {
-        return;
+    setGeneratingScope(scope);
+
+    try {
+      const result = await apiBrowserMutation<DirectiveAiResponse>("POST", "/directives/ai-recommendation", {
+        scope,
+        strategicIssue: strategicIssue.trim(),
+        title: uukTitle,
+        commandNarrative,
+        sections: Object.fromEntries(uukSections.map((section) => [section.sectionType, section.content])),
+        context: {
+          commandNumber,
+          classification,
+          commandSource,
+          commandIssuer,
+          commandDate,
+          dueDate,
+          targetMode,
+          targetAreas: provinceOptions
+            .filter((province) => targetAreaIds.includes(province.id))
+            .map((province) => province.name),
+        },
+      });
+
+      if (result.title) {
+        setUukTitle(result.title);
       }
 
-      setUukTitle(draft.title);
-      setStrategicIssue(draft.strategicIssue);
-      setCommandNarrative(draft.commandNarrative);
+      if (result.commandNarrative) {
+        setCommandNarrative(result.commandNarrative);
+      }
+
       setUukSections((current) =>
         current.map((section) => ({
           ...section,
-          content: draft.sections[section.sectionType] ?? section.content,
+          content: result.sections[section.sectionType] ?? section.content,
         })),
       );
-      setGeneratedDraftIndex((current) => current + 1);
-      setHasGeneratedDraft(true);
-      toast.success("UUK/STR berhasil digenerate.");
-      return;
-    }
 
-    if (scope === "eei") {
-      updateUukSection("EEI_PIR", draft.sections.EEI_PIR ?? "");
-      toast.success("EEI/PIR berhasil diisi.");
-      return;
-    }
+      if (scope === "full") {
+        setHasGeneratedDraft(true);
+      }
 
-    if (scope === "collection") {
-      updateUukSection("COLLECTION_PLAN", draft.sections.COLLECTION_PLAN ?? "");
-      toast.success("Rencana pengumpulan berhasil diisi.");
-      return;
+      const successMessages: Record<DirectiveAiScope, string> = {
+        full: "UUK/STR lengkap berhasil diisi oleh AI.",
+        eei: "EEI/PIR berhasil diisi oleh AI.",
+        collection: "Rencana pengumpulan berhasil diisi oleh AI.",
+        recommendation: "Saran tindak berhasil diisi oleh AI.",
+        polish: "Seluruh isi UUK/STR berhasil diubah ke bahasa intelijen.",
+      };
+      toast.success(successMessages[scope]);
+    } catch (error) {
+      toast.error(getDirectiveFormErrorMessage(error));
+    } finally {
+      setGeneratingScope(null);
     }
-
-    if (scope === "recommendation") {
-      updateUukSection("RECOMMENDATION", draft.sections.RECOMMENDATION ?? "");
-      toast.success("Saran tindak berhasil diisi.");
-      return;
-    }
-
-    setCommandNarrative((current) =>
-      current.trim()
-        ? `${current.trim()}\n\nCatatan bahasa: rumusan telah diselaraskan agar lebih ringkas, operasional, dan mudah ditindaklanjuti.`
-        : "Laksanakan kegiatan secara terarah, terukur, dan dilaporkan berjenjang sesuai kebutuhan pimpinan.",
-    );
-    toast.success("Perbaikan bahasa ditambahkan.");
   }
 
   async function handleSubmit() {
@@ -977,45 +820,49 @@ export function DirectiveFormClient({
               <div className="grid gap-4 p-4">
                 <Button
                   type="button"
-                  onClick={() => applyGeneratedDirectiveDraft("full")}
-                  disabled={hasGeneratedDraft}
+                  onClick={() => generateDirectiveRecommendation("full")}
+                  disabled={generatingScope !== null}
                   className="h-auto min-h-12 w-full border border-emerald-300/60 bg-emerald-400 px-4 font-semibold text-slate-950 shadow-[0_0_0_1px_rgba(16,185,129,0.22),0_14px_34px_rgba(16,185,129,0.24)] hover:bg-emerald-300"
                 >
                   <Cpu className="mr-2 size-4" />
-                  {hasGeneratedDraft ? "UK/STR Sudah Digenerate" : "Generate UK/STR Lengkap"}
+                  {generateFullLabel}
                 </Button>
                 <div className="grid gap-3 md:grid-cols-2">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => applyGeneratedDirectiveDraft("eei")}
+                    onClick={() => generateDirectiveRecommendation("eei")}
+                    disabled={generatingScope !== null}
                     className="h-auto min-h-11 whitespace-normal border-cyan-300/25 bg-cyan-300/[0.04] px-3 text-center leading-tight hover:bg-cyan-300/10 hover:text-cyan-100"
                   >
-                    Generate EEI/PIR
+                    {generatingScope === "eei" ? "AI Sedang Menyusun..." : "Generate EEI/PIR"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => applyGeneratedDirectiveDraft("collection")}
+                    onClick={() => generateDirectiveRecommendation("collection")}
+                    disabled={generatingScope !== null}
                     className="h-auto min-h-11 whitespace-normal border-amber-300/25 bg-amber-300/[0.04] px-3 text-center leading-tight hover:bg-amber-300/10 hover:text-amber-100"
                   >
-                    Generate Rencana Pengumpulan
+                    {generatingScope === "collection" ? "AI Sedang Menyusun..." : "Generate Rencana Pengumpulan"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => applyGeneratedDirectiveDraft("recommendation")}
+                    onClick={() => generateDirectiveRecommendation("recommendation")}
+                    disabled={generatingScope !== null}
                     className="h-auto min-h-11 whitespace-normal border-emerald-300/25 bg-emerald-300/[0.04] px-3 text-center leading-tight hover:bg-emerald-300/10 hover:text-emerald-100"
                   >
-                    Generate Saran Tindak
+                    {generatingScope === "recommendation" ? "AI Sedang Menyusun..." : "Generate Saran Tindak"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => applyGeneratedDirectiveDraft("polish")}
+                    onClick={() => generateDirectiveRecommendation("polish")}
+                    disabled={generatingScope !== null}
                     className="h-auto min-h-11 whitespace-normal border-sky-300/25 bg-sky-300/[0.04] px-3 text-center leading-tight hover:bg-sky-300/10 hover:text-sky-100"
                   >
-                    Perbaiki Bahasa
+                    {generatingScope === "polish" ? "AI Menyusun Bahasa Intelijen..." : "Ubah ke Bahasa Intelijen"}
                   </Button>
                 </div>
               </div>

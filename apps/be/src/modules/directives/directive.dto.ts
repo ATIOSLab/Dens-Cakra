@@ -8,6 +8,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsObject,
   IsUUID,
   Max,
   MaxLength,
@@ -29,6 +30,23 @@ export class DirectiveQuery {
   @IsOptional() @IsDateString() to?: string;
   @IsOptional() @IsString() search?: string;
   @IsOptional() @Type(() => Boolean) @IsBoolean() assignedToMe?: boolean;
+}
+
+export enum DirectiveAiScope {
+  FULL = 'full',
+  EEI = 'eei',
+  COLLECTION = 'collection',
+  RECOMMENDATION = 'recommendation',
+  POLISH = 'polish',
+}
+
+export class GenerateDirectiveAiDto {
+  @IsEnum(DirectiveAiScope) scope!: DirectiveAiScope;
+  @IsString() @MinLength(3) @MaxLength(10000) strategicIssue!: string;
+  @IsOptional() @IsString() @MaxLength(500) title?: string;
+  @IsOptional() @IsString() @MaxLength(20000) commandNarrative?: string;
+  @IsOptional() @IsObject() sections?: Record<string, string>;
+  @IsOptional() @IsObject() context?: Record<string, unknown>;
 }
 
 export class VersionRecipientDto {

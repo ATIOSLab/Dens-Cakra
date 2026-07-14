@@ -706,9 +706,9 @@ export class WhatsappBotRuntimeService
 
   private async resolvePhoneNumberForLid(socket: WASocket, lidUser: string) {
     const reverseKey = `${lidUser}_reverse`;
-    const stored = await Promise.resolve(
+    const stored = (await Promise.resolve(
       socket.authState.keys.get('lid-mapping', [reverseKey]),
-    ).catch(() => ({}));
+    ).catch(() => ({}))) as Record<string, string | undefined>;
     const mappedUser = stored[reverseKey];
 
     if (typeof mappedUser !== 'string' || mappedUser.length === 0) {
@@ -897,11 +897,11 @@ export class WhatsappBotRuntimeService
           ]
         : jaring
           ? [
-              'Halo. Nomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah bot WhatsApp ini.',
+              'Halo. Nomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah layanan WhatsApp ini.',
               'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda atau hubungi Field Officer penanggung jawab.',
             ]
           : [
-              'Halo. Bot DENS CAKRA sudah aktif.',
+              'Halo. Layanan DENS CAKRA sudah aktif.',
               'Nomor WhatsApp ini belum terdaftar sebagai Jaring aktif. Silakan hubungi Field Officer untuk registrasi terlebih dahulu.',
             ];
 
@@ -1008,7 +1008,7 @@ export class WhatsappBotRuntimeService
         remoteJid,
         [message.key],
         [
-          'Akses Ditolak\n\nNomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah bot WhatsApp ini.',
+          'Akses Ditolak\n\nNomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah layanan WhatsApp ini.',
           'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda.',
         ],
       );
@@ -1505,7 +1505,8 @@ export class WhatsappBotRuntimeService
       );
     }
 
-    for (const [index, text] of replies.entries()) {
+    for (const [index, reply] of replies.entries()) {
+      const text = this.sanitizeOutboundReply(reply);
       const typingMs = Math.min(4500, Math.max(1200, text.length * 35));
       const betweenMessageDelayMs = index === 0 ? 500 : 1300;
 
@@ -1523,6 +1524,15 @@ export class WhatsappBotRuntimeService
 
       await socket.sendMessage(remoteJid, { text });
     }
+  }
+
+  private sanitizeOutboundReply(text: string) {
+    return text
+      .replace(/\bbot\s+WhatsApp\b/gi, 'layanan WhatsApp')
+      .replace(/\bbot\s+DENS\s+CAKRA\b/gi, 'layanan DENS CAKRA')
+      .replace(/\bbot\b/gi, 'layanan')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
   }
 
   private printTerminalQr(qr: string) {
