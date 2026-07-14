@@ -4010,6 +4010,12 @@ export class IntelligenceProductsService {
       where: {
         ...(await this.scope.baketWhere(context)),
         status: { in: requestedStatuses as never[] },
+        ...(query.reportCategoryId
+          ? { reportCategoryId: query.reportCategoryId }
+          : {}),
+        ...(query.jaringClusterId
+          ? { jaringClusterId: query.jaringClusterId }
+          : {}),
         versions: {
           some: {
             id: { in: versionIds.map((item) => item.id) },
@@ -4032,6 +4038,8 @@ export class IntelligenceProductsService {
         ...this.buildCommonDateWhere('createdAt', query.from, query.to),
       },
       include: {
+        reportCategory: true,
+        jaringCluster: true,
         versions: {
           orderBy: { versionNumber: 'desc' },
           take: 1,
@@ -4053,6 +4061,8 @@ export class IntelligenceProductsService {
       .map((baket) => ({
         baketId: baket.id,
         status: baket.status,
+        reportCategory: baket.reportCategory,
+        jaringCluster: baket.jaringCluster,
         version: baket.versions[0],
       }))
       .filter(
@@ -4087,6 +4097,12 @@ export class IntelligenceProductsService {
           status: item.status,
           title: item.version.title,
           urgency: item.version.urgency,
+          reportCategoryId: item.reportCategory?.id ?? null,
+          reportCategoryCode: item.reportCategory?.code ?? null,
+          reportCategoryName: item.reportCategory?.name ?? null,
+          jaringClusterId: item.jaringCluster?.id ?? null,
+          jaringClusterCode: item.jaringCluster?.code ?? null,
+          jaringClusterName: item.jaringCluster?.name ?? null,
           areaId: item.version.eventAreaId,
           areaName: item.version.eventArea?.name ?? null,
         },
@@ -5180,7 +5196,19 @@ export class IntelligenceProductsService {
         ...(query.areaId
           ? {
               areaScopes: {
-                some: { areaId: query.areaId, validUntil: null },
+                some: {
+                  validUntil: null,
+                  OR: [
+                    { areaId: query.areaId },
+                    {
+                      area: {
+                        ancestorLinks: {
+                          some: { ancestorId: query.areaId },
+                        },
+                      },
+                    },
+                  ],
+                },
               },
             }
           : {}),
@@ -5273,7 +5301,10 @@ export class IntelligenceProductsService {
           userProfileId: assignment.userProfile.id,
           userName: assignment.userProfile.fullName,
           positionTitle: assignment.position.title,
+          unitId: assignment.position.organizationUnit.id,
           unitName: assignment.position.organizationUnit.name,
+          unitType: assignment.position.organizationUnit.type,
+          unitBranch: assignment.position.organizationUnit.branch,
           supervisorAssignmentId: supervisorAssignment?.id ?? null,
           supervisorName:
             supervisorAssignment?.userProfile.fullName ??
