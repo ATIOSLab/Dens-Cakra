@@ -287,6 +287,12 @@ function mapIncoming(
 
 export async function getFieldOfficerWorkspace(
   cookie: string,
+  baketFilters: {
+    categoryId?: string;
+    jaringClusterId?: string;
+    from?: string;
+    to?: string;
+  } = {},
 ): Promise<FieldOfficerWorkspace> {
   const access = await getAccess(cookie);
   const assignmentId = access.context.primaryAssignmentId;
@@ -332,6 +338,14 @@ export async function getFieldOfficerWorkspace(
       cookie,
       query: {
         createdByAssignmentId: assignmentId,
+        categoryId: baketFilters.categoryId,
+        jaringClusterId: baketFilters.jaringClusterId,
+        from: baketFilters.from
+          ? `${baketFilters.from}T00:00:00.000+07:00`
+          : undefined,
+        to: baketFilters.to
+          ? `${baketFilters.to}T23:59:59.999+07:00`
+          : undefined,
         limit: 50,
       },
     }),

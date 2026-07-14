@@ -370,9 +370,6 @@ function buildSeedPlan(
   provinces: ProvinceArea[],
   regencyCities: RegencyCityArea[],
 ): SeedPlan {
-  const provinceById = new Map(
-    provinces.map((province) => [province.id, province]),
-  );
   const provinceByCode = new Map(
     provinces.map((province) => [province.officialCode, province]),
   );
@@ -1186,12 +1183,67 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
     profiles.map((profile) => [profile.authUser.email, profile]),
   );
 
+  const activeAssignments = await tx.userSeatAssignment.findMany({
+    where: {
+      userProfileId: {
+        in: profiles.map((profile) => profile.id),
+      },
+      isPrimary: true,
+      isActive: true,
+      validUntil: null,
+    },
+    select: {
+      userProfileId: true,
+      positionId: true,
+      areaScopes: {
+        where: {
+          validUntil: null,
+        },
+        select: {
+          areaId: true,
+          isPrimary: true,
+        },
+      },
+    },
+  });
+  const activeAssignmentByProfileAndPosition = new Map(
+    activeAssignments.map((assignment) => [
+      `${assignment.userProfileId}:${assignment.positionId}`,
+      assignment,
+    ]),
+  );
+
   for (const seed of plan.assignments) {
     const profile = profileByEmail.get(seed.email);
     const position = positionByKey.get(seed.positionKey);
 
     if (!profile || !position) {
       throw new Error(`Missing profile or position for ${seed.email}.`);
+    }
+
+    const areaIds = seed.areaCodes.map((areaCode) => {
+      const area = areaByCode.get(areaCode);
+
+      if (!area) {
+        throw new Error(`Administrative area ${areaCode} is missing.`);
+      }
+
+      return area.id;
+    });
+    const activeAssignment = activeAssignmentByProfileAndPosition.get(
+      `${profile.id}:${position.id}`,
+    );
+    const isSynchronized =
+      activeAssignment?.areaScopes.length === areaIds.length &&
+      areaIds.every((areaId, index) =>
+        activeAssignment.areaScopes.some(
+          (scope) =>
+            scope.areaId === areaId && scope.isPrimary === (index === 0),
+        ),
+      );
+
+    if (isSynchronized) {
+      continue;
     }
 
     const persistedPosition = await tx.position.findUniqueOrThrow({
@@ -1313,16 +1365,6 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
         },
       });
     }
-
-    const areaIds = seed.areaCodes.map((areaCode) => {
-      const area = areaByCode.get(areaCode);
-
-      if (!area) {
-        throw new Error(`Administrative area ${areaCode} is missing.`);
-      }
-
-      return area.id;
-    });
 
     await tx.positionAreaScope.updateMany({
       where: {
@@ -1465,7 +1507,46 @@ async function seedRoleAccounts() {
   const { provinces, regencyCities } = await loadAreaTopology();
   const plan = buildSeedPlan(provinces, regencyCities);
 
+  const existingAccounts = await prisma.user.findMany({
+    where: {
+      email: {
+        in: plan.accounts.map((account) => account.email),
+      },
+    },
+    select: {
+      email: true,
+      name: true,
+      emailVerified: true,
+      role: true,
+      banned: true,
+      banReason: true,
+      banExpires: true,
+      profile: {
+        select: {
+          status: true,
+        },
+      },
+    },
+  });
+  const existingAccountByEmail = new Map(
+    existingAccounts.map((account) => [account.email, account]),
+  );
+
   for (const account of plan.accounts) {
+    const existing = existingAccountByEmail.get(account.email);
+    const isSynchronized =
+      existing?.name === account.name &&
+      existing.emailVerified &&
+      existing.role === account.role &&
+      !existing.banned &&
+      existing.banReason === null &&
+      existing.banExpires === null &&
+      existing.profile?.status === UserProfileStatus.ACTIVE;
+
+    if (isSynchronized) {
+      continue;
+    }
+
     await ensureUser(account);
   }
 

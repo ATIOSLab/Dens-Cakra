@@ -13,12 +13,18 @@ type DirectiveTrackingClientProps = {
 
 export function DirectiveTrackingClient({ directive, tracking }: DirectiveTrackingClientProps) {
   return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border/80 pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase text-cyan-500">
-            <GitBranch className="size-3.5" />
-            Distribusi Direktif Strategis
+    <Card className="border border-border/70">
+      <CardHeader>
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <CardTitle className="text-lg">{task.title}</CardTitle>
+            <CardDescription>
+              {task.ownerUnit?.name ?? "-"} ·{" "}
+              <span className="dc-priority font-semibold" data-priority={task.priority.toUpperCase()}>
+                {task.priority}
+              </span>{" "}
+              · dibuat {formatDate(task.createdAt)}
+            </CardDescription>
           </div>
           <h1 className="mt-2 text-2xl font-semibold text-foreground">Tracking Distribusi STR</h1>
           <p className="mt-1 max-w-3xl text-[13px] leading-5 text-muted-foreground">

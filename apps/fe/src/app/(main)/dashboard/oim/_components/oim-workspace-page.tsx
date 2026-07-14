@@ -35,6 +35,8 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
     status: view === "reports" && !requestedStatus && !requestedStatuses ? "SENT_TO_OIM" : requestedStatus,
     statuses: requestedStatuses,
     urgency: typeof searchParams.urgency === "string" ? searchParams.urgency : undefined,
+    categoryId: typeof searchParams.categoryId === "string" ? searchParams.categoryId : undefined,
+    jaringClusterId: typeof searchParams.jaringClusterId === "string" ? searchParams.jaringClusterId : undefined,
     from: typeof searchParams.periodStart === "string" ? searchParams.periodStart : undefined,
     to: typeof searchParams.periodEnd === "string" ? searchParams.periodEnd : undefined,
   };
@@ -47,6 +49,12 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
   const listRequests = [
     safe("baket", apiServerGet("/bakets", commonQuery), errors).then((value) => {
       data.bakets = value;
+    }),
+    safe("kategori laporan", apiServerGet("/jaring/report-categories", { limit: 200 }), errors).then((value) => {
+      data.reportCategories = value;
+    }),
+    safe("klaster jaring", apiServerGet("/jaring/clusters", { limit: 200 }), errors).then((value) => {
+      data.jaringClusters = value;
     }),
     safe("wilayah", apiServerGet("/administrative-areas/scoped-tree"), errors).then((value) => {
       data.areas = value;

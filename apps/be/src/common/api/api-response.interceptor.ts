@@ -9,6 +9,7 @@ import type { Response } from 'express';
 import { map, type Observable } from 'rxjs';
 import type { AuthenticatedRequest } from '../types/authenticated-request.js';
 import type { ApiResult, ApiSuccess } from './api-response.js';
+import { toJsonSafeValue } from './json-safe.js';
 
 function isApiResult(value: unknown): value is ApiResult<unknown> {
   return Boolean(value && typeof value === 'object' && 'data' in value);
@@ -41,7 +42,7 @@ export class ApiResponseInterceptor implements NestInterceptor {
           timestamp: new Date().toISOString(),
         };
 
-        return envelope;
+        return toJsonSafeValue(envelope);
       }),
     );
   }

@@ -96,10 +96,11 @@ export function AdminWaCenterPage() {
   const [channels, setChannels] = useState<WhatsappControlChannel[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [pairingChannelId, setPairingChannelId] = useState<string | null>(null);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedArea, setSelectedArea] = useState<CoordinatorAreaOption | null>(null);
-  
+
   const [areaQuery, setAreaQuery] = useState("");
   const [allCoordinatorAreas, setAllCoordinatorAreas] = useState<CoordinatorAreaOption[]>([]);
   const deferredAreaQuery = useDeferredValue(areaQuery);
@@ -112,7 +113,7 @@ export function AdminWaCenterPage() {
         let allUsers: UserListItem[] = [];
         let page = 1;
         let hasMore = true;
-        
+
         while (hasMore && !cancelled) {
           const users = await apiBrowserFetch<UserListItem[]>("/user-profiles", {
             query: {
@@ -121,18 +122,18 @@ export function AdminWaCenterPage() {
               page: page,
             },
           });
-          
+
           if (users.length > 0) {
             allUsers = [...allUsers, ...users];
           }
-          
+
           if (users.length < 100) {
             hasMore = false;
           } else {
             page++;
           }
         }
-        
+
         if (!cancelled) {
           const optionMap = new Map<string, CoordinatorAreaOption>();
           allUsers.forEach(user => {
@@ -145,9 +146,9 @@ export function AdminWaCenterPage() {
                     let branchLabel = "";
                     if (branch === "BINDA") branchLabel = "Binda";
                     if (branch === "DIRECTORATE") branchLabel = "Direktorat";
-                    
+
                     const label = branchLabel ? `${scope.area.name} (${branchLabel})` : scope.area.name;
-                    
+
                     optionMap.set(key, {
                       ...scope.area,
                       branch,
@@ -158,7 +159,7 @@ export function AdminWaCenterPage() {
               });
             });
           });
-          
+
           const sortedOptions = Array.from(optionMap.values()).sort((a, b) => a.label.localeCompare(b.label));
           setAllCoordinatorAreas(sortedOptions);
         }
@@ -182,7 +183,7 @@ export function AdminWaCenterPage() {
     if (!selectedArea) return;
     try {
       setBusyKey("create");
-      
+
       const users = await apiBrowserFetch<UserListItem[]>("/user-profiles", {
         query: {
           areaId: selectedArea.id,
@@ -210,7 +211,7 @@ export function AdminWaCenterPage() {
 
       const codeBase = (selectedUser.username || selectedUser.id.split("-")[0]).toUpperCase();
       const nameBase = selectedUser.fullName || selectedUser.username || selectedUser.authUser.name || "User";
-      
+
       const response = await fetch("/api/admin-system/integrasi-wa-center", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -220,16 +221,16 @@ export function AdminWaCenterPage() {
           userId: selectedUser.id,
         }),
       });
-      
+
       const body = await response.json();
-      
+
       if (!response.ok) {
         throw new Error((body as { message?: string }).message || "Gagal membuat kanal WhatsApp.");
       }
       setIsAddOpen(false);
       setSelectedArea(null);
       await loadChannels();
-      
+
       // Auto request QR setelah ditambahkan
       const createdChannel = body as WhatsappControlChannel;
       if (createdChannel && createdChannel.id) {
@@ -267,21 +268,29 @@ export function AdminWaCenterPage() {
   }, []);
 
   useEffect(() => {
-    const needsPolling = channels.some(
-      (c) =>
-        c.connectionStatus === "CONNECTING" ||
-        c.connectionStatus === "QR_READY" ||
-        c.connectionStatus === "PAIRING_CODE_READY"
+    const hasPendingConnection = channels.some(
+      (channel) =>
+        channel.connectionStatus === "CONNECTING" ||
+        channel.connectionStatus === "QR_READY" ||
+        channel.connectionStatus === "PAIRING_CODE_READY",
     );
-
-    if (!needsPolling) return;
+    const pollingIntervalMs = hasPendingConnection || pairingChannelId !== null ? 1500 : 5000;
 
     const intervalId = setInterval(() => {
       void loadChannels(true);
-    }, 3000);
+    }, pollingIntervalMs);
 
     return () => clearInterval(intervalId);
-  }, [channels]);
+  }, [channels, pairingChannelId]);
+
+  useEffect(() => {
+    if (!pairingChannelId) return;
+
+    const pairingChannel = channels.find((channel) => channel.id === pairingChannelId);
+    if (pairingChannel?.connectionStatus === "CONNECTED") {
+      setPairingChannelId(null);
+    }
+  }, [channels, pairingChannelId]);
 
   const updateDraft = (channelId: string, patch: Partial<WhatsappControlChannel>) => {
     setChannels((current) =>
@@ -503,7 +512,7 @@ export function AdminWaCenterPage() {
                       {channel.connectionStatus}
                     </Badge>
                   </div>
-                  
+
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
@@ -539,14 +548,14 @@ export function AdminWaCenterPage() {
             </CardHeader>
             
             <CardContent className="grid gap-4 pb-4">
-              {channel.sessionJid ? (
+              {isConnected && channel.sessionJid ? (
                 <div className="flex items-center gap-2 rounded-md border border-emerald-400/25 bg-emerald-500/10 p-2 text-sm text-emerald-700 dark:text-emerald-200">
                   <CheckCircle2 className="size-4 shrink-0" />
                   <span>WhatsApp terhubung: </span>
                   <span className="font-medium">{channel.sessionJid.split("@")[0]}</span>
                 </div>
               ) : null}
-              
+
               {channel.lastError ? (
                 <div className="rounded border border-destructive/25 bg-destructive/10 p-2 text-xs text-destructive">
                   {channel.lastError}
@@ -557,7 +566,7 @@ export function AdminWaCenterPage() {
             <CardFooter className="flex flex-col gap-2 pt-4">
               {channel.status === "ACTIVE" ? (
                 <>
-                  <div className="flex w-full gap-2">
+                  <div className="flex w-full flex-col gap-2">
                     <Button
                       size="sm"
                       className="w-full"
@@ -579,14 +588,20 @@ export function AdminWaCenterPage() {
                     </Button>
                   </div>
                   {!isConnected && (channel.connectionStatus === "DISCONNECTED" || channel.connectionStatus === "ERROR") && (
-                    <Dialog>
+                    <Dialog
+                      open={pairingChannelId === channel.id}
+                      onOpenChange={(open) => setPairingChannelId(open ? channel.id : null)}
+                    >
                       <DialogTrigger asChild>
                         <Button
                           size="sm"
                           variant="outline"
                           className="w-full"
                           disabled={busyKey === `request-qr:${channel.id}`}
-                          onClick={() => void runAction(channel.id, "request-qr")}
+                          onClick={() => {
+                            setPairingChannelId(channel.id);
+                            void runAction(channel.id, "request-qr");
+                          }}
                         >
                           <QrCode className="mr-2 size-4" />
                           Hubungkan WhatsApp
@@ -637,14 +652,20 @@ export function AdminWaCenterPage() {
               ) : (
                 <>
                   {!isConnected ? (
-                  <Dialog>
+                  <Dialog
+                    open={pairingChannelId === channel.id}
+                    onOpenChange={(open) => setPairingChannelId(open ? channel.id : null)}
+                  >
                     <DialogTrigger asChild>
                       <Button
                         size="sm"
                         variant="success"
                         className="w-full"
                         disabled={busyKey === `request-qr:${channel.id}`}
-                        onClick={() => void runAction(channel.id, "request-qr")}
+                        onClick={() => {
+                          setPairingChannelId(channel.id);
+                          void runAction(channel.id, "request-qr");
+                        }}
                       >
                         <QrCode className="mr-2 size-4" />
                         Hubungkan WhatsApp

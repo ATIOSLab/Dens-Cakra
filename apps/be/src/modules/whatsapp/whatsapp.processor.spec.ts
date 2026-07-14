@@ -19,7 +19,10 @@ const payload = {
   },
 };
 
-function createProcessor(areaId: string | null) {
+function createProcessor(
+  areaId: string | null,
+  options: { registered?: boolean; allowed?: boolean } = {},
+) {
   const upsert = jest.fn(({ create }: { create: Record<string, unknown> }) => ({
     id: 'whatsapp-message-id',
     ...create,
@@ -29,16 +32,22 @@ function createProcessor(areaId: string | null) {
       findUniqueOrThrow: jest.fn(() => ({
         id: payload.eventId,
         channelId: 'channel-id',
+        channel: { id: 'channel-id', config: { userId: 'channel-user-id' } },
       })),
       update: jest.fn(),
     },
     jaring: {
-      findFirst: jest.fn(() => ({
-        id: 'jaring-id',
-        caretakerAssignments: [
-          { fieldOfficerAssignmentId: 'field-officer-assignment-id' },
-        ],
-      })),
+      findFirst: jest.fn(() =>
+        options.registered === false
+          ? null
+          : {
+              id: 'jaring-id',
+              caretakerAssignments: [
+                { fieldOfficerAssignmentId: 'field-officer-assignment-id' },
+              ],
+              areaCoverages: [{ areaId: 'area-jaring' }],
+            },
+      ),
     },
     whatsAppMessage: { upsert },
   };
@@ -62,14 +71,18 @@ function createProcessor(areaId: string | null) {
     })),
   };
   const handlers = new JobHandlerRegistry();
+  const channelScope = {
+    isJaringAllowed: jest.fn(() => options.allowed !== false),
+  };
   const processor = new WhatsAppProcessor(
     prisma as never,
     handlers,
     spatial as never,
+    channelScope as never,
   );
   processor.onModuleInit();
 
-  return { handlers, spatial, upsert };
+  return { handlers, spatial, upsert, channelScope, prisma };
 }
 
 describe('WhatsAppProcessor area resolution', () => {
@@ -102,5 +115,32 @@ describe('WhatsAppProcessor area resolution', () => {
       areaResolutionConfidence: null,
       areaResolvedAt: null,
     });
+  });
+
+  it('tidak menyimpan pesan dari nomor yang belum terdaftar', async () => {
+    const { handlers, upsert, prisma } = createProcessor(null, {
+      registered: false,
+    });
+
+    await handlers.get('WHATSAPP_PROCESS')?.(payload);
+
+    expect(upsert).not.toHaveBeenCalled();
+    expect(prisma.integrationWebhookEvent.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: payload.eventId } }),
+    );
+  });
+
+  it('tidak menyimpan pesan jaring dari wilayah channel lain', async () => {
+    const { handlers, upsert, channelScope } = createProcessor(null, {
+      allowed: false,
+    });
+
+    await handlers.get('WHATSAPP_PROCESS')?.(payload);
+
+    expect(channelScope.isJaringAllowed).toHaveBeenCalledWith(
+      expect.anything(),
+      ['area-jaring'],
+    );
+    expect(upsert).not.toHaveBeenCalled();
   });
 });

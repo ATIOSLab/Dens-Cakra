@@ -192,6 +192,92 @@ const verificationCheckCodes = [
   'CROSS_REFERENCE',
 ] as const;
 
+const jaringClusterSeeds = [
+  [
+    'POLITICAL_SECURITY',
+    'Politik dan Keamanan',
+    'Jaring pada isu politik, pemerintahan, dan stabilitas keamanan.',
+  ],
+  [
+    'ECONOMY_FINANCE',
+    'Ekonomi dan Keuangan',
+    'Jaring pada aktivitas ekonomi, perdagangan, dan keuangan.',
+  ],
+  [
+    'SOCIAL_CULTURE',
+    'Sosial dan Budaya',
+    'Jaring pada dinamika sosial, komunitas, pendidikan, dan budaya.',
+  ],
+  [
+    'DEFENSE_SECURITY',
+    'Pertahanan dan Keamanan',
+    'Jaring pada objek vital, pertahanan, dan keamanan wilayah.',
+  ],
+  [
+    'CYBER_INFORMATION',
+    'Siber dan Informasi',
+    'Jaring pada ruang siber, media, dan ekosistem informasi.',
+  ],
+  [
+    'TRANSNATIONAL',
+    'Kejahatan Transnasional',
+    'Jaring pada lintas batas, penyelundupan, dan jaringan transnasional.',
+  ],
+  [
+    'NATURAL_RESOURCES',
+    'Sumber Daya Alam',
+    'Jaring pada energi, pangan, lingkungan, dan sumber daya alam.',
+  ],
+  [
+    'STRATEGIC_INFRASTRUCTURE',
+    'Infrastruktur Strategis',
+    'Jaring pada transportasi, telekomunikasi, dan infrastruktur vital.',
+  ],
+] as const;
+
+const reportCategorySeeds = [
+  [
+    'SITUATION_UPDATE',
+    'Perkembangan Situasi',
+    'Laporan perkembangan kondisi wilayah secara periodik.',
+  ],
+  [
+    'INCIDENT_REPORT',
+    'Kejadian Menonjol',
+    'Laporan kejadian lapangan yang memerlukan perhatian.',
+  ],
+  [
+    'EARLY_WARNING',
+    'Peringatan Dini',
+    'Laporan indikasi awal dan potensi eskalasi.',
+  ],
+  [
+    'PERSONNEL_MOVEMENT',
+    'Pergerakan Orang dan Kelompok',
+    'Laporan mobilitas aktor, kelompok, atau massa.',
+  ],
+  [
+    'COMMUNITY_DYNAMICS',
+    'Dinamika Masyarakat',
+    'Laporan aspirasi, respons, dan dinamika komunitas.',
+  ],
+  [
+    'ECONOMIC_ACTIVITY',
+    'Aktivitas Ekonomi',
+    'Laporan aktivitas ekonomi dan distribusi komoditas.',
+  ],
+  [
+    'CYBER_INFORMATION',
+    'Informasi Siber dan Media',
+    'Laporan isu siber, disinformasi, dan media digital.',
+  ],
+  [
+    'BORDER_MARITIME',
+    'Perbatasan dan Maritim',
+    'Laporan aktivitas perbatasan, pelabuhan, dan wilayah maritim.',
+  ],
+] as const;
+
 async function seedRoles() {
   for (const role of SYSTEM_ROLE_CATALOG) {
     await prisma.role.upsert({
@@ -517,6 +603,24 @@ async function seedProductTypesAndTemplates() {
   }
 }
 
+async function seedBaketMasterData() {
+  for (const [code, name, description] of jaringClusterSeeds) {
+    await prisma.jaringCluster.upsert({
+      where: { code },
+      update: { name, description, isActive: true },
+      create: { code, name, description, isActive: true },
+    });
+  }
+
+  for (const [code, name, description] of reportCategorySeeds) {
+    await prisma.reportCategory.upsert({
+      where: { code },
+      update: { name, description, isActive: true },
+      create: { code, name, description, isActive: true },
+    });
+  }
+}
+
 async function seedSystemSettingsAndIntegration() {
   const settings = [
     {
@@ -595,6 +699,7 @@ async function seedMaster() {
   await seedRoles();
   await seedPositionAreaPolicies();
   await seedCountryRoot();
+  await seedBaketMasterData();
   await seedProductTypesAndTemplates();
   await seedSystemSettingsAndIntegration();
 
