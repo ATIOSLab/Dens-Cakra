@@ -23,6 +23,7 @@ import P from 'pino';
 import * as QRCode from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import {
+  AreaResolutionMethod,
   CoordinateSource,
   FileLifecycleStatus,
   FileType,
@@ -40,6 +41,7 @@ import {
 import { LocalStorageService } from '../infrastructure/local-storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
+import { SpatialRepository } from '../spatial/spatial.repository.js';
 
 type RuntimeState = {
   connecting: boolean;
@@ -124,6 +126,7 @@ export class WhatsappBotRuntimeService
     private readonly vault: SecretVaultService,
     private readonly jobs: AsyncJobService,
     private readonly storage: LocalStorageService,
+    private readonly spatial: SpatialRepository,
   ) {}
 
   async onModuleInit() {
@@ -1264,6 +1267,15 @@ export class WhatsappBotRuntimeService
     session: ReportSession,
     location: { latitude?: number; longitude?: number; accuracy?: number },
   ) {
+    const hasCoordinates =
+      Number.isFinite(location.latitude) && Number.isFinite(location.longitude);
+    const areaResolution = hasCoordinates
+      ? await this.spatial.resolveReportArea(
+          location.latitude as number,
+          location.longitude as number,
+        )
+      : null;
+
     await this.prisma.whatsAppMessage.create({
       data: {
         integrationChannelId: channel.id,
@@ -1279,6 +1291,11 @@ export class WhatsappBotRuntimeService
         locationCapturedAt:
           session.eventDateTime ?? new Date(payload.receivedAt),
         coordinateSource: CoordinateSource.WHATSAPP_LOCATION,
+        resolvedAreaId: areaResolution?.area?.areaId ?? null,
+        areaResolutionMethod:
+          areaResolution?.method ?? AreaResolutionMethod.UNRESOLVED,
+        areaResolutionConfidence: areaResolution?.confidence ?? null,
+        areaResolvedAt: areaResolution?.resolvedAt ?? null,
         status: WhatsAppMessageStatus.RECEIVED,
         validationSummary: WhatsAppValidationSummary.VALID,
         rawPayload: {

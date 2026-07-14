@@ -15,6 +15,7 @@ type BoundarySeedRow = {
 type ImportOptions = {
   provinceCodes: string[];
   sourceDir: string | null;
+  districtOnly: boolean;
 };
 
 const sourceCommit = 'a386adb9ae54245935b2ef2c8351e14a74852cad';
@@ -254,6 +255,7 @@ function parseOptions(): ImportOptions {
           .filter(Boolean)
       : [],
     sourceDir: sourceDirInput ? path.resolve(sourceDirInput) : null,
+    districtOnly: process.argv.includes('--district-only'),
   };
 }
 
@@ -433,10 +435,12 @@ async function seedWilayahBoundaries() {
     });
     const relativePaths = [
       `db/kec/wilayah_boundaries_kec_${provinceCode}.sql`,
-      ...levelTwoAreas.map(
-        (area) =>
-          `db/kel/${provinceCode}/wilayah_boundaries_kel_${area.officialCode}.sql`,
-      ),
+      ...(options.districtOnly
+        ? []
+        : levelTwoAreas.map(
+            (area) =>
+              `db/kel/${provinceCode}/wilayah_boundaries_kel_${area.officialCode}.sql`,
+          )),
     ];
     let provinceImported = 0;
 

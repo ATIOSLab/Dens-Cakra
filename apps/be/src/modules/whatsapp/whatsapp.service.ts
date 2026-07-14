@@ -269,6 +269,16 @@ export class WhatsAppService {
       ...(message.latitude === null || message.longitude === null
         ? [['MISSING_GPS', 'GPS wajib tersedia']]
         : []),
+      ...(message.latitude !== null &&
+      message.longitude !== null &&
+      !message.resolvedAreaId
+        ? [
+            [
+              'UNRESOLVED_AREA',
+              'Wilayah administratif dari koordinat belum berhasil ditentukan',
+            ],
+          ]
+        : []),
       ...(!hasPhotoEvidence ? [['MISSING_PHOTO', 'Foto wajib tersedia']] : []),
     ];
 
@@ -302,14 +312,18 @@ export class WhatsAppService {
     const message = await this.detail(id, context.primaryAssignmentId);
     let areaId = body.areaId;
     let method: AreaResolutionMethod = AreaResolutionMethod.MANUAL_CONFIRMATION;
+    let confidence: number | null = null;
+    let resolvedAt = new Date();
 
     if (!areaId && message.latitude !== null && message.longitude !== null) {
-      const matches = await this.spatial.findContainingAreas(
+      const resolution = await this.spatial.resolveReportArea(
         Number(message.latitude),
         Number(message.longitude),
       );
-      areaId = matches[0]?.areaId;
-      method = AreaResolutionMethod.POLYGON_MATCH;
+      areaId = resolution.area?.areaId;
+      method = resolution.method;
+      confidence = resolution.confidence;
+      resolvedAt = resolution.resolvedAt ?? resolvedAt;
     }
 
     if (!areaId) {
@@ -325,9 +339,8 @@ export class WhatsAppService {
       data: {
         resolvedAreaId: areaId,
         areaResolutionMethod: method,
-        areaResolutionConfidence:
-          method === AreaResolutionMethod.POLYGON_MATCH ? 100 : null,
-        areaResolvedAt: new Date(),
+        areaResolutionConfidence: confidence,
+        areaResolvedAt: resolvedAt,
       },
     });
 
@@ -423,21 +436,6 @@ export class WhatsAppService {
     body: CreateBaketFromMessageDto,
     context: AuthorizationContext,
   ) {
-    const sourceMessage = await this.detail(id, context.primaryAssignmentId);
-    let polygonAreaId: string | null = null;
-
-    if (
-      !sourceMessage.resolvedAreaId &&
-      sourceMessage.latitude !== null &&
-      sourceMessage.longitude !== null
-    ) {
-      const matches = await this.spatial.findContainingAreas(
-        Number(sourceMessage.latitude),
-        Number(sourceMessage.longitude),
-      );
-      polygonAreaId = matches[0]?.areaId ?? null;
-    }
-
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "WhatsAppMessage" WHERE id = ${id}::uuid FOR UPDATE`;
       const message = await tx.whatsAppMessage.findFirst({
@@ -529,22 +527,17 @@ export class WhatsAppService {
       const usableMedia = message.media.filter((item) =>
         usableFileStatuses.includes(item.file.lifecycleStatus),
       );
-      const eventAreaId = message.resolvedAreaId ?? polygonAreaId;
-      const areaResolutionMethod = message.resolvedAreaId
-        ? message.areaResolutionMethod
-        : eventAreaId
-          ? AreaResolutionMethod.POLYGON_MATCH
-          : AreaResolutionMethod.UNRESOLVED;
-      const areaResolutionConfidence = message.resolvedAreaId
-        ? message.areaResolutionConfidence
-        : eventAreaId
-          ? 100
-          : null;
-      const areaResolvedAt = message.resolvedAreaId
-        ? message.areaResolvedAt
-        : eventAreaId
-          ? new Date()
-          : null;
+      if (!message.resolvedAreaId) {
+        throw new ApiException(
+          'MESSAGE_AREA_UNRESOLVED',
+          'Wilayah laporan belum tersimpan. Selesaikan resolusi lokasi sebelum membuat Baket.',
+          422,
+        );
+      }
+      const eventAreaId = message.resolvedAreaId;
+      const areaResolutionMethod = message.areaResolutionMethod;
+      const areaResolutionConfidence = message.areaResolutionConfidence;
+      const areaResolvedAt = message.areaResolvedAt;
       const baket = await tx.baket.create({
         data: {
           status: BaketStatus.READY_TO_SEND,

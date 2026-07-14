@@ -15,6 +15,8 @@ const context = {
   primaryAssignmentId: 'assignment-fo',
 } as never;
 
+const RESOLVED_AREA_ID = '66666666-6666-4666-8666-666666666666';
+
 function baseMessage(overrides: Record<string, unknown> = {}) {
   return {
     id: '11111111-1111-4111-8111-111111111111',
@@ -36,11 +38,11 @@ function baseMessage(overrides: Record<string, unknown> = {}) {
     latitude: -6.2,
     longitude: 106.8,
     gpsAccuracyMeters: 5,
-    resolvedAreaId: null,
+    resolvedAreaId: RESOLVED_AREA_ID,
     coordinateSource: null,
-    areaResolutionMethod: 'UNRESOLVED',
-    areaResolutionConfidence: null,
-    areaResolvedAt: null,
+    areaResolutionMethod: AreaResolutionMethod.POLYGON_MATCH,
+    areaResolutionConfidence: 100,
+    areaResolvedAt: new Date('2026-07-13T09:00:01.000Z'),
     validationSummary: WhatsAppValidationSummary.NOT_CHECKED,
     status: WhatsAppMessageStatus.UNDER_REVIEW,
     convertedBaketId: null,
@@ -50,7 +52,14 @@ function baseMessage(overrides: Record<string, unknown> = {}) {
 
 describe('WhatsApp intake Baket', () => {
   it('tidak mengambil BigInt sizeBytes pada daftar pesan publik', async () => {
-    const findMany = jest.fn(() => []);
+    type FindManyInput = {
+      include?: {
+        media?: {
+          include?: { file?: { select?: Record<string, boolean> } };
+        };
+      };
+    };
+    const findMany = jest.fn<(input: FindManyInput) => unknown[]>(() => []);
     const service = new WhatsAppService(
       { whatsAppMessage: { findMany } } as never,
       {} as never,
@@ -59,13 +68,7 @@ describe('WhatsApp intake Baket', () => {
 
     await service.list({ limit: 100 }, context);
 
-    const query = findMany.mock.calls[0]?.[0] as {
-      include?: {
-        media?: {
-          include?: { file?: { select?: Record<string, boolean> } };
-        };
-      };
-    };
+    const query = findMany.mock.calls[0]?.[0];
     expect(query.include?.media?.include?.file?.select).toEqual(
       expect.objectContaining({ id: true, mimeType: true }),
     );
@@ -115,7 +118,48 @@ describe('WhatsApp intake Baket', () => {
     expect(tx.whatsAppValidationIssue.createMany).not.toHaveBeenCalled();
   });
 
-  it('mengembalikan Baket yang sama pada request konversi ulang', async () => {
+  it('menolak validasi ketika koordinat belum mempunyai wilayah tersimpan', async () => {
+    let message: Record<string, unknown> = baseMessage({
+      resolvedAreaId: null,
+      areaResolutionMethod: AreaResolutionMethod.UNRESOLVED,
+      areaResolutionConfidence: null,
+      areaResolvedAt: null,
+    });
+    const tx = {
+      whatsAppValidationIssue: {
+        deleteMany: jest.fn(),
+        createMany: jest.fn(),
+      },
+      whatsAppMessage: {
+        update: jest.fn(({ data }: { data: Record<string, unknown> }) => {
+          message = { ...message, ...data };
+        }),
+      },
+    };
+    const service = new WhatsAppService(
+      {
+        whatsAppMessage: { findFirstOrThrow: jest.fn(() => message) },
+        $transaction: jest.fn((callback: (client: typeof tx) => unknown) =>
+          callback(tx),
+        ),
+      } as never,
+      {} as never,
+      {} as never,
+    );
+
+    const result = await service.validate(message.id as string, context);
+
+    expect(result.validationSummary).toBe(WhatsAppValidationSummary.INVALID);
+    expect(tx.whatsAppValidationIssue.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          code: 'UNRESOLVED_AREA',
+        }),
+      ],
+    });
+  });
+
+  it('menyalin area tersimpan tanpa query PostGIS ulang dan tetap idempoten', async () => {
     let message: Record<string, unknown> = baseMessage({
       validationSummary: WhatsAppValidationSummary.VALID,
       status: WhatsAppMessageStatus.READY_FOR_BAKET,
@@ -124,6 +168,21 @@ describe('WhatsApp intake Baket', () => {
       id: '55555555-5555-4555-8555-555555555555',
       status: 'DRAFT',
     };
+    type BaketCreateInput = {
+      data: {
+        status: BaketStatus;
+        versions: {
+          create: {
+            eventAreaId: string;
+            areaResolutionMethod: AreaResolutionMethod;
+            areaResolutionConfidence: number;
+          };
+        };
+      };
+    };
+    const createBaket = jest.fn<(input: BaketCreateInput) => typeof baket>(
+      () => baket,
+    );
     const tx = {
       $queryRaw: jest.fn(),
       whatsAppMessage: {
@@ -139,7 +198,7 @@ describe('WhatsApp intake Baket', () => {
       },
       taskAssignment: { findFirst: jest.fn() },
       baket: {
-        create: jest.fn(() => baket),
+        create: createBaket,
         findUniqueOrThrow: jest.fn(() => baket),
       },
       auditLog: { create: jest.fn() },
@@ -150,13 +209,10 @@ describe('WhatsApp intake Baket', () => {
         callback(tx),
       ),
     };
+    const resolveReportArea = jest.fn();
     const service = new WhatsAppService(
       prisma as never,
-      {
-        findContainingAreas: jest.fn(() => [
-          { areaId: '66666666-6666-4666-8666-666666666666' },
-        ]),
-      } as never,
+      { resolveReportArea } as never,
       {} as never,
     );
     const body = {
@@ -177,30 +233,20 @@ describe('WhatsApp intake Baket', () => {
 
     expect(first).toBe(baket);
     expect(second).toBe(baket);
-    expect(tx.baket.create).toHaveBeenCalledTimes(1);
-    const createInput = tx.baket.create.mock.calls[0]?.[0] as unknown as {
-      data: {
-        status: BaketStatus;
-        versions: {
-          create: {
-            eventAreaId: string;
-            areaResolutionMethod: AreaResolutionMethod;
-            areaResolutionConfidence: number;
-          };
-        };
-      };
-    };
+    expect(resolveReportArea).not.toHaveBeenCalled();
+    expect(createBaket).toHaveBeenCalledTimes(1);
+    const createInput = createBaket.mock.calls[0]?.[0];
     expect(createInput.data.status).toBe(BaketStatus.READY_TO_SEND);
     expect(createInput.data.versions.create).toEqual(
       expect.objectContaining({
-        eventAreaId: '66666666-6666-4666-8666-666666666666',
+        eventAreaId: RESOLVED_AREA_ID,
         areaResolutionMethod: AreaResolutionMethod.POLYGON_MATCH,
         areaResolutionConfidence: 100,
       }),
     );
     expect(message).toEqual(
       expect.objectContaining({
-        resolvedAreaId: '66666666-6666-4666-8666-666666666666',
+        resolvedAreaId: RESOLVED_AREA_ID,
         areaResolutionMethod: AreaResolutionMethod.POLYGON_MATCH,
         areaResolutionConfidence: 100,
       }),

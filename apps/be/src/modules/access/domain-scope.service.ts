@@ -64,31 +64,6 @@ export class DomainScopeService {
     const scope = await this.resolve(context);
     return {
       createdByFieldOfficerAssignmentId: { in: scope.assignmentIds },
-      ...(scope.areaRootIds.length
-        ? {
-            OR: [
-              {
-                versions: {
-                  some: {
-                    OR: [
-                      { eventAreaId: { in: scope.areaRootIds } },
-                      {
-                        eventArea: {
-                          ancestorLinks: {
-                            some: {
-                              ancestorId: { in: scope.areaRootIds },
-                            },
-                          },
-                        },
-                      },
-                    ],
-                  },
-                },
-              },
-              { versions: { none: { eventAreaId: { not: null } } } },
-            ],
-          }
-        : {}),
     };
   }
 

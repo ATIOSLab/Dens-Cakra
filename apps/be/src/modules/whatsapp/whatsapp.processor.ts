@@ -8,6 +8,7 @@ import {
 import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JobHandlerRegistry } from '../runtime/job-handler.registry.js';
+import { SpatialRepository } from '../spatial/spatial.repository.js';
 type MessagePayload = {
   externalMessageId: string;
   senderPhone: string;
@@ -24,6 +25,7 @@ export class WhatsAppProcessor implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly handlers: JobHandlerRegistry,
+    private readonly spatial: SpatialRepository,
   ) {}
   onModuleInit() {
     this.handlers.register('WHATSAPP_PROCESS', (payload) =>
@@ -44,6 +46,23 @@ export class WhatsAppProcessor implements OnModuleInit {
         },
       },
     });
+    const hasCoordinates =
+      Number.isFinite(input.message.latitude) &&
+      Number.isFinite(input.message.longitude);
+    const areaResolution = hasCoordinates
+      ? await this.spatial.resolveReportArea(
+          input.message.latitude as number,
+          input.message.longitude as number,
+        )
+      : null;
+    const areaResolutionData = areaResolution
+      ? {
+          resolvedAreaId: areaResolution.area?.areaId ?? null,
+          areaResolutionMethod: areaResolution.method,
+          areaResolutionConfidence: areaResolution.confidence,
+          areaResolvedAt: areaResolution.resolvedAt,
+        }
+      : {};
     const message = await this.prisma.whatsAppMessage.upsert({
       where: {
         integrationChannelId_externalMessageId: {
@@ -51,7 +70,7 @@ export class WhatsAppProcessor implements OnModuleInit {
           externalMessageId: input.message.externalMessageId,
         },
       },
-      update: {},
+      update: areaResolutionData,
       create: {
         integrationChannelId: event.channelId,
         externalMessageId: input.message.externalMessageId,
@@ -69,6 +88,7 @@ export class WhatsAppProcessor implements OnModuleInit {
             ? CoordinateSource.WHATSAPP_LOCATION
             : null,
         areaResolutionMethod: AreaResolutionMethod.UNRESOLVED,
+        ...areaResolutionData,
         status: jaring
           ? WhatsAppMessageStatus.RECEIVED
           : WhatsAppMessageStatus.UNKNOWN_SENDER,

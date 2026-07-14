@@ -3,15 +3,7 @@ import { BaketQueryService } from './baket-query.service.js';
 
 describe('BaketQueryService detail serialization', () => {
   it('does not select BigInt sizeBytes for evidence files', async () => {
-    const findFirstOrThrow = jest.fn(() => ({ id: 'baket' }));
-    const service = new BaketQueryService(
-      { baket: { findFirstOrThrow } } as never,
-      {} as never,
-    );
-
-    await service.baketDetail('baket');
-
-    const query = findFirstOrThrow.mock.calls[0]?.[0] as {
+    type FindDetailInput = {
       include?: {
         versions?: {
           include?: {
@@ -35,6 +27,18 @@ describe('BaketQueryService detail serialization', () => {
         };
       };
     };
+    const findFirstOrThrow = jest.fn((input: FindDetailInput) => ({
+      id: 'baket',
+      input,
+    }));
+    const service = new BaketQueryService(
+      { baket: { findFirstOrThrow } } as never,
+      {} as never,
+    );
+
+    await service.baketDetail('baket');
+
+    const query = findFirstOrThrow.mock.calls[0]?.[0];
     const versionInclude = query.include?.versions?.include;
     const sourceFileSelect =
       versionInclude?.sourceMessages?.include?.message?.include?.media?.include

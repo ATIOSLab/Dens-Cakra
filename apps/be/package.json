@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "DEN CAKRA backend foundation with NestJS, Prisma, and Better Auth",
   "author": "",
-  "private": true,                    
+  "private": true,
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {
@@ -32,6 +32,7 @@
     "seed:wilayah": "npm run build && node dist/src/scripts/seed-wilayah.js",
     "seed:wilayah-boundaries": "npm run build && node dist/src/scripts/seed-wilayah-boundaries.js",
     "seed:str-hierarchy": "npm run build && node dist/src/scripts/seed-str-hierarchy.js",
+    "seed:baket": "npm run build && node dist/src/scripts/seed-baket.js",
     "seed:all": "npm run build && node dist/src/scripts/seed-all.js",
     "repair:baket-intake": "npm run build && node dist/src/scripts/repair-baket-intake-duplicates.js",
     "repair:baket-areas": "npm run build && node dist/src/scripts/repair-baket-area-resolution.js"

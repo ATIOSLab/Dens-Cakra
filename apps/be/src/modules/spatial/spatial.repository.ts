@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
+  AdministrativeLevel,
+  AreaResolutionMethod,
   Prisma,
-  type AdministrativeLevel,
   type BoundaryQualityStatus,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -14,6 +15,21 @@ export type SpatialAreaMatch = {
   boundaryId: string;
   qualityStatus: BoundaryQualityStatus;
 };
+
+export type SpatialAreaResolution = {
+  area: SpatialAreaMatch | null;
+  method: AreaResolutionMethod;
+  confidence: number | null;
+  resolvedAt: Date | null;
+};
+
+const REPORT_AREA_LEVELS = [
+  AdministrativeLevel.DISTRICT,
+  AdministrativeLevel.REGENCY,
+  AdministrativeLevel.CITY,
+  AdministrativeLevel.PROVINCE,
+  AdministrativeLevel.COUNTRY,
+] as const;
 
 @Injectable()
 export class SpatialRepository {
@@ -61,6 +77,25 @@ export class SpatialRepository {
         END ASC,
         area."name" ASC
     `);
+  }
+
+  async resolveReportArea(
+    latitude: number,
+    longitude: number,
+  ): Promise<SpatialAreaResolution> {
+    const area =
+      (
+        await this.findContainingAreas(latitude, longitude, REPORT_AREA_LEVELS)
+      )[0] ?? null;
+
+    return {
+      area,
+      method: area
+        ? AreaResolutionMethod.POLYGON_MATCH
+        : AreaResolutionMethod.UNRESOLVED,
+      confidence: area ? 100 : null,
+      resolvedAt: area ? new Date() : null,
+    };
   }
 
   async getActiveBoundaryGeoJson(areaId: string, simplifyDegrees = 0) {
