@@ -408,12 +408,24 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
     [stages],
   );
 
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      void fitView({ duration: 300, maxZoom: 1.1, minZoom: 0.65, nodes: flowNodes, padding: 0.2 });
+  const fitDistributionView = useCallback(() => {
+    void fitView({
+      duration: 220,
+      maxZoom: isMobile ? 0.9 : 1,
+      minZoom: 0.45,
+      padding: isMobile ? 0.22 : 0.16,
     });
-    return () => window.cancelAnimationFrame(frame);
-  }, [fitView, flowNodes]);
+  }, [fitView, isMobile]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(fitDistributionView);
+    const timeout = window.setTimeout(fitDistributionView, 180);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+    };
+  }, [fitDistributionView, flowNodes.length]);
 
   const selectedStage = selectedStageId ? stages.find((stage) => stage.id === selectedStageId) : null;
 
@@ -421,6 +433,7 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
     <>
       <div className="h-[420px] overflow-hidden rounded-lg border border-border bg-background">
         <ReactFlow<FlowNode, FlowEdge>
+          className="h-full w-full"
           nodes={flowNodes}
           edges={flowEdges}
           nodeTypes={NODE_TYPES}
@@ -430,11 +443,13 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
           elementsSelectable
           panOnDrag
           zoomOnScroll
-          fitView={false}
-          minZoom={0.55}
+          fitView
+          fitViewOptions={{ maxZoom: isMobile ? 0.9 : 1, minZoom: 0.45, padding: isMobile ? 0.22 : 0.16 }}
+          minZoom={0.45}
           maxZoom={1.2}
           proOptions={{ hideAttribution: true }}
           colorMode={resolvedTheme === "dark" ? "dark" : "light"}
+          onInit={fitDistributionView}
           onNodeClick={(_, node) => setSelectedStageId(node.id)}
         >
           <Background
