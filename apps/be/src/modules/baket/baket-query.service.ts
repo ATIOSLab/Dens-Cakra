@@ -239,6 +239,14 @@ export class BaketQueryService {
       ...(query.jaringClusterId
         ? { jaringClusterId: query.jaringClusterId }
         : {}),
+      ...(query.from || query.to
+        ? {
+            createdAt: {
+              ...(query.from ? { gte: new Date(query.from) } : {}),
+              ...(query.to ? { lte: new Date(query.to) } : {}),
+            },
+          }
+        : {}),
       ...(query.areaId
         ? {
             versions: {
@@ -262,18 +270,6 @@ export class BaketQueryService {
             versions: {
               some: {
                 coverageValidationStatus: query.coverageStatus,
-              },
-            },
-          }
-        : {}),
-      ...(query.from || query.to
-        ? {
-            versions: {
-              some: {
-                ...(query.from
-                  ? { createdAt: { gte: new Date(query.from) } }
-                  : {}),
-                ...(query.to ? { createdAt: { lte: new Date(query.to) } } : {}),
               },
             },
           }

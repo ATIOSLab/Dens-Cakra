@@ -67,9 +67,9 @@ export class JaringService {
     }
   }
 
-  private detail(id: string) {
+  private detail(id: string, includeDeleted = false) {
     return this.prisma.jaring.findFirstOrThrow({
-      where: { id, deletedAt: null },
+      where: { id, ...(includeDeleted ? {} : { deletedAt: null }) },
       include: {
         cluster: true,
         caretakerAssignments: {
@@ -118,12 +118,12 @@ export class JaringService {
       ...(status === JaringStatus.INACTIVE
         ? { deactivatedAt: new Date() }
         : {}),
-      ...(status === JaringStatus.ACTIVE ? { deactivatedAt: null } : {}),
+      ...(status === JaringStatus.ACTIVE ? { deactivatedAt: null, deletedAt: null } : {}),
       ...(status === JaringStatus.ARCHIVED ? { deletedAt: new Date() } : {}),
     };
     await this.prisma.jaring.update({ where: { id }, data });
     await this.audit(context, `JARING.${status}`, id, { reason });
-    return this.detail(id);
+    return this.detail(id, status === JaringStatus.ARCHIVED);
   }
 
   async list(query: JaringQuery, context: AuthorizationContext) {
@@ -169,6 +169,44 @@ export class JaringService {
 
   async create(body: CreateJaringDto, context: AuthorizationContext) {
     await this.ensureActiveCluster(body.clusterId);
+    const whatsappNumber = normalizeIndonesianPhoneNumber(body.whatsappNumber);
+    const duplicateNumber = await this.prisma.jaring.findFirst({
+      where: {
+        whatsappNumber,
+        status: JaringStatus.ACTIVE,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        caretakerAssignments: {
+          where: { isActive: true, validUntil: null },
+          take: 1,
+          select: { fieldOfficerAssignmentId: true },
+        },
+      },
+    });
+
+    if (duplicateNumber) {
+      const registeredFieldOfficerId =
+        duplicateNumber.caretakerAssignments[0]?.fieldOfficerAssignmentId;
+
+      if (
+        registeredFieldOfficerId &&
+        registeredFieldOfficerId !== body.fieldOfficerAssignmentId
+      ) {
+        throw new ApiException(
+          'JARING_WHATSAPP_OWNED_BY_OTHER_OFFICER',
+          'Nomor Jaring telah terdaftar di bawah Field Officer lain.',
+          409,
+        );
+      }
+
+      throw new ApiException(
+        'JARING_WHATSAPP_DUPLICATE',
+        'Nomor Jaring telah terdaftar di bawah Field Officer ini.',
+        409,
+      );
+    }
 
     const officer = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: body.fieldOfficerAssignmentId },
@@ -188,7 +226,7 @@ export class JaringService {
       data: {
         code: body.code,
         aliasName: body.aliasName,
-        whatsappNumber: normalizeIndonesianPhoneNumber(body.whatsappNumber),
+        whatsappNumber,
         clusterId: body.clusterId,
         createdByAssignmentId: context.primaryAssignmentId,
         notes: body.notes,

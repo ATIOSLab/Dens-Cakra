@@ -294,7 +294,11 @@ function TaskCard({ task }: { task: DirectiveTrackingTask }) {
           <div>
             <CardTitle className="text-lg">{task.title}</CardTitle>
             <CardDescription>
-              {task.ownerUnit?.name ?? "-"} · {task.priority} · dibuat {formatDate(task.createdAt)}
+              {task.ownerUnit?.name ?? "-"} ·{" "}
+              <span className="dc-priority font-semibold" data-priority={task.priority.toUpperCase()}>
+                {task.priority}
+              </span>{" "}
+              · dibuat {formatDate(task.createdAt)}
             </CardDescription>
           </div>
           <Badge variant={trackingBadgeVariant(task.status)}>{statusLabel(task.status)}</Badge>
