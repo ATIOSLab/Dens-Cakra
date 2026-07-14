@@ -23,20 +23,7 @@ import { IDEMPOTENCY_OPERATION_KEY } from '../decorators/idempotent.decorator.js
 import type { AuthenticatedRequest } from '../types/authenticated-request.js';
 import { canonicalJson } from '../utils/canonical-json.js';
 import { ApiException } from './api-exception.js';
-
-function toJsonCacheValue(
-  value: unknown,
-): Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue {
-  if (value === undefined) {
-    return Prisma.JsonNull;
-  }
-
-  return JSON.parse(
-    JSON.stringify(value, (_key, currentValue: unknown) =>
-      typeof currentValue === 'bigint' ? currentValue.toString() : currentValue,
-    ),
-  ) as Prisma.InputJsonValue;
-}
+import { toJsonCacheValue } from './json-safe.js';
 
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
