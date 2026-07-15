@@ -11,40 +11,39 @@
 
 @custom-variant dark (&:is(.dark *));
 
-.directive-tracking-flow .react-flow__controls {
-  top: 16px;
-  right: 16px;
-  bottom: auto;
+.react-flow__controls {
   overflow: hidden;
-  border: 1px solid #334155;
-  border-radius: 0;
-  box-shadow: 0 12px 30px rgb(0 0 0 / 30%);
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
 
-.directive-tracking-flow .react-flow__controls-button {
-  width: 38px;
-  height: 38px;
+.react-flow__controls-button {
+  width: 34px !important;
+  height: 34px !important;
   cursor: pointer;
-  border: 0;
-  border-bottom: 1px solid #334155;
-  background: #0b1727;
-  color: #cbd5e1;
-  fill: currentColor;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  fill: currentColor !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
 }
 
-.directive-tracking-flow .react-flow__controls-button:last-child {
-  border-bottom: 0;
+.react-flow__controls-button:last-child {
+  border-bottom: 0 !important;
 }
 
-.directive-tracking-flow .react-flow__controls-button:hover {
-  background: #13243a;
-  color: #22d3ee;
+.react-flow__controls-button:hover {
+  background: var(--accent) !important;
+  color: var(--accent-foreground) !important;
 }
 
-.directive-tracking-flow .react-flow__minimap {
-  margin: 16px;
-  border-radius: 0;
-  box-shadow: 0 12px 30px rgb(0 0 0 / 30%);
+.react-flow__controls-button svg {
+  fill: currentColor !important;
 }
 
 .directive-tracking-flow .react-flow__edge.animated path {

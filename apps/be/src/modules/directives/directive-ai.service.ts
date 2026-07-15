@@ -89,11 +89,7 @@ export class DirectiveAiService {
     const model = this.config.get<string>('AI_ROUTER_MODEL');
 
     if (!baseUrl || !apiKey || !model) {
-      throw new ApiException(
-        'DIRECTIVE_AI_NOT_CONFIGURED',
-        'Konfigurasi layanan AI belum lengkap.',
-        503,
-      );
+      return this.buildLocalFallback(input, strategicIssue);
     }
 
     let response: Response;
@@ -157,6 +153,112 @@ export class DirectiveAiService {
       'Jika menggunakan daftar bernomor atau berhuruf, tulis setiap item pada baris baru; jangan gabungkan beberapa item dalam satu baris.',
       'Balas hanya dengan satu objek JSON valid tanpa markdown, komentar, atau teks tambahan.',
     ].join(' ');
+  }
+
+  private getContextStringArray(
+    context: Record<string, unknown> | undefined,
+    key: string,
+  ) {
+    const value = context?.[key];
+
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
+  }
+
+  private buildLocalFallback(
+    input: GenerateDirectiveAiDto,
+    strategicIssue: string,
+  ): DirectiveAiResult {
+    const targetAreas = this.getContextStringArray(input.context, 'targetAreas');
+    const areaLabel = targetAreas.length
+      ? targetAreas.join(', ')
+      : 'wilayah sasaran yang dipilih';
+    const title =
+      input.title?.trim() ||
+      `Penguatan operasi intelijen terhadap isu ${strategicIssue.slice(0, 90)}`;
+    const commandNarrative =
+      input.commandNarrative?.trim() ||
+      [
+        `Melaksanakan operasi intelijen terarah pada ${areaLabel} untuk memperoleh informasi strategis terkait ${strategicIssue}.`,
+        'Seluruh jajaran penerima STR wajib menyusun rencana pengumpulan, memperbarui perkembangan secara berjenjang, dan menjaga validitas informasi sebelum digunakan sebagai dasar keputusan.',
+      ].join(' ');
+
+    const generatedSections: Record<string, string> = {
+      BASIS_BACKGROUND: [
+        `Isu strategis yang menjadi dasar penugasan adalah ${strategicIssue}.`,
+        `Kegiatan diarahkan pada ${areaLabel} dengan fokus pemetaan indikasi, aktor, pola kegiatan, jalur dukungan, serta potensi eskalasi yang relevan.`,
+      ].join('\n'),
+      INVESTIGATION_TARGETS: [
+        `1. Mengidentifikasi pihak, jaringan, lokasi, dan pola aktivitas yang berkaitan dengan ${strategicIssue}.`,
+        `2. Memetakan titik rawan dan hubungan antarwilayah pada ${areaLabel}.`,
+        '3. Menilai dampak operasional terhadap stabilitas keamanan dan kepentingan strategis nasional.',
+      ].join('\n'),
+      EEI_PIR: [
+        `1. Apa indikator utama yang menguatkan perkembangan isu ${strategicIssue}?`,
+        `2. Siapa aktor, simpul, atau jaringan yang berperan pada ${areaLabel}?`,
+        '3. Bagaimana pola komunikasi, mobilitas, dukungan logistik, dan pembiayaan yang terindikasi?',
+        '4. Apa potensi eskalasi, dampak, dan kebutuhan respons lanjutan?',
+      ].join('\n'),
+      COLLECTION_PLAN: [
+        '1. Mengumpulkan informasi awal dari sumber terbuka, laporan lapangan, dan data internal yang tersedia.',
+        '2. Memvalidasi informasi melalui koordinasi berjenjang antara Regional Commander, OIM, Field Coordinator, dan Field Officer.',
+        `3. Memprioritaskan pengumpulan pada titik rawan di ${areaLabel}.`,
+        '4. Menyusun pembaruan berkala berisi temuan, penilaian, dan kebutuhan tindak lanjut.',
+      ].join('\n'),
+      THREAT_RISK_ANALYSIS: [
+        `Isu ${strategicIssue} dinilai berpotensi memunculkan risiko operasional apabila indikator awal tidak segera diverifikasi.`,
+        'Risiko utama mencakup perluasan jaringan, perpindahan aktivitas antarwilayah, kesenjangan informasi, dan keterlambatan respons lapangan.',
+      ].join('\n'),
+      IMPLEMENTATION_MECHANISM: [
+        '1. Regional Commander menjabarkan STR menjadi arahan operasional regional.',
+        '2. OIM menyusun kebutuhan informasi dan rencana pengumpulan.',
+        '3. Field Coordinator mengoordinasikan penugasan lapangan.',
+        '4. Field Officer melaksanakan pengumpulan dan pelaporan sesuai area tanggung jawab.',
+      ].join('\n'),
+      COORDINATION_REPORTING: [
+        'Pelaporan dilakukan secara berjenjang melalui kanal resmi DENS CAKRA.',
+        'Setiap informasi wajib mencantumkan sumber, waktu perolehan, lokasi, tingkat keyakinan, dan rekomendasi tindak lanjut.',
+      ].join('\n'),
+      RECOMMENDATION: [
+        `1. Prioritaskan validasi informasi terkait ${strategicIssue} pada ${areaLabel}.`,
+        '2. Susun pembaruan situasi berkala untuk pimpinan.',
+        '3. Tingkatkan koordinasi lintas unit bila ditemukan indikasi perluasan wilayah atau eskalasi ancaman.',
+      ].join('\n'),
+      AUTHENTICATION:
+        'Dokumen ini disusun sebagai draft awal dan wajib ditinjau pejabat berwenang sebelum dipublikasikan atau didistribusikan.',
+    };
+
+    const existingSections = Object.fromEntries(
+      SECTION_TYPES.map((key) => {
+        const value = input.sections?.[key];
+        return [key, typeof value === 'string' ? value.trim() : ''];
+      }),
+    );
+    const sectionFrom = (key: (typeof SECTION_TYPES)[number]) =>
+      input.scope === DirectiveAiScope.POLISH
+        ? generatedSections[key] || existingSections[key]
+        : generatedSections[key];
+
+    if (input.scope === DirectiveAiScope.EEI) {
+      return { sections: { EEI_PIR: sectionFrom('EEI_PIR') } };
+    }
+
+    if (input.scope === DirectiveAiScope.COLLECTION) {
+      return { sections: { COLLECTION_PLAN: sectionFrom('COLLECTION_PLAN') } };
+    }
+
+    if (input.scope === DirectiveAiScope.RECOMMENDATION) {
+      return { sections: { RECOMMENDATION: sectionFrom('RECOMMENDATION') } };
+    }
+
+    return {
+      title,
+      commandNarrative,
+      sections: Object.fromEntries(
+        SECTION_TYPES.map((key) => [key, sectionFrom(key)]),
+      ),
+    };
   }
 
   private userPrompt(input: GenerateDirectiveAiDto, strategicIssue: string) {

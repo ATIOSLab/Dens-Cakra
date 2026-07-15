@@ -104,12 +104,14 @@ type TaskRecord = {
   dueDate?: string | null;
   status: string;
   directiveVersion?: {
+    classification?: string | null;
     commandSource?: string | null;
     directive?: {
       commandNumber?: string | null;
     } | null;
   } | null;
   uukStrVersion?: {
+    classification?: string | null;
     title?: string | null;
     uukStr?: {
       directiveVersion?: {
@@ -227,6 +229,11 @@ function mapTask(
     record.directiveVersion?.commandSource ||
     null;
 
+  const classification =
+    record.directiveVersion?.classification ||
+    record.uukStrVersion?.classification ||
+    null;
+
   return {
     assignmentId: assignment.id,
     taskId: record.id,
@@ -248,6 +255,7 @@ function mapTask(
       assignment.progressPercent !== undefined
         ? `${assignment.progressPercent}%`
         : assignment.status,
+    classification,
   };
 }
 

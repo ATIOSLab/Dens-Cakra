@@ -31,6 +31,7 @@ export type FieldOfficerTask = {
   assignerName: string | null;
   assignerPositionTitle: string | null;
   progressSummary: string;
+  classification: string | null;
 };
 
 export type FieldOfficerJaring = {

@@ -55,7 +55,7 @@ export class VersionRecipientDto {
 }
 
 export class DirectiveVersionCreateDto {
-  @IsString() @MaxLength(120) commandNumber!: string;
+  @IsString() @MinLength(3) @MaxLength(120) commandNumber!: string;
   @IsEnum(Classification) classification!: Classification;
   @IsString() @MaxLength(250) commandSource!: string;
   @IsString() @MaxLength(250) commandIssuer!: string;

@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   AlertTriangle,
@@ -49,7 +49,9 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { administrativeAreaLabel } from "@/features/baket/administrative-area";
 import { BaketAdministrativeArea } from "@/features/baket/components/baket-administrative-area";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
@@ -184,9 +186,14 @@ function StatusBadge({ value }: { value?: string }) {
   return <Badge variant={danger ? "destructive" : success ? "default" : "secondary"}>{label}</Badge>;
 }
 
-function Header({ view }: { view: OimView }) {
+function Header({ view, data }: { view: OimView; data?: OimPageData }) {
   const [title, description, Icon] = VIEW_META[view];
   const isDashboard = view === "dashboard";
+  
+  const root = (data?.areas ?? {}) as Row;
+  const topLevel = rows(root.children);
+  const provinces = topLevel.filter((area) => area.level === "PROVINCE");
+  const provinceName = provinces[0]?.name || "REGIONAL";
   
   return (
     <div className="flex flex-col gap-6 border-b border-border pb-6 relative z-20">
@@ -257,7 +264,7 @@ function Header({ view }: { view: OimView }) {
         <span className="text-border">|</span>
         <span>SYNC: 1 MENIT LALU</span>
         <span className="text-border">|</span>
-        <span>COMMAND SCOPE: REGIONAL</span>
+        <span>WILAYAH CAKUPAN: {provinceName.toUpperCase()}</span>
         <span className="text-border">|</span>
         <span>SESSION: SECURE</span>
         <span className="text-border">|</span>
@@ -379,6 +386,110 @@ function Kpis({ data }: { data: OimPageData }) {
   );
 }
 
+function getClassificationStyles(value?: string) {
+  const norm = (value ?? "").toUpperCase();
+  switch (norm) {
+    case "BIASA":
+      return {
+        color: "#3B82F6", // Blue
+        bgColor: "#3B82F615",
+        borderColor: "#3B82F630",
+        label: "BIASA",
+      };
+    case "TERBATAS":
+      return {
+        color: "#10B981", // Green
+        bgColor: "#10B98115",
+        borderColor: "#10B98130",
+        label: "TERBATAS",
+      };
+    case "RAHASIA":
+      return {
+        color: "#F59E0B", // Yellow/Gold
+        bgColor: "#F59E0B15",
+        borderColor: "#F59E0B30",
+        label: "RAHASIA",
+      };
+    case "SANGAT_RAHASIA":
+      return {
+        color: "#EF4444", // Red
+        bgColor: "#EF444415",
+        borderColor: "#EF444430",
+        label: "SANGAT RAHASIA",
+      };
+    default:
+      return {
+        color: "#7C8798", // Gray
+        bgColor: "#7C879815",
+        borderColor: "#7C879830",
+        label: value ?? "—",
+      };
+  }
+}
+
+function productStatusLabel(value?: string) {
+  switch ((value ?? "").toUpperCase()) {
+    case "DRAFT": return "Draf";
+    case "READY_FOR_SUBMISSION": return "Siap Diajukan";
+    case "SUBMITTED": return "Diajukan";
+    case "IN_REVIEW": return "Sedang Ditinjau";
+    case "NEEDS_REVISION": return "Perlu Revisi";
+    case "APPROVED": return "Disetujui";
+    case "REJECTED": return "Ditolak";
+    case "UNDER_REGIONAL_REVIEW": return "Peninjauan Regional";
+    default: return value ?? "—";
+  }
+}
+
+function getProductStatusStyles(value?: string) {
+  const norm = (value ?? "").toUpperCase();
+  const label = productStatusLabel(norm);
+  if (["APPROVED"].includes(norm)) {
+    return { color: "#10B981", bgColor: "#10B98115", borderColor: "#10B98130", label };
+  }
+  if (["NEEDS_REVISION"].includes(norm)) {
+    return { color: "#F59E0B", bgColor: "#F59E0B15", borderColor: "#F59E0B30", label };
+  }
+  if (["REJECTED"].includes(norm)) {
+    return { color: "#EF4444", bgColor: "#EF444415", borderColor: "#EF444430", label };
+  }
+  if (["READY_FOR_SUBMISSION", "SUBMITTED", "IN_REVIEW", "UNDER_REGIONAL_REVIEW"].includes(norm)) {
+    return { color: "#06B6D4", bgColor: "#06B6D415", borderColor: "#06B6D430", label };
+  }
+  return { color: "#7C8798", bgColor: "#7C879815", borderColor: "#7C879830", label };
+}
+
+function statusLabelIndo(status: string) {
+  switch (status.toUpperCase()) {
+    case "SENT_TO_OIM":
+      return "Baru";
+    case "UNDER_VERIFICATION":
+      return "Sedang Diverifikasi";
+    case "NEEDS_DEVELOPMENT":
+      return "Perlu Pengembangan";
+    case "VERIFIED":
+      return "Selesai (Terverifikasi)";
+    case "REJECTED":
+      return "Selesai (Ditolak)";
+    case "DRAFT":
+      return "Draf";
+    case "READY_FOR_SUBMISSION":
+      return "Siap Diajukan";
+    case "SUBMITTED":
+      return "Diajukan";
+    case "IN_REVIEW":
+      return "Sedang Ditinjau";
+    case "NEEDS_REVISION":
+      return "Perlu Revisi";
+    case "APPROVED":
+      return "Disetujui";
+    case "IN_PROGRESS":
+      return "Sedang Diproses";
+    default:
+      return status;
+  }
+}
+
 function Filters({
   areas,
   reportCategories,
@@ -390,14 +501,52 @@ function Filters({
   jaringClusters?: unknown;
   mode?: "baket" | "verification" | "product";
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const root = (areas ?? {}) as Row;
   const categories = rows(reportCategories);
   const clusters = rows(jaringClusters);
   const topLevel = rows(root.children);
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
-  const [provinceId, setProvinceId] = useState("");
-  const [regencyId, setRegencyId] = useState("");
-  const [districtId, setDistrictId] = useState("");
+  const provinceId = provinces[0]?.id || "";
+
+  // Controlled filter states
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [regencyId, setRegencyId] = useState(searchParams.get("regencyId") || "");
+  const [districtId, setDistrictId] = useState(searchParams.get("districtId") || "");
+  const [status, setStatus] = useState(searchParams.get("status") || "");
+  const [urgency, setUrgency] = useState(searchParams.get("urgency") || "");
+  const [classification, setClassification] = useState(searchParams.get("classification") || "");
+  const [categoryId, setCategoryId] = useState(searchParams.get("categoryId") || "");
+  const [jaringClusterId, setJaringClusterId] = useState(searchParams.get("jaringClusterId") || "");
+  const [periodStart, setPeriodStart] = useState(searchParams.get("periodStart") || "");
+  const [periodEnd, setPeriodEnd] = useState(searchParams.get("periodEnd") || "");
+
+  // Debounced search state
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Sync state with URL search params changes
+  useEffect(() => {
+    setSearch(searchParams.get("search") || "");
+    setRegencyId(searchParams.get("regencyId") || "");
+    setDistrictId(searchParams.get("districtId") || "");
+    setStatus(searchParams.get("status") || "");
+    setUrgency(searchParams.get("urgency") || "");
+    setClassification(searchParams.get("classification") || "");
+    setCategoryId(searchParams.get("categoryId") || "");
+    setJaringClusterId(searchParams.get("jaringClusterId") || "");
+    setPeriodStart(searchParams.get("periodStart") || "");
+    setPeriodEnd(searchParams.get("periodEnd") || "");
+  }, [searchParams]);
+
   const selectedProvince = provinces.find((area) => area.id === provinceId);
   const directRegencies = topLevel.filter((area) => ["REGENCY", "CITY"].includes(area.level));
   const regencies = selectedProvince
@@ -413,170 +562,423 @@ function Filters({
         ? ["DRAFT", "IN_PROGRESS", "VERIFIED", "NEEDS_DEVELOPMENT", "REJECTED"]
         : ["SENT_TO_OIM", "UNDER_VERIFICATION", "NEEDS_DEVELOPMENT", "VERIFIED", "REJECTED"];
 
+  // Automatically apply parameters on change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (regencyId) params.set("regencyId", regencyId);
+    if (districtId) params.set("districtId", districtId);
+    if (areaId) params.set("areaId", areaId);
+    if (status) params.set("status", status);
+    if (urgency) params.set("urgency", urgency);
+    if (classification && mode === "product") params.set("classification", classification);
+    if (categoryId && mode === "baket") params.set("categoryId", categoryId);
+    if (jaringClusterId && mode === "baket") params.set("jaringClusterId", jaringClusterId);
+    if (periodStart) params.set("periodStart", periodStart);
+    if (periodEnd) params.set("periodEnd", periodEnd);
+
+    const newQuery = params.toString();
+    const currentQuery = searchParams.toString();
+
+    if (newQuery !== currentQuery) {
+      router.push(`${window.location.pathname}?${newQuery}`);
+    }
+  }, [
+    debouncedSearch,
+    regencyId,
+    districtId,
+    areaId,
+    status,
+    urgency,
+    classification,
+    categoryId,
+    jaringClusterId,
+    periodStart,
+    periodEnd,
+    mode,
+    router,
+    searchParams
+  ]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+  };
+
   return (
-    <form className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-2 xl:grid-cols-4" method="get">
-      <input type="hidden" name="areaId" value={areaId} />
-      <Input name="search" placeholder="Cari judul, isi, nomor produk…" />
-      <select
-        value={provinceId}
-        onChange={(event) => {
-          setProvinceId(event.target.value);
-          setRegencyId("");
+    <form className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-2 xl:grid-cols-4 animate-in fade-in" onSubmit={handleSubmit}>
+      <Input
+        name="search"
+        placeholder="Cari judul, isi, nomor produk…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="h-9 text-sm bg-background border-border text-foreground"
+      />
+      
+      {/* Kabupaten/Kota Select */}
+      <Select
+        value={regencyId || "ALL"}
+        onValueChange={(val) => {
+          setRegencyId(val === "ALL" ? "" : val);
           setDistrictId("");
         }}
-        className="h-9 rounded-lg border bg-background px-3 text-sm"
-        aria-label="Provinsi"
       >
-        <option value="">Seluruh provinsi scope</option>
-        {provinces.map((area) => (
-          <option key={area.id} value={area.id}>
-            {area.name}
-          </option>
-        ))}
-      </select>
-      <select
-        value={regencyId}
-        onChange={(event) => {
-          setRegencyId(event.target.value);
-          setDistrictId("");
-        }}
-        className="h-9 rounded-lg border bg-background px-3 text-sm"
-        aria-label="Kabupaten atau kota"
-      >
-        <option value="">Seluruh kabupaten/kota</option>
-        {regencies.map((area) => (
-          <option key={area.id} value={area.id}>
-            {area.name}
-          </option>
-        ))}
-      </select>
-      <select
-        value={districtId}
-        onChange={(event) => setDistrictId(event.target.value)}
-        className="h-9 rounded-lg border bg-background px-3 text-sm"
-        aria-label="Kecamatan"
-      >
-        <option value="">Seluruh kecamatan</option>
-        {districts.map((area) => (
-          <option key={area.id} value={area.id}>
-            {area.name}
-          </option>
-        ))}
-      </select>
-      <select name="status" className="h-9 rounded-lg border bg-background px-3 text-sm">
-        <option value="">Seluruh status</option>
-        {statusOptions.map((status) => (
-          <option key={status}>{status}</option>
-        ))}
-      </select>
-      <select name="urgency" className="h-9 rounded-lg border bg-background px-3 text-sm">
-        <option value="">Semua urgensi</option>
-        <option>NORMAL</option>
-        <option>HIGH</option>
-        <option>URGENT</option>
-      </select>
-      {mode === "baket" ? (
-        <select name="categoryId" className="h-9 rounded-lg border bg-background px-3 text-sm">
-          <option value="">Semua kategori</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
+        <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
+          <SelectValue placeholder="Seluruh kabupaten/kota" />
+        </SelectTrigger>
+        <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
+          <SelectItem value="ALL">Seluruh kabupaten/kota</SelectItem>
+          {regencies.map((area) => (
+            <SelectItem key={area.id} value={area.id}>
+              {area.name}
+            </SelectItem>
           ))}
-        </select>
-      ) : null}
-      {mode === "baket" ? (
-        <select name="jaringClusterId" className="h-9 rounded-lg border bg-background px-3 text-sm">
-          <option value="">Semua klaster</option>
-          {clusters.map((cluster) => (
-            <option key={cluster.id} value={cluster.id}>
-              {cluster.name}
-            </option>
+        </SelectContent>
+      </Select>
+
+      {/* Kecamatan Select */}
+      <Select
+        value={districtId || "ALL"}
+        onValueChange={(val) => setDistrictId(val === "ALL" ? "" : val)}
+      >
+        <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
+          <SelectValue placeholder="Seluruh kecamatan" />
+        </SelectTrigger>
+        <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
+          <SelectItem value="ALL">Seluruh kecamatan</SelectItem>
+          {districts.map((area) => (
+            <SelectItem key={area.id} value={area.id}>
+              {area.name}
+            </SelectItem>
           ))}
-        </select>
+        </SelectContent>
+      </Select>
+
+      {/* Status Select */}
+      <Select
+        value={status || "ALL"}
+        onValueChange={(val) => setStatus(val === "ALL" ? "" : val)}
+      >
+        <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
+          <SelectValue placeholder="Seluruh status" />
+        </SelectTrigger>
+        <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
+          <SelectItem value="ALL">Seluruh status</SelectItem>
+          {statusOptions.map((opt) => (
+            <SelectItem key={opt} value={opt}>
+              {statusLabelIndo(opt)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Urgensi Select */}
+      <Select
+        value={urgency || "ALL"}
+        onValueChange={(val) => setUrgency(val === "ALL" ? "" : val)}
+      >
+        <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
+          <SelectValue placeholder="Semua urgensi" />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          <SelectItem value="ALL">Semua urgensi</SelectItem>
+          <SelectItem value="NORMAL">NORMAL</SelectItem>
+          <SelectItem value="HIGH">HIGH</SelectItem>
+          <SelectItem value="URGENT">URGENT</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* Classification Select (for Product mode) */}
+      {mode === "product" ? (
+        <Select
+          value={classification || "ALL"}
+          onValueChange={(val) => setClassification(val === "ALL" ? "" : val)}
+        >
+          <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
+            <SelectValue placeholder="Semua klasifikasi" />
+          </SelectTrigger>
+          <SelectContent position="popper">
+            <SelectItem value="ALL">Semua klasifikasi</SelectItem>
+            <SelectItem value="BIASA">BIASA</SelectItem>
+            <SelectItem value="TERBATAS">TERBATAS</SelectItem>
+            <SelectItem value="RAHASIA">RAHASIA</SelectItem>
+            <SelectItem value="SANGAT_RAHASIA">SANGAT RAHASIA</SelectItem>
+          </SelectContent>
+        </Select>
       ) : null}
-      <Input type="date" name="periodStart" aria-label="Tanggal mulai" />
-      <Input type="date" name="periodEnd" aria-label="Tanggal selesai" />
-      <Button type="submit" variant="outline">
-        Terapkan filter
-      </Button>
+
+      {/* Kategori Select (for Baket mode) */}
+      {mode === "baket" ? (
+        <Select
+          value={categoryId || "ALL"}
+          onValueChange={(val) => setCategoryId(val === "ALL" ? "" : val)}
+        >
+          <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
+            <SelectValue placeholder="Semua kategori" />
+          </SelectTrigger>
+          <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
+            <SelectItem value="ALL">Semua kategori</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : null}
+
+      {/* Klaster Select (for Baket mode) */}
+      {mode === "baket" ? (
+        <Select
+          value={jaringClusterId || "ALL"}
+          onValueChange={(val) => setJaringClusterId(val === "ALL" ? "" : val)}
+        >
+          <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
+            <SelectValue placeholder="Semua klaster" />
+          </SelectTrigger>
+          <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
+            <SelectItem value="ALL">Semua klaster</SelectItem>
+            {clusters.map((cluster) => (
+              <SelectItem key={cluster.id} value={cluster.id}>
+                {cluster.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : null}
+
+      <Input
+        type="date"
+        name="periodStart"
+        aria-label="Tanggal mulai"
+        value={periodStart}
+        onChange={(e) => setPeriodStart(e.target.value)}
+        className="h-9 text-sm bg-background border-border text-foreground"
+      />
+      <Input
+        type="date"
+        name="periodEnd"
+        aria-label="Tanggal selesai"
+        value={periodEnd}
+        onChange={(e) => setPeriodEnd(e.target.value)}
+        className="h-9 text-sm bg-background border-border text-foreground"
+      />
+      {!!(search || regencyId || districtId || status || urgency || classification || categoryId || jaringClusterId || periodStart || periodEnd) && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setSearch("");
+            setRegencyId("");
+            setDistrictId("");
+            setStatus("");
+            setUrgency("");
+            setClassification("");
+            setCategoryId("");
+            setJaringClusterId("");
+            setPeriodStart("");
+            setPeriodEnd("");
+          }}
+          className="h-9 font-mono text-xs uppercase border-dashed border-border text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          Reset Filter
+        </Button>
+      )}
     </form>
   );
 }
 
 function BaketList({ data }: { data: OimPageData }) {
   const items = rows(data.bakets);
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+
   return (
-    <div className="grid gap-6">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
+        <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
+          Daftar Laporan ({items.length})
+        </h3>
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
+          <Button
+            variant={viewMode === "card" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("card")}
+            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+          >
+            Card
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("table")}
+            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+          >
+            Table
+          </Button>
+        </div>
+      </div>
+
       {items.length ? (
-        items.map((item) => {
-          const version = currentVersion(item);
-          const fieldOfficer = item.createdByFieldOfficerAssignment;
-          return (
-            <div 
-              key={item.id} 
-              className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 transition-all duration-[150ms] ease-out hover:translate-y-[-2px] hover:border-slate-300 dark:hover:border-white/15 cursor-pointer flex flex-col group shadow-sm dark:shadow-none"
-            >
-              <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-                <div className="space-y-2.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span 
-                      className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
-                      style={{
-                        color: item.status === "SENT_TO_OIM" ? "#06B6D4" : "#10B981",
-                        backgroundColor: item.status === "SENT_TO_OIM" ? "#06B6D415" : "#10B98115",
-                        borderColor: item.status === "SENT_TO_OIM" ? "#06B6D430" : "#10B98130",
-                      }}
-                    >
-                      {baketStatusLabel(item.status)}
-                    </span>
-                    <span 
-                      className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
-                      style={{
-                        color: version.urgency === "URGENT" ? "#EF4444" : version.urgency === "HIGH" ? "#F59E0B" : "#3B82F6",
-                        backgroundColor: version.urgency === "URGENT" ? "#EF444415" : version.urgency === "HIGH" ? "#F59E0B15" : "#3B82F615",
-                        borderColor: version.urgency === "URGENT" ? "#EF444430" : version.urgency === "HIGH" ? "#F59E0B30" : "#3B82F630",
-                      }}
-                    >
-                      {version.urgency ?? "NORMAL"}
-                    </span>
-                    
-                    <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                      KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
-                    </span>
-                    
-                    <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                      {item.jaringCluster?.name ?? "KLASTER OIM"}
-                    </span>
-
-                    <span className="text-xs text-muted-foreground/60 font-mono">v{item.currentVersionNumber}</span>
-                  </div>
-
-                  <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">{version.title ?? "Baket tanpa judul"}</h2>
-                  
-                  <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] leading-relaxed line-clamp-2">
-                    {version.normalizedContent ?? version.originalContent ?? "Belum ada ringkasan."}
-                  </p>
-                  
-                  <p className="text-[12px] font-mono text-slate-500 dark:text-[#7C8798] pt-1">
-                    PETUGAS: {fieldOfficerUserName(fieldOfficer).toUpperCase()} · {administrativeAreaLabel(version.eventArea).toUpperCase()} · {fmtDate(item.updatedAt).toUpperCase()}
-                  </p>
-                </div>
-                
-                <Button 
-                  asChild 
-                  variant="ghost"
-                  className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-10 px-4 transition-all duration-[150ms] ease-out shrink-0"
-                >
-                  <Link href={`/dashboard/oim/laporan-masuk/${item.id}`} className="flex items-center gap-2">
-                    <span>TINJAU</span>
-                    <ArrowRight className="size-4" style={{ strokeWidth: "2px" }} />
-                  </Link>
-                </Button>
-              </div>
+        viewMode === "table" ? (
+          <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">Status & Urgensi</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Judul Laporan</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Kategori & Klaster</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Pengirim</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Wilayah</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Tanggal</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item) => {
+                    const version = currentVersion(item);
+                    const fieldOfficer = item.createdByFieldOfficerAssignment;
+                    return (
+                      <TableRow key={item.id} className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                        <TableCell className="pl-6 py-4">
+                          <div className="flex flex-col gap-1 items-start">
+                            <span 
+                              className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
+                              style={{
+                                color: item.status === "SENT_TO_OIM" ? "#06B6D4" : "#10B981",
+                                backgroundColor: item.status === "SENT_TO_OIM" ? "#06B6D415" : "#10B98115",
+                                borderColor: item.status === "SENT_TO_OIM" ? "#06B6D430" : "#10B98130",
+                              }}
+                            >
+                              {baketStatusLabel(item.status)}
+                            </span>
+                            <span 
+                              className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
+                              style={{
+                                color: version.urgency === "URGENT" ? "#EF4444" : version.urgency === "HIGH" ? "#F59E0B" : "#3B82F6",
+                                backgroundColor: version.urgency === "URGENT" ? "#EF444415" : version.urgency === "HIGH" ? "#F59E0B15" : "#3B82F615",
+                                borderColor: version.urgency === "URGENT" ? "#EF444430" : version.urgency === "HIGH" ? "#F59E0B30" : "#3B82F630",
+                              }}
+                            >
+                              {version.urgency ?? "NORMAL"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 max-w-[280px]">
+                          <div className="space-y-1">
+                            <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{version.title ?? "Baket tanpa judul"}</h4>
+                            <p className="text-xs text-slate-500 dark:text-[#94A3B8] line-clamp-1 leading-relaxed">{version.normalizedContent ?? version.originalContent ?? "—"}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="text-[10px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
+                              KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
+                              {item.jaringCluster?.name ?? "KLASTER OIM"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8] uppercase">
+                          {fieldOfficerUserName(fieldOfficer)}
+                        </TableCell>
+                        <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
+                          {administrativeAreaLabel(version.eventArea)}
+                        </TableCell>
+                        <TableCell className="py-4 font-mono text-xs text-slate-500 dark:text-[#7C8798] whitespace-nowrap">
+                          {fmtDate(item.updatedAt)}
+                        </TableCell>
+                        <TableCell className="pr-6 py-4 text-right">
+                          <Button 
+                            asChild 
+                            variant="ghost"
+                            className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-8 px-3 transition-all duration-[150ms] ease-out cursor-pointer"
+                          >
+                            <Link href={`/dashboard/oim/laporan-masuk/${item.id}`} className="flex items-center gap-1.5">
+                              <span>TINJAU</span>
+                              <ArrowRight className="size-3.5" style={{ strokeWidth: "2px" }} />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
-          );
-        })
+          </div>
+        ) : (
+          <div className="grid gap-6">
+            {items.map((item) => {
+              const version = currentVersion(item);
+              const fieldOfficer = item.createdByFieldOfficerAssignment;
+              return (
+                <div 
+                  key={item.id} 
+                  className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 transition-all duration-[150ms] ease-out hover:translate-y-[-2px] hover:border-slate-300 dark:hover:border-white/15 cursor-pointer flex flex-col group shadow-sm dark:shadow-none"
+                >
+                  <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+                    <div className="space-y-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span 
+                          className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
+                          style={{
+                            color: item.status === "SENT_TO_OIM" ? "#06B6D4" : "#10B981",
+                            backgroundColor: item.status === "SENT_TO_OIM" ? "#06B6D415" : "#10B98115",
+                            borderColor: item.status === "SENT_TO_OIM" ? "#06B6D430" : "#10B98130",
+                          }}
+                        >
+                          {baketStatusLabel(item.status)}
+                        </span>
+                        <span 
+                          className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
+                          style={{
+                            color: version.urgency === "URGENT" ? "#EF4444" : version.urgency === "HIGH" ? "#F59E0B" : "#3B82F6",
+                            backgroundColor: version.urgency === "URGENT" ? "#EF444415" : version.urgency === "HIGH" ? "#F59E0B15" : "#3B82F615",
+                            borderColor: version.urgency === "URGENT" ? "#EF444430" : version.urgency === "HIGH" ? "#F59E0B30" : "#3B82F630",
+                          }}
+                        >
+                          {version.urgency ?? "NORMAL"}
+                        </span>
+                        
+                        <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
+                          KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
+                        </span>
+                        
+                        <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
+                          {item.jaringCluster?.name ?? "KLASTER OIM"}
+                        </span>
+
+                        <span className="text-xs text-muted-foreground/60 font-mono">v{item.currentVersionNumber}</span>
+                      </div>
+
+                      <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">{version.title ?? "Baket tanpa judul"}</h2>
+                      
+                      <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] leading-relaxed line-clamp-2">
+                        {version.normalizedContent ?? version.originalContent ?? "Belum ada ringkasan."}
+                      </p>
+                      
+                      <p className="text-[12px] font-mono text-slate-500 dark:text-[#7C8798] pt-1">
+                        PETUGAS: {fieldOfficerUserName(fieldOfficer).toUpperCase()} · {administrativeAreaLabel(version.eventArea).toUpperCase()} · {fmtDate(item.updatedAt).toUpperCase()}
+                      </p>
+                    </div>
+                    
+                    <Button 
+                      asChild 
+                      variant="ghost"
+                      className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-10 px-4 transition-all duration-[150ms] ease-out shrink-0 cursor-pointer"
+                    >
+                      <Link href={`/dashboard/oim/laporan-masuk/${item.id}`} className="flex items-center gap-2">
+                        <span>TINJAU</span>
+                        <ArrowRight className="size-4" style={{ strokeWidth: "2px" }} />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
       ) : (
         <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-8 flex flex-col items-center justify-center text-center space-y-4 select-none min-h-[220px] shadow-sm dark:shadow-none">
           <div className="size-12 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-muted-foreground/60 border border-slate-200 dark:border-white/10">
@@ -589,7 +991,7 @@ function BaketList({ data }: { data: OimPageData }) {
           <Button 
             variant="ghost" 
             onClick={() => window.location.reload()}
-            className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-xs text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-md h-8 px-3 flex items-center gap-1.5 transition-all duration-[150ms]"
+            className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-xs text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-md h-8 px-3 flex items-center gap-1.5 transition-all duration-[150ms] cursor-pointer"
           >
             <RefreshCw className="size-3.5" style={{ strokeWidth: "2px" }} />
             <span>SINKRONKAN</span>
@@ -1271,40 +1673,184 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
     (item) =>
       !approval || ["DRAFT", "READY_FOR_SUBMISSION", "NEEDS_REVISION", "UNDER_REGIONAL_REVIEW"].includes(item.status),
   );
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+
   return (
-    <div className="grid gap-3">
-      {items.map((item) => (
-        <Card key={item.id} size="sm">
-          <CardContent className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-            <div className="flex items-start gap-3">
-              <div className="grid size-10 place-items-center rounded-lg bg-primary/10">
-                <FileText className="size-5 text-primary" />
-              </div>
-              <div>
-                <div className="flex flex-wrap gap-2">
-                  <StatusBadge value={item.classification} />
-                  <StatusBadge value={item.status} />
-                </div>
-                <h2 className="mt-2 font-medium">{item.title}</h2>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {item.productNumber} · {item.productType?.name ?? "Laporan Intelijen"}
-                </p>
-              </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
+        <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
+          Daftar Produk ({items.length})
+        </h3>
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
+          <Button
+            variant={viewMode === "card" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("card")}
+            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+          >
+            Card
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("table")}
+            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+          >
+            Table
+          </Button>
+        </div>
+      </div>
+
+      {items.length ? (
+        viewMode === "table" ? (
+          <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">Klasifikasi & Status</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Judul Produk</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Nomor Produk</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Jenis Produk</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Tanggal</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item) => {
+                    const classStyle = getClassificationStyles(item.classification);
+                    const statusStyle = getProductStatusStyles(item.status);
+                    return (
+                      <TableRow key={item.id} className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                        <TableCell className="pl-6 py-4">
+                          <div className="flex flex-col gap-1 items-start">
+                            <span 
+                              className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
+                              style={{
+                                color: classStyle.color,
+                                backgroundColor: classStyle.bgColor,
+                                borderColor: classStyle.borderColor,
+                              }}
+                            >
+                              {classStyle.label}
+                            </span>
+                            <span 
+                              className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
+                              style={{
+                                color: statusStyle.color,
+                                backgroundColor: statusStyle.bgColor,
+                                borderColor: statusStyle.borderColor,
+                              }}
+                            >
+                              {statusStyle.label}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 max-w-[320px]">
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{item.title ?? "Produk tanpa judul"}</h4>
+                        </TableCell>
+                        <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
+                          {item.productNumber ?? "—"}
+                        </TableCell>
+                        <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8] uppercase">
+                          {item.productType?.name ?? "Laporan Intelijen"}
+                        </TableCell>
+                        <TableCell className="py-4 font-mono text-xs text-slate-500 dark:text-[#7C8798] whitespace-nowrap">
+                          {fmtDate(item.updatedAt)}
+                        </TableCell>
+                        <TableCell className="pr-6 py-4 text-right">
+                          <Button 
+                            asChild 
+                            variant="ghost"
+                            className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-8 px-3 transition-all duration-[150ms] ease-out cursor-pointer"
+                          >
+                            <Link
+                              href={
+                                approval
+                                  ? `/dashboard/oim/pengajuan-persetujuan/${item.id}`
+                                  : `/dashboard/oim/produk-intelijen/daftar-produk/${item.id}`
+                              }
+                            >
+                              {approval ? "Siapkan pengajuan" : "Buka"}
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
-            <Button asChild variant="outline">
-              <Link
-                href={
-                  approval
-                    ? `/dashboard/oim/pengajuan-persetujuan/${item.id}`
-                    : `/dashboard/oim/produk-intelijen/daftar-produk/${item.id}`
-                }
-              >
-                {approval ? "Siapkan pengajuan" : "Buka"}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ))}
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {items.map((item) => {
+              const classStyle = getClassificationStyles(item.classification);
+              const statusStyle = getProductStatusStyles(item.status);
+              return (
+                <Card key={item.id} size="sm" className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
+                  <CardContent className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                    <div className="flex items-start gap-3">
+                      <div className="grid size-10 place-items-center rounded-lg bg-primary/10">
+                        <FileText className="size-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap gap-2">
+                          <span 
+                            className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
+                            style={{
+                              color: classStyle.color,
+                              backgroundColor: classStyle.bgColor,
+                              borderColor: classStyle.borderColor,
+                            }}
+                          >
+                            {classStyle.label}
+                          </span>
+                          <span 
+                            className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
+                            style={{
+                              color: statusStyle.color,
+                              backgroundColor: statusStyle.bgColor,
+                              borderColor: statusStyle.borderColor,
+                            }}
+                          >
+                            {statusStyle.label}
+                          </span>
+                        </div>
+                        <h2 className="mt-2 font-medium">{item.title}</h2>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          {item.productNumber} · {item.productType?.name ?? "Laporan Intelijen"}
+                        </p>
+                      </div>
+                    </div>
+                    <Button asChild variant="outline" className="cursor-pointer">
+                      <Link
+                        href={
+                          approval
+                            ? `/dashboard/oim/pengajuan-persetujuan/${item.id}`
+                            : `/dashboard/oim/produk-intelijen/daftar-produk/${item.id}`
+                        }
+                      >
+                        {approval ? "Siapkan pengajuan" : "Buka"}
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-8 flex flex-col items-center justify-center text-center space-y-4 select-none min-h-[220px] shadow-sm dark:shadow-none">
+          <div className="size-12 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-muted-foreground/60 border border-slate-200 dark:border-white/10">
+            <Inbox className="size-6" style={{ strokeWidth: "2px" }} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">TIDAK ADA PRODUK</h3>
+            <p className="text-[13px] text-slate-600 dark:text-[#94A3B8]">Belum ada produk intelijen yang terdaftar.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2238,7 +2784,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
       />
 
       <main className="mx-auto w-full max-w-[1600px] space-y-6 p-6 md:p-8 relative z-10">
-      <Header view={view} />
+      <Header view={view} data={data} />
       <ErrorBanner errors={data.errors} />
       {view === "dashboard" && (
         <>
@@ -2389,7 +2935,6 @@ export function OimWorkspaceClient({ view, data }: Props) {
       )}
       {view === "reports" && (
         <>
-          <ReportStatusTabs activeStatus={data.activeStatus} />
           <Filters areas={data.areas} reportCategories={data.reportCategories} jaringClusters={data.jaringClusters} />
           <Kpis data={data} />
           <BaketList data={data} />

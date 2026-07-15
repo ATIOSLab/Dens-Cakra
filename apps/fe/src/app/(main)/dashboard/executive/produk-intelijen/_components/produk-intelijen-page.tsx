@@ -61,8 +61,8 @@ interface IntelligenceProduct {
 
 const classificationClass: Record<ProductClassification, string> = {
   "Sangat Rahasia": "border-red-500/25 bg-red-500/10 text-red-500 font-bold",
-  Rahasia: "border-orange-500/25 bg-orange-500/10 text-orange-500",
-  Terbatas: "border-yellow-500/25 bg-yellow-500/10 text-yellow-600 dark:text-yellow-500",
+  Rahasia: "border-yellow-500/30 bg-yellow-500/10 text-yellow-600 dark:text-yellow-500",
+  Terbatas: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500",
 };
 
 const statusClass: Record<ProductStatus, string> = {
