@@ -173,7 +173,7 @@ function buildCoordinatorTaskViews(tasks: TaskSummary[], primaryAssignmentId: st
         coordinatorAssignmentId,
       };
     })
-    .filter((task) => task.subordinateAssignments.length > 0);
+    .filter((task) => Boolean(task.coordinatorAssignmentId) || task.subordinateAssignments.length > 0);
 }
 
 export async function OimTaskListPage() {
@@ -268,12 +268,23 @@ export async function FieldCoordinatorTaskListPage() {
 
 export async function FieldCoordinatorTaskDetailPage({ taskId }: { taskId: string }) {
   await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR);
-  const task = await apiServerGet<TaskDetail>(`/tasks/${taskId}`);
+  const [access, task] = await Promise.all([
+    apiServerGet<AccessMe>("/access/me"),
+    apiServerGet<TaskDetail>(`/tasks/${taskId}`),
+  ]);
+  const coordinatorAssignmentId =
+    task.assignments.find(
+      (assignment) => assignment.assigneeAssignmentId === access.authorizationContext.primaryAssignmentId,
+    )?.id ?? null;
 
   return (
     <TaskDetailClient
       task={task}
-      assignmentHref={`/dashboard/field-coordinator/tugas-operasional/${task.id}/assignments/${task.assignments[0]?.id ?? ""}`}
+      assignmentHref={
+        coordinatorAssignmentId
+          ? `/dashboard/field-coordinator/tugas-operasional/${task.id}/assignments/${coordinatorAssignmentId}`
+          : undefined
+      }
       hideTargetAreas
       hideAssignments
       assignmentTitle="Distribusi Field Officer"
@@ -350,13 +361,24 @@ export async function FieldCoordinatorFieldOfficerAssignmentDetailPage({ taskId 
   const manageHref = coordinatorAssignmentId
     ? `/dashboard/field-coordinator/tugas-operasional/${task.id}/assignments/${coordinatorAssignmentId}`
     : undefined;
+  const candidates = coordinatorAssignmentId ? await loadSubordinateCandidates(access, "FIELD_OFFICER") : [];
 
   return (
-    <FieldCoordinatorAssignmentDetailClient
-      task={task}
-      subordinateAssignments={subordinateAssignments}
-      manageHref={manageHref}
-    />
+    <div className="space-y-6">
+      <FieldCoordinatorAssignmentDetailClient
+        task={task}
+        subordinateAssignments={subordinateAssignments}
+        manageHref={manageHref}
+      />
+      {coordinatorAssignmentId ? (
+        <AssignmentBoardClient
+          task={task}
+          candidates={candidates}
+          submitLabel={subordinateAssignments.length ? "Tambah Instruksi Field Officer" : "Buat Instruksi ke Field Officer"}
+          mode="assign"
+        />
+      ) : null}
+    </div>
   );
 }
 

@@ -572,6 +572,7 @@ export type UserProfileStatus = (typeof UserProfileStatus)[keyof typeof UserProf
 
 
 export const CommandRouteType = {
+  PUSAT: 'PUSAT',
   DIRECTORATE: 'DIRECTORATE',
   BINDA: 'BINDA'
 } as const

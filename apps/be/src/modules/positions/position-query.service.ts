@@ -181,6 +181,11 @@ export class PositionQueryService {
           role: true,
           organizationUnit: true,
           reportsTo: true,
+          areaCoverages: {
+            where: { validUntil: null },
+            orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+            include: { area: true },
+          },
           assignments: {
             where: { isActive: true, validUntil: null },
             include: { userProfile: true },
@@ -214,6 +219,11 @@ export class PositionQueryService {
         organizationUnit: true,
         reportsTo: true,
         subordinates: true,
+        areaCoverages: {
+          where: { validUntil: null },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+          include: { area: true },
+        },
         assignments: {
           where: { isActive: true, validUntil: null },
           include: {

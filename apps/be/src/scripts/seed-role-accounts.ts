@@ -167,6 +167,7 @@ const baseOrganizations: readonly OrganizationSeed[] = [
     code: 'ORG-DEPUTI-II',
     name: 'Deputi II',
     type: OrganizationType.DEPUTI,
+    branch: CommandRouteType.PUSAT,
   },
 ] as const;
 
@@ -186,6 +187,7 @@ const basePositions: readonly PositionSeed[] = [
     title: 'Deputi II',
     roleCode: RoleCode.EXECUTIVE,
     organizationUnitCode: 'ORG-DEPUTI-II',
+    branch: CommandRouteType.PUSAT,
   },
 ] as const;
 
@@ -1257,13 +1259,7 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
     });
 
     const existingSeat = await tx.organizationRoleSeat.findFirst({
-      where: {
-        organizationUnitId: persistedPosition.organizationUnitId,
-        roleId: persistedPosition.roleId,
-        ...(persistedPosition.branch
-          ? { branch: persistedPosition.branch }
-          : { branch: null }),
-      },
+      where: { positionId: persistedPosition.id },
       select: { id: true },
     });
 
@@ -1285,6 +1281,36 @@ async function ensureOrganizationBaseline(plan: SeedPlan) {
           },
           select: { id: true },
         });
+
+    await tx.positionAreaCoverage.updateMany({
+      where: { positionId: persistedPosition.id, validUntil: null },
+      data: { isPrimary: false },
+    });
+
+    for (const [index, areaId] of areaIds.entries()) {
+      const existingCoverage = await tx.positionAreaCoverage.findFirst({
+        where: {
+          positionId: persistedPosition.id,
+          areaId,
+          validUntil: null,
+        },
+        select: { id: true },
+      });
+      if (existingCoverage) {
+        await tx.positionAreaCoverage.update({
+          where: { id: existingCoverage.id },
+          data: { isPrimary: index === 0 },
+        });
+        continue;
+      }
+      await tx.positionAreaCoverage.create({
+        data: {
+          positionId: persistedPosition.id,
+          areaId,
+          isPrimary: index === 0,
+        },
+      });
+    }
 
     await tx.userProfile.update({
       where: {

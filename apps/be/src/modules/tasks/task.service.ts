@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   DirectiveStatus,
+  JaringStatus,
   Prisma,
   RoleCode,
   TaskAssignmentStatus,
@@ -13,6 +14,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   AssignTaskDto,
   CreateTaskDto,
+  ForwardJaringInstructionDto,
   NoteDto,
   ProgressDto,
   ReasonDto,
@@ -1114,6 +1116,156 @@ export class TaskService {
       body.note,
       100,
     );
+  }
+
+  async forwardJaringInstruction(
+    assignmentId: string,
+    body: ForwardJaringInstructionDto,
+    context: AuthorizationContext,
+  ) {
+    if (context.roleCode !== RoleCode.FIELD_OFFICER) {
+      throw new ApiException(
+        'TASK_JARING_FORWARD_FORBIDDEN',
+        'Only Field Officer can forward field instructions to Jaring.',
+        403,
+      );
+    }
+
+    const assignment = await this.prisma.taskAssignment.findFirst({
+      where: {
+        id: assignmentId,
+        assigneeAssignmentId: context.primaryAssignmentId,
+        status: { notIn: [...CLOSED_ASSIGNMENT_STATUSES] },
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            priority: true,
+            dueDate: true,
+          },
+        },
+        assigner: {
+          select: {
+            id: true,
+            userProfile: { select: { fullName: true } },
+            position: { select: { title: true } },
+          },
+        },
+      },
+    });
+
+    if (!assignment) {
+      throw new ApiException(
+        'TASK_ASSIGNMENT_NOT_FOUND',
+        'Assignment Field Officer tidak ditemukan atau sudah ditutup.',
+        404,
+      );
+    }
+
+    const instruction = body.instruction.trim();
+    const targetFilter = body.jaringIds?.length
+      ? { id: { in: body.jaringIds } }
+      : {};
+    const jaring = await this.prisma.jaring.findMany({
+      where: {
+        ...targetFilter,
+        status: JaringStatus.ACTIVE,
+        deletedAt: null,
+        caretakerAssignments: {
+          some: {
+            fieldOfficerAssignmentId: context.primaryAssignmentId,
+            isActive: true,
+            OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+          },
+        },
+      },
+      select: {
+        id: true,
+        code: true,
+        aliasName: true,
+        whatsappNumber: true,
+      },
+      orderBy: [{ aliasName: 'asc' }, { code: 'asc' }],
+    });
+
+    if (body.jaringIds?.length && jaring.length !== body.jaringIds.length) {
+      throw new ApiException(
+        'TASK_JARING_TARGET_OUT_OF_SCOPE',
+        'Sebagian target Jaring tidak aktif atau bukan binaan Field Officer ini.',
+        403,
+      );
+    }
+
+    if (jaring.length === 0) {
+      throw new ApiException(
+        'TASK_JARING_TARGET_EMPTY',
+        'Tidak ada Jaring aktif untuk menerima instruksi.',
+        422,
+      );
+    }
+
+    const recipients = jaring.map((item) => ({
+      id: item.id,
+      code: item.code,
+      aliasName: item.aliasName,
+      whatsappNumber: item.whatsappNumber,
+    }));
+    const requestedAt = new Date();
+
+    const [event] = await this.prisma.$transaction([
+      this.prisma.outboxEvent.create({
+        data: {
+          topic: 'JARING_INSTRUCTION.DISPATCH_REQUESTED',
+          aggregateType: 'TaskAssignment',
+          aggregateId: assignment.id,
+          payload: {
+            assignmentId: assignment.id,
+            taskId: assignment.taskId,
+            taskTitle: assignment.task.title,
+            taskDescription: assignment.task.description,
+            taskPriority: assignment.task.priority,
+            taskDueDate: assignment.task.dueDate?.toISOString() ?? null,
+            fieldCoordinatorAssignmentId: assignment.assignerAssignmentId,
+            fieldCoordinatorName:
+              assignment.assigner.userProfile?.fullName ??
+              assignment.assigner.position?.title ??
+              null,
+            fieldOfficerAssignmentId: context.primaryAssignmentId,
+            instruction,
+            coordinatorInstruction: assignment.assignmentNote,
+            recipients,
+            requestedAt: requestedAt.toISOString(),
+          },
+        },
+      }),
+      this.prisma.taskProgressLog.create({
+        data: {
+          taskAssignmentId: assignment.id,
+          status: assignment.status,
+          createdByAssignmentId: context.primaryAssignmentId,
+          note: `Instruksi diteruskan ke ${jaring.length} Jaring.`,
+        },
+      }),
+    ]);
+
+    await this.audit(context, 'TASK_ASSIGNMENT.FORWARD_JARING_INSTRUCTION', assignment.id, {
+      outboxEventId: event.id,
+      recipientCount: jaring.length,
+    });
+
+    return {
+      id: event.id,
+      assignmentId: assignment.id,
+      taskId: assignment.taskId,
+      status: event.status,
+      instruction,
+      recipientCount: jaring.length,
+      recipients,
+      createdAt: event.createdAt,
+    };
   }
 
   async reassign(

@@ -916,8 +916,9 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
           <div className="space-y-4">
             {paginatedTasks.map((task) => {
               const summary = countAssignmentStatuses(task.subordinateAssignments);
+              const hasOfficerAssignments = task.subordinateAssignments.length > 0;
               const taskRate =
-                task.subordinateAssignments.length > 0
+                hasOfficerAssignments
                   ? Math.round((summary.completed / task.subordinateAssignments.length) * 100)
                   : 0;
 
@@ -950,7 +951,9 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
                         size="sm"
                         className="h-7 rounded-[4px] bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)] text-[10px] font-mono border border-[var(--dc-primary)]"
                       >
-                        <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>Detail</Link>
+                        <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>
+                          {hasOfficerAssignments ? "Detail" : "Buat Instruksi"}
+                        </Link>
                       </Button>
                     </div>
                   </div>
@@ -960,7 +963,9 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
                     <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/80">
                       <span>PROGRESS OFFICER:</span>
                       <span className="text-[var(--dc-success)] font-bold">
-                        {summary.completed}/{task.subordinateAssignments.length} SELESAI
+                        {hasOfficerAssignments
+                          ? `${summary.completed}/${task.subordinateAssignments.length} SELESAI`
+                          : "BELUM ADA INSTRUKSI"}
                       </span>
                     </div>
                     <div className="flex-1 max-w-[200px] bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10">
@@ -1300,8 +1305,22 @@ export function FieldCoordinatorAssignmentDetailClient({
 
         {/* Compact list */}
         {paginatedAssignments.length === 0 ? (
-          <div className="rounded-[6px] border border-dashed border-white/[0.08] p-12 text-center text-muted-foreground text-xs font-mono">
-            Belum ada penugasan yang cocok dengan kriteria filter.
+          <div className="rounded-[6px] border border-dashed border-white/[0.08] p-8 text-center text-muted-foreground text-xs font-mono">
+            <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-[6px] border border-white/[0.08] bg-white/[0.03] text-[var(--dc-primary)]">
+              <Send className="size-4" />
+            </div>
+            <div className="font-sans text-sm font-semibold text-[var(--dc-text-primary)]">
+              Belum ada instruksi ke Field Officer.
+            </div>
+            <p className="mx-auto mt-1 max-w-xl leading-relaxed">
+              Gunakan form distribusi di bawah halaman ini untuk memilih Field Officer, mengatur batas waktu, dan
+              menulis instruksi operasional.
+            </p>
+            {manageHref ? (
+              <Button asChild className="mt-4 h-8 rounded-[4px] font-mono text-xs">
+                <Link href={manageHref}>Buka Form Penugasan</Link>
+              </Button>
+            ) : null}
           </div>
         ) : (
           <div className="divide-y divide-white/[0.04] border border-white/[0.08] rounded-[6px] overflow-hidden bg-white/[0.005]">
@@ -3752,10 +3771,19 @@ export function AssignmentBoardClient({
         <CardDescription>{task.title}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {!candidates.length ? (
+          <Alert>
+            <AlertTriangle className="size-4" />
+            <AlertTitle>Field Officer belum tersedia</AlertTitle>
+            <AlertDescription>
+              Tidak ada Field Officer aktif di bawah reporting line Field Coordinator ini.
+            </AlertDescription>
+          </Alert>
+        ) : null}
         {rows.map((row, index) => (
           <div
             key={index}
-            className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-[1fr_180px_1fr_auto]"
+            className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-[minmax(0,1fr)_180px_minmax(0,1.2fr)_auto]"
           >
             <Select
               value={row.assigneeAssignmentId}
@@ -3789,7 +3817,7 @@ export function AssignmentBoardClient({
                 )
               }
             />
-            <Input
+            <Textarea
               value={row.assignmentNote}
               onChange={(event) =>
                 setRows((current) =>
@@ -3798,7 +3826,8 @@ export function AssignmentBoardClient({
                   ),
                 )
               }
-              placeholder="Catatan penugasan"
+              placeholder="Instruksi operasional untuk Field Officer"
+              className="min-h-20 resize-y"
             />
             <Button
               type="button"
@@ -3827,7 +3856,7 @@ export function AssignmentBoardClient({
         ) : null}
       </CardContent>
       <CardFooter className="justify-end">
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
+        <Button onClick={handleSubmit} disabled={isSubmitting || !candidates.length}>
           {isSubmitting ? "Memproses..." : submitLabel}
         </Button>
       </CardFooter>

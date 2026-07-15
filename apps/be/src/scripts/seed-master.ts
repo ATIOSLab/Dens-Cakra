@@ -342,7 +342,7 @@ function mapRoleAreaPolicy(positionCode: PositionCode): {
 } {
   switch (positionCode) {
     case PositionCode.DEPUTI_II:
-      return { roleCode: RoleCode.EXECUTIVE, branch: null };
+      return { roleCode: RoleCode.EXECUTIVE, branch: CommandRouteType.PUSAT };
     case PositionCode.DIREKTUR_WILAYAH:
       return {
         roleCode: RoleCode.REGIONAL_COMMANDER,

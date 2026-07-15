@@ -15,7 +15,11 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { PositionCode, RoleCode } from '../../../generated/prisma/client.js';
+import {
+  CommandRouteType,
+  PositionCode,
+  RoleCode,
+} from '../../../generated/prisma/client.js';
 
 export class PositionListQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
@@ -32,9 +36,16 @@ export class CreatePositionDto {
   @IsString() @MinLength(2) @MaxLength(100) seatCode!: string;
   @IsEnum(PositionCode) code!: PositionCode;
   @IsString() @MinLength(2) @MaxLength(180) title!: string;
-  @IsUUID() roleId!: string;
+  @IsOptional() @IsUUID() roleId?: string;
+  @IsOptional() @IsEnum(RoleCode) roleCode?: RoleCode;
+  @IsOptional() @IsEnum(CommandRouteType) branch?: CommandRouteType;
   @IsUUID() organizationUnitId!: string;
   @IsOptional() @IsUUID() reportsToPositionId?: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID(undefined, { each: true })
+  areaScopeIds!: string[];
+  @IsOptional() @IsUUID() primaryAreaId?: string;
 }
 
 export class UpdatePositionDto {
@@ -81,10 +92,11 @@ export class CreatePositionAssignmentDto {
   @IsBoolean() isPrimary!: boolean;
   @IsDateString() validFrom!: string;
   @IsOptional() @IsDateString() validUntil?: string;
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @IsUUID(undefined, { each: true })
-  areaScopeIds!: string[];
+  areaScopeIds?: string[];
 }
 
 export class CloseAssignmentDto {

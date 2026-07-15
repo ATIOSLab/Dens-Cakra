@@ -397,6 +397,7 @@ export const ModelName = {
   UserSeatAssignment: 'UserSeatAssignment',
   RoleAreaPolicy: 'RoleAreaPolicy',
   PositionAreaScope: 'PositionAreaScope',
+  PositionAreaCoverage: 'PositionAreaCoverage',
   AdministrativeArea: 'AdministrativeArea',
   AdministrativeAreaClosure: 'AdministrativeAreaClosure',
   AdministrativeAreaDataSource: 'AdministrativeAreaDataSource',
@@ -486,7 +487,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "userProfile" | "role" | "organizationUnit" | "organizationUnitClosure" | "position" | "organizationRoleSeat" | "userSeatAssignment" | "roleAreaPolicy" | "positionAreaScope" | "administrativeArea" | "administrativeAreaClosure" | "administrativeAreaDataSource" | "administrativeAreaBoundary" | "organizationAreaCoverage" | "directorateProfile" | "directorateCoverage" | "bindaProfile" | "fileAsset" | "directive" | "directiveVersion" | "directiveTargetArea" | "directiveRecipient" | "uukStr" | "uukStrVersion" | "uukStrSection" | "uukStrSectionItem" | "task" | "taskTargetArea" | "taskAssignment" | "taskProgressLog" | "taskAttachment" | "jaring" | "jaringCluster" | "reportCategory" | "jaringCaretakerAssignment" | "jaringAreaCoverage" | "whatsAppMessage" | "whatsAppValidationIssue" | "whatsAppMessageMedia" | "whatsAppRoutingLog" | "baket" | "baketVersion" | "baketVersionSourceMessage" | "baketVersionAttachment" | "baketRevisionRequest" | "baketVerification" | "baketCoverageCheck" | "baketVerificationCheck" | "baketVerificationCrossReference" | "analysisCase" | "analysisSourceVerification" | "analysisVersion" | "analysisEntity" | "analysisRelationship" | "productTypeDefinition" | "productNumberSequence" | "productTemplate" | "productTemplateSection" | "productTemplateField" | "intelligenceProduct" | "productVersion" | "productSourceVerification" | "productSourceAnalysis" | "productAttachment" | "productApprovalWorkflow" | "productApprovalStep" | "productDistribution" | "emergencyIncident" | "emergencyAttachment" | "alert" | "personnelLocationPing" | "notification" | "auditLog" | "integrationChannel" | "whatsAppBotChannelState" | "whatsAppSenderNumber" | "integrationWebhookEvent" | "systemSetting" | "apiIdempotencyRecord" | "asyncJob" | "outboxEvent" | "fileUploadReservation" | "productApprovalEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "userProfile" | "role" | "organizationUnit" | "organizationUnitClosure" | "position" | "organizationRoleSeat" | "userSeatAssignment" | "roleAreaPolicy" | "positionAreaScope" | "positionAreaCoverage" | "administrativeArea" | "administrativeAreaClosure" | "administrativeAreaDataSource" | "administrativeAreaBoundary" | "organizationAreaCoverage" | "directorateProfile" | "directorateCoverage" | "bindaProfile" | "fileAsset" | "directive" | "directiveVersion" | "directiveTargetArea" | "directiveRecipient" | "uukStr" | "uukStrVersion" | "uukStrSection" | "uukStrSectionItem" | "task" | "taskTargetArea" | "taskAssignment" | "taskProgressLog" | "taskAttachment" | "jaring" | "jaringCluster" | "reportCategory" | "jaringCaretakerAssignment" | "jaringAreaCoverage" | "whatsAppMessage" | "whatsAppValidationIssue" | "whatsAppMessageMedia" | "whatsAppRoutingLog" | "baket" | "baketVersion" | "baketVersionSourceMessage" | "baketVersionAttachment" | "baketRevisionRequest" | "baketVerification" | "baketCoverageCheck" | "baketVerificationCheck" | "baketVerificationCrossReference" | "analysisCase" | "analysisSourceVerification" | "analysisVersion" | "analysisEntity" | "analysisRelationship" | "productTypeDefinition" | "productNumberSequence" | "productTemplate" | "productTemplateSection" | "productTemplateField" | "intelligenceProduct" | "productVersion" | "productSourceVerification" | "productSourceAnalysis" | "productAttachment" | "productApprovalWorkflow" | "productApprovalStep" | "productDistribution" | "emergencyIncident" | "emergencyAttachment" | "alert" | "personnelLocationPing" | "notification" | "auditLog" | "integrationChannel" | "whatsAppBotChannelState" | "whatsAppSenderNumber" | "integrationWebhookEvent" | "systemSetting" | "apiIdempotencyRecord" | "asyncJob" | "outboxEvent" | "fileUploadReservation" | "productApprovalEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1449,6 +1450,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.PositionAreaScopeCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.PositionAreaScopeCountAggregateOutputType> | number
+        }
+      }
+    }
+    PositionAreaCoverage: {
+      payload: Prisma.$PositionAreaCoveragePayload<ExtArgs>
+      fields: Prisma.PositionAreaCoverageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PositionAreaCoverageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PositionAreaCoverageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload>
+        }
+        findFirst: {
+          args: Prisma.PositionAreaCoverageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PositionAreaCoverageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload>
+        }
+        findMany: {
+          args: Prisma.PositionAreaCoverageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload>[]
+        }
+        create: {
+          args: Prisma.PositionAreaCoverageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload>
+        }
+        createMany: {
+          args: Prisma.PositionAreaCoverageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PositionAreaCoverageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload>[]
+        }
+        delete: {
+          args: Prisma.PositionAreaCoverageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload>
+        }
+        update: {
+          args: Prisma.PositionAreaCoverageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload>
+        }
+        deleteMany: {
+          args: Prisma.PositionAreaCoverageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PositionAreaCoverageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PositionAreaCoverageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload>[]
+        }
+        upsert: {
+          args: Prisma.PositionAreaCoverageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PositionAreaCoveragePayload>
+        }
+        aggregate: {
+          args: Prisma.PositionAreaCoverageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePositionAreaCoverage>
+        }
+        groupBy: {
+          args: Prisma.PositionAreaCoverageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PositionAreaCoverageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PositionAreaCoverageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PositionAreaCoverageCountAggregateOutputType> | number
         }
       }
     }
@@ -7132,6 +7207,20 @@ export const PositionAreaScopeScalarFieldEnum = {
 export type PositionAreaScopeScalarFieldEnum = (typeof PositionAreaScopeScalarFieldEnum)[keyof typeof PositionAreaScopeScalarFieldEnum]
 
 
+export const PositionAreaCoverageScalarFieldEnum = {
+  id: 'id',
+  positionId: 'positionId',
+  areaId: 'areaId',
+  isPrimary: 'isPrimary',
+  validFrom: 'validFrom',
+  validUntil: 'validUntil',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PositionAreaCoverageScalarFieldEnum = (typeof PositionAreaCoverageScalarFieldEnum)[keyof typeof PositionAreaCoverageScalarFieldEnum]
+
+
 export const AdministrativeAreaScalarFieldEnum = {
   id: 'id',
   code: 'code',
@@ -9204,6 +9293,7 @@ export type GlobalOmitConfig = {
   userSeatAssignment?: Prisma.UserSeatAssignmentOmit
   roleAreaPolicy?: Prisma.RoleAreaPolicyOmit
   positionAreaScope?: Prisma.PositionAreaScopeOmit
+  positionAreaCoverage?: Prisma.PositionAreaCoverageOmit
   administrativeArea?: Prisma.AdministrativeAreaOmit
   administrativeAreaClosure?: Prisma.AdministrativeAreaClosureOmit
   administrativeAreaDataSource?: Prisma.AdministrativeAreaDataSourceOmit
