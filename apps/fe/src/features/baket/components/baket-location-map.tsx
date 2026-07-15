@@ -33,13 +33,13 @@ const urgencyLabel: Record<string, string> = {
   LOW: "Rendah",
   NORMAL: "Normal",
   HIGH: "Tinggi",
-  URGENT: "Mendesak",
+  URGENT: "Darurat",
 };
 
 export function BaketLocationMap({ latitude, longitude, title, areaLabel, urgency }: BaketLocationMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [style, setStyle] = useState<StyleKey>("default");
-  const normalizedUrgency = (urgency || "NORMAL").toUpperCase();
+  const normalizedUrgency = (urgency ?? "NORMAL").toUpperCase();
   const markerTone = urgencyMarkerTone[normalizedUrgency] ?? urgencyMarkerTone.NORMAL;
   const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
   const center = useMemo<[number, number]>(() => [longitude, latitude], [latitude, longitude]);
@@ -72,7 +72,7 @@ export function BaketLocationMap({ latitude, longitude, title, areaLabel, urgenc
               <div className="min-w-0">
                 <p className="font-semibold leading-snug">{title}</p>
                 <p className="mt-1 text-muted-foreground text-xs">{areaLabel}</p>
-                <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="mt-2 font-semibold text-[10px] text-muted-foreground uppercase tracking-wide">
                   Urgensi: {urgencyLabel[normalizedUrgency] ?? normalizedUrgency}
                 </p>
               </div>
@@ -81,7 +81,7 @@ export function BaketLocationMap({ latitude, longitude, title, areaLabel, urgenc
               href={googleMapsUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[4px] bg-primary px-3 text-xs font-semibold text-primary-foreground hover:brightness-110"
+              className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[4px] bg-primary px-3 font-semibold text-primary-foreground text-xs hover:brightness-110"
             >
               <ExternalLink className="size-4" />
               Buka di Google Maps
