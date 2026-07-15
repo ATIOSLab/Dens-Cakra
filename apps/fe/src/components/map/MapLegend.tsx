@@ -13,7 +13,7 @@ export const REPORT_URGENCY_LABELS = {
   LOW: "Rendah",
   NORMAL: "Normal",
   HIGH: "Tinggi",
-  URGENT: "Mendesak",
+  URGENT: "Darurat",
 } as const;
 
 export function MapLegend() {
