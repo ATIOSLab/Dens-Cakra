@@ -169,22 +169,16 @@ export function OperationalMapClient({ mode }: { mode: "regional" | "national" }
     <main className="mx-auto w-full max-w-[1800px] space-y-4 p-4 sm:p-6 lg:p-8">
       <header className="flex flex-col gap-3 border-b pb-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Common operating picture / need-to-know
-          </p>
-          <h1 className="mt-1 font-heading text-2xl font-semibold">
+          <h1 className="mt-1 font-heading font-semibold text-2xl">
             {mode === "regional" ? "Peta & Peringatan Dini Regional" : "Peta Kerawanan Nasional"}
           </h1>
-          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+          <p className="mt-1 max-w-3xl text-muted-foreground text-sm">
             Baket, personel lapangan, boundary administratif, alert, dan insiden dalam scope komando aktif.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline">
             <Layers3 /> {hierarchyLevel(viewport.zoom)}
-          </Badge>
-          <Badge variant={highRisk ? "destructive" : "secondary"}>
-            <ShieldAlert /> {highRisk} eskalasi tinggi
           </Badge>
           {loading ? (
             <Badge variant="secondary">
@@ -218,8 +212,8 @@ export function OperationalMapClient({ mode }: { mode: "regional" | "national" }
             >
               <CardContent className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">{metric.label}</p>
-                  <p className="mt-1 font-mono text-2xl font-semibold">{metric.value}</p>
+                  <p className="text-muted-foreground text-xs">{metric.label}</p>
+                  <p className="mt-1 font-mono font-semibold text-2xl">{metric.value}</p>
                 </div>
                 <metric.icon className="size-5 text-primary" />
               </CardContent>
@@ -229,7 +223,7 @@ export function OperationalMapClient({ mode }: { mode: "regional" | "national" }
       </section>
 
       {error ? (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-destructive text-sm">
           {error}
         </div>
       ) : null}
@@ -237,7 +231,7 @@ export function OperationalMapClient({ mode }: { mode: "regional" | "national" }
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="h-[68vh] min-h-[560px] max-h-[900px]">
+            <div className="h-[68vh] max-h-[900px] min-h-[560px]">
               <BaseMap
                 ref={mapRef}
                 center={INDONESIA_CENTER}
@@ -371,17 +365,17 @@ function MapInspector({
           {selection ? (
             <>
               <div>
-                <p className="text-xs text-muted-foreground">Objek</p>
+                <p className="text-muted-foreground text-xs">Objek</p>
                 <p className="mt-1 font-medium">{text(props.name, text(props.title, text(props.userName)))}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Jenis / status</p>
+                <p className="text-muted-foreground text-xs">Jenis / status</p>
                 <p className="mt-1">
                   {selection.kind} / {text(props.status, text(props.level))}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Wilayah</p>
+                <p className="text-muted-foreground text-xs">Wilayah</p>
                 <p className="mt-1">{text(props.areaName, text(props.unitName))}</p>
               </div>
               {selection.kind === "area" ? (
@@ -404,7 +398,7 @@ function MapInspector({
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6">{recommendation}</p>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-3 text-muted-foreground text-xs">
             Saran sistem wajib diuji terhadap sumber, konteks lokal, dan kewenangan komando sebelum ditindaklanjuti.
           </p>
         </CardContent>
@@ -418,13 +412,13 @@ function MapInspector({
           {reports.slice(0, 12).map((feature) => (
             <div key={String(feature.id)} className="border-b pb-2 text-sm last:border-0">
               <p className="font-medium">{text(feature.properties.title)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-muted-foreground text-xs">
                 {text(feature.properties.areaName)} / {text(feature.properties.urgency)}
               </p>
             </div>
           ))}
           {!reports.length ? (
-            <p className="text-sm text-muted-foreground">Tidak ada Baket berkoordinat pada viewport ini.</p>
+            <p className="text-muted-foreground text-sm">Tidak ada Baket berkoordinat pada viewport ini.</p>
           ) : null}
         </CardContent>
       </Card>
@@ -435,7 +429,7 @@ function MapInspector({
 function MetricMini({ label, value }: { label: string; value: unknown }) {
   return (
     <div>
-      <p className="font-mono text-lg font-semibold">{Number(value ?? 0)}</p>
+      <p className="font-mono font-semibold text-lg">{Number(value ?? 0)}</p>
       <p className="text-[11px] text-muted-foreground">{label}</p>
     </div>
   );

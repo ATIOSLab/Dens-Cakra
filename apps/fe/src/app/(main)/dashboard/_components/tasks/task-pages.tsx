@@ -1,5 +1,13 @@
 import { redirect } from "next/navigation";
 
+import type {
+  AssignmentCandidate,
+  OimForwardingOptions,
+  OimIncomingForwardingSource,
+  TaskAssignmentDetail,
+  TaskDetail,
+  TaskSummary,
+} from "@/features/tasks/types";
 import type { UukDetail, UukSummary } from "@/features/uuk-str/types";
 import { apiServerFetchEnvelope, apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
@@ -18,14 +26,6 @@ import {
   TaskDetailClient,
   TaskListClient,
 } from "./task-clients";
-import type {
-  AssignmentCandidate,
-  OimForwardingOptions,
-  OimIncomingForwardingSource,
-  TaskAssignmentDetail,
-  TaskDetail,
-  TaskSummary,
-} from "@/features/tasks/types";
 
 type AreaNode = {
   id: string;
@@ -259,7 +259,6 @@ export async function FieldCoordinatorTaskListPage() {
   return (
     <TaskListClient
       title="Tugas Operasional"
-      description="Board operasional untuk task yang diterima Field Coordinator dari OIM."
       tasks={tasks}
       detailBasePath="/dashboard/field-coordinator/tugas-operasional"
     />
@@ -374,7 +373,9 @@ export async function FieldCoordinatorFieldOfficerAssignmentDetailPage({ taskId 
         <AssignmentBoardClient
           task={task}
           candidates={candidates}
-          submitLabel={subordinateAssignments.length ? "Tambah Instruksi Field Officer" : "Buat Instruksi ke Field Officer"}
+          submitLabel={
+            subordinateAssignments.length ? "Tambah Instruksi Field Officer" : "Buat Instruksi ke Field Officer"
+          }
           mode="assign"
         />
       ) : null}
