@@ -14,8 +14,6 @@ import {
   Position,
   ReactFlow,
   ReactFlowProvider,
-  useEdgesState,
-  useNodesState,
   useReactFlow,
 } from "@xyflow/react";
 import { CheckCircle2, ChevronRight, CircleAlert, Clock3, FileText, GitBranch, Users, X } from "lucide-react";
@@ -76,7 +74,7 @@ const STATUS_STYLES: Record<StageStatus, { border: string; icon: string; bar: st
   },
 };
 
-const STATUS_COLORS: Record<StageStatus, string> = {
+const _STATUS_COLORS: Record<StageStatus, string> = {
   done: "var(--dc-success)",
   partial: "var(--dc-warning)",
   pending: "var(--dc-border)",
@@ -253,7 +251,7 @@ function DistributionNode({ data }: NodeProps<FlowNode>) {
         type="button"
         onClick={() => data.onSelect(data.stage.id)}
         className={cn(
-          "group flex h-[116px] w-[205px] cursor-pointer flex-col rounded-lg border bg-card p-3 text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg",
+          "group flex h-[128px] w-[205px] cursor-pointer flex-col rounded-lg border bg-card p-3 text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg",
           style.border,
         )}
         aria-label={`Lihat detail ${data.stage.role}`}
@@ -264,15 +262,15 @@ function DistributionNode({ data }: NodeProps<FlowNode>) {
           </span>
           <Icon className={cn("size-4", style.icon)} />
         </div>
-        <p className="mt-2 line-clamp-1 text-[11px] font-semibold text-foreground">{data.stage.title}</p>
-        <p className="mt-0.5 line-clamp-1 text-[9px] text-muted-foreground">{data.stage.role}</p>
+        <p className="mt-2 line-clamp-1 shrink-0 font-semibold text-[11px] text-foreground">{data.stage.title}</p>
+        <p className="mt-0.5 line-clamp-1 shrink-0 text-[9px] text-muted-foreground">{data.stage.role}</p>
         <div className="mt-auto flex items-center gap-2">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
             <div className={cn("h-full transition-all", style.bar)} style={{ width: `${data.stage.progress}%` }} />
           </div>
-          <span className={cn("text-[9px] font-semibold", style.icon)}>{data.stage.progress}%</span>
+          <span className={cn("font-semibold text-[9px]", style.icon)}>{data.stage.progress}%</span>
         </div>
-        <p className="mt-1 truncate text-[9px] text-muted-foreground">{data.stage.statusLabel}</p>
+        <p className="mt-1 shrink-0 truncate text-[9px] text-muted-foreground">{data.stage.statusLabel}</p>
       </button>
       <Handle type="source" position={sourcePosition} className="!size-2 !border-background !bg-muted-foreground" />
     </>
@@ -300,10 +298,10 @@ function StageDialog({ stage, onClose }: { stage: StageDetail; onClose: () => vo
         aria-labelledby="distribution-stage-title"
         className="max-h-[min(680px,calc(100vh-32px))] w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-border p-5">
+        <header className="flex items-start justify-between gap-4 border-border border-b p-5">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">{stage.role}</p>
-            <h2 id="distribution-stage-title" className="mt-1 text-lg font-semibold text-foreground">
+            <p className="font-semibold text-[10px] text-primary uppercase tracking-wider">{stage.role}</p>
+            <h2 id="distribution-stage-title" className="mt-1 font-semibold text-foreground text-lg">
               {stage.title}
             </h2>
             <Badge variant="outline" className={cn("mt-2 text-[10px]", style.icon)}>
@@ -325,14 +323,14 @@ function StageDialog({ stage, onClose }: { stage: StageDetail; onClose: () => vo
             {stage.stats.map((stat) => (
               <div key={stat.label} className="rounded-lg border border-border bg-background p-3">
                 <p className="text-[10px] text-muted-foreground">{stat.label}</p>
-                <p className="mt-1 text-base font-semibold text-foreground">{stat.value}</p>
+                <p className="mt-1 font-semibold text-base text-foreground">{stat.value}</p>
               </div>
             ))}
           </div>
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold text-foreground">Daftar personel atau unit</p>
+              <p className="font-semibold text-foreground text-xs">Daftar personel atau unit</p>
               <span className="text-[10px] text-muted-foreground">{stage.items.length} data</span>
             </div>
             {stage.items.length > 0 ? (
@@ -341,14 +339,14 @@ function StageDialog({ stage, onClose }: { stage: StageDetail; onClose: () => vo
                   <div key={`${item.label}-${index}`} className="flex items-center justify-between gap-3 p-3">
                     <div className="flex min-w-0 items-center gap-2">
                       <Users className="size-4 shrink-0 text-primary" />
-                      <span className="truncate text-xs text-foreground">{item.label}</span>
+                      <span className="truncate text-foreground text-xs">{item.label}</span>
                     </div>
                     <span className="shrink-0 text-[10px] text-muted-foreground">{item.status}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+              <div className="rounded-lg border border-border border-dashed p-6 text-center text-muted-foreground text-xs">
                 Belum ada data distribusi untuk tahap ini.
               </div>
             )}
@@ -413,7 +411,7 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
       duration: 220,
       maxZoom: isMobile ? 0.9 : 1,
       minZoom: 0.45,
-      padding: isMobile ? 0.22 : 0.16,
+      padding: isMobile ? 0.35 : 0.22,
     });
   }, [fitView, isMobile]);
 
@@ -425,7 +423,7 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timeout);
     };
-  }, [fitDistributionView, flowNodes.length]);
+  }, [fitDistributionView]);
 
   const selectedStage = selectedStageId ? stages.find((stage) => stage.id === selectedStageId) : null;
 
@@ -444,7 +442,7 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
           panOnDrag
           zoomOnScroll
           fitView
-          fitViewOptions={{ maxZoom: isMobile ? 0.9 : 1, minZoom: 0.45, padding: isMobile ? 0.22 : 0.16 }}
+          fitViewOptions={{ maxZoom: isMobile ? 0.9 : 1, minZoom: 0.45, padding: isMobile ? 0.35 : 0.22 }}
           minZoom={0.45}
           maxZoom={1.2}
           proOptions={{ hideAttribution: true }}
@@ -479,13 +477,13 @@ export function DirectiveDistributionFlow({
 
   return (
     <section className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
-      <header className="flex items-start justify-between gap-4 border-b border-border pb-4">
+      <header className="flex items-start justify-between gap-4 border-border border-b pb-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
+          <div className="flex items-center gap-2 font-semibold text-primary text-xs uppercase tracking-wider">
             <FileText className="size-4" />
             Alur Distribusi STR
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-muted-foreground text-sm">
             Perjalanan satu STR dari pemberi perintah sampai Field Officer.
           </p>
         </div>

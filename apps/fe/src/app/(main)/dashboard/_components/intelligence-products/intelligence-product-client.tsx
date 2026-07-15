@@ -236,7 +236,7 @@ function ProductBrowser({
   if (!items.length) {
     return (
       <Card>
-        <CardContent className="py-14 text-center text-sm text-muted-foreground">
+        <CardContent className="py-14 text-center text-muted-foreground text-sm">
           Belum ada Produk Intelijen pada tahap ini.
         </CardContent>
       </Card>
@@ -259,36 +259,26 @@ function ProductBrowser({
               />
             </div>
             <div className="flex items-center gap-3">
-              <Label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <Label className="font-semibold text-muted-foreground text-xs uppercase tracking-[0.14em]">
                 Tampilan
               </Label>
               <ToggleGroup
                 type="single"
                 value={viewMode}
                 onValueChange={(value) => value && setViewMode(value as ProductViewMode)}
-                className="border border-border/80 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl p-1 flex items-center gap-1"
+                className="flex items-center gap-1 rounded-xl border border-border/80 bg-slate-100/50 p-1 dark:bg-slate-900/40"
                 aria-label="Mode tampilan produk"
               >
                 <ToggleGroupItem
                   value="card"
-                  className={cn(
-                    "size-8 rounded-lg cursor-pointer transition-all duration-200 border-0 flex items-center justify-center",
-                    viewMode === "card"
-                      ? "bg-blue-600 text-white hover:bg-blue-600 hover:text-white dark:bg-blue-600 dark:text-white dark:hover:bg-blue-600"
-                      : "bg-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
-                  )}
+                  className="flex size-8 cursor-pointer items-center justify-center rounded-lg border-0 text-muted-foreground transition-all duration-200 hover:bg-muted/40 hover:text-foreground data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:hover:bg-blue-600 data-[state=on]:hover:text-white dark:data-[state=on]:bg-blue-600 dark:data-[state=on]:text-white"
                   aria-label="Tampilkan sebagai card"
                 >
                   <Grid2X2 className="size-4" />
                 </ToggleGroupItem>
                 <ToggleGroupItem
                   value="table"
-                  className={cn(
-                    "size-8 rounded-lg cursor-pointer transition-all duration-200 border-0 flex items-center justify-center",
-                    viewMode === "table"
-                      ? "bg-blue-600 text-white hover:bg-blue-600 hover:text-white dark:bg-blue-600 dark:text-white dark:hover:bg-blue-600"
-                      : "bg-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
-                  )}
+                  className="flex size-8 cursor-pointer items-center justify-center rounded-lg border-0 text-muted-foreground transition-all duration-200 hover:bg-muted/40 hover:text-foreground data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:hover:bg-blue-600 data-[state=on]:hover:text-white dark:data-[state=on]:bg-blue-600 dark:data-[state=on]:text-white"
                   aria-label="Tampilkan sebagai tabel"
                 >
                   <List className="size-4" />
@@ -297,10 +287,12 @@ function ProductBrowser({
             </div>
           </div>
 
-          <div className={cn(
-            "grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-            approvalSteps && approvalSteps.length > 0 ? "2xl:grid-cols-6" : "2xl:grid-cols-5"
-          )}>
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3",
+              approvalSteps && approvalSteps.length > 0 ? "2xl:grid-cols-6" : "2xl:grid-cols-5",
+            )}
+          >
             <div className="grid gap-2">
               <Label htmlFor="period-from">Periode dari</Label>
               <Input
@@ -408,20 +400,24 @@ function ProductBrowser({
                 <Card key={text(product.id)} size="sm">
                   <CardContent className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
                     <div className="flex items-start gap-3">
-                      <div className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary mt-1">
+                      <div className="mt-1 grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
                         <FileText className="size-5" />
                       </div>
                       <div>
                         <div className="flex flex-wrap gap-2">
                           <StatusBadge value={product.classification} />
                           <StatusBadge value={product.status} />
-                          {approvalStep ? <Badge variant="outline" className="border-sky-500/30 text-sky-500 bg-sky-500/5">Perlu keputusan regional</Badge> : null}
+                          {approvalStep ? (
+                            <Badge variant="outline" className="border-sky-500/30 bg-sky-500/5 text-sky-500">
+                              Perlu keputusan regional
+                            </Badge>
+                          ) : null}
                         </div>
                         <h2 className="mt-2 font-medium">{text(product.title, "Laporan Intelijen")}</h2>
-                        <p className="mt-1 font-mono text-xs text-muted-foreground">
+                        <p className="mt-1 font-mono text-muted-foreground text-xs">
                           {text(product.productNumber, "Nomor otomatis")} - {productTypeLabel(product)}
                         </p>
-                        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground/80 font-medium">
+                        <div className="mt-1.5 flex items-center gap-1.5 font-medium text-muted-foreground/80 text-xs">
                           <span className="size-1.5 rounded-full bg-blue-500" />
                           <span>Unit Pengirim: {ownerUnitLabel(product)}</span>
                         </div>
@@ -462,7 +458,7 @@ function ProductBrowser({
                         <StatusBadge value={product.status} />
                       </TableCell>
                       <TableCell className="min-w-56">{ownerUnitLabel(product)}</TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      <TableCell className="whitespace-nowrap text-muted-foreground text-xs">
                         {dateInputValue(product.periodStart) || "-"} s.d. {dateInputValue(product.periodEnd) || "-"}
                       </TableCell>
                       <TableCell className="text-right">{renderAction(product)}</TableCell>
@@ -475,7 +471,7 @@ function ProductBrowser({
         )
       ) : (
         <Card>
-          <CardContent className="py-14 text-center text-sm text-muted-foreground">
+          <CardContent className="py-14 text-center text-muted-foreground text-sm">
             Tidak ada produk yang cocok dengan filter.
           </CardContent>
         </Card>
@@ -483,7 +479,7 @@ function ProductBrowser({
 
       <Card>
         <CardContent className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Menampilkan{" "}
             <span className="font-semibold text-foreground">
               {startRow}-{endRow}
@@ -492,7 +488,7 @@ function ProductBrowser({
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <Label className="text-sm text-muted-foreground">Baris</Label>
+              <Label className="text-muted-foreground text-sm">Baris</Label>
               <Select
                 value={String(rowsPerPage)}
                 onValueChange={(value) => {
@@ -545,7 +541,7 @@ function ProductBrowser({
   );
 }
 
-function ProductRows({
+function _ProductRows({
   items,
   basePath,
   approvalSteps = [],
@@ -557,7 +553,7 @@ function ProductRows({
   if (!items.length) {
     return (
       <Card>
-        <CardContent className="py-14 text-center text-sm text-muted-foreground">
+        <CardContent className="py-14 text-center text-muted-foreground text-sm">
           Belum ada Produk Intelijen pada tahap ini.
         </CardContent>
       </Card>
@@ -584,7 +580,7 @@ function ProductRows({
                     {approvalStep ? <Badge variant="outline">Perlu keputusan regional</Badge> : null}
                   </div>
                   <h2 className="mt-2 font-medium">{text(product.title, "Laporan Intelijen")}</h2>
-                  <p className="mt-1 font-mono text-xs text-muted-foreground">
+                  <p className="mt-1 font-mono text-muted-foreground text-xs">
                     {text(product.productNumber, "Nomor otomatis")} · Laporan Intelijen
                   </p>
                 </div>
@@ -618,16 +614,20 @@ export function IntelligenceProductList({
   return (
     <main className="mx-auto w-full max-w-[1500px] space-y-5 p-4 sm:p-6 lg:p-8">
       <div className="border-b pb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Produk Intelijen</p>
-        <h1 className="mt-1 font-heading text-2xl font-semibold">{title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <p className="font-semibold text-muted-foreground text-xs uppercase tracking-[0.18em]">Produk Intelijen</p>
+        <h1 className="mt-1 font-heading font-semibold text-2xl">{title}</h1>
+        <p className="mt-1 text-muted-foreground text-sm">{description}</p>
       </div>
-      <ProductBrowser items={products} basePath={basePath} approvalSteps={approvalData !== undefined ? approvalSteps : undefined} />
+      <ProductBrowser
+        items={products}
+        basePath={basePath}
+        approvalSteps={approvalData !== undefined ? approvalSteps : undefined}
+      />
     </main>
   );
 }
 
-function ApprovalQueue({ steps, basePath }: { steps: DataRecord[]; basePath: string }) {
+function _ApprovalQueue({ steps, basePath }: { steps: DataRecord[]; basePath: string }) {
   return (
     <div>
       {steps.length ? (
@@ -643,7 +643,7 @@ function ApprovalQueue({ steps, basePath }: { steps: DataRecord[]; basePath: str
                       <StatusBadge value={product.classification} />
                     </div>
                     <h2 className="mt-2 font-medium">{text(product.title, "Laporan Intelijen")}</h2>
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">
+                    <p className="mt-1 font-mono text-muted-foreground text-xs">
                       {text(product.productNumber, "Nomor produk")}
                     </p>
                   </div>
@@ -662,7 +662,7 @@ function ApprovalQueue({ steps, basePath }: { steps: DataRecord[]; basePath: str
           <CardContent className="py-14 text-center">
             <CheckCircle2 className="mx-auto size-8 text-primary" />
             <h2 className="mt-3 font-medium">Tidak ada produk menunggu keputusan</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Inbox approval regional sudah bersih.</p>
+            <p className="mt-1 text-muted-foreground text-sm">Inbox approval regional sudah bersih.</p>
           </CardContent>
         </Card>
       )}
@@ -718,20 +718,20 @@ function ProductDocument({ product }: { product: DataRecord }) {
   const items = journalItems(version);
   return (
     <article className="min-h-[760px] bg-white p-8 text-black shadow-sm print:fixed print:inset-0 print:z-50 print:min-h-screen print:w-full print:p-10">
-      <p className="text-center text-xs font-bold">{statusLabel(product.classification)}</p>
-      <div className="mt-10 text-xs font-bold">
+      <p className="text-center font-bold text-xs">{statusLabel(product.classification)}</p>
+      <div className="mt-10 font-bold text-xs">
         BADAN INTELIJEN NEGARA
         <br />
         UNIT KERJA OPERASIONAL
       </div>
-      <h2 className="mt-12 text-center text-sm font-bold uppercase underline">LAPORAN INTELIJEN</h2>
+      <h2 className="mt-12 text-center font-bold text-sm uppercase underline">LAPORAN INTELIJEN</h2>
       <p className="mt-2 text-center font-mono text-xs">Nomor: {text(product.productNumber)}</p>
       <h3 className="mt-8 text-center font-bold">{text(product.title, "Laporan Intelijen")}</h3>
       <div className="mt-8">
         <JournalTable items={items} />
       </div>
       <p className="mt-14 text-right text-xs">Autentikasi: persetujuan Regional Commander</p>
-      <p className="mt-16 text-center text-xs font-bold">{statusLabel(product.classification)}</p>
+      <p className="mt-16 text-center font-bold text-xs">{statusLabel(product.classification)}</p>
     </article>
   );
 }
@@ -768,7 +768,7 @@ function AnalysisSources({ version }: { version: DataRecord }) {
                 ))}
               </div>
               <div>
-                <h3 className="mb-2 text-sm font-medium">Baket terkait</h3>
+                <h3 className="mb-2 font-medium text-sm">Baket terkait</h3>
                 <div className="grid gap-2">
                   {rows(analysisCase.sources).map((analysisSource, index) => {
                     const verification = record(analysisSource.verification);
@@ -778,10 +778,10 @@ function AnalysisSources({ version }: { version: DataRecord }) {
                     const area = record(baketVersion.eventArea);
                     return (
                       <div key={text(analysisSource.verificationId, String(index))} className="rounded-lg border p-3">
-                        <p className="text-sm font-medium">
+                        <p className="font-medium text-sm">
                           {index + 1}. {text(baketVersion.title, "Baket")}
                         </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
+                        <p className="mt-1 text-muted-foreground text-xs">
                           {administrativeAreaLabel(area)} · {fieldOfficerUserName(assignment)}
                         </p>
                         <p className="mt-2 whitespace-pre-wrap text-sm">{text(baketVersion.originalContent)}</p>
@@ -875,15 +875,15 @@ export function IntelligenceProductDetail({
     <main className="mx-auto w-full max-w-[1600px] space-y-5 p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="font-semibold text-muted-foreground text-xs uppercase tracking-[0.18em]">
             {executive ? "Executive" : approvalStep ? "Regional Commander" : "Produk Intelijen"}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <StatusBadge value={product.classification} />
             <StatusBadge value={product.status} />
           </div>
-          <h1 className="mt-2 font-heading text-2xl font-semibold">{text(product.title, "Laporan Intelijen")}</h1>
-          <p className="mt-1 font-mono text-xs text-muted-foreground">{text(product.productNumber)}</p>
+          <h1 className="mt-2 font-heading font-semibold text-2xl">{text(product.title, "Laporan Intelijen")}</h1>
+          <p className="mt-1 font-mono text-muted-foreground text-xs">{text(product.productNumber)}</p>
         </div>
         <Button className="print:hidden" variant="outline" onClick={() => window.print()}>
           <Printer />
@@ -903,13 +903,13 @@ export function IntelligenceProductDetail({
             <AnalysisSources version={version} />
           </TabsContent>
         </Tabs>
-        <div className="space-y-4">
+        <div className="space-y-4 xl:pt-[44px]">
           {approvalStep ? <ApprovalActions step={record(approvalStep)} /> : null}
           <Card className="print:hidden">
             <CardHeader>
               <CardTitle>Jejak produk</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <CardContent className="space-y-2 text-muted-foreground text-sm">
               <p>{rows(version.sourceAnalyses).length} analisis final</p>
               <p>{journalItems(version).length} Baket pada jurnal</p>
               <p>Versi {String(version.versionNumber ?? 1)} · read-only setelah dikirim</p>
