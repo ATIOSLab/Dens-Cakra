@@ -56,7 +56,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function formatContent(text: string): ReactNode {
   if (!text || text.trim() === "" || text.trim() === "Belum diisi.") {
-    return <p className="py-2 text-sm italic text-muted-foreground">Belum ada konten.</p>;
+    return <p className="py-2 text-muted-foreground text-sm italic">Belum ada konten.</p>;
   }
 
   const blocks: ReactNode[] = [];
@@ -71,7 +71,7 @@ function formatContent(text: string): ReactNode {
       <List
         key={`list-${key}`}
         className={cn(
-          "my-2 space-y-1 pl-5 text-sm leading-6 text-foreground/90",
+          "my-2 space-y-1 pl-5 text-foreground/90 text-sm leading-6",
           listType === "ol" ? "list-decimal" : "list-disc",
         )}
       >
@@ -100,7 +100,7 @@ function formatContent(text: string): ReactNode {
     flushList(index);
     if (trimmed) {
       blocks.push(
-        <p key={`paragraph-${index}`} className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+        <p key={`paragraph-${index}`} className="whitespace-pre-wrap text-foreground/90 text-sm leading-6">
           {trimmed}
         </p>,
       );
@@ -195,10 +195,10 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
   return (
     <div className="space-y-5">
       <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-col justify-between gap-5 border-b border-border bg-secondary/10 p-5 lg:flex-row lg:items-center">
+        <div className="flex flex-col justify-between gap-5 border-border border-b bg-secondary/10 p-5 lg:flex-row lg:items-center">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs font-bold text-primary">{directive.commandNumber}</span>
+              <span className="font-bold font-mono text-primary text-xs">{directive.commandNumber}</span>
               <StatusBadge status={directive.status} />
               <Badge
                 variant="outline"
@@ -208,13 +208,13 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
               </Badge>
               <Badge
                 variant="outline"
-                className="dc-priority rounded-md px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider"
+                className="dc-priority rounded-md px-2 py-0.5 font-bold font-mono text-[10px] tracking-wider"
                 data-priority={(currentVersion?.urgency ?? "NORMAL").toUpperCase()}
               >
                 URGENSI: {currentVersion?.urgency ?? "NORMAL"}
               </Badge>
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            <h1 className="font-semibold text-foreground text-xl tracking-tight sm:text-2xl">
               {currentVersion?.strategicIssue ?? "DENS CAKRA DIRECTIVE"}
             </h1>
           </div>
@@ -228,7 +228,11 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button size="sm" variant="success" disabled={isActionDisabled} className="cursor-pointer">
+                <Button
+                  size="sm"
+                  disabled={isActionDisabled}
+                  className="cursor-pointer border-[#2563EB] bg-[#2563EB] text-white shadow-[0_0_0_1px_rgba(37,99,235,0.65),0_8px_20px_rgba(37,99,235,0.16)] hover:bg-[#1d4ed8] focus-visible:border-[#2563EB] focus-visible:ring-blue-500/30 dark:bg-[#2563EB] dark:hover:bg-[#1d4ed8]"
+                >
                   {isSubmitting === "publish" ? "Memproses..." : "Publish"}
                 </Button>
               </AlertDialogTrigger>
@@ -242,7 +246,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
                   <AlertDialogAction
                     disabled={isActionDisabled}
                     onClick={() => triggerAction("publish")}
-                    variant="success"
+                    className="border-[#2563EB] bg-[#2563EB] text-white shadow-[0_0_0_1px_rgba(37,99,235,0.65),0_8px_20px_rgba(37,99,235,0.16)] hover:bg-[#1d4ed8] focus-visible:border-[#2563EB] focus-visible:ring-blue-500/30 dark:bg-[#2563EB] dark:hover:bg-[#1d4ed8]"
                   >
                     Ya, Publish
                   </AlertDialogAction>
@@ -288,33 +292,33 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
 
         <div className="grid gap-5 p-5 text-xs sm:grid-cols-2 lg:grid-cols-6">
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Pemberi Perintah</p>
+            <p className="text-[10px] text-muted-foreground uppercase">Pemberi Perintah</p>
             <p className="mt-1 font-semibold text-foreground">{currentVersion?.commandIssuer || "-"}</p>
           </div>
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Penerbit</p>
+            <p className="text-[10px] text-muted-foreground uppercase">Penerbit</p>
             <p className="mt-1 font-semibold text-foreground">
               {directive.createdByAssignment?.userProfile?.fullName || "-"}
             </p>
           </div>
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Wilayah Sasaran</p>
+            <p className="text-[10px] text-muted-foreground uppercase">Wilayah Sasaran</p>
             <p className="mt-1 line-clamp-2 font-semibold text-foreground">
               {currentVersion?.targetAreas.map((area) => area.area.name).join(", ") || "-"}
             </p>
           </div>
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Tanggal Dibuat</p>
+            <p className="text-[10px] text-muted-foreground uppercase">Tanggal Dibuat</p>
             <p className="mt-1 font-semibold text-foreground">
               {currentVersion?.commandDate ? formatDate(currentVersion.commandDate) : "-"}
             </p>
           </div>
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Tingkat Urgensi</p>
+            <p className="text-[10px] text-muted-foreground uppercase">Tingkat Urgensi</p>
             <p className="mt-1 font-semibold text-foreground">{currentVersion?.urgency ?? "NORMAL"}</p>
           </div>
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Progress Dokumen</p>
+            <p className="text-[10px] text-muted-foreground uppercase">Progress Dokumen</p>
             <div className="mt-2 flex items-center gap-2">
               <div className="h-2 flex-1 overflow-hidden rounded-full border border-border bg-muted">
                 <div
@@ -330,7 +334,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
         </div>
       </Card>
 
-      <div className="sticky top-[56px] z-30 -mx-4 flex items-center gap-1.5 overflow-x-auto border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur-md md:-mx-6 md:px-6">
+      <div className="sticky top-[56px] z-30 -mx-4 flex items-center gap-1.5 overflow-x-auto border-border border-b bg-background/95 px-4 py-2.5 backdrop-blur-md md:-mx-6 md:px-6">
         {allSections.map((section, index) => {
           const complete = section.content.trim().length > 0;
           return (
@@ -339,7 +343,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
               type="button"
               onClick={() => selectSection(index)}
               className={cn(
-                "cursor-pointer whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition",
+                "cursor-pointer whitespace-nowrap rounded-full border px-3.5 py-1.5 font-semibold text-[11px] transition",
                 stepperHighlightIndex === index
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border bg-card text-muted-foreground hover:bg-accent",
@@ -354,7 +358,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
           type="button"
           onClick={() => selectSection(allSections.length)}
           className={cn(
-            "cursor-pointer whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition",
+            "cursor-pointer whitespace-nowrap rounded-full border px-3.5 py-1.5 font-semibold text-[11px] transition",
             stepperHighlightIndex === allSections.length
               ? "border-primary bg-primary/10 text-primary"
               : "border-border bg-card text-muted-foreground hover:bg-accent",
@@ -367,14 +371,14 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
       <div id="active-section-container" className="scroll-mt-36">
         {activeSection ? (
           <Card className="rounded-xl border border-border bg-card shadow-sm">
-            <CardHeader className="border-b border-border">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+            <CardHeader className="border-border border-b">
+              <p className="font-semibold text-[10px] text-primary uppercase tracking-wider">
                 Bagian {String(activeSectionIndex + 1).padStart(2, "0")}
               </p>
               <CardTitle className="text-lg">{activeSection.title}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5 p-5">
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-2 text-muted-foreground text-xs">
                 <span>
                   Klasifikasi:{" "}
                   <strong className="text-foreground">{currentVersion?.classification ?? "RAHASIA"}</strong>
@@ -388,8 +392,8 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
                   Urgensi: <strong className="text-foreground">{currentVersion?.urgency ?? "NORMAL"}</strong>
                 </span>
               </div>
-              <div className="border-t border-border pt-5">{formatContent(activeSection.content)}</div>
-              <div className="flex items-center justify-between border-t border-border pt-5">
+              <div className="border-border border-t pt-5">{formatContent(activeSection.content)}</div>
+              <div className="flex items-center justify-between border-border border-t pt-5">
                 <Button
                   variant="outline"
                   size="sm"
@@ -417,18 +421,18 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
       <div id="section-distribution" className="scroll-mt-36 space-y-5">
         <Card className="rounded-xl border border-border bg-card shadow-sm">
           <CardHeader>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Informasi Pendukung</p>
+            <p className="font-semibold text-[10px] text-primary uppercase tracking-wider">Informasi Pendukung</p>
             <CardTitle className="text-lg">Konteks Operasional</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-5 border-t border-border p-5 md:grid-cols-2">
+          <CardContent className="grid gap-5 border-border border-t p-5 md:grid-cols-2">
             <div>
-              <p className="text-[10px] uppercase text-muted-foreground">Isu Strategis</p>
-              <p className="mt-2 rounded-lg border border-border bg-background p-4 text-sm leading-6 text-foreground">
+              <p className="text-[10px] text-muted-foreground uppercase">Isu Strategis</p>
+              <p className="mt-2 rounded-lg border border-border bg-background p-4 text-foreground text-sm leading-6">
                 {currentVersion?.strategicIssue || "Belum diisi."}
               </p>
             </div>
             <div>
-              <p className="text-[10px] uppercase text-muted-foreground">Uraian Perintah</p>
+              <p className="text-[10px] text-muted-foreground uppercase">Uraian Perintah</p>
               <div className="mt-2 rounded-lg border border-border bg-background p-4">
                 {formatContent(parsedDescription.commandNarrative || "Belum diisi.")}
               </div>
