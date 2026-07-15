@@ -9,6 +9,7 @@ import {
   ApprovalStepStatus,
   ApprovalWorkflowStatus,
   AreaResolutionMethod,
+  CommandRouteType,
   CoordinateSource,
   DistributionStatus,
   EmergencyStatus,
@@ -85,6 +86,8 @@ import type {
   ValidateTemplateContentDto,
   VerifyEmergencyIncidentDto,
 } from './intelligence-products.dto.js';
+
+type OperationalRouteType = 'DIRECTORATE' | 'BINDA';
 
 type CursorPage<T> = {
   items: T[];
@@ -1181,10 +1184,29 @@ export class IntelligenceProductsService {
     return seat.id;
   }
 
+  private resolveOperationalRoute(
+    routeType: CommandRouteType | null | undefined,
+  ): OperationalRouteType {
+    if (
+      routeType === CommandRouteType.BINDA ||
+      routeType === CommandRouteType.DIRECTORATE
+    ) {
+      return routeType;
+    }
+    if (!routeType) {
+      return CommandRouteType.DIRECTORATE;
+    }
+    throw new ApiException(
+      'APPROVAL_ROUTE_INVALID',
+      'Approval workflow route must be BINDA or DIRECTORATE.',
+      422,
+    );
+  }
+
   private async createWorkflowTx(
     tx: Prisma.TransactionClient,
     versionId: string,
-    routeType: 'DIRECTORATE' | 'BINDA',
+    routeType: OperationalRouteType,
     regionalTargetPositionId: string,
     actorAssignmentId: string,
   ) {
@@ -2068,7 +2090,7 @@ export class IntelligenceProductsService {
       const createdWorkflowId = await this.createWorkflowTx(
         tx,
         body.versionId,
-        context.commandRouteType ?? 'DIRECTORATE',
+        this.resolveOperationalRoute(context.commandRouteType),
         derivedTargets.regionalTargetPositionId,
         context.primaryAssignmentId,
       );
@@ -2285,7 +2307,7 @@ export class IntelligenceProductsService {
       return this.createWorkflowTx(
         tx,
         versionId,
-        body.routeType,
+        this.resolveOperationalRoute(body.routeType),
         body.regionalTargetPositionId,
         context.primaryAssignmentId,
       );

@@ -1,11 +1,11 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import Link from "next/link";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, CheckCircle2, Copy, KeyRound, Search, ShieldCheck, UserPlus } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, KeyRound, ShieldCheck, UserPlus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -18,31 +18,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
-import { cn } from "@/lib/utils";
 
 import { createUserSchema, type CreateUserFormValues } from "./pengguna-schemas";
 import type {
   AreaSearchResult,
-  OrganizationUnitSummary,
   PositionSummary,
-  RoleCode,
   UserProvisionResponse,
-  UserRoleCatalogItem,
 } from "./pengguna-types";
 import {
-  ROLE_CODE_OPTIONS,
   ROLE_CODE_TO_AUTH_ROLE,
   formatDateTime,
-  getRoleLabel,
   toDateTimeLocalValue,
   toIsoFromLocalValue,
 } from "./pengguna-types";
 
-type PenggunaCreateClientProps = {
-  roleCatalog: UserRoleCatalogItem[];
-};
-
-export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps) {
+export function PenggunaCreateClient() {
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
@@ -51,29 +41,18 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
       username: "",
       fullName: "",
       phone: "",
-      roleCode: "FIELD_OFFICER" as RoleCode,
       positionId: "",
       validFrom: toDateTimeLocalValue(new Date().toISOString()),
       areaScopeIds: [],
     },
   });
 
-  const selectedRoleCode = form.watch("roleCode");
-  const deferredRoleCode = useDeferredValue(selectedRoleCode);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [unitQuery, setUnitQuery] = useState("");
-  const [unitResults, setUnitResults] = useState<OrganizationUnitSummary[]>([]);
-  const [selectedUnit, setSelectedUnit] = useState<OrganizationUnitSummary | null>(null);
-  const [positionQuery, setPositionQuery] = useState("");
-  const [positionResults, setPositionResults] = useState<PositionSummary[]>([]);
+  const [positionOptions, setPositionOptions] = useState<PositionSummary[]>([]);
+  const [positionsLoading, setPositionsLoading] = useState(true);
   const [selectedPosition, setSelectedPosition] = useState<PositionSummary | null>(null);
-  const [areaQuery, setAreaQuery] = useState("");
-  const [areaResults, setAreaResults] = useState<AreaSearchResult[]>([]);
   const [selectedAreas, setSelectedAreas] = useState<AreaSearchResult[]>([]);
   const [successState, setSuccessState] = useState<UserProvisionResponse | null>(null);
-  const deferredUnitQuery = useDeferredValue(unitQuery);
-  const deferredPositionQuery = useDeferredValue(positionQuery);
-  const deferredAreaQuery = useDeferredValue(areaQuery);
 
   useEffect(() => {
     form.setValue(
@@ -87,123 +66,52 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
     form.setValue("positionId", selectedPosition?.id ?? "", {
       shouldValidate: true,
     });
+    setSelectedAreas(
+      selectedPosition?.areaCoverages?.map((coverage) => ({
+        id: coverage.area.id,
+        code: coverage.area.code,
+        name: coverage.area.name,
+        level: coverage.area.level,
+      })) ?? [],
+    );
   }, [form, selectedPosition]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadUnits() {
-      if (deferredUnitQuery.trim().length < 2) {
-        setUnitResults([]);
-        return;
-      }
-
-      const results = await apiBrowserFetch<OrganizationUnitSummary[]>("/organization-units", {
-        query: {
-          search: deferredUnitQuery.trim(),
-          page: 1,
-          limit: 10,
-        },
-      });
-
-      if (!cancelled) {
-        setUnitResults(results);
-      }
-    }
-
-    loadUnits().catch(() => {
-      if (!cancelled) {
-        setUnitResults([]);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [deferredUnitQuery]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadPositions() {
-      if (!selectedUnit?.id || !deferredRoleCode) {
-        setPositionResults([]);
-        return;
-      }
-
+    async function loadPositionOptions() {
+      setPositionsLoading(true);
       const results = await apiBrowserFetch<PositionSummary[]>("/positions", {
         query: {
-          unitId: selectedUnit.id,
-          roleCode: deferredRoleCode,
           isActive: true,
           page: 1,
-          limit: 20,
-          ...(deferredPositionQuery.trim()
-            ? { search: deferredPositionQuery.trim() }
-            : {}),
+          limit: 200,
         },
       });
 
       if (!cancelled) {
-        setPositionResults(results);
+        setPositionOptions(results);
       }
     }
 
-    loadPositions().catch(() => {
+    loadPositionOptions().catch(() => {
       if (!cancelled) {
-        setPositionResults([]);
+        setPositionOptions([]);
+      }
+    }).finally(() => {
+      if (!cancelled) {
+        setPositionsLoading(false);
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [deferredPositionQuery, deferredRoleCode, selectedUnit]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadAreas() {
-      if (deferredAreaQuery.trim().length < 2) {
-        setAreaResults([]);
-        return;
-      }
-
-      const results = await apiBrowserFetch<AreaSearchResult[]>("/administrative-areas/search", {
-        query: {
-          q: deferredAreaQuery.trim(),
-          limit: 10,
-        },
-      });
-
-      if (!cancelled) {
-        setAreaResults(results);
-      }
-    }
-
-    loadAreas().catch(() => {
-      if (!cancelled) {
-        setAreaResults([]);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [deferredAreaQuery]);
-
-  useEffect(() => {
-    setSelectedPosition(null);
-    setPositionQuery("");
-  }, [selectedRoleCode, selectedUnit?.id]);
+  }, []);
 
   const derivedAuthRole = selectedPosition?.role?.code
     ? ROLE_CODE_TO_AUTH_ROLE[selectedPosition.role.code]
     : null;
-  const roleSummary = useMemo(
-    () => roleCatalog.find((role) => role.key === derivedAuthRole) ?? null,
-    [derivedAuthRole, roleCatalog],
-  );
 
   async function handleCopyPassword() {
     if (!successState?.generatedTempPassword) {
@@ -219,18 +127,13 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
   }
 
   async function handleSubmit(values: CreateUserFormValues) {
-    if (!selectedUnit?.id) {
-      toast.error("Pilih unit organisasi untuk mempersempit jabatan.");
-      return;
-    }
-
     if (!selectedPosition?.id || !selectedPosition.organizationUnit?.id || !selectedPosition.role?.code) {
       toast.error("Pilih jabatan aktif yang akan ditempati user.");
       return;
     }
 
     if (!derivedAuthRole) {
-      toast.error("Role auth tidak bisa diturunkan dari jabatan terpilih.");
+      toast.error("Data jabatan terpilih belum lengkap untuk provisioning.");
       return;
     }
 
@@ -257,7 +160,6 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
             positionId: selectedPosition.id,
             validFrom: toIsoFromLocalValue(values.validFrom),
           },
-          areaScopeIds: values.areaScopeIds,
         },
       );
 
@@ -276,7 +178,6 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">Provisioning Selesai</Badge>
-            <Badge variant="outline">{getRoleLabel(successState.userProfile.authUser.role)}</Badge>
           </div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">Password sementara siap diserahkan</h1>
           <p className="max-w-3xl text-muted-foreground text-sm">
@@ -335,10 +236,9 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
                   {successState.userProfile.fullName || successState.userProfile.authUser.name}
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  @{successState.userProfile.username || "-"} • {successState.userProfile.authUser.email}
+                  @{successState.userProfile.username || "-"} - {successState.userProfile.authUser.email}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="outline">{getRoleLabel(successState.userProfile.authUser.role)}</Badge>
                   <Badge>{successState.userProfile.status}</Badge>
                 </div>
               </div>
@@ -363,12 +263,10 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
                     username: "",
                     fullName: "",
                     phone: "",
-                    roleCode: "FIELD_OFFICER" as RoleCode,
                     positionId: "",
                     validFrom: toDateTimeLocalValue(new Date().toISOString()),
                     areaScopeIds: [],
                   });
-                  setSelectedUnit(null);
                   setSelectedPosition(null);
                   setSelectedAreas([]);
                   setSuccessState(null);
@@ -388,12 +286,10 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">User Provisioning</Badge>
-          {derivedAuthRole ? <Badge variant="outline">{getRoleLabel(derivedAuthRole)}</Badge> : null}
         </div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">Tambah Pengguna</h1>
         <p className="max-w-4xl text-muted-foreground text-sm">
-          Pilih role target sebagai filter, tentukan jabatan aktif sebagai sumber kebenaran, lalu pilih area scope
-          yang harus melekat pada assignment utama user baru.
+          Isi identitas user, lalu pilih jabatan aktif sebagai sumber penempatan dan wilayah assignment utama.
         </p>
       </div>
 
@@ -455,31 +351,6 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
             <FieldGroup>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field>
-                  <FieldLabel htmlFor="role-filter">Role target</FieldLabel>
-                  <FieldContent>
-                    <NativeSelect
-                      id="role-filter"
-                      value={selectedRoleCode}
-                      onChange={(event) =>
-                        form.setValue("roleCode", event.target.value as RoleCode, {
-                          shouldValidate: true,
-                        })
-                      }
-                    >
-                      {ROLE_CODE_OPTIONS.map((option) => (
-                        <NativeSelectOption key={option.value} value={option.value}>
-                          {option.label}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                    <FieldDescription>
-                      Dipakai untuk mempersempit pencarian jabatan. Role auth final akan diturunkan dari jabatan terpilih.
-                    </FieldDescription>
-                    <FieldError errors={[form.formState.errors.roleCode]} />
-                  </FieldContent>
-                </Field>
-
-                <Field>
                   <FieldLabel htmlFor="valid-from">Mulai assignment utama</FieldLabel>
                   <FieldContent>
                     <Input id="valid-from" type="datetime-local" {...form.register("validFrom")} />
@@ -489,70 +360,35 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
               </div>
 
               <div className="space-y-3 rounded-xl border border-border/70 p-4">
-                <Label htmlFor="unit-query">Cari unit organisasi</Label>
-                <Input
-                  id="unit-query"
-                  value={unitQuery}
-                  onChange={(event) => setUnitQuery(event.target.value)}
-                  placeholder="Ketik minimal 2 karakter nama atau kode unit"
-                />
-                {selectedUnit ? (
-                  <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
-                    <div className="font-medium">{selectedUnit.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {selectedUnit.code} • {selectedUnit.type}
-                    </div>
-                    <div className="mt-2">
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedUnit(null)}>
-                        Ganti unit
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-                {unitResults.length ? (
-                  <div className="rounded-xl border border-border/70">
-                    {unitResults.map((unit) => (
-                      <button
-                        key={unit.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedUnit(unit);
-                          setUnitQuery("");
-                          setUnitResults([]);
-                        }}
-                        className="flex w-full items-start justify-between gap-3 border-border/70 px-3 py-2 text-left transition hover:bg-muted/40 not-last:border-b"
-                      >
-                        <div>
-                          <div className="font-medium">{unit.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {unit.code} • {unit.type}
-                          </div>
-                        </div>
-                        <Search className="mt-0.5 size-4 text-muted-foreground" />
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="space-y-3 rounded-xl border border-border/70 p-4">
-                <Label htmlFor="position-query">Pilih jabatan aktif</Label>
-                <Input
-                  id="position-query"
-                  value={positionQuery}
-                  onChange={(event) => setPositionQuery(event.target.value)}
-                  placeholder={selectedUnit ? "Opsional: persempit seat code atau title" : "Pilih unit dulu"}
-                  disabled={!selectedUnit}
-                />
+                <Label htmlFor="position-id">Pilih jabatan aktif</Label>
+                <NativeSelect
+                  id="position-id"
+                  className="w-full"
+                  value={selectedPosition?.id ?? ""}
+                  disabled={positionsLoading || !positionOptions.length}
+                  onChange={(event) => {
+                    const nextPosition = positionOptions.find((position) => position.id === event.target.value) ?? null;
+                    setSelectedPosition(nextPosition);
+                  }}
+                >
+                  <NativeSelectOption value="">
+                    {positionsLoading
+                      ? "Memuat daftar jabatan..."
+                      : positionOptions.length
+                        ? "Pilih jabatan dari master jabatan"
+                        : "Belum ada jabatan aktif"}
+                  </NativeSelectOption>
+                  {positionOptions.map((position) => (
+                    <NativeSelectOption key={position.id} value={position.id}>
+                      {position.title} - {position.seatCode} - {position.organizationUnit?.name ?? "Tanpa penempatan"}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
                 {selectedPosition ? (
                   <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
                     <div className="font-medium">{selectedPosition.title}</div>
                     <div className="text-xs text-muted-foreground">
-                      {selectedPosition.seatCode} • {selectedPosition.organizationUnit?.name}
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      Role domain: {selectedPosition.role?.name || selectedPosition.role?.code}
-                      {selectedPosition.branch ? ` • Route ${selectedPosition.branch}` : ""}
+                      {selectedPosition.seatCode} - {selectedPosition.organizationUnit?.name}
                     </div>
                     <div className="mt-2">
                       <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedPosition(null)}>
@@ -561,94 +397,30 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
                     </div>
                   </div>
                 ) : null}
-                {selectedUnit && !positionResults.length ? (
+                {!positionsLoading && !positionOptions.length ? (
                   <div className="text-sm text-muted-foreground">
-                    Ketik keyword jabatan jika daftar belum muncul, atau biarkan kosong untuk mengambil jabatan aktif
-                    sesuai role pada unit terpilih.
-                  </div>
-                ) : null}
-                {positionResults.length ? (
-                  <div className="rounded-xl border border-border/70">
-                    {positionResults.map((position) => (
-                      <button
-                        key={position.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPosition(position);
-                          setPositionQuery("");
-                        }}
-                        className={cn(
-                          "flex w-full items-start justify-between gap-3 border-border/70 px-3 py-2 text-left transition hover:bg-muted/40 not-last:border-b",
-                          selectedPosition?.id === position.id ? "bg-primary/5" : "",
-                        )}
-                      >
-                        <div>
-                          <div className="font-medium">{position.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {position.seatCode} • {position.organizationUnit?.name}
-                          </div>
-                        </div>
-                        <Badge variant="outline">{position.role?.code || position.code}</Badge>
-                      </button>
-                    ))}
+                    Belum ada jabatan aktif yang bisa dipilih untuk user.
                   </div>
                 ) : null}
                 <FieldError errors={[form.formState.errors.positionId]} />
               </div>
 
               <div className="space-y-3 rounded-xl border border-border/70 p-4">
-                <Label htmlFor="area-query">Pilih area scope</Label>
-                <Input
-                  id="area-query"
-                  value={areaQuery}
-                  onChange={(event) => setAreaQuery(event.target.value)}
-                  placeholder="Ketik minimal 2 karakter nama atau kode area"
-                />
+                <Label>Wilayah dari jabatan</Label>
                 <div className="flex flex-wrap gap-2">
-                  {selectedAreas.map((area, index) => (
-                    <Badge key={area.id} variant={index === 0 ? "default" : "outline"} className="gap-2">
-                      {area.name}
-                      {index === 0 ? " (utama)" : ""}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedAreas((current) => current.filter((item) => item.id !== area.id))
-                        }
-                        className="text-current/70 transition hover:text-current"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  ))}
+                  {selectedAreas.length ? (
+                    selectedAreas.map((area, index) => (
+                      <Badge key={area.id} variant={index === 0 ? "default" : "outline"}>
+                        {area.name}
+                        {index === 0 ? " (utama)" : ""}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Pilih jabatan aktif untuk melihat wilayah penugasan.
+                    </p>
+                  )}
                 </div>
-                {areaResults.length ? (
-                  <div className="rounded-xl border border-border/70">
-                    {areaResults.map((area) => {
-                      const alreadySelected = selectedAreas.some((item) => item.id === area.id);
-
-                      return (
-                        <button
-                          key={area.id}
-                          type="button"
-                          disabled={alreadySelected}
-                          onClick={() => {
-                            setSelectedAreas((current) => [...current, area]);
-                            setAreaQuery("");
-                          }}
-                          className="flex w-full items-start justify-between gap-3 border-border/70 px-3 py-2 text-left transition hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50 not-last:border-b"
-                        >
-                          <div>
-                            <div className="font-medium">{area.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {area.code} • {area.level}
-                            </div>
-                          </div>
-                          <Badge variant="outline">{alreadySelected ? "Dipilih" : "Tambah"}</Badge>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
                 <FieldError errors={[form.formState.errors.areaScopeIds]} />
               </div>
             </FieldGroup>
@@ -676,20 +448,19 @@ export function PenggunaCreateClient({ roleCatalog }: PenggunaCreateClientProps)
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-xl border border-border/70 p-4">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Role auth final</div>
-                <div className="mt-2 font-medium">{derivedAuthRole ? getRoleLabel(derivedAuthRole) : "-"}</div>
+                <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Jabatan</div>
+                <div className="mt-2 font-medium">{selectedPosition?.title || "-"}</div>
                 <div className="text-sm text-muted-foreground">
-                  {roleSummary?.summary || "Pilih jabatan untuk melihat role auth yang akan diinjeksikan ke Better Auth."}
+                  {selectedPosition?.seatCode || "-"} - {selectedPosition?.organizationUnit?.name || "Pilih jabatan untuk melihat penempatan."}
                 </div>
               </div>
 
               <div className="rounded-xl border border-border/70 p-4">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Assignment payload</div>
+                <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Ringkasan assignment</div>
                 <div className="mt-2 space-y-1 text-sm">
-                  <div>Unit ID: {selectedPosition?.organizationUnit?.id || "-"}</div>
-                  <div>Position ID: {selectedPosition?.id || "-"}</div>
-                  <div>Branch: {selectedPosition?.branch || "-"}</div>
-                  <div>Scope count: {selectedAreas.length}</div>
+                  <div>Unit: {selectedPosition?.branch || "-"}</div>
+                  <div>Penempatan: {selectedPosition?.organizationUnit?.name || "-"}</div>
+                  <div>Wilayah: {selectedPosition?.areaCoverages?.length ?? 0}</div>
                 </div>
               </div>
             </CardContent>

@@ -57,6 +57,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import type {
   FieldOfficerIncoming,
+  FieldOfficerJaring,
   FieldOfficerTask,
   FieldOfficerWorkspace,
   ReportCategory,
@@ -351,6 +352,7 @@ export function FieldOfficerOperationsPage({
         ).length,
     };
   }, [workspace]);
+  const registeredJaring = useMemo(() => workspace?.jaring ?? [], [workspace]);
 
   const readyToSendBakets = useMemo(
     () =>
@@ -390,13 +392,49 @@ export function FieldOfficerOperationsPage({
     }
   };
 
-  const handleForwardToggle = (assignmentId: string) => {
+  const setForwardedAssignment = (assignmentId: string, forwarded: boolean) => {
     const next = forwardedAssignments.includes(assignmentId)
-      ? forwardedAssignments.filter((item) => item !== assignmentId)
-      : [...forwardedAssignments, assignmentId];
+      ? forwarded
+        ? forwardedAssignments
+        : forwardedAssignments.filter((item) => item !== assignmentId)
+      : forwarded
+        ? [...forwardedAssignments, assignmentId]
+        : forwardedAssignments;
 
     setForwardedAssignments(next);
     window.sessionStorage.setItem(FORWARDED_STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const forwardInstructionToJaring = async (
+    assignmentId: string,
+    instruction: string,
+    jaringIds: string[],
+  ) => {
+    await runAction(`task:${assignmentId}:forward-jaring`, async () => {
+      const response = await fetch(
+        `/api/field-officer/task-assignments/${assignmentId}/jaring-instructions`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            instruction,
+            jaringIds,
+          }),
+        },
+      );
+      const body = (await response.json().catch(() => null)) as
+        | { recipientCount?: number; message?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(body?.message || "Gagal meneruskan instruksi ke Jaring.");
+      }
+
+      setForwardedAssignment(assignmentId, true);
+      setActionNotice(
+        `Instruksi Jaring dibuat untuk ${body?.recipientCount ?? jaringIds.length} target.`,
+      );
+    });
   };
 
   const createJaring = async () => {
@@ -933,7 +971,7 @@ export function FieldOfficerOperationsPage({
           <TacticalSection
             code="MOD-01"
             title="TUGAS SAYA"
-            description="Update status eksekusi lapangan dan tandai assignment yang perlu diteruskan ke coordinator."
+            description="Terima instruksi Field Coordinator, update status eksekusi, lalu buat instruksi turunan ke Jaring binaan."
             metadata={[
               { label: "TOTAL TUGAS", value: workspace.tasks.length },
               { label: "AKTIF", value: metrics.activeTasks }
@@ -982,6 +1020,34 @@ export function FieldOfficerOperationsPage({
                     className="w-full h-9 border-slate-200 dark:border-white/10 bg-white dark:bg-[#131A26] text-sm"
                   />
                 </div>
+            {workspace.tasks.length === 0 ? (
+              <TacticalEmptyState
+                title="Tidak ada Tugas aktif"
+                description="Semua penugasan operasional telah selesai dilaksanakan atau belum dijadwalkan."
+                icon={CheckCircle2}
+              />
+            ) : (
+              <div className="grid gap-4">
+                {workspace.tasks.map((task) => {
+                  const action = nextTaskAction(task.assignmentStatus);
+                  const forwarded = forwardedAssignments.includes(task.assignmentId);
+                  return (
+                    <TaskCard
+                      key={task.assignmentId}
+                      task={task}
+                      action={action}
+                      forwarded={forwarded}
+                      jaring={registeredJaring}
+                      isBusy={isBusy === `task:${task.assignmentId}:${action?.nextStatus}`}
+                      isForwarding={isBusy === `task:${task.assignmentId}:forward-jaring`}
+                      onUpdateStatus={(nextStatus) => void updateTaskStatus(task.assignmentId, nextStatus)}
+                      onCancelForward={() => setForwardedAssignment(task.assignmentId, false)}
+                      onForwardToJaring={(instruction, jaringIds) =>
+                        void forwardInstructionToJaring(task.assignmentId, instruction, jaringIds)
+                      }
+                    />
+                  );
+                })}
               </div>
 
               {/* View toggle */}
@@ -2205,19 +2271,35 @@ function TaskCard({
   task,
   action,
   forwarded,
+  jaring,
   isBusy,
+  isForwarding,
   onUpdateStatus,
-  onForwardToggle
+  onCancelForward,
+  onForwardToJaring
 }: {
   task: FieldOfficerTask;
   action: { label: string; nextStatus: "READ" | "ACKNOWLEDGED" | "IN_PROGRESS" | "COMPLETED" } | null;
   forwarded: boolean;
+  jaring: FieldOfficerJaring[];
   isBusy: boolean;
+  isForwarding: boolean;
   onUpdateStatus: (nextStatus: "READ" | "ACKNOWLEDGED" | "IN_PROGRESS" | "COMPLETED") => void;
-  onForwardToggle: () => void;
+  onCancelForward: () => void;
+  onForwardToJaring: (instruction: string, jaringIds: string[]) => void;
 }) {
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
   const [showForwardConfirm, setShowForwardConfirm] = useState(false);
+  const [forwardInstruction, setForwardInstruction] = useState(
+    task.coordinatorInstruction ?? "",
+  );
+  const instructionBody =
+    task.coordinatorInstruction ??
+    "Field Coordinator belum menuliskan instruksi rinci untuk assignment ini.";
+  const instructionSenderLabel =
+    task.assignerPositionTitle ?? task.assignerName ?? "Pengirim Instruksi";
+  const canForwardToJaring =
+    jaring.length > 0 && forwardInstruction.trim().length > 0;
 
   const handleActionClick = () => {
     if (action) {
@@ -2227,7 +2309,7 @@ function TaskCard({
 
   const handleForwardClick = () => {
     if (forwarded) {
-      onForwardToggle();
+      onCancelForward();
     } else {
       setShowForwardConfirm(true);
     }
@@ -2249,7 +2331,7 @@ function TaskCard({
           </span>
           {forwarded && (
             <span className="tactical-badge px-2 py-0.5 rounded text-[10px] bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-500 font-semibold">
-              FORWARDED
+              INSTRUKSI JARING DIBUAT
             </span>
           )}
         </div>
@@ -2259,10 +2341,23 @@ function TaskCard({
       <div className="py-4 border-b border-[var(--tactical-border)]">
         <h3 className="mb-[20px] truncate text-xl font-bold tracking-tight text-[var(--tactical-text-primary)]" title={task.title}>
           {task.title}
+        <h3 className="text-xl font-bold tracking-tight text-[var(--tactical-text-primary)] mb-[20px]">
+          Instruksi dari {instructionSenderLabel}
         </h3>
         <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed mb-[20px]">
-          {task.description}
+          {instructionBody}
         </p>
+        <div className="rounded-[10px] border border-[var(--tactical-panel-border)] bg-[var(--tactical-panel-bg)] p-3">
+          <div className="text-[9px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
+            Referensi tugas asli
+          </div>
+          <div className="mt-1 text-sm font-semibold text-[var(--tactical-text-primary)]">
+            {task.title}
+          </div>
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--tactical-text-secondary)]">
+            {task.description}
+          </p>
+        </div>
       </div>
 
       {/* Action Panel */}
@@ -2322,34 +2417,75 @@ function TaskCard({
             )}
             <button
               onClick={handleForwardClick}
+              disabled={isForwarding}
               className={`h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] uppercase tracking-[0.04em] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] flex items-center justify-center cursor-pointer ${forwarded
                   ? "bg-[#991B1B] text-white hover:bg-[#DC2626]"
                   : "bg-[#B45309] text-white hover:bg-[#D97706] active:bg-[#92400E] shadow-[0_0_18px_rgba(217,119,6,0.20)]"
                 }`}
             >
-              {forwarded ? "BATAL FORWARD" : "FORWARD"}
+              {isForwarding
+                ? "MEMPROSES..."
+                : forwarded
+                  ? "BATAL INSTRUKSI JARING"
+                  : "FORWARD KE JARING"}
             </button>
 
             <AlertDialog open={showForwardConfirm} onOpenChange={setShowForwardConfirm}>
               <AlertDialogContent className="border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] text-[var(--tactical-text-primary)] rounded-[6px] font-mono">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">KONFIRMASI FORWARD</AlertDialogTitle>
-                  <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
-                    Apakah Anda yakin ingin meneruskan (forward) tugas lapangan ini ke Coordinator?
+                  <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">
+                    BUAT INSTRUKSI KE JARING
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3 text-xs text-[var(--tactical-text-secondary)]">
+                    <span className="block">
+                      Instruksi ini akan disiapkan untuk seluruh Jaring terdaftar di bawah Field Officer ini.
+                    </span>
+                    <span className="block rounded-[6px] border border-[var(--tactical-panel-border)] bg-[var(--tactical-panel-bg)] p-3 text-[var(--tactical-text-primary)]">
+                      Target jaring: {jaring.length} personel
+                    </span>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="mt-4 space-y-2">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                    Instruksi untuk Jaring
+                  </label>
+                  <Textarea
+                    value={forwardInstruction}
+                    onChange={(event) => setForwardInstruction(event.target.value)}
+                    className="min-h-32 border-[var(--tactical-border)] bg-[var(--tactical-panel-bg)] text-sm text-[var(--tactical-text-primary)]"
+                    placeholder="Tulis instruksi yang akan diteruskan ke seluruh Jaring binaan..."
+                  />
+                  {jaring.length > 0 ? (
+                    <div className="max-h-24 overflow-auto rounded-[6px] border border-[var(--tactical-panel-border)] bg-black/5 p-2 text-[10px] text-[var(--tactical-text-secondary)] dark:bg-white/[0.02]">
+                      {jaring.map((item) => (
+                        <div key={item.id} className="flex justify-between gap-3 py-1">
+                          <span>{item.aliasName}</span>
+                          <span className="text-[var(--tactical-text-muted)]">{item.code}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-[var(--tactical-red)]">
+                      Belum ada Jaring terdaftar untuk menerima instruksi.
+                    </p>
+                  )}
+                </div>
                 <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
                   <AlertDialogCancel className="h-9 px-4 rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] text-xs font-semibold uppercase tracking-wider cursor-pointer">
                     BATAL
                   </AlertDialogCancel>
                   <AlertDialogAction
+                    disabled={!canForwardToJaring}
                     onClick={() => {
                       setShowForwardConfirm(false);
-                      onForwardToggle();
+                      onForwardToJaring(
+                        forwardInstruction.trim(),
+                        jaring.map((item) => item.id),
+                      );
                     }}
-                    className="h-9 px-4 rounded-[4px] bg-[#B45309] hover:bg-[#D97706] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
+                    className="h-9 px-4 rounded-[4px] bg-[#B45309] hover:bg-[#D97706] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer disabled:opacity-50"
                   >
-                    YA, FORWARD
+                    BUAT INSTRUKSI
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -2381,7 +2517,7 @@ function TaskCard({
 
           <div className="bg-[var(--tactical-panel-bg)] border border-[var(--tactical-panel-border)] rounded-[10px] p-3 flex flex-col justify-between min-h-[75px]">
             <span className="text-[9px] uppercase tracking-wider text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200/50 dark:border-white/[0.03] pb-1.5 mb-1.5">
-              SOURCE
+              SUMBER TUGAS
             </span>
             <span className="text-[var(--tactical-text-primary)] font-medium break-words whitespace-pre-wrap leading-relaxed">
               {(task.sourceLabel || "-").toUpperCase()}
@@ -2390,7 +2526,7 @@ function TaskCard({
 
           <div className="bg-[var(--tactical-panel-bg)] border border-[var(--tactical-panel-border)] rounded-[10px] p-3 flex flex-col justify-between min-h-[75px]">
             <span className="text-[9px] uppercase tracking-wider text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200/50 dark:border-white/[0.03] pb-1.5 mb-1.5">
-              DUE DATE
+              DEADLINE
             </span>
             <span className="text-[var(--tactical-text-primary)] font-medium break-words whitespace-pre-wrap leading-relaxed">
               {formatDateTime(task.dueDate).toUpperCase()}

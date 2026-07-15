@@ -94,3 +94,12 @@ export class ReassignDto extends ReasonDto {
   @IsUUID() assigneeAssignmentId!: string;
   @IsOptional() @IsDateString() dueDate?: string;
 }
+
+export class ForwardJaringInstructionDto {
+  @IsString() @MinLength(2) @MaxLength(5000) instruction!: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  jaringIds?: string[];
+}

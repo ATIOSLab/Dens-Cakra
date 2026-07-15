@@ -1,5 +1,6 @@
 import {
   Classification,
+  CommandRouteType,
   DirectiveStatus,
   PositionCode,
   PriorityLevel,
@@ -26,7 +27,7 @@ type AssignmentNode = {
   organizationUnitId: string;
   organizationUnitCode: string;
   organizationUnitName: string;
-  branch: 'DIRECTORATE' | 'BINDA' | null;
+  branch: CommandRouteType | null;
   reportsToPositionId: string | null;
   areaScopes: Array<{
     areaId: string;
@@ -61,13 +62,17 @@ function addDays(base: Date, days: number) {
   return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
-function titleCaseBranch(branch: 'DIRECTORATE' | 'BINDA' | null) {
+function titleCaseBranch(branch: CommandRouteType | null) {
   if (branch === 'DIRECTORATE') {
     return 'Direktorat';
   }
 
   if (branch === 'BINDA') {
     return 'Binda';
+  }
+
+  if (branch === 'PUSAT') {
+    return 'Pusat';
   }
 
   return 'Regional';

@@ -40,7 +40,7 @@ export class ProvisionAuthDto {
   @IsString() @MinLength(2) @MaxLength(180) name!: string;
   @IsEmail() @MaxLength(250) email!: string;
   @IsOptional() @IsString() @MinLength(8) @MaxLength(128) password?: string;
-  @IsString() @MaxLength(80) role!: string;
+  @IsOptional() @IsString() @MaxLength(80) role?: string;
 }
 
 export class ProvisionProfileDto {
@@ -50,9 +50,9 @@ export class ProvisionProfileDto {
 }
 
 export class ProvisionAssignmentDto {
-  @IsUUID() organizationUnitId!: string;
+  @IsOptional() @IsUUID() organizationUnitId?: string;
   @IsOptional() @IsEnum(CommandRouteType) branch?: CommandRouteType;
-  @IsOptional() @IsUUID() positionId?: string;
+  @IsUUID() positionId!: string;
   @IsDateString() validFrom!: string;
 }
 
@@ -64,10 +64,11 @@ export class ProvisionUserDto {
   @ValidateNested()
   @Type(() => ProvisionAssignmentDto)
   assignment!: ProvisionAssignmentDto;
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @IsUUID('4', { each: true })
-  areaScopeIds!: string[];
+  areaScopeIds?: string[];
 }
 
 export class UpdateUserProfileDto {
@@ -95,10 +96,11 @@ export class LockUserDto extends ReasonDto {
 
 export class ChangePrimaryAssignmentDto extends ReasonDto {
   @IsUUID() newPositionId!: string;
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @IsUUID('4', { each: true })
-  areaScopeIds!: string[];
+  areaScopeIds?: string[];
   @IsDateString() effectiveAt!: string;
 }
 

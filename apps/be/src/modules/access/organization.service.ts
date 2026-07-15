@@ -50,6 +50,10 @@ export class OrganizationService {
       return CommandRouteType.DIRECTORATE;
     }
 
+    if (types.has(OrganizationType.DEPUTI)) {
+      return CommandRouteType.PUSAT;
+    }
+
     return this.resolveCommandBranchFromParentChain(organizationUnitId);
   }
 
@@ -60,11 +64,14 @@ export class OrganizationService {
       position.organizationUnitId,
     );
 
-    if (position.code !== PositionCode.KORWIL) {
+    if (
+      position.code !== PositionCode.KORWIL &&
+      position.code !== PositionCode.STAF_SUBDIT
+    ) {
       return routeType;
     }
 
-    if (!routeType) {
+    if (!routeType || routeType === CommandRouteType.PUSAT) {
       throw new ForbiddenException(
         'FIELD_COORDINATOR position is missing a resolvable command route.',
       );
@@ -78,19 +85,21 @@ export class OrganizationService {
 
     if (
       routeType === CommandRouteType.DIRECTORATE &&
-      position.reportsTo.code !== PositionCode.KASUBDIT
+      (position.code !== PositionCode.STAF_SUBDIT ||
+        position.reportsTo.code !== PositionCode.KASUBDIT)
     ) {
       throw new ForbiddenException(
-        'KORWIL on the Directorate route must report to KASUBDIT.',
+        'Field Coordinator on the Directorate route must use STAF_SUBDIT and report to KASUBDIT.',
       );
     }
 
     if (
       routeType === CommandRouteType.BINDA &&
-      position.reportsTo.code !== PositionCode.KABAGOPS
+      (position.code !== PositionCode.KORWIL ||
+        position.reportsTo.code !== PositionCode.KABAGOPS)
     ) {
       throw new ForbiddenException(
-        'KORWIL on the Binda route must report to KABAGOPS.',
+        'Field Coordinator on the Binda route must use KORWIL and report to KABAGOPS.',
       );
     }
 
@@ -133,6 +142,10 @@ export class OrganizationService {
         organizationUnitRecord.type === OrganizationType.SUBDIRECTORATE
       ) {
         return CommandRouteType.DIRECTORATE;
+      }
+
+      if (organizationUnitRecord.type === OrganizationType.DEPUTI) {
+        return CommandRouteType.PUSAT;
       }
 
       cursorId = organizationUnitRecord.parentId;

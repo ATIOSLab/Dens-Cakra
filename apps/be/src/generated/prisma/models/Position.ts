@@ -236,6 +236,7 @@ export type PositionWhereInput = {
   subordinates?: Prisma.PositionListRelationFilter
   roleSeats?: Prisma.OrganizationRoleSeatListRelationFilter
   assignments?: Prisma.UserSeatAssignmentListRelationFilter
+  areaCoverages?: Prisma.PositionAreaCoverageListRelationFilter
   directiveRecipients?: Prisma.DirectiveRecipientListRelationFilter
   approvalSteps?: Prisma.ProductApprovalStepListRelationFilter
   productDistributions?: Prisma.ProductDistributionListRelationFilter
@@ -260,6 +261,7 @@ export type PositionOrderByWithRelationInput = {
   subordinates?: Prisma.PositionOrderByRelationAggregateInput
   roleSeats?: Prisma.OrganizationRoleSeatOrderByRelationAggregateInput
   assignments?: Prisma.UserSeatAssignmentOrderByRelationAggregateInput
+  areaCoverages?: Prisma.PositionAreaCoverageOrderByRelationAggregateInput
   directiveRecipients?: Prisma.DirectiveRecipientOrderByRelationAggregateInput
   approvalSteps?: Prisma.ProductApprovalStepOrderByRelationAggregateInput
   productDistributions?: Prisma.ProductDistributionOrderByRelationAggregateInput
@@ -287,6 +289,7 @@ export type PositionWhereUniqueInput = Prisma.AtLeast<{
   subordinates?: Prisma.PositionListRelationFilter
   roleSeats?: Prisma.OrganizationRoleSeatListRelationFilter
   assignments?: Prisma.UserSeatAssignmentListRelationFilter
+  areaCoverages?: Prisma.PositionAreaCoverageListRelationFilter
   directiveRecipients?: Prisma.DirectiveRecipientListRelationFilter
   approvalSteps?: Prisma.ProductApprovalStepListRelationFilter
   productDistributions?: Prisma.ProductDistributionListRelationFilter
@@ -342,6 +345,7 @@ export type PositionCreateInput = {
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -363,6 +367,7 @@ export type PositionUncheckedCreateInput = {
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -384,6 +389,7 @@ export type PositionUpdateInput = {
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -405,6 +411,7 @@ export type PositionUncheckedUpdateInput = {
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -688,6 +695,20 @@ export type PositionUpdateOneRequiredWithoutAssignmentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.PositionUpdateToOneWithWhereWithoutAssignmentsInput, Prisma.PositionUpdateWithoutAssignmentsInput>, Prisma.PositionUncheckedUpdateWithoutAssignmentsInput>
 }
 
+export type PositionCreateNestedOneWithoutAreaCoveragesInput = {
+  create?: Prisma.XOR<Prisma.PositionCreateWithoutAreaCoveragesInput, Prisma.PositionUncheckedCreateWithoutAreaCoveragesInput>
+  connectOrCreate?: Prisma.PositionCreateOrConnectWithoutAreaCoveragesInput
+  connect?: Prisma.PositionWhereUniqueInput
+}
+
+export type PositionUpdateOneRequiredWithoutAreaCoveragesNestedInput = {
+  create?: Prisma.XOR<Prisma.PositionCreateWithoutAreaCoveragesInput, Prisma.PositionUncheckedCreateWithoutAreaCoveragesInput>
+  connectOrCreate?: Prisma.PositionCreateOrConnectWithoutAreaCoveragesInput
+  upsert?: Prisma.PositionUpsertWithoutAreaCoveragesInput
+  connect?: Prisma.PositionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PositionUpdateToOneWithWhereWithoutAreaCoveragesInput, Prisma.PositionUpdateWithoutAreaCoveragesInput>, Prisma.PositionUncheckedUpdateWithoutAreaCoveragesInput>
+}
+
 export type PositionCreateNestedOneWithoutDirectiveRecipientsInput = {
   create?: Prisma.XOR<Prisma.PositionCreateWithoutDirectiveRecipientsInput, Prisma.PositionUncheckedCreateWithoutDirectiveRecipientsInput>
   connectOrCreate?: Prisma.PositionCreateOrConnectWithoutDirectiveRecipientsInput
@@ -766,6 +787,7 @@ export type PositionCreateWithoutRoleInput = {
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -786,6 +808,7 @@ export type PositionUncheckedCreateWithoutRoleInput = {
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -849,6 +872,7 @@ export type PositionCreateWithoutOrganizationUnitInput = {
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -869,6 +893,7 @@ export type PositionUncheckedCreateWithoutOrganizationUnitInput = {
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -915,6 +940,7 @@ export type PositionCreateWithoutSubordinatesInput = {
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -935,6 +961,7 @@ export type PositionUncheckedCreateWithoutSubordinatesInput = {
   updatedAt?: Date | string
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -960,6 +987,7 @@ export type PositionCreateWithoutReportsToInput = {
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -980,6 +1008,7 @@ export type PositionUncheckedCreateWithoutReportsToInput = {
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -1021,6 +1050,7 @@ export type PositionUpdateWithoutSubordinatesInput = {
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1041,6 +1071,7 @@ export type PositionUncheckedUpdateWithoutSubordinatesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1077,6 +1108,7 @@ export type PositionCreateWithoutRoleSeatsInput = {
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -1097,6 +1129,7 @@ export type PositionUncheckedCreateWithoutRoleSeatsInput = {
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -1133,6 +1166,7 @@ export type PositionUpdateWithoutRoleSeatsInput = {
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1153,6 +1187,7 @@ export type PositionUncheckedUpdateWithoutRoleSeatsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1173,6 +1208,7 @@ export type PositionCreateWithoutAssignmentsInput = {
   reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -1193,6 +1229,7 @@ export type PositionUncheckedCreateWithoutAssignmentsInput = {
   updatedAt?: Date | string
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -1229,6 +1266,7 @@ export type PositionUpdateWithoutAssignmentsInput = {
   reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1249,6 +1287,107 @@ export type PositionUncheckedUpdateWithoutAssignmentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
+  approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
+  productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
+  assignedAlerts?: Prisma.AlertUncheckedUpdateManyWithoutAssignedPositionNestedInput
+}
+
+export type PositionCreateWithoutAreaCoveragesInput = {
+  id?: string
+  seatCode: string
+  code: $Enums.PositionCode
+  title: string
+  branch?: $Enums.CommandRouteType | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  role: Prisma.RoleCreateNestedOneWithoutPositionsInput
+  organizationUnit: Prisma.OrganizationUnitCreateNestedOneWithoutPositionsInput
+  reportsTo?: Prisma.PositionCreateNestedOneWithoutSubordinatesInput
+  subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
+  roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
+  approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
+  productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
+  assignedAlerts?: Prisma.AlertCreateNestedManyWithoutAssignedPositionInput
+}
+
+export type PositionUncheckedCreateWithoutAreaCoveragesInput = {
+  id?: string
+  seatCode: string
+  code: $Enums.PositionCode
+  title: string
+  roleId: string
+  branch?: $Enums.CommandRouteType | null
+  organizationUnitId: string
+  reportsToPositionId?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
+  approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
+  productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
+  assignedAlerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAssignedPositionInput
+}
+
+export type PositionCreateOrConnectWithoutAreaCoveragesInput = {
+  where: Prisma.PositionWhereUniqueInput
+  create: Prisma.XOR<Prisma.PositionCreateWithoutAreaCoveragesInput, Prisma.PositionUncheckedCreateWithoutAreaCoveragesInput>
+}
+
+export type PositionUpsertWithoutAreaCoveragesInput = {
+  update: Prisma.XOR<Prisma.PositionUpdateWithoutAreaCoveragesInput, Prisma.PositionUncheckedUpdateWithoutAreaCoveragesInput>
+  create: Prisma.XOR<Prisma.PositionCreateWithoutAreaCoveragesInput, Prisma.PositionUncheckedCreateWithoutAreaCoveragesInput>
+  where?: Prisma.PositionWhereInput
+}
+
+export type PositionUpdateToOneWithWhereWithoutAreaCoveragesInput = {
+  where?: Prisma.PositionWhereInput
+  data: Prisma.XOR<Prisma.PositionUpdateWithoutAreaCoveragesInput, Prisma.PositionUncheckedUpdateWithoutAreaCoveragesInput>
+}
+
+export type PositionUpdateWithoutAreaCoveragesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  seatCode?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.RoleUpdateOneRequiredWithoutPositionsNestedInput
+  organizationUnit?: Prisma.OrganizationUnitUpdateOneRequiredWithoutPositionsNestedInput
+  reportsTo?: Prisma.PositionUpdateOneWithoutSubordinatesNestedInput
+  subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
+  approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
+  productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
+  assignedAlerts?: Prisma.AlertUpdateManyWithoutAssignedPositionNestedInput
+}
+
+export type PositionUncheckedUpdateWithoutAreaCoveragesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  seatCode?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.EnumPositionCodeFieldUpdateOperationsInput | $Enums.PositionCode
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  branch?: Prisma.NullableEnumCommandRouteTypeFieldUpdateOperationsInput | $Enums.CommandRouteType | null
+  organizationUnitId?: Prisma.StringFieldUpdateOperationsInput | string
+  reportsToPositionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
+  roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
+  assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1270,6 +1409,7 @@ export type PositionCreateWithoutDirectiveRecipientsInput = {
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertCreateNestedManyWithoutAssignedPositionInput
@@ -1290,6 +1430,7 @@ export type PositionUncheckedCreateWithoutDirectiveRecipientsInput = {
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAssignedPositionInput
@@ -1326,6 +1467,7 @@ export type PositionUpdateWithoutDirectiveRecipientsInput = {
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUpdateManyWithoutAssignedPositionNestedInput
@@ -1346,6 +1488,7 @@ export type PositionUncheckedUpdateWithoutDirectiveRecipientsInput = {
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUncheckedUpdateManyWithoutAssignedPositionNestedInput
@@ -1366,6 +1509,7 @@ export type PositionCreateWithoutApprovalStepsInput = {
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertCreateNestedManyWithoutAssignedPositionInput
@@ -1386,6 +1530,7 @@ export type PositionUncheckedCreateWithoutApprovalStepsInput = {
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAssignedPositionInput
@@ -1422,6 +1567,7 @@ export type PositionUpdateWithoutApprovalStepsInput = {
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUpdateManyWithoutAssignedPositionNestedInput
@@ -1442,6 +1588,7 @@ export type PositionUncheckedUpdateWithoutApprovalStepsInput = {
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUncheckedUpdateManyWithoutAssignedPositionNestedInput
@@ -1462,6 +1609,7 @@ export type PositionCreateWithoutProductDistributionsInput = {
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertCreateNestedManyWithoutAssignedPositionInput
@@ -1482,6 +1630,7 @@ export type PositionUncheckedCreateWithoutProductDistributionsInput = {
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   assignedAlerts?: Prisma.AlertUncheckedCreateNestedManyWithoutAssignedPositionInput
@@ -1518,6 +1667,7 @@ export type PositionUpdateWithoutProductDistributionsInput = {
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUpdateManyWithoutAssignedPositionNestedInput
@@ -1538,6 +1688,7 @@ export type PositionUncheckedUpdateWithoutProductDistributionsInput = {
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   assignedAlerts?: Prisma.AlertUncheckedUpdateManyWithoutAssignedPositionNestedInput
@@ -1558,6 +1709,7 @@ export type PositionCreateWithoutAssignedAlertsInput = {
   subordinates?: Prisma.PositionCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionCreateNestedManyWithoutTargetPositionInput
@@ -1578,6 +1730,7 @@ export type PositionUncheckedCreateWithoutAssignedAlertsInput = {
   subordinates?: Prisma.PositionUncheckedCreateNestedManyWithoutReportsToInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedCreateNestedManyWithoutPositionInput
   assignments?: Prisma.UserSeatAssignmentUncheckedCreateNestedManyWithoutPositionInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedCreateNestedManyWithoutPositionInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedCreateNestedManyWithoutTargetPositionInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedCreateNestedManyWithoutTargetPositionInput
   productDistributions?: Prisma.ProductDistributionUncheckedCreateNestedManyWithoutTargetPositionInput
@@ -1614,6 +1767,7 @@ export type PositionUpdateWithoutAssignedAlertsInput = {
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1634,6 +1788,7 @@ export type PositionUncheckedUpdateWithoutAssignedAlertsInput = {
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1666,6 +1821,7 @@ export type PositionUpdateWithoutRoleInput = {
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1686,6 +1842,7 @@ export type PositionUncheckedUpdateWithoutRoleInput = {
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1732,6 +1889,7 @@ export type PositionUpdateWithoutOrganizationUnitInput = {
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1752,6 +1910,7 @@ export type PositionUncheckedUpdateWithoutOrganizationUnitInput = {
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1798,6 +1957,7 @@ export type PositionUpdateWithoutReportsToInput = {
   subordinates?: Prisma.PositionUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUpdateManyWithoutTargetPositionNestedInput
@@ -1818,6 +1978,7 @@ export type PositionUncheckedUpdateWithoutReportsToInput = {
   subordinates?: Prisma.PositionUncheckedUpdateManyWithoutReportsToNestedInput
   roleSeats?: Prisma.OrganizationRoleSeatUncheckedUpdateManyWithoutPositionNestedInput
   assignments?: Prisma.UserSeatAssignmentUncheckedUpdateManyWithoutPositionNestedInput
+  areaCoverages?: Prisma.PositionAreaCoverageUncheckedUpdateManyWithoutPositionNestedInput
   directiveRecipients?: Prisma.DirectiveRecipientUncheckedUpdateManyWithoutTargetPositionNestedInput
   approvalSteps?: Prisma.ProductApprovalStepUncheckedUpdateManyWithoutTargetPositionNestedInput
   productDistributions?: Prisma.ProductDistributionUncheckedUpdateManyWithoutTargetPositionNestedInput
@@ -1846,6 +2007,7 @@ export type PositionCountOutputType = {
   subordinates: number
   roleSeats: number
   assignments: number
+  areaCoverages: number
   directiveRecipients: number
   approvalSteps: number
   productDistributions: number
@@ -1856,6 +2018,7 @@ export type PositionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensio
   subordinates?: boolean | PositionCountOutputTypeCountSubordinatesArgs
   roleSeats?: boolean | PositionCountOutputTypeCountRoleSeatsArgs
   assignments?: boolean | PositionCountOutputTypeCountAssignmentsArgs
+  areaCoverages?: boolean | PositionCountOutputTypeCountAreaCoveragesArgs
   directiveRecipients?: boolean | PositionCountOutputTypeCountDirectiveRecipientsArgs
   approvalSteps?: boolean | PositionCountOutputTypeCountApprovalStepsArgs
   productDistributions?: boolean | PositionCountOutputTypeCountProductDistributionsArgs
@@ -1891,6 +2054,13 @@ export type PositionCountOutputTypeCountRoleSeatsArgs<ExtArgs extends runtime.Ty
  */
 export type PositionCountOutputTypeCountAssignmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.UserSeatAssignmentWhereInput
+}
+
+/**
+ * PositionCountOutputType without action
+ */
+export type PositionCountOutputTypeCountAreaCoveragesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PositionAreaCoverageWhereInput
 }
 
 /**
@@ -1940,6 +2110,7 @@ export type PositionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   subordinates?: boolean | Prisma.Position$subordinatesArgs<ExtArgs>
   roleSeats?: boolean | Prisma.Position$roleSeatsArgs<ExtArgs>
   assignments?: boolean | Prisma.Position$assignmentsArgs<ExtArgs>
+  areaCoverages?: boolean | Prisma.Position$areaCoveragesArgs<ExtArgs>
   directiveRecipients?: boolean | Prisma.Position$directiveRecipientsArgs<ExtArgs>
   approvalSteps?: boolean | Prisma.Position$approvalStepsArgs<ExtArgs>
   productDistributions?: boolean | Prisma.Position$productDistributionsArgs<ExtArgs>
@@ -2003,6 +2174,7 @@ export type PositionInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
   subordinates?: boolean | Prisma.Position$subordinatesArgs<ExtArgs>
   roleSeats?: boolean | Prisma.Position$roleSeatsArgs<ExtArgs>
   assignments?: boolean | Prisma.Position$assignmentsArgs<ExtArgs>
+  areaCoverages?: boolean | Prisma.Position$areaCoveragesArgs<ExtArgs>
   directiveRecipients?: boolean | Prisma.Position$directiveRecipientsArgs<ExtArgs>
   approvalSteps?: boolean | Prisma.Position$approvalStepsArgs<ExtArgs>
   productDistributions?: boolean | Prisma.Position$productDistributionsArgs<ExtArgs>
@@ -2029,6 +2201,7 @@ export type $PositionPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     subordinates: Prisma.$PositionPayload<ExtArgs>[]
     roleSeats: Prisma.$OrganizationRoleSeatPayload<ExtArgs>[]
     assignments: Prisma.$UserSeatAssignmentPayload<ExtArgs>[]
+    areaCoverages: Prisma.$PositionAreaCoveragePayload<ExtArgs>[]
     directiveRecipients: Prisma.$DirectiveRecipientPayload<ExtArgs>[]
     approvalSteps: Prisma.$ProductApprovalStepPayload<ExtArgs>[]
     productDistributions: Prisma.$ProductDistributionPayload<ExtArgs>[]
@@ -2446,6 +2619,7 @@ export interface Prisma__PositionClient<T, Null = never, ExtArgs extends runtime
   subordinates<T extends Prisma.Position$subordinatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$subordinatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PositionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   roleSeats<T extends Prisma.Position$roleSeatsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$roleSeatsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrganizationRoleSeatPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assignments<T extends Prisma.Position$assignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$assignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  areaCoverages<T extends Prisma.Position$areaCoveragesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$areaCoveragesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PositionAreaCoveragePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   directiveRecipients<T extends Prisma.Position$directiveRecipientsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$directiveRecipientsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DirectiveRecipientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   approvalSteps<T extends Prisma.Position$approvalStepsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$approvalStepsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductApprovalStepPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   productDistributions<T extends Prisma.Position$productDistributionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Position$productDistributionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProductDistributionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2979,6 +3153,30 @@ export type Position$assignmentsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.UserSeatAssignmentScalarFieldEnum | Prisma.UserSeatAssignmentScalarFieldEnum[]
+}
+
+/**
+ * Position.areaCoverages
+ */
+export type Position$areaCoveragesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PositionAreaCoverage
+   */
+  select?: Prisma.PositionAreaCoverageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PositionAreaCoverage
+   */
+  omit?: Prisma.PositionAreaCoverageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PositionAreaCoverageInclude<ExtArgs> | null
+  where?: Prisma.PositionAreaCoverageWhereInput
+  orderBy?: Prisma.PositionAreaCoverageOrderByWithRelationInput | Prisma.PositionAreaCoverageOrderByWithRelationInput[]
+  cursor?: Prisma.PositionAreaCoverageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PositionAreaCoverageScalarFieldEnum | Prisma.PositionAreaCoverageScalarFieldEnum[]
 }
 
 /**

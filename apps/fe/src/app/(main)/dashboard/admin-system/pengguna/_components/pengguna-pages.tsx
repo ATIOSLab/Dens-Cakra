@@ -16,7 +16,6 @@ import type {
   UserListFacets,
   UserListItem,
   UserListQueryState,
-  UserRoleCatalogItem,
 } from "./pengguna-types";
 
 type RouteSearchParams = Record<string, string | string[] | undefined>;
@@ -118,11 +117,7 @@ export async function PenggunaListPage({
 export async function PenggunaCreatePage() {
   await requireRole(SYSTEM_ROLES.ADMIN_SYSTEM);
 
-  const rolesResource = await apiServerGet<{ roles: UserRoleCatalogItem[] }>(
-    "/access/roles",
-  );
-
-  return <PenggunaCreateClient roleCatalog={rolesResource.roles} />;
+  return <PenggunaCreateClient />;
 }
 
 export async function PenggunaDetailPage({

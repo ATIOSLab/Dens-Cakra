@@ -1,5 +1,6 @@
 import {
   BellRing,
+  BriefcaseBusiness,
   BrainCircuit,
   ChartColumn,
   ClipboardList,
@@ -336,6 +337,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Pengguna",
         url: "/dashboard/admin-system/pengguna",
         icon: Users,
+        roles: ADMIN_SYSTEM_ROLE,
+      },
+      {
+        id: "admin-system-positions",
+        title: "Jabatan",
+        url: "/dashboard/admin-system/jabatan-reporting-line",
+        icon: BriefcaseBusiness,
         roles: ADMIN_SYSTEM_ROLE,
       },
       {
