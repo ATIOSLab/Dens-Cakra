@@ -8,6 +8,7 @@ import { Cpu } from "lucide-react";
 import { toast } from "sonner";
 import { ZodError } from "zod";
 
+import { GenerateLoading } from "@/components/generate-loading";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +43,7 @@ import type {
   RegionalMasterDirectorate,
   RegionalMasterOverview,
 } from "@/features/directives/types";
+import { useGenerateLoading } from "@/hooks/useGenerateLoading";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { ApiClientError } from "@/lib/api/errors";
 import { classificationBadgeClass } from "@/lib/classification";
@@ -411,6 +413,7 @@ export function DirectiveFormClient({
   directive,
 }: DirectiveFormClientProps) {
   const router = useRouter();
+  const generateLoading = useGenerateLoading({ settleMs: 700 });
   const currentVersion = directive ? getCurrentVersion(directive) : undefined;
   const parsedDescription = parseDirectiveCommandDescription(currentVersion?.commandDescription);
   const [isSaving, setIsSaving] = useState(false);
@@ -480,9 +483,9 @@ export function DirectiveFormClient({
 
   const filledUukSectionCount = countFilledStructuredSections(uukSections);
   const activeUukSection = uukSections[activeUukSectionIndex] ?? uukSections[0];
-  const activeUukSectionFilled = Boolean(activeUukSection?.content.trim());
+  const _activeUukSectionFilled = Boolean(activeUukSection?.content.trim());
 
-  function updateUukSection(sectionType: string, content: string) {
+  function _updateUukSection(sectionType: string, content: string) {
     setUukSections((current) =>
       current.map((section) => (section.sectionType === sectionType ? { ...section, content } : section)),
     );
@@ -492,6 +495,10 @@ export function DirectiveFormClient({
     if (!strategicIssue.trim()) {
       toast.error("Isu Strategis wajib diisi sebelum menggunakan AI Recommendation.");
       return;
+    }
+
+    if (scope === "full") {
+      generateLoading.start();
     }
 
     setGeneratingScope(scope);
@@ -535,6 +542,7 @@ export function DirectiveFormClient({
 
       if (scope === "full") {
         setHasGeneratedDraft(true);
+        generateLoading.complete();
       }
 
       const successMessages: Record<DirectiveAiScope, string> = {
@@ -546,7 +554,13 @@ export function DirectiveFormClient({
       };
       toast.success(successMessages[scope]);
     } catch (error) {
-      toast.error(getDirectiveFormErrorMessage(error));
+      const errorMessage = getDirectiveFormErrorMessage(error);
+
+      if (scope === "full") {
+        generateLoading.fail(errorMessage);
+      }
+
+      toast.error(errorMessage);
     } finally {
       setGeneratingScope(null);
     }
@@ -668,6 +682,20 @@ export function DirectiveFormClient({
 
   return (
     <div className="space-y-6">
+      <GenerateLoading
+        open={generateLoading.isOpen}
+        progress={generateLoading.progress}
+        currentStep={generateLoading.currentStep}
+        status={generateLoading.status}
+        estimatedTime={generateLoading.estimatedTime}
+        longRunning={generateLoading.longRunning}
+        activeFact={generateLoading.activeFact}
+        errorMessage={generateLoading.errorMessage}
+        onRetry={() => {
+          void generateDirectiveRecommendation("full");
+        }}
+      />
+
       <AlertDialog open={Boolean(formErrorMessage)} onOpenChange={(open) => !open && setFormErrorMessage(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -695,11 +723,7 @@ export function DirectiveFormClient({
               </div>
               <div className="space-y-2 text-sm">
                 <span>Klasifikasi</span>
-                <Select
-                  value={classification}
-                  onValueChange={setClassification}
-                  disabled={mode === "edit"}
-                >
+                <Select value={classification} onValueChange={setClassification} disabled={mode === "edit"}>
                   <SelectTrigger className="h-12 w-full rounded-md border-[var(--dc-border-subtle)] bg-background/50 text-[var(--dc-text-primary)] focus:border-[var(--dc-primary)]/50 focus:ring-0">
                     <span className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(classification)}`}>
                       {formatClassificationLabel(classification)}
@@ -750,7 +774,7 @@ export function DirectiveFormClient({
                 <Select value={urgency} onValueChange={setUrgency}>
                   <SelectTrigger className="h-12 w-full rounded-md border-[var(--dc-border-subtle)] bg-background/50 text-[var(--dc-text-primary)] focus:border-[var(--dc-primary)]/50 focus:ring-0">
                     <span
-                      className="dc-priority inline-flex rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider"
+                      className="dc-priority inline-flex rounded-md border px-2 py-0.5 font-mono font-semibold text-[10px] uppercase tracking-wider"
                       data-priority={urgency}
                     >
                       {urgency}
@@ -760,7 +784,7 @@ export function DirectiveFormClient({
                     {URGENCY_OPTIONS.map((item) => (
                       <SelectItem key={item} value={item}>
                         <span
-                          className="dc-priority inline-flex rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider"
+                          className="dc-priority inline-flex rounded-md border px-2 py-0.5 font-mono font-semibold text-[10px] uppercase tracking-wider"
                           data-priority={item}
                         >
                           {item}
@@ -949,96 +973,6 @@ export function DirectiveFormClient({
               <div className="text-muted-foreground text-sm">
                 Isi minimal satu bagian UUK/KIQ/PIR agar STR dapat menjadi starting object yang jelas untuk regional.
               </div>
-            </div>
-
-            <div className="space-y-4 rounded-xl border border-border/70 bg-card/60 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold">Wizard Isi UUK</div>
-                  <div className="text-muted-foreground text-sm">
-                    Isi satu bagian, lalu lanjut ke bagian berikutnya.
-                  </div>
-                </div>
-                <Badge
-                  variant="outline"
-                  className={
-                    activeUukSectionFilled
-                      ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                      : "border-border bg-muted/35 text-muted-foreground"
-                  }
-                >
-                  {activeUukSectionFilled ? "Bagian terisi" : "Belum diisi"}
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {uukSections.map((section, index) => {
-                  const isActive = index === activeUukSectionIndex;
-                  const isFilled = Boolean(section.content.trim());
-
-                  return (
-                    <button
-                      key={section.sectionType}
-                      type="button"
-                      aria-pressed={isActive}
-                      onClick={() => setActiveUukSectionIndex(index)}
-                      className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
-                        isActive
-                          ? "border-[var(--dc-primary)] bg-[var(--dc-primary-soft)] text-[var(--dc-primary)] shadow-sm"
-                          : isFilled
-                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 hover:border-emerald-500/45 dark:text-emerald-300"
-                            : "border-border bg-background/60 text-muted-foreground hover:border-[var(--dc-primary)]/45 hover:text-foreground"
-                      }`}
-                    >
-                      <span className="block font-semibold">Bagian {section.orderNumber}</span>
-                      <span className="mt-0.5 block truncate">{section.title}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {activeUukSection ? (
-                <div className="space-y-3 rounded-xl border border-border/70 bg-background/70 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
-                        Bagian {activeUukSection.orderNumber} dari {uukSections.length}
-                      </div>
-                      <div className="mt-1 font-semibold text-lg">{activeUukSection.title}</div>
-                    </div>
-                    <Badge variant="outline">{activeUukSection.sectionType}</Badge>
-                  </div>
-                  <Textarea
-                    value={activeUukSection.content}
-                    onChange={(event) => updateUukSection(activeUukSection.sectionType, event.target.value)}
-                    className="min-h-60 w-full min-w-0 resize-y"
-                    placeholder={`Isi ${activeUukSection.title.toLowerCase()}...`}
-                  />
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setActiveUukSectionIndex((current) => Math.max(0, current - 1))}
-                      disabled={activeUukSectionIndex === 0}
-                    >
-                      Sebelumnya
-                    </Button>
-                    <div className="text-muted-foreground text-xs">
-                      {activeUukSectionIndex + 1} / {uukSections.length}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        setActiveUukSectionIndex((current) => Math.min(uukSections.length - 1, current + 1))
-                      }
-                      disabled={activeUukSectionIndex >= uukSections.length - 1}
-                    >
-                      Berikutnya
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
             </div>
           </CardContent>
           <CardFooter className="justify-between">
