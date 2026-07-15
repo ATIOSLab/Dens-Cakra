@@ -29,6 +29,7 @@ export type FieldOfficerTask = {
   targetAreas: string[];
   assignerName: string | null;
   progressSummary: string;
+  classification: string | null;
 };
 
 export type FieldOfficerJaring = {

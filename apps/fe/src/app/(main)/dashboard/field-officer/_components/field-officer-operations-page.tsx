@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import type {
   FieldOfficerIncoming,
@@ -171,6 +172,47 @@ function nextTaskAction(status: string) {
   return null;
 }
 
+function getClassificationStyles(value?: string | null) {
+  const norm = (value ?? "").toUpperCase();
+  switch (norm) {
+    case "BIASA":
+      return {
+        color: "#3B82F6", // Blue
+        bgColor: "#3B82F615",
+        borderColor: "#3B82F630",
+        label: "BIASA",
+      };
+    case "TERBATAS":
+      return {
+        color: "#10B981", // Green
+        bgColor: "#10B98115",
+        borderColor: "#10B98130",
+        label: "TERBATAS",
+      };
+    case "RAHASIA":
+      return {
+        color: "#F59E0B", // Yellow/Gold
+        bgColor: "#F59E0B15",
+        borderColor: "#F59E0B30",
+        label: "RAHASIA",
+      };
+    case "SANGAT_RAHASIA":
+      return {
+        color: "#EF4444", // Red
+        bgColor: "#EF444415",
+        borderColor: "#EF444430",
+        label: "SANGAT RAHASIA",
+      };
+    default:
+      return {
+        color: "#7C8798", // Gray
+        bgColor: "#7C879815",
+        borderColor: "#7C879830",
+        label: value ?? "BIASA",
+      };
+  }
+}
+
 export function FieldOfficerOperationsPage({
   view,
 }: {
@@ -205,6 +247,34 @@ export function FieldOfficerOperationsPage({
   const [appliedBaketFilters, setAppliedBaketFilters] = useState(EMPTY_BAKET_FILTERS);
   const [pendingAction, setPendingAction] =
     useState<PendingFieldOfficerAction | null>(null);
+
+  const [taskViewMode, setTaskViewMode] = useState<"card" | "table">("card");
+  const [taskClassificationFilter, setTaskClassificationFilter] = useState("");
+  const [taskPeriodStart, setTaskPeriodStart] = useState("");
+  const [taskPeriodEnd, setTaskPeriodEnd] = useState("");
+
+  const filteredTasks = useMemo(() => {
+    if (!workspace?.tasks) return [];
+    return workspace.tasks.filter((task) => {
+      if (taskClassificationFilter && task.classification !== taskClassificationFilter) {
+        return false;
+      }
+      if (task.dueDate) {
+        const taskTime = new Date(task.dueDate).getTime();
+        if (taskPeriodStart) {
+          const startTime = new Date(`${taskPeriodStart}T00:00:00`).getTime();
+          if (taskTime < startTime) return false;
+        }
+        if (taskPeriodEnd) {
+          const endTime = new Date(`${taskPeriodEnd}T23:59:59`).getTime();
+          if (taskTime > endTime) return false;
+        }
+      } else if (taskPeriodStart || taskPeriodEnd) {
+        return false;
+      }
+      return true;
+    });
+  }, [workspace?.tasks, taskClassificationFilter, taskPeriodStart, taskPeriodEnd]);
 
   useEffect(() => {
     const raw = window.sessionStorage.getItem(FORWARDED_STORAGE_KEY);
@@ -794,7 +864,7 @@ export function FieldOfficerOperationsPage({
             </div>
             <div className="space-y-1 md:border-l md:border-[var(--tactical-border)] md:pl-4">
               <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--tactical-text-muted)] block">
-                SCOPE AREA
+                WILAYAH CAKUPAN
               </span>
               <p className="text-xs text-[var(--tactical-text-secondary)] truncate" title={workspace.context.areaScopes.map((item) => item.name).join(", ")}>
                 {workspace.context.areaScopes.map((item) => item.name).join(", ").toUpperCase()}
@@ -869,31 +939,188 @@ export function FieldOfficerOperationsPage({
               { label: "AKTIF", value: metrics.activeTasks }
             ]}
           >
-            {workspace.tasks.length === 0 ? (
-              <TacticalEmptyState
-                title="Tidak ada Tugas aktif"
-                description="Semua penugasan operasional telah selesai dilaksanakan atau belum dijadwalkan."
-                icon={CheckCircle2}
-              />
-            ) : (
-              <div className="grid gap-4">
-                {workspace.tasks.map((task) => {
-                  const action = nextTaskAction(task.assignmentStatus);
-                  const forwarded = forwardedAssignments.includes(task.assignmentId);
-                  return (
-                    <TaskCard
-                      key={task.assignmentId}
-                      task={task}
-                      action={action}
-                      forwarded={forwarded}
-                      isBusy={isBusy === `task:${task.assignmentId}:${action?.nextStatus}`}
-                      onUpdateStatus={(nextStatus) => void updateTaskStatus(task.assignmentId, nextStatus)}
-                      onForwardToggle={() => handleForwardToggle(task.assignmentId)}
-                    />
-                  );
-                })}
+            <div className="space-y-4">
+              {/* Task filters */}
+              <div className="grid gap-3 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] p-4 sm:grid-cols-3 items-end">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798]">
+                    Klasifikasi
+                  </label>
+                  <select
+                    value={taskClassificationFilter}
+                    onChange={(e) => setTaskClassificationFilter(e.target.value)}
+                    className="w-full h-9 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131A26] px-3 text-sm text-slate-900 dark:text-white"
+                  >
+                    <option value="">Semua Klasifikasi</option>
+                    <option value="BIASA">BIASA</option>
+                    <option value="TERBATAS">TERBATAS</option>
+                    <option value="RAHASIA">RAHASIA</option>
+                    <option value="SANGAT_RAHASIA">SANGAT RAHASIA</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798]">
+                    Tanggal Mulai
+                  </label>
+                  <Input
+                    type="date"
+                    value={taskPeriodStart}
+                    onChange={(e) => setTaskPeriodStart(e.target.value)}
+                    className="w-full h-9 border-slate-200 dark:border-white/10 bg-white dark:bg-[#131A26] text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798]">
+                    Tanggal Selesai
+                  </label>
+                  <Input
+                    type="date"
+                    value={taskPeriodEnd}
+                    onChange={(e) => setTaskPeriodEnd(e.target.value)}
+                    className="w-full h-9 border-slate-200 dark:border-white/10 bg-white dark:bg-[#131A26] text-sm"
+                  />
+                </div>
               </div>
-            )}
+
+              {/* View toggle */}
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
+                <span className="font-mono text-[11px] font-bold text-slate-500 dark:text-[#7C8798] uppercase">
+                  Daftar Tugas ({filteredTasks.length})
+                </span>
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
+                  <Button
+                    variant={taskViewMode === "card" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setTaskViewMode("card")}
+                    className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+                  >
+                    Card
+                  </Button>
+                  <Button
+                    variant={taskViewMode === "table" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setTaskViewMode("table")}
+                    className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+                  >
+                    Table
+                  </Button>
+                </div>
+              </div>
+
+              {filteredTasks.length === 0 ? (
+                <TacticalEmptyState
+                  title="Tidak ada Tugas aktif"
+                  description="Semua penugasan operasional telah selesai dilaksanakan atau tidak cocok dengan filter."
+                  icon={CheckCircle2}
+                />
+              ) : taskViewMode === "table" ? (
+                <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">Klasifikasi & Prioritas</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Judul Tugas</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Status Asal</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Target Area</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Batas Waktu</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredTasks.map((task) => {
+                          const action = nextTaskAction(task.assignmentStatus);
+                          const forwarded = forwardedAssignments.includes(task.assignmentId);
+                          const classStyle = getClassificationStyles(task.classification || "BIASA");
+                          return (
+                            <TableRow key={task.assignmentId} className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                              <TableCell className="pl-6 py-4">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span 
+                                    className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
+                                    style={{
+                                      color: classStyle.color,
+                                      backgroundColor: classStyle.bgColor,
+                                      borderColor: classStyle.borderColor,
+                                    }}
+                                  >
+                                    {classStyle.label}
+                                  </span>
+                                  <span 
+                                    className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-[#7C8798]"
+                                  >
+                                    {task.priority}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4 w-[320px] max-w-[320px]">
+                                <div className="space-y-1 min-w-0">
+                                  <h4 className="truncate font-bold text-sm text-slate-900 dark:text-white" title={task.title}>
+                                    {task.title}
+                                  </h4>
+                                  <p className="truncate text-xs text-slate-500 dark:text-[#94A3B8] leading-relaxed" title={task.description}>
+                                    {task.description}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span className={`px-2 py-0.5 text-[10px] font-mono rounded border ${statusTone(task.assignmentStatus)}`}>
+                                    {task.assignmentStatus}
+                                  </span>
+                                  {forwarded && (
+                                    <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-500 font-semibold">
+                                      FORWARDED
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
+                                {task.targetAreas.join(", ") || "—"}
+                              </TableCell>
+                              <TableCell className="py-4 font-mono text-xs text-slate-500 dark:text-[#7C8798] whitespace-nowrap">
+                                {task.dueDate ? formatDateTime(task.dueDate) : "—"}
+                              </TableCell>
+                              <TableCell className="pr-6 py-4 text-right">
+                                <Button 
+                                  asChild 
+                                  variant="ghost"
+                                  className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-8 px-3 transition-all duration-[150ms] ease-out cursor-pointer"
+                                >
+                                  <Link href={`/dashboard/field-officer/tugas-saya/${task.assignmentId}`}>
+                                    <span>Buka</span>
+                                  </Link>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {filteredTasks.map((task) => {
+                    const action = nextTaskAction(task.assignmentStatus);
+                    const forwarded = forwardedAssignments.includes(task.assignmentId);
+                    return (
+                      <TaskCard
+                        key={task.assignmentId}
+                        task={task}
+                        action={action}
+                        forwarded={forwarded}
+                        isBusy={isBusy === `task:${task.assignmentId}:${action?.nextStatus}`}
+                        onUpdateStatus={(nextStatus) => void updateTaskStatus(task.assignmentId, nextStatus)}
+                        onForwardToggle={() => handleForwardToggle(task.assignmentId)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </TacticalSection>
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>
@@ -1877,14 +2104,22 @@ export function FieldOfficerOperationsPage({
 /* HELPER COMPONENTS */
 
 function MetricCard({ label, value }: { label: string; value: number }) {
+  const isZero = value === 0;
   return (
-    <div className="rounded-[4px] border border-slate-200 dark:border-[#2A3445] bg-slate-50 dark:bg-[#0F172A] p-3 text-center space-y-1 hover:border-[#0EA5E9]/50 transition-all duration-180">
-      <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200 dark:border-[#2A3445]/30 pb-1 mb-1">
-        {label}
-      </p>
-      <p className="font-mono text-2xl font-bold text-[var(--tactical-text-primary)]">
-        {value}
-      </p>
+    <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+      {/* Decorative vertical stripe */}
+      <div 
+        className="absolute left-0 top-0 bottom-0 w-1" 
+        style={{ backgroundColor: isZero ? "#7C8798" : "#0EA5E9" }} 
+      />
+      <div className="space-y-1 pl-1">
+        <p className="text-[8.5px] font-mono uppercase tracking-wider text-slate-500 dark:text-[#7C8798] font-bold whitespace-nowrap">
+          {label}
+        </p>
+        <p className="text-3xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
+          {value}
+        </p>
+      </div>
     </div>
   );
 }
@@ -1940,11 +2175,11 @@ function TacticalSection({
 
         {/* Section Metadata */}
         {metadata && metadata.length > 0 && (
-          <div className="flex gap-4 font-mono text-[10px] text-[var(--tactical-text-muted)] bg-black/5 dark:bg-white/[0.01] px-3 py-1.5 rounded-[4px] border border-[var(--tactical-border)]">
+          <div className="flex gap-6 font-mono bg-slate-50 dark:bg-slate-900/40 px-4 py-2 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm">
             {metadata.slice(0, 2).map((meta, i) => (
-              <div key={i} className="flex flex-col">
-                <span className="text-[8px] uppercase tracking-wider text-[var(--tactical-text-muted)]">{meta.label}</span>
-                <span className="text-[var(--tactical-text-secondary)] font-semibold mt-0.5">{meta.value}</span>
+              <div key={i} className="flex flex-col items-center px-1">
+                <span className="text-[9px] uppercase tracking-widest text-slate-500 dark:text-[#7C8798] font-bold">{meta.label}</span>
+                <span className="text-lg font-bold text-slate-950 dark:text-white mt-0.5">{meta.value}</span>
               </div>
             ))}
           </div>
@@ -2022,7 +2257,7 @@ function TaskCard({
 
       {/* Content Panel */}
       <div className="py-4 border-b border-[var(--tactical-border)]">
-        <h3 className="text-xl font-bold tracking-tight text-[var(--tactical-text-primary)] mb-[20px]">
+        <h3 className="mb-[20px] truncate text-xl font-bold tracking-tight text-[var(--tactical-text-primary)]" title={task.title}>
           {task.title}
         </h3>
         <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed mb-[20px]">

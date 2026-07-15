@@ -1,20 +1,26 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { CheckCircle2, FileText, Printer, RotateCcw, ShieldCheck } from "lucide-react";
+import { CheckCircle2, FileText, Grid2X2, List, Printer, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { classificationBadgeClass, isClassification } from "@/lib/classification";
+import { cn } from "@/lib/utils";
 
 type DataRecord = Record<string, unknown>;
 
@@ -64,6 +70,15 @@ function statusLabel(value: unknown) {
 
 function StatusBadge({ value }: { value: unknown }) {
   const status = text(value, "");
+
+  if (isClassification(status)) {
+    return (
+      <Badge variant="outline" className={classificationBadgeClass(status)}>
+        {statusLabel(value)}
+      </Badge>
+    );
+  }
+
   const approved = status.startsWith("APPROVED") || status === "VALIDATED";
   const rejected = status === "REJECTED" || status === "NEEDS_REVISION";
   return <Badge variant={rejected ? "destructive" : approved ? "default" : "secondary"}>{statusLabel(value)}</Badge>;
@@ -71,6 +86,463 @@ function StatusBadge({ value }: { value: unknown }) {
 
 function approvalProduct(step: DataRecord) {
   return record(record(record(step.workflow).productVersion).product);
+}
+
+const ALL_VALUE = "__all__";
+const CLASSIFICATION_OPTIONS = ["BIASA", "TERBATAS", "RAHASIA", "SANGAT_RAHASIA"] as const;
+
+type ProductViewMode = "card" | "table";
+
+function dateInputValue(value: unknown) {
+  if (typeof value !== "string" || !value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+}
+
+function productTypeLabel(product: DataRecord) {
+  const productType = record(product.productType);
+  return text(productType.name, text(productType.code, "Laporan Intelijen"));
+}
+
+function ownerUnitLabel(product: DataRecord) {
+  const ownerUnit = record(product.ownerUnit);
+  return text(ownerUnit.name, "Unit belum terpetakan");
+}
+
+function uniqueOptions(items: DataRecord[], getOption: (item: DataRecord) => { value: string; label: string }) {
+  const options = new Map<string, string>();
+  for (const item of items) {
+    const option = getOption(item);
+    if (option.value && !options.has(option.value)) options.set(option.value, option.label);
+  }
+  return [...options.entries()].map(([value, label]) => ({ value, label }));
+}
+
+function paginationNumbers(currentPage: number, totalPages: number) {
+  const pages = new Set([1, totalPages, currentPage, currentPage - 1, currentPage + 1]);
+  return [...pages].filter((page) => page >= 1 && page <= totalPages).sort((a, b) => a - b);
+}
+
+function ProductBrowser({
+  items,
+  basePath,
+  approvalSteps = [],
+}: {
+  items: DataRecord[];
+  basePath: string;
+  approvalSteps?: DataRecord[];
+}) {
+  const [viewMode, setViewMode] = useState<ProductViewMode>("card");
+  const [search, setSearch] = useState("");
+  const [periodFrom, setPeriodFrom] = useState("");
+  const [periodTo, setPeriodTo] = useState("");
+  const [productTypeId, setProductTypeId] = useState(ALL_VALUE);
+  const [classification, setClassification] = useState(ALL_VALUE);
+  const [ownerUnitId, setOwnerUnitId] = useState(ALL_VALUE);
+  const [decisionFilter, setDecisionFilter] = useState(approvalSteps && approvalSteps.length > 0 ? "approval" : "all");
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(1);
+
+  const productTypeOptions = useMemo(
+    () =>
+      uniqueOptions(items, (product) => {
+        const productType = record(product.productType);
+        return { value: text(product.productTypeId, text(productType.id, "")), label: productTypeLabel(product) };
+      }),
+    [items],
+  );
+  const classificationOptions = CLASSIFICATION_OPTIONS.map((value) => ({ value, label: statusLabel(value) }));
+  const selectedClassification = classificationOptions.find((option) => option.value === classification);
+  const unitOptions = useMemo(
+    () =>
+      uniqueOptions(items, (product) => {
+        const ownerUnit = record(product.ownerUnit);
+        return { value: text(product.ownerUnitId, text(ownerUnit.id, "")), label: ownerUnitLabel(product) };
+      }),
+    [items],
+  );
+
+  const updateFilter = (callback: () => void) => {
+    callback();
+    setPage(1);
+  };
+
+  const filteredItems = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    const fromTime = periodFrom ? new Date(`${periodFrom}T00:00:00.000Z`).getTime() : null;
+    const toTime = periodTo ? new Date(`${periodTo}T23:59:59.999Z`).getTime() : null;
+
+    return items.filter((product) => {
+      const haystack = [
+        product.title,
+        product.productNumber,
+        productTypeLabel(product),
+        ownerUnitLabel(product),
+        product.status,
+        product.classification,
+      ]
+        .map((value) => text(value, "").toLowerCase())
+        .join(" ");
+      if (normalizedSearch && !haystack.includes(normalizedSearch)) return false;
+
+      if (
+        productTypeId !== ALL_VALUE &&
+        text(product.productTypeId, text(record(product.productType).id, "")) !== productTypeId
+      ) {
+        return false;
+      }
+      if (classification !== ALL_VALUE && text(product.classification, "") !== classification) return false;
+      if (
+        ownerUnitId !== ALL_VALUE &&
+        text(product.ownerUnitId, text(record(product.ownerUnit).id, "")) !== ownerUnitId
+      ) {
+        return false;
+      }
+
+      if (approvalSteps && decisionFilter === "approval") {
+        const hasApproval = approvalSteps.some((step) => text(approvalProduct(step).id, "") === text(product.id, ""));
+        if (!hasApproval) return false;
+      }
+
+      const start = dateInputValue(product.periodStart);
+      const end = dateInputValue(product.periodEnd) || start;
+      const startTime = start ? new Date(`${start}T00:00:00.000Z`).getTime() : null;
+      const endTime = end ? new Date(`${end}T23:59:59.999Z`).getTime() : startTime;
+      if (fromTime !== null && endTime !== null && endTime < fromTime) return false;
+      if (toTime !== null && startTime !== null && startTime > toTime) return false;
+
+      return true;
+    });
+  }, [classification, items, ownerUnitId, periodFrom, periodTo, productTypeId, search, decisionFilter, approvalSteps]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / rowsPerPage));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = filteredItems.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+  const startRow = filteredItems.length ? (safePage - 1) * rowsPerPage + 1 : 0;
+  const endRow = Math.min(safePage * rowsPerPage, filteredItems.length);
+
+  const renderAction = (product: DataRecord) => {
+    const approvalStep = approvalSteps.find((step) => text(approvalProduct(step).id, "") === text(product.id, ""));
+    const detailHref = approvalStep
+      ? `${basePath}/${text(product.id)}?approvalStepId=${text(approvalStep.id)}`
+      : `${basePath}/${text(product.id)}`;
+    return (
+      <Button asChild variant={approvalStep ? "default" : "outline"}>
+        <Link href={detailHref}>{approvalStep ? "Review & putuskan" : "Buka produk"}</Link>
+      </Button>
+    );
+  };
+
+  if (!items.length) {
+    return (
+      <Card>
+        <CardContent className="py-14 text-center text-sm text-muted-foreground">
+          Belum ada Produk Intelijen pada tahap ini.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="grid gap-2">
+              <Label htmlFor="product-search">Cari produk</Label>
+              <Input
+                id="product-search"
+                value={search}
+                onChange={(event) => updateFilter(() => setSearch(event.target.value))}
+                placeholder="Judul, nomor, jenis laporan, unit..."
+                className="min-w-72"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Tampilan
+              </Label>
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(value) => value && setViewMode(value as ProductViewMode)}
+                className="border border-border/80 bg-slate-100/50 dark:bg-slate-900/40 rounded-xl p-1 flex items-center gap-1"
+                aria-label="Mode tampilan produk"
+              >
+                <ToggleGroupItem
+                  value="card"
+                  className={cn(
+                    "size-8 rounded-lg cursor-pointer transition-all duration-200 border-0 flex items-center justify-center",
+                    viewMode === "card"
+                      ? "bg-blue-600 text-white hover:bg-blue-600 hover:text-white dark:bg-blue-600 dark:text-white dark:hover:bg-blue-600"
+                      : "bg-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                  )}
+                  aria-label="Tampilkan sebagai card"
+                >
+                  <Grid2X2 className="size-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="table"
+                  className={cn(
+                    "size-8 rounded-lg cursor-pointer transition-all duration-200 border-0 flex items-center justify-center",
+                    viewMode === "table"
+                      ? "bg-blue-600 text-white hover:bg-blue-600 hover:text-white dark:bg-blue-600 dark:text-white dark:hover:bg-blue-600"
+                      : "bg-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                  )}
+                  aria-label="Tampilkan sebagai tabel"
+                >
+                  <List className="size-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          </div>
+
+          <div className={cn(
+            "grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+            approvalSteps && approvalSteps.length > 0 ? "2xl:grid-cols-6" : "2xl:grid-cols-5"
+          )}>
+            <div className="grid gap-2">
+              <Label htmlFor="period-from">Periode dari</Label>
+              <Input
+                id="period-from"
+                type="date"
+                value={periodFrom}
+                onChange={(event) => updateFilter(() => setPeriodFrom(event.target.value))}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="period-to">Periode sampai</Label>
+              <Input
+                id="period-to"
+                type="date"
+                value={periodTo}
+                onChange={(event) => updateFilter(() => setPeriodTo(event.target.value))}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Jenis laporan</Label>
+              <Select value={productTypeId} onValueChange={(value) => updateFilter(() => setProductTypeId(value))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value={ALL_VALUE}>Semua jenis laporan</SelectItem>
+                  {productTypeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Klasifikasi</Label>
+              <Select value={classification} onValueChange={(value) => updateFilter(() => setClassification(value))}>
+                <SelectTrigger className="w-full">
+                  {classification !== ALL_VALUE && selectedClassification ? (
+                    <span
+                      className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(
+                        selectedClassification.value,
+                      )}`}
+                    >
+                      {selectedClassification.label}
+                    </span>
+                  ) : (
+                    <SelectValue />
+                  )}
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value={ALL_VALUE}>Semua klasifikasi</SelectItem>
+                  {classificationOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(option.value)}`}>
+                        {option.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Unit</Label>
+              <Select value={ownerUnitId} onValueChange={(value) => updateFilter(() => setOwnerUnitId(value))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value={ALL_VALUE}>Semua unit</SelectItem>
+                  {unitOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {approvalSteps && approvalSteps.length > 0 && (
+              <div className="grid gap-2">
+                <Label>Status Keputusan</Label>
+                <Select value={decisionFilter} onValueChange={(value) => updateFilter(() => setDecisionFilter(value))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value="all">Semua Produk ({items.length})</SelectItem>
+                    <SelectItem value="approval">Perlu Keputusan ({approvalSteps.length})</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {pageItems.length ? (
+        viewMode === "card" ? (
+          <div className="grid gap-3">
+            {pageItems.map((product) => {
+              const approvalStep = approvalSteps?.find(
+                (step) => text(approvalProduct(step).id, "") === text(product.id, ""),
+              );
+              return (
+                <Card key={text(product.id)} size="sm">
+                  <CardContent className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+                    <div className="flex items-start gap-3">
+                      <div className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary mt-1">
+                        <FileText className="size-5" />
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap gap-2">
+                          <StatusBadge value={product.classification} />
+                          <StatusBadge value={product.status} />
+                          {approvalStep ? <Badge variant="outline" className="border-sky-500/30 text-sky-500 bg-sky-500/5">Perlu keputusan regional</Badge> : null}
+                        </div>
+                        <h2 className="mt-2 font-medium">{text(product.title, "Laporan Intelijen")}</h2>
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">
+                          {text(product.productNumber, "Nomor otomatis")} - {productTypeLabel(product)}
+                        </p>
+                        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground/80 font-medium">
+                          <span className="size-1.5 rounded-full bg-blue-500" />
+                          <span>Unit Pengirim: {ownerUnitLabel(product)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {renderAction(product)}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="overflow-x-auto p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nomor</TableHead>
+                    <TableHead>Judul produk</TableHead>
+                    <TableHead>Jenis</TableHead>
+                    <TableHead>Klasifikasi</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead>Periode</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pageItems.map((product) => (
+                    <TableRow key={text(product.id)}>
+                      <TableCell className="font-mono text-xs">{text(product.productNumber, "-")}</TableCell>
+                      <TableCell className="min-w-72 font-medium">{text(product.title, "Laporan Intelijen")}</TableCell>
+                      <TableCell>{productTypeLabel(product)}</TableCell>
+                      <TableCell>
+                        <StatusBadge value={product.classification} />
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge value={product.status} />
+                      </TableCell>
+                      <TableCell className="min-w-56">{ownerUnitLabel(product)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                        {dateInputValue(product.periodStart) || "-"} s.d. {dateInputValue(product.periodEnd) || "-"}
+                      </TableCell>
+                      <TableCell className="text-right">{renderAction(product)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )
+      ) : (
+        <Card>
+          <CardContent className="py-14 text-center text-sm text-muted-foreground">
+            Tidak ada produk yang cocok dengan filter.
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardContent className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Menampilkan{" "}
+            <span className="font-semibold text-foreground">
+              {startRow}-{endRow}
+            </span>{" "}
+            dari <span className="font-semibold text-foreground">{filteredItems.length}</span> produk.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">Baris</Label>
+              <Select
+                value={String(rowsPerPage)}
+                onValueChange={(value) => {
+                  setRowsPerPage(Number(value));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 10, 20, 50].map((value) => (
+                    <SelectItem key={value} value={String(value)}>
+                      {value} baris
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                disabled={safePage <= 1}
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+              >
+                Previous
+              </Button>
+              {paginationNumbers(safePage, totalPages).map((pageNumber) => (
+                <Button
+                  key={pageNumber}
+                  variant={pageNumber === safePage ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => setPage(pageNumber)}
+                >
+                  {pageNumber}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function ProductRows({
@@ -150,22 +622,7 @@ export function IntelligenceProductList({
         <h1 className="mt-1 font-heading text-2xl font-semibold">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
-      {approvalData === undefined ? (
-        <ProductRows items={products} basePath={basePath} />
-      ) : (
-        <Tabs defaultValue={approvalSteps.length ? "approval" : "all"}>
-          <TabsList>
-            <TabsTrigger value="approval">Perlu keputusan ({approvalSteps.length})</TabsTrigger>
-            <TabsTrigger value="all">Semua produk ({products.length})</TabsTrigger>
-          </TabsList>
-          <TabsContent value="approval" className="mt-4">
-            <ApprovalQueue steps={approvalSteps} basePath={basePath} />
-          </TabsContent>
-          <TabsContent value="all" className="mt-4">
-            <ProductRows items={products} basePath={basePath} approvalSteps={approvalSteps} />
-          </TabsContent>
-        </Tabs>
-      )}
+      <ProductBrowser items={products} basePath={basePath} approvalSteps={approvalData !== undefined ? approvalSteps : undefined} />
     </main>
   );
 }

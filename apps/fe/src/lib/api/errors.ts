@@ -4,7 +4,7 @@ export class ApiClientError extends Error {
   readonly status: number;
   readonly code: string;
   readonly requestId?: string;
-  readonly fields?: Record<string, string[]>;
+  readonly fields?: Record<string, string[]> | Array<{ field: string; code?: string; message: string }>;
   readonly details?: unknown;
 
   constructor(status: number, envelope: ApiErrorEnvelope | null, fallbackMessage: string) {

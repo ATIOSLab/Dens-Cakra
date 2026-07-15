@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { directiveEditSchema, directiveWizardSchema } from "@/features/directives/schemas";
@@ -44,6 +44,7 @@ import type {
 } from "@/features/directives/types";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { ApiClientError } from "@/lib/api/errors";
+import { classificationBadgeClass } from "@/lib/classification";
 
 import { deriveDirectiveRecipients, deriveRegionalRecipientPreview } from "./directive-distribution";
 import { getCurrentVersion, normalizeProvinceSelection } from "./directive-shared";
@@ -71,6 +72,12 @@ type DirectiveAiResponse = {
   commandNarrative?: string;
   sections: Record<string, string>;
 };
+
+const CLASSIFICATION_OPTIONS = ["BIASA", "TERBATAS", "RAHASIA", "SANGAT_RAHASIA"] as const;
+
+function formatClassificationLabel(value: string) {
+  return value.replaceAll("_", " ");
+}
 
 function uniqBy<T>(items: T[], getKey: (item: T) => string) {
   const seen = new Set<string>();
@@ -350,9 +357,13 @@ function extractValidationMessages(value: unknown): string[] {
   return [];
 }
 
-function extractApiFieldMessages(fields?: Record<string, string[]>) {
+function extractApiFieldMessages(fields?: Record<string, string[]> | Array<{ field: string; message: string }>) {
   if (!fields) {
     return [];
+  }
+
+  if (Array.isArray(fields)) {
+    return fields.map((field) => formatValidationMessage(field.field, field.message));
   }
 
   return Object.entries(fields).flatMap(([field, messages]) =>
@@ -416,6 +427,7 @@ export function DirectiveFormClient({
   const [uukSections, setUukSections] = useState<StructuredDirectiveUukSection[]>(
     parsedDescription.uukSections.length ? parsedDescription.uukSections : buildStructuredDirectiveUukSections(),
   );
+  const [activeUukSectionIndex, setActiveUukSectionIndex] = useState(0);
   const [hasGeneratedDraft, setHasGeneratedDraft] = useState(false);
   const [generatingScope, setGeneratingScope] = useState<DirectiveAiScope | null>(null);
   const [targetMode, setTargetMode] = useState<DirectiveTargetMode>(() => inferTargetMode(directive));
@@ -458,6 +470,14 @@ export function DirectiveFormClient({
   if (generatingScope === "full") {
     generateFullLabel = "AI Sedang Menyusun...";
   }
+
+  useEffect(() => {
+    setActiveUukSectionIndex((current) => Math.min(current, Math.max(uukSections.length - 1, 0)));
+  }, [uukSections.length]);
+
+  const filledUukSectionCount = countFilledStructuredSections(uukSections);
+  const activeUukSection = uukSections[activeUukSectionIndex] ?? uukSections[0];
+  const activeUukSectionFilled = Boolean(activeUukSection?.content.trim());
 
   function updateUukSection(sectionType: string, content: string) {
     setUukSections((current) =>
@@ -652,9 +672,9 @@ export function DirectiveFormClient({
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="space-y-6">
-          <Card>
+      <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+        <div className="min-w-0 space-y-6">
+          <Card className="min-w-0">
             <CardHeader />
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 text-sm">
@@ -667,14 +687,22 @@ export function DirectiveFormClient({
               </div>
               <div className="space-y-2 text-sm">
                 <span>Klasifikasi</span>
-                <Select value={classification} onValueChange={setClassification} disabled={mode === "edit"}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih klasifikasi" />
+                <Select
+                  value={classification}
+                  onValueChange={setClassification}
+                  disabled={mode === "edit"}
+                >
+                  <SelectTrigger className="h-12 w-full rounded-md border-[var(--dc-border-subtle)] bg-background/50 text-[var(--dc-text-primary)] focus:border-[var(--dc-primary)]/50 focus:ring-0">
+                    <span className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(classification)}`}>
+                      {formatClassificationLabel(classification)}
+                    </span>
                   </SelectTrigger>
-                  <SelectContent>
-                    {["BIASA", "TERBATAS", "RAHASIA", "SANGAT_RAHASIA"].map((item) => (
+                  <SelectContent position="popper">
+                    {CLASSIFICATION_OPTIONS.map((item) => (
                       <SelectItem key={item} value={item}>
-                        {item}
+                        <span className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(item)}`}>
+                          {formatClassificationLabel(item)}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -807,13 +835,13 @@ export function DirectiveFormClient({
           </Card>
         </div>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader />
           <CardContent className="space-y-4">
-            <div className="overflow-hidden rounded-xl border border-emerald-400/25 bg-[color-mix(in_srgb,var(--dc-card)_88%,black)] shadow-[0_0_0_1px_rgba(16,185,129,0.08),0_18px_48px_rgba(16,185,129,0.08)]">
-              <div className="border-emerald-400/20 border-b bg-emerald-400/[0.06] px-4 py-3">
-                <div className="min-w-0 font-medium text-emerald-200 text-xs uppercase tracking-[0.22em]">
-                  <Cpu className="mr-2 inline size-4 align-[-3px] text-emerald-300" />
+            <div className="overflow-hidden rounded-xl border border-[var(--dc-success)]/25 bg-[color-mix(in_srgb,var(--dc-card)_92%,var(--dc-success)_8%)] shadow-[var(--dc-shadow-soft)]">
+              <div className="border-[var(--dc-success)]/20 border-b bg-[var(--dc-success-soft)] px-4 py-3">
+                <div className="min-w-0 font-medium text-[var(--dc-success)] text-xs uppercase tracking-[0.22em]">
+                  <Cpu className="mr-2 inline size-4 align-[-3px]" />
                   Output UK/STR
                 </div>
               </div>
@@ -822,7 +850,7 @@ export function DirectiveFormClient({
                   type="button"
                   onClick={() => generateDirectiveRecommendation("full")}
                   disabled={generatingScope !== null}
-                  className="h-auto min-h-12 w-full border border-emerald-300/60 bg-emerald-400 px-4 font-semibold text-slate-950 shadow-[0_0_0_1px_rgba(16,185,129,0.22),0_14px_34px_rgba(16,185,129,0.24)] hover:bg-emerald-300"
+                  className="h-auto min-h-12 w-full border border-[var(--dc-success)] bg-[var(--dc-success)] px-4 font-semibold text-[var(--dc-text-inverse)] shadow-sm hover:bg-[color-mix(in_srgb,var(--dc-success)_86%,var(--dc-text-primary)_14%)]"
                 >
                   <Cpu className="mr-2 size-4" />
                   {generateFullLabel}
@@ -833,7 +861,7 @@ export function DirectiveFormClient({
                     variant="outline"
                     onClick={() => generateDirectiveRecommendation("eei")}
                     disabled={generatingScope !== null}
-                    className="h-auto min-h-11 whitespace-normal border-cyan-300/25 bg-cyan-300/[0.04] px-3 text-center leading-tight hover:bg-cyan-300/10 hover:text-cyan-100"
+                    className="h-auto min-h-11 whitespace-normal border-[var(--dc-info)]/25 bg-[var(--dc-info-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-info-soft)_70%,var(--dc-info)_12%)]"
                   >
                     {generatingScope === "eei" ? "AI Sedang Menyusun..." : "Generate EEI/PIR"}
                   </Button>
@@ -842,7 +870,7 @@ export function DirectiveFormClient({
                     variant="outline"
                     onClick={() => generateDirectiveRecommendation("collection")}
                     disabled={generatingScope !== null}
-                    className="h-auto min-h-11 whitespace-normal border-amber-300/25 bg-amber-300/[0.04] px-3 text-center leading-tight hover:bg-amber-300/10 hover:text-amber-100"
+                    className="h-auto min-h-11 whitespace-normal border-[var(--dc-warning)]/25 bg-[var(--dc-warning-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-warning-soft)_70%,var(--dc-warning)_12%)]"
                   >
                     {generatingScope === "collection" ? "AI Sedang Menyusun..." : "Generate Rencana Pengumpulan"}
                   </Button>
@@ -851,7 +879,7 @@ export function DirectiveFormClient({
                     variant="outline"
                     onClick={() => generateDirectiveRecommendation("recommendation")}
                     disabled={generatingScope !== null}
-                    className="h-auto min-h-11 whitespace-normal border-emerald-300/25 bg-emerald-300/[0.04] px-3 text-center leading-tight hover:bg-emerald-300/10 hover:text-emerald-100"
+                    className="h-auto min-h-11 whitespace-normal border-[var(--dc-success)]/25 bg-[var(--dc-success-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-success-soft)_70%,var(--dc-success)_12%)]"
                   >
                     {generatingScope === "recommendation" ? "AI Sedang Menyusun..." : "Generate Saran Tindak"}
                   </Button>
@@ -860,7 +888,7 @@ export function DirectiveFormClient({
                     variant="outline"
                     onClick={() => generateDirectiveRecommendation("polish")}
                     disabled={generatingScope !== null}
-                    className="h-auto min-h-11 whitespace-normal border-sky-300/25 bg-sky-300/[0.04] px-3 text-center leading-tight hover:bg-sky-300/10 hover:text-sky-100"
+                    className="h-auto min-h-11 whitespace-normal border-[var(--dc-primary)]/25 bg-[var(--dc-primary-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-primary-soft)_70%,var(--dc-primary)_12%)]"
                   >
                     {generatingScope === "polish" ? "AI Menyusun Bahasa Intelijen..." : "Ubah ke Bahasa Intelijen"}
                   </Button>
@@ -870,14 +898,19 @@ export function DirectiveFormClient({
 
             <div className="space-y-2 text-sm">
               <span>Judul UUK/STR</span>
-              <Input value={uukTitle} onChange={(event) => setUukTitle(event.target.value)} />
+              <Input
+                value={uukTitle}
+                onChange={(event) => setUukTitle(event.target.value)}
+                className="w-full min-w-0"
+                aria-label="Judul UUK/STR"
+              />
             </div>
 
             <div className="rounded-xl border border-border/70 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <div className="font-medium">Progress Isi UUK</div>
                 <Badge variant="outline">
-                  {countFilledStructuredSections(uukSections)} / {uukSections.length} bagian terisi
+                  {filledUukSectionCount} / {uukSections.length} bagian terisi
                 </Badge>
               </div>
               <div className="text-muted-foreground text-sm">
@@ -885,19 +918,94 @@ export function DirectiveFormClient({
               </div>
             </div>
 
-            <div className="grid gap-4">
-              {uukSections.map((section) => (
-                <div key={section.sectionType} className="space-y-2 rounded-xl border border-border/70 p-4">
-                  <div className="font-medium">
-                    {section.orderNumber}. {section.title}
+            <div className="space-y-4 rounded-xl border border-border/70 bg-card/60 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold">Wizard Isi UUK</div>
+                  <div className="text-muted-foreground text-sm">
+                    Isi satu bagian, lalu lanjut ke bagian berikutnya.
+                  </div>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={
+                    activeUukSectionFilled
+                      ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      : "border-border bg-muted/35 text-muted-foreground"
+                  }
+                >
+                  {activeUukSectionFilled ? "Bagian terisi" : "Belum diisi"}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                {uukSections.map((section, index) => {
+                  const isActive = index === activeUukSectionIndex;
+                  const isFilled = Boolean(section.content.trim());
+
+                  return (
+                    <button
+                      key={section.sectionType}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => setActiveUukSectionIndex(index)}
+                      className={`rounded-lg border px-3 py-2 text-left text-xs transition ${
+                        isActive
+                          ? "border-[var(--dc-primary)] bg-[var(--dc-primary-soft)] text-[var(--dc-primary)] shadow-sm"
+                          : isFilled
+                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 hover:border-emerald-500/45 dark:text-emerald-300"
+                            : "border-border bg-background/60 text-muted-foreground hover:border-[var(--dc-primary)]/45 hover:text-foreground"
+                      }`}
+                    >
+                      <span className="block font-semibold">Bagian {section.orderNumber}</span>
+                      <span className="mt-0.5 block truncate">{section.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeUukSection ? (
+                <div className="space-y-3 rounded-xl border border-border/70 bg-background/70 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+                        Bagian {activeUukSection.orderNumber} dari {uukSections.length}
+                      </div>
+                      <div className="mt-1 font-semibold text-lg">{activeUukSection.title}</div>
+                    </div>
+                    <Badge variant="outline">{activeUukSection.sectionType}</Badge>
                   </div>
                   <Textarea
-                    value={section.content}
-                    onChange={(event) => updateUukSection(section.sectionType, event.target.value)}
-                    className="min-h-28"
+                    value={activeUukSection.content}
+                    onChange={(event) => updateUukSection(activeUukSection.sectionType, event.target.value)}
+                    className="min-h-60 w-full min-w-0 resize-y"
+                    placeholder={`Isi ${activeUukSection.title.toLowerCase()}...`}
                   />
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setActiveUukSectionIndex((current) => Math.max(0, current - 1))}
+                      disabled={activeUukSectionIndex === 0}
+                    >
+                      Sebelumnya
+                    </Button>
+                    <div className="text-muted-foreground text-xs">
+                      {activeUukSectionIndex + 1} / {uukSections.length}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        setActiveUukSectionIndex((current) => Math.min(uukSections.length - 1, current + 1))
+                      }
+                      disabled={activeUukSectionIndex >= uukSections.length - 1}
+                    >
+                      Berikutnya
+                    </Button>
+                  </div>
                 </div>
-              ))}
+              ) : null}
             </div>
           </CardContent>
           <CardFooter className="justify-between">

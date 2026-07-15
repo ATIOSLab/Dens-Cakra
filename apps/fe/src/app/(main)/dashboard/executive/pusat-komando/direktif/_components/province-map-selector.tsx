@@ -1,11 +1,13 @@
 "use client";
 
 import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { Search } from "lucide-react";
 
 import { geoMercator, geoPath } from "d3-geo";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Pagination,
@@ -91,15 +93,6 @@ function toggleProvince(selectedProvinceIds: string[], provinceId: string) {
   }
 
   return [...selectedProvinceIds, provinceId];
-}
-
-function areSameProvinceSelection(left: string[], right: string[]) {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  const leftSet = new Set(left);
-  return right.every((item) => leftSet.has(item));
 }
 
 function flattenDirectorates(regionalMasters: RegionalMasterOverview | null) {
@@ -295,12 +288,32 @@ export function ProvinceMapSelector({
 
     return rows;
   }, [bindaOptions, directorateOptions, selectionMode]);
-  const totalTargetPages = Math.max(1, Math.ceil(targetOptionRows.length / rowsPerPage));
+  const [targetSearch, setTargetSearch] = useState("");
+
+  const filteredTargetOptionRows = useMemo(() => {
+    if (!targetSearch.trim()) {
+      return targetOptionRows;
+    }
+    const query = targetSearch.toLowerCase();
+    return targetOptionRows.filter(
+      (row) =>
+        row.title.toLowerCase().includes(query) ||
+        row.code.toLowerCase().includes(query) ||
+        row.scope.toLowerCase().includes(query) ||
+        row.coverageNames.some((n) => n.toLowerCase().includes(query)),
+    );
+  }, [targetOptionRows, targetSearch]);
+
+  const totalTargetPages = Math.max(1, Math.ceil(filteredTargetOptionRows.length / rowsPerPage));
   const pageItems = useMemo(() => getPageItems(targetPage, totalTargetPages), [targetPage, totalTargetPages]);
   const paginatedTargetRows = useMemo(() => {
     const start = (targetPage - 1) * rowsPerPage;
-    return targetOptionRows.slice(start, start + rowsPerPage);
-  }, [rowsPerPage, targetOptionRows, targetPage]);
+    return filteredTargetOptionRows.slice(start, start + rowsPerPage);
+  }, [rowsPerPage, filteredTargetOptionRows, targetPage]);
+
+  useEffect(() => {
+    setTargetPage(1);
+  }, [targetSearch]);
 
   useEffect(() => {
     setTargetPage((current) => Math.min(current, totalTargetPages));
@@ -370,7 +383,7 @@ export function ProvinceMapSelector({
   }
 
   return (
-    <Card className="overflow-hidden border border-border/70">
+    <Card className="min-w-0 overflow-hidden border border-border/70">
       <CardHeader>
         <CardTitle>Peta Wilayah Sasaran</CardTitle>
         <CardDescription>
@@ -378,7 +391,7 @@ export function ProvinceMapSelector({
           coverage-nya langsung ikut ditandai pada peta.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             <Button
@@ -464,10 +477,7 @@ export function ProvinceMapSelector({
 
                     const summary = summaryMap.get(provinceId);
                     const mappedDirectorate = provinceDirectorateMap.get(provinceId);
-                    const isSelected =
-                      selectionMode === "directorate" && mappedDirectorate
-                        ? areSameProvinceSelection(selectedProvinceIds, getDirectorateCoverageIds(mappedDirectorate))
-                        : selectedProvinceIds.includes(provinceId);
+                    const isSelected = selectedProvinceIds.includes(provinceId);
                     const hasRecipient = Boolean(feature.properties?.hasRecipient);
                     const hasBinda = Boolean(summary?.binda);
                     const hasDirectorate = Boolean(summary?.directorates.length);
@@ -569,10 +579,7 @@ export function ProvinceMapSelector({
                       (FALLBACK_BOUNDS.maxLatitude - FALLBACK_BOUNDS.minLatitude)) *
                     100;
                   const mappedDirectorate = provinceDirectorateMap.get(summary.province.id);
-                  const isSelected =
-                    selectionMode === "directorate" && mappedDirectorate
-                      ? areSameProvinceSelection(selectedProvinceIds, getDirectorateCoverageIds(mappedDirectorate))
-                      : selectedProvinceIds.includes(summary.province.id);
+                  const isSelected = selectedProvinceIds.includes(summary.province.id);
 
                   return (
                     <button
@@ -614,134 +621,150 @@ export function ProvinceMapSelector({
           </div>
         </div>
 
-        <div className="rounded-md border border-[var(--dc-border-subtle)] bg-background/35">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-[var(--dc-divider)] border-b p-3">
+        <div className="min-w-0 overflow-hidden rounded-md border border-[var(--dc-border-subtle)] bg-background/35">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-[var(--dc-divider)] border-b p-3">
             <div>
               <div className="font-semibold text-sm">Daftar Binda & Direktorat</div>
               <div className="text-muted-foreground text-xs">
                 Pilih target dari daftar ini bila tidak ingin menggunakan klik pada peta.
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">Baris</span>
-              <Select
-                value={String(rowsPerPage)}
-                onValueChange={(value) => {
-                  setRowsPerPage(Number(value) as typeof rowsPerPage);
-                  setTargetPage(1);
-                }}
-              >
-                <SelectTrigger className="h-8 w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROWS_PER_PAGE_OPTIONS.map((value) => (
-                    <SelectItem key={value} value={String(value)}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground/60" />
+              <Input
+                type="text"
+                placeholder="Cari Binda / Direktorat..."
+                value={targetSearch}
+                onChange={(e) => setTargetSearch(e.target.value)}
+                className="pl-8 h-8 text-xs bg-background/50 border-[var(--dc-border-subtle)] focus:border-primary/50 focus:outline-none"
+              />
             </div>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Jenis</TableHead>
-                <TableHead>Nama Target</TableHead>
-                <TableHead>Kode</TableHead>
-                <TableHead>Cakupan</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedTargetRows.length ? (
-                paginatedTargetRows.map((row) => {
-                  const selected = isTargetRowSelected(row);
-
-                  return (
-                    <TableRow key={row.key} data-state={selected ? "selected" : undefined}>
-                      <TableCell>
-                        <Badge variant="outline">{row.type === "binda" ? "Binda" : "Direktorat"}</Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {row.title}
-                        <div className="text-muted-foreground text-xs">{row.scope}</div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{row.code}</TableCell>
-                      <TableCell className="max-w-[16rem] whitespace-normal text-muted-foreground">
-                        {row.coverageNames.slice(0, 3).join(", ")}
-                        {row.coverageNames.length > 3 ? ` +${row.coverageNames.length - 3}` : ""}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={selected ? "default" : "outline"}
-                            onClick={() => handleSelectTargetRow(row)}
-                          >
-                            {selected ? "Dipilih" : "Pilih"}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[760px]">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
-                    Tidak ada target Binda atau Direktorat pada mode ini.
-                  </TableCell>
+                  <TableHead>Jenis</TableHead>
+                  <TableHead>Nama Target</TableHead>
+                  <TableHead>Kode</TableHead>
+                  <TableHead>Cakupan</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedTargetRows.length ? (
+                  paginatedTargetRows.map((row) => {
+                    const selected = isTargetRowSelected(row);
+
+                    return (
+                      <TableRow key={row.key} data-state={selected ? "selected" : undefined}>
+                        <TableCell>
+                          <Badge variant="outline">{row.type === "binda" ? "Binda" : "Direktorat"}</Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {row.title}
+                          <div className="text-muted-foreground text-xs">{row.scope}</div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{row.code}</TableCell>
+                        <TableCell className="max-w-[16rem] whitespace-normal text-muted-foreground">
+                          {row.coverageNames.slice(0, 3).join(", ")}
+                          {row.coverageNames.length > 3 ? ` +${row.coverageNames.length - 3}` : ""}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={selected ? "default" : "outline"}
+                              onClick={() => handleSelectTargetRow(row)}
+                            >
+                              {selected ? "Dipilih" : "Pilih"}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
+                      {targetSearch
+                        ? "Tidak ada target Binda atau Direktorat yang cocok dengan pencarian Anda."
+                        : "Tidak ada target Binda atau Direktorat pada mode ini."}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-[var(--dc-divider)] border-t p-3">
             <div className="text-muted-foreground text-xs">
               Menampilkan {paginatedTargetRows.length ? (targetPage - 1) * rowsPerPage + 1 : 0}-
-              {Math.min(targetPage * rowsPerPage, targetOptionRows.length)} dari {targetOptionRows.length} target.
+              {Math.min(targetPage * rowsPerPage, filteredTargetOptionRows.length)} dari {filteredTargetOptionRows.length} target.
             </div>
-            <Pagination className="mx-0 w-auto justify-end">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    text="Sebelumnya"
-                    aria-disabled={targetPage <= 1}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setTargetPage((current) => Math.max(1, current - 1));
-                    }}
-                  />
-                </PaginationItem>
-                {pageItems.map((page) => (
-                  <PaginationItem key={page}>
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      variant={page === targetPage ? "outline" : "ghost"}
-                      onClick={() => setTargetPage(page)}
-                    >
-                      {page}
-                    </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-xs">Baris</span>
+                <Select
+                  value={String(rowsPerPage)}
+                  onValueChange={(value) => {
+                    setRowsPerPage(Number(value) as typeof rowsPerPage);
+                    setTargetPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROWS_PER_PAGE_OPTIONS.map((value) => (
+                      <SelectItem key={value} value={String(value)}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Pagination className="mx-0 w-auto justify-end">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      text="Sebelumnya"
+                      aria-disabled={targetPage <= 1}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        setTargetPage((current) => Math.max(1, current - 1));
+                      }}
+                    />
                   </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    text="Berikutnya"
-                    aria-disabled={targetPage >= totalTargetPages}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setTargetPage((current) => Math.min(totalTargetPages, current + 1));
-                    }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                  {pageItems.map((page) => (
+                    <PaginationItem key={page}>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant={page === targetPage ? "outline" : "ghost"}
+                        onClick={() => setTargetPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      text="Berikutnya"
+                      aria-disabled={targetPage >= totalTargetPages}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        setTargetPage((current) => Math.min(totalTargetPages, current + 1));
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           </div>
         </div>
 

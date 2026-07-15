@@ -74,7 +74,7 @@ export class JaringController {
     operationId: 'apiJarCluster001',
     contractId: 'API-JAR-CLUSTER-001',
     summary: 'Daftar Cluster Jaring',
-    roles: ['admin_system', 'field_officer'],
+    roles: ['admin_system', 'field_officer', 'operational_intelligence_manager'],
   })
   async listClusters(@Query() query: JaringClusterQuery) {
     return apiResult(await this.jaringService.listClusters(query));
@@ -116,7 +116,7 @@ export class JaringController {
     operationId: 'apiReportCategory001',
     contractId: 'API-REPORT-CATEGORY-001',
     summary: 'Daftar kategori laporan',
-    roles: ['admin_system', 'field_officer'],
+    roles: ['admin_system', 'field_officer', 'operational_intelligence_manager'],
   })
   async listReportCategories(@Query() query: ReportCategoryQuery) {
     return apiResult(await this.jaringService.listReportCategories(query));
