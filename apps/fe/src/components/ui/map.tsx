@@ -81,6 +81,7 @@ type MapControlsProps = {
 type MapMarkerProps = {
   longitude: number;
   latitude: number;
+  pulse?: "urgent" | "high" | "normal" | "slow";
   children?: React.ReactNode;
 };
 
@@ -443,7 +444,12 @@ export function MapControls({
   return null;
 }
 
-export function MapMarker({ longitude, latitude, children }: MapMarkerProps) {
+export function MapMarker({
+  longitude,
+  latitude,
+  pulse = "normal",
+  children,
+}: MapMarkerProps) {
   const context = useMapContext();
   const markerRef = useRef<MapLibreMarker | null>(null);
   const [element, setElement] = useState<HTMLDivElement | null>(null);
@@ -458,6 +464,7 @@ export function MapMarker({ longitude, latitude, children }: MapMarkerProps) {
     }
 
     element.className = "dc-map-marker";
+    element.dataset.pulse = pulse;
     const marker = new maplibregl.Marker({
       element,
       anchor: "center",
@@ -476,6 +483,12 @@ export function MapMarker({ longitude, latitude, children }: MapMarkerProps) {
   useEffect(() => {
     markerRef.current?.setLngLat([longitude, latitude]);
   }, [latitude, longitude]);
+
+  useEffect(() => {
+    if (element) {
+      element.dataset.pulse = pulse;
+    }
+  }, [element, pulse]);
 
   if (!element) {
     return null;

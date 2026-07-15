@@ -129,26 +129,20 @@ export class UserProfileService {
   }
 
   async provision(input: ProvisionUserDto, actor: AuthorizationContext) {
-    const expectedRole = AUTH_ROLE_TO_DOMAIN_ROLE[input.auth.role as AuthRole];
-    if (!expectedRole) {
-      throw new ApiException(
-        'AUTH_ROLE_INVALID',
-        'Unsupported Better Auth business role.',
-        422,
-      );
-    }
     const blueprint = await this.resolveSeatBlueprint({
       client: this.prisma,
-      roleCode: expectedRole,
-      organizationUnitId: input.assignment.organizationUnitId,
-      branch: input.assignment.branch ?? null,
       positionId: input.assignment.positionId,
+      authRole: input.auth.role as AuthRole | undefined,
     });
+    const authRole = this.resolveAuthRole(blueprint.position.role.code);
+    const areaScopeIds = input.areaScopeIds?.length
+      ? [...new Set(input.areaScopeIds)]
+      : blueprint.areaScopeIds;
     const areas = await this.prisma.administrativeArea.findMany({
-      where: { id: { in: input.areaScopeIds }, isActive: true },
+      where: { id: { in: areaScopeIds }, isActive: true },
       select: { id: true },
     });
-    if (areas.length !== new Set(input.areaScopeIds).size) {
+    if (areas.length !== areaScopeIds.length) {
       throw new ApiException(
         'AREA_INVALID',
         'One or more area scopes are invalid.',
@@ -169,7 +163,7 @@ export class UserProfileService {
           name: input.auth.name,
           email: input.auth.email,
           password: effectivePassword,
-          role: input.auth.role as AuthRole,
+          role: authRole,
         },
       });
       authUserId = created.user.id;
@@ -194,7 +188,7 @@ export class UserProfileService {
             isPrimary: true,
             validFrom: new Date(input.assignment.validFrom),
             areaScopes: {
-              create: input.areaScopeIds.map((areaId, index) => ({
+              create: areaScopeIds.map((areaId, index) => ({
                 areaId,
                 isPrimary: index === 0,
                 validFrom: new Date(input.assignment.validFrom),
@@ -216,8 +210,8 @@ export class UserProfileService {
             afterData: {
               authUserId,
               assignmentId: assignment.id,
-              role: input.auth.role,
-              areaScopeIds: input.areaScopeIds,
+              role: authRole,
+              areaScopeIds,
             },
           },
         });
@@ -475,7 +469,13 @@ export class UserProfileService {
     const profile = await this.ensureExists(id);
     const position = await this.prisma.position.findUnique({
       where: { id: input.newPositionId },
-      include: { role: true },
+      include: {
+        role: true,
+        areaCoverages: {
+          where: { validUntil: null },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        },
+      },
     });
     if (!position?.isActive)
       throw new ApiException(
@@ -492,6 +492,32 @@ export class UserProfileService {
         'Position role has no authentication mapping.',
         422,
       );
+    const occupied = await this.prisma.userSeatAssignment.findFirst({
+      where: {
+        positionId: input.newPositionId,
+        isActive: true,
+        validUntil: null,
+        userProfileId: { not: id },
+      },
+      select: { id: true },
+    });
+    if (occupied) {
+      throw new ApiException(
+        'POSITION_ALREADY_OCCUPIED',
+        'Target position already has an active assignment.',
+        409,
+      );
+    }
+    const areaScopeIds = input.areaScopeIds?.length
+      ? [...new Set(input.areaScopeIds)]
+      : position.areaCoverages.map((coverage) => coverage.areaId);
+    if (!areaScopeIds.length) {
+      throw new ApiException(
+        'POSITION_SCOPE_REQUIRED',
+        'Target position must have active area coverage before transfer.',
+        422,
+      );
+    }
     const effectiveAt = new Date(input.effectiveAt);
     const assignment = await this.prisma.$transaction(async (tx) => {
       const old = await tx.userSeatAssignment.findFirst({
@@ -514,9 +540,6 @@ export class UserProfileService {
       }
       const seatBlueprint = await this.resolveSeatBlueprint({
         client: tx,
-        roleCode: position.role.code,
-        organizationUnitId: position.organizationUnitId,
-        branch: position.branch ?? null,
         positionId: position.id,
       });
       const created = await tx.userSeatAssignment.create({
@@ -527,7 +550,7 @@ export class UserProfileService {
           validFrom: effectiveAt,
           isPrimary: true,
           areaScopes: {
-            create: input.areaScopeIds.map((areaId, index) => ({
+            create: areaScopeIds.map((areaId, index) => ({
               areaId,
               isPrimary: index === 0,
               validFrom: effectiveAt,
@@ -551,7 +574,7 @@ export class UserProfileService {
             reason: input.reason,
             oldAssignmentId: old?.id,
             newPositionId: position.id,
-            areaScopeIds: input.areaScopeIds,
+            areaScopeIds,
           },
         },
       });
@@ -665,59 +688,20 @@ export class UserProfileService {
 
   private async resolveSeatBlueprint(input: {
     client: Prisma.TransactionClient | PrismaService;
-    roleCode: RoleCode;
-    organizationUnitId: string;
-    branch: CommandRouteType | null;
-    positionId?: string;
+    positionId: string;
+    authRole?: AuthRole;
   }) {
-    const unit = await input.client.organizationUnit.findUniqueOrThrow({
-      where: { id: input.organizationUnitId },
-      select: { id: true, type: true, branch: true, isActive: true },
+    const position = await input.client.position.findUnique({
+      where: { id: input.positionId },
+      include: {
+        role: true,
+        organizationUnit: true,
+        areaCoverages: {
+          where: { validUntil: null },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        },
+      },
     });
-
-    if (!unit.isActive) {
-      throw new ApiException(
-        'UNIT_NOT_ACTIVE',
-        'Target organization unit is not active.',
-        422,
-      );
-    }
-
-    if (input.branch && unit.branch && unit.branch !== input.branch) {
-      throw new ApiException(
-        'BRANCH_UNIT_MISMATCH',
-        'Selected branch does not match the organization unit branch.',
-        422,
-      );
-    }
-
-    if (
-      !input.branch &&
-      input.roleCode !== RoleCode.ADMIN_SYSTEM &&
-      input.roleCode !== RoleCode.EXECUTIVE
-    ) {
-      throw new ApiException(
-        'BRANCH_REQUIRED',
-        'Operational roles require a branch.',
-        422,
-      );
-    }
-
-    const position = input.positionId
-      ? await input.client.position.findUnique({
-          where: { id: input.positionId },
-          include: { role: true },
-        })
-      : await input.client.position.findFirst({
-          where: {
-            organizationUnitId: input.organizationUnitId,
-            role: { code: input.roleCode },
-            branch: input.branch,
-            isActive: true,
-          },
-          include: { role: true },
-          orderBy: { createdAt: 'asc' },
-        });
 
     if (!position || !position.isActive) {
       throw new ApiException(
@@ -727,36 +711,51 @@ export class UserProfileService {
       );
     }
 
-    if (position.role.code !== input.roleCode) {
+    if (!position.organizationUnit.isActive) {
       throw new ApiException(
-        'ROLE_POSITION_MISMATCH',
-        'Role does not match the selected active position.',
+        'UNIT_NOT_ACTIVE',
+        'Target organization unit is not active.',
         422,
       );
     }
 
-    if (position.organizationUnitId !== input.organizationUnitId) {
+    if (
+      input.authRole &&
+      AUTH_ROLE_TO_DOMAIN_ROLE[input.authRole] !== position.role.code
+    ) {
       throw new ApiException(
-        'POSITION_UNIT_MISMATCH',
-        'Position does not belong to the selected organization unit.',
+        'AUTH_DOMAIN_ROLE_MISMATCH',
+        'Provided auth role does not match the selected position role.',
         422,
       );
     }
 
-    if ((position.branch ?? null) !== input.branch) {
+    if (position.areaCoverages.length === 0) {
       throw new ApiException(
-        'POSITION_BRANCH_MISMATCH',
-        'Position branch does not match the selected branch.',
+        'POSITION_SCOPE_REQUIRED',
+        'Target position must have active area coverage before assignment.',
         422,
+      );
+    }
+
+    const occupied = await input.client.userSeatAssignment.findFirst({
+      where: {
+        positionId: position.id,
+        isActive: true,
+        validUntil: null,
+      },
+      select: { id: true },
+    });
+    if (occupied) {
+      throw new ApiException(
+        'POSITION_ALREADY_OCCUPIED',
+        'Target position already has an active assignment.',
+        409,
       );
     }
 
     const existingSeat = await input.client.organizationRoleSeat.findFirst({
-      where: {
-        organizationUnitId: position.organizationUnitId,
-        roleId: position.roleId,
-        ...(position.branch ? { branch: position.branch } : { branch: null }),
-      },
+      where: { positionId: position.id },
       select: { id: true },
     });
 
@@ -764,7 +763,9 @@ export class UserProfileService {
       ? await input.client.organizationRoleSeat.update({
           where: { id: existingSeat.id },
           data: {
-            positionId: position.id,
+            roleId: position.roleId,
+            branch: position.branch,
+            organizationUnitId: position.organizationUnitId,
             isActive: true,
           },
         })
@@ -772,13 +773,32 @@ export class UserProfileService {
           data: {
             organizationUnitId: position.organizationUnitId,
             roleId: position.roleId,
-            ...(position.branch ? { branch: position.branch } : {}),
+            branch: position.branch,
             positionId: position.id,
             isActive: true,
           },
         });
 
-    return { unit, position, seat };
+    return {
+      unit: position.organizationUnit,
+      position,
+      seat,
+      areaScopeIds: position.areaCoverages.map((coverage) => coverage.areaId),
+    };
+  }
+
+  private resolveAuthRole(roleCode: RoleCode): AuthRole {
+    const authRole = Object.entries(AUTH_ROLE_TO_DOMAIN_ROLE).find(
+      ([, domainRole]) => domainRole === roleCode,
+    )?.[0] as AuthRole | undefined;
+    if (!authRole) {
+      throw new ApiException(
+        'ROLE_MAPPING_MISSING',
+        'Position role has no authentication mapping.',
+        422,
+      );
+    }
+    return authRole;
   }
 
   private audit(

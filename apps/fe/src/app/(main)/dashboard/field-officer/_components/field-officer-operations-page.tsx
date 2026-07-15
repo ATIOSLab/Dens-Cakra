@@ -53,9 +53,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import type {
   FieldOfficerIncoming,
+  FieldOfficerJaring,
   FieldOfficerTask,
   FieldOfficerWorkspace,
   ReportCategory,
@@ -90,14 +92,14 @@ function formatDateTime(value?: string | null) {
   }).format(new Date(value));
 }
 
-function baketStatusLabel(status?: string | null) {
+function baketStatusLabel(status?: string | null, sentToPositionTitle?: string | null) {
   switch ((status || "").toUpperCase()) {
     case "DRAFT":
       return "Draf";
     case "READY_TO_SEND":
       return "Siap dikirim";
     case "SENT_TO_OIM":
-      return "Sudah dikirim";
+      return sentToPositionTitle ? `Sudah dikirim ke ${sentToPositionTitle}` : "Sudah dikirim";
     case "UNDER_VERIFICATION":
       return "Sedang diverifikasi";
     case "NEEDS_DEVELOPMENT":
@@ -108,6 +110,25 @@ function baketStatusLabel(status?: string | null) {
       return "Ditolak";
     default:
       return status || "-";
+  }
+}
+
+function baketUrgencyLabel(urgency?: string | null) {
+  return urgency ? urgency.toUpperCase() : "-";
+}
+
+function urgencyTone(urgency?: string | null) {
+  switch ((urgency || "").toUpperCase()) {
+    case "LOW":
+      return "border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400";
+    case "NORMAL":
+      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+    case "HIGH":
+      return "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400";
+    case "URGENT":
+      return "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400";
+    default:
+      return "border-[var(--tactical-border)] text-[var(--tactical-text-secondary)]";
   }
 }
 
@@ -125,7 +146,9 @@ function statusTone(status: string) {
   if (
     value.includes("IN_PROGRESS") ||
     value.includes("ROUTED") ||
-    value.includes("READY")
+    value.includes("READY") ||
+    value.includes("SENT_TO_OIM") ||
+    value.includes("UNDER_VERIFICATION")
   ) {
     return "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20";
   }
@@ -133,7 +156,8 @@ function statusTone(status: string) {
   if (
     value.includes("DRAFT") ||
     value.includes("RECEIVED") ||
-    value.includes("ASSIGNED")
+    value.includes("ASSIGNED") ||
+    value.includes("NEEDS_DEVELOPMENT")
   ) {
     return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
   }
@@ -141,7 +165,8 @@ function statusTone(status: string) {
   if (
     value.includes("INACTIVE") ||
     value.includes("ARCHIVED") ||
-    value.includes("ERROR")
+    value.includes("ERROR") ||
+    value.includes("REJECTED")
   ) {
     return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
   }
@@ -169,6 +194,47 @@ function nextTaskAction(status: string) {
   }
 
   return null;
+}
+
+function getClassificationStyles(value?: string | null) {
+  const norm = (value ?? "").toUpperCase();
+  switch (norm) {
+    case "BIASA":
+      return {
+        color: "#3B82F6", // Blue
+        bgColor: "#3B82F615",
+        borderColor: "#3B82F630",
+        label: "BIASA",
+      };
+    case "TERBATAS":
+      return {
+        color: "#10B981", // Green
+        bgColor: "#10B98115",
+        borderColor: "#10B98130",
+        label: "TERBATAS",
+      };
+    case "RAHASIA":
+      return {
+        color: "#F59E0B", // Yellow/Gold
+        bgColor: "#F59E0B15",
+        borderColor: "#F59E0B30",
+        label: "RAHASIA",
+      };
+    case "SANGAT_RAHASIA":
+      return {
+        color: "#EF4444", // Red
+        bgColor: "#EF444415",
+        borderColor: "#EF444430",
+        label: "SANGAT RAHASIA",
+      };
+    default:
+      return {
+        color: "#7C8798", // Gray
+        bgColor: "#7C879815",
+        borderColor: "#7C879830",
+        label: value ?? "BIASA",
+      };
+  }
 }
 
 export function FieldOfficerOperationsPage({
@@ -205,6 +271,34 @@ export function FieldOfficerOperationsPage({
   const [appliedBaketFilters, setAppliedBaketFilters] = useState(EMPTY_BAKET_FILTERS);
   const [pendingAction, setPendingAction] =
     useState<PendingFieldOfficerAction | null>(null);
+
+  const [taskViewMode, setTaskViewMode] = useState<"card" | "table">("card");
+  const [taskClassificationFilter, setTaskClassificationFilter] = useState("");
+  const [taskPeriodStart, setTaskPeriodStart] = useState("");
+  const [taskPeriodEnd, setTaskPeriodEnd] = useState("");
+
+  const filteredTasks = useMemo(() => {
+    if (!workspace?.tasks) return [];
+    return workspace.tasks.filter((task) => {
+      if (taskClassificationFilter && task.classification !== taskClassificationFilter) {
+        return false;
+      }
+      if (task.dueDate) {
+        const taskTime = new Date(task.dueDate).getTime();
+        if (taskPeriodStart) {
+          const startTime = new Date(`${taskPeriodStart}T00:00:00`).getTime();
+          if (taskTime < startTime) return false;
+        }
+        if (taskPeriodEnd) {
+          const endTime = new Date(`${taskPeriodEnd}T23:59:59`).getTime();
+          if (taskTime > endTime) return false;
+        }
+      } else if (taskPeriodStart || taskPeriodEnd) {
+        return false;
+      }
+      return true;
+    });
+  }, [workspace?.tasks, taskClassificationFilter, taskPeriodStart, taskPeriodEnd]);
 
   useEffect(() => {
     const raw = window.sessionStorage.getItem(FORWARDED_STORAGE_KEY);
@@ -281,6 +375,7 @@ export function FieldOfficerOperationsPage({
         ).length,
     };
   }, [workspace]);
+  const registeredJaring = useMemo(() => workspace?.jaring ?? [], [workspace]);
 
   const readyToSendBakets = useMemo(
     () =>
@@ -320,13 +415,49 @@ export function FieldOfficerOperationsPage({
     }
   };
 
-  const handleForwardToggle = (assignmentId: string) => {
+  const setForwardedAssignment = (assignmentId: string, forwarded: boolean) => {
     const next = forwardedAssignments.includes(assignmentId)
-      ? forwardedAssignments.filter((item) => item !== assignmentId)
-      : [...forwardedAssignments, assignmentId];
+      ? forwarded
+        ? forwardedAssignments
+        : forwardedAssignments.filter((item) => item !== assignmentId)
+      : forwarded
+        ? [...forwardedAssignments, assignmentId]
+        : forwardedAssignments;
 
     setForwardedAssignments(next);
     window.sessionStorage.setItem(FORWARDED_STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const forwardInstructionToJaring = async (
+    assignmentId: string,
+    instruction: string,
+    jaringIds: string[],
+  ) => {
+    await runAction(`task:${assignmentId}:forward-jaring`, async () => {
+      const response = await fetch(
+        `/api/field-officer/task-assignments/${assignmentId}/jaring-instructions`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            instruction,
+            jaringIds,
+          }),
+        },
+      );
+      const body = (await response.json().catch(() => null)) as
+        | { recipientCount?: number; message?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(body?.message || "Gagal meneruskan instruksi ke Jaring.");
+      }
+
+      setForwardedAssignment(assignmentId, true);
+      setActionNotice(
+        `Instruksi Jaring dibuat untuk ${body?.recipientCount ?? jaringIds.length} target.`,
+      );
+    });
   };
 
   const createJaring = async () => {
@@ -794,7 +925,7 @@ export function FieldOfficerOperationsPage({
             </div>
             <div className="space-y-1 md:border-l md:border-[var(--tactical-border)] md:pl-4">
               <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--tactical-text-muted)] block">
-                SCOPE AREA
+                WILAYAH CAKUPAN
               </span>
               <p className="text-xs text-[var(--tactical-text-secondary)] truncate" title={workspace.context.areaScopes.map((item) => item.name).join(", ")}>
                 {workspace.context.areaScopes.map((item) => item.name).join(", ").toUpperCase()}
@@ -863,37 +994,199 @@ export function FieldOfficerOperationsPage({
           <TacticalSection
             code="MOD-01"
             title="TUGAS SAYA"
-            description="Update status eksekusi lapangan dan tandai assignment yang perlu diteruskan ke coordinator."
+            description="Terima instruksi Field Coordinator, update status eksekusi, lalu buat instruksi turunan ke Jaring binaan."
             metadata={[
               { label: "TOTAL TUGAS", value: workspace.tasks.length },
               { label: "AKTIF", value: metrics.activeTasks }
             ]}
           >
-            {workspace.tasks.length === 0 ? (
-              <TacticalEmptyState
-                title="Tidak ada Tugas aktif"
-                description="Semua penugasan operasional telah selesai dilaksanakan atau belum dijadwalkan."
-                icon={CheckCircle2}
-              />
-            ) : (
-              <div className="grid gap-4">
-                {workspace.tasks.map((task) => {
-                  const action = nextTaskAction(task.assignmentStatus);
-                  const forwarded = forwardedAssignments.includes(task.assignmentId);
-                  return (
-                    <TaskCard
-                      key={task.assignmentId}
-                      task={task}
-                      action={action}
-                      forwarded={forwarded}
-                      isBusy={isBusy === `task:${task.assignmentId}:${action?.nextStatus}`}
-                      onUpdateStatus={(nextStatus) => void updateTaskStatus(task.assignmentId, nextStatus)}
-                      onForwardToggle={() => handleForwardToggle(task.assignmentId)}
-                    />
-                  );
-                })}
+            <div className="space-y-4">
+              {/* Task filters */}
+              <div className="grid gap-3 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] p-4 sm:grid-cols-3 items-end">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798]">
+                    Klasifikasi
+                  </label>
+                  <select
+                    value={taskClassificationFilter}
+                    onChange={(e) => setTaskClassificationFilter(e.target.value)}
+                    className="w-full h-9 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131A26] px-3 text-sm text-slate-900 dark:text-white"
+                  >
+                    <option value="">Semua Klasifikasi</option>
+                    <option value="BIASA">BIASA</option>
+                    <option value="TERBATAS">TERBATAS</option>
+                    <option value="RAHASIA">RAHASIA</option>
+                    <option value="SANGAT_RAHASIA">SANGAT RAHASIA</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798]">
+                    Tanggal Mulai
+                  </label>
+                  <Input
+                    type="date"
+                    value={taskPeriodStart}
+                    onChange={(e) => setTaskPeriodStart(e.target.value)}
+                    className="w-full h-9 border-slate-200 dark:border-white/10 bg-white dark:bg-[#131A26] text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798]">
+                    Tanggal Selesai
+                  </label>
+                  <Input
+                    type="date"
+                    value={taskPeriodEnd}
+                    onChange={(e) => setTaskPeriodEnd(e.target.value)}
+                    className="w-full h-9 border-slate-200 dark:border-white/10 bg-white dark:bg-[#131A26] text-sm"
+                  />
+                </div>
               </div>
-            )}
+
+              {/* View toggle */}
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
+                <span className="font-mono text-[11px] font-bold text-slate-500 dark:text-[#7C8798] uppercase">
+                  Daftar Tugas ({filteredTasks.length})
+                </span>
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
+                  <Button
+                    variant={taskViewMode === "card" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setTaskViewMode("card")}
+                    className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+                  >
+                    Card
+                  </Button>
+                  <Button
+                    variant={taskViewMode === "table" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setTaskViewMode("table")}
+                    className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+                  >
+                    Table
+                  </Button>
+                </div>
+              </div>
+
+              {filteredTasks.length === 0 ? (
+                <TacticalEmptyState
+                  title="Tidak ada Tugas aktif"
+                  description="Semua penugasan operasional telah selesai dilaksanakan atau tidak cocok dengan filter."
+                  icon={CheckCircle2}
+                />
+              ) : taskViewMode === "table" ? (
+                <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">Klasifikasi & Prioritas</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Judul Tugas</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Status Asal</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Target Area</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Batas Waktu</TableHead>
+                          <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredTasks.map((task) => {
+                          const action = nextTaskAction(task.assignmentStatus);
+                          const forwarded = forwardedAssignments.includes(task.assignmentId);
+                          const classStyle = getClassificationStyles(task.classification || "BIASA");
+                          return (
+                            <TableRow key={task.assignmentId} className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                              <TableCell className="pl-6 py-4">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span 
+                                    className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
+                                    style={{
+                                      color: classStyle.color,
+                                      backgroundColor: classStyle.bgColor,
+                                      borderColor: classStyle.borderColor,
+                                    }}
+                                  >
+                                    {classStyle.label}
+                                  </span>
+                                  <span 
+                                    className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-[#7C8798]"
+                                  >
+                                    {task.priority}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4 w-[320px] max-w-[320px]">
+                                <div className="space-y-1 min-w-0">
+                                  <h4 className="truncate font-bold text-sm text-slate-900 dark:text-white" title={task.title}>
+                                    {task.title}
+                                  </h4>
+                                  <p className="truncate text-xs text-slate-500 dark:text-[#94A3B8] leading-relaxed" title={task.description}>
+                                    {task.description}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span className={`px-2 py-0.5 text-[10px] font-mono rounded border ${statusTone(task.assignmentStatus)}`}>
+                                    {task.assignmentStatus}
+                                  </span>
+                                  {forwarded && (
+                                    <span className="px-2 py-0.5 text-[9px] font-mono rounded bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-500 font-semibold">
+                                      FORWARDED
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
+                                {task.targetAreas.join(", ") || "—"}
+                              </TableCell>
+                              <TableCell className="py-4 font-mono text-xs text-slate-500 dark:text-[#7C8798] whitespace-nowrap">
+                                {task.dueDate ? formatDateTime(task.dueDate) : "—"}
+                              </TableCell>
+                              <TableCell className="pr-6 py-4 text-right">
+                                <Button 
+                                  asChild 
+                                  variant="ghost"
+                                  className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-8 px-3 transition-all duration-[150ms] ease-out cursor-pointer"
+                                >
+                                  <Link href={`/dashboard/field-officer/tugas-saya/${task.assignmentId}`}>
+                                    <span>Buka</span>
+                                  </Link>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {filteredTasks.map((task) => {
+                    const action = nextTaskAction(task.assignmentStatus);
+                    const forwarded = forwardedAssignments.includes(task.assignmentId);
+                    return (
+                      <TaskCard
+                        key={task.assignmentId}
+                        task={task}
+                        action={action}
+                        forwarded={forwarded}
+                        jaring={registeredJaring}
+                        isBusy={isBusy === `task:${task.assignmentId}:${action?.nextStatus}`}
+                        isForwarding={isBusy === `task:${task.assignmentId}:forward-jaring`}
+                        onUpdateStatus={(nextStatus) => void updateTaskStatus(task.assignmentId, nextStatus)}
+                        onCancelForward={() => setForwardedAssignment(task.assignmentId, false)}
+                        onForwardToJaring={(instruction, jaringIds) =>
+                          void forwardInstructionToJaring(task.assignmentId, instruction, jaringIds)
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </TacticalSection>
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>
@@ -1234,7 +1527,7 @@ export function FieldOfficerOperationsPage({
                               <span>FOTO BUKTI TERVERIFIKASI</span>
                             </div>
                             {message.photoUrl ? (
-                              <div className="max-w-xs overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm">
+                              <div className="max-w-56 overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm">
                                 <EvidenceImageViewer
                                   src={message.photoUrl}
                                   alt={`Foto bukti ${message.title || message.jaringAlias}`}
@@ -1520,8 +1813,8 @@ export function FieldOfficerOperationsPage({
                                     <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
                                       KLASTER: {baket.clusterName || "LEGACY"}
                                     </span>
-                                    <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                                      URGENCY: {baket.urgency || "-"}
+                                    <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] font-mono ${urgencyTone(baket.urgency)}`}>
+                                      URGENSI: {baketUrgencyLabel(baket.urgency)}
                                     </span>
                                   </div>
                                   <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
@@ -1585,13 +1878,13 @@ export function FieldOfficerOperationsPage({
                           <div className="space-y-1.5 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(baket.status)}`}>
-                                {baketStatusLabel(baket.status)}
+                                {baketStatusLabel(baket.status, baket.sentToPositionTitle)}
                               </span>
                               <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
                                 KATEGORI: {baket.categoryName || "LEGACY"}
                               </span>
-                              <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                                URGENCY: {baket.urgency || "-"}
+                              <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] font-mono ${urgencyTone(baket.urgency)}`}>
+                                URGENSI: {baketUrgencyLabel(baket.urgency)}
                               </span>
                             </div>
                             <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
@@ -1877,14 +2170,22 @@ export function FieldOfficerOperationsPage({
 /* HELPER COMPONENTS */
 
 function MetricCard({ label, value }: { label: string; value: number }) {
+  const isZero = value === 0;
   return (
-    <div className="rounded-[4px] border border-slate-200 dark:border-[#2A3445] bg-slate-50 dark:bg-[#0F172A] p-3 text-center space-y-1 hover:border-[#0EA5E9]/50 transition-all duration-180">
-      <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200 dark:border-[#2A3445]/30 pb-1 mb-1">
-        {label}
-      </p>
-      <p className="font-mono text-2xl font-bold text-[var(--tactical-text-primary)]">
-        {value}
-      </p>
+    <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+      {/* Decorative vertical stripe */}
+      <div 
+        className="absolute left-0 top-0 bottom-0 w-1" 
+        style={{ backgroundColor: isZero ? "#7C8798" : "#0EA5E9" }} 
+      />
+      <div className="space-y-1 pl-1">
+        <p className="text-[8.5px] font-mono uppercase tracking-wider text-slate-500 dark:text-[#7C8798] font-bold whitespace-nowrap">
+          {label}
+        </p>
+        <p className="text-3xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
+          {value}
+        </p>
+      </div>
     </div>
   );
 }
@@ -1940,11 +2241,11 @@ function TacticalSection({
 
         {/* Section Metadata */}
         {metadata && metadata.length > 0 && (
-          <div className="flex gap-4 font-mono text-[10px] text-[var(--tactical-text-muted)] bg-black/5 dark:bg-white/[0.01] px-3 py-1.5 rounded-[4px] border border-[var(--tactical-border)]">
+          <div className="flex gap-6 font-mono bg-slate-50 dark:bg-slate-900/40 px-4 py-2 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm">
             {metadata.slice(0, 2).map((meta, i) => (
-              <div key={i} className="flex flex-col">
-                <span className="text-[8px] uppercase tracking-wider text-[var(--tactical-text-muted)]">{meta.label}</span>
-                <span className="text-[var(--tactical-text-secondary)] font-semibold mt-0.5">{meta.value}</span>
+              <div key={i} className="flex flex-col items-center px-1">
+                <span className="text-[9px] uppercase tracking-widest text-slate-500 dark:text-[#7C8798] font-bold">{meta.label}</span>
+                <span className="text-lg font-bold text-slate-950 dark:text-white mt-0.5">{meta.value}</span>
               </div>
             ))}
           </div>
@@ -1970,19 +2271,35 @@ function TaskCard({
   task,
   action,
   forwarded,
+  jaring,
   isBusy,
+  isForwarding,
   onUpdateStatus,
-  onForwardToggle
+  onCancelForward,
+  onForwardToJaring
 }: {
   task: FieldOfficerTask;
   action: { label: string; nextStatus: "READ" | "ACKNOWLEDGED" | "IN_PROGRESS" | "COMPLETED" } | null;
   forwarded: boolean;
+  jaring: FieldOfficerJaring[];
   isBusy: boolean;
+  isForwarding: boolean;
   onUpdateStatus: (nextStatus: "READ" | "ACKNOWLEDGED" | "IN_PROGRESS" | "COMPLETED") => void;
-  onForwardToggle: () => void;
+  onCancelForward: () => void;
+  onForwardToJaring: (instruction: string, jaringIds: string[]) => void;
 }) {
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
   const [showForwardConfirm, setShowForwardConfirm] = useState(false);
+  const [forwardInstruction, setForwardInstruction] = useState(
+    task.coordinatorInstruction ?? "",
+  );
+  const instructionBody =
+    task.coordinatorInstruction ??
+    "Field Coordinator belum menuliskan instruksi rinci untuk assignment ini.";
+  const instructionSenderLabel =
+    task.assignerPositionTitle ?? task.assignerName ?? "Pengirim Instruksi";
+  const canForwardToJaring =
+    jaring.length > 0 && forwardInstruction.trim().length > 0;
 
   const handleActionClick = () => {
     if (action) {
@@ -1992,7 +2309,7 @@ function TaskCard({
 
   const handleForwardClick = () => {
     if (forwarded) {
-      onForwardToggle();
+      onCancelForward();
     } else {
       setShowForwardConfirm(true);
     }
@@ -2014,7 +2331,7 @@ function TaskCard({
           </span>
           {forwarded && (
             <span className="tactical-badge px-2 py-0.5 rounded text-[10px] bg-fuchsia-500/10 border border-fuchsia-500/20 text-fuchsia-500 font-semibold">
-              FORWARDED
+              INSTRUKSI JARING DIBUAT
             </span>
           )}
         </div>
@@ -2023,11 +2340,22 @@ function TaskCard({
       {/* Content Panel */}
       <div className="py-4 border-b border-[var(--tactical-border)]">
         <h3 className="text-xl font-bold tracking-tight text-[var(--tactical-text-primary)] mb-[20px]">
-          {task.title}
+          Instruksi dari {instructionSenderLabel}
         </h3>
         <p className="text-sm text-[var(--tactical-text-secondary)] leading-relaxed mb-[20px]">
-          {task.description}
+          {instructionBody}
         </p>
+        <div className="rounded-[10px] border border-[var(--tactical-panel-border)] bg-[var(--tactical-panel-bg)] p-3">
+          <div className="text-[9px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
+            Referensi tugas asli
+          </div>
+          <div className="mt-1 text-sm font-semibold text-[var(--tactical-text-primary)]">
+            {task.title}
+          </div>
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--tactical-text-secondary)]">
+            {task.description}
+          </p>
+        </div>
       </div>
 
       {/* Action Panel */}
@@ -2087,34 +2415,75 @@ function TaskCard({
             )}
             <button
               onClick={handleForwardClick}
+              disabled={isForwarding}
               className={`h-[40px] px-[18px] text-xs font-mono font-semibold rounded-[4px] uppercase tracking-[0.04em] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] flex items-center justify-center cursor-pointer ${forwarded
                   ? "bg-[#991B1B] text-white hover:bg-[#DC2626]"
                   : "bg-[#B45309] text-white hover:bg-[#D97706] active:bg-[#92400E] shadow-[0_0_18px_rgba(217,119,6,0.20)]"
                 }`}
             >
-              {forwarded ? "BATAL FORWARD" : "FORWARD"}
+              {isForwarding
+                ? "MEMPROSES..."
+                : forwarded
+                  ? "BATAL INSTRUKSI JARING"
+                  : "FORWARD KE JARING"}
             </button>
 
             <AlertDialog open={showForwardConfirm} onOpenChange={setShowForwardConfirm}>
               <AlertDialogContent className="border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] text-[var(--tactical-text-primary)] rounded-[6px] font-mono">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">KONFIRMASI FORWARD</AlertDialogTitle>
-                  <AlertDialogDescription className="text-xs text-[var(--tactical-text-secondary)]">
-                    Apakah Anda yakin ingin meneruskan (forward) tugas lapangan ini ke Coordinator?
+                  <AlertDialogTitle className="text-sm font-semibold uppercase tracking-wider">
+                    BUAT INSTRUKSI KE JARING
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3 text-xs text-[var(--tactical-text-secondary)]">
+                    <span className="block">
+                      Instruksi ini akan disiapkan untuk seluruh Jaring terdaftar di bawah Field Officer ini.
+                    </span>
+                    <span className="block rounded-[6px] border border-[var(--tactical-panel-border)] bg-[var(--tactical-panel-bg)] p-3 text-[var(--tactical-text-primary)]">
+                      Target jaring: {jaring.length} personel
+                    </span>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="mt-4 space-y-2">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--tactical-text-secondary)]">
+                    Instruksi untuk Jaring
+                  </label>
+                  <Textarea
+                    value={forwardInstruction}
+                    onChange={(event) => setForwardInstruction(event.target.value)}
+                    className="min-h-32 border-[var(--tactical-border)] bg-[var(--tactical-panel-bg)] text-sm text-[var(--tactical-text-primary)]"
+                    placeholder="Tulis instruksi yang akan diteruskan ke seluruh Jaring binaan..."
+                  />
+                  {jaring.length > 0 ? (
+                    <div className="max-h-24 overflow-auto rounded-[6px] border border-[var(--tactical-panel-border)] bg-black/5 p-2 text-[10px] text-[var(--tactical-text-secondary)] dark:bg-white/[0.02]">
+                      {jaring.map((item) => (
+                        <div key={item.id} className="flex justify-between gap-3 py-1">
+                          <span>{item.aliasName}</span>
+                          <span className="text-[var(--tactical-text-muted)]">{item.code}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-[var(--tactical-red)]">
+                      Belum ada Jaring terdaftar untuk menerima instruksi.
+                    </p>
+                  )}
+                </div>
                 <AlertDialogFooter className="mt-4 flex flex-wrap gap-2 justify-end">
                   <AlertDialogCancel className="h-9 px-4 rounded-[4px] border border-[#475569] text-[#CBD5E1] bg-transparent hover:bg-[#334155] text-xs font-semibold uppercase tracking-wider cursor-pointer">
                     BATAL
                   </AlertDialogCancel>
                   <AlertDialogAction
+                    disabled={!canForwardToJaring}
                     onClick={() => {
                       setShowForwardConfirm(false);
-                      onForwardToggle();
+                      onForwardToJaring(
+                        forwardInstruction.trim(),
+                        jaring.map((item) => item.id),
+                      );
                     }}
-                    className="h-9 px-4 rounded-[4px] bg-[#B45309] hover:bg-[#D97706] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer"
+                    className="h-9 px-4 rounded-[4px] bg-[#B45309] hover:bg-[#D97706] text-white text-xs font-semibold uppercase tracking-wider cursor-pointer disabled:opacity-50"
                   >
-                    YA, FORWARD
+                    BUAT INSTRUKSI
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -2146,7 +2515,7 @@ function TaskCard({
 
           <div className="bg-[var(--tactical-panel-bg)] border border-[var(--tactical-panel-border)] rounded-[10px] p-3 flex flex-col justify-between min-h-[75px]">
             <span className="text-[9px] uppercase tracking-wider text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200/50 dark:border-white/[0.03] pb-1.5 mb-1.5">
-              SOURCE
+              SUMBER TUGAS
             </span>
             <span className="text-[var(--tactical-text-primary)] font-medium break-words whitespace-pre-wrap leading-relaxed">
               {(task.sourceLabel || "-").toUpperCase()}
@@ -2155,7 +2524,7 @@ function TaskCard({
 
           <div className="bg-[var(--tactical-panel-bg)] border border-[var(--tactical-panel-border)] rounded-[10px] p-3 flex flex-col justify-between min-h-[75px]">
             <span className="text-[9px] uppercase tracking-wider text-[var(--tactical-text-muted)] font-semibold border-b border-slate-200/50 dark:border-white/[0.03] pb-1.5 mb-1.5">
-              DUE DATE
+              DEADLINE
             </span>
             <span className="text-[var(--tactical-text-primary)] font-medium break-words whitespace-pre-wrap leading-relaxed">
               {formatDateTime(task.dueDate).toUpperCase()}
@@ -2285,7 +2654,7 @@ function BaketCandidateForm({
               <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
                 BUKTI DOKUMENTASI
               </span>
-              <div className="overflow-hidden rounded-lg border border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.01] shadow-sm">
+              <div className="max-w-56 overflow-hidden rounded-lg border border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.01] shadow-sm">
                 <EvidenceImageViewer
                   src={message.photoUrl}
                   alt={`Evidence ${message.title || message.jaringAlias}`}

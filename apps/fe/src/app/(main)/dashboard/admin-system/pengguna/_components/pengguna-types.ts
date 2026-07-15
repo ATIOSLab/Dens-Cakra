@@ -19,7 +19,7 @@ export type PositionCode =
   | "STAF_SUBDIT"
   | "KORWIL"
   | "PETUGAS_ORGANIK";
-export type CommandRouteType = "DIRECTORATE" | "BINDA";
+export type CommandRouteType = "PUSAT" | "DIRECTORATE" | "BINDA";
 
 export type UserRoleCatalogItem = {
   key: SystemRole;
@@ -75,6 +75,12 @@ export type PositionSummary = {
     id: string;
     title: string;
   } | null;
+  areaCoverages?: Array<{
+    id: string;
+    areaId?: string;
+    isPrimary: boolean;
+    area: AreaSummary;
+  }>;
 };
 
 export type AreaSummary = {
@@ -102,6 +108,11 @@ export type UserAreaScope = {
 
 export type UserPositionAssignment = {
   id: string;
+  userProfile?: {
+    id?: string;
+    username?: string | null;
+    fullName?: string | null;
+  };
   isPrimary?: boolean;
   isActive?: boolean;
   validFrom: string;

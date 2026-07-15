@@ -20,6 +20,7 @@ import type { AuthorizationContext } from '../../common/types/authorization-cont
 import {
   AssignTaskDto,
   CreateTaskDto,
+  ForwardJaringInstructionDto,
   NoteDto,
   ProgressDto,
   ReasonDto,
@@ -299,6 +300,29 @@ export class TaskController {
   ) {
     return apiResult(
       await this.taskService.complete(assignmentId, body, context),
+    );
+  }
+
+  @Post('task-assignments/:assignmentId/jaring-instructions')
+  @ApiContract({
+    operationId: 'apiTask019',
+    contractId: 'API-TASK-019',
+    summary: 'Forward instruksi Field Officer ke Jaring',
+    roles: ['field_officer'],
+    successStatus: 201,
+    idempotent: true,
+  })
+  async forwardJaringInstruction(
+    @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
+    @Body() body: ForwardJaringInstructionDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.taskService.forwardJaringInstruction(
+        assignmentId,
+        body,
+        context,
+      ),
     );
   }
 

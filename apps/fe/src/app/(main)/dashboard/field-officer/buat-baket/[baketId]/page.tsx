@@ -29,11 +29,104 @@ function formatDate(value?: string | null) {
     : "-";
 }
 
+function isOimPosition(position: Row | null | undefined) {
+  const roleCode = String(position?.role?.code ?? "").toUpperCase();
+  const positionCode = String(position?.code ?? "").toUpperCase();
+
+  return (
+    roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER" ||
+    positionCode === "KABAGOPS" ||
+    positionCode === "KASUBDIT"
+  );
+}
+
+function oimPositionTitleFrom(position: Row | null | undefined) {
+  let current = position;
+  let depth = 0;
+
+  while (current && depth < 6) {
+    if (isOimPosition(current)) {
+      return current.title ?? null;
+    }
+
+    current = current.reportsTo;
+    depth += 1;
+  }
+
+  return null;
+}
+
+function baketSentToPositionTitle(baket: Row) {
+  return (
+    oimPositionTitleFrom(baket.createdByFieldOfficerAssignment?.position) ??
+    null
+  );
+}
+
+function baketStatusLabel(status?: string | null, sentToPositionTitle?: string | null) {
+  switch ((status ?? "").toUpperCase()) {
+    case "DRAFT":
+      return "Draf";
+    case "READY_TO_SEND":
+      return "Siap dikirim";
+    case "SENT_TO_OIM":
+      return sentToPositionTitle ? `Sudah dikirim ke ${sentToPositionTitle}` : "Sudah dikirim";
+    case "UNDER_VERIFICATION":
+      return "Sedang diverifikasi";
+    case "NEEDS_DEVELOPMENT":
+      return "Perlu pengembangan";
+    case "VERIFIED":
+      return "Terverifikasi";
+    case "REJECTED":
+      return "Ditolak";
+    default:
+      return status ?? "-";
+  }
+}
+
+function baketStatusClass(status?: string | null) {
+  switch ((status ?? "").toUpperCase()) {
+    case "SENT_TO_OIM":
+    case "UNDER_VERIFICATION":
+      return "border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300";
+    case "READY_TO_SEND":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300";
+    case "VERIFIED":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300";
+    case "NEEDS_DEVELOPMENT":
+      return "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-300";
+    case "REJECTED":
+      return "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300";
+    default:
+      return "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-300";
+  }
+}
+
+function urgencyLabel(urgency?: string | null) {
+  return urgency ? urgency.toUpperCase() : "-";
+}
+
+function urgencyClass(urgency?: string | null) {
+  switch ((urgency ?? "").toUpperCase()) {
+    case "LOW":
+      return "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-300";
+    case "NORMAL":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300";
+    case "HIGH":
+      return "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-300";
+    case "URGENT":
+      return "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300";
+    default:
+      return "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-300";
+  }
+}
+
 export default async function Page({ params }: PageProps) {
   await requireRole(SYSTEM_ROLES.FIELD_OFFICER);
   const { baketId } = await params;
   const baket = await apiServerGet<Row>(`/bakets/${baketId}`);
   const version = rows(baket.versions)[0] ?? {};
+  const sentToPositionTitle = baketSentToPositionTitle(baket);
   const sourceMessages = rows(version.sourceMessages);
   const latitude = Number(version.latitude);
   const longitude = Number(version.longitude);
@@ -70,8 +163,12 @@ export default async function Page({ params }: PageProps) {
       <Card>
         <CardHeader>
           <div className="flex flex-wrap gap-2">
-            <Badge>{baket.status}</Badge>
-            <Badge variant="outline">{version.urgency ?? "-"}</Badge>
+            <Badge variant="outline" className={baketStatusClass(baket.status)}>
+              {baketStatusLabel(baket.status, sentToPositionTitle)}
+            </Badge>
+            <Badge variant="outline" className={urgencyClass(version.urgency)}>
+              Urgensi: {urgencyLabel(version.urgency)}
+            </Badge>
             <Badge variant="outline">{baket.reportCategory?.name ?? "Kategori belum tersedia"}</Badge>
             <Badge variant="outline">{baket.jaringCluster?.name ?? "Klaster belum tersedia"}</Badge>
           </div>
@@ -83,9 +180,8 @@ export default async function Page({ params }: PageProps) {
         <CardContent className="space-y-5">
           <p className="whitespace-pre-wrap leading-7">{version.normalizedContent ?? version.originalContent ?? "-"}</p>
           <div className="grid gap-3 text-sm sm:grid-cols-2">
-            <p>
-              GPS: {version.latitude ?? "-"}, {version.longitude ?? "-"}
-            </p>
+            <p>GPS Lat: {version.latitude ?? "-"}</p>
+            <p>GPS Long: {version.longitude ?? "-"}</p>
             <p>Wilayah: {areaLabel}</p>
           </div>
           <BaketAdministrativeArea area={version.eventArea} />
@@ -122,7 +218,7 @@ export default async function Page({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           {evidence.length ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(11rem,13rem))]">
               {evidence.map((entry) => {
                 const file = entry.file ?? {};
                 const fileId = entry.fileId ?? file.id;

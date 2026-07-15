@@ -45,11 +45,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { parseDirectiveCommandDescription } from "@/features/directives/structured-uuk";
 import { uukCreateSchema } from "@/features/uuk-str/schemas";
+import { classificationBadgeClass } from "@/lib/classification";
+import { cn } from "@/lib/utils";
 import type { UukDetail, UukDirectiveOption, UukSummary } from "@/features/uuk-str/types";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 
@@ -64,6 +67,11 @@ const UUK_SECTION_BLUEPRINT = [
   ["RECOMMENDATION", "Rekomendasi"],
   ["AUTHENTICATION", "Pengesahan"],
 ] as const;
+const CLASSIFICATION_OPTIONS = ["BIASA", "TERBATAS", "RAHASIA", "SANGAT_RAHASIA"] as const;
+
+function formatClassificationLabel(value: string) {
+  return value.replaceAll("_", " ");
+}
 
 function badgeVariant(status: string) {
   if (["CANCELLED"].includes(status)) {
@@ -148,10 +156,66 @@ type UukListClientProps = {
 };
 
 export function UukListClient({ directives, uuks }: UukListClientProps) {
+  const [search, setSearch] = useState("");
+  const [periodFrom, setPeriodFrom] = useState("");
+  const [periodTo, setPeriodTo] = useState("");
+  const [classificationFilter, setClassificationFilter] = useState("__all__");
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [page, setPage] = useState(1);
+
   const uukByDirectiveVersionId = useMemo(
     () => new Map(uuks.map((uuk) => [uuk.directiveVersion?.id ?? "", uuk])),
     [uuks],
   );
+
+  const filteredDirectives = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    const fromTime = periodFrom ? new Date(`${periodFrom}T00:00:00.000Z`).getTime() : null;
+    const toTime = periodTo ? new Date(`${periodTo}T23:59:59.999Z`).getTime() : null;
+
+    return directives.filter((directive) => {
+      const currentVersion =
+        directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
+        directive.versions[0];
+      const parsedTitle = parseDirectiveCommandDescription(currentVersion?.commandDescription);
+      
+      const searchHaystack = [
+        directive.commandNumber,
+        parsedTitle.uukTitle || "STR Eksekutif",
+        currentVersion?.commandIssuer ?? directive.ownerUnit?.name ?? "",
+        currentVersion?.classification ?? "RAHASIA",
+      ].map((v) => v.toLowerCase()).join(" ");
+
+      if (normalizedSearch && !searchHaystack.includes(normalizedSearch)) {
+        return false;
+      }
+
+      if (classificationFilter !== "__all__") {
+        const cls = (currentVersion?.classification || "RAHASIA").toUpperCase();
+        if (cls !== classificationFilter.toUpperCase()) {
+          return false;
+        }
+      }
+
+      const checkDate = currentVersion?.dueDate || currentVersion?.commandDate;
+      if (checkDate) {
+        const checkTime = new Date(checkDate).getTime();
+        if (fromTime !== null && checkTime < fromTime) return false;
+        if (toTime !== null && checkTime > toTime) return false;
+      }
+
+      return true;
+    });
+  }, [directives, search, periodFrom, periodTo, classificationFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredDirectives.length / rowsPerPage));
+  const safePage = Math.min(page, totalPages);
+  const paginatedDirectives = filteredDirectives.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+
+  const pageNumbers = useMemo(() => {
+    const pages = new Set([1, totalPages, safePage, safePage - 1, safePage + 1]);
+    return Array.from(pages).filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+  }, [safePage, totalPages]);
 
   return (
     <div className="space-y-6">
@@ -163,29 +227,100 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
         </p>
       </div>
 
-      <Card className="border border-border/70">
-        <CardHeader>
+      <Card className="border border-border/70 bg-card/60">
+        <CardContent className="p-4 space-y-4">
+          <div className="grid gap-3 md:grid-cols-4 items-end">
+            <div className="grid gap-1.5">
+              <Label htmlFor="search-str" className="text-xs font-semibold text-muted-foreground">Cari STR</Label>
+              <Input
+                id="search-str"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Nomor, judul, pemberi..."
+                className="h-9"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="filter-class" className="text-xs font-semibold text-muted-foreground">Klasifikasi</Label>
+              <Select
+                value={classificationFilter}
+                onValueChange={(val) => {
+                  setClassificationFilter(val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger id="filter-class" className="h-9">
+                  <SelectValue placeholder="Semua Klasifikasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Semua Klasifikasi</SelectItem>
+                  {CLASSIFICATION_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      <span className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(opt)}`}>
+                        {formatClassificationLabel(opt)}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="period-from" className="text-xs font-semibold text-muted-foreground">Periode dari</Label>
+              <Input
+                id="period-from"
+                type="date"
+                value={periodFrom}
+                onChange={(e) => {
+                  setPeriodFrom(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="period-to" className="text-xs font-semibold text-muted-foreground">Periode sampai</Label>
+              <Input
+                id="period-to"
+                type="date"
+                value={periodTo}
+                onChange={(e) => {
+                  setPeriodTo(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border border-border/70 overflow-hidden">
+        <CardHeader className="bg-muted/10 pb-4 border-b border-[var(--dc-border-subtle)]/70">
           <CardTitle>STR Diterima dari Eksekutif</CardTitle>
           <CardDescription>
             Pilih STR yang sudah masuk untuk dibaca, lalu lanjutkan sebagai penerusan regional tanpa membuat STR akar
             baru.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nomor STR</TableHead>
+                <TableHead className="pl-5">Nomor STR</TableHead>
                 <TableHead>Judul UUK/STR</TableHead>
+                <TableHead>Klasifikasi</TableHead>
                 <TableHead>Pemberi</TableHead>
-                <TableHead>Tanggal</TableHead>
+                <TableHead>Deadline</TableHead>
                 <TableHead>Status Penerusan</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead className="text-right pr-5">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {directives.length ? (
-                directives.map((directive) => {
+              {paginatedDirectives.length ? (
+                paginatedDirectives.map((directive) => {
                   const currentVersion =
                     directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
                     directive.versions[0];
@@ -194,10 +329,19 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
 
                   return (
                     <TableRow key={directive.id}>
-                      <TableCell className="font-medium">{directive.commandNumber}</TableCell>
-                      <TableCell>{parsedTitle.uukTitle || "STR Eksekutif"}</TableCell>
+                      <TableCell className="font-medium pl-5">{directive.commandNumber}</TableCell>
+                      <TableCell className="max-w-[34rem]">
+                        <div className="truncate" title={parsedTitle.uukTitle || "STR Eksekutif"}>
+                          {parsedTitle.uukTitle || "STR Eksekutif"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={classificationBadgeClass(currentVersion?.classification)}>
+                          {currentVersion?.classification || "RAHASIA"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{currentVersion?.commandIssuer ?? directive.ownerUnit?.name ?? "-"}</TableCell>
-                      <TableCell>{formatDate(currentVersion?.commandDate)}</TableCell>
+                      <TableCell>{formatDate(currentVersion?.dueDate || currentVersion?.commandDate)}</TableCell>
                       <TableCell>
                         {relatedUuk ? (
                           <Badge
@@ -210,7 +354,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                           <Badge variant="outline">Belum diteruskan</Badge>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="pr-5">
                         <div className="flex justify-end gap-2">
                           {relatedUuk ? (
                             <Button asChild size="sm">
@@ -234,13 +378,76 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                    Belum ada STR yang masuk ke Regional Commander ini.
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground pl-5 pr-5">
+                    Belum ada STR yang masuk atau cocok dengan filter.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--dc-border-subtle)]/70 p-3 bg-muted/5">
+            <div className="text-muted-foreground text-xs pl-5">
+              Menampilkan {filteredDirectives.length ? (safePage - 1) * rowsPerPage + 1 : 0}-
+              {Math.min(safePage * rowsPerPage, filteredDirectives.length)} dari {filteredDirectives.length} target.
+            </div>
+            <div className="flex items-center gap-4 pr-5">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-xs">Baris</span>
+                <Select
+                  value={String(rowsPerPage)}
+                  onValueChange={(value) => {
+                    setRowsPerPage(Number(value));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-16">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 20, 50].map((val) => (
+                      <SelectItem key={val} value={String(val)}>
+                        {val}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1 select-none">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  &lt; Sebelumnya
+                </Button>
+                {pageNumbers.map((p) => (
+                  <Button
+                    key={p}
+                    type="button"
+                    variant={p === safePage ? "outline" : "ghost"}
+                    onClick={() => setPage(p)}
+                    className="size-8 text-xs p-0"
+                  >
+                    {p}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  Berikutnya &gt;
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -256,7 +463,7 @@ type UukEditorClientProps = {
 export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersionId }: UukEditorClientProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
-  const [directiveVersionId, setDirectiveVersionId] = useState(
+  const [directiveVersionId] = useState(
     initialDirectiveVersionId ?? directives[0]?.versions?.[0]?.id ?? "",
   );
   const [hasReadSource, setHasReadSource] = useState(false);
@@ -283,6 +490,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
       commandNumber: selectedDirective.directive.commandNumber,
       issuer: selectedDirective.version.commandIssuer || selectedDirective.directive.ownerUnit?.name || "-",
       commandDate: selectedDirective.version.commandDate,
+      dueDate: selectedDirective.version.dueDate,
       ownerUnitName: selectedDirective.directive.ownerUnit?.name || "-",
     };
   }, [selectedDirective]);
@@ -355,46 +563,21 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
             <div className="space-y-1">
               <CardTitle>1. Baca STR Sumber</CardTitle>
               <CardDescription>
-                Pilih STR yang diterima, baca seluruh isinya, lalu teruskan tanpa perubahan sampai ke tahap OIM.
+                Baca STR yang diterima, lalu teruskan tanpa perubahan sampai ke tahap OIM.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4">
             <div className="space-y-2 text-sm">
               <span>STR Sumber</span>
-              <Select
-                value={directiveVersionId}
-                onValueChange={(value) => {
-                  setDirectiveVersionId(value);
-                  setHasReadSource(false);
-                }}
-                disabled={hasReadSource}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pilih STR sumber" />
-                </SelectTrigger>
-                <SelectContent>
-                  {directives.map((directive) => {
-                    const currentDirectiveVersion =
-                      directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
-                      directive.versions[0];
-
-                    return (
-                      <SelectItem key={directive.id} value={currentDirectiveVersion?.id ?? directive.id}>
-                        {directive.commandNumber} -{" "}
-                        {currentDirectiveVersion?.commandIssuer ?? directive.ownerUnit?.name}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 text-sm">
-              <span>Mode Tindakan</span>
               <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 font-medium">
-                Penerusan tanpa perubahan isi
+                {selectedDirective
+                  ? `${selectedDirective.directive.commandNumber} - ${
+                      selectedDirective.version.commandIssuer || selectedDirective.directive.ownerUnit?.name || "-"
+                    }`
+                  : "STR sumber tidak ditemukan"}
               </div>
             </div>
           </div>
@@ -411,8 +594,8 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
                   <div className="mt-2 font-medium">{normalizeDisplayText(sourceDirectiveContent.issuer)}</div>
                 </div>
                 <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide">Tanggal</div>
-                  <div className="mt-2 font-medium">{formatDate(sourceDirectiveContent.commandDate)}</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide">Deadline</div>
+                  <div className="mt-2 font-medium">{formatDate(sourceDirectiveContent.dueDate)}</div>
                 </div>
                 <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
                   <div className="text-muted-foreground text-xs uppercase tracking-wide">Unit Sumber</div>
@@ -438,7 +621,6 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
                         <div className="font-medium">
                           {section.orderNumber}. {section.title}
                         </div>
-                        <div className="text-muted-foreground text-xs">{section.sectionType}</div>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
@@ -614,7 +796,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
             </Badge>
             <Badge
               variant="outline"
-              className="border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+              className={classificationBadgeClass(classification)}
             >
               {classification}
             </Badge>

@@ -64,6 +64,7 @@ export const ModelName = {
   UserSeatAssignment: 'UserSeatAssignment',
   RoleAreaPolicy: 'RoleAreaPolicy',
   PositionAreaScope: 'PositionAreaScope',
+  PositionAreaCoverage: 'PositionAreaCoverage',
   AdministrativeArea: 'AdministrativeArea',
   AdministrativeAreaClosure: 'AdministrativeAreaClosure',
   AdministrativeAreaDataSource: 'AdministrativeAreaDataSource',
@@ -353,6 +354,20 @@ export const PositionAreaScopeScalarFieldEnum = {
 export type PositionAreaScopeScalarFieldEnum = (typeof PositionAreaScopeScalarFieldEnum)[keyof typeof PositionAreaScopeScalarFieldEnum]
 
 
+export const PositionAreaCoverageScalarFieldEnum = {
+  id: 'id',
+  positionId: 'positionId',
+  areaId: 'areaId',
+  isPrimary: 'isPrimary',
+  validFrom: 'validFrom',
+  validUntil: 'validUntil',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PositionAreaCoverageScalarFieldEnum = (typeof PositionAreaCoverageScalarFieldEnum)[keyof typeof PositionAreaCoverageScalarFieldEnum]
+
+
 export const AdministrativeAreaScalarFieldEnum = {
   id: 'id',
   code: 'code',
@@ -502,6 +517,7 @@ export const DirectiveVersionScalarFieldEnum = {
   directiveId: 'directiveId',
   versionNumber: 'versionNumber',
   classification: 'classification',
+  urgency: 'urgency',
   commandSource: 'commandSource',
   commandIssuer: 'commandIssuer',
   commandDate: 'commandDate',

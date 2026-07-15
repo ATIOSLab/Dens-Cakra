@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Maximize2, Minus, Plus, RotateCcw } from "lucide-react";
+import { Eye, ImageIcon, Minus, Plus, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -55,12 +55,21 @@ export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceIma
       <DialogTrigger asChild>
         <button
           type="button"
-          className="group relative block aspect-square w-full overflow-hidden bg-muted text-left"
+          className="group relative grid h-36 w-full place-items-center overflow-hidden rounded-t-md border-b bg-muted/30 text-left transition-colors hover:bg-muted/50"
           aria-label={`Buka pratinjau ${fileName}`}
         >
-          <img src={src} alt={alt} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]" />
-          <span className="absolute right-2 bottom-2 grid size-8 place-items-center rounded-[4px] border border-white/30 bg-black/65 text-white shadow">
-            <Maximize2 className="size-4" />
+          <span className="flex max-w-[88%] flex-col items-center gap-2 text-center">
+            <span className="grid size-9 place-items-center rounded-md border border-border bg-background/70 text-muted-foreground shadow-sm">
+              <ImageIcon className="size-5" />
+            </span>
+            <span className="space-y-1">
+              <span className="block text-[11px] font-semibold text-foreground">Preview disembunyikan</span>
+              <span className="block line-clamp-1 text-[10px] text-muted-foreground">{fileName}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-2 py-0.5 text-[10px] font-semibold text-foreground transition-colors group-hover:border-primary/40 group-hover:text-primary">
+              <Eye className="size-3" />
+              Tampilkan
+            </span>
           </span>
         </button>
       </DialogTrigger>

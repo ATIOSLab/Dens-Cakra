@@ -21,6 +21,7 @@ export type FieldOfficerTask = {
   taskId: string;
   title: string;
   description: string;
+  coordinatorInstruction: string | null;
   priority: string;
   dueDate: string | null;
   taskStatus: string;
@@ -28,7 +29,9 @@ export type FieldOfficerTask = {
   sourceLabel: string | null;
   targetAreas: string[];
   assignerName: string | null;
+  assignerPositionTitle: string | null;
   progressSummary: string;
+  classification: string | null;
 };
 
 export type FieldOfficerJaring = {
@@ -108,6 +111,7 @@ export type FieldOfficerBaket = {
   categoryName: string | null;
   clusterName: string | null;
   urgency: string | null;
+  sentToPositionTitle: string | null;
 };
 
 export type FieldOfficerLocation = {
@@ -117,6 +121,22 @@ export type FieldOfficerLocation = {
   capturedAt: string;
   gpsAccuracyMeters: number | null;
   areaName: string | null;
+};
+
+export type JaringInstructionDispatch = {
+  id: string;
+  assignmentId: string;
+  taskId: string;
+  status: string;
+  instruction: string;
+  recipientCount: number;
+  recipients: Array<{
+    id: string;
+    code: string;
+    aliasName: string | null;
+    whatsappNumber: string;
+  }>;
+  createdAt: string;
 };
 
 export type FieldOfficerWorkspace = {

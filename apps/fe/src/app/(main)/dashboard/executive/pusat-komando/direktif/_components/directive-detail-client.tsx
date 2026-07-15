@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { parseDirectiveCommandDescription } from "@/features/directives/structured-uuk";
 import type { DirectiveDetail, DirectiveTracking } from "@/features/directives/types";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { classificationBadgeClass } from "@/lib/classification";
 import { cn } from "@/lib/utils";
 
 import { DirectiveDistributionFlow } from "./directive-distribution-flow";
@@ -201,9 +202,16 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
               <StatusBadge status={directive.status} />
               <Badge
                 variant="outline"
-                className="rounded-md border-[var(--dc-danger)]/30 px-2 py-0.5 font-mono text-[10px] uppercase text-[var(--dc-danger)]"
+                className={cn("rounded-md px-2 py-0.5", classificationBadgeClass(currentVersion?.classification))}
               >
                 {currentVersion?.classification ?? "RAHASIA"}
+              </Badge>
+              <Badge
+                variant="outline"
+                className="dc-priority rounded-md px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider"
+                data-priority={(currentVersion?.urgency ?? "NORMAL").toUpperCase()}
+              >
+                URGENSI: {currentVersion?.urgency ?? "NORMAL"}
               </Badge>
             </div>
             <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
@@ -302,10 +310,8 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
             </p>
           </div>
           <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Update Terakhir</p>
-            <p className="mt-1 font-semibold text-foreground">
-              {currentVersion?.commandDate ? formatDate(currentVersion.commandDate) : "-"}
-            </p>
+            <p className="text-[10px] uppercase text-muted-foreground">Tingkat Urgensi</p>
+            <p className="mt-1 font-semibold text-foreground">{currentVersion?.urgency ?? "NORMAL"}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground">Progress Dokumen</p>
@@ -376,6 +382,10 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
                 <span>•</span>
                 <span>
                   Pemilik: <strong className="text-foreground">{directive.ownerUnit?.name ?? "-"}</strong>
+                </span>
+                <span>|</span>
+                <span>
+                  Urgensi: <strong className="text-foreground">{currentVersion?.urgency ?? "NORMAL"}</strong>
                 </span>
               </div>
               <div className="border-t border-border pt-5">{formatContent(activeSection.content)}</div>

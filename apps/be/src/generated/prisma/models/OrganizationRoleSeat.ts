@@ -237,14 +237,13 @@ export type OrganizationRoleSeatOrderByWithRelationInput = {
 
 export type OrganizationRoleSeatWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  organizationUnitId_roleId_branch?: Prisma.OrganizationRoleSeatOrganizationUnitIdRoleIdBranchCompoundUniqueInput
+  positionId?: string
   AND?: Prisma.OrganizationRoleSeatWhereInput | Prisma.OrganizationRoleSeatWhereInput[]
   OR?: Prisma.OrganizationRoleSeatWhereInput[]
   NOT?: Prisma.OrganizationRoleSeatWhereInput | Prisma.OrganizationRoleSeatWhereInput[]
   roleId?: Prisma.UuidFilter<"OrganizationRoleSeat"> | string
   branch?: Prisma.EnumCommandRouteTypeNullableFilter<"OrganizationRoleSeat"> | $Enums.CommandRouteType | null
   organizationUnitId?: Prisma.UuidFilter<"OrganizationRoleSeat"> | string
-  positionId?: Prisma.UuidNullableFilter<"OrganizationRoleSeat"> | string | null
   isActive?: Prisma.BoolFilter<"OrganizationRoleSeat"> | boolean
   createdAt?: Prisma.DateTimeFilter<"OrganizationRoleSeat"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"OrganizationRoleSeat"> | Date | string
@@ -256,7 +255,7 @@ export type OrganizationRoleSeatWhereUniqueInput = Prisma.AtLeast<{
   approvalSteps?: Prisma.ProductApprovalStepListRelationFilter
   productDistributions?: Prisma.ProductDistributionListRelationFilter
   assignedAlerts?: Prisma.AlertListRelationFilter
-}, "id" | "organizationUnitId_roleId_branch">
+}, "id" | "positionId">
 
 export type OrganizationRoleSeatOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -388,12 +387,6 @@ export type OrganizationRoleSeatListRelationFilter = {
 
 export type OrganizationRoleSeatOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
-}
-
-export type OrganizationRoleSeatOrganizationUnitIdRoleIdBranchCompoundUniqueInput = {
-  organizationUnitId: string
-  roleId: string
-  branch: $Enums.CommandRouteType
 }
 
 export type OrganizationRoleSeatCountOrderByAggregateInput = {

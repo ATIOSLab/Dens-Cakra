@@ -1,1 +1,3 @@
-export { default } from "@/app/(main)/dashboard/coming-soon/page";
+import { JabatanCreatePage } from "../_components/jabatan-pages";
+
+export default JabatanCreatePage;

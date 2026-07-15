@@ -107,6 +107,11 @@ export type RoleAreaPolicy = Prisma.RoleAreaPolicyModel
  */
 export type PositionAreaScope = Prisma.PositionAreaScopeModel
 /**
+ * Model PositionAreaCoverage
+ * 
+ */
+export type PositionAreaCoverage = Prisma.PositionAreaCoverageModel
+/**
  * Model AdministrativeArea
  * 
  */

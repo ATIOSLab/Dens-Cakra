@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
-import type { AreaSearchResult, PositionSummary, UserDetail } from "./pengguna-types";
+import type { PositionSummary, UserDetail } from "./pengguna-types";
 import {
   ROLE_CODE_TO_AUTH_ROLE,
   formatDateTime,
@@ -88,19 +88,7 @@ export function PenggunaDetailClient({
   const [transferPositionQuery, setTransferPositionQuery] = useState("");
   const [transferPositionResults, setTransferPositionResults] = useState<PositionSummary[]>([]);
   const [transferPosition, setTransferPosition] = useState<PositionSummary | null>(null);
-  const [transferAreaQuery, setTransferAreaQuery] = useState("");
-  const [transferAreaResults, setTransferAreaResults] = useState<AreaSearchResult[]>([]);
-  const [transferAreas, setTransferAreas] = useState<AreaSearchResult[]>(
-    primaryAssignment?.areaScopes.map((scope) => ({
-      id: scope.area.id,
-      code: scope.area.code,
-      name: scope.area.name,
-      level: scope.area.level,
-      parent: null,
-    })) ?? [],
-  );
   const deferredTransferPositionQuery = useDeferredValue(transferPositionQuery);
-  const deferredTransferAreaQuery = useDeferredValue(transferAreaQuery);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,38 +123,6 @@ export function PenggunaDetailClient({
       cancelled = true;
     };
   }, [deferredTransferPositionQuery]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadAreas() {
-      if (deferredTransferAreaQuery.trim().length < 2) {
-        setTransferAreaResults([]);
-        return;
-      }
-
-      const results = await apiBrowserFetch<AreaSearchResult[]>("/administrative-areas/search", {
-        query: {
-          q: deferredTransferAreaQuery.trim(),
-          limit: 10,
-        },
-      });
-
-      if (!cancelled) {
-        setTransferAreaResults(results);
-      }
-    }
-
-    loadAreas().catch(() => {
-      if (!cancelled) {
-        setTransferAreaResults([]);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [deferredTransferAreaQuery]);
 
   const assignmentTimeline = useMemo(
     () =>
@@ -680,7 +636,7 @@ export function PenggunaDetailClient({
           <DialogHeader>
             <DialogTitle>Mutasi assignment utama</DialogTitle>
             <DialogDescription>
-              Pilih jabatan tujuan baru lalu tetapkan ulang area scope yang akan aktif setelah mutasi.
+              Pilih jabatan tujuan baru. Scope wilayah akan diambil dari master jabatan tujuan.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -749,57 +705,21 @@ export function PenggunaDetailClient({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="transfer-area-query">Area scope baru</Label>
-              <Input
-                id="transfer-area-query"
-                value={transferAreaQuery}
-                onChange={(event) => setTransferAreaQuery(event.target.value)}
-                placeholder="Cari area tambahan atau pengganti"
-              />
+              <Label>Wilayah jabatan baru</Label>
               <div className="flex flex-wrap gap-2">
-                {transferAreas.map((area, index) => (
-                  <Badge key={area.id} variant={index === 0 ? "default" : "outline"} className="gap-2">
-                    {area.name}
-                    {index === 0 ? " • utama" : ""}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setTransferAreas((current) => current.filter((item) => item.id !== area.id))
-                      }
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ))}
+                {transferPosition?.areaCoverages?.length ? (
+                  transferPosition.areaCoverages.map((coverage, index) => (
+                    <Badge key={coverage.id} variant={coverage.isPrimary || index === 0 ? "default" : "outline"}>
+                      {coverage.area.name}
+                      {coverage.isPrimary || index === 0 ? " (utama)" : ""}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Pilih jabatan aktif untuk melihat wilayah yang akan dicopy ke assignment user.
+                  </p>
+                )}
               </div>
-              {transferAreaResults.length ? (
-                <div className="rounded-xl border border-border/70">
-                  {transferAreaResults.map((area) => {
-                    const alreadySelected = transferAreas.some((item) => item.id === area.id);
-
-                    return (
-                      <button
-                        key={area.id}
-                        type="button"
-                        disabled={alreadySelected}
-                        onClick={() => {
-                          setTransferAreas((current) => [...current, area]);
-                          setTransferAreaQuery("");
-                        }}
-                        className="flex w-full items-start justify-between gap-3 border-border/70 px-3 py-2 text-left transition hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50 not-last:border-b"
-                      >
-                        <div>
-                          <div className="font-medium">{area.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {area.code} • {area.level}
-                          </div>
-                        </div>
-                        <Badge variant="outline">{alreadySelected ? "Dipilih" : "Tambah"}</Badge>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
             </div>
           </div>
           <DialogFooter>
@@ -812,8 +732,7 @@ export function PenggunaDetailClient({
                 submittingAction === "transfer" ||
                 transferReason.trim().length < 2 ||
                 !transferAt ||
-                !transferPosition?.id ||
-                transferAreas.length === 0
+                !transferPosition?.id
               }
               onClick={() =>
                 executeAction({
@@ -823,7 +742,6 @@ export function PenggunaDetailClient({
                       reason: transferReason.trim(),
                       newPositionId: transferPosition?.id,
                       effectiveAt: toIsoFromLocalValue(transferAt),
-                      areaScopeIds: transferAreas.map((area) => area.id),
                     }).then(() => undefined),
                   successMessage: "Assignment utama berhasil dimutasi.",
                 })

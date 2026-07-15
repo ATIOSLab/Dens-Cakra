@@ -19,6 +19,7 @@ import {
 import {
   Classification,
   DirectiveStatus,
+  PriorityLevel,
 } from '../../generated/prisma/client.js';
 
 export class DirectiveQuery {
@@ -55,8 +56,9 @@ export class VersionRecipientDto {
 }
 
 export class DirectiveVersionCreateDto {
-  @IsString() @MaxLength(120) commandNumber!: string;
+  @IsString() @MinLength(3) @MaxLength(120) commandNumber!: string;
   @IsEnum(Classification) classification!: Classification;
+  @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
   @IsString() @MaxLength(250) commandSource!: string;
   @IsString() @MaxLength(250) commandIssuer!: string;
   @IsDateString() commandDate!: string;
@@ -82,6 +84,7 @@ export class CreateDirectiveDto {
 }
 
 export class DirectiveRevisionPatchDto {
+  @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
   @IsOptional() @IsDateString() dueDate?: string;
   @IsOptional() @IsString() strategicIssue?: string;
   @IsOptional() @IsString() commandDescription?: string;
@@ -107,6 +110,7 @@ export class CreateDirectiveRevisionDto {
 }
 
 export class UpdateDirectiveVersionDto {
+  @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
   @IsOptional() @IsDateString() dueDate?: string;
   @IsOptional() @IsString() strategicIssue?: string;
   @IsOptional() @IsString() commandDescription?: string;

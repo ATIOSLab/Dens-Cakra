@@ -10,6 +10,8 @@ export type UukDirectiveOption = {
     commandIssuer: string;
     commandDate: string;
     commandDescription?: string;
+    classification?: string;
+    dueDate?: string | null;
   }>;
   ownerUnit?: OrganizationUnitOption | null;
 };
@@ -51,6 +53,7 @@ export type UukSummary = {
   directiveVersion?: {
     id: string;
     classification?: string;
+    dueDate?: string | null;
     directive?: UukDirectiveOption | null;
     targetAreas?: Array<{
       areaId: string;

@@ -70,6 +70,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { classificationBadgeClass } from "@/lib/classification";
 
 import { assigneeSelectionSchema, assignmentProgressSchema, taskBuilderSchema } from "@/features/tasks/schemas";
 import type {
@@ -916,8 +917,9 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
           <div className="space-y-4">
             {paginatedTasks.map((task) => {
               const summary = countAssignmentStatuses(task.subordinateAssignments);
+              const hasOfficerAssignments = task.subordinateAssignments.length > 0;
               const taskRate =
-                task.subordinateAssignments.length > 0
+                hasOfficerAssignments
                   ? Math.round((summary.completed / task.subordinateAssignments.length) * 100)
                   : 0;
 
@@ -950,7 +952,9 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
                         size="sm"
                         className="h-7 rounded-[4px] bg-[var(--dc-primary)] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)] text-[10px] font-mono border border-[var(--dc-primary)]"
                       >
-                        <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>Detail</Link>
+                        <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>
+                          {hasOfficerAssignments ? "Detail" : "Buat Instruksi"}
+                        </Link>
                       </Button>
                     </div>
                   </div>
@@ -960,7 +964,9 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
                     <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/80">
                       <span>PROGRESS OFFICER:</span>
                       <span className="text-[var(--dc-success)] font-bold">
-                        {summary.completed}/{task.subordinateAssignments.length} SELESAI
+                        {hasOfficerAssignments
+                          ? `${summary.completed}/${task.subordinateAssignments.length} SELESAI`
+                          : "BELUM ADA INSTRUKSI"}
                       </span>
                     </div>
                     <div className="flex-1 max-w-[200px] bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10">
@@ -1300,8 +1306,22 @@ export function FieldCoordinatorAssignmentDetailClient({
 
         {/* Compact list */}
         {paginatedAssignments.length === 0 ? (
-          <div className="rounded-[6px] border border-dashed border-white/[0.08] p-12 text-center text-muted-foreground text-xs font-mono">
-            Belum ada penugasan yang cocok dengan kriteria filter.
+          <div className="rounded-[6px] border border-dashed border-white/[0.08] p-8 text-center text-muted-foreground text-xs font-mono">
+            <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-[6px] border border-white/[0.08] bg-white/[0.03] text-[var(--dc-primary)]">
+              <Send className="size-4" />
+            </div>
+            <div className="font-sans text-sm font-semibold text-[var(--dc-text-primary)]">
+              Belum ada instruksi ke Field Officer.
+            </div>
+            <p className="mx-auto mt-1 max-w-xl leading-relaxed">
+              Gunakan form distribusi di bawah halaman ini untuk memilih Field Officer, mengatur batas waktu, dan
+              menulis instruksi operasional.
+            </p>
+            {manageHref ? (
+              <Button asChild className="mt-4 h-8 rounded-[4px] font-mono text-xs">
+                <Link href={manageHref}>Buka Form Penugasan</Link>
+              </Button>
+            ) : null}
           </div>
         ) : (
           <div className="divide-y divide-white/[0.04] border border-white/[0.08] rounded-[6px] overflow-hidden bg-white/[0.005]">
@@ -2216,6 +2236,47 @@ export function FieldCoordinatorMonitoringDetailClient({
   );
 }
 
+function getClassificationStyles(value?: string | null) {
+  const norm = (value ?? "").toUpperCase();
+  switch (norm) {
+    case "BIASA":
+      return {
+        color: "#3B82F6",
+        bgColor: "#3B82F615",
+        borderColor: "#3B82F630",
+        label: "BIASA",
+      };
+    case "TERBATAS":
+      return {
+        color: "#10B981",
+        bgColor: "#10B98115",
+        borderColor: "#10B98130",
+        label: "TERBATAS",
+      };
+    case "RAHASIA":
+      return {
+        color: "#F59E0B",
+        bgColor: "#F59E0B15",
+        borderColor: "#F59E0B30",
+        label: "RAHASIA",
+      };
+    case "SANGAT_RAHASIA":
+      return {
+        color: "#EF4444",
+        bgColor: "#EF444415",
+        borderColor: "#EF444430",
+        label: "SANGAT RAHASIA",
+      };
+    default:
+      return {
+        color: "#6B7280",
+        bgColor: "#6B728015",
+        borderColor: "#6B728030",
+        label: norm || "-",
+      };
+  }
+}
+
 type OimIncomingForwardingListClientProps = {
   sources: OimIncomingForwardingSource[];
   tasks: TaskSummary[];
@@ -2226,48 +2287,185 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
     return new Map(tasks.filter((task) => task.uukStrVersion?.id).map((task) => [task.uukStrVersion?.id ?? "", task]));
   }, [tasks]);
 
+  // Filters State
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [filterClassification, setFilterClassification] = useState("");
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Apply Filters
+  const filteredSources = useMemo(() => {
+    return sources.filter((source) => {
+      // 1. Classification filter
+      if (filterClassification && source.directiveVersion?.classification !== filterClassification) {
+        return false;
+      }
+
+      // 2. Date period filter
+      const dateStr = (source as any).createdAt || (source as any).currentVersion?.createdAt;
+      if (dateStr) {
+        const createdDate = new Date(dateStr);
+        if (filterStartDate) {
+          const startDate = new Date(filterStartDate);
+          if (createdDate < startDate) return false;
+        }
+        if (filterEndDate) {
+          const endDate = new Date(filterEndDate);
+          endDate.setHours(23, 59, 59, 999);
+          if (createdDate > endDate) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [sources, filterStartDate, filterEndDate, filterClassification]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStartDate, filterEndDate, filterClassification, pageSize]);
+
+  // Pagination calculations
+  const totalCount = filteredSources.length;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalCount);
+
+  const paginatedSources = useMemo(() => {
+    return filteredSources.slice(startIndex, endIndex);
+  }, [filteredSources, startIndex, endIndex]);
+
   return (
     <Card className="border border-border/70">
-      <CardHeader>
-        <CardTitle>STR Diterima dari Regional</CardTitle>
-        <CardDescription>
-          OIM menerima STR sesuai cakupan administratifnya, lalu meneruskannya ke Field Coordinator yang berada dalam
-          hirarki wilayah di bawahnya.
-        </CardDescription>
+      <CardHeader className="space-y-4 pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <CardTitle>STR Diterima dari Regional</CardTitle>
+            <CardDescription>
+              OIM menerima STR sesuai cakupan administratifnya, lalu meneruskannya ke Field Coordinator yang berada dalam
+              hirarki wilayah di bawahnya.
+            </CardDescription>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-end gap-3 pt-3 border-t border-border/40 text-xs">
+          <div className="space-y-1.5 flex-1 min-w-[140px]">
+            <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              Periode Mulai
+            </label>
+            <Input
+              type="date"
+              value={filterStartDate}
+              onChange={(e) => setFilterStartDate(e.target.value)}
+              className="h-9 text-xs bg-background/50 border-border"
+            />
+          </div>
+          <div className="space-y-1.5 flex-1 min-w-[140px]">
+            <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              Periode Selesai
+            </label>
+            <Input
+              type="date"
+              value={filterEndDate}
+              onChange={(e) => setFilterEndDate(e.target.value)}
+              className="h-9 text-xs bg-background/50 border-border"
+            />
+          </div>
+          <div className="space-y-1.5 flex-1 min-w-[160px]">
+            <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              Klasifikasi
+            </label>
+            <Select
+              value={filterClassification || "ALL"}
+              onValueChange={(val) => setFilterClassification(val === "ALL" ? "" : val)}
+            >
+              <SelectTrigger className="h-9 text-xs bg-background/50 border-border focus:ring-0">
+                {filterClassification ? (
+                  <span className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(filterClassification)}`}>
+                    {getClassificationStyles(filterClassification).label}
+                  </span>
+                ) : (
+                  <SelectValue placeholder="Semua Klasifikasi" />
+                )}
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value="ALL">Semua Klasifikasi</SelectItem>
+                {["BIASA", "TERBATAS", "RAHASIA", "SANGAT_RAHASIA"].map((value) => (
+                  <SelectItem key={value} value={value}>
+                    <span className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(value)}`}>
+                      {getClassificationStyles(value).label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {(filterStartDate || filterEndDate || filterClassification) && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setFilterStartDate("");
+                setFilterEndDate("");
+                setFilterClassification("");
+              }}
+              className="h-9 px-3 border border-dashed border-border text-xs font-mono text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1"
+            >
+              Reset Filter
+            </Button>
+          )}
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nomor STR</TableHead>
+              <TableHead className="pl-4">Nomor STR</TableHead>
               <TableHead>Judul STR</TableHead>
-              <TableHead>Regional Pengirim</TableHead>
-              <TableHead>Status STR</TableHead>
+              <TableHead>Klasifikasi</TableHead>
+              <TableHead>Deadline</TableHead>
               <TableHead>Status Baca / Teruskan</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+              <TableHead className="pr-4 text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sources.length ? (
-              sources.map((source) => {
+            {paginatedSources.length ? (
+              paginatedSources.map((source) => {
                 const linkedTask = taskByUukVersionId.get(source.currentVersion.id);
+                const classStyle = getClassificationStyles(source.directiveVersion?.classification);
 
                 return (
                   <TableRow key={source.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="pl-4 font-semibold text-[var(--dc-text-primary)]">
                       {source.directiveVersion?.directive?.commandNumber ?? "-"}
                     </TableCell>
-                    <TableCell>{source.currentVersion.title}</TableCell>
-                    <TableCell>{source.ownerUnit?.name ?? "Regional Commander"}</TableCell>
+                    <TableCell className="font-medium max-w-[20rem] whitespace-normal leading-5">{source.currentVersion.title}</TableCell>
                     <TableCell>
-                      <Badge variant={badgeVariant(source.status)}>{uukStatusLabel(source.status)}</Badge>
+                      <Badge
+                        variant="outline"
+                        style={{
+                          color: classStyle.color,
+                          backgroundColor: classStyle.bgColor,
+                          borderColor: classStyle.borderColor,
+                        }}
+                        className="font-mono font-bold tracking-wider"
+                      >
+                        {classStyle.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-[var(--dc-text-secondary)]">
+                      {source.directiveVersion?.dueDate ? formatDate(source.directiveVersion.dueDate) : "-"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={incomingForwardingStatusVariant(linkedTask)}>
                         {incomingForwardingStatusLabel(linkedTask)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="pr-4">
                       <div className="flex justify-end gap-2">
                         {linkedTask ? (
                           <Button asChild size="sm" variant="outline">
@@ -2288,12 +2486,68 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                  Belum ada STR regional yang masuk ke OIM ini sesuai cakupan administratif.
+                  Belum ada STR regional yang sesuai dengan filter pencarian.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+
+        {/* Pagination Footer */}
+        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border/40 p-4 gap-4 font-mono text-[10px] uppercase">
+          <div className="flex items-center gap-4">
+            <div className="text-muted-foreground">
+              Menampilkan <span className="text-foreground font-bold">{totalCount > 0 ? startIndex + 1 : 0}-{endIndex}</span> dari{" "}
+              <span className="text-foreground font-bold">{totalCount}</span> STR
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Baris:</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => {
+                  setPageSize(Number(val));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-7 w-[65px] text-[10px] bg-background border-border text-foreground font-mono focus:ring-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="h-7 px-2 border-border text-[10px] font-mono hover:bg-accent"
+              >
+                <ChevronLeft className="size-3 mr-1" /> SEBELUMNYA
+              </Button>
+              <span className="font-bold text-muted-foreground">
+                HALAMAN {currentPage} DARI {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="h-7 px-2 border-border text-[10px] font-mono hover:bg-accent"
+              >
+                SELANJUTNYA <ChevronRight className="size-3 ml-1" />
+              </Button>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -2454,6 +2708,20 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
     return result;
   }, [eligibleCandidates, searchQuery, selectedAreaId, filterSelectedState, sortBy, selectedAssigneeIds]);
 
+  const handleToggleSelectAll = () => {
+    const shownIds = filteredCandidates.map((c) => c.id);
+    const allSelected = shownIds.length > 0 && shownIds.every((id) => selectedAssigneeIds.includes(id));
+
+    if (allSelected) {
+      setSelectedAssigneeIds((current) => current.filter((id) => !shownIds.includes(id)));
+    } else {
+      setSelectedAssigneeIds((current) => {
+        const newSelection = new Set([...current, ...shownIds]);
+        return Array.from(newSelection);
+      });
+    }
+  };
+
   // Pagination calculation
   const totalCandidatesCount = filteredCandidates.length;
   const totalPages = Math.ceil(totalCandidatesCount / pageSize);
@@ -2576,11 +2844,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
       </div>
 
       {/* 2. Operational Metadata Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white/[0.02] border border-white/[0.04] p-3.5 rounded-[6px] text-xs font-mono">
-        <div className="space-y-0.5">
-          <span className="text-muted-foreground/60 text-[9px] uppercase">HIERARKI</span>
-          <div className="text-[var(--dc-text-primary)] font-bold">OIM → FIELD COORDINATOR</div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/[0.02] border border-white/[0.04] p-3.5 rounded-[6px] text-xs font-mono">
         <div className="space-y-0.5">
           <span className="text-muted-foreground/60 text-[9px] uppercase">WILAYAH CAKUPAN</span>
           <div className="text-[var(--dc-text-primary)] font-bold truncate" title={areaSummary}>
@@ -2749,6 +3013,23 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                         Table
                       </button>
                     </div>
+
+                    {/* Select All */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleToggleSelectAll}
+                      className="h-9 px-3 border-border bg-card text-xs rounded-[4px] font-mono text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1.5"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filteredCandidates.length > 0 && filteredCandidates.every((c) => selectedAssigneeIds.includes(c.id))}
+                        readOnly
+                        className="size-3.5 accent-primary rounded-[2px]"
+                      />
+                      <span>Pilih Semua</span>
+                    </Button>
                   </div>
 
                   {/* Status filter tabs & counter info */}
@@ -2855,7 +3136,14 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                       <table className="w-full text-left text-xs font-mono border-collapse">
                         <thead>
                           <tr className="border-b border-border bg-secondary/30 text-muted-foreground uppercase text-[10px] tracking-wider">
-                            <th className="p-3 w-[50px] text-center">Check</th>
+                            <th className="p-3 w-[50px] text-center">
+                              <input
+                                type="checkbox"
+                                checked={filteredCandidates.length > 0 && filteredCandidates.every((c) => selectedAssigneeIds.includes(c.id))}
+                                onChange={handleToggleSelectAll}
+                                className="size-4 accent-primary rounded-[2px] cursor-pointer"
+                              />
+                            </th>
                             <th className="p-3">Nama</th>
                             <th className="p-3">Wilayah</th>
                             <th className="p-3">Role</th>
@@ -3537,7 +3825,7 @@ export function TaskDetailClient({
             </Badge>
             <Badge
               variant="outline"
-              className="border-[var(--dc-danger)]/40 text-[var(--dc-danger)] bg-[var(--dc-danger-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+              className={classificationBadgeClass(classification || "RAHASIA")}
             >
               {classification || "RAHASIA"}
             </Badge>
@@ -3609,17 +3897,20 @@ export function TaskDetailClient({
               </div>
               <div className="space-y-1">
                 <div className="text-muted-foreground/60 text-[9px] uppercase">Level</div>
-                <div
-                  className="dc-priority font-semibold truncate"
-                  data-priority={(task.priority || "NORMAL").toUpperCase()}
-                >
-                  {task.priority || "NORMAL"}
+                <div className="text-[var(--dc-text-primary)] font-semibold truncate">
+                  <Badge
+                    variant="outline"
+                    className="dc-priority font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+                    data-priority={(task.priority || "NORMAL").toUpperCase()}
+                  >
+                    {task.priority || "NORMAL"}
+                  </Badge>
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-muted-foreground/60 text-[9px] uppercase">Classification</div>
                 <div className="text-[var(--dc-text-primary)] font-semibold truncate">
-                  {classification || "RAHASIA"}
+                  <Badge variant="outline" className={classificationBadgeClass(classification || "RAHASIA")}>{classification || "RAHASIA"}</Badge>
                 </div>
               </div>
               <div className="space-y-1">
@@ -3629,19 +3920,15 @@ export function TaskDetailClient({
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-muted-foreground/60 text-[9px] uppercase">Hierarchy</div>
-                <div className="text-[var(--dc-text-primary)] font-semibold truncate">OIM → FC</div>
-              </div>
-              <div className="space-y-1">
                 <div className="text-muted-foreground/60 text-[9px] uppercase">Area Scope</div>
                 <div className="text-[var(--dc-text-primary)] font-semibold truncate" title={areaSummary}>
                   {areaSummary || "-"}
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-muted-foreground/60 text-[9px] uppercase">Last Update</div>
+                <div className="text-muted-foreground/60 text-[9px] uppercase">Deadline</div>
                 <div className="text-[var(--dc-text-primary)] font-semibold truncate">
-                  {(task as any).updatedAt ? formatDate((task as any).updatedAt) : formatDate((task as any).createdAt)}
+                  {task.dueDate ? formatDate(task.dueDate) : "-"}
                 </div>
               </div>
             </div>
@@ -3752,10 +4039,19 @@ export function AssignmentBoardClient({
         <CardDescription>{task.title}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {!candidates.length ? (
+          <Alert>
+            <AlertTriangle className="size-4" />
+            <AlertTitle>Field Officer belum tersedia</AlertTitle>
+            <AlertDescription>
+              Tidak ada Field Officer aktif di bawah reporting line Field Coordinator ini.
+            </AlertDescription>
+          </Alert>
+        ) : null}
         {rows.map((row, index) => (
           <div
             key={index}
-            className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-[1fr_180px_1fr_auto]"
+            className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-[minmax(0,1fr)_180px_minmax(0,1.2fr)_auto]"
           >
             <Select
               value={row.assigneeAssignmentId}
@@ -3789,7 +4085,7 @@ export function AssignmentBoardClient({
                 )
               }
             />
-            <Input
+            <Textarea
               value={row.assignmentNote}
               onChange={(event) =>
                 setRows((current) =>
@@ -3798,7 +4094,8 @@ export function AssignmentBoardClient({
                   ),
                 )
               }
-              placeholder="Catatan penugasan"
+              placeholder="Instruksi operasional untuk Field Officer"
+              className="min-h-20 resize-y"
             />
             <Button
               type="button"
@@ -3827,7 +4124,7 @@ export function AssignmentBoardClient({
         ) : null}
       </CardContent>
       <CardFooter className="justify-end">
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
+        <Button onClick={handleSubmit} disabled={isSubmitting || !candidates.length}>
           {isSubmitting ? "Memproses..." : submitLabel}
         </Button>
       </CardFooter>

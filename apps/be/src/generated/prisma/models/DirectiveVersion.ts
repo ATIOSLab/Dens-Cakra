@@ -39,6 +39,7 @@ export type DirectiveVersionMinAggregateOutputType = {
   directiveId: string | null
   versionNumber: number | null
   classification: $Enums.Classification | null
+  urgency: $Enums.PriorityLevel | null
   commandSource: string | null
   commandIssuer: string | null
   commandDate: Date | null
@@ -55,6 +56,7 @@ export type DirectiveVersionMaxAggregateOutputType = {
   directiveId: string | null
   versionNumber: number | null
   classification: $Enums.Classification | null
+  urgency: $Enums.PriorityLevel | null
   commandSource: string | null
   commandIssuer: string | null
   commandDate: Date | null
@@ -71,6 +73,7 @@ export type DirectiveVersionCountAggregateOutputType = {
   directiveId: number
   versionNumber: number
   classification: number
+  urgency: number
   commandSource: number
   commandIssuer: number
   commandDate: number
@@ -97,6 +100,7 @@ export type DirectiveVersionMinAggregateInputType = {
   directiveId?: true
   versionNumber?: true
   classification?: true
+  urgency?: true
   commandSource?: true
   commandIssuer?: true
   commandDate?: true
@@ -113,6 +117,7 @@ export type DirectiveVersionMaxAggregateInputType = {
   directiveId?: true
   versionNumber?: true
   classification?: true
+  urgency?: true
   commandSource?: true
   commandIssuer?: true
   commandDate?: true
@@ -129,6 +134,7 @@ export type DirectiveVersionCountAggregateInputType = {
   directiveId?: true
   versionNumber?: true
   classification?: true
+  urgency?: true
   commandSource?: true
   commandIssuer?: true
   commandDate?: true
@@ -232,6 +238,7 @@ export type DirectiveVersionGroupByOutputType = {
   directiveId: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date
@@ -271,6 +278,7 @@ export type DirectiveVersionWhereInput = {
   directiveId?: Prisma.UuidFilter<"DirectiveVersion"> | string
   versionNumber?: Prisma.IntFilter<"DirectiveVersion"> | number
   classification?: Prisma.EnumClassificationFilter<"DirectiveVersion"> | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFilter<"DirectiveVersion"> | $Enums.PriorityLevel
   commandSource?: Prisma.StringFilter<"DirectiveVersion"> | string
   commandIssuer?: Prisma.StringFilter<"DirectiveVersion"> | string
   commandDate?: Prisma.DateTimeFilter<"DirectiveVersion"> | Date | string
@@ -293,6 +301,7 @@ export type DirectiveVersionOrderByWithRelationInput = {
   directiveId?: Prisma.SortOrder
   versionNumber?: Prisma.SortOrder
   classification?: Prisma.SortOrder
+  urgency?: Prisma.SortOrder
   commandSource?: Prisma.SortOrder
   commandIssuer?: Prisma.SortOrder
   commandDate?: Prisma.SortOrder
@@ -319,6 +328,7 @@ export type DirectiveVersionWhereUniqueInput = Prisma.AtLeast<{
   directiveId?: Prisma.UuidFilter<"DirectiveVersion"> | string
   versionNumber?: Prisma.IntFilter<"DirectiveVersion"> | number
   classification?: Prisma.EnumClassificationFilter<"DirectiveVersion"> | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFilter<"DirectiveVersion"> | $Enums.PriorityLevel
   commandSource?: Prisma.StringFilter<"DirectiveVersion"> | string
   commandIssuer?: Prisma.StringFilter<"DirectiveVersion"> | string
   commandDate?: Prisma.DateTimeFilter<"DirectiveVersion"> | Date | string
@@ -341,6 +351,7 @@ export type DirectiveVersionOrderByWithAggregationInput = {
   directiveId?: Prisma.SortOrder
   versionNumber?: Prisma.SortOrder
   classification?: Prisma.SortOrder
+  urgency?: Prisma.SortOrder
   commandSource?: Prisma.SortOrder
   commandIssuer?: Prisma.SortOrder
   commandDate?: Prisma.SortOrder
@@ -365,6 +376,7 @@ export type DirectiveVersionScalarWhereWithAggregatesInput = {
   directiveId?: Prisma.UuidWithAggregatesFilter<"DirectiveVersion"> | string
   versionNumber?: Prisma.IntWithAggregatesFilter<"DirectiveVersion"> | number
   classification?: Prisma.EnumClassificationWithAggregatesFilter<"DirectiveVersion"> | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelWithAggregatesFilter<"DirectiveVersion"> | $Enums.PriorityLevel
   commandSource?: Prisma.StringWithAggregatesFilter<"DirectiveVersion"> | string
   commandIssuer?: Prisma.StringWithAggregatesFilter<"DirectiveVersion"> | string
   commandDate?: Prisma.DateTimeWithAggregatesFilter<"DirectiveVersion"> | Date | string
@@ -380,6 +392,7 @@ export type DirectiveVersionCreateInput = {
   id?: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -401,6 +414,7 @@ export type DirectiveVersionUncheckedCreateInput = {
   directiveId: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -420,6 +434,7 @@ export type DirectiveVersionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -441,6 +456,7 @@ export type DirectiveVersionUncheckedUpdateInput = {
   directiveId?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -461,6 +477,7 @@ export type DirectiveVersionCreateManyInput = {
   directiveId: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -476,6 +493,7 @@ export type DirectiveVersionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -491,6 +509,7 @@ export type DirectiveVersionUncheckedUpdateManyInput = {
   directiveId?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -522,6 +541,7 @@ export type DirectiveVersionCountOrderByAggregateInput = {
   directiveId?: Prisma.SortOrder
   versionNumber?: Prisma.SortOrder
   classification?: Prisma.SortOrder
+  urgency?: Prisma.SortOrder
   commandSource?: Prisma.SortOrder
   commandIssuer?: Prisma.SortOrder
   commandDate?: Prisma.SortOrder
@@ -542,6 +562,7 @@ export type DirectiveVersionMaxOrderByAggregateInput = {
   directiveId?: Prisma.SortOrder
   versionNumber?: Prisma.SortOrder
   classification?: Prisma.SortOrder
+  urgency?: Prisma.SortOrder
   commandSource?: Prisma.SortOrder
   commandIssuer?: Prisma.SortOrder
   commandDate?: Prisma.SortOrder
@@ -558,6 +579,7 @@ export type DirectiveVersionMinOrderByAggregateInput = {
   directiveId?: Prisma.SortOrder
   versionNumber?: Prisma.SortOrder
   classification?: Prisma.SortOrder
+  urgency?: Prisma.SortOrder
   commandSource?: Prisma.SortOrder
   commandIssuer?: Prisma.SortOrder
   commandDate?: Prisma.SortOrder
@@ -671,6 +693,10 @@ export type EnumClassificationFieldUpdateOperationsInput = {
   set?: $Enums.Classification
 }
 
+export type EnumPriorityLevelFieldUpdateOperationsInput = {
+  set?: $Enums.PriorityLevel
+}
+
 export type DirectiveVersionCreateNestedOneWithoutTargetAreasInput = {
   create?: Prisma.XOR<Prisma.DirectiveVersionCreateWithoutTargetAreasInput, Prisma.DirectiveVersionUncheckedCreateWithoutTargetAreasInput>
   connectOrCreate?: Prisma.DirectiveVersionCreateOrConnectWithoutTargetAreasInput
@@ -733,6 +759,7 @@ export type DirectiveVersionCreateWithoutCreatedByAssignmentInput = {
   id?: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -753,6 +780,7 @@ export type DirectiveVersionUncheckedCreateWithoutCreatedByAssignmentInput = {
   directiveId: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -801,6 +829,7 @@ export type DirectiveVersionScalarWhereInput = {
   directiveId?: Prisma.UuidFilter<"DirectiveVersion"> | string
   versionNumber?: Prisma.IntFilter<"DirectiveVersion"> | number
   classification?: Prisma.EnumClassificationFilter<"DirectiveVersion"> | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFilter<"DirectiveVersion"> | $Enums.PriorityLevel
   commandSource?: Prisma.StringFilter<"DirectiveVersion"> | string
   commandIssuer?: Prisma.StringFilter<"DirectiveVersion"> | string
   commandDate?: Prisma.DateTimeFilter<"DirectiveVersion"> | Date | string
@@ -816,6 +845,7 @@ export type DirectiveVersionCreateWithoutDirectiveInput = {
   id?: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -835,6 +865,7 @@ export type DirectiveVersionUncheckedCreateWithoutDirectiveInput = {
   id?: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -880,6 +911,7 @@ export type DirectiveVersionCreateWithoutTargetAreasInput = {
   id?: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -900,6 +932,7 @@ export type DirectiveVersionUncheckedCreateWithoutTargetAreasInput = {
   directiveId: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -934,6 +967,7 @@ export type DirectiveVersionUpdateWithoutTargetAreasInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -954,6 +988,7 @@ export type DirectiveVersionUncheckedUpdateWithoutTargetAreasInput = {
   directiveId?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -972,6 +1007,7 @@ export type DirectiveVersionCreateWithoutRecipientsInput = {
   id?: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -992,6 +1028,7 @@ export type DirectiveVersionUncheckedCreateWithoutRecipientsInput = {
   directiveId: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -1026,6 +1063,7 @@ export type DirectiveVersionUpdateWithoutRecipientsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1046,6 +1084,7 @@ export type DirectiveVersionUncheckedUpdateWithoutRecipientsInput = {
   directiveId?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1064,6 +1103,7 @@ export type DirectiveVersionCreateWithoutUukStrsInput = {
   id?: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -1084,6 +1124,7 @@ export type DirectiveVersionUncheckedCreateWithoutUukStrsInput = {
   directiveId: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -1118,6 +1159,7 @@ export type DirectiveVersionUpdateWithoutUukStrsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1138,6 +1180,7 @@ export type DirectiveVersionUncheckedUpdateWithoutUukStrsInput = {
   directiveId?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1156,6 +1199,7 @@ export type DirectiveVersionCreateWithoutTasksInput = {
   id?: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -1176,6 +1220,7 @@ export type DirectiveVersionUncheckedCreateWithoutTasksInput = {
   directiveId: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -1210,6 +1255,7 @@ export type DirectiveVersionUpdateWithoutTasksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1230,6 +1276,7 @@ export type DirectiveVersionUncheckedUpdateWithoutTasksInput = {
   directiveId?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1249,6 +1296,7 @@ export type DirectiveVersionCreateManyCreatedByAssignmentInput = {
   directiveId: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -1263,6 +1311,7 @@ export type DirectiveVersionUpdateWithoutCreatedByAssignmentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1283,6 +1332,7 @@ export type DirectiveVersionUncheckedUpdateWithoutCreatedByAssignmentInput = {
   directiveId?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1302,6 +1352,7 @@ export type DirectiveVersionUncheckedUpdateManyWithoutCreatedByAssignmentInput =
   directiveId?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1316,6 +1367,7 @@ export type DirectiveVersionCreateManyDirectiveInput = {
   id?: string
   versionNumber: number
   classification: $Enums.Classification
+  urgency?: $Enums.PriorityLevel
   commandSource: string
   commandIssuer: string
   commandDate: Date | string
@@ -1331,6 +1383,7 @@ export type DirectiveVersionUpdateWithoutDirectiveInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1350,6 +1403,7 @@ export type DirectiveVersionUncheckedUpdateWithoutDirectiveInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1369,6 +1423,7 @@ export type DirectiveVersionUncheckedUpdateManyWithoutDirectiveInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   versionNumber?: Prisma.IntFieldUpdateOperationsInput | number
   classification?: Prisma.EnumClassificationFieldUpdateOperationsInput | $Enums.Classification
+  urgency?: Prisma.EnumPriorityLevelFieldUpdateOperationsInput | $Enums.PriorityLevel
   commandSource?: Prisma.StringFieldUpdateOperationsInput | string
   commandIssuer?: Prisma.StringFieldUpdateOperationsInput | string
   commandDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1443,6 +1498,7 @@ export type DirectiveVersionSelect<ExtArgs extends runtime.Types.Extensions.Inte
   directiveId?: boolean
   versionNumber?: boolean
   classification?: boolean
+  urgency?: boolean
   commandSource?: boolean
   commandIssuer?: boolean
   commandDate?: boolean
@@ -1466,6 +1522,7 @@ export type DirectiveVersionSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   directiveId?: boolean
   versionNumber?: boolean
   classification?: boolean
+  urgency?: boolean
   commandSource?: boolean
   commandIssuer?: boolean
   commandDate?: boolean
@@ -1484,6 +1541,7 @@ export type DirectiveVersionSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   directiveId?: boolean
   versionNumber?: boolean
   classification?: boolean
+  urgency?: boolean
   commandSource?: boolean
   commandIssuer?: boolean
   commandDate?: boolean
@@ -1502,6 +1560,7 @@ export type DirectiveVersionSelectScalar = {
   directiveId?: boolean
   versionNumber?: boolean
   classification?: boolean
+  urgency?: boolean
   commandSource?: boolean
   commandIssuer?: boolean
   commandDate?: boolean
@@ -1513,7 +1572,7 @@ export type DirectiveVersionSelectScalar = {
   createdAt?: boolean
 }
 
-export type DirectiveVersionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "directiveId" | "versionNumber" | "classification" | "commandSource" | "commandIssuer" | "commandDate" | "dueDate" | "strategicIssue" | "commandDescription" | "createdByAssignmentId" | "changeReason" | "createdAt", ExtArgs["result"]["directiveVersion"]>
+export type DirectiveVersionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "directiveId" | "versionNumber" | "classification" | "urgency" | "commandSource" | "commandIssuer" | "commandDate" | "dueDate" | "strategicIssue" | "commandDescription" | "createdByAssignmentId" | "changeReason" | "createdAt", ExtArgs["result"]["directiveVersion"]>
 export type DirectiveVersionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   directive?: boolean | Prisma.DirectiveDefaultArgs<ExtArgs>
   createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
@@ -1547,6 +1606,7 @@ export type $DirectiveVersionPayload<ExtArgs extends runtime.Types.Extensions.In
     directiveId: string
     versionNumber: number
     classification: $Enums.Classification
+    urgency: $Enums.PriorityLevel
     commandSource: string
     commandIssuer: string
     commandDate: Date
@@ -1989,6 +2049,7 @@ export interface DirectiveVersionFieldRefs {
   readonly directiveId: Prisma.FieldRef<"DirectiveVersion", 'String'>
   readonly versionNumber: Prisma.FieldRef<"DirectiveVersion", 'Int'>
   readonly classification: Prisma.FieldRef<"DirectiveVersion", 'Classification'>
+  readonly urgency: Prisma.FieldRef<"DirectiveVersion", 'PriorityLevel'>
   readonly commandSource: Prisma.FieldRef<"DirectiveVersion", 'String'>
   readonly commandIssuer: Prisma.FieldRef<"DirectiveVersion", 'String'>
   readonly commandDate: Prisma.FieldRef<"DirectiveVersion", 'DateTime'>

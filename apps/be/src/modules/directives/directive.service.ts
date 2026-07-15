@@ -28,6 +28,68 @@ import type {
 export class DirectiveService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private parseDirectiveDate(value: string, field: string) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      throw new ApiException(
+        'DIRECTIVE_DATE_INVALID',
+        'Format tanggal STR tidak valid. Pilih tanggal melalui input kalender.',
+        422,
+        [
+          {
+            field,
+            code: 'INVALID_DATE',
+            message: 'Format tanggal tidak valid.',
+          },
+        ],
+      );
+    }
+
+    return date;
+  }
+
+  private handleDirectivePersistenceError(error: unknown): never {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        const target = Array.isArray(error.meta?.target)
+          ? error.meta.target.map(String)
+          : [];
+
+        if (target.includes('commandNumber')) {
+          throw new ApiException(
+            'DIRECTIVE_COMMAND_NUMBER_DUPLICATE',
+            'Nomor STR sudah digunakan. Gunakan nomor STR lain.',
+            409,
+            [
+              {
+                field: 'commandNumber',
+                code: 'DUPLICATE',
+                message: 'Nomor STR sudah digunakan.',
+              },
+            ],
+          );
+        }
+
+        throw new ApiException(
+          'DIRECTIVE_DUPLICATE_DATA',
+          'Data STR duplikat. Periksa kembali nomor, wilayah, atau penerima.',
+          409,
+        );
+      }
+
+      if (error.code === 'P2003') {
+        throw new ApiException(
+          'DIRECTIVE_REFERENCE_INVALID',
+          'Target wilayah atau penerima tidak valid. Muat ulang halaman lalu pilih ulang sasaran STR.',
+          422,
+        );
+      }
+    }
+
+    throw error;
+  }
+
   private areaIds(context: AuthorizationContext) {
     return context.areaScopes.map((scope) => scope.areaId);
   }
@@ -518,45 +580,58 @@ export class DirectiveService {
 
     this.validateRecipients(body.version.recipients);
 
-    const directive = await this.prisma.$transaction(async (tx) => {
-      const root = await tx.directive.create({
-        data: {
-          commandNumber: body.version.commandNumber,
-          ownerUnitId: body.ownerUnitId,
-          createdByAssignmentId: context.primaryAssignmentId,
-          status: DirectiveStatus.DRAFT,
-        },
-      });
+    const commandDate = this.parseDirectiveDate(
+      body.version.commandDate,
+      'commandDate',
+    );
+    const dueDate = body.version.dueDate
+      ? this.parseDirectiveDate(body.version.dueDate, 'dueDate')
+      : null;
 
-      await tx.directiveVersion.create({
-        data: {
-          directiveId: root.id,
-          versionNumber: 1,
-          classification: body.version.classification,
-          commandSource: body.version.commandSource,
-          commandIssuer: body.version.commandIssuer,
-          commandDate: new Date(body.version.commandDate),
-          dueDate: body.version.dueDate ? new Date(body.version.dueDate) : null,
-          strategicIssue: body.version.strategicIssue,
-          commandDescription: body.version.commandDescription,
-          createdByAssignmentId: context.primaryAssignmentId,
-          targetAreas: {
-            create: body.version.targetAreaIds.map((areaId, index) => ({
-              areaId,
-              isPrimary: index === 0,
-            })),
+    const directive = await this.prisma
+      .$transaction(async (tx) => {
+        const root = await tx.directive.create({
+          data: {
+            commandNumber: body.version.commandNumber,
+            ownerUnitId: body.ownerUnitId,
+            createdByAssignmentId: context.primaryAssignmentId,
+            status: DirectiveStatus.DRAFT,
           },
-          recipients: {
-            create: body.version.recipients.map((recipient) => ({
-              targetUnitId: recipient.targetUnitId,
-              targetPositionId: recipient.targetPositionId,
-            })),
-          },
-        },
-      });
+        });
 
-      return root;
-    });
+        await tx.directiveVersion.create({
+          data: {
+            directiveId: root.id,
+            versionNumber: 1,
+            classification: body.version.classification,
+            urgency: body.version.urgency,
+            commandSource: body.version.commandSource,
+            commandIssuer: body.version.commandIssuer,
+            commandDate,
+            dueDate,
+            strategicIssue: body.version.strategicIssue,
+            commandDescription: body.version.commandDescription,
+            createdByAssignmentId: context.primaryAssignmentId,
+            targetAreas: {
+              create: body.version.targetAreaIds.map((areaId, index) => ({
+                areaId,
+                isPrimary: index === 0,
+              })),
+            },
+            recipients: {
+              create: body.version.recipients.map((recipient) => ({
+                targetUnitId: recipient.targetUnitId,
+                targetPositionId: recipient.targetPositionId,
+              })),
+            },
+          },
+        });
+
+        return root;
+      })
+      .catch((error: unknown) =>
+        this.handleDirectivePersistenceError(error),
+      );
 
     await this.audit(context, 'DIRECTIVE.CREATE', directive.id);
     return this.detail(directive.id, context);
@@ -647,6 +722,7 @@ export class DirectiveService {
           directiveId,
           versionNumber: nextVersionNumber,
           classification: baseVersion.classification,
+          urgency: body.patch.urgency ?? baseVersion.urgency,
           commandSource: baseVersion.commandSource,
           commandIssuer: baseVersion.commandIssuer,
           commandDate: baseVersion.commandDate,
@@ -717,6 +793,7 @@ export class DirectiveService {
     await this.prisma.directiveVersion.update({
       where: { id: versionId },
       data: {
+        urgency: body.urgency,
         strategicIssue: body.strategicIssue,
         commandDescription: body.commandDescription,
         ...(body.dueDate ? { dueDate: new Date(body.dueDate) } : {}),

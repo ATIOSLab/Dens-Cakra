@@ -9,7 +9,7 @@ import { IntelligenceProductDetail, IntelligenceProductList } from "./intelligen
 export async function RegionalProductListPage() {
   await requireRole(SYSTEM_ROLES.REGIONAL_COMMANDER);
   const [products, approvalInbox] = await Promise.all([
-    apiServerGet("/products", { page: 1, limit: 50 }),
+    apiServerGet("/products", { page: 1, limit: 100 }),
     apiServerGet("/approval-inbox", {
       stage: "REGIONAL",
       status: "ACTIVE",
@@ -53,7 +53,7 @@ export async function RegionalProductDetailPage({
 
 export async function ExecutiveProductListPage() {
   await requireRole(SYSTEM_ROLES.EXECUTIVE);
-  const products = await apiServerGet("/products", { page: 1, limit: 50 });
+  const products = await apiServerGet("/products", { page: 1, limit: 100 });
   return (
     <IntelligenceProductList
       data={products}

@@ -104,6 +104,7 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
           status: commonQuery.status,
           periodFrom: commonQuery.from,
           periodTo: commonQuery.to,
+          classification: typeof searchParams.classification === "string" ? searchParams.classification : undefined,
         }),
         errors,
       ).then((value) => {

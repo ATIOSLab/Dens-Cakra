@@ -12,7 +12,7 @@ export type ApiErrorEnvelope = {
   error: {
     code: string;
     message: string;
-    fields?: Record<string, string[]>;
+    fields?: Record<string, string[]> | Array<{ field: string; code?: string; message: string }>;
     details?: unknown;
   };
   requestId: string;

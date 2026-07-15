@@ -11,6 +11,7 @@ import type {
   FieldOfficerLocation,
   FieldOfficerTask,
   FieldOfficerWorkspace,
+  JaringInstructionDispatch,
   JaringCluster,
   ReportCategory,
   WhatsappControlChannel,
@@ -103,15 +104,22 @@ type TaskRecord = {
   dueDate?: string | null;
   status: string;
   directiveVersion?: {
+    classification?: string | null;
+    commandSource?: string | null;
     directive?: {
-      title?: string | null;
-      code?: string | null;
+      commandNumber?: string | null;
     } | null;
   } | null;
   uukStrVersion?: {
+    classification?: string | null;
+    title?: string | null;
     uukStr?: {
-      title?: string | null;
-      code?: string | null;
+      directiveVersion?: {
+        commandSource?: string | null;
+        directive?: {
+          commandNumber?: string | null;
+        } | null;
+      } | null;
     } | null;
   } | null;
   targetAreas?: Array<{
@@ -122,14 +130,28 @@ type TaskRecord = {
   assignments?: Array<{
     id: string;
     status: string;
+    dueDate?: string | null;
+    assignmentNote?: string | null;
     progressPercent?: number | null;
     assigneeAssignmentId: string;
     assigner?: {
       userProfile?: {
         fullName?: string | null;
       } | null;
+      position?: {
+        title?: string | null;
+      } | null;
     } | null;
   }>;
+};
+
+type PositionRecord = {
+  title?: string | null;
+  code?: string | null;
+  role?: {
+    code?: string | null;
+  } | null;
+  reportsTo?: PositionRecord | null;
 };
 
 type BaketRecord = {
@@ -139,6 +161,16 @@ type BaketRecord = {
   primaryJaringId?: string | null;
   reportCategory?: { name: string } | null;
   jaringCluster?: { name: string } | null;
+  createdByFieldOfficerAssignment?: {
+    position?: PositionRecord | null;
+  } | null;
+  taskAssignment?: {
+    assigner?: {
+      position?: {
+        title?: string | null;
+      } | null;
+    } | null;
+  } | null;
   versions?: Array<{
     id: string;
     title: string;
@@ -179,6 +211,29 @@ function asString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
+function oimPositionTitleFrom(position?: PositionRecord | null) {
+  let current = position ?? null;
+  let depth = 0;
+
+  while (current && depth < 6) {
+    const roleCode = current.role?.code?.toUpperCase();
+    const positionCode = current.code?.toUpperCase();
+
+    if (
+      roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER" ||
+      positionCode === "KABAGOPS" ||
+      positionCode === "KASUBDIT"
+    ) {
+      return current.title ?? null;
+    }
+
+    current = current.reportsTo ?? null;
+    depth += 1;
+  }
+
+  return null;
+}
+
 async function getAccess(cookie: string) {
   const access = await backendApi<AccessMeResponse>("/access/me", { cookie });
 
@@ -209,10 +264,16 @@ function mapTask(
   }
 
   const sourceLabel =
-    record.directiveVersion?.directive?.title ||
-    record.directiveVersion?.directive?.code ||
-    record.uukStrVersion?.uukStr?.title ||
-    record.uukStrVersion?.uukStr?.code ||
+    record.uukStrVersion?.title ||
+    record.uukStrVersion?.uukStr?.directiveVersion?.directive?.commandNumber ||
+    record.directiveVersion?.directive?.commandNumber ||
+    record.uukStrVersion?.uukStr?.directiveVersion?.commandSource ||
+    record.directiveVersion?.commandSource ||
+    null;
+
+  const classification =
+    record.directiveVersion?.classification ||
+    record.uukStrVersion?.classification ||
     null;
 
   return {
@@ -220,8 +281,9 @@ function mapTask(
     taskId: record.id,
     title: record.title,
     description: record.description,
+    coordinatorInstruction: assignment.assignmentNote?.trim() || null,
     priority: record.priority,
-    dueDate: record.dueDate ?? null,
+    dueDate: assignment.dueDate ?? record.dueDate ?? null,
     taskStatus: record.status,
     assignmentStatus: assignment.status,
     sourceLabel,
@@ -229,11 +291,13 @@ function mapTask(
       .map((item) => item.area?.name)
       .filter(Boolean) as string[],
     assignerName: assignment.assigner?.userProfile?.fullName ?? null,
+    assignerPositionTitle: assignment.assigner?.position?.title ?? null,
     progressSummary:
       assignment.progressPercent !== null &&
       assignment.progressPercent !== undefined
         ? `${assignment.progressPercent}%`
         : assignment.status,
+    classification,
   };
 }
 
@@ -447,6 +511,9 @@ export async function getFieldOfficerWorkspace(
       categoryName: item.reportCategory?.name ?? null,
       clusterName: item.jaringCluster?.name ?? null,
       urgency: item.versions?.[0]?.urgency ?? null,
+      sentToPositionTitle:
+        oimPositionTitleFrom(item.createdByFieldOfficerAssignment?.position) ??
+        null,
     })),
     latestLocation: latestLocation
       ? {
@@ -648,6 +715,25 @@ export async function updateTaskAssignmentStatus(
     body: payload,
     idempotent: true,
   });
+}
+
+export async function forwardTaskInstructionToJaring(
+  cookie: string,
+  assignmentId: string,
+  body: {
+    instruction: string;
+    jaringIds?: string[];
+  },
+) {
+  return backendApi<JaringInstructionDispatch>(
+    `/task-assignments/${assignmentId}/jaring-instructions`,
+    {
+      cookie,
+      method: "POST",
+      body,
+      idempotent: true,
+    },
+  );
 }
 
 export async function createOwnLocationPing(

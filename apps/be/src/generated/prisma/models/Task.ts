@@ -749,10 +749,6 @@ export type TaskUncheckedCreateNestedManyWithoutParentTaskInput = {
   connect?: Prisma.TaskWhereUniqueInput | Prisma.TaskWhereUniqueInput[]
 }
 
-export type EnumPriorityLevelFieldUpdateOperationsInput = {
-  set?: $Enums.PriorityLevel
-}
-
 export type EnumTaskStatusFieldUpdateOperationsInput = {
   set?: $Enums.TaskStatus
 }
