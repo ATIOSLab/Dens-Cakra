@@ -92,14 +92,14 @@ function formatDateTime(value?: string | null) {
   }).format(new Date(value));
 }
 
-function baketStatusLabel(status?: string | null) {
+function baketStatusLabel(status?: string | null, sentToPositionTitle?: string | null) {
   switch ((status || "").toUpperCase()) {
     case "DRAFT":
       return "Draf";
     case "READY_TO_SEND":
       return "Siap dikirim";
     case "SENT_TO_OIM":
-      return "Sudah dikirim";
+      return sentToPositionTitle ? `Sudah dikirim ke ${sentToPositionTitle}` : "Sudah dikirim";
     case "UNDER_VERIFICATION":
       return "Sedang diverifikasi";
     case "NEEDS_DEVELOPMENT":
@@ -110,6 +110,25 @@ function baketStatusLabel(status?: string | null) {
       return "Ditolak";
     default:
       return status || "-";
+  }
+}
+
+function baketUrgencyLabel(urgency?: string | null) {
+  return urgency ? urgency.toUpperCase() : "-";
+}
+
+function urgencyTone(urgency?: string | null) {
+  switch ((urgency || "").toUpperCase()) {
+    case "LOW":
+      return "border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400";
+    case "NORMAL":
+      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+    case "HIGH":
+      return "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400";
+    case "URGENT":
+      return "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400";
+    default:
+      return "border-[var(--tactical-border)] text-[var(--tactical-text-secondary)]";
   }
 }
 
@@ -127,7 +146,9 @@ function statusTone(status: string) {
   if (
     value.includes("IN_PROGRESS") ||
     value.includes("ROUTED") ||
-    value.includes("READY")
+    value.includes("READY") ||
+    value.includes("SENT_TO_OIM") ||
+    value.includes("UNDER_VERIFICATION")
   ) {
     return "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20";
   }
@@ -135,7 +156,8 @@ function statusTone(status: string) {
   if (
     value.includes("DRAFT") ||
     value.includes("RECEIVED") ||
-    value.includes("ASSIGNED")
+    value.includes("ASSIGNED") ||
+    value.includes("NEEDS_DEVELOPMENT")
   ) {
     return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
   }
@@ -143,7 +165,8 @@ function statusTone(status: string) {
   if (
     value.includes("INACTIVE") ||
     value.includes("ARCHIVED") ||
-    value.includes("ERROR")
+    value.includes("ERROR") ||
+    value.includes("REJECTED")
   ) {
     return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
   }
@@ -1020,34 +1043,6 @@ export function FieldOfficerOperationsPage({
                     className="w-full h-9 border-slate-200 dark:border-white/10 bg-white dark:bg-[#131A26] text-sm"
                   />
                 </div>
-            {workspace.tasks.length === 0 ? (
-              <TacticalEmptyState
-                title="Tidak ada Tugas aktif"
-                description="Semua penugasan operasional telah selesai dilaksanakan atau belum dijadwalkan."
-                icon={CheckCircle2}
-              />
-            ) : (
-              <div className="grid gap-4">
-                {workspace.tasks.map((task) => {
-                  const action = nextTaskAction(task.assignmentStatus);
-                  const forwarded = forwardedAssignments.includes(task.assignmentId);
-                  return (
-                    <TaskCard
-                      key={task.assignmentId}
-                      task={task}
-                      action={action}
-                      forwarded={forwarded}
-                      jaring={registeredJaring}
-                      isBusy={isBusy === `task:${task.assignmentId}:${action?.nextStatus}`}
-                      isForwarding={isBusy === `task:${task.assignmentId}:forward-jaring`}
-                      onUpdateStatus={(nextStatus) => void updateTaskStatus(task.assignmentId, nextStatus)}
-                      onCancelForward={() => setForwardedAssignment(task.assignmentId, false)}
-                      onForwardToJaring={(instruction, jaringIds) =>
-                        void forwardInstructionToJaring(task.assignmentId, instruction, jaringIds)
-                      }
-                    />
-                  );
-                })}
               </div>
 
               {/* View toggle */}
@@ -1178,9 +1173,14 @@ export function FieldOfficerOperationsPage({
                         task={task}
                         action={action}
                         forwarded={forwarded}
+                        jaring={registeredJaring}
                         isBusy={isBusy === `task:${task.assignmentId}:${action?.nextStatus}`}
+                        isForwarding={isBusy === `task:${task.assignmentId}:forward-jaring`}
                         onUpdateStatus={(nextStatus) => void updateTaskStatus(task.assignmentId, nextStatus)}
-                        onForwardToggle={() => handleForwardToggle(task.assignmentId)}
+                        onCancelForward={() => setForwardedAssignment(task.assignmentId, false)}
+                        onForwardToJaring={(instruction, jaringIds) =>
+                          void forwardInstructionToJaring(task.assignmentId, instruction, jaringIds)
+                        }
                       />
                     );
                   })}
@@ -1527,7 +1527,7 @@ export function FieldOfficerOperationsPage({
                               <span>FOTO BUKTI TERVERIFIKASI</span>
                             </div>
                             {message.photoUrl ? (
-                              <div className="max-w-xs overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm">
+                              <div className="max-w-56 overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm">
                                 <EvidenceImageViewer
                                   src={message.photoUrl}
                                   alt={`Foto bukti ${message.title || message.jaringAlias}`}
@@ -1813,8 +1813,8 @@ export function FieldOfficerOperationsPage({
                                     <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
                                       KLASTER: {baket.clusterName || "LEGACY"}
                                     </span>
-                                    <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                                      URGENCY: {baket.urgency || "-"}
+                                    <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] font-mono ${urgencyTone(baket.urgency)}`}>
+                                      URGENSI: {baketUrgencyLabel(baket.urgency)}
                                     </span>
                                   </div>
                                   <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
@@ -1878,13 +1878,13 @@ export function FieldOfficerOperationsPage({
                           <div className="space-y-1.5 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] ${statusTone(baket.status)}`}>
-                                {baketStatusLabel(baket.status)}
+                                {baketStatusLabel(baket.status, baket.sentToPositionTitle)}
                               </span>
                               <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
                                 KATEGORI: {baket.categoryName || "LEGACY"}
                               </span>
-                              <span className="tactical-badge px-2 py-0.5 rounded text-[11px] border border-[var(--tactical-border)] text-[var(--tactical-text-secondary)] font-mono">
-                                URGENCY: {baket.urgency || "-"}
+                              <span className={`tactical-badge px-2 py-0.5 rounded text-[11px] font-mono ${urgencyTone(baket.urgency)}`}>
+                                URGENSI: {baketUrgencyLabel(baket.urgency)}
                               </span>
                             </div>
                             <h3 className="font-semibold text-lg text-[var(--tactical-text-primary)]">
@@ -2339,8 +2339,6 @@ function TaskCard({
 
       {/* Content Panel */}
       <div className="py-4 border-b border-[var(--tactical-border)]">
-        <h3 className="mb-[20px] truncate text-xl font-bold tracking-tight text-[var(--tactical-text-primary)]" title={task.title}>
-          {task.title}
         <h3 className="text-xl font-bold tracking-tight text-[var(--tactical-text-primary)] mb-[20px]">
           Instruksi dari {instructionSenderLabel}
         </h3>
@@ -2656,7 +2654,7 @@ function BaketCandidateForm({
               <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[var(--tactical-text-muted)]">
                 BUKTI DOKUMENTASI
               </span>
-              <div className="overflow-hidden rounded-lg border border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.01] shadow-sm">
+              <div className="max-w-56 overflow-hidden rounded-lg border border-[var(--tactical-border)] bg-black/10 dark:bg-white/[0.01] shadow-sm">
                 <EvidenceImageViewer
                   src={message.photoUrl}
                   alt={`Evidence ${message.title || message.jaringAlias}`}

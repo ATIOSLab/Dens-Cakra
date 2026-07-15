@@ -604,6 +604,7 @@ export class DirectiveService {
             directiveId: root.id,
             versionNumber: 1,
             classification: body.version.classification,
+            urgency: body.version.urgency,
             commandSource: body.version.commandSource,
             commandIssuer: body.version.commandIssuer,
             commandDate,
@@ -721,6 +722,7 @@ export class DirectiveService {
           directiveId,
           versionNumber: nextVersionNumber,
           classification: baseVersion.classification,
+          urgency: body.patch.urgency ?? baseVersion.urgency,
           commandSource: baseVersion.commandSource,
           commandIssuer: baseVersion.commandIssuer,
           commandDate: baseVersion.commandDate,
@@ -791,6 +793,7 @@ export class DirectiveService {
     await this.prisma.directiveVersion.update({
       where: { id: versionId },
       data: {
+        urgency: body.urgency,
         strategicIssue: body.strategicIssue,
         commandDescription: body.commandDescription,
         ...(body.dueDate ? { dueDate: new Date(body.dueDate) } : {}),

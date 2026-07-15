@@ -33,6 +33,7 @@ import { BaketModule } from './modules/baket/baket.module.js';
 import { AnalysisModule } from './modules/analysis/analysis.module.js';
 import { IntelligenceProductsModule } from './modules/intelligence-products/intelligence-products.module.js';
 import { MapMarkersModule } from './modules/map-markers/map-markers.module.js';
+import { ExecutivePersonnelModule } from './modules/executive-personnel/executive-personnel.module.js';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { MapMarkersModule } from './modules/map-markers/map-markers.module.js';
     AnalysisModule,
     IntelligenceProductsModule,
     MapMarkersModule,
+    ExecutivePersonnelModule,
     TaskModule,
     JaringModule,
     WhatsAppModule,

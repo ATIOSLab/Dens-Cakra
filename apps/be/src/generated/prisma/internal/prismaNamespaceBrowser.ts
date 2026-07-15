@@ -517,6 +517,7 @@ export const DirectiveVersionScalarFieldEnum = {
   directiveId: 'directiveId',
   versionNumber: 'versionNumber',
   classification: 'classification',
+  urgency: 'urgency',
   commandSource: 'commandSource',
   commandIssuer: 'commandIssuer',
   commandDate: 'commandDate',

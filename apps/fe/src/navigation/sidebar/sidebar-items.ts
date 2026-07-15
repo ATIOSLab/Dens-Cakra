@@ -138,6 +138,13 @@ export const sidebarItems: NavGroup[] = [
         roles: EXECUTIVE_ROLE,
       },
       {
+        id: "executive-personnel",
+        title: "Personil",
+        url: "/dashboard/executive/personil",
+        icon: Users,
+        roles: EXECUTIVE_ROLE,
+      },
+      {
         id: "executive-performance",
         title: "Kinerja & Evaluasi",
         url: "/dashboard/executive/kinerja-evaluasi",

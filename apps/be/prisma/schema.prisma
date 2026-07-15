@@ -983,6 +983,7 @@ model DirectiveVersion {
   directiveId           String         @db.Uuid
   versionNumber         Int
   classification        Classification
+  urgency               PriorityLevel  @default(NORMAL)
   commandSource         String         @db.VarChar(250)
   commandIssuer         String         @db.VarChar(250)
   commandDate           DateTime

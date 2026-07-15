@@ -21,6 +21,7 @@ export const directiveWizardSchema = z.object({
   ownerUnitId: z.string().uuid(),
   commandNumber: z.string().min(3),
   classification: z.enum(["BIASA", "TERBATAS", "RAHASIA", "SANGAT_RAHASIA"]),
+  urgency: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
   commandSource: z.string().min(2),
   commandIssuer: z.string().min(2),
   commandDate: z.string().min(1),
@@ -40,6 +41,7 @@ export const directiveWizardSchema = z.object({
 });
 
 export const directiveEditSchema = z.object({
+  urgency: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
   dueDate: z.string().optional(),
   strategicIssue: z.string().optional(),
   commandDescription: z.string().min(10),

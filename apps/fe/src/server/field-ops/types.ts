@@ -111,6 +111,7 @@ export type FieldOfficerBaket = {
   categoryName: string | null;
   clusterName: string | null;
   urgency: string | null;
+  sentToPositionTitle: string | null;
 };
 
 export type FieldOfficerLocation = {

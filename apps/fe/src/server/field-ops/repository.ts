@@ -145,6 +145,15 @@ type TaskRecord = {
   }>;
 };
 
+type PositionRecord = {
+  title?: string | null;
+  code?: string | null;
+  role?: {
+    code?: string | null;
+  } | null;
+  reportsTo?: PositionRecord | null;
+};
+
 type BaketRecord = {
   id: string;
   status: string;
@@ -152,6 +161,16 @@ type BaketRecord = {
   primaryJaringId?: string | null;
   reportCategory?: { name: string } | null;
   jaringCluster?: { name: string } | null;
+  createdByFieldOfficerAssignment?: {
+    position?: PositionRecord | null;
+  } | null;
+  taskAssignment?: {
+    assigner?: {
+      position?: {
+        title?: string | null;
+      } | null;
+    } | null;
+  } | null;
   versions?: Array<{
     id: string;
     title: string;
@@ -190,6 +209,29 @@ function asRecord(value: unknown) {
 
 function asString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function oimPositionTitleFrom(position?: PositionRecord | null) {
+  let current = position ?? null;
+  let depth = 0;
+
+  while (current && depth < 6) {
+    const roleCode = current.role?.code?.toUpperCase();
+    const positionCode = current.code?.toUpperCase();
+
+    if (
+      roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER" ||
+      positionCode === "KABAGOPS" ||
+      positionCode === "KASUBDIT"
+    ) {
+      return current.title ?? null;
+    }
+
+    current = current.reportsTo ?? null;
+    depth += 1;
+  }
+
+  return null;
 }
 
 async function getAccess(cookie: string) {
@@ -469,6 +511,9 @@ export async function getFieldOfficerWorkspace(
       categoryName: item.reportCategory?.name ?? null,
       clusterName: item.jaringCluster?.name ?? null,
       urgency: item.versions?.[0]?.urgency ?? null,
+      sentToPositionTitle:
+        oimPositionTitleFrom(item.createdByFieldOfficerAssignment?.position) ??
+        null,
     })),
     latestLocation: latestLocation
       ? {

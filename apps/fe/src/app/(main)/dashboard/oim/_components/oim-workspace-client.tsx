@@ -1118,7 +1118,7 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
             {primaryPhoto ? (
               <div className="space-y-2">
                 <p className="text-sm font-medium">Foto bukti</p>
-                <div className="max-w-sm overflow-hidden rounded-lg border bg-muted">
+                <div className="max-w-56 overflow-hidden rounded-lg border bg-muted">
                   <EvidenceImageViewer
                     src={`/api/files/${primaryPhoto.fileId ?? primaryPhoto.file?.id}`}
                     alt={primaryPhoto.file?.originalName ?? "Foto bukti laporan Baket"}
@@ -1168,7 +1168,7 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
               </p>
             )}
             {evidence.length ? (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(11rem,13rem))]">
                 {evidence.map((entry) => {
                   const file = (entry.file ?? {}) as Row;
                   const fileId = entry.fileId ?? file.id;

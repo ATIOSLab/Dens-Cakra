@@ -184,6 +184,7 @@ export type DirectiveVersionResource = {
   id: string;
   versionNumber: number;
   classification: string;
+  urgency?: string | null;
   commandSource: string;
   commandIssuer: string;
   commandDate: string;

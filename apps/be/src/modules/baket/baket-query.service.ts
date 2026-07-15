@@ -49,6 +49,25 @@ const administrativeAreaInclude = {
   },
 } satisfies Prisma.AdministrativeAreaInclude;
 
+const oimReportingLineInclude = {
+  role: true,
+  reportsTo: {
+    include: {
+      role: true,
+      reportsTo: {
+        include: {
+          role: true,
+          reportsTo: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.PositionInclude;
+
 @Injectable()
 export class BaketQueryService {
   constructor(
@@ -61,7 +80,10 @@ export class BaketQueryService {
       where: { id: baketId, deletedAt: null },
       include: {
         createdByFieldOfficerAssignment: {
-          include: { userProfile: true, position: true },
+          include: {
+            userProfile: true,
+            position: { include: oimReportingLineInclude },
+          },
         },
         taskAssignment: {
           include: {
@@ -255,7 +277,7 @@ export class BaketQueryService {
                   { eventAreaId: query.areaId },
                   {
                     eventArea: {
-                      ancestorLinks: {
+                      descendantLinks: {
                         some: { ancestorId: query.areaId },
                       },
                     },
@@ -302,13 +324,19 @@ export class BaketQueryService {
         orderBy: { updatedAt: 'desc' },
         include: {
           createdByFieldOfficerAssignment: {
-            include: { userProfile: true, position: true },
+            include: {
+              userProfile: true,
+              position: { include: oimReportingLineInclude },
+            },
           },
           primaryJaring: { include: { cluster: true } },
           reportCategory: true,
           jaringCluster: true,
           taskAssignment: {
-            include: { task: true },
+            include: {
+              task: true,
+              assigner: { include: { position: true } },
+            },
           },
           versions: {
             orderBy: { versionNumber: 'desc' },

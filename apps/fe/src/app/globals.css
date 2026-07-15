@@ -393,6 +393,50 @@ These serve as the fallback; there is no separate default.css file. */
   .maplibregl-popup-tip {
     @apply hidden!;
   }
+
+  .dc-map-marker {
+    --dc-marker-pulse-duration: 1.8s;
+    position: relative;
+    isolation: isolate;
+  }
+
+  .dc-map-marker[data-pulse="urgent"] {
+    --dc-marker-pulse-duration: 0.72s;
+  }
+
+  .dc-map-marker[data-pulse="high"] {
+    --dc-marker-pulse-duration: 1.05s;
+  }
+
+  .dc-map-marker[data-pulse="slow"] {
+    --dc-marker-pulse-duration: 2.45s;
+  }
+
+  .dc-map-marker::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    z-index: -1;
+    border: 2px solid color-mix(in srgb, var(--dc-primary) 72%, transparent);
+    border-radius: 999px;
+    pointer-events: none;
+    animation: dc-marker-pulse var(--dc-marker-pulse-duration) ease-out infinite;
+  }
+
+  @keyframes dc-marker-pulse {
+    0% {
+      opacity: 0.85;
+      transform: scale(0.68);
+    }
+    72% {
+      opacity: 0;
+      transform: scale(1.75);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.75);
+    }
+  }
 }
 
 @layer components {

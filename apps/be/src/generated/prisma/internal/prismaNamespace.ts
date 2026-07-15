@@ -7370,6 +7370,7 @@ export const DirectiveVersionScalarFieldEnum = {
   directiveId: 'directiveId',
   versionNumber: 'versionNumber',
   classification: 'classification',
+  urgency: 'urgency',
   commandSource: 'commandSource',
   commandIssuer: 'commandIssuer',
   commandDate: 'commandDate',
@@ -8640,6 +8641,20 @@ export type ListEnumClassificationFieldRefInput<$PrismaModel> = FieldRefInputTyp
 
 
 /**
+ * Reference to a field of type 'PriorityLevel'
+ */
+export type EnumPriorityLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PriorityLevel'>
+    
+
+
+/**
+ * Reference to a field of type 'PriorityLevel[]'
+ */
+export type ListEnumPriorityLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PriorityLevel[]'>
+    
+
+
+/**
  * Reference to a field of type 'RecipientStatus'
  */
 export type EnumRecipientStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RecipientStatus'>
@@ -8678,20 +8693,6 @@ export type EnumUukStrSectionTypeFieldRefInput<$PrismaModel> = FieldRefInputType
  * Reference to a field of type 'UukStrSectionType[]'
  */
 export type ListEnumUukStrSectionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UukStrSectionType[]'>
-    
-
-
-/**
- * Reference to a field of type 'PriorityLevel'
- */
-export type EnumPriorityLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PriorityLevel'>
-    
-
-
-/**
- * Reference to a field of type 'PriorityLevel[]'
- */
-export type ListEnumPriorityLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PriorityLevel[]'>
     
 
 

@@ -74,6 +74,7 @@ type DirectiveAiResponse = {
 };
 
 const CLASSIFICATION_OPTIONS = ["BIASA", "TERBATAS", "RAHASIA", "SANGAT_RAHASIA"] as const;
+const URGENCY_OPTIONS = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
 
 function formatClassificationLabel(value: string) {
   return value.replaceAll("_", " ");
@@ -241,6 +242,7 @@ const directiveFormFieldLabels: Record<string, string> = {
   ownerUnitId: "Unit pembuat STR",
   commandNumber: "Nomor STR",
   classification: "Klasifikasi",
+  urgency: "Tingkat Urgensi",
   commandSource: "Sumber Perintah",
   commandIssuer: "Pemberi Perintah",
   commandDate: "Tanggal Perintah",
@@ -415,6 +417,7 @@ export function DirectiveFormClient({
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [commandNumber, setCommandNumber] = useState(directive?.commandNumber ?? "");
   const [classification, setClassification] = useState(currentVersion?.classification ?? "RAHASIA");
+  const [urgency, setUrgency] = useState(currentVersion?.urgency ?? "NORMAL");
   const [commandSource, setCommandSource] = useState(currentVersion?.commandSource ?? "");
   const [commandIssuer, setCommandIssuer] = useState(currentVersion?.commandIssuer ?? "");
   const [commandDate, setCommandDate] = useState(
@@ -503,6 +506,7 @@ export function DirectiveFormClient({
         context: {
           commandNumber,
           classification,
+          urgency,
           commandSource,
           commandIssuer,
           commandDate,
@@ -579,6 +583,7 @@ export function DirectiveFormClient({
           ownerUnitId: access.authorizationContext.organizationUnitId,
           commandNumber,
           classification,
+          urgency,
           commandSource,
           commandIssuer,
           commandDate,
@@ -596,6 +601,7 @@ export function DirectiveFormClient({
           version: {
             commandNumber: parsed.commandNumber,
             classification: parsed.classification,
+            urgency: parsed.urgency,
             commandSource: parsed.commandSource,
             commandIssuer: parsed.commandIssuer,
             commandDate: parsed.commandDate,
@@ -622,6 +628,7 @@ export function DirectiveFormClient({
 
       const parsed = directiveEditSchema.parse({
         dueDate: dueDate || undefined,
+        urgency,
         strategicIssue,
         commandDescription: serializedCommandDescription,
         uukTitle,
@@ -631,6 +638,7 @@ export function DirectiveFormClient({
       });
 
       await apiBrowserMutation("PATCH", `/directive-versions/${currentVersion.id}`, {
+        urgency: parsed.urgency,
         dueDate: parsed.dueDate || undefined,
         strategicIssue: parsed.strategicIssue || undefined,
         commandDescription: parsed.commandDescription,
@@ -736,6 +744,31 @@ export function DirectiveFormClient({
               <div className="space-y-2 text-sm">
                 <span>Batas Waktu</span>
                 <Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+              </div>
+              <div className="space-y-2 text-sm">
+                <span>Tingkat Urgensi</span>
+                <Select value={urgency} onValueChange={setUrgency}>
+                  <SelectTrigger className="h-12 w-full rounded-md border-[var(--dc-border-subtle)] bg-background/50 text-[var(--dc-text-primary)] focus:border-[var(--dc-primary)]/50 focus:ring-0">
+                    <span
+                      className="dc-priority inline-flex rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider"
+                      data-priority={urgency}
+                    >
+                      {urgency}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {URGENCY_OPTIONS.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        <span
+                          className="dc-priority inline-flex rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider"
+                          data-priority={item}
+                        >
+                          {item}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2 text-sm md:col-span-2">
                 <span>Isu Strategis</span>

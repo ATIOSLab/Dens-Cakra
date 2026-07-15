@@ -475,6 +475,7 @@ const totalRecipients = directives.reduce((sum, directive) => {
                   <TableHead className="pl-4">Nomor STR</TableHead>
                   <TableHead>Judul UUK/STR</TableHead>
                   <TableHead>Klasifikasi</TableHead>
+                  <TableHead>Urgensi</TableHead>
                   <TableHead>Wilayah</TableHead>
                   <TableHead>Penugasan</TableHead>
                   <TableHead>Deadline</TableHead>
@@ -524,6 +525,15 @@ const totalRecipients = directives.reduce((sum, directive) => {
                               </Badge>
                             );
                           })()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className="dc-priority font-mono font-bold tracking-wider"
+                            data-priority={(currentVersion?.urgency ?? "NORMAL").toUpperCase()}
+                          >
+                            {currentVersion?.urgency ?? "NORMAL"}
+                          </Badge>
                         </TableCell>
                         <TableCell className="max-w-[18rem] whitespace-normal text-[var(--dc-text-secondary)]">
                           {areaSummary}
