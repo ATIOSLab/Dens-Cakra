@@ -13,6 +13,7 @@ import {
   createVerificationEmail,
   queueMail,
 } from './email.js';
+import { normalizeIpAddress, resolveIpLocation } from './ip-location.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
 import {
   ensureUserProfileForAuthUser,
@@ -26,6 +27,8 @@ async function createAuditLogForAuthEvent(input: {
   entityType: string;
   entityId?: string;
   metadata?: Prisma.InputJsonValue;
+  ipAddress?: string | null;
+  deviceInfo?: string | null;
 }) {
   const actorUserProfileId = await getUserProfileIdForAuthUser(
     input.authUserId,
@@ -37,6 +40,8 @@ async function createAuditLogForAuthEvent(input: {
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId,
+      ipAddress: input.ipAddress ?? undefined,
+      deviceInfo: input.deviceInfo ?? undefined,
       ...(input.metadata ? { metadata: input.metadata } : {}),
     },
   });
@@ -71,8 +76,55 @@ export const auth = betterAuth({
     },
     session: {
       create: {
+        before: async (session) => {
+          const now = new Date();
+
+          await prisma.session.deleteMany({
+            where: {
+              userId: session.userId,
+              expiresAt: { lte: now },
+            },
+          });
+
+          const normalizedIpAddress =
+            normalizeIpAddress(session.ipAddress) ?? 'Unknown IP';
+          const location = await resolveIpLocation(normalizedIpAddress);
+
+          return {
+            data: {
+              ipAddress: normalizedIpAddress,
+              locationLabel: location.label,
+            },
+          };
+        },
         after: async (session) => {
           await touchUserProfileLastLogin(session.userId);
+          await createAuditLogForAuthEvent({
+            authUserId: session.userId,
+            action: 'auth.session.created',
+            entityType: 'Session',
+            entityId: session.id,
+            ipAddress: session.ipAddress ?? null,
+            deviceInfo: session.userAgent ?? null,
+            metadata: {
+              locationLabel: session.locationLabel ?? 'Unknown location',
+            },
+          });
+        },
+      },
+      delete: {
+        after: async (session) => {
+          await createAuditLogForAuthEvent({
+            authUserId: session.userId,
+            action: 'auth.session.deleted',
+            entityType: 'Session',
+            entityId: session.id,
+            ipAddress: session.ipAddress ?? null,
+            deviceInfo: session.userAgent ?? null,
+            metadata: {
+              locationLabel: session.locationLabel ?? 'Unknown location',
+            },
+          });
         },
       },
     },
@@ -155,10 +207,15 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 12,
+    additionalFields: {
+      locationLabel: {
+        type: 'string',
+        required: false,
+        input: false,
+      },
+    },
     cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60,
-      strategy: 'jwe',
+      enabled: false,
     },
   },
   rateLimit: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleUser } from "lucide-react";
+import { CircleUser, MapPinned } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,7 +18,9 @@ import { useRoleWorkspace } from "./role-workspace-provider";
 import { SignOutMenuItem } from "./sign-out-menu-item";
 
 export function AccountSwitcher() {
-  const { activeUser } = useRoleWorkspace();
+  const { activeUser, principal } = useRoleWorkspace();
+  const sessionIp = principal.session.ipAddress ?? "Unknown IP";
+  const sessionLocation = principal.session.locationLabel ?? "Unknown location";
 
   if (!activeUser) {
     return null;
@@ -47,6 +49,10 @@ export function AccountSwitcher() {
           <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
             <span className="truncate font-semibold text-base">{activeUser.name}</span>
             <span className="truncate text-muted-foreground text-sm">{getSystemRoleLabel(activeUser.role)}</span>
+            <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <MapPinned className="size-3.5" />
+              <span className="truncate">{sessionIp} - {sessionLocation}</span>
+            </span>
           </div>
         </div>
         <DropdownMenuSeparator />
