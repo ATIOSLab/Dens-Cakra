@@ -52,6 +52,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/ui/page-header";
+import { TableToolbar } from "@/components/ui/table-toolbar";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -200,7 +203,6 @@ function StatusBadge({ value }: { value?: string }) {
 
 function Header({ view, data }: { view: OimView; data?: OimPageData }) {
   const [title, description, Icon] = VIEW_META[view];
-  const isDashboard = view === "dashboard";
   const router = useRouter();
   
   const root = (data?.areas ?? {}) as Row;
@@ -208,103 +210,85 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
   const provinceName = provinces[0]?.name || "REGIONAL";
   
+  const hasBackButton = ["report-detail", "analysis-detail", "analysis-new", "analysis-edit", "product-new", "product-edit", "product-detail"].includes(view);
+
+  const backButtonSettings = hasBackButton
+    ? {
+        href: view === "report-detail"
+          ? "/dashboard/oim/laporan-masuk"
+          : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
+          ? "/dashboard/oim/analisis-intelijen"
+          : ["product-new", "product-edit", "product-detail"].includes(view)
+          ? "/dashboard/oim/produk-intelijen/daftar-produk"
+          : undefined
+      }
+    : undefined;
+
   return (
-    <div className="flex flex-col gap-6 border-b border-border pb-6 relative z-20">
-      {["report-detail", "analysis-detail", "analysis-new", "analysis-edit", "product-new", "product-edit", "product-detail", "map"].includes(view) && (
-        <div className="flex items-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (view === "report-detail") {
-                router.push("/dashboard/oim/laporan-masuk");
-              } else if (["analysis-detail", "analysis-new", "analysis-edit"].includes(view)) {
-                router.push("/dashboard/oim/analisis-intelijen");
-              } else {
-                router.push("/dashboard/oim/produk-intelijen/daftar-produk");
-              }
-            }}
-            className="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border-white/10 hover:bg-white/[0.04] text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-3.5" />
-            <span>Kembali</span>
-          </Button>
-        </div>
-      )}
-      {/* Visual group: Icon, eyebrow, title, description, actions */}
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex items-start gap-4">
-          {/* Icon Container (44x44) */}
-          <div 
-            className="grid size-11 shrink-0 place-items-center rounded-lg border border-border bg-card"
-            style={{ color: "#06B6D4" }}
-          >
+    <div className="flex flex-col gap-4 relative z-20 pb-2">
+      <PageHeader
+        title={title}
+        description={description}
+        backButton={backButtonSettings}
+        badge={
+          <div className="flex items-center gap-2">
             <div 
-              className="size-full flex items-center justify-center rounded-lg"
-              style={{ backgroundColor: "#06B6D41c" }} // 11% opacity tint
+              className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-card"
+              style={{ color: "#06B6D4" }}
             >
-              <Icon className="size-5 shrink-0" style={{ strokeWidth: "2px" }} />
+              <div 
+                className="size-full flex items-center justify-center rounded-lg"
+                style={{ backgroundColor: "#06B6D41c" }}
+              >
+                <Icon className="size-4 shrink-0" style={{ strokeWidth: "2px" }} />
+              </div>
             </div>
           </div>
-          
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              MANAJER OPERASIONAL INTELIJEN
-            </p>
-            <h1 
-              className={cn(
-                "font-bold text-foreground tracking-tight leading-none uppercase",
-                isDashboard ? "text-[44px]" : "text-[22px]"
-              )}
+        }
+        actions={
+          <div className="flex items-center gap-3 shrink-0 print:hidden">
+            <Button 
+              variant="ghost" 
+              asChild
+              className="border border-border bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-[150ms] ease-out rounded-lg h-10 px-4"
             >
-              {title}
-            </h1>
-            {description && (
-              <p className="max-w-3xl text-[14px] font-medium text-muted-foreground/80 leading-relaxed">
-                {description}
-              </p>
-            )}
+              <Link href="/dashboard/oim/peta-situasi" className="flex items-center gap-2">
+                <MapPinned className="size-4 shrink-0" style={{ strokeWidth: "2px" }} />
+                <span>PETA</span>
+              </Link>
+            </Button>
+            <Button 
+              asChild
+              className="bg-[#3B82F6] hover:bg-[#2563EB] text-white transition-all duration-[150ms] ease-out rounded-lg h-10 px-4 shadow-[0_4px_12px_rgba(59,130,246,0.2)] border-none"
+            >
+              <Link href="/dashboard/oim/produk-intelijen/buat-produk" className="flex items-center gap-2">
+                <Plus className="size-4 shrink-0" style={{ strokeWidth: "2px" }} />
+                <span>PRODUK</span>
+              </Link>
+            </Button>
           </div>
-        </div>
+        }
+      />
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3 shrink-0 self-end lg:self-start print:hidden">
-          <Button 
-            variant="ghost" 
-            asChild
-            className="border border-border bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-[150ms] ease-out rounded-lg h-10 px-4"
-          >
-            <Link href="/dashboard/oim/peta-situasi" className="flex items-center gap-2">
-              <MapPinned className="size-4 shrink-0" style={{ strokeWidth: "2px" }} />
-              <span>PETA</span>
-            </Link>
-          </Button>
-          <Button 
-            asChild
-            className="bg-[#3B82F6] hover:bg-[#2563EB] text-white transition-all duration-[150ms] ease-out rounded-lg h-10 px-4 shadow-[0_4px_12px_rgba(59,130,246,0.2)] border-none"
-          >
-            <Link href="/dashboard/oim/produk-intelijen/buat-produk" className="flex items-center gap-2">
-              <Plus className="size-4 shrink-0" style={{ strokeWidth: "2px" }} />
-              <span>PRODUK</span>
-            </Link>
-          </Button>
+      <div className="flex flex-col gap-2.5 mt-2">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+          MANAJER OPERASIONAL INTELIJEN
+        </p>
+        
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
+          <span className="flex items-center gap-1.5 text-[#16C784]">
+            <span className="size-1.5 rounded-full bg-[#16C784] animate-pulse" />
+            SISTEM NORMAL
+          </span>
+          <span className="text-border">|</span>
+          <span>SYNC: 1 MENIT LALU</span>
+          <span className="text-border">|</span>
+          <span>WILAYAH CAKUPAN: {provinceName.toUpperCase()}</span>
+          <span className="text-border">|</span>
+          <span>SESI: AMAN</span>
+          <span className="text-border">|</span>
+          <span className="text-muted-foreground/50">NODE KOMANDO: OIM-SEC-01</span>
         </div>
-      </div>
-
-      {/* Mission Status Strip */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
-        <span className="flex items-center gap-1.5 text-[#16C784]">
-          <span className="size-1.5 rounded-full bg-[#16C784] animate-pulse" />
-          SISTEM NORMAL
-        </span>
-        <span className="text-border">|</span>
-        <span>SYNC: 1 MENIT LALU</span>
-        <span className="text-border">|</span>
-        <span>WILAYAH CAKUPAN: {provinceName.toUpperCase()}</span>
-        <span className="text-border">|</span>
-        <span>SESI: AMAN</span>
-        <span className="text-border">|</span>
-        <span className="text-muted-foreground/50">NODE KOMANDO: OIM-SEC-01</span>
       </div>
     </div>
   );
@@ -844,69 +828,16 @@ function BaketList({ data }: { data: OimPageData }) {
   const endRow = Math.min(safePage * rowsPerPage, items.length);
 
   const paginationControls = (
-    <div className="flex flex-col gap-3 py-3.5 md:flex-row md:items-center md:justify-between border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] px-6">
-      <p className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
-        Menampilkan{" "}
-        <span className="font-semibold text-foreground">
-          {items.length === 0 ? 0 : startRow}-{endRow}
-        </span>{" "}
-        dari <span className="font-semibold text-foreground">{items.length}</span> laporan.
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Label className="text-muted-foreground text-xs font-mono uppercase tracking-wider">Baris</Label>
-          <Select
-            value={String(rowsPerPage)}
-            onValueChange={(value) => {
-              setRowsPerPage(Number(value));
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-24 h-8 bg-transparent text-xs font-mono border-slate-200 dark:border-white/10">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
-              {[5, 10, 20, 50].map((val) => (
-                <SelectItem key={val} value={String(val)} className="text-xs font-mono">
-                  {val} baris
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={safePage <= 1}
-            onClick={() => setPage((value) => Math.max(1, value - 1))}
-            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
-          >
-            Sebelumnya
-          </Button>
-          {paginationNumbers(safePage, totalPages).map((pageNumber) => (
-            <Button
-              key={pageNumber}
-              variant={pageNumber === safePage ? "default" : "outline"}
-              size="sm"
-              className="w-8 h-8 p-0 text-xs font-mono border-slate-200 dark:border-white/10"
-              onClick={() => setPage(pageNumber)}
-            >
-              {pageNumber}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={safePage >= totalPages}
-            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
-          >
-            Berikutnya
-          </Button>
-        </div>
-      </div>
-    </div>
+    <TablePagination
+      page={safePage}
+      limit={rowsPerPage}
+      total={items.length}
+      onPageChange={setPage}
+      onLimitChange={(limit) => {
+        setRowsPerPage(limit);
+        setPage(1);
+      }}
+    />
   );
 
   return (
@@ -1648,69 +1579,16 @@ function AnalysisList({ data }: { data: OimPageData }) {
   const endRow = Math.min(safePage * rowsPerPage, items.length);
 
   const paginationControls = (
-    <div className="flex flex-col gap-3 py-3.5 md:flex-row md:items-center md:justify-between border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] px-6">
-      <p className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
-        Menampilkan{" "}
-        <span className="font-semibold text-foreground">
-          {items.length === 0 ? 0 : startRow}-{endRow}
-        </span>{" "}
-        dari <span className="font-semibold text-foreground">{items.length}</span> analisis.
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Label className="text-muted-foreground text-xs font-mono uppercase tracking-wider">Baris</Label>
-          <Select
-            value={String(rowsPerPage)}
-            onValueChange={(value) => {
-              setRowsPerPage(Number(value));
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-24 h-8 bg-transparent text-xs font-mono border-slate-200 dark:border-white/10">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
-              {[5, 10, 20, 50].map((val) => (
-                <SelectItem key={val} value={String(val)} className="text-xs font-mono">
-                  {val} baris
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={safePage <= 1}
-            onClick={() => setPage((value) => Math.max(1, value - 1))}
-            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
-          >
-            Sebelumnya
-          </Button>
-          {paginationNumbers(safePage, totalPages).map((pageNumber) => (
-            <Button
-              key={pageNumber}
-              variant={pageNumber === safePage ? "default" : "outline"}
-              size="sm"
-              className="w-8 h-8 p-0 text-xs font-mono border-slate-200 dark:border-white/10"
-              onClick={() => setPage(pageNumber)}
-            >
-              {pageNumber}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={safePage >= totalPages}
-            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
-          >
-            Berikutnya
-          </Button>
-        </div>
-      </div>
-    </div>
+    <TablePagination
+      page={safePage}
+      limit={rowsPerPage}
+      total={items.length}
+      onPageChange={setPage}
+      onLimitChange={(limit) => {
+        setRowsPerPage(limit);
+        setPage(1);
+      }}
+    />
   );
 
   return (
@@ -2108,69 +1986,16 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
   const endRow = Math.min(safePage * rowsPerPage, items.length);
 
   const paginationControls = (
-    <div className="flex flex-col gap-3 py-3.5 md:flex-row md:items-center md:justify-between border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] px-6">
-      <p className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
-        Menampilkan{" "}
-        <span className="font-semibold text-foreground">
-          {items.length === 0 ? 0 : startRow}-{endRow}
-        </span>{" "}
-        dari <span className="font-semibold text-foreground">{items.length}</span> produk.
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Label className="text-muted-foreground text-xs font-mono uppercase tracking-wider">Baris</Label>
-          <Select
-            value={String(rowsPerPage)}
-            onValueChange={(value) => {
-              setRowsPerPage(Number(value));
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-24 h-8 bg-transparent text-xs font-mono border-slate-200 dark:border-white/10">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
-              {[5, 10, 20, 50].map((val) => (
-                <SelectItem key={val} value={String(val)} className="text-xs font-mono">
-                  {val} baris
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={safePage <= 1}
-            onClick={() => setPage((value) => Math.max(1, value - 1))}
-            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
-          >
-            Sebelumnya
-          </Button>
-          {paginationNumbers(safePage, totalPages).map((pageNumber) => (
-            <Button
-              key={pageNumber}
-              variant={pageNumber === safePage ? "default" : "outline"}
-              size="sm"
-              className="w-8 h-8 p-0 text-xs font-mono border-slate-200 dark:border-white/10"
-              onClick={() => setPage(pageNumber)}
-            >
-              {pageNumber}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={safePage >= totalPages}
-            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
-          >
-            Berikutnya
-          </Button>
-        </div>
-      </div>
-    </div>
+    <TablePagination
+      page={safePage}
+      limit={rowsPerPage}
+      total={items.length}
+      onPageChange={setPage}
+      onLimitChange={(limit) => {
+        setRowsPerPage(limit);
+        setPage(1);
+      }}
+    />
   );
 
   return (

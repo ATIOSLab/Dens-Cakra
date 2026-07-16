@@ -1,8 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { BackButton } from "@/components/ui/back-button";
 
 type DensModulePageProps = {
   title: string;
@@ -25,21 +23,11 @@ export function DensModulePage({
   highlights,
   nextSteps = defaultNextSteps,
 }: DensModulePageProps) {
-  const router = useRouter();
-
   return (
     <div className="@container/main flex flex-col gap-3 md:gap-4">
       {/* Back Button */}
       <div className="flex items-center">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border-white/10 hover:bg-white/[0.04] text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" />
-          <span>Kembali</span>
-        </Button>
+        <BackButton />
       </div>
 
       <section className="grid gap-3 md:grid-cols-[1.4fr_repeat(3,minmax(0,0.6fr))]">

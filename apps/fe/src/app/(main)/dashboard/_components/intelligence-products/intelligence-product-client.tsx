@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { BackButton } from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -940,12 +941,7 @@ export function IntelligenceProductDetail({
     <main className="mx-auto w-full max-w-[1600px] space-y-5 p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2">
-            <Button className="print:hidden" variant="outline" size="sm" onClick={() => router.back()}>
-              <ChevronLeft className="mr-1 size-4" />
-              Kembali
-            </Button>
-          </div>
+            <BackButton className="print:hidden" />
           <p className="font-semibold text-muted-foreground text-xs uppercase tracking-[0.18em]">
             {executive ? "Executive" : approvalStep ? "Regional Commander" : "Produk Intelijen"}
           </p>

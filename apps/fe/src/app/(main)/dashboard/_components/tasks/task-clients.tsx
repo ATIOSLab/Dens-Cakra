@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { BackButton } from "@/components/ui/back-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -4232,7 +4233,11 @@ export function AssignmentBoardClient({
   }
 
   return (
-    <Card>
+    <div className="space-y-4">
+      <div className="flex items-center">
+        <BackButton />
+      </div>
+      <Card>
       <CardHeader>
         <CardTitle>{submitLabel}</CardTitle>
         <CardDescription>{task.title}</CardDescription>
@@ -4296,14 +4301,34 @@ export function AssignmentBoardClient({
               placeholder="Instruksi operasional untuk Field Officer"
               className="min-h-20 resize-y"
             />
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={rows.length === 1 || mode === "reassign"}
-              onClick={() => setRows((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-            >
-              Hapus
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={rows.length === 1 || mode === "reassign"}
+                >
+                  Hapus
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus Penugasan?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apakah Anda yakin ingin menghapus baris penugasan ini?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                    onClick={() => setRows((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                  >
+                    Ya, Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         ))}
 
@@ -4346,6 +4371,7 @@ export function AssignmentBoardClient({
         </AlertDialog>
       </CardFooter>
     </Card>
+    </div>
   );
 }
 
@@ -4444,7 +4470,10 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div>
+        <BackButton href="/dashboard/field-officer/tugas-saya" />
+      </div>
       <div>
         <div className="flex items-center gap-2">
           <h1 className="font-semibold text-2xl tracking-tight">{assignment.task?.title ?? "Assignment"}</h1>
