@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cookies } from "next/headers";
+import { MapPinned } from "lucide-react";
 
 import { AppSidebar } from "@/app/(main)/dashboard/_components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +25,8 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
     getPreference("sidebar_variant"),
     getPreference("sidebar_collapsible"),
   ]);
+  const sessionIp = principal.session.ipAddress ?? "Unknown IP";
+  const sessionLocation = principal.session.locationLabel ?? "Unknown location";
 
   return (
     <SidebarProvider
@@ -63,6 +66,13 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
                 <SearchDialog />
               </div>
               <div className="flex items-center gap-2">
+                <div className="hidden min-w-0 items-center gap-2 rounded-full border border-[var(--dc-divider)] bg-background/80 px-3 py-1.5 text-xs shadow-sm backdrop-blur md:flex">
+                  <MapPinned className="size-3.5 text-cyan-600 dark:text-[#14B8FF]" />
+                  <div className="grid leading-tight">
+                    <span className="truncate font-medium text-foreground">{sessionIp}</span>
+                    <span className="truncate text-[10px] text-muted-foreground">{sessionLocation}</span>
+                  </div>
+                </div>
                 <LayoutControls />
                 <NotificationsMenu />
                 <ThemeSwitcher />

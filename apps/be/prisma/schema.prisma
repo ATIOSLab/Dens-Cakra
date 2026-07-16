@@ -469,6 +469,7 @@ model Session {
   token          String   @unique
   expiresAt      DateTime
   ipAddress      String?
+  locationLabel  String?  @db.VarChar(255)
   userAgent      String?
   impersonatedBy String?
   createdAt      DateTime @default(now())

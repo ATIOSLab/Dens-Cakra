@@ -74,6 +74,175 @@ describe('WhatsappBotRuntimeService report intake', () => {
     expect(isReportIntent('lapor sekarang')).toBe(false);
   });
 
+  it('setelah PIN benar hanya menerima live location sebelum judul', async () => {
+    const service = new WhatsappBotRuntimeService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const sendHumanLikeReplies = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        sendHumanLikeReplies: typeof sendHumanLikeReplies;
+      }
+    ).sendHumanLikeReplies = sendHumanLikeReplies;
+    const advanceReportSession = (
+      service as unknown as {
+        advanceReportSession: (...args: unknown[]) => Promise<void>;
+      }
+    ).advanceReportSession.bind(service);
+    const session = {
+      channelId: 'channel-id',
+      remoteJid: '6281234567890@s.whatsapp.net',
+      senderPhone: '6281234567890',
+      jaringId: 'source-id',
+      jaringCode: '123456',
+      jaringLabel: 'Pelapor 001',
+      fieldOfficerAssignmentId: 'assignment-id',
+      step: 'AWAITING_CODE',
+      startedAt: new Date(),
+    };
+    const channel = { id: 'channel-id', config: {} };
+    const socket = {};
+
+    await advanceReportSession(
+      channel,
+      socket,
+      {
+        key: { remoteJid: session.remoteJid },
+        message: { conversation: '123456' },
+      },
+      {
+        externalMessageId: 'pin-message-id',
+        senderPhone: session.senderPhone,
+        receivedAt: '2026-07-15T10:00:00.000Z',
+        content: '123456',
+      },
+      session,
+      'session-key',
+    );
+
+    expect(session.step).toBe('AWAITING_LIVE_LOCATION');
+    expect(sendHumanLikeReplies).toHaveBeenLastCalledWith(
+      socket,
+      session.remoteJid,
+      expect.anything(),
+      expect.arrayContaining([expect.stringContaining('Live Location')]),
+    );
+
+    await advanceReportSession(
+      channel,
+      socket,
+      {
+        key: { remoteJid: session.remoteJid },
+        message: {
+          locationMessage: {
+            degreesLatitude: 0.4797112,
+            degreesLongitude: 101.4313293,
+          },
+        },
+      },
+      {
+        externalMessageId: 'static-location-id',
+        senderPhone: session.senderPhone,
+        receivedAt: '2026-07-15T10:01:00.000Z',
+      },
+      session,
+      'session-key',
+    );
+
+    expect(session.step).toBe('AWAITING_LIVE_LOCATION');
+    expect(session).not.toHaveProperty('location');
+    expect(sendHumanLikeReplies).toHaveBeenLastCalledWith(
+      socket,
+      session.remoteJid,
+      expect.anything(),
+      expect.arrayContaining([
+        expect.stringContaining('Lokasi statis ditolak'),
+      ]),
+    );
+
+    await advanceReportSession(
+      channel,
+      socket,
+      {
+        key: { remoteJid: session.remoteJid },
+        message: {
+          liveLocationMessage: {
+            degreesLatitude: 0.4797112,
+            degreesLongitude: 101.4313293,
+            accuracyInMeters: 5,
+          },
+        },
+      },
+      {
+        externalMessageId: 'live-location-id',
+        senderPhone: session.senderPhone,
+        receivedAt: '2026-07-15T10:02:00.000Z',
+      },
+      session,
+      'session-key',
+    );
+
+    expect(session).toMatchObject({
+      step: 'AWAITING_TITLE',
+      locationMessageId: 'live-location-id',
+      location: {
+        latitude: 0.4797112,
+        longitude: 101.4313293,
+        accuracy: 5,
+      },
+    });
+    expect(sendHumanLikeReplies).toHaveBeenLastCalledWith(
+      socket,
+      session.remoteJid,
+      expect.anything(),
+      expect.arrayContaining([
+        expect.stringContaining('Live Location diterima'),
+      ]),
+    );
+  });
+
+  it('menerima locationMessage hanya jika ditandai sebagai live', () => {
+    const { service } = createServiceForUnknownSender();
+    const extractLocation = (
+      service as unknown as {
+        extractLocation: (message: unknown, liveOnly: boolean) => unknown;
+      }
+    ).extractLocation.bind(service);
+
+    expect(
+      extractLocation(
+        {
+          locationMessage: {
+            degreesLatitude: -6.2,
+            degreesLongitude: 106.816666,
+            isLive: false,
+          },
+        },
+        true,
+      ),
+    ).toBeNull();
+    expect(
+      extractLocation(
+        {
+          locationMessage: {
+            degreesLatitude: -6.2,
+            degreesLongitude: 106.816666,
+            isLive: true,
+          },
+        },
+        true,
+      ),
+    ).toMatchObject({
+      latitude: -6.2,
+      longitude: 106.816666,
+    });
+  });
+
   it('mengabaikan chat biasa sebelum masuk pemroses inbox', async () => {
     const { service, sendMessage } = createServiceForUnknownSender();
     const handleBotInteraction = (

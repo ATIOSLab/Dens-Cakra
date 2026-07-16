@@ -22,6 +22,9 @@ type AuthMeResponse = {
   session?: {
     id?: string;
     expiresAt?: string;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+    locationLabel?: string | null;
   } | null;
 };
 
@@ -106,6 +109,9 @@ export const getSessionPrincipal = cache(async (): Promise<SessionPrincipal | nu
       ...payload.session,
       id: payload.session.id,
       expiresAt: payload.session.expiresAt,
+      ipAddress: payload.session.ipAddress ?? null,
+      userAgent: payload.session.userAgent ?? null,
+      locationLabel: payload.session.locationLabel ?? null,
     },
     role,
     homeRoute: getSystemRoleHomeRoute(role),

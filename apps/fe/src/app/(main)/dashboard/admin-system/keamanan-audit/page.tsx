@@ -1,1 +1,1 @@
-export { default } from "@/app/(main)/dashboard/coming-soon/page";
+export { default } from "./_components/keamanan-audit-page";

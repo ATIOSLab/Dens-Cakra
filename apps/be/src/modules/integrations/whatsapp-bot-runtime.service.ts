@@ -72,11 +72,17 @@ type InboundMessagePayload = {
 
 type ReportSessionStep =
   | 'AWAITING_CODE'
+  | 'AWAITING_LIVE_LOCATION'
   | 'AWAITING_TITLE'
   | 'AWAITING_CONTENT'
   | 'AWAITING_EVENT_TIME'
-  | 'AWAITING_PHOTO'
-  | 'AWAITING_LOCATION';
+  | 'AWAITING_PHOTO';
+
+type ReportLocation = {
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
+};
 
 type ReportSession = {
   channelId: string;
@@ -92,6 +98,9 @@ type ReportSession = {
   content?: string;
   eventDateTime?: Date;
   eventDateTimeText?: string;
+  location?: ReportLocation;
+  locationMessageId?: string;
+  locationSharedAt?: Date;
   photoMessageId?: string;
   photoCaption?: string;
   photoFileId?: string;
@@ -679,8 +688,16 @@ export class WhatsappBotRuntimeService
     ).trim();
   }
 
-  private extractLocation(message: ReturnType<typeof this.unwrapMessage>) {
-    const location = message?.locationMessage || message?.liveLocationMessage;
+  private extractLocation(
+    message: ReturnType<typeof this.unwrapMessage>,
+    liveOnly = false,
+  ) {
+    const location = liveOnly
+      ? (message?.liveLocationMessage ??
+        (message?.locationMessage?.isLive
+          ? message.locationMessage
+          : undefined))
+      : message?.locationMessage || message?.liveLocationMessage;
 
     if (!location) {
       return null;
@@ -972,7 +989,7 @@ export class WhatsappBotRuntimeService
         remoteJid,
         [message.key],
         [
-          'Akses Ditolak\n\nNomor Anda terdaftar sebagai Jaring DENS CAKRA, tetapi tidak berada dalam wilayah layanan WhatsApp ini.',
+          'Akses Ditolak\n\nNomor Anda terdaftar sebagai pelapor DENS CAKRA, tetapi tidak berada dalam wilayah layanan WhatsApp ini.',
           'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda.',
         ],
       );
@@ -988,7 +1005,7 @@ export class WhatsappBotRuntimeService
         remoteJid,
         [message.key],
         [
-          'Akses Ditolak\n\nJaring Anda belum memiliki Field Officer penanggung jawab aktif.',
+          'Akses Ditolak\n\nAkun pelapor Anda belum memiliki Field Officer penanggung jawab aktif.',
           'Silakan hubungi admin untuk melengkapi penanggung jawab sebelum mengirim laporan.',
         ],
       );
@@ -1013,7 +1030,7 @@ export class WhatsappBotRuntimeService
       remoteJid,
       [message.key],
       [
-        `Halo, ${jaringLabel}.\n\nAnda telah terdaftar sebagai pelapor. Untuk melanjutkan, silakan masukkan PIN/Kode Autentikasi Jaring.`,
+        'Halo.\n\nAnda telah terdaftar sebagai pelapor. Untuk melanjutkan, silakan masukkan PIN/Kode Autentikasi.',
       ],
     );
   }
@@ -1052,15 +1069,49 @@ export class WhatsappBotRuntimeService
         return;
       }
 
-      session.step = 'AWAITING_TITLE';
+      session.step = 'AWAITING_LIVE_LOCATION';
       await this.sendHumanLikeReplies(
         socket,
         remoteJid,
         [message.key],
         [
           'PIN benar. Autentikasi berhasil.',
-          'Silakan ketik judul laporan Anda.',
+          'Sebelum melanjutkan, kirim Live Location melalui WhatsApp. Lokasi biasa atau lokasi statis tidak diterima.',
         ],
+      );
+      return;
+    }
+
+    if (session.step === 'AWAITING_LIVE_LOCATION') {
+      const liveLocation = this.extractLocation(unwrapped, true);
+      const hasValidLiveLocation =
+        liveLocation?.latitude !== undefined &&
+        liveLocation.longitude !== undefined;
+
+      if (!hasValidLiveLocation) {
+        const rejection =
+          unwrapped?.locationMessage && !unwrapped.locationMessage.isLive
+            ? 'Lokasi statis ditolak. Bot hanya menerima Live Location WhatsApp.'
+            : 'Tahap ini hanya menerima Live Location WhatsApp. Silakan pilih Lampiran > Lokasi > Bagikan lokasi terkini.';
+
+        await this.sendHumanLikeReplies(
+          socket,
+          remoteJid,
+          [message.key],
+          [rejection],
+        );
+        return;
+      }
+
+      session.location = liveLocation;
+      session.locationMessageId = payload.externalMessageId;
+      session.locationSharedAt = new Date(payload.receivedAt);
+      session.step = 'AWAITING_TITLE';
+      await this.sendHumanLikeReplies(
+        socket,
+        remoteJid,
+        [message.key],
+        ['Live Location diterima.', 'Silakan ketik judul laporan Anda.'],
       );
       return;
     }
@@ -1156,51 +1207,32 @@ export class WhatsappBotRuntimeService
         message,
         session,
       );
-      session.step = 'AWAITING_LOCATION';
-      await this.sendHumanLikeReplies(
-        socket,
-        remoteJid,
-        [message.key],
-        [
-          'Foto diterima.',
-          'Sekarang kirim lokasi/maps kejadian memakai fitur Share Location dari WhatsApp.',
-        ],
-      );
-      return;
-    }
-
-    if (session.step === 'AWAITING_LOCATION') {
-      const location = this.extractLocation(unwrapped);
-      const hasValidLocation =
-        location?.latitude !== undefined && location.longitude !== undefined;
-
-      if (!hasValidLocation) {
-        if (!text) {
-          return;
-        }
-
+      if (!session.location) {
+        session.step = 'AWAITING_LIVE_LOCATION';
         await this.sendHumanLikeReplies(
           socket,
           remoteJid,
           [message.key],
           [
-            'Lokasi belum terbaca. Mohon kirim fitur Share Location dari WhatsApp, bukan teks alamat.',
+            'Live Location belum tersimpan. Silakan kirim Live Location WhatsApp untuk melanjutkan.',
           ],
         );
         return;
       }
 
-      await this.saveCompletedReport(channel, payload, session, location);
+      await this.saveCompletedReport(
+        channel,
+        payload,
+        session,
+        session.location,
+      );
       this.reportSessions.delete(sessionKey);
 
       await this.sendHumanLikeReplies(
         socket,
         remoteJid,
         [message.key],
-        [
-          'Laporan berhasil dikirim.',
-          'Teks, foto bukti, dan lokasi/maps telah dicatat di server dan masuk ke kotak masuk Field Officer penanggung jawab.',
-        ],
+        ['Laporan berhasil dikirim.'],
       );
     }
   }
@@ -1223,7 +1255,7 @@ export class WhatsappBotRuntimeService
     channel: WhatsAppChannelRecord,
     payload: InboundMessagePayload,
     session: ReportSession,
-    location: { latitude?: number; longitude?: number; accuracy?: number },
+    location: ReportLocation,
   ) {
     const hasCoordinates =
       Number.isFinite(location.latitude) && Number.isFinite(location.longitude);
@@ -1247,7 +1279,7 @@ export class WhatsappBotRuntimeService
         longitude: location.longitude,
         gpsAccuracyMeters: location.accuracy,
         locationCapturedAt:
-          session.eventDateTime ?? new Date(payload.receivedAt),
+          session.locationSharedAt ?? new Date(payload.receivedAt),
         coordinateSource: CoordinateSource.WHATSAPP_LOCATION,
         resolvedAreaId: areaResolution?.area?.areaId ?? null,
         areaResolutionMethod:
@@ -1265,8 +1297,8 @@ export class WhatsappBotRuntimeService
           eventDateTimeText: session.eventDateTimeText,
           photoMessageId: session.photoMessageId,
           photoCaption: session.photoCaption,
-          locationMessageId: payload.externalMessageId,
-          gpsSharedAt: new Date(payload.receivedAt).toISOString(),
+          locationMessageId: session.locationMessageId,
+          gpsSharedAt: session.locationSharedAt?.toISOString(),
           startedAt: session.startedAt.toISOString(),
           completedAt: new Date(payload.receivedAt).toISOString(),
           timestamp: new Date().toISOString(),
