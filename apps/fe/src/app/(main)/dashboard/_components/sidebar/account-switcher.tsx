@@ -14,13 +14,13 @@ import {
 import { getInitials } from "@/lib/utils";
 import { getSystemRoleLabel } from "@/navigation/sidebar/system-roles";
 
+import { useClientNetwork } from "./client-network";
 import { useRoleWorkspace } from "./role-workspace-provider";
 import { SignOutMenuItem } from "./sign-out-menu-item";
 
 export function AccountSwitcher() {
-  const { activeUser, principal } = useRoleWorkspace();
-  const sessionIp = principal.session.ipAddress ?? "Unknown IP";
-  const sessionLocation = principal.session.locationLabel ?? "Unknown location";
+  const { activeUser } = useRoleWorkspace();
+  const network = useClientNetwork();
 
   if (!activeUser) {
     return null;
@@ -51,7 +51,9 @@ export function AccountSwitcher() {
             <span className="truncate text-muted-foreground text-sm">{getSystemRoleLabel(activeUser.role)}</span>
             <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <MapPinned className="size-3.5" />
-              <span className="truncate">{sessionIp} - {sessionLocation}</span>
+              <span className="truncate">
+                {network.ipAddress} - {network.locationLabel}
+              </span>
             </span>
           </div>
         </div>

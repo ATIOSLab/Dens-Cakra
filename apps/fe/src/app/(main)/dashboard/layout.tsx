@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { cookies } from "next/headers";
-import { MapPinned } from "lucide-react";
 
 import { AppSidebar } from "@/app/(main)/dashboard/_components/sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 
 import { AccountSwitcher } from "./_components/sidebar/account-switcher";
+import { ClientNetworkBadge, ClientNetworkProvider } from "./_components/sidebar/client-network";
 import { LayoutControls } from "./_components/sidebar/layout-controls";
 import { NotificationsMenu } from "./_components/sidebar/notifications-menu";
 import { RoleWorkspaceProvider } from "./_components/sidebar/role-workspace-provider";
@@ -25,9 +25,6 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
     getPreference("sidebar_variant"),
     getPreference("sidebar_collapsible"),
   ]);
-  const sessionIp = principal.session.ipAddress ?? "Unknown IP";
-  const sessionLocation = principal.session.locationLabel ?? "Unknown location";
-
   return (
     <SidebarProvider
       defaultOpen={defaultOpen}
@@ -39,51 +36,47 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       }
     >
       <RoleWorkspaceProvider principal={principal}>
-        <AppSidebar variant={variant} collapsible={collapsible} />
-        <SidebarInset
-          className={cn(
-            "[html[data-content-layout=centered]_&>*]:mx-auto",
-            "[html[data-content-layout=centered]_&>*]:w-full",
-            "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
-            "peer-data-[variant=inset]:border",
-            "[--dashboard-header-height:var(--dc-topbar-height)]",
-            "min-w-0 overflow-x-clip",
-          )}
-        >
-          <header
+        <ClientNetworkProvider>
+          <AppSidebar variant={variant} collapsible={collapsible} />
+          <SidebarInset
             className={cn(
-              "flex h-14 shrink-0 items-center gap-2 border-[var(--dc-divider)] border-b bg-[color-mix(in_srgb,var(--dc-card)_86%,transparent)] shadow-[0_1px_0_var(--dc-divider)] backdrop-blur-xl transition-[width,height] ease-linear md:h-[var(--dc-topbar-height)] group-has-data-[collapsible=icon]/sidebar-wrapper:md:h-[var(--dc-topbar-height)]",
-              "[html[data-navbar-style=sticky]_&]:sticky [html[data-navbar-style=sticky]_&]:top-0 [html[data-navbar-style=sticky]_&]:z-50 [html[data-navbar-style=sticky]_&]:overflow-hidden [html[data-navbar-style=sticky]_&]:rounded-t-[inherit]",
+              "[html[data-content-layout=centered]_&>*]:mx-auto",
+              "[html[data-content-layout=centered]_&>*]:w-full",
+              "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
+              "peer-data-[variant=inset]:border",
+              "[--dashboard-header-height:var(--dc-topbar-height)]",
+              "min-w-0 overflow-x-clip",
             )}
           >
-            <div className="flex w-full items-center justify-between px-4 lg:px-6">
-              <div className="flex items-center gap-1 lg:gap-2">
-                <SidebarTrigger className="-ml-1" />
-                <Separator
-                  orientation="vertical"
-                  className="mx-2 data-[orientation=vertical]:h-4 data-[orientation=vertical]:self-center"
-                />
-                <SearchDialog />
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="hidden min-w-0 items-center gap-2 rounded-full border border-[var(--dc-divider)] bg-background/80 px-3 py-1.5 text-xs shadow-sm backdrop-blur md:flex">
-                  <MapPinned className="size-3.5 text-cyan-600 dark:text-[#14B8FF]" />
-                  <div className="grid leading-tight">
-                    <span className="truncate font-medium text-foreground">{sessionIp}</span>
-                    <span className="truncate text-[10px] text-muted-foreground">{sessionLocation}</span>
-                  </div>
+            <header
+              className={cn(
+                "flex h-14 shrink-0 items-center gap-2 border-[var(--dc-divider)] border-b bg-[color-mix(in_srgb,var(--dc-card)_86%,transparent)] shadow-[0_1px_0_var(--dc-divider)] backdrop-blur-xl transition-[width,height] ease-linear md:h-[var(--dc-topbar-height)] group-has-data-[collapsible=icon]/sidebar-wrapper:md:h-[var(--dc-topbar-height)]",
+                "[html[data-navbar-style=sticky]_&]:sticky [html[data-navbar-style=sticky]_&]:top-0 [html[data-navbar-style=sticky]_&]:z-50 [html[data-navbar-style=sticky]_&]:overflow-hidden [html[data-navbar-style=sticky]_&]:rounded-t-[inherit]",
+              )}
+            >
+              <div className="flex w-full items-center justify-between px-4 lg:px-6">
+                <div className="flex items-center gap-1 lg:gap-2">
+                  <SidebarTrigger className="-ml-1" />
+                  <Separator
+                    orientation="vertical"
+                    className="mx-2 data-[orientation=vertical]:h-4 data-[orientation=vertical]:self-center"
+                  />
+                  <SearchDialog />
                 </div>
-                <LayoutControls />
-                <NotificationsMenu />
-                <ThemeSwitcher />
-                <AccountSwitcher />
+                <div className="flex items-center gap-2">
+                  <ClientNetworkBadge />
+                  <LayoutControls />
+                  <NotificationsMenu />
+                  <ThemeSwitcher />
+                  <AccountSwitcher />
+                </div>
               </div>
+            </header>
+            <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-3 has-data-[content-padding=false]:p-0 md:p-4 md:has-data-[content-padding=false]:p-0 xl:p-5 xl:has-data-[content-padding=false]:p-0">
+              {children}
             </div>
-          </header>
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-3 has-data-[content-padding=false]:p-0 md:p-4 md:has-data-[content-padding=false]:p-0 xl:p-5 xl:has-data-[content-padding=false]:p-0">
-            {children}
-          </div>
-        </SidebarInset>
+          </SidebarInset>
+        </ClientNetworkProvider>
       </RoleWorkspaceProvider>
     </SidebarProvider>
   );
