@@ -416,6 +416,7 @@ export function DirectiveFormClient({
 }: DirectiveFormClientProps) {
   const router = useRouter();
   const generateLoading = useGenerateLoading({ settleMs: 700 });
+  const showUukStrOutputPanel: boolean = false;
   const currentVersion = directive ? getCurrentVersion(directive) : undefined;
   const parsedDescription = parseDirectiveCommandDescription(currentVersion?.commandDescription);
   const [isSaving, setIsSaving] = useState(false);
@@ -485,9 +486,9 @@ export function DirectiveFormClient({
 
   const filledUukSectionCount = countFilledStructuredSections(uukSections);
   const activeUukSection = uukSections[activeUukSectionIndex] ?? uukSections[0];
-  const _activeUukSectionFilled = Boolean(activeUukSection?.content.trim());
+  const activeUukSectionFilled = Boolean(activeUukSection?.content.trim());
 
-  function _updateUukSection(sectionType: string, content: string) {
+  function updateUukSection(sectionType: string, content: string) {
     setUukSections((current) =>
       current.map((section) => (section.sectionType === sectionType ? { ...section, content } : section)),
     );
@@ -897,63 +898,65 @@ export function DirectiveFormClient({
         <Card className="min-w-0">
           <CardHeader />
           <CardContent className="space-y-4">
-            <div className="overflow-hidden rounded-xl border border-[var(--dc-success)]/25 bg-[color-mix(in_srgb,var(--dc-card)_92%,var(--dc-success)_8%)] shadow-[var(--dc-shadow-soft)]">
-              <div className="border-[var(--dc-success)]/20 border-b bg-[var(--dc-success-soft)] px-4 py-3">
-                <div className="min-w-0 font-medium text-[var(--dc-success)] text-xs uppercase tracking-[0.22em]">
-                  <Cpu className="mr-2 inline size-4 align-[-3px]" />
-                  Output UK/STR
+            {showUukStrOutputPanel ? (
+              <div className="overflow-hidden rounded-xl border border-[var(--dc-success)]/25 bg-[color-mix(in_srgb,var(--dc-card)_92%,var(--dc-success)_8%)] shadow-[var(--dc-shadow-soft)]">
+                <div className="border-[var(--dc-success)]/20 border-b bg-[var(--dc-success-soft)] px-4 py-3">
+                  <div className="min-w-0 font-medium text-[var(--dc-success)] text-xs uppercase tracking-[0.22em]">
+                    <Cpu className="mr-2 inline size-4 align-[-3px]" />
+                    Output UK/STR
+                  </div>
+                </div>
+                <div className="grid gap-4 p-4">
+                  <Button
+                    type="button"
+                    onClick={() => generateDirectiveRecommendation("full")}
+                    disabled={generatingScope !== null}
+                    className="h-auto min-h-12 w-full border border-[var(--dc-success)] bg-[var(--dc-success)] px-4 font-semibold text-[var(--dc-text-inverse)] shadow-sm hover:bg-[color-mix(in_srgb,var(--dc-success)_86%,var(--dc-text-primary)_14%)]"
+                  >
+                    <Cpu className="mr-2 size-4" />
+                    {generateFullLabel}
+                  </Button>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => generateDirectiveRecommendation("eei")}
+                      disabled={generatingScope !== null}
+                      className="h-auto min-h-11 whitespace-normal border-[var(--dc-info)]/25 bg-[var(--dc-info-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-info-soft)_70%,var(--dc-info)_12%)]"
+                    >
+                      {generatingScope === "eei" ? "AI Sedang Menyusun..." : "Generate EEI/PIR"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => generateDirectiveRecommendation("collection")}
+                      disabled={generatingScope !== null}
+                      className="h-auto min-h-11 whitespace-normal border-[var(--dc-warning)]/25 bg-[var(--dc-warning-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-warning-soft)_70%,var(--dc-warning)_12%)]"
+                    >
+                      {generatingScope === "collection" ? "AI Sedang Menyusun..." : "Generate Rencana Pengumpulan"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => generateDirectiveRecommendation("recommendation")}
+                      disabled={generatingScope !== null}
+                      className="h-auto min-h-11 whitespace-normal border-[var(--dc-success)]/25 bg-[var(--dc-success-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-success-soft)_70%,var(--dc-success)_12%)]"
+                    >
+                      {generatingScope === "recommendation" ? "AI Sedang Menyusun..." : "Generate Saran Tindak"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => generateDirectiveRecommendation("polish")}
+                      disabled={generatingScope !== null}
+                      className="h-auto min-h-11 whitespace-normal border-[var(--dc-primary)]/25 bg-[var(--dc-primary-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-primary-soft)_70%,var(--dc-primary)_12%)]"
+                    >
+                      {generatingScope === "polish" ? "AI Menyusun Bahasa Intelijen..." : "Ubah ke Bahasa Intelijen"}
+                    </Button>
+                  </div>
                 </div>
               </div>
-              <div className="grid gap-4 p-4">
-                <Button
-                  type="button"
-                  onClick={() => generateDirectiveRecommendation("full")}
-                  disabled={generatingScope !== null}
-                  className="h-auto min-h-12 w-full border border-[var(--dc-success)] bg-[var(--dc-success)] px-4 font-semibold text-[var(--dc-text-inverse)] shadow-sm hover:bg-[color-mix(in_srgb,var(--dc-success)_86%,var(--dc-text-primary)_14%)]"
-                >
-                  <Cpu className="mr-2 size-4" />
-                  {generateFullLabel}
-                </Button>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => generateDirectiveRecommendation("eei")}
-                    disabled={generatingScope !== null}
-                    className="h-auto min-h-11 whitespace-normal border-[var(--dc-info)]/25 bg-[var(--dc-info-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-info-soft)_70%,var(--dc-info)_12%)]"
-                  >
-                    {generatingScope === "eei" ? "AI Sedang Menyusun..." : "Generate EEI/PIR"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => generateDirectiveRecommendation("collection")}
-                    disabled={generatingScope !== null}
-                    className="h-auto min-h-11 whitespace-normal border-[var(--dc-warning)]/25 bg-[var(--dc-warning-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-warning-soft)_70%,var(--dc-warning)_12%)]"
-                  >
-                    {generatingScope === "collection" ? "AI Sedang Menyusun..." : "Generate Rencana Pengumpulan"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => generateDirectiveRecommendation("recommendation")}
-                    disabled={generatingScope !== null}
-                    className="h-auto min-h-11 whitespace-normal border-[var(--dc-success)]/25 bg-[var(--dc-success-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-success-soft)_70%,var(--dc-success)_12%)]"
-                  >
-                    {generatingScope === "recommendation" ? "AI Sedang Menyusun..." : "Generate Saran Tindak"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => generateDirectiveRecommendation("polish")}
-                    disabled={generatingScope !== null}
-                    className="h-auto min-h-11 whitespace-normal border-[var(--dc-primary)]/25 bg-[var(--dc-primary-soft)] px-3 text-center text-[var(--dc-text-primary)] leading-tight hover:bg-[color-mix(in_srgb,var(--dc-primary-soft)_70%,var(--dc-primary)_12%)]"
-                  >
-                    {generatingScope === "polish" ? "AI Menyusun Bahasa Intelijen..." : "Ubah ke Bahasa Intelijen"}
-                  </Button>
-                </div>
-              </div>
-            </div>
+            ) : null}
 
             <div className="space-y-2 text-sm">
               <span>Judul UUK/STR</span>
@@ -963,6 +966,60 @@ export function DirectiveFormClient({
                 className="w-full min-w-0"
                 aria-label="Judul UUK/STR"
               />
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-border/70 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="font-medium">Bagian UUK/KIQ/PIR</div>
+                  <div className="mt-1 text-muted-foreground text-sm">
+                    Isi bagian yang dibutuhkan untuk menjadi dasar penjabaran regional.
+                  </div>
+                </div>
+                <Badge variant={activeUukSectionFilled ? "default" : "outline"}>
+                  {activeUukSectionFilled ? "Terisi" : "Kosong"}
+                </Badge>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                {uukSections.map((section, index) => {
+                  const isActive = index === activeUukSectionIndex;
+                  const isFilled = section.content.trim().length > 0;
+
+                  return (
+                    <Button
+                      key={section.sectionType}
+                      type="button"
+                      variant={isActive ? "default" : "outline"}
+                      onClick={() => setActiveUukSectionIndex(index)}
+                      className="h-auto min-h-12 justify-start whitespace-normal px-3 text-left leading-tight"
+                    >
+                      <span className="mr-2 inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-current/20 font-mono text-[10px]">
+                        {section.orderNumber}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{section.title}</span>
+                        <span className="block text-[10px] opacity-70">{isFilled ? "Sudah diisi" : "Belum diisi"}</span>
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+
+              {activeUukSection ? (
+                <div className="space-y-2">
+                  <label className="font-medium text-sm" htmlFor={`uuk-section-${activeUukSection.sectionType}`}>
+                    {activeUukSection.orderNumber}. {activeUukSection.title}
+                  </label>
+                  <Textarea
+                    id={`uuk-section-${activeUukSection.sectionType}`}
+                    value={activeUukSection.content}
+                    onChange={(event) => updateUukSection(activeUukSection.sectionType, event.target.value)}
+                    className="min-h-48"
+                    placeholder={`Tulis isi ${activeUukSection.title.toLowerCase()}...`}
+                  />
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-xl border border-border/70 p-4">
@@ -983,15 +1040,11 @@ export function DirectiveFormClient({
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button disabled={isSaving}>
-                  {submitLabel}
-                </Button>
+                <Button disabled={isSaving}>{submitLabel}</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    {mode === "create" ? "Simpan Draft STR?" : "Perbarui Draft STR?"}
-                  </AlertDialogTitle>
+                  <AlertDialogTitle>{mode === "create" ? "Simpan Draft STR?" : "Perbarui Draft STR?"}</AlertDialogTitle>
                   <AlertDialogDescription>
                     {mode === "create"
                       ? "Apakah Anda yakin ingin menyimpan draft STR baru ini?"

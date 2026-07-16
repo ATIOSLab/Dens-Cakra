@@ -4,7 +4,7 @@
 |---|---|
 | Dokumen | Panduan pemeriksaan menu, akses berbasis role, dan alur lintas-role |
 | Produk | DENS CAKRA |
-| Versi | 1.0 |
+| Versi | 1.1 |
 | Tanggal pemetaan | 16 Juli 2026 |
 | Sumber pemetaan | Navigasi, App Router, autentikasi, halaman, dan integrasi API pada source code saat ini |
 | Sasaran pembaca | User acceptance tester, reviewer sistem, product owner, dan tim operasional |
@@ -16,7 +16,7 @@ Dokumen ini digunakan sebagai panduan saat melakukan pengecekan sistem DENS CAKR
 1. akun dan role yang perlu digunakan;
 2. menu yang terlihat untuk setiap role;
 3. fungsi yang perlu diperiksa pada setiap menu;
-4. arah drill-down atau halaman lanjutan dari suatu menu;
+4. urutan menu yang harus dibuka, aksi yang dilakukan, dan arah halaman berikutnya;
 5. alur kerja lintas-role dari arahan pimpinan sampai laporan lapangan;
 6. status kesiapan halaman agar halaman yang masih `Coming Soon` tidak salah dicatat sebagai bug;
 7. checklist hasil pengujian yang dapat langsung diisi.
@@ -267,63 +267,135 @@ flowchart TD
     F --> G["Pantau Keamanan dan Audit"]
 ```
 
-## 5. Alur Utama Lintas-Role
+## 5. Menu yang Harus Dibuka Berdasarkan Alur
 
-### 5.1 Alur komando dari atas ke lapangan
+Bagian ini merupakan panduan klik utama bagi pemeriksa. Setiap pergantian role berarti pemeriksa harus **logout**, lalu login memakai akun role berikutnya. Menu akun pada header bukan pemilih role.
+
+> Jangan memulai pemeriksaan hanya dari halaman Beranda. Beberapa Beranda masih pending, sementara menu kerja utamanya sudah operasional. Gunakan urutan menu di bawah ini.
+
+### 5.1 Ringkasan urutan menu per role
+
+| Role | Urutan menu yang disarankan untuk dibuka |
+|---|---|
+| Eksekutif | `Pusat Komando -> Direktif Strategis` -> `Peta Kerawanan Nasional` -> `Personil` -> `Kinerja & Evaluasi` -> `Produk Intelijen` |
+| Komandan Regional | `Direktif & Penjabaran UUK/STR` -> `Personel & Jaring` -> `Peta & Peringatan Dini` -> `KPI & Evaluasi` -> `Laporan & Produk Intelijen` |
+| OIM | `Beranda` -> `Direktif & Tugas` -> `Monitoring Lapangan` -> `Laporan Masuk` -> `Analisis Intelijen` -> `Produk Intelijen` |
+| Koordinator Lapangan | `Tugas Operasional` -> `Penugasan Field Officer` -> `Monitoring Tugas` |
+| Petugas Lapangan | `Tugas Saya` -> `Jaring Binaan` -> `Kotak Masuk Jaring` -> `Buat Baket` -> `Peta Agen/Peta Laporan` -> `Laporan Darurat` |
+| Admin Sistem | `Organisasi & Wilayah` -> `Jabatan` -> `Pengguna` -> `Master Data` -> `Integrasi WA Center` -> `Keamanan & Audit` |
+
+### 5.2 Alur komando dari atas ke lapangan
 
 ```mermaid
 flowchart LR
-    EX["Eksekutif\nBuat Direktif"] --> RC["Komandan Regional\nJabarkan UUK/STR"]
-    RC --> OIM["OIM\nBuat Tugas Teknis"]
-    OIM --> FC["Koordinator Lapangan\nBagi Assignment"]
-    FC --> FO["Petugas Lapangan\nBaca, ACK, dan Laksanakan"]
-    FO --> MON["Status dan progres tugas"]
-    MON --> FC
-    MON --> OIM
-    MON --> RC
-    MON --> EX
+    EX["Eksekutif<br/>Pusat Komando -> Direktif Strategis"] --> RC["Komandan Regional<br/>Direktif & Penjabaran UUK/STR"]
+    RC --> OIM["OIM<br/>Direktif & Tugas"]
+    OIM --> FC1["Koordinator Lapangan<br/>Tugas Operasional"]
+    FC1 --> FC2["Koordinator Lapangan<br/>Penugasan Field Officer"]
+    FC2 --> FO["Petugas Lapangan<br/>Tugas Saya"]
+    FO --> FCM["Koordinator Lapangan<br/>Monitoring Tugas"]
+    FCM --> OIMM["OIM<br/>Monitoring Lapangan"]
 ```
 
-Objek yang perlu diikuti saat pengujian:
+#### Urutan menu yang dibuka
+
+| Urut | Login sebagai | Menu yang dibuka | Route | Aksi yang dilakukan | Lanjut ke |
+|---:|---|---|---|---|---|
+| 1 | Eksekutif | `Pusat Komando -> Direktif Strategis` | `/dashboard/executive/pusat-komando/direktif` | Klik buat direktif, isi arahan, simpan draft, publish, lalu distribusikan | Logout, login Komandan Regional |
+| 2 | Komandan Regional | `Direktif & Penjabaran UUK/STR` | `/dashboard/regional-commander/direktif-penjabaran-uuk-str` | Cari direktif yang baru diterima, buka detail, lalu buat dan teruskan penjabaran UUK | Logout, login OIM |
+| 3 | OIM | `Direktif & Tugas` | `/dashboard/oim/direktif-tugas` | Pilih UUK, klik buat tugas, isi target/deadline, dan kirim ke Koordinator Lapangan | Logout, login Koordinator Lapangan |
+| 4 | Koordinator Lapangan | `Tugas Operasional` | `/dashboard/field-coordinator/tugas-operasional` | Cari tugas dari OIM dan buka detail untuk memeriksa UUK, target, prioritas, serta deadline | Tetap sebagai Koordinator |
+| 5 | Koordinator Lapangan | `Penugasan Field Officer` | `/dashboard/field-coordinator/penugasan-field-officer` | Buka form penugasan, pilih Field Officer, isi instruksi, lalu kirim assignment | Logout, login Petugas Lapangan terpilih |
+| 6 | Petugas Lapangan | `Tugas Saya` | `/dashboard/field-officer/tugas-saya` | Buka assignment, tandai dibaca, lakukan acknowledgment, lalu ubah status/progres | Logout, login Koordinator Lapangan |
+| 7 | Koordinator Lapangan | `Monitoring Tugas` | `/dashboard/field-coordinator/monitoring-tugas` | Pastikan status `read`, `acknowledged`, progres, dan deadline sudah berubah | Logout, login OIM |
+| 8 | OIM | `Monitoring Lapangan` | `/dashboard/oim/monitoring-lapangan` | Pantau tugas, personel, Baket, serta keterlambatan pada scope OIM | Lakukan pengecekan tracking dari atas |
+| 9 | Komandan Regional | `Monitoring Tugas` | `/dashboard/regional-commander/monitoring-tugas` | Memeriksa cascade tugas lintas unit | **Pending** pada snapshot saat ini |
+| 10 | Eksekutif | `Pusat Komando -> Direktif Strategis` | `/dashboard/executive/pusat-komando/direktif` | Buka kembali direktif, masuk ke detail/tracking, dan cocokkan progres turunannya | Alur komando selesai |
+
+Objek yang harus memakai rantai data yang sama:
 
 1. `Directive` dan versinya dibuat oleh Eksekutif.
 2. `UUK/STR` dibuat sebagai penjabaran oleh Komandan Regional.
-3. `Task` dibuat OIM dengan referensi UUK.
+3. `Task` dibuat OIM dengan referensi UUK tersebut.
 4. `Task Assignment` dibagikan Koordinator Lapangan ke Petugas Lapangan.
-5. Status `sent`, `read`, `acknowledged`, `in progress`, dan `completed` dipantau dari level terkait.
+5. Status `sent`, `read`, `acknowledged`, `in progress`, dan `completed` diperiksa kembali pada menu monitoring.
 
-### 5.2 Alur informasi dari Jaring menjadi produk intelijen
+### 5.3 Alur informasi dari Jaring menjadi produk intelijen
 
 ```mermaid
 flowchart LR
-    J["Jaring\nKirim informasi"] --> WA["WA Center\nIncoming Information"]
-    WA --> FO["Petugas Lapangan\nValidasi informasi"]
-    FO --> B["Baket\n5W+1H, lokasi, evidence"]
-    B --> V["OIM\nVerifikasi dan Neraca Penilaian"]
-    V --> A["OIM\nAnalisis Intelijen"]
-    A --> P["OIM\nProduk Intelijen"]
-    P --> R["Komandan Regional\nReview dan keputusan"]
-    R --> E["Eksekutif\nReview produk strategis"]
+    ADM["Admin Sistem<br/>Integrasi WA Center"] --> IN["Petugas Lapangan<br/>Kotak Masuk Jaring"]
+    IN --> BK["Petugas Lapangan<br/>Buat Baket"]
+    BK --> LM["OIM<br/>Laporan Masuk"]
+    LM --> VR["OIM<br/>Verifikasi & Neraca Penilaian"]
+    VR --> AN["OIM<br/>Analisis Intelijen"]
+    AN --> PI["OIM<br/>Produk Intelijen -> Buat Produk"]
+    PI --> RPI["Komandan Regional<br/>Laporan & Produk Intelijen"]
+    RPI --> EPI["Eksekutif<br/>Produk Intelijen"]
 ```
+
+#### Urutan menu yang dibuka
+
+| Urut | Login sebagai | Menu yang dibuka | Route | Aksi yang dilakukan | Lanjut ke |
+|---:|---|---|---|---|---|
+| 1 | Admin Sistem | `Integrasi WA Center` | `/dashboard/admin-system/integrasi-wa-center` | Pastikan channel yang digunakan berstatus siap/terhubung; langkah ini dilewati bila memakai incoming demo hasil seed | Logout, login Petugas Lapangan |
+| 2 | Petugas Lapangan | `Kotak Masuk Jaring` | `/dashboard/field-officer/kotak-masuk-jaring` | Pilih incoming information, tetapkan kategori, periksa isi, lalu validasi | Bentuk Baket dari incoming terpilih |
+| 3 | Petugas Lapangan | `Buat Baket` | `/dashboard/field-officer/buat-baket` | Buka draft hasil validasi, isi 5W+1H, lokasi, urgensi, evidence, simpan, lalu submit ke OIM | Logout, login OIM |
+| 4 | OIM | `Laporan Masuk` | `/dashboard/oim/laporan-masuk` | Cari Baket yang baru dikirim, buka detail, periksa sumber, lokasi, evidence, dan versi | Mulai proses verifikasi dari detail Baket |
+| 5 | OIM | Dari `Laporan Masuk` buka `Verifikasi & Neraca Penilaian` | `/dashboard/oim/verifikasi-neraca-penilaian/[verificationId]` | Isi hasil verifikasi, nilai sumber/informasi, lalu kunci atau selesaikan sesuai aksi yang tersedia | Buka Analisis Intelijen |
+| 6 | OIM | `Analisis Intelijen` | `/dashboard/oim/analisis-intelijen` | Klik buat analisis, pilih Baket terverifikasi, isi analisis, simpan, dan periksa versinya | Buka Produk Intelijen |
+| 7 | OIM | `Produk Intelijen -> Buat Produk` | `/dashboard/oim/produk-intelijen/buat-produk` | Pilih analisis/evidence, tentukan tipe dan klasifikasi produk, simpan, lalu ajukan persetujuan | Logout, login Komandan Regional |
+| 8 | Komandan Regional | `Laporan & Produk Intelijen` | `/dashboard/regional-commander/laporan-produk-intelijen` | Cari produk, buka detail, periksa Baket/analisis/versi, lalu lakukan keputusan review | Logout, login Eksekutif bila produk diteruskan |
+| 9 | Eksekutif | `Produk Intelijen` | `/dashboard/executive/produk-intelijen` | Cari produk yang sama, buka detail dan versi, lalu lakukan keputusan/distribusi yang tersedia | Alur produk intelijen selesai |
 
 Validasi yang harus dilakukan sepanjang alur:
 
 - informasi WA tidak langsung menjadi Baket tanpa validasi Petugas Lapangan;
-- Baket yang dikirim harus terlihat pada `Laporan Masuk` OIM;
+- nomor/judul incoming dan Baket harus dapat dicocokkan;
+- Baket yang disubmit harus terlihat pada `Laporan Masuk` OIM;
 - verifikasi dan analisis harus tetap dapat ditelusuri ke Baket sumber;
 - produk intelijen harus memiliki versi dan workflow persetujuan;
 - scope wilayah dan role harus membatasi data yang dapat dilihat.
 
-### 5.3 Alur laporan darurat
+### 5.4 Alur laporan darurat
 
 ```mermaid
 flowchart LR
-    FO["Petugas Lapangan\nBuat laporan darurat"] --> FC["Koordinator Lapangan\nKoordinasi bantuan"]
-    FC --> RC["Komandan Regional\nPantau insiden wilayah"]
-    RC --> EX["Eksekutif\nEskalasi operasi darurat"]
+    FO["Petugas Lapangan<br/>Laporan Darurat"] --> FC["Koordinator Lapangan<br/>Laporan Darurat"]
+    FC --> RC["Komandan Regional<br/>Peta & Peringatan Dini"]
+    RC --> EX["Eksekutif<br/>Pusat Komando -> Operasi Darurat"]
 ```
 
-> Pada snapshot saat ini, sebagian besar halaman detail alur darurat di level Koordinator, Regional, dan Eksekutif masih **Pending**. Uji alur ini sebatas fungsi yang tersedia dan catat gap sebagai fitur belum selesai.
+#### Urutan menu yang dibuka
+
+| Urut | Login sebagai | Menu yang dibuka | Route | Aksi yang dilakukan | Status saat ini |
+|---:|---|---|---|---|---|
+| 1 | Petugas Lapangan | `Laporan Darurat` | `/dashboard/field-officer/laporan-darurat` | Buat/lihat laporan darurat, isi bukti cepat dan kebutuhan bantuan | **Parsial**; detail insiden masih pending |
+| 2 | Koordinator Lapangan | `Laporan Darurat` | `/dashboard/field-coordinator/laporan-darurat` | Menerima insiden dan mengoordinasikan bantuan | **Pending** |
+| 3 | Komandan Regional | `Peta & Peringatan Dini` | `/dashboard/regional-commander/peta-peringatan-dini` | Cari marker insiden dalam scope wilayah dan buka detail | Peta **Operasional**, detail insiden **Pending** |
+| 4 | Eksekutif | `Pusat Komando -> Operasi Darurat` | `/dashboard/executive/pusat-komando/operasi-darurat` | Memantau eskalasi dan kendali operasi | **Pending** |
+
+> Alur darurat belum dapat diuji sampai akhir. Bila langkah berikutnya membuka `Coming Soon`, catat sebagai **Pending Feature**, bukan bug runtime.
+
+### 5.5 Alur penyiapan data oleh Admin Sistem
+
+```mermaid
+flowchart LR
+    OW["Organisasi & Wilayah"] --> JB["Jabatan"]
+    JB --> PG["Pengguna"]
+    PG --> MD["Master Data"]
+    MD --> WA["Integrasi WA Center"]
+    WA --> AU["Keamanan & Audit"]
+```
+
+| Urut | Menu yang dibuka | Route | Yang dilakukan | Hasil yang diperiksa |
+|---:|---|---|---|---|
+| 1 | `Organisasi & Wilayah` | `/dashboard/admin-system/organisasi-wilayah` | Periksa atau buat struktur BINDA/Direktorat dan coverage wilayah | Unit serta scope wilayah tersedia |
+| 2 | `Jabatan` | `/dashboard/admin-system/jabatan-reporting-line` | Buat/periksa jabatan, role, atasan, dan reporting line | Rantai jabatan sesuai struktur organisasi |
+| 3 | `Pengguna` | `/dashboard/admin-system/pengguna` | Buat/periksa pengguna lalu hubungkan dengan jabatan dan scope | User dapat login sebagai role yang benar |
+| 4 | `Master Data` | `/dashboard/admin-system/master-data` | Siapkan kategori laporan dan klaster Jaring | Pilihan master muncul pada form operasional |
+| 5 | `Integrasi WA Center` | `/dashboard/admin-system/integrasi-wa-center` | Tambah/periksa channel dan status koneksi | Incoming information dapat diterima |
+| 6 | `Keamanan & Audit` | `/dashboard/admin-system/keamanan-audit` | Periksa sesi dan jejak aktivitas administrasi | Aktivitas penting dapat ditelusuri |
 
 ## 6. Skenario Pemeriksaan Terpandu
 
