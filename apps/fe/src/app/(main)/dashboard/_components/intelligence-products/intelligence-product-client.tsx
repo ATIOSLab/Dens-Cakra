@@ -5,9 +5,20 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { CheckCircle2, FileText, Grid2X2, List, Printer, RotateCcw, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ChevronLeft, FileText, Grid2X2, List, Printer, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,7 +76,27 @@ function currentVersion(product: DataRecord) {
 
 function statusLabel(value: unknown) {
   if (value === "VALIDATED") return "FINAL";
-  return text(value, "BELUM ADA").replaceAll("_", " ");
+  const strVal = typeof value === "string" ? value : "";
+  switch (strVal) {
+    case "DISTRIBUTED":
+      return "DIDISTRIBUSIKAN";
+    case "UNDER_REGIONAL_REVIEW":
+      return "DALAM TINJAUAN REGIONAL";
+    case "DRAFT":
+      return "DRAF";
+    case "NEEDS_REVISION":
+      return "BUTUH REVISI";
+    case "REJECTED":
+      return "DITOLAK";
+    case "APPROVED":
+      return "DISETUJUI";
+    case "PENDING":
+      return "MENUNGGU";
+    case "PERLU_KEPUTUSAN_REGIONAL":
+      return "PERLU KEPUTUSAN REGIONAL";
+    default:
+      return text(value, "BELUM ADA").replaceAll("_", " ");
+  }
 }
 
 function StatusBadge({ value }: { value: unknown }) {
@@ -228,7 +259,7 @@ function ProductBrowser({
       : `${basePath}/${text(product.id)}`;
     return (
       <Button asChild variant={approvalStep ? "default" : "outline"}>
-        <Link href={detailHref}>{approvalStep ? "Review & putuskan" : "Buka produk"}</Link>
+        <Link href={detailHref}>{approvalStep ? "Tinjau & Putuskan" : "Buka produk"}</Link>
       </Button>
     );
   };
@@ -586,7 +617,7 @@ function _ProductRows({
                 </div>
               </div>
               <Button asChild variant={approvalStep ? "default" : "outline"}>
-                <Link href={detailHref}>{approvalStep ? "Review & putuskan" : "Buka produk"}</Link>
+                <Link href={detailHref}>{approvalStep ? "Tinjau & Putuskan" : "Buka produk"}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -649,7 +680,7 @@ function _ApprovalQueue({ steps, basePath }: { steps: DataRecord[]; basePath: st
                   </div>
                   <Button asChild>
                     <Link href={`${basePath}/${text(product.id)}?approvalStepId=${text(step.id)}`}>
-                      Review & putuskan
+                      Tinjau & Putuskan
                     </Link>
                   </Button>
                 </CardContent>
@@ -816,7 +847,9 @@ function ApprovalActions({ step }: { step: DataRecord }) {
             : { note: note || "Perlu perbaikan", requiredChanges: [note || "Perbaiki produk"] },
         );
         toast.success(
-          decision === "approve" ? "Produk disetujui dan tersedia untuk Executive" : "Produk dikembalikan ke OIM",
+          decision === "approve"
+            ? "Persetujuan produk intelijen berhasil diproses"
+            : "Produk intelijen berhasil dikembalikan untuk revisi",
         );
         router.push("/dashboard/regional-commander/laporan-produk-intelijen");
         router.refresh();
@@ -842,19 +875,50 @@ function ApprovalActions({ step }: { step: DataRecord }) {
             disabled={!isActive || pending}
           />
         </div>
-        <Button variant="success" className="w-full" disabled={!isActive || pending} onClick={() => decide("approve")}>
-          <ShieldCheck />
-          Approve produk
-        </Button>
-        <Button
-          className="w-full"
-          variant="warning"
-          disabled={!isActive || pending || !note.trim()}
-          onClick={() => decide("request-revision")}
-        >
-          <RotateCcw />
-          Kembalikan untuk revisi
-        </Button>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="success" className="w-full" disabled={!isActive || pending}>
+              <ShieldCheck />
+              Approve produk
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Setujui Produk Intelijen?</AlertDialogTitle>
+              <AlertDialogDescription>Apakah Anda yakin ingin menyetujui produk intelijen ini?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={pending}>Kembali</AlertDialogCancel>
+              <AlertDialogAction variant="success" disabled={pending} onClick={() => decide("approve")}>
+                Ya, Setujui
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button className="w-full" variant="warning" disabled={!isActive || pending || !note.trim()}>
+              <RotateCcw />
+              Kembalikan untuk revisi
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Kembalikan Produk Intelijen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin mengembalikan produk intelijen ini untuk direvisi?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={pending}>Kembali</AlertDialogCancel>
+              <AlertDialogAction variant="warning" disabled={pending} onClick={() => decide("request-revision")}>
+                Ya, Kembalikan
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
@@ -869,12 +933,19 @@ export function IntelligenceProductDetail({
   approvalStep?: unknown;
   executive?: boolean;
 }) {
+  const router = useRouter();
   const product = record(productValue);
   const version = currentVersion(product);
   return (
     <main className="mx-auto w-full max-w-[1600px] space-y-5 p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
+          <div className="mb-2 flex items-center gap-2">
+            <Button className="print:hidden" variant="outline" size="sm" onClick={() => router.back()}>
+              <ChevronLeft className="mr-1 size-4" />
+              Kembali
+            </Button>
+          </div>
           <p className="font-semibold text-muted-foreground text-xs uppercase tracking-[0.18em]">
             {executive ? "Executive" : approvalStep ? "Regional Commander" : "Produk Intelijen"}
           </p>

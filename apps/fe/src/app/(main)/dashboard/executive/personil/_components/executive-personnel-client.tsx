@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Globe, Layers, List, Map as MapIcon, Search, ShieldAlert, Terminal } from "lucide-react";
+import { Activity, BarChart3, Layers, List, Map as MapIcon, Search, ShieldAlert, Terminal } from "lucide-react";
 
 // biome-ignore lint/suspicious/noShadowRestrictedNames: Map component shadow
 import { Map, MapControls, MapMarker, MapMarkerPopup } from "@/components/ui/map";
@@ -22,7 +22,7 @@ import type {
   PersonnelMapFeature,
 } from "./executive-personnel-types";
 
-function formatDate(value?: string | null) {
+function _formatDate(value?: string | null) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
@@ -329,9 +329,6 @@ function TableSkeleton() {
             <TableHead className="h-10 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
               [STATUS]
             </TableHead>
-            <TableHead className="h-10 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
-              [LOKASI_TERAKHIR]
-            </TableHead>
             <TableHead className="h-10 pr-4 text-right font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
               [AKSES]
             </TableHead>
@@ -354,12 +351,6 @@ function TableSkeleton() {
               <TableCell>
                 <div className="h-4 w-32 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
                 <div className="mt-2 h-3 w-16 animate-pulse rounded-none bg-[var(--dc-primary-soft)]/10" />
-              </TableCell>
-              <TableCell>
-                <div className="h-5 w-16 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
-              </TableCell>
-              <TableCell>
-                <div className="h-4 w-24 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
               </TableCell>
               <TableCell className="pr-4 text-right">
                 <div className="inline-block h-6 w-14 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
@@ -482,9 +473,6 @@ function PersonnelTable({
             <TableHead className="h-11 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
               [STATUS]
             </TableHead>
-            <TableHead className="h-11 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-              [LOKASI_TERAKHIR]
-            </TableHead>
             <TableHead className="h-11 pr-6 text-right font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
               [AKSES]
             </TableHead>
@@ -522,9 +510,6 @@ function PersonnelTable({
                   <span className="block max-w-56 truncate font-mono text-[var(--dc-text-primary)] text-xs">
                     {area?.name ?? "-"}
                   </span>
-                  <span className="mt-0.5 block font-mono text-[10px] text-[var(--dc-text-secondary)]">
-                    {area?.level ?? ""}
-                  </span>
                 </TableCell>
                 <TableCell>
                   <span
@@ -537,16 +522,13 @@ function PersonnelTable({
                     {item.status}
                   </span>
                 </TableCell>
-                <TableCell className="font-mono text-[var(--dc-text-secondary)] text-xs">
-                  {formatDate(item.lastLocation?.capturedAt)}
-                </TableCell>
                 <TableCell className="pr-6 text-right">
                   <Link
                     href={`/dashboard/executive/personil/${item.id}`}
                     className="inline-flex items-center gap-1 rounded-none border border-[var(--dc-primary)]/40 bg-[var(--dc-primary-soft)] px-2 py-1 font-bold font-mono text-[9px] text-[var(--dc-primary)] tracking-wider transition-all duration-150 hover:bg-[var(--dc-primary)] hover:text-[var(--dc-text-inverse)] group-hover:border-[var(--dc-primary)] dark:text-cyan-400"
                   >
                     <Terminal className="size-3" />
-                    <span>DECRYPT</span>
+                    <span>DETAIL</span>
                   </Link>
                 </TableCell>
               </TableRow>
@@ -786,20 +768,8 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
             {/* Redesigned statistics indicators */}
             <section className="grid gap-4 md:grid-cols-3">
               <KpiCard label="Total Personel" value={totalPersonnel} progress={100} variant="cyan" />
-              <KpiCard
-                label="Aktif / Online"
-                value={onlineCount}
-                trend={`▲ +${onlinePercentage.toFixed(1)}% AKTIF`}
-                progress={onlinePercentage}
-                variant="emerald"
-              />
-              <KpiCard
-                label="Tanpa Sinyal"
-                value={noSignalCount}
-                trend={`▼ ${offlinePercentage.toFixed(1)}% TIDAK AKTIF`}
-                progress={offlinePercentage}
-                variant="amber"
-              />
+              <KpiCard label="Aktif / Online" value={onlineCount} progress={onlinePercentage} variant="emerald" />
+              <KpiCard label="Tanpa Sinyal" value={noSignalCount} progress={offlinePercentage} variant="amber" />
             </section>
 
             {/* Personnel Database Table */}
@@ -900,48 +870,6 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
                       </div>
                     ))}
                   </div>
-                </div>
-
-                <div className="relative select-none rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 dark:border-slate-800 dark:bg-[#080d14]/80">
-                  <div className="absolute top-0 left-0 h-2.5 w-2.5 border-[var(--dc-border-subtle)] border-t border-l dark:border-slate-700" />
-                  <div className="absolute top-0 right-0 h-2.5 w-2.5 border-[var(--dc-border-subtle)] border-t border-r dark:border-slate-700" />
-
-                  <div className="mb-3 flex items-center gap-1.5 border-[var(--dc-border-subtle)] border-b pb-2 dark:border-slate-900">
-                    <Globe className="size-3.5 text-[var(--dc-primary)]" />
-                    <h2 className="font-bold font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-widest">
-                      [ NODE_LIFECYCLE_STATUS ]
-                    </h2>
-                  </div>
-
-                  <dl className="space-y-2 text-xs">
-                    {Object.entries(map.meta.counts.byStatus).map(([key, value]) => {
-                      const badgeVariant =
-                        key === "LIVE"
-                          ? "text-emerald-600 border-emerald-500/30 bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-950 dark:bg-emerald-950/20"
-                          : key === "RECENT"
-                            ? "text-[var(--dc-primary)] border-[var(--dc-primary)]/30 bg-[var(--dc-primary-soft)]"
-                            : key === "STALE"
-                              ? "text-amber-650 border-amber-500/30 bg-amber-500/10 dark:text-amber-500 dark:border-amber-950 dark:bg-amber-950/20"
-                              : "text-red-650 border-red-500/30 bg-red-500/10 dark:text-red-400 dark:border-red-950 dark:bg-red-950/20";
-
-                      return (
-                        <div
-                          key={key}
-                          className="flex items-center justify-between border-[var(--dc-border-subtle)] border-b py-1 last:border-b-0 dark:border-slate-900/50"
-                        >
-                          <dt
-                            className={cn(
-                              "border px-2 py-0.5 font-medium font-mono text-[10px] uppercase",
-                              badgeVariant,
-                            )}
-                          >
-                            {key}
-                          </dt>
-                          <dd className="font-bold font-mono text-foreground text-xs">{value}</dd>
-                        </div>
-                      );
-                    })}
-                  </dl>
                 </div>
               </aside>
             </section>

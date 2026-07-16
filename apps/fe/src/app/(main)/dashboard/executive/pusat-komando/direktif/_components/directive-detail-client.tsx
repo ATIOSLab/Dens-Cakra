@@ -5,6 +5,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -194,6 +195,18 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
 
   return (
     <div className="space-y-5">
+      {/* Back Button */}
+      <div className="flex items-center">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border-white/10 hover:bg-white/[0.04] text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" />
+          <span>Kembali</span>
+        </Button>
+      </div>
       <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="flex flex-col justify-between gap-5 border-border border-b bg-secondary/10 p-5 lg:flex-row lg:items-center">
           <div className="min-w-0 space-y-2">
@@ -253,15 +266,36 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button
-              size="sm"
-              variant="success"
-              disabled={isActionDisabled}
-              onClick={() => triggerAction("distribute")}
-              className="cursor-pointer"
-            >
-              {isSubmitting === "distribute" ? "Memproses..." : "Distribusikan"}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="success"
+                  disabled={isActionDisabled}
+                  className="cursor-pointer"
+                >
+                  {isSubmitting === "distribute" ? "Memproses..." : "Distribusikan"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Distribusikan STR?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apakah Anda yakin ingin mendistribusikan STR ini ke unit regional penerima?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isActionDisabled}>Kembali</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={isActionDisabled}
+                    onClick={() => triggerAction("distribute")}
+                    className="border-[#16A34A] bg-[#16A34A] text-white shadow-[0_0_0_1px_rgba(22,163,74,0.65),0_8px_20px_rgba(22,163,74,0.16)] hover:bg-[#15803D] focus-visible:border-[#16A34A] focus-visible:ring-green-500/30 dark:bg-[#16A34A] dark:hover:bg-[#15803D]"
+                  >
+                    Ya, Distribusikan
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size="sm" variant="destructive" disabled={isActionDisabled} className="cursor-pointer">

@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
   BarChart3,
   CheckCircle2,
@@ -40,9 +41,20 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,7 +91,7 @@ const VIEW_META: Record<OimView, [string, string, typeof FileText]> = {
   dashboard: ["Pusat Kendali OIM", "Ringkasan antrean intelijen dalam scope komando dan wilayah Anda.", RadioTower],
   reports: [
     "Laporan Masuk",
-    "Baket Field Officer yang telah dikirim ke OIM dan seluruh status lanjutannya.",
+    "",
     FileSearch,
   ],
   "report-detail": ["Detail Baket", "Bukti, peta lokasi, versi, dan jejak keputusan.", FileSearch],
@@ -189,6 +201,7 @@ function StatusBadge({ value }: { value?: string }) {
 function Header({ view, data }: { view: OimView; data?: OimPageData }) {
   const [title, description, Icon] = VIEW_META[view];
   const isDashboard = view === "dashboard";
+  const router = useRouter();
   
   const root = (data?.areas ?? {}) as Row;
   const topLevel = rows(root.children);
@@ -197,6 +210,27 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
   
   return (
     <div className="flex flex-col gap-6 border-b border-border pb-6 relative z-20">
+      {["report-detail", "analysis-detail", "analysis-new", "analysis-edit", "product-new", "product-edit", "product-detail", "map"].includes(view) && (
+        <div className="flex items-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (view === "report-detail") {
+                router.push("/dashboard/oim/laporan-masuk");
+              } else if (["analysis-detail", "analysis-new", "analysis-edit"].includes(view)) {
+                router.push("/dashboard/oim/analisis-intelijen");
+              } else {
+                router.push("/dashboard/oim/produk-intelijen/daftar-produk");
+              }
+            }}
+            className="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border-white/10 hover:bg-white/[0.04] text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span>Kembali</span>
+          </Button>
+        </div>
+      )}
       {/* Visual group: Icon, eyebrow, title, description, actions */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-4">
@@ -215,7 +249,7 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
           
           <div className="space-y-1.5">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              OPERATIONAL INTELLIGENCE MANAGER
+              MANAJER OPERASIONAL INTELIJEN
             </p>
             <h1 
               className={cn(
@@ -225,9 +259,11 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
             >
               {title}
             </h1>
-            <p className="max-w-3xl text-[14px] font-medium text-muted-foreground/80 leading-relaxed">
-              {description}
-            </p>
+            {description && (
+              <p className="max-w-3xl text-[14px] font-medium text-muted-foreground/80 leading-relaxed">
+                {description}
+              </p>
+            )}
           </div>
         </div>
 
@@ -259,18 +295,16 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
         <span className="flex items-center gap-1.5 text-[#16C784]">
           <span className="size-1.5 rounded-full bg-[#16C784] animate-pulse" />
-          SYSTEM NORMAL
+          SISTEM NORMAL
         </span>
         <span className="text-border">|</span>
         <span>SYNC: 1 MENIT LALU</span>
         <span className="text-border">|</span>
         <span>WILAYAH CAKUPAN: {provinceName.toUpperCase()}</span>
         <span className="text-border">|</span>
-        <span>SESSION: SECURE</span>
+        <span>SESI: AMAN</span>
         <span className="text-border">|</span>
-        <span className="text-muted-foreground/50">SYS REV 1.4</span>
-        <span className="text-border">|</span>
-        <span className="text-muted-foreground/50">COMMAND NODE: OIM-SEC-01</span>
+        <span className="text-muted-foreground/50">NODE KOMANDO: OIM-SEC-01</span>
       </div>
     </div>
   );
@@ -303,7 +337,7 @@ function Kpis({ data }: { data: OimPageData }) {
       icon: Inbox,
       colorClass: "border-t-primary/80",
       bgTint: "bg-primary/5 text-primary",
-      badge: "New Intake",
+      badge: "Intake Baru",
     },
     {
       label: "Antrean verifikasi",
@@ -312,7 +346,7 @@ function Kpis({ data }: { data: OimPageData }) {
       icon: Clock,
       colorClass: "border-t-primary/80",
       bgTint: "bg-primary/5 text-primary",
-      badge: "Pending Decision",
+      badge: "Menunggu Keputusan",
     },
     {
       label: "Pengembangan",
@@ -321,7 +355,7 @@ function Kpis({ data }: { data: OimPageData }) {
       icon: RefreshCw,
       colorClass: "border-t-primary/80",
       bgTint: "bg-primary/5 text-primary",
-      badge: "Needs Work",
+      badge: "Perlu Perbaikan",
     },
     {
       label: "Analisis aktif",
@@ -330,7 +364,7 @@ function Kpis({ data }: { data: OimPageData }) {
       icon: Activity,
       colorClass: "border-t-primary/80",
       bgTint: "bg-primary/5 text-primary",
-      badge: "Active Drafts",
+      badge: "Draf Aktif",
     },
     {
       label: "Draft produk",
@@ -339,7 +373,7 @@ function Kpis({ data }: { data: OimPageData }) {
       icon: FileCheck,
       colorClass: "border-t-primary/80",
       bgTint: "bg-primary/5 text-primary",
-      badge: "Unsubmitted",
+      badge: "Belum Diajukan",
     },
   ];
 
@@ -375,7 +409,7 @@ function Kpis({ data }: { data: OimPageData }) {
                 </span>
               ) : (
                 <span className="inline-flex self-start items-center rounded bg-secondary/80 px-1.5 py-0.5 text-[9px] font-mono font-semibold text-muted-foreground/60 uppercase tracking-wide">
-                  Clear
+                  Bersih
                 </span>
               )}
             </CardContent>
@@ -787,9 +821,93 @@ function Filters({
   );
 }
 
+function paginationNumbers(currentPage: number, totalPages: number) {
+  const list: number[] = [];
+  const start = Math.max(1, currentPage - 2);
+  const end = Math.min(totalPages, currentPage + 2);
+  for (let i = start; i <= end; i++) {
+    list.push(i);
+  }
+  return list;
+}
+
 function BaketList({ data }: { data: OimPageData }) {
   const items = rows(data.bakets);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  const totalPages = Math.ceil(items.length / rowsPerPage) || 1;
+  const safePage = Math.min(page, totalPages);
+  const paginatedItems = items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+  const startRow = (safePage - 1) * rowsPerPage + 1;
+  const endRow = Math.min(safePage * rowsPerPage, items.length);
+
+  const paginationControls = (
+    <div className="flex flex-col gap-3 py-3.5 md:flex-row md:items-center md:justify-between border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] px-6">
+      <p className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
+        Menampilkan{" "}
+        <span className="font-semibold text-foreground">
+          {items.length === 0 ? 0 : startRow}-{endRow}
+        </span>{" "}
+        dari <span className="font-semibold text-foreground">{items.length}</span> laporan.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Label className="text-muted-foreground text-xs font-mono uppercase tracking-wider">Baris</Label>
+          <Select
+            value={String(rowsPerPage)}
+            onValueChange={(value) => {
+              setRowsPerPage(Number(value));
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-24 h-8 bg-transparent text-xs font-mono border-slate-200 dark:border-white/10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
+              {[5, 10, 20, 50].map((val) => (
+                <SelectItem key={val} value={String(val)} className="text-xs font-mono">
+                  {val} baris
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={safePage <= 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
+          >
+            Sebelumnya
+          </Button>
+          {paginationNumbers(safePage, totalPages).map((pageNumber) => (
+            <Button
+              key={pageNumber}
+              variant={pageNumber === safePage ? "default" : "outline"}
+              size="sm"
+              className="w-8 h-8 p-0 text-xs font-mono border-slate-200 dark:border-white/10"
+              onClick={() => setPage(pageNumber)}
+            >
+              {pageNumber}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={safePage >= totalPages}
+            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
+          >
+            Berikutnya
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -804,7 +922,7 @@ function BaketList({ data }: { data: OimPageData }) {
             onClick={() => setViewMode("card")}
             className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
           >
-            Card
+            Kartu
           </Button>
           <Button
             variant={viewMode === "table" ? "secondary" : "ghost"}
@@ -812,7 +930,7 @@ function BaketList({ data }: { data: OimPageData }) {
             onClick={() => setViewMode("table")}
             className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
           >
-            Table
+            Tabel
           </Button>
         </div>
       </div>
@@ -834,7 +952,7 @@ function BaketList({ data }: { data: OimPageData }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => {
+                  {paginatedItems.map((item) => {
                     const version = currentVersion(item);
                     const fieldOfficer = item.createdByFieldOfficerAssignment;
                     return (
@@ -864,22 +982,19 @@ function BaketList({ data }: { data: OimPageData }) {
                           </div>
                         </TableCell>
                         <TableCell className="py-4 max-w-[280px]">
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{version.title ?? "Baket tanpa judul"}</h4>
-                            <p className="text-xs text-slate-500 dark:text-[#94A3B8] line-clamp-1 leading-relaxed">{version.normalizedContent ?? version.originalContent ?? "—"}</p>
-                          </div>
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-2 leading-relaxed">{version.title ?? "Baket tanpa judul"}</h4>
                         </TableCell>
                         <TableCell className="py-4">
                           <div className="flex flex-col gap-1 items-start">
-                            <span className="text-[10px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                              KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
+                            <span className="text-[10.5px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
+                              {item.reportCategory?.name ?? "KATEGORI SECURE"}
                             </span>
-                            <span className="text-[10px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
+                            <span className="text-[10.5px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
                               {item.jaringCluster?.name ?? "KLASTER OIM"}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8] uppercase">
+                        <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
                           {fieldOfficerUserName(fieldOfficer)}
                         </TableCell>
                         <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
@@ -894,9 +1009,8 @@ function BaketList({ data }: { data: OimPageData }) {
                             variant="ghost"
                             className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-8 px-3 transition-all duration-[150ms] ease-out cursor-pointer"
                           >
-                            <Link href={`/dashboard/oim/laporan-masuk/${item.id}`} className="flex items-center gap-1.5">
-                              <span>TINJAU</span>
-                              <ArrowRight className="size-3.5" style={{ strokeWidth: "2px" }} />
+                            <Link href={`/dashboard/oim/laporan-masuk/${item.id}`}>
+                              Tinjau
                             </Link>
                           </Button>
                         </TableCell>
@@ -906,77 +1020,83 @@ function BaketList({ data }: { data: OimPageData }) {
                 </TableBody>
               </Table>
             </div>
+            {paginationControls}
           </div>
         ) : (
-          <div className="grid gap-6">
-            {items.map((item) => {
-              const version = currentVersion(item);
-              const fieldOfficer = item.createdByFieldOfficerAssignment;
-              return (
-                <div 
-                  key={item.id} 
-                  className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 transition-all duration-[150ms] ease-out hover:translate-y-[-2px] hover:border-slate-300 dark:hover:border-white/15 cursor-pointer flex flex-col group shadow-sm dark:shadow-none"
-                >
-                  <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-                    <div className="space-y-2.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span 
-                          className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
-                          style={{
-                            color: item.status === "SENT_TO_OIM" ? "#06B6D4" : "#10B981",
-                            backgroundColor: item.status === "SENT_TO_OIM" ? "#06B6D415" : "#10B98115",
-                            borderColor: item.status === "SENT_TO_OIM" ? "#06B6D430" : "#10B98130",
-                          }}
-                        >
-                          {baketStatusLabel(item.status)}
-                        </span>
-                        <span 
-                          className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
-                          style={{
-                            color: version.urgency === "URGENT" ? "#EF4444" : version.urgency === "HIGH" ? "#F59E0B" : "#3B82F6",
-                            backgroundColor: version.urgency === "URGENT" ? "#EF444415" : version.urgency === "HIGH" ? "#F59E0B15" : "#3B82F615",
-                            borderColor: version.urgency === "URGENT" ? "#EF444430" : version.urgency === "HIGH" ? "#F59E0B30" : "#3B82F630",
-                          }}
-                        >
-                          {version.urgency ?? "NORMAL"}
-                        </span>
-                        
-                        <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                          KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
-                        </span>
-                        
-                        <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                          {item.jaringCluster?.name ?? "KLASTER OIM"}
-                        </span>
+          <div className="space-y-4">
+            <div className="grid gap-6">
+              {paginatedItems.map((item) => {
+                const version = currentVersion(item);
+                const fieldOfficer = item.createdByFieldOfficerAssignment;
+                return (
+                  <div 
+                    key={item.id} 
+                    className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 transition-all duration-[150ms] ease-out hover:translate-y-[-2px] hover:border-slate-300 dark:hover:border-white/15 cursor-pointer flex flex-col group shadow-sm dark:shadow-none"
+                  >
+                    <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+                      <div className="space-y-2.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span 
+                            className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
+                            style={{
+                              color: item.status === "SENT_TO_OIM" ? "#06B6D4" : "#10B981",
+                              backgroundColor: item.status === "SENT_TO_OIM" ? "#06B6D415" : "#10B98115",
+                              borderColor: item.status === "SENT_TO_OIM" ? "#06B6D430" : "#10B98130",
+                            }}
+                          >
+                            {baketStatusLabel(item.status)}
+                          </span>
+                          <span 
+                            className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
+                            style={{
+                              color: version.urgency === "URGENT" ? "#EF4444" : version.urgency === "HIGH" ? "#F59E0B" : "#3B82F6",
+                              backgroundColor: version.urgency === "URGENT" ? "#EF444415" : version.urgency === "HIGH" ? "#F59E0B15" : "#3B82F615",
+                              borderColor: version.urgency === "URGENT" ? "#EF444430" : version.urgency === "HIGH" ? "#F59E0B30" : "#3B82F630",
+                            }}
+                          >
+                            {version.urgency ?? "NORMAL"}
+                          </span>
+                          
+                          <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
+                            KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
+                          </span>
+                          
+                          <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
+                            {item.jaringCluster?.name ?? "KLASTER OIM"}
+                          </span>
 
-                        <span className="text-xs text-muted-foreground/60 font-mono">v{item.currentVersionNumber}</span>
+                          <span className="text-xs text-muted-foreground/60 font-mono">v{item.currentVersionNumber}</span>
+                        </div>
+
+                        <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">{version.title ?? "Baket tanpa judul"}</h2>
+                        
+                        <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] leading-relaxed line-clamp-2">
+                          {version.normalizedContent ?? version.originalContent ?? "Belum ada ringkasan."}
+                        </p>
+                        
+                        <p className="text-[12px] font-mono text-slate-500 dark:text-[#7C8798] pt-1">
+                          PETUGAS: {fieldOfficerUserName(fieldOfficer).toUpperCase()} · {administrativeAreaLabel(version.eventArea).toUpperCase()} · {fmtDate(item.updatedAt).toUpperCase()}
+                        </p>
                       </div>
-
-                      <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">{version.title ?? "Baket tanpa judul"}</h2>
                       
-                      <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] leading-relaxed line-clamp-2">
-                        {version.normalizedContent ?? version.originalContent ?? "Belum ada ringkasan."}
-                      </p>
-                      
-                      <p className="text-[12px] font-mono text-slate-500 dark:text-[#7C8798] pt-1">
-                        PETUGAS: {fieldOfficerUserName(fieldOfficer).toUpperCase()} · {administrativeAreaLabel(version.eventArea).toUpperCase()} · {fmtDate(item.updatedAt).toUpperCase()}
-                      </p>
+                      <Button 
+                        asChild 
+                        variant="ghost"
+                        className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-10 px-4 transition-all duration-[150ms] ease-out shrink-0 cursor-pointer"
+                      >
+                        <Link href={`/dashboard/oim/laporan-masuk/${item.id}`} className="flex items-center gap-2">
+                          <span>TINJAU</span>
+                          <ArrowRight className="size-4" style={{ strokeWidth: "2px" }} />
+                        </Link>
+                      </Button>
                     </div>
-                    
-                    <Button 
-                      asChild 
-                      variant="ghost"
-                      className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-10 px-4 transition-all duration-[150ms] ease-out shrink-0 cursor-pointer"
-                    >
-                      <Link href={`/dashboard/oim/laporan-masuk/${item.id}`} className="flex items-center gap-2">
-                        <span>TINJAU</span>
-                        <ArrowRight className="size-4" style={{ strokeWidth: "2px" }} />
-                      </Link>
-                    </Button>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+            <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+              {paginationControls}
+            </div>
           </div>
         )
       ) : (
@@ -1262,28 +1382,44 @@ function StartVerification({ baket, version }: { baket: Row; version: Row }) {
   const existing = Boolean(version.verification);
   const disabled = !["SENT_TO_OIM", "UNDER_VERIFICATION"].includes(baket.status) || !version.id;
   return (
-    <Button
-      disabled={disabled || pending}
-      className="w-full"
-      onClick={() =>
-        start(async () => {
-          try {
-            if (!existing) {
-              await apiBrowserMutation<Row>("POST", `/baket-versions/${version.id}/verification`, {
-                summary: "Intake OIM dimulai",
-              });
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button disabled={disabled || pending} className="w-full">
+          <ClipboardCheck />
+          {pending ? "Memproses…" : disabled ? "Keputusan sudah final" : "Mulai verifikasi"}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Mulai Verifikasi Laporan?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Apakah Anda yakin ingin memulai verifikasi untuk laporan Baket ini?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Kembali</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() =>
+              start(async () => {
+                try {
+                  if (!existing) {
+                    await apiBrowserMutation<Row>("POST", `/baket-versions/${version.id}/verification`, {
+                      summary: "Intake OIM dimulai",
+                    });
+                  }
+                  router.push(`/dashboard/oim/laporan-masuk/${baket.id}?tab=verification`);
+                  router.refresh();
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "Gagal memulai verifikasi");
+                }
+              })
             }
-            router.push(`/dashboard/oim/laporan-masuk/${baket.id}?tab=verification`);
-            router.refresh();
-          } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Gagal memulai verifikasi");
-          }
-        })
-      }
-    >
-      <ClipboardCheck />
-      {pending ? "Memproses…" : disabled ? "Keputusan sudah final" : "Mulai verifikasi"}
-    </Button>
+          >
+            Ya, Mulai
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -1379,58 +1515,120 @@ function VerificationEditor({ item }: { item?: unknown }) {
               {({ ONE: "1", TWO: "2", THREE: "3", FOUR: "4", FIVE: "5", SIX: "6" } as Row)[credibility] ?? "–"}
             </p>
           </div>
-          <Button
-            disabled={locked || pending || !reliability || !credibility}
-            variant="success"
-            className="w-full"
-            onClick={() =>
-              act(async () => {
-                if (verification.status === "DRAFT")
-                  await apiBrowserMutation("POST", `/verifications/${verification.id}/start`);
-                await apiBrowserMutation("PATCH", `/verifications/${verification.id}`, {
-                  sourceReliability: reliability,
-                  informationCredibility: credibility,
-                  summary,
-                });
-                await apiBrowserMutation("POST", `/verifications/${verification.id}/complete`, {
-                  decision: "VERIFIED",
-                  summary,
-                });
-              })
-            }
-          >
-            <CheckCircle2 />
-            Terverifikasi
-          </Button>
-          <Button
-            disabled={locked || pending}
-            variant="warning"
-            className="w-full"
-            onClick={() =>
-              act(() =>
-                apiBrowserMutation("POST", `/verifications/${verification.id}/needs-development`, {
-                  reason: summary || "Perlu pengembangan",
-                  requiredInformation: "Lengkapi fakta, lokasi, dan evidence pendukung.",
-                }),
-              )
-            }
-          >
-            Perlu pengembangan
-          </Button>
-          <Button
-            disabled={locked || pending}
-            variant="destructive"
-            className="w-full"
-            onClick={() =>
-              act(() =>
-                apiBrowserMutation("POST", `/verifications/${verification.id}/reject`, {
-                  reason: summary || "Informasi tidak memenuhi standar verifikasi.",
-                }),
-              )
-            }
-          >
-            Tolak
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={locked || pending || !reliability || !credibility}
+                variant="success"
+                className="w-full"
+              >
+                <CheckCircle2 />
+                Terverifikasi
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Verifikasi Laporan Baket?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin ingin menyelesaikan penilaian dan menetapkan status laporan ini sebagai Terverifikasi?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Kembali</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="success"
+                  onClick={() =>
+                    act(async () => {
+                      if (verification.status === "DRAFT")
+                        await apiBrowserMutation("POST", `/verifications/${verification.id}/start`);
+                      await apiBrowserMutation("PATCH", `/verifications/${verification.id}`, {
+                        sourceReliability: reliability,
+                        informationCredibility: credibility,
+                        summary,
+                      });
+                      await apiBrowserMutation("POST", `/verifications/${verification.id}/complete`, {
+                        decision: "VERIFIED",
+                        summary,
+                      });
+                    })
+                  }
+                >
+                  Ya, Verifikasi
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={locked || pending}
+                variant="warning"
+                className="w-full"
+              >
+                Perlu pengembangan
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Minta Pengembangan Laporan?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin status laporan ini perlu pengembangan lebih lanjut?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Kembali</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="warning"
+                  onClick={() =>
+                    act(() =>
+                      apiBrowserMutation("POST", `/verifications/${verification.id}/needs-development`, {
+                        reason: summary || "Perlu pengembangan",
+                        requiredInformation: "Lengkapi fakta, lokasi, dan evidence pendukung.",
+                      }),
+                    )
+                  }
+                >
+                  Ya, Minta Pengembangan
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={locked || pending}
+                variant="destructive"
+                className="w-full"
+              >
+                Tolak
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tolak Laporan Baket?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin ingin menolak laporan Baket ini? Keputusan ini tidak dapat dibatalkan.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Kembali</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() =>
+                    act(() =>
+                      apiBrowserMutation("POST", `/verifications/${verification.id}/reject`, {
+                        reason: summary || "Informasi tidak memenuhi standar verifikasi.",
+                      }),
+                    )
+                  }
+                >
+                  Ya, Tolak
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </div>
@@ -1439,24 +1637,191 @@ function VerificationEditor({ item }: { item?: unknown }) {
 
 function AnalysisList({ data }: { data: OimPageData }) {
   const items = rows(data.analyses);
-  return (
-    <div className="grid gap-3">
-      {items.map((item) => (
-        <Card key={item.id} size="sm">
-          <CardContent className="flex items-center justify-between gap-4">
-            <div>
-              <StatusBadge value={item.status} />
-              <h2 className="mt-2 font-medium">{item.title}</h2>
-              <p className="text-xs text-muted-foreground">
-                {item._count?.sources ?? 0} sumber · versi {item.currentVersionNumber}
-              </p>
-            </div>
-            <Button asChild variant="outline">
-              <Link href={`/dashboard/oim/analisis-intelijen/${item.id}`}>Buka</Link>
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  const totalPages = Math.ceil(items.length / rowsPerPage) || 1;
+  const safePage = Math.min(page, totalPages);
+  const paginatedItems = items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+  const startRow = (safePage - 1) * rowsPerPage + 1;
+  const endRow = Math.min(safePage * rowsPerPage, items.length);
+
+  const paginationControls = (
+    <div className="flex flex-col gap-3 py-3.5 md:flex-row md:items-center md:justify-between border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] px-6">
+      <p className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
+        Menampilkan{" "}
+        <span className="font-semibold text-foreground">
+          {items.length === 0 ? 0 : startRow}-{endRow}
+        </span>{" "}
+        dari <span className="font-semibold text-foreground">{items.length}</span> analisis.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Label className="text-muted-foreground text-xs font-mono uppercase tracking-wider">Baris</Label>
+          <Select
+            value={String(rowsPerPage)}
+            onValueChange={(value) => {
+              setRowsPerPage(Number(value));
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-24 h-8 bg-transparent text-xs font-mono border-slate-200 dark:border-white/10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
+              {[5, 10, 20, 50].map((val) => (
+                <SelectItem key={val} value={String(val)} className="text-xs font-mono">
+                  {val} baris
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={safePage <= 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
+          >
+            Sebelumnya
+          </Button>
+          {paginationNumbers(safePage, totalPages).map((pageNumber) => (
+            <Button
+              key={pageNumber}
+              variant={pageNumber === safePage ? "default" : "outline"}
+              size="sm"
+              className="w-8 h-8 p-0 text-xs font-mono border-slate-200 dark:border-white/10"
+              onClick={() => setPage(pageNumber)}
+            >
+              {pageNumber}
             </Button>
-          </CardContent>
-        </Card>
-      ))}
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={safePage >= totalPages}
+            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
+          >
+            Berikutnya
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
+        <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
+          Daftar Analisis ({items.length})
+        </h3>
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
+          <Button
+            variant={viewMode === "card" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("card")}
+            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+          >
+            Kartu
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("table")}
+            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
+          >
+            Tabel
+          </Button>
+        </div>
+      </div>
+
+      {items.length ? (
+        viewMode === "table" ? (
+          <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">Status</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Judul Analisis</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Sumber</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Versi Aktif</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Terakhir Diperbarui</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedItems.map((item) => (
+                    <TableRow key={item.id} className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                      <TableCell className="pl-6 py-4">
+                        <StatusBadge value={item.status} />
+                      </TableCell>
+                      <TableCell className="font-medium text-slate-900 dark:text-white py-4 max-w-sm truncate">
+                        {item.title}
+                      </TableCell>
+                      <TableCell className="text-slate-500 dark:text-[#7C8798] py-4">
+                        {item._count?.sources ?? 0} sumber
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-slate-500 dark:text-[#7C8798] py-4">
+                        v{item.currentVersionNumber}
+                      </TableCell>
+                      <TableCell className="text-slate-500 dark:text-[#7C8798] py-4">
+                        {fmtDate(item.updatedAt)}
+                      </TableCell>
+                      <TableCell className="pr-6 py-4 text-right">
+                        <Button asChild variant="outline" size="sm" className="h-8 text-xs">
+                          <Link href={`/dashboard/oim/analisis-intelijen/${item.id}`}>Buka</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {paginationControls}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {paginatedItems.map((item) => (
+                <Card key={item.id} className="border border-slate-200 dark:border-white/5 bg-white dark:bg-[#131A26]">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <StatusBadge value={item.status} />
+                      <span className="font-mono text-xs text-muted-foreground">v{item.currentVersionNumber}</span>
+                    </div>
+                    <CardTitle className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 mt-2">
+                      {item.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3 text-xs text-slate-500 dark:text-[#7C8798]">
+                    <div className="flex justify-between items-center">
+                      <span>{item._count?.sources ?? 0} Sumber Laporan</span>
+                      <span>Diperbarui: {fmtDate(item.updatedAt)}</span>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-2 border-t border-slate-200 dark:border-white/5 flex justify-end">
+                    <Button asChild variant="outline" size="sm" className="h-8 text-xs">
+                      <Link href={`/dashboard/oim/analisis-intelijen/${item.id}`}>Buka</Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+            <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+              {paginationControls}
+            </div>
+          </div>
+        )
+      ) : (
+        <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-8 text-center text-muted-foreground text-sm">
+          Tidak ada analisis intelijen tersedia.
+        </div>
+      )}
     </div>
   );
 }
@@ -1514,26 +1879,45 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
             </p>
           )}
         </div>
-        <Button
-          disabled={pending || !title.trim() || selected.length === 0}
-          onClick={() =>
-            start(async () => {
-              try {
-                const created = await apiBrowserMutation<Row>("POST", "/analysis-cases", {
-                  title,
-                  verificationIds: selected,
-                });
-                router.push(`/dashboard/oim/analisis-intelijen/${created.id}`);
-                toast.success("Case analisis dibuat");
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Gagal membuat analisis");
-              }
-            })
-          }
-        >
-          <Plus />
-          {pending ? "Membuat…" : "Buat case analisis"}
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              disabled={pending || !title.trim() || selected.length === 0}
+            >
+              <Plus />
+              {pending ? "Membuat…" : "Buat case analisis"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Buat Kasus Analisis?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Apakah Anda yakin ingin membuat kasus analisis baru dengan {selected.length} sumber Baket terverifikasi yang dipilih?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Kembali</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() =>
+                  start(async () => {
+                    try {
+                      const created = await apiBrowserMutation<Row>("POST", "/analysis-cases", {
+                        title,
+                        verificationIds: selected,
+                      });
+                      router.push(`/dashboard/oim/analisis-intelijen/${created.id}`);
+                      toast.success("Case analisis dibuat");
+                    } catch (error) {
+                      toast.error(error instanceof Error ? error.message : "Gagal membuat analisis");
+                    }
+                  })
+                }
+              >
+                Ya, Buat
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
@@ -1602,43 +1986,83 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button
-              disabled={locked || pending || !version.id}
-              variant="outline"
-              className="w-full"
-              onClick={() =>
-                start(async () => {
-                  try {
-                    await apiBrowserMutation("PATCH", `/analysis-versions/${version.id}`, form);
-                    toast.success("Draft tersimpan");
-                    router.refresh();
-                  } catch (error) {
-                    toast.error(error instanceof Error ? error.message : "Gagal menyimpan");
-                  }
-                })
-              }
-            >
-              Simpan draft
-            </Button>
-            <Button
-              disabled={locked || pending || !version.id}
-              variant="success"
-              className="w-full"
-              onClick={() =>
-                start(async () => {
-                  try {
-                    await apiBrowserMutation("POST", `/analysis-cases/${analysisCase.id}/finalize`, form);
-                    toast.success("Analisis difinalkan dan dikunci");
-                    router.refresh();
-                  } catch (error) {
-                    toast.error(error instanceof Error ? error.message : "Gagal memfinalkan analisis");
-                  }
-                })
-              }
-            >
-              <CheckCircle2 />
-              Finalkan analisis
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  disabled={locked || pending || !version.id}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Simpan draft
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Simpan Draf Analisis?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apakah Anda yakin ingin menyimpan perubahan analisis ini sebagai draf?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Kembali</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() =>
+                      start(async () => {
+                        try {
+                          await apiBrowserMutation("PATCH", `/analysis-versions/${version.id}`, form);
+                          toast.success("Draft tersimpan");
+                          router.refresh();
+                        } catch (error) {
+                          toast.error(error instanceof Error ? error.message : "Gagal menyimpan");
+                        }
+                      })
+                    }
+                  >
+                    Ya, Simpan
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  disabled={locked || pending || !version.id}
+                  variant="success"
+                  className="w-full"
+                >
+                  <CheckCircle2 />
+                  Finalkan analisis
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Finalkan Analisis Intelijen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apakah Anda yakin ingin memfinalkan analisis ini? Analisis yang difinalkan akan dikunci dan siap digunakan untuk membuat Produk Intelijen.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Kembali</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="success"
+                    onClick={() =>
+                      start(async () => {
+                        try {
+                          await apiBrowserMutation("POST", `/analysis-cases/${analysisCase.id}/finalize`, form);
+                          toast.success("Analisis difinalkan dan dikunci");
+                          router.refresh();
+                        } catch (error) {
+                          toast.error(error instanceof Error ? error.message : "Gagal memfinalkan analisis");
+                        }
+                      })
+                    }
+                  >
+                    Ya, Finalkan
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
         <Card>
@@ -1674,6 +2098,80 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
       !approval || ["DRAFT", "READY_FOR_SUBMISSION", "NEEDS_REVISION", "UNDER_REGIONAL_REVIEW"].includes(item.status),
   );
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  const totalPages = Math.ceil(items.length / rowsPerPage) || 1;
+  const safePage = Math.min(page, totalPages);
+  const paginatedItems = items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+  const startRow = (safePage - 1) * rowsPerPage + 1;
+  const endRow = Math.min(safePage * rowsPerPage, items.length);
+
+  const paginationControls = (
+    <div className="flex flex-col gap-3 py-3.5 md:flex-row md:items-center md:justify-between border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] px-6">
+      <p className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
+        Menampilkan{" "}
+        <span className="font-semibold text-foreground">
+          {items.length === 0 ? 0 : startRow}-{endRow}
+        </span>{" "}
+        dari <span className="font-semibold text-foreground">{items.length}</span> produk.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Label className="text-muted-foreground text-xs font-mono uppercase tracking-wider">Baris</Label>
+          <Select
+            value={String(rowsPerPage)}
+            onValueChange={(value) => {
+              setRowsPerPage(Number(value));
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-24 h-8 bg-transparent text-xs font-mono border-slate-200 dark:border-white/10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
+              {[5, 10, 20, 50].map((val) => (
+                <SelectItem key={val} value={String(val)} className="text-xs font-mono">
+                  {val} baris
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={safePage <= 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
+          >
+            Sebelumnya
+          </Button>
+          {paginationNumbers(safePage, totalPages).map((pageNumber) => (
+            <Button
+              key={pageNumber}
+              variant={pageNumber === safePage ? "default" : "outline"}
+              size="sm"
+              className="w-8 h-8 p-0 text-xs font-mono border-slate-200 dark:border-white/10"
+              onClick={() => setPage(pageNumber)}
+            >
+              {pageNumber}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={safePage >= totalPages}
+            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+            className="h-8 text-xs font-mono border-slate-200 dark:border-white/10 bg-transparent"
+          >
+            Berikutnya
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -1688,7 +2186,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
             onClick={() => setViewMode("card")}
             className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
           >
-            Card
+            Kartu
           </Button>
           <Button
             variant={viewMode === "table" ? "secondary" : "ghost"}
@@ -1696,7 +2194,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
             onClick={() => setViewMode("table")}
             className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
           >
-            Table
+            Tabel
           </Button>
         </div>
       </div>
@@ -1717,7 +2215,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => {
+                  {paginatedItems.map((item) => {
                     const classStyle = getClassificationStyles(item.classification);
                     const statusStyle = getProductStatusStyles(item.status);
                     return (
@@ -1781,63 +2279,69 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                 </TableBody>
               </Table>
             </div>
+            {paginationControls}
           </div>
         ) : (
-          <div className="grid gap-3">
-            {items.map((item) => {
-              const classStyle = getClassificationStyles(item.classification);
-              const statusStyle = getProductStatusStyles(item.status);
-              return (
-                <Card key={item.id} size="sm" className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
-                  <CardContent className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-                    <div className="flex items-start gap-3">
-                      <div className="grid size-10 place-items-center rounded-lg bg-primary/10">
-                        <FileText className="size-5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap gap-2">
-                          <span 
-                            className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
-                            style={{
-                              color: classStyle.color,
-                              backgroundColor: classStyle.bgColor,
-                              borderColor: classStyle.borderColor,
-                            }}
-                          >
-                            {classStyle.label}
-                          </span>
-                          <span 
-                            className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
-                            style={{
-                              color: statusStyle.color,
-                              backgroundColor: statusStyle.bgColor,
-                              borderColor: statusStyle.borderColor,
-                            }}
-                          >
-                            {statusStyle.label}
-                          </span>
+          <div className="space-y-4">
+            <div className="grid gap-3">
+              {paginatedItems.map((item) => {
+                const classStyle = getClassificationStyles(item.classification);
+                const statusStyle = getProductStatusStyles(item.status);
+                return (
+                  <Card key={item.id} size="sm" className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
+                    <CardContent className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                      <div className="flex items-start gap-3">
+                        <div className="grid size-10 place-items-center rounded-lg bg-primary/10">
+                          <FileText className="size-5 text-primary" />
                         </div>
-                        <h2 className="mt-2 font-medium">{item.title}</h2>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {item.productNumber} · {item.productType?.name ?? "Laporan Intelijen"}
-                        </p>
+                        <div>
+                          <div className="flex flex-wrap gap-2">
+                            <span 
+                              className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
+                              style={{
+                                color: classStyle.color,
+                                backgroundColor: classStyle.bgColor,
+                                borderColor: classStyle.borderColor,
+                              }}
+                            >
+                              {classStyle.label}
+                            </span>
+                            <span 
+                              className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
+                              style={{
+                                color: statusStyle.color,
+                                backgroundColor: statusStyle.bgColor,
+                                borderColor: statusStyle.borderColor,
+                              }}
+                            >
+                              {statusStyle.label}
+                            </span>
+                          </div>
+                          <h2 className="mt-2 font-medium">{item.title}</h2>
+                          <p className="font-mono text-xs text-muted-foreground">
+                            {item.productNumber} · {item.productType?.name ?? "Laporan Intelijen"}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <Button asChild variant="outline" className="cursor-pointer">
-                      <Link
-                        href={
-                          approval
-                            ? `/dashboard/oim/pengajuan-persetujuan/${item.id}`
-                            : `/dashboard/oim/produk-intelijen/daftar-produk/${item.id}`
-                        }
-                      >
-                        {approval ? "Siapkan pengajuan" : "Buka"}
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      <Button asChild variant="outline" className="cursor-pointer">
+                        <Link
+                          href={
+                            approval
+                              ? `/dashboard/oim/pengajuan-persetujuan/${item.id}`
+                              : `/dashboard/oim/produk-intelijen/daftar-produk/${item.id}`
+                          }
+                        >
+                          {approval ? "Siapkan pengajuan" : "Buka"}
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+              {paginationControls}
+            </div>
           </div>
         )
       ) : (
@@ -2464,36 +2968,61 @@ function ProductBuilder({ data }: { data: OimPageData }) {
 
         {/* RIGHT Section Actions */}
         <div className="ml-auto flex items-center gap-2">
-          {/* Tertiary Button: Kembali */}
-          <Button
-            variant="outline"
-            className="h-9 rounded-[4px] border border-slate-300 dark:border-[#2D394A] bg-transparent px-3 font-mono text-xs text-slate-600 dark:text-[#8F9FB4] transition-all duration-200 hover:scale-[1.02] hover:bg-slate-100 dark:hover:bg-[#161E2A] active:scale-[0.98] sm:px-4"
-            onClick={() => router.push("/dashboard/oim/produk-intelijen/daftar-produk")}
-          >
-            Kembali
-          </Button>
-
           {/* Secondary Button: Simpan Draft */}
-          <Button
-            disabled={pending || !canSave}
-            variant="outline"
-            className="h-9 rounded-[4px] border border-slate-300 dark:border-[#3A4657] bg-transparent px-3 font-mono text-xs text-slate-700 dark:text-[#C8D3E2] transition-all duration-200 hover:scale-[1.02] hover:bg-slate-100 dark:hover:bg-[#1A2434] active:scale-[0.98] active:bg-slate-200 dark:active:bg-[#141C28] sm:px-4"
-            onClick={() => saveProduct(false)}
-          >
-            <FileText className="size-3.5 mr-1" />
-            Simpan Draft
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={pending || !canSave}
+                variant="outline"
+                className="h-9 rounded-[4px] border border-slate-300 dark:border-[#3A4657] bg-transparent px-3 font-mono text-xs text-slate-700 dark:text-[#C8D3E2] transition-all duration-200 hover:scale-[1.02] hover:bg-slate-100 dark:hover:bg-[#1A2434] active:scale-[0.98] active:bg-slate-200 dark:active:bg-[#141C28] sm:px-4"
+              >
+                <FileText className="size-3.5 mr-1" />
+                Simpan Draft
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Simpan Draf Laporan?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin ingin menyimpan perubahan Laporan Intelijen ini sebagai draf?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Kembali</AlertDialogCancel>
+                <AlertDialogAction onClick={() => saveProduct(false)}>
+                  Ya, Simpan
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Primary Button: Final & Teruskan */}
-          <Button
-            disabled={pending || !canSave}
-            variant="success"
-            className="h-9 rounded-[4px] px-3 font-mono text-xs font-bold transition-transform hover:scale-[1.02] active:scale-[0.98] sm:px-5"
-            onClick={() => saveProduct(true)}
-          >
-            <Send className="size-3.5 mr-1" />
-            Final & Teruskan
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={pending || !canSave}
+                variant="success"
+                className="h-9 rounded-[4px] px-3 font-mono text-xs font-bold transition-transform hover:scale-[1.02] active:scale-[0.98] sm:px-5"
+              >
+                <Send className="size-3.5 mr-1" />
+                Final & Teruskan
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Kirim Laporan Intelijen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin ingin memfinalkan Laporan Intelijen ini?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Kembali</AlertDialogCancel>
+                <AlertDialogAction variant="success" onClick={() => saveProduct(true)}>
+                  Ya, Kirim
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
@@ -2805,7 +3334,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
             <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 space-y-6 shadow-sm dark:shadow-none">
               {/* SECTION HEADER */}
               <div className="space-y-1.5 border-b border-slate-200 dark:border-white/10 pb-4">
-                <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">MISSION PIPELINE</h3>
+                <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">PIPELINE MISI</h3>
                 <p className="text-[12px] font-medium text-slate-500 dark:text-[#7C8798]">MONITORING ALUR KERJA INTELIJEN AKTIF HARI INI</p>
               </div>
               
@@ -2815,7 +3344,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
                     label: "Intake Baket",
                     count: bakets.filter((item) => item.status === "SENT_TO_OIM").length,
                     get status() {
-                      return this.count === 0 ? "PROCESSED" : this.count > 5 ? "QUEUE OVERLOAD" : "INTAKE RUNNING";
+                      return this.count === 0 ? "SELESAI DIPROSES" : this.count > 5 ? "ANTREAN PENUH" : "INTAKE BERJALAN";
                     },
                     get state() {
                       return this.count === 0 ? "completed" : this.count > 5 ? "bottleneck" : "active";
@@ -2828,7 +3357,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
                     label: "Neraca Penilaian",
                     count: verifications.filter((item) => ["DRAFT", "IN_PROGRESS"].includes(item.status)).length,
                     get status() {
-                      return this.count === 0 ? "VERIFIED" : this.count > 5 ? "BACKLOG DETECTED" : "UNDER REVIEW";
+                      return this.count === 0 ? "TERVERIFIKASI" : this.count > 5 ? "TERDETEKSI PENUMPUKAN" : "DALAM TINJAUAN";
                     },
                     get state() {
                       return this.count === 0 ? "completed" : this.count > 5 ? "bottleneck" : "active";
@@ -2841,39 +3370,39 @@ export function OimWorkspaceClient({ view, data }: Props) {
                     label: "Analisis manual",
                     count: analyses.filter((item) => item.status !== "ARCHIVED").length,
                     get status() {
-                      return this.count === 0 ? "STANDBY" : "ANALYSING";
+                      return this.count === 0 ? "SIAGA" : "MENGANALISIS";
                     },
                     get state() {
                       return this.count === 0 ? "pending" : "active";
                     },
                     get eta() {
-                      return this.count === 0 ? "—" : "ACTIVE";
+                      return this.count === 0 ? "—" : "AKTIF";
                     }
                   },
                   {
                     label: "Produk resmi",
                     count: products.filter((item) => ["DRAFT", "NEEDS_REVISION"].includes(item.status)).length,
                     get status() {
-                      return this.count === 0 ? "NO DRAFTS" : "AUTHORING";
+                      return this.count === 0 ? "TIDAK ADA DRAF" : "PENULISAN";
                     },
                     get state() {
                       return this.count === 0 ? "pending" : "active";
                     },
                     get eta() {
-                      return this.count === 0 ? "—" : "IN PROGRESS";
+                      return this.count === 0 ? "—" : "DALAM PROSES";
                     }
                   },
                   {
                     label: "Direktur/Kabinda",
                     count: products.filter((item) => ["SUBMITTED", "IN_REVIEW"].includes(item.status)).length,
                     get status() {
-                      return this.count === 0 ? "WAITING" : "ROUTING";
+                      return this.count === 0 ? "MENUNGGU" : "PENGIRIMAN";
                     },
                     get state() {
                       return this.count === 0 ? "pending" : "active";
                     },
                     get eta() {
-                      return this.count === 0 ? "—" : "PENDING";
+                      return this.count === 0 ? "—" : "TERTUNDA";
                     }
                   }
                 ].map((step) => {

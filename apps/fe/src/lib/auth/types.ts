@@ -12,6 +12,9 @@ export type AuthPrincipalUser = {
 export type AuthPrincipalSession = Record<string, unknown> & {
   id: string;
   expiresAt: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  locationLabel?: string | null;
 };
 
 export type SessionPrincipal = {

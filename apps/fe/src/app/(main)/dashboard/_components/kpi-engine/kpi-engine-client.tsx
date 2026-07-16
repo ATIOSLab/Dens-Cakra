@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -10,15 +11,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { KpiSummary } from "./_components/kpi-summary";
-import { KpiIndicator } from "./_components/kpi-indicator";
+
 import { HierarchyExplorer } from "./_components/hierarchy-explorer";
+import { GradeDistribution, LowestUnits, Top5Units } from "./_components/insight-sidebar";
+import { KpiIndicator } from "./_components/kpi-indicator";
+import { KpiSummary } from "./_components/kpi-summary";
 import { RightDrawer } from "./_components/right-drawer";
-import {
-  Top5Units,
-  LowestUnits,
-  GradeDistribution,
-} from "./_components/insight-sidebar";
 
 type DataRecord = Record<string, unknown>;
 
@@ -64,7 +62,7 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
   );
   const units = list(payload.units);
   const personnel = list(payload.personnel);
-  const recommendations = Array.isArray(payload.recommendations)
+  const _recommendations = Array.isArray(payload.recommendations)
     ? payload.recommendations.map((item) => text(item))
     : [];
 
@@ -98,7 +96,7 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
     setDrawerOpen(true);
   };
 
-  const handleRecommendationClick = (keyword: string) => {
+  const _handleRecommendationClick = (keyword: string) => {
     setSearch(keyword);
   };
 
@@ -110,29 +108,32 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
   return (
     <main className="mx-auto w-full max-w-[var(--dc-content-max,1792px)] space-y-6 p-4 sm:p-6 lg:p-8">
       {/* HEADER SECTION */}
-      <header className="flex flex-col gap-3 border-b border-[var(--dc-divider)] pb-6 xl:flex-row xl:items-end xl:justify-between">
+      <header className="flex flex-col gap-3 border-[var(--dc-divider)] border-b pb-6 xl:flex-row xl:items-end xl:justify-between">
         <div className="space-y-2">
           {/* Breadcrumb */}
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard" className="text-[10px] tracking-wider uppercase font-semibold text-[var(--dc-text-muted)]">
+                <BreadcrumbLink
+                  href="/dashboard"
+                  className="font-semibold text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider"
+                >
                   Evaluasi Kinerja
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="text-[var(--dc-text-muted)] opacity-50" />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-[10px] tracking-wider uppercase font-semibold text-[var(--dc-text-secondary)]">
+                <BreadcrumbPage className="font-semibold text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
                   Kualitas Humint
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          
-          <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight text-[var(--dc-text-primary)]">
+
+          <h1 className="mt-1 font-bold font-heading text-2xl text-[var(--dc-text-primary)] tracking-tight">
             DENS CAKRA KPI Engine
           </h1>
-          <p className="max-w-3xl text-sm text-[var(--dc-text-secondary)] leading-relaxed">
+          <p className="max-w-3xl text-[var(--dc-text-secondary)] text-sm leading-relaxed">
             Produktivitas dinilai dari ketepatan waktu, kualitas, validitas, dampak strategis, dan respons UUK/STR;
             bukan jumlah laporan saja.
           </p>
@@ -140,10 +141,16 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
 
         {/* Scope and Date badges */}
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="font-mono text-[10px] tracking-wider uppercase border-[var(--dc-border-strong)] bg-[var(--dc-surface-raised)] px-2.5 py-1">
-            Scope {mode === "national" ? "Nasional" : "Komando Regional"}
+          <Badge
+            variant="outline"
+            className="border-[var(--dc-border-strong)] bg-[var(--dc-surface-raised)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+          >
+            Wilayah {mode === "national" ? "Nasional" : "Komando Regional"}
           </Badge>
-          <Badge variant="secondary" className="font-mono text-[10px] tracking-wider uppercase px-2.5 py-1 bg-[var(--dc-surface-raised)] text-[var(--dc-text-secondary)] border border-[var(--dc-border-subtle)]">
+          <Badge
+            variant="secondary"
+            className="border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-2.5 py-1 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider"
+          >
             Periode: {formatPeriod(record(payload.period))}
           </Badge>
         </div>
@@ -159,7 +166,7 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
 
       {/* PERFORMANCE INDICATORS (5 HORIZONTAL CARDS) */}
       <div className="space-y-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--dc-text-muted)]">
+        <h3 className="font-bold text-[var(--dc-text-muted)] text-xs uppercase tracking-wider">
           Indikator Kinerja Utama
         </h3>
         <KpiIndicator
@@ -187,28 +194,19 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
       </div>
 
       {/* STRATEGIC INSIGHT SECTION */}
-      <div className="space-y-6 pt-6 border-t border-[var(--dc-divider)]">
+      <div className="space-y-6 border-[var(--dc-divider)] border-t pt-6">
         <div>
-          <h2 className="text-lg font-bold text-[var(--dc-text-primary)]">Strategic Insight</h2>
-          <p className="text-xs text-[var(--dc-text-muted)] mt-1">
+          <h2 className="font-bold text-[var(--dc-text-primary)] text-lg">Strategic Insight</h2>
+          <p className="mt-1 text-[var(--dc-text-muted)] text-xs">
             Analisis taktis operasional berdasarkan penyebaran skor kinerja dan grade secara nasional.
           </p>
         </div>
 
-
         {/* 3-Column Grid for Rankings & Distribution */}
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          <Top5Units
-            topPerformers={topPerformers}
-            onSelectUnit={(unit) => handleSelectRow("unit", unit)}
-          />
-          <LowestUnits
-            lowestPerformers={lowestPerformers}
-            onSelectUnit={(unit) => handleSelectRow("unit", unit)}
-          />
-          <GradeDistribution
-            units={units}
-          />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Top5Units topPerformers={topPerformers} onSelectUnit={(unit) => handleSelectRow("unit", unit)} />
+          <LowestUnits lowestPerformers={lowestPerformers} onSelectUnit={(unit) => handleSelectRow("unit", unit)} />
+          <GradeDistribution units={units} />
         </div>
       </div>
 

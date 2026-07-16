@@ -12,11 +12,13 @@ import { GenerateLoading } from "@/components/generate-loading";
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -979,9 +981,31 @@ export function DirectiveFormClient({
             <div className="text-muted-foreground text-xs">
               Publish dan distribusi tetap dijalankan terpisah setelah draft STR selesai direview.
             </div>
-            <Button onClick={handleSubmit} disabled={isSaving}>
-              {submitLabel}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button disabled={isSaving}>
+                  {submitLabel}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {mode === "create" ? "Simpan Draft STR?" : "Perbarui Draft STR?"}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {mode === "create"
+                      ? "Apakah Anda yakin ingin menyimpan draft STR baru ini?"
+                      : "Apakah Anda yakin ingin memperbarui draft STR ini?"}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Kembali</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSubmit} disabled={isSaving}>
+                    {mode === "create" ? "Ya, Simpan" : "Ya, Perbarui"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardFooter>
         </Card>
       </div>

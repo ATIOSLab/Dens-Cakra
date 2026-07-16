@@ -6,25 +6,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
-  BookOpenText,
-  ChevronRight,
-  FileText,
-  Lock,
-  Calendar,
-  User,
-  Check,
-  Compass,
-  ChevronDown,
-  ChevronUp,
-  AlertCircle,
-  Target,
-  HelpCircle,
-  Map as MapIcon,
-  ShieldAlert,
-  Zap,
-  Share2,
-  CheckSquare,
+  ArrowLeft,
   Award,
+  BookOpenText,
+  Calendar,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Compass,
+  FileText,
+  HelpCircle,
+  Lock,
+  Map as MapIcon,
+  Share2,
+  ShieldAlert,
+  Target,
+  User,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,17 +43,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { parseDirectiveCommandDescription } from "@/features/directives/structured-uuk";
 import { uukCreateSchema } from "@/features/uuk-str/schemas";
-import { classificationBadgeClass } from "@/lib/classification";
-import { cn } from "@/lib/utils";
 import type { UukDetail, UukDirectiveOption, UukSummary } from "@/features/uuk-str/types";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { classificationBadgeClass } from "@/lib/classification";
 
 const UUK_SECTION_BLUEPRINT = [
   ["BASIS_BACKGROUND", "Basis dan Latar Belakang"],
@@ -178,13 +175,15 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
         directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
         directive.versions[0];
       const parsedTitle = parseDirectiveCommandDescription(currentVersion?.commandDescription);
-      
+
       const searchHaystack = [
         directive.commandNumber,
         parsedTitle.uukTitle || "STR Eksekutif",
         currentVersion?.commandIssuer ?? directive.ownerUnit?.name ?? "",
         currentVersion?.classification ?? "RAHASIA",
-      ].map((v) => v.toLowerCase()).join(" ");
+      ]
+        .map((v) => v.toLowerCase())
+        .join(" ");
 
       if (normalizedSearch && !searchHaystack.includes(normalizedSearch)) {
         return false;
@@ -214,7 +213,9 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
 
   const pageNumbers = useMemo(() => {
     const pages = new Set([1, totalPages, safePage, safePage - 1, safePage + 1]);
-    return Array.from(pages).filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+    return Array.from(pages)
+      .filter((p) => p >= 1 && p <= totalPages)
+      .sort((a, b) => a - b);
   }, [safePage, totalPages]);
 
   return (
@@ -228,10 +229,12 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
       </div>
 
       <Card className="border border-border/70 bg-card/60">
-        <CardContent className="p-4 space-y-4">
-          <div className="grid gap-3 md:grid-cols-4 items-end">
+        <CardContent className="space-y-4 p-4">
+          <div className="grid items-end gap-3 md:grid-cols-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="search-str" className="text-xs font-semibold text-muted-foreground">Cari STR</Label>
+              <Label htmlFor="search-str" className="font-semibold text-muted-foreground text-xs">
+                Cari STR
+              </Label>
               <Input
                 id="search-str"
                 value={search}
@@ -244,7 +247,9 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="filter-class" className="text-xs font-semibold text-muted-foreground">Klasifikasi</Label>
+              <Label htmlFor="filter-class" className="font-semibold text-muted-foreground text-xs">
+                Klasifikasi
+              </Label>
               <Select
                 value={classificationFilter}
                 onValueChange={(val) => {
@@ -268,7 +273,9 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="period-from" className="text-xs font-semibold text-muted-foreground">Periode dari</Label>
+              <Label htmlFor="period-from" className="font-semibold text-muted-foreground text-xs">
+                Periode dari
+              </Label>
               <Input
                 id="period-from"
                 type="date"
@@ -281,7 +288,9 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="period-to" className="text-xs font-semibold text-muted-foreground">Periode sampai</Label>
+              <Label htmlFor="period-to" className="font-semibold text-muted-foreground text-xs">
+                Periode sampai
+              </Label>
               <Input
                 id="period-to"
                 type="date"
@@ -297,8 +306,8 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
         </CardContent>
       </Card>
 
-      <Card className="border border-border/70 overflow-hidden">
-        <CardHeader className="bg-muted/10 pb-4 border-b border-[var(--dc-border-subtle)]/70">
+      <Card className="overflow-hidden border border-border/70">
+        <CardHeader className="border-[var(--dc-border-subtle)]/70 border-b bg-muted/10 pb-4">
           <CardTitle>STR Diterima dari Eksekutif</CardTitle>
           <CardDescription>
             Pilih STR yang sudah masuk untuk dibaca, lalu lanjutkan sebagai penerusan regional tanpa membuat STR akar
@@ -313,9 +322,9 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                 <TableHead>Judul UUK/STR</TableHead>
                 <TableHead>Klasifikasi</TableHead>
                 <TableHead>Pemberi</TableHead>
-                <TableHead>Deadline</TableHead>
+                <TableHead>Batas Waktu</TableHead>
                 <TableHead>Status Penerusan</TableHead>
-                <TableHead className="text-right pr-5">Aksi</TableHead>
+                <TableHead className="pr-5 text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -329,7 +338,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
 
                   return (
                     <TableRow key={directive.id}>
-                      <TableCell className="font-medium pl-5">{directive.commandNumber}</TableCell>
+                      <TableCell className="pl-5 font-medium">{directive.commandNumber}</TableCell>
                       <TableCell className="max-w-[34rem]">
                         <div className="truncate" title={parsedTitle.uukTitle || "STR Eksekutif"}>
                           {parsedTitle.uukTitle || "STR Eksekutif"}
@@ -346,7 +355,11 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                         {relatedUuk ? (
                           <Badge
                             variant={badgeVariant(relatedUuk.status)}
-                            className={relatedUuk.status === "PUBLISHED" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : ""}
+                            className={
+                              relatedUuk.status === "PUBLISHED"
+                                ? "border-[var(--dc-success)]/40 bg-[var(--dc-success-soft)]/10 text-[var(--dc-success)]"
+                                : ""
+                            }
                           >
                             {statusLabel(relatedUuk.status)}
                           </Badge>
@@ -378,7 +391,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground pl-5 pr-5">
+                  <TableCell colSpan={7} className="py-8 pr-5 pl-5 text-center text-muted-foreground">
                     Belum ada STR yang masuk atau cocok dengan filter.
                   </TableCell>
                 </TableRow>
@@ -386,8 +399,8 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
             </TableBody>
           </Table>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--dc-border-subtle)]/70 p-3 bg-muted/5">
-            <div className="text-muted-foreground text-xs pl-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-[var(--dc-border-subtle)]/70 border-t bg-muted/5 p-3">
+            <div className="pl-5 text-muted-foreground text-xs">
               Menampilkan {filteredDirectives.length ? (safePage - 1) * rowsPerPage + 1 : 0}-
               {Math.min(safePage * rowsPerPage, filteredDirectives.length)} dari {filteredDirectives.length} target.
             </div>
@@ -413,14 +426,14 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-1 select-none">
+              <div className="flex select-none items-center gap-1">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   disabled={safePage <= 1}
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  className="h-8 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  className="h-8 text-muted-foreground text-xs hover:text-foreground disabled:opacity-50"
                 >
                   &lt; Sebelumnya
                 </Button>
@@ -430,7 +443,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                     type="button"
                     variant={p === safePage ? "outline" : "ghost"}
                     onClick={() => setPage(p)}
-                    className="size-8 text-xs p-0"
+                    className="size-8 p-0 text-xs"
                   >
                     {p}
                   </Button>
@@ -441,7 +454,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                   size="sm"
                   disabled={safePage >= totalPages}
                   onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                  className="h-8 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  className="h-8 text-muted-foreground text-xs hover:text-foreground disabled:opacity-50"
                 >
                   Berikutnya &gt;
                 </Button>
@@ -463,10 +476,8 @@ type UukEditorClientProps = {
 export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersionId }: UukEditorClientProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
-  const [directiveVersionId] = useState(
-    initialDirectiveVersionId ?? directives[0]?.versions?.[0]?.id ?? "",
-  );
-  const [hasReadSource, setHasReadSource] = useState(false);
+  const [directiveVersionId] = useState(initialDirectiveVersionId ?? directives[0]?.versions?.[0]?.id ?? "");
+  const [_hasReadSource, _setHasReadSource] = useState(false);
   const selectedDirective = useMemo(() => {
     for (const directive of directives) {
       const version = directive.versions.find((item) => item.id === directiveVersionId);
@@ -594,7 +605,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
                   <div className="mt-2 font-medium">{normalizeDisplayText(sourceDirectiveContent.issuer)}</div>
                 </div>
                 <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide">Deadline</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide">Batas Waktu</div>
                   <div className="mt-2 font-medium">{formatDate(sourceDirectiveContent.dueDate)}</div>
                 </div>
                 <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
@@ -670,20 +681,9 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
 
           <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <Label htmlFor="regional-read-confirmation" className="items-start gap-3 leading-6">
-                <Checkbox
-                  id="regional-read-confirmation"
-                  checked={hasReadSource}
-                  onCheckedChange={(checked) => setHasReadSource(Boolean(checked))}
-                  className="mt-1"
-                />
-                <span>
-                  Saya sudah membaca STR sumber dan memahami bahwa penerusan regional dilakukan tanpa mengubah isi STR.
-                </span>
-              </Label>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="success" type="button" disabled={!hasReadSource || !selectedDirective || isSaving}>
+                  <Button variant="success" type="button" disabled={!selectedDirective || isSaving}>
                     {isSaving ? "Meneruskan..." : "Teruskan STR"}
                   </Button>
                 </AlertDialogTrigger>
@@ -697,7 +697,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel disabled={isSaving}>Kembali</AlertDialogCancel>
-                  <AlertDialogAction variant="success" disabled={isSaving} onClick={handleForward}>
+                    <AlertDialogAction variant="success" disabled={isSaving} onClick={handleForward}>
                       {isSaving ? "Meneruskan..." : "Ya, Teruskan"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -732,7 +732,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
   const currentVersion = getCurrentVersion(uuk);
   const firstSectionType = currentVersion?.sections?.[0]?.sectionType ?? "";
   const [action, setAction] = useState<"publish" | "cancel" | null>(null);
-  const [openSection, setOpenSection] = useState(firstSectionType);
+  const [_openSection, _setOpenSection] = useState(firstSectionType);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const isActionDisabled = action !== null;
 
@@ -775,29 +775,38 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
 
   return (
     <div className="relative mx-auto w-full max-w-[1400px] space-y-4 pb-14">
+      {/* Back Button */}
+      <div className="flex items-center">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border-white/10 hover:bg-white/[0.04] text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" />
+          <span>Kembali</span>
+        </Button>
+      </div>
       {/* 1. Command Header */}
       <div className="flex flex-col gap-2 border-white/[0.08] border-b pb-3 xl:flex-row xl:items-start xl:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-bold text-xl tracking-tight text-[var(--dc-text-primary)]">
+            <h1 className="font-bold text-[var(--dc-text-primary)] text-xl tracking-tight">
               {currentVersion?.title ?? "Penerusan Regional"}
             </h1>
             <Badge
               variant="outline"
-              className="border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+              className="rounded-[4px] border-[var(--dc-success)]/40 bg-[var(--dc-success-soft)]/10 px-2 py-0.5 font-mono text-[10px] text-[var(--dc-success)] uppercase tracking-wider"
             >
               {statusLabel(uuk.status)}
             </Badge>
             <Badge
               variant="outline"
-              className="border-[var(--dc-warning)]/40 text-[var(--dc-warning)] bg-[var(--dc-warning-soft)]/10 font-mono text-[10px] tracking-wider rounded-[4px] uppercase px-2 py-0.5"
+              className="rounded-[4px] border-[var(--dc-warning)]/40 bg-[var(--dc-warning-soft)]/10 px-2 py-0.5 font-mono text-[10px] text-[var(--dc-warning)] uppercase tracking-wider"
             >
               NORMAL
             </Badge>
-            <Badge
-              variant="outline"
-              className={classificationBadgeClass(classification)}
-            >
+            <Badge variant="outline" className={classificationBadgeClass(classification)}>
               {classification}
             </Badge>
           </div>
@@ -844,20 +853,20 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
       {/* 3. Operational Metadata Row */}
       <div className="grid grid-cols-2 gap-3 rounded-[6px] border border-white/[0.04] bg-white/[0.02] p-3 font-mono text-xs md:grid-cols-4">
         <div className="space-y-0.5">
-          <span className="text-muted-foreground/60 text-[9px] uppercase">Owner Regional</span>
-          <div className="text-[var(--dc-text-primary)] font-bold">{uuk.ownerUnit?.name ?? "-"}</div>
+          <span className="text-[9px] text-muted-foreground/60 uppercase">Owner Regional</span>
+          <div className="font-bold text-[var(--dc-text-primary)]">{uuk.ownerUnit?.name ?? "-"}</div>
         </div>
         <div className="space-y-0.5">
-          <span className="text-muted-foreground/60 text-[9px] uppercase">Versi</span>
-          <div className="text-[var(--dc-text-primary)] font-bold">{uuk.currentVersionNumber}</div>
+          <span className="text-[9px] text-muted-foreground/60 uppercase">Versi</span>
+          <div className="font-bold text-[var(--dc-text-primary)]">{uuk.currentVersionNumber}</div>
         </div>
         <div className="space-y-0.5">
-          <span className="text-muted-foreground/60 text-[9px] uppercase">Tasks Turunan</span>
-          <div className="text-[var(--dc-text-primary)] font-bold">{currentVersion?.tasks?.length ?? 0}</div>
+          <span className="text-[9px] text-muted-foreground/60 uppercase">Tasks Turunan</span>
+          <div className="font-bold text-[var(--dc-text-primary)]">{currentVersion?.tasks?.length ?? 0}</div>
         </div>
         <div className="space-y-0.5">
-          <span className="text-muted-foreground/60 text-[9px] uppercase">Jumlah Section</span>
-          <div className="text-[var(--dc-text-primary)] font-bold">{currentVersion?.sections?.length ?? 0}</div>
+          <span className="text-[9px] text-muted-foreground/60 uppercase">Jumlah Section</span>
+          <div className="font-bold text-[var(--dc-text-primary)]">{currentVersion?.sections?.length ?? 0}</div>
         </div>
       </div>
 
@@ -934,7 +943,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                         const isExpanded = expandedSections[section.sectionType] !== false;
                         return !isExpanded ? (
                           <div className="space-y-3">
-                            <div className="rounded-[4px] bg-white/[0.025] px-3 py-2.5 text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">
+                            <div className="whitespace-pre-wrap rounded-[4px] bg-white/[0.025] px-3 py-2.5 text-muted-foreground/80 leading-relaxed">
                               <span className="font-bold text-[var(--dc-text-primary)]">Ringkasan Bab: </span>
                               {previewText}
                             </div>
@@ -946,21 +955,21 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                                 e.stopPropagation();
                                 setExpandedSections((prev) => ({ ...prev, [section.sectionType]: true }));
                               }}
-                              className="text-[var(--dc-primary)] font-mono p-0 h-auto hover:underline flex items-center gap-1"
+                              className="flex h-auto items-center gap-1 p-0 font-mono text-[var(--dc-primary)] hover:underline"
                             >
                               Tampilkan Isi Lengkap <ChevronDown className="size-3" />
                             </Button>
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            <div className="rounded-[4px] bg-white/[0.025] px-3 py-2.5 text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">
+                            <div className="whitespace-pre-wrap rounded-[4px] bg-white/[0.025] px-3 py-2.5 text-muted-foreground/80 leading-relaxed">
                               <span className="font-bold text-[var(--dc-text-primary)]">Ringkasan Bab: </span>
                               {previewText}
                             </div>
 
                             {/* Detailed Points */}
-                            <div className="space-y-3 border-t border-white/[0.08] pt-3">
-                              <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+                            <div className="space-y-3 border-white/[0.08] border-t pt-3">
+                              <div className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">
                                 DOKUMEN_LENGKAP
                               </div>
                               {section.items.map((item, idx) => (
@@ -986,7 +995,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                                 e.stopPropagation();
                                 setExpandedSections((prev) => ({ ...prev, [section.sectionType]: false }));
                               }}
-                              className="text-[var(--dc-primary)] font-mono p-0 h-auto hover:underline flex items-center gap-1"
+                              className="flex h-auto items-center gap-1 p-0 font-mono text-[var(--dc-primary)] hover:underline"
                             >
                               Sembunyikan Detail <ChevronUp className="size-3" />
                             </Button>
@@ -1005,91 +1014,63 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
         <div className="h-fit space-y-3 lg:sticky lg:top-[80px] lg:col-span-3">
           {/* Mission Overview */}
           <div className="space-y-3 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3 shadow-sm">
-            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50 border-b border-white/[0.08] pb-2">
-              MISSION OVERVIEW
+            <div className="border-white/[0.08] border-b pb-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">
+              RINGKASAN MISI
             </div>
-            <div className="space-y-1 text-xs font-mono">
-              <div className="flex justify-between items-center py-0.5 border-b border-white/[0.04]">
+            <div className="space-y-1 font-mono text-xs">
+              <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">
                 <span className="text-muted-foreground/60">STATUS:</span>
                 <Badge
                   variant={badgeVariant(uuk.status)}
-                  className={uuk.status === "PUBLISHED" ? "border-[var(--dc-success)]/40 text-[var(--dc-success)] bg-[var(--dc-success-soft)]/10" : ""}
+                  className={
+                    uuk.status === "PUBLISHED"
+                      ? "border-[var(--dc-success)]/40 bg-[var(--dc-success-soft)]/10 text-[var(--dc-success)]"
+                      : ""
+                  }
                 >
                   {statusLabel(uuk.status)}
                 </Badge>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-white/[0.04]">
+              <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">
                 <span className="text-muted-foreground/60">KLASIFIKASI:</span>
                 <span className="font-bold text-[var(--dc-danger)]">{classification}</span>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-white/[0.04]">
+              <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">
                 <span className="text-muted-foreground/60">PRIORITAS:</span>
                 <span className="font-bold text-[var(--dc-warning)]">NORMAL</span>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-white/[0.04]">
+              <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">
                 <span className="text-muted-foreground/60">HIRARKI:</span>
                 <span className="font-bold text-[var(--dc-text-primary)]">EKSEKUTIF -&gt; REGIONAL</span>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-white/[0.04]">
-                <span className="text-muted-foreground/60">OWNER REGIONAL:</span>
+              <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">
+                <span className="text-muted-foreground/60">PEMILIK REGIONAL:</span>
                 <span
-                  className="font-bold text-[var(--dc-text-primary)] truncate max-w-[120px]"
+                  className="max-w-[120px] truncate font-bold text-[var(--dc-text-primary)]"
                   title={uuk.ownerUnit?.name || "-"}
                 >
                   {uuk.ownerUnit?.name || "-"}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-white/[0.04]">
+              <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">
                 <span className="text-muted-foreground/60">TANGGAL:</span>
                 <span className="text-muted-foreground/80">
                   {(currentVersion as any)?.createdAt ? formatDate((currentVersion as any).createdAt) : "-"}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-0.5 border-b border-white/[0.04]">
-                <span className="text-muted-foreground/60">TASK TURUNAN:</span>
+              <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">
+                <span className="text-muted-foreground/60">TUGAS TURUNAN:</span>
                 <span className="font-bold text-[var(--dc-text-primary)]">{currentVersion?.tasks?.length ?? 0}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Checklist Card */}
-          <div className="space-y-3 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3 shadow-sm">
-            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50 border-b border-white/[0.08] pb-2">
-              CONFIRMATION CHECKLIST
-            </div>
-
-            <div className="space-y-2 text-xs leading-normal">
-              <div className="flex items-start gap-2">
-                <Check className="size-4 text-[var(--dc-success)] mt-0.5 shrink-0" />
-                <span className="text-muted-foreground/80">Saya memahami isi STR secara lengkap.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <Check className="size-4 text-[var(--dc-success)] mt-0.5 shrink-0" />
-                <span className="text-muted-foreground/80">Isi STR tidak dapat diubah di tingkat regional.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <Check className="size-4 text-[var(--dc-success)] mt-0.5 shrink-0" />
-                <span className="text-muted-foreground/80">Penjabaran akan menggunakan isi STR yang sama.</span>
-              </div>
-            </div>
-
-            <div className="space-y-1.5 border-t border-white/[0.08] pt-2">
-              <div className="flex justify-between text-[10px] font-mono">
-                <span className="text-muted-foreground">PROGRESS VALIDASI:</span>
-                <span className="text-[var(--dc-success)] font-bold">100% SECURE</span>
-              </div>
-              <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden border border-white/10">
-                <div className="bg-[var(--dc-success)] h-full w-full" />
               </div>
             </div>
           </div>
 
           {/* Quick Navigation */}
           <div className="space-y-2 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3 shadow-sm">
-            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/50 border-b border-white/[0.08] pb-2">
-              QUICK NAVIGATION
+            <div className="border-white/[0.08] border-b pb-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">
+              NAVIGASI CEPAT
             </div>
-            <div className="space-y-1 text-xs font-mono">
+            <div className="space-y-1 font-mono text-xs">
               {currentVersion?.sections.map((section) => {
                 const meta = SECTION_MAP[section.sectionType] || { title: section.title, icon: FileText };
                 const IconComponent = meta.icon;
@@ -1104,9 +1085,9 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                         el.scrollIntoView({ behavior: "smooth", block: "center" });
                       }
                     }}
-                    className="flex items-center gap-2 text-muted-foreground hover:text-[var(--dc-primary)] transition-colors py-1 group"
+                    className="group flex items-center gap-2 py-1 text-muted-foreground transition-colors hover:text-[var(--dc-primary)]"
                   >
-                    <span className="shrink-0 text-muted-foreground/60 group-hover:text-[var(--dc-primary)] group-hover:scale-110 transition-all">
+                    <span className="shrink-0 text-muted-foreground/60 transition-all group-hover:scale-110 group-hover:text-[var(--dc-primary)]">
                       <IconComponent className="size-3.5" />
                     </span>
                     <span className="truncate">{meta.title}</span>
@@ -1120,10 +1101,10 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
 
       {/* Floating Sticky Bottom Actions Bar */}
       <div className="sticky bottom-0 z-50 -mx-6 flex min-h-14 w-full flex-wrap items-center justify-between gap-3 rounded-t-[6px] border-[var(--dc-border-subtle)] border-t bg-[var(--dc-card)]/95 px-4 py-2 backdrop-blur-md sm:mx-0">
-        <div className="text-xs font-mono text-muted-foreground">
-          STATUS: <span className="text-[var(--dc-primary)] font-bold">{statusLabel(uuk.status)}</span>
-          <span className="text-muted-foreground/60 ml-2">
-            | VERSI: {uuk.currentVersionNumber} | TURUNAN: {currentVersion?.tasks?.length ?? 0} TASKS
+        <div className="font-mono text-muted-foreground text-xs">
+          STATUS: <span className="font-bold text-[var(--dc-primary)]">{statusLabel(uuk.status)}</span>
+          <span className="ml-2 text-muted-foreground/60">
+            | VERSI: {uuk.currentVersionNumber} | TURUNAN: {currentVersion?.tasks?.length ?? 0} TUGAS
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -1142,12 +1123,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Batalkan penerusan STR {ownerUnitName}?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {forwardingTitle} untuk STR {commandNumber} akan dibatalkan. Tindakan ini menghentikan penerusan
-                    regional dari {ownerUnitName}
-                    {downstreamTaskCount > 0
-                      ? ` dan memengaruhi ${downstreamTaskCount} task turunan yang tercatat`
-                      : ""}
-                    . Setelah dibatalkan, rantai tindak lanjut dari penerusan regional ini tidak boleh dilanjutkan.
+                    Apakah Anda yakin ingin membatalkan penerusan STR ini?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -1185,7 +1161,11 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel disabled={isActionDisabled}>Kembali</AlertDialogCancel>
-                  <AlertDialogAction variant="success" disabled={isActionDisabled} onClick={() => triggerAction("publish")}>
+                  <AlertDialogAction
+                    variant="success"
+                    disabled={isActionDisabled}
+                    onClick={() => triggerAction("publish")}
+                  >
                     {action === "publish" ? "Memproses..." : "Ya, Teruskan"}
                   </AlertDialogAction>
                 </AlertDialogFooter>

@@ -1,16 +1,36 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+
 import { DataTable } from "./data-table";
 import { Pagination } from "./pagination";
 import { SearchToolbar } from "./search-toolbar";
 
 type DataRecord = Record<string, unknown>;
+
+// Helper to extract numeric values
+const numeric = (value: unknown): number | null => {
+  const number = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(number) ? number : null;
+};
+
+// Helper to map score to status classification
+const checkStatusFilter = (score: number | null, filter: string) => {
+  if (filter === "ALL") return true;
+  if (score === null) return filter === "EMPTY";
+  if (filter === "EXCELLENT") return score >= 95;
+  if (filter === "TARGET") return score >= 90 && score < 95;
+  if (filter === "OPTIMAL") return score >= 80 && score < 90;
+  if (filter === "CUKUP") return score >= 70 && score < 80;
+  if (filter === "PEMBINAAN") return score < 70;
+  return true;
+};
 
 interface HierarchyExplorerProps {
   readonly units: readonly DataRecord[];
@@ -63,12 +83,6 @@ export function HierarchyExplorer({
     setCurrentPage(1);
   };
 
-  // Helper to extract numeric values
-  const numeric = (value: unknown): number | null => {
-    const number = Number(value);
-    return value !== null && value !== undefined && Number.isFinite(number) ? number : null;
-  };
-
   // Kabupaten list extraction
   const kabupatenList = useMemo(() => {
     const set = new Set<string>();
@@ -85,23 +99,11 @@ export function HierarchyExplorer({
     return Array.from(set).sort();
   }, [units]);
 
-  // Helper to map score to status classification
-  const checkStatusFilter = (score: number | null, filter: string) => {
-    if (filter === "ALL") return true;
-    if (score === null) return filter === "EMPTY";
-    if (filter === "EXCELLENT") return score >= 95;
-    if (filter === "TARGET") return score >= 90 && score < 95;
-    if (filter === "OPTIMAL") return score >= 80 && score < 90;
-    if (filter === "CUKUP") return score >= 70 && score < 80;
-    if (filter === "PEMBINAAN") return score < 70;
-    return true;
-  };
-
   // Filter & Sort Units
   const filteredSortedUnits = useMemo(() => {
     const query = search.trim().toLowerCase();
-    
-    let res = units.filter((unit) => {
+
+    const res = units.filter((unit) => {
       const uName = String(unit.name ?? "").toLowerCase();
       const uCode = String(unit.code ?? "").toLowerCase();
       const uType = String(unit.type ?? "").toLowerCase();
@@ -148,17 +150,21 @@ export function HierarchyExplorer({
   const filteredSortedPersonnel = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    let res = personnel.filter((person) => {
+    const res = personnel.filter((person) => {
       const pName = String(person.name ?? "").toLowerCase();
       const pPos = String(person.position ?? "").toLowerCase();
       const unitObj = (person.unit as DataRecord) || {};
       const uName = String(unitObj.name ?? "").toLowerCase();
 
       const areas = Array.isArray(person.areas) ? person.areas : [];
-      const areasStr = areas.map((area: any) => String(area?.name ?? "")).join(", ").toLowerCase();
+      const areasStr = areas
+        .map((area: any) => String(area?.name ?? ""))
+        .join(", ")
+        .toLowerCase();
 
       // Search query
-      const matchesSearch = !query || pName.includes(query) || pPos.includes(query) || uName.includes(query) || areasStr.includes(query);
+      const matchesSearch =
+        !query || pName.includes(query) || pPos.includes(query) || uName.includes(query) || areasStr.includes(query);
       if (!matchesSearch) return false;
 
       // Grade filter
@@ -212,7 +218,7 @@ export function HierarchyExplorer({
 
   const getIndicatorStatus = (score: number | null) => {
     if (score === null) return "Belum Cukup Bukti";
-    if (score >= 95) return "Excellent";
+    if (score >= 95) return "Sangat Baik";
     if (score >= 90) return "Target Tercapai";
     if (score >= 80) return "Optimal";
     if (score >= 70) return "Cukup";
@@ -221,17 +227,15 @@ export function HierarchyExplorer({
 
   return (
     <Card className="border-[var(--dc-border-subtle)] bg-[var(--dc-surface)]">
-      <CardHeader className="p-4 sm:p-6 pb-4">
+      <CardHeader className="p-4 pb-4 sm:p-6">
         <div className="flex flex-col gap-2">
-          <CardTitle className="text-base font-bold text-[var(--dc-text-primary)]">
-            Hierarki KPI Terintegrasi
-          </CardTitle>
-          <CardDescription className="text-xs text-[var(--dc-text-muted)]">
+          <CardTitle className="font-bold text-[var(--dc-text-primary)] text-base">Hierarki KPI Terintegrasi</CardTitle>
+          <CardDescription className="text-[var(--dc-text-muted)] text-xs">
             Eksplorasi data untuk level Unit, Personel, dan Metodologi Penilaian.
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+      <CardContent className="space-y-4 p-4 pt-0 sm:p-6">
         <Tabs
           value={activeTab}
           onValueChange={(val) => {
@@ -253,7 +257,7 @@ export function HierarchyExplorer({
           </TabsList>
 
           {/* UNIT TAB CONTENT */}
-          <TabsContent value="units" className="space-y-4 mt-4">
+          <TabsContent value="units" className="mt-4 space-y-4">
             <SearchToolbar
               search={search}
               onSearchChange={onSearchChange}
@@ -292,15 +296,17 @@ export function HierarchyExplorer({
                 onPageChange={setCurrentPage}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center py-10 border border-dashed rounded-lg">
-                <p className="text-sm font-semibold text-[var(--dc-text-secondary)]">Belum ada data.</p>
-                <p className="text-xs text-[var(--dc-text-muted)] mt-1">Silakan ubah filter atau tunggu sinkronisasi.</p>
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10">
+                <p className="font-semibold text-[var(--dc-text-secondary)] text-sm">Belum ada data.</p>
+                <p className="mt-1 text-[var(--dc-text-muted)] text-xs">
+                  Silakan ubah filter atau tunggu sinkronisasi.
+                </p>
               </div>
             )}
           </TabsContent>
 
           {/* PERSONNEL TAB CONTENT */}
-          <TabsContent value="personnel" className="space-y-4 mt-4">
+          <TabsContent value="personnel" className="mt-4 space-y-4">
             <SearchToolbar
               search={search}
               onSearchChange={onSearchChange}
@@ -339,9 +345,11 @@ export function HierarchyExplorer({
                 onPageChange={setCurrentPage}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center py-10 border border-dashed rounded-lg">
-                <p className="text-sm font-semibold text-[var(--dc-text-secondary)]">Belum ada data.</p>
-                <p className="text-xs text-[var(--dc-text-muted)] mt-1">Silakan ubah filter atau tunggu sinkronisasi.</p>
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10">
+                <p className="font-semibold text-[var(--dc-text-secondary)] text-sm">Belum ada data.</p>
+                <p className="mt-1 text-[var(--dc-text-muted)] text-xs">
+                  Silakan ubah filter atau tunggu sinkronisasi.
+                </p>
               </div>
             )}
           </TabsContent>
@@ -357,37 +365,46 @@ export function HierarchyExplorer({
                 const statusLabel = getIndicatorStatus(score);
 
                 return (
-                  <Card key={code} className="border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] transition-all hover:border-[var(--dc-primary-soft)] hover:shadow-xs">
-                    <CardHeader className="p-4 pb-2 flex flex-row items-start justify-between gap-4">
+                  <Card
+                    key={code}
+                    className="border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] transition-all hover:border-[var(--dc-primary-soft)] hover:shadow-xs"
+                  >
+                    <CardHeader className="flex flex-row items-start justify-between gap-4 p-4 pb-2">
                       <div>
-                        <Badge variant="outline" className="font-mono text-xs font-semibold px-2 py-0.5 border-[var(--dc-border-strong)] bg-background">
+                        <Badge
+                          variant="outline"
+                          className="border-[var(--dc-border-strong)] bg-background px-2 py-0.5 font-mono font-semibold text-xs"
+                        >
                           {code}
                         </Badge>
-                        <CardTitle className="text-sm font-bold text-[var(--dc-text-primary)] mt-2">
-                          {name}
-                        </CardTitle>
+                        <CardTitle className="mt-2 font-bold text-[var(--dc-text-primary)] text-sm">{name}</CardTitle>
                       </div>
                       <div className="text-right">
-                        <span className="font-mono text-lg font-bold text-[var(--dc-text-primary)]">
+                        <span className="font-bold font-mono text-[var(--dc-text-primary)] text-lg">
                           {score === null ? "-" : score.toLocaleString("id-ID", { maximumFractionDigits: 1 })}
                         </span>
-                        <span className="text-[10px] text-[var(--dc-text-muted)] block">Target: 100</span>
+                        <span className="block text-[10px] text-[var(--dc-text-muted)]">Target: 100</span>
                       </div>
                     </CardHeader>
-                    <CardContent className="p-4 pt-2 space-y-3">
-                      <p className="text-xs text-[var(--dc-text-secondary)] leading-relaxed">
-                        {evidenceDesc}
-                      </p>
+                    <CardContent className="space-y-3 p-4 pt-2">
+                      <p className="text-[var(--dc-text-secondary)] text-xs leading-relaxed">{evidenceDesc}</p>
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-[10px] text-[var(--dc-text-muted)]">
                           <span>Status Pencapaian</span>
-                          <span className={cn(
-                            "font-semibold",
-                            statusLabel === "Excellent" || statusLabel === "Target Tercapai" ? "text-emerald-500" :
-                            statusLabel === "Optimal" ? "text-[var(--dc-primary)]" :
-                            statusLabel === "Cukup" ? "text-[var(--dc-warning)]" :
-                            statusLabel === "Perlu Pembinaan" ? "text-[var(--dc-danger)]" : "text-[var(--dc-text-muted)]"
-                          )}>
+                          <span
+                            className={cn(
+                              "font-semibold",
+                              statusLabel === "Sangat Baik" || statusLabel === "Target Tercapai"
+                                ? "text-emerald-500"
+                                : statusLabel === "Optimal"
+                                  ? "text-[var(--dc-primary)]"
+                                  : statusLabel === "Cukup"
+                                    ? "text-[var(--dc-warning)]"
+                                    : statusLabel === "Perlu Pembinaan"
+                                      ? "text-[var(--dc-danger)]"
+                                      : "text-[var(--dc-text-muted)]",
+                            )}
+                          >
                             {statusLabel}
                           </span>
                         </div>
