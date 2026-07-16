@@ -23,8 +23,10 @@ interface KpiIndicatorProps {
 
 export function KpiIndicator({ indicators, definitionsByCode }: KpiIndicatorProps) {
   const getIndicatorStatus = (score: number | null) => {
-    if (score === null) return { label: "Belum Cukup Bukti", variant: "outline" as const, color: "text-[var(--dc-text-muted)]" };
-    if (score >= 95) return { label: "Excellent", variant: "default" as const, color: "text-emerald-500 font-semibold" };
+    if (score === null)
+      return { label: "Belum Cukup Bukti", variant: "outline" as const, color: "text-[var(--dc-text-muted)]" };
+    if (score >= 95)
+      return { label: "Sangat Baik", variant: "default" as const, color: "text-emerald-500 font-semibold" };
     if (score >= 90) return { label: "Target Tercapai", variant: "default" as const, color: "text-emerald-500" };
     if (score >= 80) return { label: "Optimal", variant: "secondary" as const, color: "text-[var(--dc-primary)]" };
     if (score >= 70) return { label: "Cukup", variant: "secondary" as const, color: "text-[var(--dc-warning)]" };
@@ -36,7 +38,7 @@ export function KpiIndicator({ indicators, definitionsByCode }: KpiIndicatorProp
   };
 
   return (
-    <div className="flex flex-col gap-2" aria-label="Indikator Kinerja Utama">
+    <div className="flex flex-col gap-2">
       {indicators.map((indicator) => {
         const def = definitionsByCode.get(indicator.code) ?? { code: indicator.code, name: "Indikator Kinerja" };
         const score = indicator.score;
@@ -50,22 +52,23 @@ export function KpiIndicator({ indicators, definitionsByCode }: KpiIndicatorProp
             <CardContent className="flex flex-col gap-3 p-0 md:flex-row md:items-center md:justify-between lg:gap-4">
               {/* Code & Label */}
               <div className="flex min-w-[200px] items-center gap-3">
-                <Badge variant="outline" className="font-mono text-xs font-semibold px-2 py-0.5 border-[var(--dc-border-strong)] bg-background">
+                <Badge
+                  variant="outline"
+                  className="border-[var(--dc-border-strong)] bg-background px-2 py-0.5 font-mono font-semibold text-xs"
+                >
                   {indicator.code}
                 </Badge>
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-xs font-semibold text-[var(--dc-text-primary)] truncate">{def.name}</h4>
-                  <p className="text-[10px] text-[var(--dc-text-muted)] mt-0.5">
+                  <h4 className="truncate font-semibold text-[var(--dc-text-primary)] text-xs">{def.name}</h4>
+                  <p className="mt-0.5 text-[10px] text-[var(--dc-text-muted)]">
                     Sampel: {indicator.sample.toLocaleString("id-ID")}
                   </p>
                 </div>
               </div>
 
               {/* Progress & Target Score */}
-              <div className="flex flex-1 items-center gap-3 min-w-[280px]">
-                <span className="font-mono text-sm font-semibold w-8 text-right">
-                  {getScoreLabel(score)}
-                </span>
+              <div className="flex min-w-[280px] flex-1 items-center gap-3">
+                <span className="w-8 text-right font-mono font-semibold text-sm">{getScoreLabel(score)}</span>
                 <div className="flex-1">
                   <Progress
                     value={score ?? 0}
@@ -76,10 +79,8 @@ export function KpiIndicator({ indicators, definitionsByCode }: KpiIndicatorProp
               </div>
 
               {/* Status */}
-              <div className="flex items-center justify-between md:justify-end md:min-w-[120px] gap-2">
-                <span className={cn("text-xs", status.color)}>
-                  {status.label}
-                </span>
+              <div className="flex items-center justify-between gap-2 md:min-w-[120px] md:justify-end">
+                <span className={cn("text-xs", status.color)}>{status.label}</span>
               </div>
             </CardContent>
           </Card>

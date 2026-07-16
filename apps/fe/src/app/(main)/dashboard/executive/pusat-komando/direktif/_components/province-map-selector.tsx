@@ -1,14 +1,14 @@
 "use client";
 
-import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { geoMercator, geoPath } from "d3-geo";
+import { Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -313,7 +313,7 @@ export function ProvinceMapSelector({
 
   useEffect(() => {
     setTargetPage(1);
-  }, [targetSearch]);
+  }, []);
 
   useEffect(() => {
     setTargetPage((current) => Math.min(current, totalTargetPages));
@@ -373,13 +373,63 @@ export function ProvinceMapSelector({
     handleSelectDirectorate(row.directorate);
   }
 
-  function isTargetRowSelected(row: TargetOptionRow) {
-    if (row.type === "binda") {
-      return selectedProvinceIds.includes(row.provinceId);
-    }
+  const isTargetRowSelected = useCallback(
+    (row: TargetOptionRow) => {
+      if (row.type === "binda") {
+        return selectedProvinceIds.includes(row.provinceId);
+      }
 
-    const coverageIds = getDirectorateCoverageIds(row.directorate);
-    return coverageIds.length > 0 && coverageIds.every((provinceId) => selectedProvinceIds.includes(provinceId));
+      const coverageIds = getDirectorateCoverageIds(row.directorate);
+      return coverageIds.length > 0 && coverageIds.every((provinceId) => selectedProvinceIds.includes(provinceId));
+    },
+    [selectedProvinceIds],
+  );
+
+  const allFilteredSelected = useMemo(() => {
+    if (filteredTargetOptionRows.length === 0) {
+      return false;
+    }
+    return filteredTargetOptionRows.every((row) => isTargetRowSelected(row));
+  }, [filteredTargetOptionRows, isTargetRowSelected]);
+
+  const _someFilteredSelected = useMemo(() => {
+    if (filteredTargetOptionRows.length === 0) {
+      return false;
+    }
+    return !allFilteredSelected && filteredTargetOptionRows.some((row) => isTargetRowSelected(row));
+  }, [filteredTargetOptionRows, allFilteredSelected, isTargetRowSelected]);
+
+  function handleSelectAllToggle() {
+    if (allFilteredSelected) {
+      // Deselect all filtered target rows.
+      const idsToRemove = new Set<string>();
+      for (const row of filteredTargetOptionRows) {
+        if (row.type === "binda") {
+          idsToRemove.add(row.provinceId);
+        } else {
+          const coverageIds = getDirectorateCoverageIds(row.directorate);
+          for (const id of coverageIds) {
+            idsToRemove.add(id);
+          }
+        }
+      }
+      const nextProvinceIds = selectedProvinceIds.filter((id) => !idsToRemove.has(id));
+      onChange(nextProvinceIds);
+    } else {
+      // Select all filtered target rows.
+      const idsToAdd = new Set(selectedProvinceIds);
+      for (const row of filteredTargetOptionRows) {
+        if (row.type === "binda") {
+          idsToAdd.add(row.provinceId);
+        } else {
+          const coverageIds = getDirectorateCoverageIds(row.directorate);
+          for (const id of coverageIds) {
+            idsToAdd.add(id);
+          }
+        }
+      }
+      onChange(Array.from(idsToAdd));
+    }
   }
 
   return (
@@ -442,6 +492,8 @@ export function ProvinceMapSelector({
         </div>
 
         <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-[radial-gradient(circle_at_top,#12324f,transparent_45%),linear-gradient(180deg,#07131f,#0b1726)]">
+          {!mapSelectionEnabled && <div className="absolute inset-0 z-30 cursor-not-allowed bg-transparent" />}
+
           <div className="absolute top-4 left-4 z-10 max-w-sm rounded-xl border border-white/10 bg-black/55 p-3 text-white shadow-2xl backdrop-blur">
             <div className="text-[11px] text-sky-200/80 uppercase tracking-[0.24em]">Preview Wilayah</div>
             <div className="mt-2 font-medium text-base">{hoveredProvince?.name ?? "Arahkan kursor ke provinsi"}</div>
@@ -458,7 +510,12 @@ export function ProvinceMapSelector({
             </div>
           </div>
 
-          <div className="h-[460px] w-full">
+          <div
+            className={`h-[460px] w-full transition-all duration-300 ${
+              mapSelectionEnabled ? "opacity-100" : "pointer-events-none opacity-70 grayscale-[25%]"
+            }`}
+            aria-disabled={!mapSelectionEnabled ? "true" : undefined}
+          >
             {hasProvinceBoundaries && pathGenerator ? (
               <svg
                 viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
@@ -588,6 +645,7 @@ export function ProvinceMapSelector({
                       className={`group absolute -translate-x-1/2 -translate-y-1/2 ${
                         mapSelectionEnabled ? "" : "cursor-not-allowed opacity-70"
                       }`}
+                      tabIndex={mapSelectionEnabled ? 0 : -1}
                       style={{ left: `${left}%`, top: `${top}%` }}
                       onMouseEnter={() => setHoveredProvinceId(summary.province.id)}
                       onMouseLeave={() => setHoveredProvinceId(null)}
@@ -622,22 +680,53 @@ export function ProvinceMapSelector({
         </div>
 
         <div className="min-w-0 overflow-hidden rounded-md border border-[var(--dc-border-subtle)] bg-background/35">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-[var(--dc-divider)] border-b p-3">
-            <div>
-              <div className="font-semibold text-sm">Daftar Binda & Direktorat</div>
-              <div className="text-muted-foreground text-xs">
-                Pilih target dari daftar ini bila tidak ingin menggunakan klik pada peta.
-              </div>
+          {/* Section Header */}
+          <div className="border-[var(--dc-border-subtle)] border-b bg-[var(--dc-card)]/40 p-3.5">
+            <div className="font-semibold text-[var(--dc-text-primary)] text-sm">Daftar Binda & Direktorat</div>
+            <div className="mt-0.5 text-muted-foreground text-xs">
+              Pilih target dari daftar ini bila tidak ingin menggunakan klik pada peta.
             </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground/60" />
-              <Input
-                type="text"
-                placeholder="Cari Binda / Direktorat..."
-                value={targetSearch}
-                onChange={(e) => setTargetSearch(e.target.value)}
-                className="pl-8 h-8 text-xs bg-background/50 border-[var(--dc-border-subtle)] focus:border-primary/50 focus:outline-none"
-              />
+          </div>
+
+          {/* Extensible Enterprise Dashboard Toolbar */}
+          <div className="flex h-11 items-center justify-between gap-4 border-[var(--dc-border-subtle)] border-b bg-[var(--dc-surface-raised)]/40 px-3.5 py-2">
+            {/* Left: Extensible filter and search section */}
+            <div className="flex flex-1 items-center gap-3">
+              <div className="relative w-full max-w-[280px]">
+                <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                <Input
+                  type="text"
+                  placeholder="Cari Binda / Direktorat..."
+                  value={targetSearch}
+                  onChange={(e) => setTargetSearch(e.target.value)}
+                  className="h-8 w-full border-[var(--dc-border-subtle)] bg-background/30 pl-8 text-xs focus:border-primary/50 focus:outline-none"
+                />
+              </div>
+              {/* Extensibility placeholder for filters, reset filters, etc. */}
+              {targetSearch && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTargetSearch("")}
+                  className="h-8 px-2 font-mono text-muted-foreground text-xs hover:text-foreground"
+                >
+                  Bersihkan
+                </Button>
+              )}
+            </div>
+
+            {/* Right: Actions section */}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={allFilteredSelected ? "default" : "outline"}
+                onClick={handleSelectAllToggle}
+                className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] font-mono text-xs"
+              >
+                {allFilteredSelected ? "BATALKAN SEMUA" : "PILIH SEMUA"}
+              </Button>
             </div>
           </div>
 
@@ -702,7 +791,8 @@ export function ProvinceMapSelector({
           <div className="flex flex-wrap items-center justify-between gap-3 border-[var(--dc-divider)] border-t p-3">
             <div className="text-muted-foreground text-xs">
               Menampilkan {paginatedTargetRows.length ? (targetPage - 1) * rowsPerPage + 1 : 0}-
-              {Math.min(targetPage * rowsPerPage, filteredTargetOptionRows.length)} dari {filteredTargetOptionRows.length} target.
+              {Math.min(targetPage * rowsPerPage, filteredTargetOptionRows.length)} dari{" "}
+              {filteredTargetOptionRows.length} target.
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">

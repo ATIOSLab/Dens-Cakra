@@ -1740,8 +1740,8 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                     disabled={isBusy === `submit:${baket.id}`}
                                     onClick={() =>
                                       requestConfirmation({
-                                        title: "KONFIRMASI KIRIM OIM",
-                                        description: "Kirim baket ini ke OIM dan masukkan ke antrean laporan masuk?",
+                                        title: "KONFIRMASI KIRIM KE OIM",
+                                        description: "Apakah Anda yakin ingin mengirim laporan Baket ini ke OIM?",
                                         confirmLabel: "YA, KIRIM",
                                         onConfirm: () => {
                                           void submitBaket(baket.id);
