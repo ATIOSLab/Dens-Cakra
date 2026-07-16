@@ -14,10 +14,12 @@ function runScript(fileName: string) {
 try {
   runScript('seed-master.js');
   runScript('seed-wilayah.js');
+  runScript('seed-jakarta-district-boundaries.js');
   runScript('seed-role-accounts.js');
   runScript('seed-str-hierarchy.js');
   runScript('seed-baket.js');
-  console.log('Completed full baseline seed.');
+  runScript('seed-jakarta-demo.js');
+  console.log('Completed full Jakarta-focused baseline seed.');
 } catch (error) {
   console.error('Failed to run full baseline seed.', error);
   process.exitCode = 1;

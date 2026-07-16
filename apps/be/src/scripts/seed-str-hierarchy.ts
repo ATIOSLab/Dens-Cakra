@@ -15,6 +15,7 @@ import { prisma } from '../modules/prisma/prisma.service.js';
 
 const SEED_TAG = '[SEED_STR_HIERARCHY]';
 const directiveBaseDate = new Date('2026-07-01T08:00:00.000Z');
+const STR_VARIANTS_PER_CHAIN = 6;
 
 type AssignmentNode = {
   id: string;
@@ -56,7 +57,345 @@ type UukSectionSeed = {
   }>;
 };
 
+type StrScenario = {
+  category: string;
+  title: string;
+  issue: string;
+  objective: string;
+  background: string[];
+  targets: string[];
+  eei: string[];
+  collection: string[];
+  risks: string[];
+  mechanisms: string[];
+  reporting: string[];
+  recommendations: string[];
+  classification: Classification;
+  urgency: PriorityLevel;
+};
+
 type AssignmentStage = 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED';
+
+const STR_SCENARIOS: readonly StrScenario[] = [
+  {
+    category: 'Politik',
+    title: 'Pemantauan Stabilitas Politik dan Konsolidasi Massa',
+    issue:
+      'perkembangan komunikasi politik, konsolidasi kelompok masyarakat, dan potensi penyampaian aspirasi di ruang publik',
+    objective:
+      'memastikan pimpinan memperoleh gambaran dini mengenai aktor, agenda, pola mobilisasi, dan potensi dampak terhadap stabilitas wilayah',
+    background: [
+      'Dinamika agenda politik lokal dan nasional dapat memicu peningkatan komunikasi antar komunitas, kelompok kepentingan, dan simpul massa.',
+      'Wilayah sasaran memiliki pusat pemerintahan, ruang publik, serta simpul transportasi yang dapat menjadi titik kumpul atau jalur pergerakan peserta.',
+      'Informasi awal perlu dipilah antara aspirasi yang berjalan wajar, indikasi mobilisasi terencana, dan potensi gangguan ketertiban.',
+    ],
+    targets: [
+      'Mengidentifikasi aktor penggerak, jejaring komunikasi, titik kumpul, dan agenda kegiatan yang berkaitan dengan konsolidasi massa.',
+      'Memetakan hubungan antara isu lokal, narasi digital, dan potensi aksi lapangan di wilayah sasaran.',
+      'Menilai kesiapan jalur komunikasi berjenjang untuk mendukung peringatan dini kepada pimpinan.',
+    ],
+    eei: [
+      'Siapa aktor utama, simpul penghubung, dan kelompok pendukung yang terindikasi aktif melakukan konsolidasi?',
+      'Apa agenda, tuntutan, estimasi waktu, titik kumpul, rute pergerakan, dan target lokasi kegiatan?',
+      'Bagaimana narasi yang berkembang di media sosial dan apakah narasi tersebut berkorelasi dengan aktivitas lapangan?',
+      'Apa indikator eskalasi yang membutuhkan laporan cepat kepada OIM dan Regional Commander?',
+    ],
+    collection: [
+      'Mengumpulkan laporan awal dari Field Officer pada titik pemerintahan, ruang publik, kampus, komunitas, dan simpul transportasi.',
+      'Membandingkan temuan lapangan dengan pemantauan sumber terbuka untuk membedakan informasi valid, rumor, dan disinformasi.',
+      'Melakukan pembaruan situasi setiap hari atau lebih cepat bila ditemukan indikator mobilisasi yang meningkat.',
+      'Menyusun ringkasan aktor, agenda, lokasi, estimasi massa, dan rekomendasi langkah lanjutan.',
+    ],
+    risks: [
+      'Konsolidasi yang tidak terdeteksi dini dapat menyebabkan keterlambatan koordinasi pengamanan terbuka dan pengaturan lalu lintas.',
+      'Narasi provokatif berpotensi memperluas partisipasi dan mengubah aksi terbatas menjadi kegiatan dengan dampak wilayah lebih luas.',
+      'Kesalahan penilaian terhadap aktor dan agenda dapat menimbulkan respons yang tidak proporsional.',
+    ],
+    mechanisms: [
+      'Regional Commander menetapkan prioritas pemantauan dan menyampaikan batasan informasi yang wajib dilaporkan.',
+      'OIM menerjemahkan STR menjadi task harian, membagi fokus area, dan memastikan validasi silang setiap temuan penting.',
+      'Field Coordinator mengatur ritme laporan Field Officer dan memastikan titik pantau tidak tumpang tindih.',
+      'Field Officer melaporkan fakta lapangan, waktu, lokasi, sumber, bukti pendukung, dan tingkat keyakinan informasi.',
+    ],
+    reporting: [
+      'Laporan awal dikirim maksimal 6 jam setelah indikator kegiatan ditemukan.',
+      'Laporan perkembangan memuat perubahan aktor, jumlah peserta, lokasi, narasi, dan potensi dampak operasional.',
+      'Setiap informasi yang belum terkonfirmasi diberi catatan status verifikasi agar tidak diperlakukan sebagai kepastian.',
+    ],
+    recommendations: [
+      'Prioritaskan pemetaan aktor dan titik kumpul sebelum kegiatan mencapai skala besar.',
+      'Siapkan pembaruan singkat untuk pimpinan apabila ditemukan rute pergerakan, ajakan terbuka, atau potensi gangguan fasilitas publik.',
+      'Tingkatkan koordinasi lintas area apabila narasi digital dan pergerakan lapangan menunjukkan pola yang sama.',
+    ],
+    classification: Classification.RAHASIA,
+    urgency: PriorityLevel.HIGH,
+  },
+  {
+    category: 'Ekonomi',
+    title: 'Pemantauan Distribusi Komoditas dan Tekanan Harga',
+    issue:
+      'perubahan pasokan bahan pokok, tekanan harga, dan potensi gangguan distribusi komoditas strategis',
+    objective:
+      'mendukung deteksi dini terhadap kelangkaan, penimbunan, gangguan rantai pasok, dan persepsi publik yang dapat memengaruhi stabilitas ekonomi wilayah',
+    background: [
+      'Perubahan jadwal pasokan, kenaikan permintaan, dan hambatan distribusi dapat memicu kenaikan harga pada tingkat pengecer.',
+      'Pasar induk, gudang logistik, pelabuhan, sentra transportasi, dan pusat belanja menjadi titik penting untuk membaca kondisi aktual pasokan.',
+      'Informasi ekonomi perlu diverifikasi melalui pembanding lapangan agar tidak hanya bergantung pada keluhan atau rumor pasar.',
+    ],
+    targets: [
+      'Mengidentifikasi komoditas yang mengalami tekanan harga atau penurunan ketersediaan.',
+      'Memetakan titik distribusi, pelaku rantai pasok, dan hambatan yang memengaruhi kelancaran barang.',
+      'Menilai potensi dampak sosial dari perubahan harga terhadap rumah tangga, pedagang, dan komunitas lokal.',
+    ],
+    eei: [
+      'Komoditas apa yang mengalami kenaikan harga, penurunan stok, atau perubahan pola distribusi?',
+      'Di titik mana terdapat selisih antara catatan distribusi, stok lapangan, dan harga jual?',
+      'Apakah terdapat indikasi penimbunan, pengalihan barang, pungutan tidak resmi, atau hambatan transportasi?',
+      'Bagaimana respons pedagang, konsumen, dan pengelola pasar terhadap perubahan pasokan?',
+    ],
+    collection: [
+      'Field Officer melakukan pengecekan harga dan stok pada pasar induk, pasar tradisional, gudang, dan titik distribusi akhir.',
+      'Membandingkan informasi dari pedagang, pemasok, pengelola pasar, dan data terbuka yang tersedia.',
+      'Mencatat waktu pengecekan, kisaran harga, volume indikatif, dan penjelasan sumber mengenai perubahan pasokan.',
+      'Menyusun laporan tematik per komoditas untuk memudahkan analisis tren lintas wilayah.',
+    ],
+    risks: [
+      'Kelangkaan yang tidak terdeteksi dapat meningkatkan keresahan masyarakat dan memperluas isu ekonomi menjadi isu sosial.',
+      'Informasi harga yang tidak diverifikasi berpotensi memperkuat kepanikan pembelian.',
+      'Gangguan pada simpul logistik strategis dapat berdampak pada wilayah lain di luar area pantau utama.',
+    ],
+    mechanisms: [
+      'Regional Commander menetapkan komoditas prioritas dan wilayah pembanding.',
+      'OIM mengatur format laporan harga, stok, sumber, dan bukti pendukung agar data mudah dibandingkan.',
+      'Field Coordinator memastikan Field Officer mengambil data dari beberapa titik yang mewakili kondisi wilayah.',
+      'Field Officer mengirim temuan awal, foto lokasi bila tersedia, dan catatan validasi sumber.',
+    ],
+    reporting: [
+      'Laporan harga dan stok disampaikan secara berkala dengan format yang sama untuk memudahkan pembacaan tren.',
+      'Kenaikan signifikan, kelangkaan, atau indikasi penimbunan dilaporkan segera sebagai peringatan dini.',
+      'Setiap laporan mencantumkan pembanding minimal dari dua sumber berbeda.',
+    ],
+    recommendations: [
+      'Fokuskan pengumpulan pada komoditas dengan dampak langsung terhadap kebutuhan masyarakat.',
+      'Lakukan verifikasi silang sebelum menyimpulkan adanya penimbunan atau gangguan sistemik.',
+      'Buat ringkasan tren harian untuk pimpinan bila perubahan harga terjadi di lebih dari satu area.',
+    ],
+    classification: Classification.TERBATAS,
+    urgency: PriorityLevel.HIGH,
+  },
+  {
+    category: 'Sosial',
+    title: 'Pemantauan Dinamika Sosial dan Pelayanan Publik',
+    issue:
+      'keluhan pelayanan publik, dinamika komunitas, dan potensi perluasan ketidakpuasan warga',
+    objective:
+      'mengidentifikasi isu sosial yang dapat berkembang menjadi mobilisasi warga, konflik horizontal, atau tekanan terhadap pemerintah daerah',
+    background: [
+      'Keluhan pelayanan publik sering berkembang dari percakapan terbatas menjadi agenda komunitas bila tidak mendapat respons memadai.',
+      'Permukiman padat, fasilitas publik, layanan administrasi, transportasi, dan layanan kesehatan menjadi ruang yang sensitif terhadap gangguan pelayanan.',
+      'Pemantauan sosial perlu membedakan aspirasi wajar, indikasi provokasi, dan potensi konflik antar kelompok.',
+    ],
+    targets: [
+      'Mengidentifikasi isu pelayanan publik yang paling banyak dikeluhkan warga.',
+      'Memetakan komunitas, tokoh lokal, forum warga, dan kanal komunikasi yang memengaruhi persepsi publik.',
+      'Menilai potensi perluasan isu antar kelurahan, kecamatan, atau kelompok masyarakat.',
+    ],
+    eei: [
+      'Apa pokok keluhan warga dan layanan apa yang menjadi sumber utama ketidakpuasan?',
+      'Siapa tokoh lokal, komunitas, atau kanal komunikasi yang memperluas isu tersebut?',
+      'Apakah terdapat ajakan pertemuan, pengumpulan massa, atau penolakan terhadap kebijakan tertentu?',
+      'Apa respons pemangku kepentingan setempat dan bagaimana penerimaannya di masyarakat?',
+    ],
+    collection: [
+      'Field Officer menghimpun informasi dari warga, pengurus lingkungan, tokoh komunitas, dan lokasi pelayanan publik.',
+      'Mencatat kronologi keluhan, pihak terkait, titik lokasi, jumlah warga terdampak, dan respons awal yang telah muncul.',
+      'Memantau perubahan narasi di grup komunitas lokal dan menghubungkannya dengan kondisi lapangan.',
+      'Melaporkan indikator eskalasi seperti pertemuan besar, penolakan terbuka, atau konflik antar kelompok.',
+    ],
+    risks: [
+      'Keluhan yang berlarut dapat menjadi agenda kolektif dan memicu aksi protes lokal.',
+      'Informasi tidak lengkap dapat memperkuat salah persepsi antara warga dan penyedia layanan.',
+      'Ketegangan antar kelompok dapat muncul bila isu pelayanan dikaitkan dengan identitas atau kepentingan tertentu.',
+    ],
+    mechanisms: [
+      'Regional Commander menetapkan isu sosial prioritas dan batas wilayah pemantauan.',
+      'OIM menyiapkan kebutuhan informasi mengenai aktor, narasi, dampak warga, dan respons otoritas.',
+      'Field Coordinator menyusun jadwal pengecekan lokasi dan pembagian sumber informasi.',
+      'Field Officer mengirim laporan faktual tanpa menyimpulkan aktor atau motif sebelum ada verifikasi.',
+    ],
+    reporting: [
+      'Laporan sosial memuat pokok keluhan, jumlah terdampak indikatif, aktor lokal, kanal penyebaran, dan potensi dampak.',
+      'Perkembangan isu dilaporkan minimal setiap 24 jam selama indikator eskalasi masih aktif.',
+      'Temuan sensitif diberi catatan kebutuhan verifikasi lanjutan sebelum didistribusikan lebih luas.',
+    ],
+    recommendations: [
+      'Utamakan pemetaan aktor lokal dan respons warga sebelum menyusun penilaian eskalasi.',
+      'Pisahkan fakta lapangan, persepsi warga, dan penilaian analis dalam setiap laporan.',
+      'Tingkatkan pemantauan bila isu mulai berpindah dari keluhan layanan menjadi ajakan mobilisasi.',
+    ],
+    classification: Classification.TERBATAS,
+    urgency: PriorityLevel.NORMAL,
+  },
+  {
+    category: 'Budaya',
+    title: 'Pemantauan Kegiatan Budaya dan Kerawanan Kerumunan',
+    issue:
+      'kegiatan budaya, agenda komunitas, dan potensi kerawanan kerumunan pada ruang publik',
+    objective:
+      'menjaga pemahaman situasi terhadap agenda budaya yang berpotensi menarik massa besar, memunculkan gesekan komunitas, atau berdampak pada mobilitas wilayah',
+    background: [
+      'Agenda budaya dan komunitas dapat menjadi ruang konsolidasi sosial yang positif, namun tetap memerlukan pemantauan bila melibatkan massa besar.',
+      'Kepadatan peserta, keterbatasan akses, dan perbedaan kepentingan komunitas dapat memunculkan risiko operasional.',
+      'Pendekatan pemantauan harus sensitif terhadap nilai lokal dan tidak mengganggu kegiatan masyarakat yang sah.',
+    ],
+    targets: [
+      'Mengidentifikasi jadwal kegiatan, penyelenggara, komunitas pendukung, dan estimasi kehadiran peserta.',
+      'Memetakan titik kepadatan, jalur masuk-keluar, fasilitas pendukung, dan potensi dampak terhadap warga sekitar.',
+      'Menilai apakah terdapat isu sensitif, narasi penolakan, atau gesekan antar komunitas.',
+    ],
+    eei: [
+      'Kegiatan budaya apa yang memiliki potensi konsentrasi massa atau dampak mobilitas tinggi?',
+      'Siapa penyelenggara, komunitas pendukung, sponsor, dan pihak yang berpotensi menolak kegiatan?',
+      'Bagaimana pengaturan akses, keamanan mandiri, parkir, dan jalur evakuasi kegiatan?',
+      'Apakah terdapat narasi sensitif yang dapat memicu gesekan sosial atau penolakan warga?',
+    ],
+    collection: [
+      'Field Officer memantau lokasi kegiatan, kanal informasi penyelenggara, dan respons warga sekitar.',
+      'Mengumpulkan data waktu kegiatan, estimasi peserta, titik kerumunan, dan perubahan arus lalu lintas.',
+      'Melakukan validasi kepada sumber lokal untuk memastikan kegiatan berjalan sesuai izin dan agenda awal.',
+      'Mengirim pembaruan cepat bila terjadi perubahan lokasi, penambahan peserta, atau potensi gesekan.',
+    ],
+    risks: [
+      'Kerumunan yang melebihi perkiraan dapat menimbulkan kemacetan, gangguan layanan publik, atau risiko keselamatan.',
+      'Narasi sensitif terhadap budaya atau identitas dapat memperbesar potensi penolakan.',
+      'Kurangnya informasi lapangan dapat menyebabkan keterlambatan koordinasi dengan unsur wilayah.',
+    ],
+    mechanisms: [
+      'Regional Commander menetapkan kegiatan budaya prioritas berdasarkan skala, lokasi, dan sensitivitas isu.',
+      'OIM membagi kebutuhan informasi menjadi data penyelenggara, massa, lokasi, dan potensi dampak.',
+      'Field Coordinator memastikan Field Officer memantau titik masuk, pusat kegiatan, dan lingkungan sekitar.',
+      'Field Officer melaporkan fakta secara proporsional dan menjaga sensitivitas terhadap kegiatan masyarakat.',
+    ],
+    reporting: [
+      'Laporan kegiatan budaya memuat jadwal, lokasi, penyelenggara, estimasi peserta, situasi keamanan, dan dampak mobilitas.',
+      'Perubahan signifikan dilaporkan segera, terutama bila berkaitan dengan gesekan warga atau kepadatan tidak terkendali.',
+      'Dokumentasi lapangan digunakan sebagai pendukung, bukan sebagai satu-satunya dasar penilaian.',
+    ],
+    recommendations: [
+      'Pantau kegiatan yang berada dekat objek vital, simpul transportasi, atau permukiman padat.',
+      'Jaga rumusan laporan agar sensitif terhadap nilai budaya dan tidak menstigma komunitas tertentu.',
+      'Eskalasi dini dilakukan bila ditemukan indikator penolakan, konflik, atau penumpukan massa berlebih.',
+    ],
+    classification: Classification.BIASA,
+    urgency: PriorityLevel.NORMAL,
+  },
+  {
+    category: 'Pertahanan',
+    title: 'Pemantauan Objek Vital dan Kesiapan Wilayah',
+    issue:
+      'aktivitas pada objek vital, fasilitas strategis, dan kesiapan wilayah menghadapi gangguan operasional',
+    objective:
+      'memperoleh peringatan dini atas perubahan aktivitas, celah pengamanan, dan potensi gangguan terhadap fasilitas strategis',
+    background: [
+      'Objek vital dan fasilitas strategis memiliki dampak luas terhadap layanan publik, logistik, komunikasi, dan kegiatan pemerintahan.',
+      'Perubahan pola aktivitas pekerja, kendaraan, akses, atau perimeter dapat menjadi indikator awal yang perlu diverifikasi.',
+      'Pemantauan dilakukan untuk mendukung kesiapan wilayah tanpa mengganggu operasional fasilitas.',
+    ],
+    targets: [
+      'Mengidentifikasi objek vital, akses utama, perimeter, dan titik aktivitas yang mengalami perubahan tidak biasa.',
+      'Memetakan pola kendaraan, pekerja kontrak, tamu, dan kegiatan pemeliharaan yang relevan.',
+      'Menilai potensi dampak apabila terjadi gangguan pada fasilitas strategis.',
+    ],
+    eei: [
+      'Objek vital mana yang menunjukkan perubahan aktivitas, akses, atau pola pengamanan?',
+      'Apa bentuk perubahan yang terpantau dan sejak kapan indikator tersebut muncul?',
+      'Siapa pihak yang berkaitan dengan aktivitas baru, termasuk pekerja, vendor, atau kendaraan logistik?',
+      'Apa potensi dampak terhadap layanan publik, transportasi, komunikasi, atau kegiatan pemerintahan?',
+    ],
+    collection: [
+      'Field Officer melakukan pemantauan terbatas pada area publik di sekitar objek vital sesuai area tanggung jawab.',
+      'Menghimpun informasi dari sumber lokal mengenai perubahan jadwal operasional, aktivitas pemeliharaan, dan akses kendaraan.',
+      'Mencatat indikator faktual seperti waktu, lokasi, jenis aktivitas, pihak terkait, dan perubahan pola.',
+      'Melaporkan segera bila ditemukan indikator gangguan, akses tidak wajar, atau peningkatan pengamanan.',
+    ],
+    risks: [
+      'Gangguan pada objek vital dapat berdampak lintas wilayah dan memerlukan respons cepat.',
+      'Kesalahan membaca aktivitas rutin sebagai ancaman dapat menyebabkan alarm yang tidak perlu.',
+      'Informasi sensitif mengenai fasilitas strategis harus dikendalikan agar tidak memperluas risiko keamanan.',
+    ],
+    mechanisms: [
+      'Regional Commander menetapkan daftar objek vital prioritas dan batasan informasi yang boleh dikumpulkan.',
+      'OIM menyiapkan indikator perubahan aktivitas yang perlu dilaporkan dan ambang eskalasi.',
+      'Field Coordinator mengatur pembagian titik pantau agar tidak mengganggu operasional fasilitas.',
+      'Field Officer menyampaikan laporan faktual dengan memperhatikan keamanan sumber dan kerahasiaan informasi.',
+    ],
+    reporting: [
+      'Laporan objek vital memuat indikator perubahan, lokasi, waktu, sumber, tingkat keyakinan, dan potensi dampak.',
+      'Informasi sensitif dibatasi pada jalur komando yang berwenang.',
+      'Indikator yang belum jelas harus diberi rekomendasi verifikasi lanjutan, bukan disimpulkan sebagai ancaman.',
+    ],
+    recommendations: [
+      'Fokuskan pemantauan pada perubahan pola, bukan aktivitas rutin yang telah terjelaskan.',
+      'Gunakan verifikasi berlapis sebelum menyampaikan penilaian ancaman terhadap fasilitas strategis.',
+      'Siapkan laporan cepat bila ditemukan indikator gangguan layanan, akses tidak wajar, atau peningkatan kerentanan.',
+    ],
+    classification: Classification.RAHASIA,
+    urgency: PriorityLevel.HIGH,
+  },
+  {
+    category: 'Keamanan',
+    title: 'Pemantauan Kerawanan Keamanan dan Peringatan Dini',
+    issue:
+      'kerawanan keamanan wilayah, potensi gangguan ketertiban, dan kebutuhan peringatan dini lintas area',
+    objective:
+      'memastikan setiap indikator gangguan keamanan terdeteksi, diverifikasi, dan dilaporkan secara cepat melalui jalur komando',
+    background: [
+      'Kerawanan keamanan dapat muncul dari pergerakan kelompok, konflik lokal, kriminalitas menonjol, atau perubahan situasi pada lokasi rawan.',
+      'Wilayah perkotaan memiliki banyak simpul mobilitas sehingga indikator kecil dapat berkembang cepat bila tidak diverifikasi.',
+      'Peringatan dini membutuhkan informasi faktual, rute eskalasi yang jelas, dan koordinasi antar unsur lapangan.',
+    ],
+    targets: [
+      'Mengidentifikasi titik rawan, pola kejadian, aktor, dan indikator eskalasi keamanan.',
+      'Memetakan hubungan antar lokasi rawan, jalur pergerakan, dan potensi dampak terhadap masyarakat.',
+      'Menilai kebutuhan tindakan lanjutan berdasarkan tingkat urgensi dan validitas informasi.',
+    ],
+    eei: [
+      'Indikator keamanan apa yang muncul, di mana, kapan, dan siapa pihak yang berkaitan?',
+      'Apakah terdapat pola berulang, pergerakan kelompok, atau perubahan perilaku di lokasi rawan?',
+      'Apa potensi dampak terhadap masyarakat, fasilitas publik, transportasi, atau objek strategis?',
+      'Kapan informasi harus dinaikkan menjadi peringatan dini kepada pimpinan?',
+    ],
+    collection: [
+      'Field Officer menghimpun informasi dari titik rawan, sumber lokal, laporan lapangan, dan kanal terbuka yang relevan.',
+      'Melakukan validasi cepat terhadap waktu, lokasi, aktor, dan bukti pendukung sebelum laporan dikirim.',
+      'Field Coordinator menggabungkan laporan lintas petugas untuk melihat pola antar wilayah.',
+      'OIM menyusun penilaian sementara dan rekomendasi eskalasi berdasarkan indikator yang telah diverifikasi.',
+    ],
+    risks: [
+      'Keterlambatan pelaporan dapat mempersempit waktu respons terhadap gangguan keamanan.',
+      'Informasi tunggal yang tidak diverifikasi dapat memicu salah arah penanganan.',
+      'Pola lintas wilayah dapat terlewat bila laporan Field Officer tidak dikonsolidasikan oleh Field Coordinator.',
+    ],
+    mechanisms: [
+      'Regional Commander menetapkan indikator peringatan dini dan prioritas lokasi rawan.',
+      'OIM memastikan setiap laporan memiliki penilaian validitas, urgensi, dan rekomendasi tindak lanjut.',
+      'Field Coordinator memonitor kepatuhan laporan petugas dan mengoordinasikan pembaruan cepat.',
+      'Field Officer mengirim laporan awal, perkembangan, dan penutupan peristiwa sesuai format yang ditetapkan.',
+    ],
+    reporting: [
+      'Laporan keamanan dikirim segera untuk indikator mendesak dan diperbarui sampai situasi terkendali.',
+      'Setiap laporan mencantumkan status verifikasi, sumber, bukti, dampak, dan rekomendasi eskalasi.',
+      'Laporan lintas area disusun bila terdapat pola yang sama pada lebih dari satu wilayah.',
+    ],
+    recommendations: [
+      'Utamakan indikator yang memiliki dampak langsung terhadap keselamatan masyarakat dan stabilitas wilayah.',
+      'Pastikan peringatan dini didukung minimal satu verifikasi tambahan bila waktu memungkinkan.',
+      'Gunakan laporan konsolidasi untuk membaca pola keamanan, bukan hanya kejadian tunggal.',
+    ],
+    classification: Classification.RAHASIA,
+    urgency: PriorityLevel.URGENT,
+  },
+] as const;
 
 function addDays(base: Date, days: number) {
   return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
@@ -80,6 +419,10 @@ function titleCaseBranch(branch: CommandRouteType | null) {
 
 function compactCode(value: string) {
   return value.replace(/[^A-Z0-9]+/gi, '').toUpperCase();
+}
+
+function pickScenario(sequence: number) {
+  return STR_SCENARIOS[sequence % STR_SCENARIOS.length];
 }
 
 function pickPrimaryArea(node: AssignmentNode) {
@@ -119,34 +462,44 @@ function buildDirectiveSeed(
   sequence: number,
   commandDate: Date,
 ) {
+  const scenario = pickScenario(sequence);
   const primaryArea = pickPrimaryArea(chain.regionalCommander);
   const branchLabel = titleCaseBranch(chain.regionalCommander.branch);
   const areaLabel =
     primaryArea?.areaName ?? chain.regionalCommander.organizationUnitName;
   const commandSuffix = String(sequence + 1).padStart(3, '0');
+  const title = `STR ${scenario.category} - ${scenario.title} ${branchLabel} ${areaLabel}`;
 
   return {
     commandNumber: `SEED/STR/${chain.regionalCommander.organizationUnitCode}/2026/${commandSuffix}`,
-    strategicIssue: `${SEED_TAG} Penguatan operasi ${branchLabel.toLowerCase()} untuk ${areaLabel}.`,
+    strategicIssue: `${scenario.issue} pada ${areaLabel}.`,
     commandDescription: [
-      `${SEED_TAG} Direktif ini menjadi sumber seed STR berjenjang.`,
-      `Fokus operasi: ${areaLabel}.`,
-      'Regional Commander wajib menjabarkan UUK/STR, OIM membentuk tugas, lalu Field Coordinator menurunkan penugasan ke Field Officer.',
+      title,
+      `Tujuan operasi adalah ${scenario.objective}.`,
+      `Fokus wilayah berada pada ${areaLabel} dengan jalur kendali ${branchLabel.toLowerCase()} melalui ${chain.regionalCommander.positionTitle}, ${chain.operationalManager.positionTitle}, Field Coordinator, dan Field Officer.`,
+      'Seluruh laporan wajib membedakan fakta lapangan, indikasi, penilaian sementara, dan rekomendasi tindak lanjut.',
     ].join('\n'),
-    versionTitle: `STR Berjenjang ${branchLabel} ${areaLabel}`,
+    versionTitle: title,
     commandSource: 'Deputi II DENS CAKRA',
     commandIssuer: 'Deputi II',
-    classification:
-      chain.regionalCommander.branch === 'BINDA'
-        ? Classification.RAHASIA
-        : Classification.TERBATAS,
+    classification: scenario.classification,
+    urgency: scenario.urgency,
     commandDate,
     dueDate: addDays(commandDate, 14),
   };
 }
 
+function createSectionItems(lines: readonly string[]) {
+  return lines.map((content, index) => ({
+    itemCode: String(index + 1),
+    content,
+    orderNumber: index + 1,
+  }));
+}
+
 function buildUukSections(
   chain: HierarchyChain,
+  scenario: StrScenario,
   directiveTitle: string,
   commandDate: Date,
 ): UukSectionSeed[] {
@@ -154,139 +507,130 @@ function buildUukSections(
   const areaLabel =
     primaryArea?.areaName ?? chain.regionalCommander.organizationUnitName;
   const branchLabel = titleCaseBranch(chain.regionalCommander.branch);
-  const coordinatorNames = chain.fieldCoordinators
-    .slice(0, 3)
-    .map((item) => item.coordinator.fullName ?? item.coordinator.positionTitle)
-    .join(', ');
+  const coordinatorNames =
+    chain.fieldCoordinators
+      .slice(0, 3)
+      .map(
+        (item) => item.coordinator.fullName ?? item.coordinator.positionTitle,
+      )
+      .join(', ') || 'Field Coordinator setempat';
+  const officerNames =
+    chain.fieldCoordinators
+      .flatMap((item) => item.fieldOfficers)
+      .slice(0, 4)
+      .map((item) => item.fullName ?? item.positionTitle)
+      .join(', ') || 'Field Officer setempat';
 
-  return [
+  const header = [
+    `Judul STR: ${directiveTitle}.`,
+    `Wilayah sasaran: ${areaLabel}.`,
+    `Tanggal perintah: ${commandDate.toISOString().slice(0, 10)}.`,
+    `Pengendali regional: ${chain.regionalCommander.fullName ?? chain.regionalCommander.positionTitle}.`,
+    `Pengendali operasional: ${chain.operationalManager.fullName ?? chain.operationalManager.positionTitle}.`,
+  ];
+  const commandContext = [
+    `Jalur operasi ${branchLabel.toLowerCase()} menggunakan ${coordinatorNames} sebagai koordinator lapangan utama.`,
+    `Personel awal yang menjadi sumber laporan lapangan meliputi ${officerNames}.`,
+  ];
+  const scenarioContext = (lines: readonly string[]) =>
+    lines.map(
+      (line) => `${line} Konteks pelaksanaan diarahkan pada ${areaLabel}.`,
+    );
+
+  const sectionData = [
     {
       sectionType: UukStrSectionType.BASIS_BACKGROUND,
       title: 'Dasar dan Latar Belakang',
-      items: [
-        {
-          itemCode: '1',
-          orderNumber: 1,
-          content: `${SEED_TAG} STR ${directiveTitle} diterbitkan pada ${commandDate.toISOString()} untuk menjaga stabilitas operasi ${branchLabel.toLowerCase()} di ${areaLabel}.`,
-        },
-        {
-          itemCode: '2',
-          orderNumber: 2,
-          content: `Regional command ${chain.regionalCommander.organizationUnitName} menindaklanjuti arahan dengan struktur berjenjang hingga unsur field officer.`,
-        },
-      ],
+      lines: [...header, ...scenario.background, ...commandContext],
     },
     {
       sectionType: UukStrSectionType.INVESTIGATION_TARGETS,
       title: 'Sasaran Penyelidikan',
-      items: [
-        {
-          itemCode: '1',
-          orderNumber: 1,
-          content: `Pemantauan area prioritas ${areaLabel} berikut simpul lapangan yang dikelola oleh ${coordinatorNames || 'field coordinator setempat'}.`,
-        },
-      ],
+      lines: scenarioContext(scenario.targets),
     },
     {
       sectionType: UukStrSectionType.EEI_PIR,
       title: 'EEI / PIR',
-      items: [
-        {
-          itemCode: '1',
-          orderNumber: 1,
-          content:
-            'Identifikasi perubahan situasi lapangan, aktor menonjol, dan indikator eskalasi cepat.',
-        },
-        {
-          itemCode: '2',
-          orderNumber: 2,
-          content:
-            'Laporkan kebutuhan klarifikasi yang memerlukan dukungan lintas sektor atau lintas wilayah.',
-        },
-      ],
+      lines: scenario.eei,
     },
     {
       sectionType: UukStrSectionType.COLLECTION_PLAN,
       title: 'Rencana Pengumpulan',
-      items: [
-        {
-          itemCode: '1',
-          orderNumber: 1,
-          content:
-            'Field Coordinator membagi titik pantau ke Field Officer sesuai area scope aktif masing-masing.',
-        },
-        {
-          itemCode: '2',
-          orderNumber: 2,
-          content:
-            'Field Officer mengirim update awal, perkembangan lapangan, dan penutupan tugas secara bertahap.',
-        },
+      lines: [
+        ...scenario.collection,
+        `Field Coordinator wajib memastikan area ${areaLabel} tercakup melalui penugasan Field Officer dan jaring aktif.`,
+        'Setiap temuan yang berpotensi berdampak cepat harus dilaporkan sebagai pembaruan antara tanpa menunggu laporan akhir.',
       ],
     },
     {
       sectionType: UukStrSectionType.THREAT_RISK_ANALYSIS,
       title: 'Analisis Ancaman dan Risiko',
-      items: [
-        {
-          itemCode: '1',
-          orderNumber: 1,
-          content: `Risiko utama adalah keterlambatan validasi area ${areaLabel} dan gap distribusi informasi antar unsur ${branchLabel.toLowerCase()}.`,
-        },
+      lines: [
+        `Isu ${scenario.issue} dinilai perlu dipantau karena dapat memengaruhi stabilitas ${areaLabel}.`,
+        ...scenario.risks,
+        'Risiko residual tetap ada bila sumber tunggal belum diverifikasi atau perubahan situasi terjadi di luar jam pemantauan utama.',
       ],
     },
     {
       sectionType: UukStrSectionType.IMPLEMENTATION_MECHANISM,
       title: 'Mekanisme Pelaksanaan',
-      items: [
-        {
-          itemCode: '1',
-          orderNumber: 1,
-          content: `${chain.operationalManager.positionTitle} bertindak sebagai OIM yang membentuk task operasional per field coordinator.`,
-        },
-        {
-          itemCode: '2',
-          orderNumber: 2,
-          content:
-            'Task diteruskan ke field officer secara berjenjang tanpa memutus relasi sumber STR dan area target.',
-        },
-      ],
+      lines: scenario.mechanisms,
     },
     {
       sectionType: UukStrSectionType.COORDINATION_REPORTING,
       title: 'Koordinasi dan Pelaporan',
-      items: [
-        {
-          itemCode: '1',
-          orderNumber: 1,
-          content:
-            'Setiap assignment wajib memiliki tenggat, catatan penugasan, dan status progres yang dapat ditelusuri.',
-        },
+      lines: [
+        ...scenario.reporting,
+        'Laporan BAKET menjadi bahan awal untuk verifikasi OIM, analisis lanjutan, dan penyusunan produk intelijen.',
       ],
     },
     {
       sectionType: UukStrSectionType.RECOMMENDATION,
       title: 'Rekomendasi',
-      items: [
-        {
-          itemCode: '1',
-          orderNumber: 1,
-          content:
-            'Prioritaskan area primer, pertahankan ritme update lapangan, dan eskalasi dini bila ada perubahan signifikan.',
-        },
-      ],
+      lines: scenario.recommendations,
     },
     {
       sectionType: UukStrSectionType.AUTHENTICATION,
       title: 'Pengesahan',
-      items: [
-        {
-          itemCode: '1',
-          orderNumber: 1,
-          content: `${SEED_TAG} Disahkan oleh ${chain.regionalCommander.fullName ?? chain.regionalCommander.positionTitle} untuk kebutuhan data demo berjenjang.`,
-        },
+      lines: [
+        `Dokumen STR ini disahkan oleh ${chain.regionalCommander.fullName ?? chain.regionalCommander.positionTitle} selaku pengendali regional ${branchLabel.toLowerCase()}.`,
+        `OIM pelaksana adalah ${chain.operationalManager.fullName ?? chain.operationalManager.positionTitle} dan bertanggung jawab menjaga ritme pelaporan, validasi sumber, serta eskalasi peringatan dini.`,
+        'Setiap perubahan signifikan terhadap target, wilayah, atau indikator ancaman wajib dituangkan dalam pembaruan STR atau task lanjutan.',
       ],
     },
-  ];
+  ] as const;
+
+  return sectionData.map((section) => ({
+    sectionType: section.sectionType,
+    title: section.title,
+    items: createSectionItems(section.lines),
+  }));
+}
+
+function buildTaskSeed(
+  chain: HierarchyChain,
+  coordinator: AssignmentNode,
+  sequence: number,
+) {
+  const scenario = pickScenario(sequence);
+  const primaryArea =
+    pickPrimaryArea(coordinator) ?? pickPrimaryArea(chain.regionalCommander);
+  const areaLabel =
+    primaryArea?.areaName ?? chain.regionalCommander.organizationUnitName;
+  const compactArea = primaryArea?.areaCode
+    ? compactCode(primaryArea.areaCode)
+    : compactCode(coordinator.organizationUnitCode);
+
+  return {
+    title: `Tugas ${scenario.category} ${areaLabel} - ${scenario.title}`,
+    description: [
+      `Tugas ini menurunkan STR ${scenario.category.toLowerCase()} untuk ${areaLabel}.`,
+      `Fokus pengumpulan: ${scenario.issue}.`,
+      `Tujuan: ${scenario.objective}.`,
+      `Koordinator lapangan: ${coordinator.fullName ?? coordinator.positionTitle}.`,
+      `Kode area operasi: ${compactArea}.`,
+    ].join('\n'),
+  };
 }
 
 async function loadAssignments() {
@@ -529,6 +873,7 @@ async function upsertDirective(
     },
     update: {
       classification: seed.classification,
+      urgency: seed.urgency,
       commandSource: seed.commandSource,
       commandIssuer: seed.commandIssuer,
       commandDate: seed.commandDate,
@@ -542,6 +887,7 @@ async function upsertDirective(
       directiveId: directive.id,
       versionNumber: 1,
       classification: seed.classification,
+      urgency: seed.urgency,
       commandSource: seed.commandSource,
       commandIssuer: seed.commandIssuer,
       commandDate: seed.commandDate,
@@ -626,6 +972,7 @@ async function upsertDirective(
 async function upsertUukStr(
   chain: HierarchyChain,
   directiveVersionId: string,
+  sequence: number,
   versionTitle: string,
   commandDate: Date,
 ) {
@@ -688,7 +1035,12 @@ async function upsertUukStr(
     },
   });
 
-  const sections = buildUukSections(chain, versionTitle, commandDate);
+  const sections = buildUukSections(
+    chain,
+    pickScenario(sequence),
+    versionTitle,
+    commandDate,
+  );
 
   for (const [sectionIndex, section] of sections.entries()) {
     await prisma.uukStrSection.create({
@@ -731,12 +1083,7 @@ async function upsertTask(
     );
   }
 
-  const title = `${SEED_TAG} Tugas Lapangan ${primaryArea.areaName} ${compactCode(coordinator.organizationUnitCode)}`;
-  const description = [
-    `${SEED_TAG} Task turunan OIM untuk ${coordinator.fullName ?? coordinator.positionTitle}.`,
-    `Sumber: ${chain.regionalCommander.organizationUnitName}.`,
-    `Distribusi Field Officer: ${fieldOfficers.length} personel.`,
-  ].join('\n');
+  const { title, description } = buildTaskSeed(chain, coordinator, sequence);
   const dueDate = addDays(directiveBaseDate, 10 + (sequence % 7));
   const stage = pickTaskStage(sequence);
   const priority = pickTaskPriority(sequence);
@@ -748,8 +1095,18 @@ async function upsertTask(
     where: {
       ownerUnitId: chain.operationalManager.organizationUnitId,
       uukStrVersionId,
-      title,
       deletedAt: null,
+      OR: [
+        { title },
+        {
+          assignments: {
+            some: {
+              assigneeAssignmentId: coordinator.id,
+              assignmentNote: `${SEED_TAG} Distribusi OIM ke Field Coordinator.`,
+            },
+          },
+        },
+      ],
     },
     select: {
       id: true,
@@ -1012,33 +1369,41 @@ async function seedStrHierarchy() {
   let officerAssignmentCount = 0;
 
   for (const [chainIndex, chain] of chains.entries()) {
-    const { version: directiveVersion, directiveSeed } = await upsertDirective(
-      executive.id,
-      chain,
-      chainIndex,
-    );
-    directiveCount += 1;
+    for (
+      let variantIndex = 0;
+      variantIndex < STR_VARIANTS_PER_CHAIN;
+      variantIndex += 1
+    ) {
+      const sequence = chainIndex * STR_VARIANTS_PER_CHAIN + variantIndex;
+      const { version: directiveVersion, directiveSeed } =
+        await upsertDirective(executive.id, chain, sequence);
+      directiveCount += 1;
 
-    const { version: uukVersion } = await upsertUukStr(
-      chain,
-      directiveVersion.id,
-      directiveSeed.versionTitle,
-      directiveSeed.commandDate,
-    );
-    uukCount += 1;
-
-    for (const [coordinatorIndex, item] of chain.fieldCoordinators.entries()) {
-      await upsertTask(
+      const { version: uukVersion } = await upsertUukStr(
         chain,
-        item.coordinator,
-        item.fieldOfficers,
         directiveVersion.id,
-        uukVersion.id,
-        chainIndex * 1000 + coordinatorIndex,
+        sequence,
+        directiveSeed.versionTitle,
+        directiveSeed.commandDate,
       );
-      taskCount += 1;
-      coordinatorAssignmentCount += 1;
-      officerAssignmentCount += item.fieldOfficers.length;
+      uukCount += 1;
+
+      for (const [
+        coordinatorIndex,
+        item,
+      ] of chain.fieldCoordinators.entries()) {
+        await upsertTask(
+          chain,
+          item.coordinator,
+          item.fieldOfficers,
+          directiveVersion.id,
+          uukVersion.id,
+          sequence * 1000 + coordinatorIndex,
+        );
+        taskCount += 1;
+        coordinatorAssignmentCount += 1;
+        officerAssignmentCount += item.fieldOfficers.length;
+      }
     }
   }
 

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   AlertTriangle,
+  ArrowUpRight,
   FileText,
   Layers3,
   LoaderCircle,
@@ -20,8 +21,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Map as BaseMap, MapControls, MapGeoJSON, MapMarker, type MapRef, type MapViewport } from "@/components/ui/map";
+import {
+  Map as BaseMap,
+  MapControls,
+  MapGeoJSON,
+  MapMarker,
+  MapPopup,
+  type MapRef,
+  type MapViewport,
+} from "@/components/ui/map";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
 
@@ -32,13 +42,27 @@ import { getCoordinates, getPersonnelStatus } from "./utils/mapHelpers";
 
 const INDONESIA_CENTER: [number, number] = [117.5, -2.5];
 const EMPTY_COLLECTION = { type: "FeatureCollection", features: [] };
+const EMPTY_REPORT_COLLECTION: NationalMapFeatureCollection = { type: "FeatureCollection", features: [] };
+const CARTO_MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const OPENSTREETMAP_STYLE = "https://tiles.openfreemap.org/styles/bright";
 const OPENSTREETMAP_3D_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 const MAP_STYLES = {
-  light: OPENSTREETMAP_3D_STYLE,
-  dark: OPENSTREETMAP_3D_STYLE,
-};
+  default: CARTO_MAP_STYLE,
+  openstreetmap: OPENSTREETMAP_STYLE,
+  openstreetmap3d: OPENSTREETMAP_3D_STYLE,
+} as const;
+type MapStyleKey = keyof typeof MAP_STYLES;
 type ObjectFilter = "ALL" | "PERSONNEL" | "REPORTS";
 type UnitBranchFilter = "ALL" | "BINDA" | "DIRECTORATE";
+type NationalMapFeature = {
+  id?: string | number;
+  geometry?: { coordinates?: unknown };
+  properties?: Record<string, unknown>;
+};
+type NationalMapFeatureCollection = {
+  type: "FeatureCollection";
+  features: NationalMapFeature[];
+};
 
 type AdministrativeAreaOption = {
   id: string;
@@ -78,6 +102,20 @@ const REPORT_STATUS_LABELS: Record<(typeof REPORT_STATUSES)[number], string> = {
   REJECTED: "Ditolak",
 };
 
+const MAP_STYLE_OPTIONS = [
+  { value: "default", label: "Default (Carto)" },
+  { value: "openstreetmap", label: "OpenStreetMap" },
+  { value: "openstreetmap3d", label: "OpenStreetMap 3D" },
+] satisfies Array<{ value: MapStyleKey; label: string }>;
+
+const REPORT_STATUS_CLASSES: Record<string, string> = {
+  SENT_TO_OIM: "border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400",
+  UNDER_VERIFICATION: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  NEEDS_DEVELOPMENT: "border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-400",
+  VERIFIED: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  REJECTED: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400",
+};
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
@@ -89,6 +127,44 @@ function stringOrNull(value: unknown) {
 function numberOrNull(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getReportAreaName(properties: Record<string, unknown>) {
+  return (
+    stringOrNull(properties.areaName) ??
+    stringOrNull(record(properties.primaryArea).name) ??
+    stringOrNull(record(Array.isArray(properties.matchedAreas) ? properties.matchedAreas[0] : null).name) ??
+    "Wilayah belum teridentifikasi"
+  );
+}
+
+function getReportCategoryName(properties: Record<string, unknown>) {
+  return (
+    stringOrNull(properties.reportCategoryName) ?? stringOrNull(record(properties.category).name) ?? "Tanpa kategori"
+  );
+}
+
+function formatReportCardDate(value: unknown) {
+  if (typeof value !== "string" || !value) return "Waktu kejadian belum tersedia";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Waktu kejadian belum tersedia";
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function getReportStatusLabel(value: unknown) {
+  const status = typeof value === "string" ? value : "";
+  if (status in REPORT_STATUS_LABELS) {
+    return REPORT_STATUS_LABELS[status as keyof typeof REPORT_STATUS_LABELS];
+  }
+  if (!status) return "Status belum tersedia";
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function getUnitBranch(properties: Record<string, unknown>): UnitBranchFilter | null {
@@ -227,6 +303,7 @@ function mergeReportDetails(featureProperties: any, detailValue: unknown) {
   const creatorProfile = record(creatorAssignment.userProfile);
   const creatorPosition = record(creatorAssignment.position);
   const verification = record(currentVersion.verification);
+  const eventArea = record(currentVersion.eventArea);
 
   return {
     ...featureProperties,
@@ -236,6 +313,10 @@ function mergeReportDetails(featureProperties: any, detailValue: unknown) {
     originalContent: stringOrNull(currentVersion.originalContent),
     normalizedContent: stringOrNull(currentVersion.normalizedContent),
     eventTime: stringOrNull(currentVersion.eventTime),
+    areaName:
+      stringOrNull(eventArea.name) ??
+      stringOrNull(featureProperties.areaName) ??
+      stringOrNull(record(featureProperties.primaryArea).name),
     fieldOfficerNote: stringOrNull(currentVersion.fieldOfficerNote),
     coverageValidationStatus: stringOrNull(currentVersion.coverageValidationStatus),
     coverageValidationNote: stringOrNull(currentVersion.coverageValidationNote),
@@ -266,13 +347,14 @@ export function NationalMap() {
   const [viewport, setViewport] = useState<MapViewport>({
     center: INDONESIA_CENTER,
     zoom: 4.2,
-    pitch: 60,
-    bearing: -18,
+    pitch: 0,
+    bearing: 0,
   });
 
   // Layer Collections
   const [boundaries, setBoundaries] = useState<any>(EMPTY_COLLECTION);
   const [reports, setReports] = useState<any>(EMPTY_COLLECTION);
+  const [reportCatalog, setReportCatalog] = useState<NationalMapFeatureCollection>(EMPTY_REPORT_COLLECTION);
   const [personnel, setPersonnel] = useState<any>(EMPTY_COLLECTION);
   const [alerts, setAlerts] = useState<any>(EMPTY_COLLECTION);
   const [emergencies, setEmergencies] = useState<any>(EMPTY_COLLECTION);
@@ -297,6 +379,8 @@ export function NationalMap() {
   const [selectedReportUrgency, setSelectedReportUrgency] = useState<string>("ALL");
   const [selectedReportCluster, setSelectedReportCluster] = useState<string>("ALL");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [mapStyle, setMapStyle] = useState<MapStyleKey>("default");
+  const [visibleReportCount, setVisibleReportCount] = useState(10);
 
   // Cascading administrative filters
   const [countries, setCountries] = useState<AdministrativeAreaOption[]>([]);
@@ -313,8 +397,27 @@ export function NationalMap() {
   // Inspector Panel State
   const [selection, setSelection] = useState<SelectionType | null>(null);
 
+  const is3DMap = mapStyle === "openstreetmap3d";
+  const selectedMapStyle = MAP_STYLES[mapStyle];
+  const mapCameraRef = useRef({ pitch: is3DMap ? 60 : 0, bearing: is3DMap ? -18 : 0 });
+  mapCameraRef.current = { pitch: is3DMap ? 60 : 0, bearing: is3DMap ? -18 : 0 };
+
   const activeAreaId = selectedDistrictId || selectedRegencyId || selectedProvinceId || undefined;
   const queryZoom = Math.round(viewport.zoom);
+
+  const clearSelection = useCallback(() => {
+    personnelRequestId.current += 1;
+    reportRequestId.current += 1;
+    setSelection(null);
+  }, []);
+
+  useEffect(() => {
+    const camera = mapStyle === "openstreetmap3d" ? { pitch: 60, bearing: -18 } : { pitch: 0, bearing: 0 };
+    mapRef.current?.easeTo({
+      ...camera,
+      duration: 500,
+    });
+  }, [mapStyle]);
 
   const fetchLayers = useCallback(async () => {
     setLoading(true);
@@ -348,15 +451,38 @@ export function NationalMap() {
     }
   }, [activeAreaId, queryZoom]);
 
+  const fetchReportCatalog = useCallback(async () => {
+    try {
+      const catalog = await apiBrowserFetch<NationalMapFeatureCollection>("/map/reports", {
+        query: {
+          bbox: "94,-12,142,7",
+          zoom: 4,
+          limit: 5000,
+          areaId: activeAreaId,
+        },
+      });
+      setReportCatalog(catalog || EMPTY_REPORT_COLLECTION);
+    } catch (catalogError) {
+      setError(catalogError instanceof Error ? catalogError.message : "Daftar Baket nasional gagal dimuat.");
+    }
+  }, [activeAreaId]);
+
   // Initial fetch and auto refresh
   useEffect(() => {
     void fetchLayers();
   }, [fetchLayers]);
 
   useEffect(() => {
-    const interval = setInterval(() => void fetchLayers(), 60_000);
+    void fetchReportCatalog();
+  }, [fetchReportCatalog]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void fetchLayers();
+      void fetchReportCatalog();
+    }, 60_000);
     return () => clearInterval(interval);
-  }, [fetchLayers]);
+  }, [fetchLayers, fetchReportCatalog]);
 
   useEffect(() => {
     let cancelled = false;
@@ -404,7 +530,7 @@ export function NationalMap() {
   const reportFilterOptions = useMemo(() => {
     const clusters = new Map<string, string>(jaringClusters.map((cluster) => [cluster.id, cluster.name]));
 
-    (reports?.features || []).forEach((feature: any) => {
+    reportCatalog.features.forEach((feature) => {
       const props = feature.properties || {};
       const clusterKey = props.jaringClusterId || props.jaringClusterCode || props.jaringClusterName;
       if (clusterKey) {
@@ -417,7 +543,7 @@ export function NationalMap() {
       urgencies: [...REPORT_URGENCIES],
       clusters: Array.from(clusters.entries()).sort((a, b) => a[1].localeCompare(b[1])),
     };
-  }, [jaringClusters, reports]);
+  }, [jaringClusters, reportCatalog]);
 
   // Filtered personnel data based on active search and dropdown filters
   const filteredPersonnelData = useMemo(() => {
@@ -450,44 +576,53 @@ export function NationalMap() {
     };
   }, [personnel, emergencies, searchQuery, selectedStatus, selectedUnitBranch, selectedObjectType]);
 
-  const filteredReportsData = useMemo(() => {
-    const features = (reports?.features || []).filter((feature: any) => {
-      if (selectedObjectType === "PERSONNEL") return false;
-      const props = feature.properties || {};
-      const q = searchQuery.toLowerCase().trim();
-      if (q) {
-        const matchesTitle = String(props.title || "")
-          .toLowerCase()
-          .includes(q);
-        const matchesArea = String(props.areaName || "")
-          .toLowerCase()
-          .includes(q);
-        const matchesCategory = String(props.reportCategoryName || "")
-          .toLowerCase()
-          .includes(q);
-        const matchesCluster = String(props.jaringClusterName || "")
-          .toLowerCase()
-          .includes(q);
-        if (!matchesTitle && !matchesArea && !matchesCategory && !matchesCluster) return false;
-      }
-      if (selectedReportStatus !== "ALL" && props.status !== selectedReportStatus) return false;
-      if (selectedReportUrgency !== "ALL" && props.urgency !== selectedReportUrgency) return false;
-      if (
-        selectedReportCluster !== "ALL" &&
-        props.jaringClusterId !== selectedReportCluster &&
-        props.jaringClusterCode !== selectedReportCluster &&
-        props.jaringClusterName !== selectedReportCluster
-      ) {
-        return false;
-      }
-      return true;
-    });
+  const filterReportCollection = useCallback(
+    (collection: NationalMapFeatureCollection) => {
+      const features = collection.features.filter((feature) => {
+        if (selectedObjectType === "PERSONNEL") return false;
+        const props = feature.properties || {};
+        const q = searchQuery.toLowerCase().trim();
+        if (q) {
+          const matchesTitle = String(props.title || "")
+            .toLowerCase()
+            .includes(q);
+          const matchesArea = String(props.areaName || "")
+            .toLowerCase()
+            .includes(q);
+          const matchesCategory = String(props.reportCategoryName || "")
+            .toLowerCase()
+            .includes(q);
+          const matchesCluster = String(props.jaringClusterName || "")
+            .toLowerCase()
+            .includes(q);
+          if (!matchesTitle && !matchesArea && !matchesCategory && !matchesCluster) return false;
+        }
+        if (selectedReportStatus !== "ALL" && props.status !== selectedReportStatus) return false;
+        if (selectedReportUrgency !== "ALL" && props.urgency !== selectedReportUrgency) return false;
+        if (
+          selectedReportCluster !== "ALL" &&
+          props.jaringClusterId !== selectedReportCluster &&
+          props.jaringClusterCode !== selectedReportCluster &&
+          props.jaringClusterName !== selectedReportCluster
+        ) {
+          return false;
+        }
+        return true;
+      });
 
-    return {
-      type: "FeatureCollection",
-      features,
-    };
-  }, [reports, searchQuery, selectedObjectType, selectedReportStatus, selectedReportUrgency, selectedReportCluster]);
+      return {
+        type: "FeatureCollection",
+        features,
+      };
+    },
+    [searchQuery, selectedObjectType, selectedReportStatus, selectedReportUrgency, selectedReportCluster],
+  );
+
+  const filteredReportsData = useMemo(() => filterReportCollection(reports), [filterReportCollection, reports]);
+  const filteredReportCatalogData = useMemo(
+    () => filterReportCollection(reportCatalog),
+    [filterReportCollection, reportCatalog],
+  );
 
   // Autocomplete search suggestions
   const searchSuggestions = useMemo(() => {
@@ -526,8 +661,7 @@ export function NationalMap() {
       mapRef.current?.easeTo({
         center: coordinates,
         zoom: 15.5,
-        pitch: 60,
-        bearing: -18,
+        ...mapCameraRef.current,
         duration: 900,
       });
 
@@ -562,8 +696,7 @@ export function NationalMap() {
           mapRef.current?.easeTo({
             center: resolvedCoordinates,
             zoom: 15.5,
-            pitch: 60,
-            bearing: -18,
+            ...mapCameraRef.current,
             duration: 500,
           });
         }
@@ -615,8 +748,7 @@ export function NationalMap() {
       mapRef.current?.getMap()?.fitBounds(bounds, {
         padding: 56,
         maxZoom: areaMaxZoom,
-        pitch: 50,
-        bearing: -12,
+        ...mapCameraRef.current,
         duration: 1000,
       });
     }
@@ -701,8 +833,7 @@ export function NationalMap() {
     mapRef.current?.easeTo({
       center: coordinates,
       zoom: 13.5,
-      pitch: 60,
-      bearing: -18,
+      ...mapCameraRef.current,
       duration: 850,
     });
 
@@ -746,8 +877,7 @@ export function NationalMap() {
         mapRef.current?.getMap()?.fitBounds(bounds, {
           padding: 56,
           maxZoom,
-          pitch: 55,
-          bearing: -15,
+          ...mapCameraRef.current,
           duration: 900,
         });
         return true;
@@ -762,8 +892,7 @@ export function NationalMap() {
     mapRef.current?.easeTo({
       center: [longitude, latitude],
       zoom: maxZoom,
-      pitch: 55,
-      bearing: -15,
+      ...mapCameraRef.current,
       duration: 900,
     });
     return true;
@@ -810,16 +939,14 @@ export function NationalMap() {
         mapRef.current?.getMap()?.fitBounds(focus.bounds, {
           padding: 64,
           maxZoom: 13,
-          pitch: 55,
-          bearing: -15,
+          ...mapCameraRef.current,
           duration: 900,
         });
       } else {
         mapRef.current?.easeTo({
           center: focus.center,
           zoom: 12,
-          pitch: 55,
-          bearing: -15,
+          ...mapCameraRef.current,
           duration: 900,
         });
       }
@@ -841,8 +968,7 @@ export function NationalMap() {
       mapRef.current?.easeTo({
         center: INDONESIA_CENTER,
         zoom: 4.2,
-        pitch: 60,
-        bearing: -18,
+        ...mapCameraRef.current,
         duration: 800,
       });
       return;
@@ -947,11 +1073,11 @@ export function NationalMap() {
     setRegencies([]);
     setDistricts([]);
     setSelection(null);
+    setVisibleReportCount(10);
     mapRef.current?.easeTo({
       center: INDONESIA_CENTER,
       zoom: 4.2,
-      pitch: 60,
-      bearing: -18,
+      ...mapCameraRef.current,
       duration: 800,
     });
   };
@@ -971,6 +1097,8 @@ export function NationalMap() {
     const items = [...(alerts?.features || []), ...(emergencies?.features || [])];
     return items.filter((f: any) => ["HIGH", "CRITICAL", "EMERGENCY"].includes(f.properties?.severity)).length;
   }, [alerts, emergencies]);
+
+  const visibleReportFeatures = filteredReportCatalogData.features.slice(0, visibleReportCount);
 
   const hierarchyLevelLabel = (zoom: number) => {
     if (zoom <= 5) return "Provinsi / Binda";
@@ -1097,7 +1225,10 @@ export function NationalMap() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={fetchLayers}
+                onClick={() => {
+                  void fetchLayers();
+                  void fetchReportCatalog();
+                }}
                 disabled={loading}
                 className="h-9 w-9 rounded-[4px] border-border cursor-pointer"
               >
@@ -1276,6 +1407,16 @@ export function NationalMap() {
           )}
         </Card>
 
+        {error ? (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-[8px] border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-xs text-destructive"
+          >
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
+
         {/* Map panel */}
         <div className="space-y-4">
           <Card className="overflow-hidden border border-border relative rounded-[8px]">
@@ -1286,11 +1427,32 @@ export function NationalMap() {
                 zoom={4.2}
                 minZoom={3}
                 maxZoom={18}
-                pitch={60}
-                bearing={-18}
-                styles={MAP_STYLES}
+                pitch={mapCameraRef.current.pitch}
+                bearing={mapCameraRef.current.bearing}
+                styles={{
+                  light: selectedMapStyle,
+                  dark: selectedMapStyle,
+                }}
                 onViewportChange={setViewport}
               >
+                <div className="absolute left-3 top-3 z-10">
+                  <label className="sr-only" htmlFor="national-map-style">
+                    Pilih tampilan peta
+                  </label>
+                  <select
+                    id="national-map-style"
+                    value={mapStyle}
+                    onChange={(event) => setMapStyle(event.target.value as MapStyleKey)}
+                    className="h-9 cursor-pointer rounded-[4px] border border-border bg-background/95 px-3 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {MAP_STYLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Standard controls */}
                 <MapControls showZoom showCompass showFullscreen position="top-right" />
 
@@ -1320,43 +1482,204 @@ export function NationalMap() {
 
           <MapLegend />
 
-          <div className="w-full">
-            <MapInspector
-              selection={selection}
-              onClear={() => {
-                personnelRequestId.current += 1;
-                reportRequestId.current += 1;
-                setSelection(null);
-              }}
-            />
-          </div>
+          <section aria-labelledby="baket-list-title" className="space-y-3">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 id="baket-list-title" className="font-heading text-lg font-semibold">
+                  Daftar Baket
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Pilih kartu untuk membuka hasil analisa lengkap dari Baket yang sama dengan marker peta.
+                </p>
+              </div>
+              <span className="font-mono text-xs text-muted-foreground">
+                {filteredReportCatalogData.features.length} Baket sesuai filter
+              </span>
+            </div>
+
+            {visibleReportFeatures.length > 0 ? (
+              <div className="grid gap-3 md:grid-cols-2">
+                {visibleReportFeatures.map((feature: NationalMapFeature) => (
+                  <ReportCard
+                    key={String(feature.id ?? feature.properties?.baketId)}
+                    feature={feature}
+                    onSelect={() => void handleSelectReport(feature)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="rounded-[8px] border-dashed">
+                <CardContent className="flex min-h-36 flex-col items-center justify-center gap-2 p-6 text-center">
+                  <FileText className="size-6 text-muted-foreground/50" />
+                  <p className="text-sm font-medium">Tidak ada Baket sesuai filter</p>
+                  <p className="max-w-md text-xs text-muted-foreground">
+                    Atur ulang filter atau ubah cakupan wilayah untuk menampilkan Baket pada peta dan daftar ini.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {visibleReportCount < filteredReportCatalogData.features.length ? (
+              <div className="flex justify-center pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setVisibleReportCount((count) => count + 10)}
+                >
+                  Tampilkan Baket berikutnya
+                </Button>
+              </div>
+            ) : null}
+          </section>
         </div>
       </div>
+
+      <Dialog
+        open={Boolean(selection)}
+        onOpenChange={(open) => {
+          if (!open) clearSelection();
+        }}
+      >
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-0 sm:max-w-3xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Hasil Analisa Objek Peta</DialogTitle>
+            <DialogDescription>Informasi operasional untuk marker atau wilayah yang dipilih.</DialogDescription>
+          </DialogHeader>
+          <div className="[&_[data-slot=card-header]]:pr-14 [&_[data-slot=card]]:rounded-none [&_[data-slot=card]]:border-0 [&_[data-slot=card]]:shadow-none">
+            <MapInspector selection={selection} onClear={clearSelection} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
 
+function ReportCard({ feature, onSelect }: { feature: NationalMapFeature; onSelect: () => void }) {
+  const properties = record(feature.properties);
+  const title = stringOrNull(properties.title) ?? "Baket terpetakan";
+  const status = stringOrNull(properties.status) ?? "";
+  const urgency = String(properties.urgency || "NORMAL") as keyof typeof REPORT_URGENCY_COLORS;
+  const urgencyColor = REPORT_URGENCY_COLORS[urgency] ?? REPORT_URGENCY_COLORS.NORMAL;
+  const occurredAt = properties.eventTime ?? properties.occurredAt;
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-label={`Buka hasil analisa ${title}`}
+      className="group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Card className="h-full rounded-[8px] transition-colors group-hover:border-primary/45 group-hover:bg-primary/[0.02] group-active:bg-primary/[0.05]">
+        <CardContent className="flex h-full flex-col gap-4 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={cn("text-[10px]", REPORT_STATUS_CLASSES[status] ?? "text-muted-foreground")}
+                >
+                  {getReportStatusLabel(status)}
+                </Badge>
+                <span className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                  <span className="size-2 rounded-full" style={{ backgroundColor: urgencyColor }} />
+                  {REPORT_URGENCY_LABELS[urgency] ?? urgency}
+                </span>
+              </div>
+              <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">{title}</h3>
+            </div>
+            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+          </div>
+
+          <dl className="mt-auto grid gap-3 border-t border-border/40 pt-3 text-xs sm:grid-cols-2">
+            <div className="min-w-0">
+              <dt className="text-[10px] text-muted-foreground">Wilayah kejadian</dt>
+              <dd className="mt-0.5 truncate font-medium text-foreground">{getReportAreaName(properties)}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[10px] text-muted-foreground">Kategori</dt>
+              <dd className="mt-0.5 truncate font-medium text-foreground">{getReportCategoryName(properties)}</dd>
+            </div>
+            <div className="min-w-0 sm:col-span-2">
+              <dt className="text-[10px] text-muted-foreground">Waktu kejadian</dt>
+              <dd className="mt-0.5 font-mono text-[11px] text-foreground">{formatReportCardDate(occurredAt)}</dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
+    </button>
+  );
+}
+
 function ReportMarker({ feature, onSelect }: { feature: any; onSelect: () => void }) {
+  const [isHovered, setIsHovered] = useState(false);
   const coordinates = getCoordinates(feature);
   if (!coordinates) return null;
 
-  const properties = feature.properties || {};
+  const properties = record(feature.properties);
+  const title = stringOrNull(properties.title) ?? "Baket terpetakan";
+  const status = stringOrNull(properties.status) ?? "";
   const urgency = String(properties.urgency || "NORMAL") as keyof typeof REPORT_URGENCY_COLORS;
   const markerColor = REPORT_URGENCY_COLORS[urgency] ?? REPORT_URGENCY_COLORS.NORMAL;
+  const occurredAt = properties.eventTime ?? properties.occurredAt;
 
   return (
-    <MapMarker longitude={coordinates[0]} latitude={coordinates[1]}>
-      <button
-        type="button"
-        onClick={onSelect}
-        title={properties.title || "Baket terpetakan"}
-        aria-label={`Buka hasil analisa ${properties.title || "Baket"}`}
-        className="grid size-5 cursor-pointer place-items-center rounded-full border-2 border-white/90 shadow-lg transition-transform hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        style={{ backgroundColor: markerColor, boxShadow: `0 0 0 4px ${markerColor}30` }}
-      >
-        <span className="size-1.5 rounded-full bg-white" />
-      </button>
-    </MapMarker>
+    <>
+      <MapMarker longitude={coordinates[0]} latitude={coordinates[1]}>
+        <button
+          type="button"
+          onClick={onSelect}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onFocus={() => setIsHovered(true)}
+          onBlur={() => setIsHovered(false)}
+          aria-label={`Buka hasil analisa ${title}`}
+          className="grid size-5 cursor-pointer place-items-center rounded-full border-2 border-white/90 shadow-lg transition-transform hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          style={{ backgroundColor: markerColor, boxShadow: `0 0 0 4px ${markerColor}30` }}
+        >
+          <span className="size-1.5 rounded-full bg-white" />
+        </button>
+      </MapMarker>
+
+      {isHovered ? (
+        <MapPopup
+          longitude={coordinates[0]}
+          latitude={coordinates[1]}
+          className="w-72 rounded-[8px] border border-border bg-popover p-3 text-popover-foreground shadow-xl"
+        >
+          <div role="tooltip" className="space-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: markerColor }} />
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {REPORT_URGENCY_LABELS[urgency] ?? urgency}
+              </span>
+            </div>
+            <p className="font-semibold leading-5 text-foreground">{title}</p>
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/50 pt-2">
+              <div className="min-w-0">
+                <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Status</dt>
+                <dd className="truncate font-medium">{getReportStatusLabel(status)}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Kategori</dt>
+                <dd className="truncate font-medium">{getReportCategoryName(properties)}</dd>
+              </div>
+              <div className="col-span-2 min-w-0">
+                <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Wilayah kejadian</dt>
+                <dd className="truncate font-medium">{getReportAreaName(properties)}</dd>
+              </div>
+              <div className="col-span-2 min-w-0">
+                <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Waktu kejadian</dt>
+                <dd className="font-mono text-[11px]">{formatReportCardDate(occurredAt)}</dd>
+              </div>
+            </dl>
+            <p className="border-t border-border/50 pt-2 text-[10px] text-muted-foreground">
+              Klik marker untuk membuka hasil analisa lengkap.
+            </p>
+          </div>
+        </MapPopup>
+      ) : null}
+    </>
   );
 }
 export default NationalMap;

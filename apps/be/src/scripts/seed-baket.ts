@@ -68,45 +68,40 @@ const clusterSeeds = [
 
 const categorySeeds = [
   {
-    code: 'SITUATION_UPDATE',
-    name: 'Perkembangan Situasi',
-    description: 'Laporan perkembangan kondisi wilayah secara periodik.',
-  },
-  {
-    code: 'INCIDENT_REPORT',
-    name: 'Kejadian Menonjol',
-    description: 'Laporan kejadian lapangan yang memerlukan perhatian.',
-  },
-  {
-    code: 'EARLY_WARNING',
-    name: 'Peringatan Dini',
-    description: 'Laporan indikasi awal dan potensi eskalasi.',
-  },
-  {
-    code: 'PERSONNEL_MOVEMENT',
-    name: 'Pergerakan Orang dan Kelompok',
-    description: 'Laporan mobilitas aktor, kelompok, atau massa.',
-  },
-  {
-    code: 'COMMUNITY_DYNAMICS',
-    name: 'Dinamika Masyarakat',
-    description: 'Laporan aspirasi, respons, dan dinamika komunitas.',
-  },
-  {
-    code: 'ECONOMIC_ACTIVITY',
-    name: 'Aktivitas Ekonomi',
-    description: 'Laporan aktivitas ekonomi dan distribusi komoditas.',
-  },
-  {
-    code: 'CYBER_INFORMATION',
-    name: 'Informasi Siber dan Media',
-    description: 'Laporan isu siber, disinformasi, dan media digital.',
-  },
-  {
-    code: 'BORDER_MARITIME',
-    name: 'Perbatasan dan Maritim',
+    code: 'POLITIK',
+    name: 'Politik',
     description:
-      'Laporan aktivitas perbatasan, pelabuhan, dan wilayah maritim.',
+      'Laporan terkait dinamika politik, pemerintahan, dan agenda publik.',
+  },
+  {
+    code: 'EKONOMI',
+    name: 'Ekonomi',
+    description:
+      'Laporan terkait harga, distribusi, perdagangan, dan aktivitas ekonomi.',
+  },
+  {
+    code: 'SOSIAL',
+    name: 'Sosial',
+    description:
+      'Laporan terkait dinamika masyarakat, komunitas, dan pelayanan publik.',
+  },
+  {
+    code: 'BUDAYA',
+    name: 'Budaya',
+    description:
+      'Laporan terkait kegiatan budaya, nilai lokal, dan ruang komunitas.',
+  },
+  {
+    code: 'PERTAHANAN',
+    name: 'Pertahanan',
+    description:
+      'Laporan terkait objek vital, kesiapan wilayah, dan isu pertahanan.',
+  },
+  {
+    code: 'KEAMANAN',
+    name: 'Keamanan',
+    description:
+      'Laporan terkait stabilitas keamanan, kerawanan, dan peringatan dini.',
   },
 ] as const;
 

@@ -86,13 +86,12 @@ export const auth = betterAuth({
             },
           });
 
-          const normalizedIpAddress =
-            normalizeIpAddress(session.ipAddress) ?? 'Unknown IP';
+          const normalizedIpAddress = normalizeIpAddress(session.ipAddress);
           const location = await resolveIpLocation(normalizedIpAddress);
 
           return {
             data: {
-              ipAddress: normalizedIpAddress,
+              ipAddress: normalizedIpAddress ?? null,
               locationLabel: location.label,
             },
           };
@@ -231,6 +230,9 @@ export const auth = betterAuth({
   advanced: {
     cookiePrefix: 'denscakra',
     useSecureCookies: env.nodeEnv === 'production',
+    ipAddress: {
+      ipAddressHeaders: ['x-real-ip', 'x-forwarded-for'],
+    },
   },
   experimental: {
     joins: true,

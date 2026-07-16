@@ -237,44 +237,34 @@ const jaringClusterSeeds = [
 
 const reportCategorySeeds = [
   [
-    'SITUATION_UPDATE',
-    'Perkembangan Situasi',
-    'Laporan perkembangan kondisi wilayah secara periodik.',
+    'POLITIK',
+    'Politik',
+    'Laporan terkait dinamika politik, pemerintahan, dan agenda publik.',
   ],
   [
-    'INCIDENT_REPORT',
-    'Kejadian Menonjol',
-    'Laporan kejadian lapangan yang memerlukan perhatian.',
+    'EKONOMI',
+    'Ekonomi',
+    'Laporan terkait harga, distribusi, perdagangan, dan aktivitas ekonomi.',
   ],
   [
-    'EARLY_WARNING',
-    'Peringatan Dini',
-    'Laporan indikasi awal dan potensi eskalasi.',
+    'SOSIAL',
+    'Sosial',
+    'Laporan terkait dinamika masyarakat, komunitas, dan pelayanan publik.',
   ],
   [
-    'PERSONNEL_MOVEMENT',
-    'Pergerakan Orang dan Kelompok',
-    'Laporan mobilitas aktor, kelompok, atau massa.',
+    'BUDAYA',
+    'Budaya',
+    'Laporan terkait kegiatan budaya, nilai lokal, dan ruang komunitas.',
   ],
   [
-    'COMMUNITY_DYNAMICS',
-    'Dinamika Masyarakat',
-    'Laporan aspirasi, respons, dan dinamika komunitas.',
+    'PERTAHANAN',
+    'Pertahanan',
+    'Laporan terkait objek vital, kesiapan wilayah, dan isu pertahanan.',
   ],
   [
-    'ECONOMIC_ACTIVITY',
-    'Aktivitas Ekonomi',
-    'Laporan aktivitas ekonomi dan distribusi komoditas.',
-  ],
-  [
-    'CYBER_INFORMATION',
-    'Informasi Siber dan Media',
-    'Laporan isu siber, disinformasi, dan media digital.',
-  ],
-  [
-    'BORDER_MARITIME',
-    'Perbatasan dan Maritim',
-    'Laporan aktivitas perbatasan, pelabuhan, dan wilayah maritim.',
+    'KEAMANAN',
+    'Keamanan',
+    'Laporan terkait stabilitas keamanan, kerawanan, dan peringatan dini.',
   ],
 ] as const;
 
