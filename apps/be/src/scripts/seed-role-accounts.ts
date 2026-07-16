@@ -98,6 +98,7 @@ type SeedPlan = {
 
 const defaultDemoPassword = 'DensCakraDemo123!';
 const seedEffectiveFrom = new Date('2026-01-01T00:00:00.000Z');
+const JAKARTA_PROVINCE_CODE = '31';
 
 const DIRECTORATE_REGION_SEEDS: readonly DirectorateRegionSeed[] = [
   {
@@ -142,16 +143,51 @@ const DIRECTORATE_REGION_SEEDS: readonly DirectorateRegionSeed[] = [
   },
 ] as const;
 
+const humanNames = [
+  'Nadia Paramita',
+  'Raden Aria Pratama',
+  'Satria Wibisana',
+  'Dimas Arya Nugraha',
+  'Raka Aditya Mahendra',
+  'Bima Prakoso',
+  'Fajar Ramadhan',
+  'Teguh Santoso',
+  'Andika Wijaya',
+  'Bagas Saputra',
+  'Rizky Maulana',
+  'Hendra Gunawan',
+  'Yoga Pratama',
+  'Reza Kurniawan',
+  'Farhan Hakim',
+  'Agus Setiawan',
+  'Bayu Laksono',
+  'Arif Firmansyah',
+  'Rangga Permadi',
+  'Ilham Ramdani',
+  'Putra Mahardika',
+  'Ayu Lestari',
+  'Maya Puspitasari',
+  'Sinta Rahmawati',
+  'Dewi Anggraini',
+  'Rina Kartika',
+  'Laras Wulandari',
+  'Anisa Putri',
+  'Citra Maharani',
+  'Fitri Handayani',
+  'Ratna Sari',
+  'Nabila Azzahra',
+] as const;
+
 const baseAccounts: readonly SeedAccount[] = [
   {
     email: env.bootstrapAdmin.email,
-    name: env.bootstrapAdmin.name,
+    name: humanNames[0],
     password: env.bootstrapAdmin.password,
     role: SYSTEM_ROLES.ADMIN_SYSTEM,
   },
   {
     email: 'executive@denscakra.local',
-    name: 'Deputi II Demo',
+    name: humanNames[1],
     password: defaultDemoPassword,
     role: SYSTEM_ROLES.EXECUTIVE,
   },
@@ -372,22 +408,46 @@ function buildSeedPlan(
   provinces: ProvinceArea[],
   regencyCities: RegencyCityArea[],
 ): SeedPlan {
+  let humanNameIndex = 2;
+  const nextHumanName = () => humanNames[humanNameIndex++ % humanNames.length];
+  const operationalProvinces = provinces.filter(
+    (province) => province.officialCode === JAKARTA_PROVINCE_CODE,
+  );
+  const operationalProvinceIds = new Set(
+    operationalProvinces.map((province) => province.id),
+  );
+  const operationalRegencyCities = regencyCities.filter((area) =>
+    operationalProvinceIds.has(area.parentId),
+  );
+  const operationalRegions = DIRECTORATE_REGION_SEEDS.map((region) => ({
+    ...region,
+    provinceCodes: region.provinceCodes.filter(
+      (provinceCode) => provinceCode === JAKARTA_PROVINCE_CODE,
+    ),
+  })).filter((region) => region.provinceCodes.length > 0);
+
+  if (!operationalProvinces.length || !operationalRegencyCities.length) {
+    throw new Error(
+      'Jakarta administrative area baseline is incomplete. Run seed-wilayah first.',
+    );
+  }
+
   const provinceByCode = new Map(
-    provinces.map((province) => [province.officialCode, province]),
+    operationalProvinces.map((province) => [province.officialCode, province]),
   );
   const regencyCitiesByProvinceId = new Map<string, RegencyCityArea[]>();
 
-  for (const area of regencyCities) {
+  for (const area of operationalRegencyCities) {
     const items = regencyCitiesByProvinceId.get(area.parentId) ?? [];
     items.push(area);
     regencyCitiesByProvinceId.set(area.parentId, items);
   }
 
-  const mappedProvinceCodes = new Set(
-    DIRECTORATE_REGION_SEEDS.flatMap((region) => region.provinceCodes),
+  const mappedProvinceCodes = new Set<string>(
+    operationalRegions.flatMap((region) => region.provinceCodes),
   );
 
-  for (const province of provinces) {
+  for (const province of operationalProvinces) {
     if (!mappedProvinceCodes.has(province.officialCode)) {
       throw new Error(
         `Province ${province.officialCode} (${province.name}) is not mapped to a directorate region.`,
@@ -405,7 +465,7 @@ function buildSeedPlan(
   const directorateProfiles: DirectorateProfileSeed[] = [];
   const bindaProfiles: BindaProfileSeed[] = [];
 
-  for (const region of DIRECTORATE_REGION_SEEDS) {
+  for (const region of operationalRegions) {
     const regionDirectorateCode = `DIR-${region.key}`;
     const regionSubdirectorateCode = `SUB-${region.key}`;
     const directorEmail = `dirwil.${region.key.toLowerCase()}@denscakra.local`;
@@ -451,13 +511,13 @@ function buildSeedPlan(
     accounts.push(
       {
         email: directorEmail,
-        name: `Direktur Wilayah ${region.name.replace('Direktorat Wilayah ', '')}`,
+        name: nextHumanName(),
         password: defaultDemoPassword,
         role: SYSTEM_ROLES.REGIONAL_COMMANDER,
       },
       {
         email: kasubditEmail,
-        name: `Kasubdit ${region.name.replace('Direktorat Wilayah ', '')}`,
+        name: nextHumanName(),
         password: defaultDemoPassword,
         role: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
       },
@@ -539,7 +599,7 @@ function buildSeedPlan(
 
       accounts.push({
         email: staffEmail,
-        name: `Staf Subdit ${province.name}`,
+        name: nextHumanName(),
         password: defaultDemoPassword,
         role: SYSTEM_ROLES.FIELD_COORDINATOR,
       });
@@ -567,7 +627,7 @@ function buildSeedPlan(
 
         accounts.push({
           email: agentEmail,
-          name: `Agent Direktorat ${area.name}`,
+          name: nextHumanName(),
           password: defaultDemoPassword,
           role: SYSTEM_ROLES.FIELD_OFFICER,
         });
@@ -592,7 +652,7 @@ function buildSeedPlan(
     }
   }
 
-  for (const province of provinces) {
+  for (const province of operationalProvinces) {
     const provinceRegencyCities =
       regencyCitiesByProvinceId
         .get(province.id)
@@ -644,13 +704,13 @@ function buildSeedPlan(
     accounts.push(
       {
         email: kabindaEmail,
-        name: `Kabinda ${province.name}`,
+        name: nextHumanName(),
         password: defaultDemoPassword,
         role: SYSTEM_ROLES.REGIONAL_COMMANDER,
       },
       {
         email: kabagopsEmail,
-        name: `Kabagops ${province.name}`,
+        name: nextHumanName(),
         password: defaultDemoPassword,
         role: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
       },
@@ -715,13 +775,13 @@ function buildSeedPlan(
       accounts.push(
         {
           email: korwilEmail,
-          name: `Korwil ${area.name}`,
+          name: nextHumanName(),
           password: defaultDemoPassword,
           role: SYSTEM_ROLES.FIELD_COORDINATOR,
         },
         {
           email: agentEmail,
-          name: `Agent Binda ${area.name}`,
+          name: nextHumanName(),
           password: defaultDemoPassword,
           role: SYSTEM_ROLES.FIELD_OFFICER,
         },
@@ -1463,9 +1523,9 @@ async function logSeedSummary(plan: SeedPlan) {
         in: [
           'executive@denscakra.local',
           'dirwil.jaba@denscakra.local',
-          'kabinda.11@denscakra.local',
+          'kabinda.31@denscakra.local',
           'kasubdit.jaba@denscakra.local',
-          'kabagops.11@denscakra.local',
+          'kabagops.31@denscakra.local',
         ],
       },
     },

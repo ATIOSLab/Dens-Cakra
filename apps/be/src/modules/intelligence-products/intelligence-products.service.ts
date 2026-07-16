@@ -4054,12 +4054,21 @@ export class IntelligenceProductsService {
         ...this.buildCommonDateWhere('createdAt', query.from, query.to),
       },
       include: {
+        reportCategory: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
+        },
         versions: {
           orderBy: { versionNumber: 'desc' },
           take: 1,
           select: {
             id: true,
             title: true,
+            eventTime: true,
+            createdAt: true,
             latitude: true,
             longitude: true,
             urgency: true,
@@ -4075,6 +4084,7 @@ export class IntelligenceProductsService {
       .map((baket) => ({
         baketId: baket.id,
         status: baket.status,
+        reportCategory: baket.reportCategory,
         version: baket.versions[0],
       }))
       .filter(
@@ -4109,6 +4119,11 @@ export class IntelligenceProductsService {
           status: item.status,
           title: item.version.title,
           urgency: item.version.urgency,
+          eventTime: item.version.eventTime,
+          occurredAt: item.version.eventTime ?? item.version.createdAt,
+          reportCategoryId: item.reportCategory?.id ?? null,
+          reportCategoryName: item.reportCategory?.name ?? null,
+          category: item.reportCategory,
           areaId: item.version.eventAreaId,
           areaName: item.version.eventArea?.name ?? null,
         },
@@ -5138,7 +5153,7 @@ export class IntelligenceProductsService {
   }
 
   async myLatestLocation(context: AuthorizationContext) {
-    return this.prisma.personnelLocationPing.findFirstOrThrow({
+    return this.prisma.personnelLocationPing.findFirst({
       where: { positionAssignmentId: context.primaryAssignmentId },
       orderBy: { capturedAt: 'desc' },
       select: this.ownLocationPingSelect,

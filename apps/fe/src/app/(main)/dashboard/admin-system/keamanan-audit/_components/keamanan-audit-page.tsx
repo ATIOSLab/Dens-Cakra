@@ -44,22 +44,26 @@ type AuditLogRecord = {
   } | null;
 };
 
-const LOCAL_UNSPECIFIED_IPS = new Set(["::", "0:0:0:0:0:0:0:0", "0000:0000:0000:0000:0000:0000:0000:0000"]);
+const UNSPECIFIED_IPS = new Set(["::", "0.0.0.0", "0:0:0:0:0:0:0:0", "0000:0000:0000:0000:0000:0000:0000:0000"]);
+
+function isUnspecifiedIp(value: string | null | undefined) {
+  return Boolean(value && UNSPECIFIED_IPS.has(value.trim().toLowerCase()));
+}
 
 function formatIpAddress(value: string | null | undefined) {
-  if (!value) {
+  if (!value?.trim() || isUnspecifiedIp(value)) {
     return "-";
   }
 
-  return LOCAL_UNSPECIFIED_IPS.has(value.toLowerCase()) ? "127.0.0.1" : value;
+  return value;
 }
 
 function formatLocation(ipAddress: string | null | undefined, location: string | null | undefined) {
-  if (ipAddress && LOCAL_UNSPECIFIED_IPS.has(ipAddress.toLowerCase())) {
-    return "Localhost / private network";
+  if (isUnspecifiedIp(ipAddress)) {
+    return "Unknown location";
   }
 
-  return location || "Unknown location";
+  return location ?? "Unknown location";
 }
 
 function formatDateTime(value: string | null | undefined) {

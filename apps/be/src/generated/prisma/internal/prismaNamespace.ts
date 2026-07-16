@@ -7033,6 +7033,7 @@ export const SessionScalarFieldEnum = {
   token: 'token',
   expiresAt: 'expiresAt',
   ipAddress: 'ipAddress',
+  locationLabel: 'locationLabel',
   userAgent: 'userAgent',
   impersonatedBy: 'impersonatedBy',
   createdAt: 'createdAt',

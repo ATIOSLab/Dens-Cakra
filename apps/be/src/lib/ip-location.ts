@@ -1,3 +1,5 @@
+import { isIP } from 'node:net';
+
 type IpLocationResult = {
   label: string;
   city: string | null;
@@ -31,7 +33,7 @@ export function normalizeIpAddress(ip: string | null | undefined) {
 
   const lowercase = normalized.toLowerCase();
   if (lowercase === '::' || lowercase === EXPANDED_IPV6_UNSPECIFIED) {
-    return '127.0.0.1';
+    return null;
   }
 
   if (lowercase === EXPANDED_IPV6_LOOPBACK) {
@@ -39,7 +41,13 @@ export function normalizeIpAddress(ip: string | null | undefined) {
   }
 
   const ipv4WithPortMatch = normalized.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/);
-  return ipv4WithPortMatch?.[1] ?? normalized;
+  const candidate = ipv4WithPortMatch?.[1] ?? normalized;
+
+  if (candidate === '0.0.0.0' || isIP(candidate) === 0) {
+    return null;
+  }
+
+  return candidate;
 }
 
 function isPrivateOrLocalIp(ip: string) {
@@ -48,7 +56,6 @@ function isPrivateOrLocalIp(ip: string) {
   if (
     normalized === '127.0.0.1' ||
     normalized === '::1' ||
-    normalized === 'localhost' ||
     normalized.startsWith('10.') ||
     normalized.startsWith('192.168.')
   ) {
