@@ -12,6 +12,8 @@ export function FieldOfficerLocationPublisher() {
 
     let cancelled = false;
     let inFlight = false;
+    let interval: number | null = null;
+    let permissionStatus: PermissionStatus | null = null;
 
     const publish = async () => {
       if (cancelled || inFlight) {
@@ -49,12 +51,48 @@ export function FieldOfficerLocationPublisher() {
       }
     };
 
-    void publish();
-    const interval = window.setInterval(() => void publish(), LOCATION_INTERVAL_MS);
+    const startPublishing = () => {
+      if (interval !== null || permissionStatus?.state !== "granted") {
+        return;
+      }
+
+      void publish();
+      interval = window.setInterval(() => void publish(), LOCATION_INTERVAL_MS);
+    };
+
+    const handlePermissionChange = () => {
+      if (permissionStatus?.state === "granted") {
+        startPublishing();
+        return;
+      }
+
+      if (interval !== null) {
+        window.clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    if ("permissions" in navigator) {
+      void navigator.permissions
+        .query({ name: "geolocation" })
+        .then((status) => {
+          if (cancelled) {
+            return;
+          }
+
+          permissionStatus = status;
+          permissionStatus.addEventListener("change", handlePermissionChange);
+          startPublishing();
+        })
+        .catch(() => undefined);
+    }
 
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      permissionStatus?.removeEventListener("change", handlePermissionChange);
+      if (interval !== null) {
+        window.clearInterval(interval);
+      }
     };
   }, []);
 

@@ -108,6 +108,127 @@ type ReportSession = {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const REPORT_REPLIES = {
+  cancelled: [
+    'Oke, pembuatan laporan dibatalkan. Kalau mau mulai lagi, tinggal ketik lapor.',
+    'Siap, laporan ini dibatalkan ya. Ketik lapor kapan saja untuk mulai dari awal.',
+    'Tidak masalah, prosesnya sudah dibatalkan. Nanti cukup ketik lapor kalau mau lanjut lagi.',
+    'Sudah aku batalkan. Kalau berubah pikiran, kirim saja kata lapor.',
+    'Proses laporan dihentikan ya. Kamu bisa mulai lagi dengan mengetik lapor.',
+  ],
+  outsideChannelScope: [
+    'Maaf, nomor kamu tidak berada dalam wilayah layanan WhatsApp ini. Coba gunakan kanal sesuai wilayah Field Officer kamu ya.',
+    'Nomor ini tidak berada dalam wilayah layanan kanal tersebut. Silakan hubungi kanal Field Officer di wilayah kamu.',
+    'Sepertinya kamu tidak berada dalam wilayah layanan WhatsApp ini. Gunakan kanal yang sesuai wilayah Field Officer ya.',
+    'Akses belum bisa dilanjutkan karena nomor kamu tidak berada dalam wilayah layanan ini. Coba kanal wilayah yang sesuai.',
+    'Nomor kamu terdaftar, tetapi tidak berada dalam wilayah layanan kanal ini. Silakan gunakan kanal Field Officer setempat.',
+  ],
+  missingCaretaker: [
+    'Akun kamu belum punya Field Officer penanggung jawab aktif. Hubungi admin dulu ya supaya bisa mengirim laporan.',
+    'Belum ada Field Officer aktif yang menangani akun kamu. Silakan minta admin melengkapinya dulu.',
+    'Laporan belum bisa dimulai karena penanggung jawab Field Officer belum tersedia. Coba hubungi admin ya.',
+    'Field Officer penanggung jawab akun ini belum aktif. Mohon konfirmasi ke admin terlebih dahulu.',
+    'Akun kamu masih perlu dihubungkan ke Field Officer aktif. Silakan hubungi admin untuk dibantu.',
+  ],
+  requestPin: [
+    'Halo! Boleh kirim PIN kamu dulu biar kita lanjut?',
+    'Hai, kirim PIN autentikasinya dulu ya.',
+    'Siap bantu. Masukkan PIN kamu dulu, ya.',
+    'Sebelum mulai, kirim PIN autentikasi kamu dulu ya.',
+    'Yuk verifikasi sebentar. Kirim PIN kamu di sini.',
+  ],
+  invalidPin: [
+    'PIN-nya belum cocok. Coba cek dan kirim lagi ya. Ketik Batal kalau mau berhenti.',
+    'Sepertinya PIN itu kurang tepat. Coba kirim ulang, ya. Kalau batal, cukup ketik Batal.',
+    'PIN belum sesuai nih. Silakan coba sekali lagi atau ketik Batal untuk berhenti.',
+    'Belum berhasil masuk dengan PIN itu. Cek lagi lalu kirim ulang, ya.',
+    'PIN-nya masih salah. Coba lagi pelan-pelan, atau ketik Batal kalau tidak jadi.',
+  ],
+  requestLiveLocation: [
+    'PIN benar! Sekarang kirim Live Location WhatsApp kamu ya, bukan lokasi statis.',
+    'Sip, PIN cocok. Lanjut bagikan Live Location lewat WhatsApp, ya.',
+    'Verifikasi beres. Sekarang aku tunggu Live Location aktif kamu.',
+    'PIN aman. Boleh lanjut kirim Live Location WhatsApp sekarang?',
+    'Oke, sudah terverifikasi. Kirim Live Location aktif dulu ya supaya bisa lanjut.',
+  ],
+  rejectStaticLocation: [
+    'Lokasi statis ditolak. Yang dibutuhkan Live Location aktif dari WhatsApp ya.',
+    'Lokasi statis ditolak. Coba pilih Lampiran > Lokasi > Bagikan lokasi terkini.',
+    'Lokasi statis ditolak. Kirim ulang sebagai Live Location WhatsApp, ya.',
+    'Lokasi statis ditolak. Aku hanya bisa menerima Live Location yang sedang aktif.',
+    'Lokasi statis ditolak. Boleh bagikan Live Location aktif sebagai gantinya?',
+  ],
+  requestValidLiveLocation: [
+    'Aku masih menunggu Live Location WhatsApp. Pilih Lampiran > Lokasi > Bagikan lokasi terkini ya.',
+    'Yang dikirim harus Live Location aktif ya. Silakan bagikan lewat menu Lokasi WhatsApp.',
+    'Belum terbaca sebagai Live Location nih. Coba bagikan lokasi terkini dari menu Lampiran.',
+    'Kirim Live Location WhatsApp dulu ya supaya laporannya bisa dilanjutkan.',
+    'Tahap ini perlu Live Location aktif. Pilih Lampiran, Lokasi, lalu Bagikan lokasi terkini.',
+  ],
+  requestTitle: [
+    'Live Location diterima. Sekarang tulis judul laporannya ya.',
+    'Live Location diterima. Lanjut kirim judul singkat untuk laporan ini.',
+    'Live Location diterima. Oke, sekarang laporannya mau diberi judul apa?',
+    'Live Location diterima. Sip, tinggal ketik judul laporannya dulu.',
+    'Live Location diterima. Lokasi aman, sekarang kirim judul laporan ya.',
+  ],
+  requestContent: [
+    'Judulnya sudah masuk. Sekarang ceritakan isi laporannya secara detail ya.',
+    'Sip, judul sudah dicatat. Lanjut kirim detail kejadiannya.',
+    'Oke, judul beres. Sekarang tulis isi laporan selengkap mungkin ya.',
+    'Judul diterima. Boleh lanjut jelaskan detail laporannya sekarang.',
+    'Sudah dapat judulnya. Aku tunggu isi laporan lengkapnya ya.',
+  ],
+  requestEventTime: [
+    'Isi laporan sudah masuk. Sekarang kirim waktu kejadian, contoh: 13/07/2026 21:30.',
+    'Detailnya sudah dicatat. Kapan kejadiannya? Pakai format seperti 13/07/2026 21:30 ya.',
+    'Sip, isi laporan aman. Lanjut kirim tanggal dan jam kejadian dengan format 13/07/2026 21:30.',
+    'Laporannya sudah terbaca. Sekarang tulis tanggal dan jam kejadiannya ya, misalnya 13/07/2026 21:30.',
+    'Oke, tinggal waktu kejadian. Kirim dengan format tanggal/bulan/tahun jam, contohnya 13/07/2026 21:30.',
+  ],
+  invalidEventTime: [
+    'Waktunya belum terbaca. Coba pakai format seperti 13/07/2026 21:30 ya.',
+    'Format tanggal atau jamnya belum pas. Kirim ulang, contohnya 13/07/2026 21:30.',
+    'Aku belum bisa membaca waktunya. Gunakan format tanggal/bulan/tahun jam ya.',
+    'Coba cek lagi tanggal dan jamnya. Format yang benar misalnya 13/07/2026 21:30.',
+    'Waktu kejadian belum cocok formatnya. Boleh kirim ulang seperti 13/07/2026 21:30?',
+  ],
+  requestPhoto: [
+    'Waktu kejadian sudah dicatat. Sekarang kirim satu foto bukti ya, kirim sebagai foto biasa.',
+    'Sip, waktunya sudah masuk. Tinggal kirim satu foto bukti, jangan sebagai dokumen ya.',
+    'Tanggal dan jam sudah aman. Boleh lanjut kirim satu foto bukti sekarang?',
+    'Oke, waktu kejadian beres. Aku tunggu satu foto buktinya ya.',
+    'Sudah tercatat. Langkah terakhir, kirim satu foto bukti sebagai foto, bukan file dokumen.',
+  ],
+  requirePhoto: [
+    'Aku masih menunggu foto buktinya. Kirim satu foto dulu ya.',
+    'Yang dibutuhkan sekarang foto bukti. Boleh kirim sebagai foto biasa?',
+    'Belum ada foto yang terbaca nih. Coba kirim satu foto bukti ya.',
+    'Kirim foto buktinya dulu supaya laporan bisa diselesaikan.',
+    'Tinggal fotonya saja. Kirim satu foto bukti, jangan sebagai dokumen ya.',
+  ],
+  missingLiveLocation: [
+    'Live Location belum tersimpan. Kirim Live Location WhatsApp sekali lagi ya.',
+    'Lokasi aktifnya belum tercatat. Boleh bagikan ulang Live Location WhatsApp?',
+    'Aku belum menemukan Live Location kamu. Kirim ulang lokasi terkini ya.',
+    'Live Location masih belum masuk. Coba bagikan sekali lagi lewat menu Lokasi.',
+    'Sebelum selesai, aku perlu Live Location aktif kamu. Kirim ulang ya.',
+  ],
+  reportCompleted: [
+    'Sip, laporan kamu sudah berhasil dikirim.',
+    'Beres! Laporannya sudah masuk dan siap diproses.',
+    'Terima kasih, laporannya sudah berhasil terkirim.',
+    'Oke, semua data sudah masuk. Laporan berhasil dikirim.',
+    'Laporannya sudah terkirim dengan aman. Terima kasih ya.',
+  ],
+} as const;
+
+function pickRandomReply(replies: readonly string[]) {
+  return (
+    replies[Math.floor(Math.random() * replies.length)] ?? replies[0] ?? ''
+  );
+}
+
 @Injectable()
 export class WhatsappBotRuntimeService
   implements OnModuleInit, OnModuleDestroy
@@ -924,9 +1045,7 @@ export class WhatsappBotRuntimeService
           socket,
           remoteJid,
           [message.key],
-          [
-            'Pembuatan laporan dibatalkan. Ketik lapor untuk membuat laporan baru.',
-          ],
+          [pickRandomReply(REPORT_REPLIES.cancelled)],
         );
         return true;
       }
@@ -988,10 +1107,7 @@ export class WhatsappBotRuntimeService
         socket,
         remoteJid,
         [message.key],
-        [
-          'Akses Ditolak\n\nNomor Anda terdaftar sebagai pelapor DENS CAKRA, tetapi tidak berada dalam wilayah layanan WhatsApp ini.',
-          'Silakan gunakan kanal WhatsApp sesuai wilayah Field Officer Anda.',
-        ],
+        [pickRandomReply(REPORT_REPLIES.outsideChannelScope)],
       );
       return;
     }
@@ -1004,10 +1120,7 @@ export class WhatsappBotRuntimeService
         socket,
         remoteJid,
         [message.key],
-        [
-          'Akses Ditolak\n\nAkun pelapor Anda belum memiliki Field Officer penanggung jawab aktif.',
-          'Silakan hubungi admin untuk melengkapi penanggung jawab sebelum mengirim laporan.',
-        ],
+        [pickRandomReply(REPORT_REPLIES.missingCaretaker)],
       );
       return;
     }
@@ -1029,9 +1142,7 @@ export class WhatsappBotRuntimeService
       socket,
       remoteJid,
       [message.key],
-      [
-        'Halo.\n\nAnda telah terdaftar sebagai pelapor. Untuk melanjutkan, silakan masukkan PIN/Kode Autentikasi.',
-      ],
+      [pickRandomReply(REPORT_REPLIES.requestPin)],
     );
   }
 
@@ -1061,10 +1172,7 @@ export class WhatsappBotRuntimeService
           socket,
           remoteJid,
           [message.key],
-          [
-            'PIN salah. Silakan coba lagi.',
-            'Ketik /cancel atau Batal untuk membatalkan.',
-          ],
+          [pickRandomReply(REPORT_REPLIES.invalidPin)],
         );
         return;
       }
@@ -1074,10 +1182,7 @@ export class WhatsappBotRuntimeService
         socket,
         remoteJid,
         [message.key],
-        [
-          'PIN benar. Autentikasi berhasil.',
-          'Sebelum melanjutkan, kirim Live Location melalui WhatsApp. Lokasi biasa atau lokasi statis tidak diterima.',
-        ],
+        [pickRandomReply(REPORT_REPLIES.requestLiveLocation)],
       );
       return;
     }
@@ -1091,8 +1196,8 @@ export class WhatsappBotRuntimeService
       if (!hasValidLiveLocation) {
         const rejection =
           unwrapped?.locationMessage && !unwrapped.locationMessage.isLive
-            ? 'Lokasi statis ditolak. Bot hanya menerima Live Location WhatsApp.'
-            : 'Tahap ini hanya menerima Live Location WhatsApp. Silakan pilih Lampiran > Lokasi > Bagikan lokasi terkini.';
+            ? pickRandomReply(REPORT_REPLIES.rejectStaticLocation)
+            : pickRandomReply(REPORT_REPLIES.requestValidLiveLocation);
 
         await this.sendHumanLikeReplies(
           socket,
@@ -1111,7 +1216,7 @@ export class WhatsappBotRuntimeService
         socket,
         remoteJid,
         [message.key],
-        ['Live Location diterima.', 'Silakan ketik judul laporan Anda.'],
+        [pickRandomReply(REPORT_REPLIES.requestTitle)],
       );
       return;
     }
@@ -1127,10 +1232,7 @@ export class WhatsappBotRuntimeService
         socket,
         remoteJid,
         [message.key],
-        [
-          'Judul laporan diterima.',
-          'Silakan ketik isi laporan Anda secara detail.',
-        ],
+        [pickRandomReply(REPORT_REPLIES.requestContent)],
       );
       return;
     }
@@ -1146,11 +1248,7 @@ export class WhatsappBotRuntimeService
         socket,
         remoteJid,
         [message.key],
-        [
-          'Teks laporan diterima.',
-          'Kirim tanggal dan jam kejadian dengan format: tanggal/bulan/tahun jam',
-          'Contoh: 13/07/2026 21:30',
-        ],
+        [pickRandomReply(REPORT_REPLIES.requestEventTime)],
       );
       return;
     }
@@ -1166,10 +1264,7 @@ export class WhatsappBotRuntimeService
           socket,
           remoteJid,
           [message.key],
-          [
-            'Tanggal dan jam belum terbaca.',
-            'Gunakan format: tanggal/bulan/tahun jam. Contoh: 13/07/2026 21:30',
-          ],
+          [pickRandomReply(REPORT_REPLIES.invalidEventTime)],
         );
         return;
       }
@@ -1181,10 +1276,7 @@ export class WhatsappBotRuntimeService
         socket,
         remoteJid,
         [message.key],
-        [
-          'Tanggal dan jam kejadian diterima.',
-          'Sekarang kirim 1 foto sebagai bukti laporan. Pastikan foto dikirim sebagai foto, bukan file dokumen.',
-        ],
+        [pickRandomReply(REPORT_REPLIES.requestPhoto)],
       );
       return;
     }
@@ -1195,7 +1287,7 @@ export class WhatsappBotRuntimeService
           socket,
           remoteJid,
           [message.key],
-          ['Mohon kirim foto bukti terlebih dahulu.'],
+          [pickRandomReply(REPORT_REPLIES.requirePhoto)],
         );
         return;
       }
@@ -1213,9 +1305,7 @@ export class WhatsappBotRuntimeService
           socket,
           remoteJid,
           [message.key],
-          [
-            'Live Location belum tersimpan. Silakan kirim Live Location WhatsApp untuk melanjutkan.',
-          ],
+          [pickRandomReply(REPORT_REPLIES.missingLiveLocation)],
         );
         return;
       }
@@ -1232,7 +1322,7 @@ export class WhatsappBotRuntimeService
         socket,
         remoteJid,
         [message.key],
-        ['Laporan berhasil dikirim.'],
+        [pickRandomReply(REPORT_REPLIES.reportCompleted)],
       );
     }
   }
@@ -1447,7 +1537,7 @@ export class WhatsappBotRuntimeService
     messageKeys: WAMessage['key'][],
     replies: string[],
   ) {
-    await sleep(700);
+    await sleep(1200 + Math.floor(Math.random() * 700));
 
     try {
       await socket.readMessages(messageKeys);
@@ -1459,8 +1549,12 @@ export class WhatsappBotRuntimeService
 
     for (const [index, reply] of replies.entries()) {
       const text = this.sanitizeOutboundReply(reply);
-      const typingMs = Math.min(4500, Math.max(1200, text.length * 35));
-      const betweenMessageDelayMs = index === 0 ? 500 : 1300;
+      const typingMs = Math.min(
+        9000,
+        Math.max(2500, text.length * 55 + Math.floor(Math.random() * 900)),
+      );
+      const betweenMessageDelayMs =
+        (index === 0 ? 1000 : 1800) + Math.floor(Math.random() * 900);
 
       await sleep(betweenMessageDelayMs);
 

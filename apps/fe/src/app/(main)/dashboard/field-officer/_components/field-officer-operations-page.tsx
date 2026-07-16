@@ -271,32 +271,38 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     }
   }, []);
 
-  const loadWorkspace = useCallback(async (filters = appliedBaketFilters) => {
-    try {
-      setIsLoading(true);
-      const params = new URLSearchParams();
-      if (filters.categoryId) params.set("categoryId", filters.categoryId);
-      if (filters.jaringClusterId) params.set("jaringClusterId", filters.jaringClusterId);
-      if (filters.from) params.set("from", filters.from);
-      if (filters.to) params.set("to", filters.to);
+  const loadWorkspace = useCallback(
+    async (filters = appliedBaketFilters) => {
+      try {
+        setIsLoading(true);
+        const params = new URLSearchParams();
+        if (filters.categoryId) params.set("categoryId", filters.categoryId);
+        if (filters.jaringClusterId) params.set("jaringClusterId", filters.jaringClusterId);
+        if (filters.from) params.set("from", filters.from);
+        if (filters.to) params.set("to", filters.to);
 
-      const response = await fetch(`/api/field-officer/workspace${params.toString() ? `?${params.toString()}` : ""}`, {
-        cache: "no-store",
-      });
-      const body = (await response.json()) as FieldOfficerWorkspace | { message?: string };
+        const response = await fetch(
+          `/api/field-officer/workspace${params.toString() ? `?${params.toString()}` : ""}`,
+          {
+            cache: "no-store",
+          },
+        );
+        const body = (await response.json()) as FieldOfficerWorkspace | { message?: string };
 
-      if (!response.ok) {
-        throw new Error("message" in body ? body.message : "Gagal memuat workspace field officer.");
+        if (!response.ok) {
+          throw new Error("message" in body ? body.message : "Gagal memuat workspace field officer.");
+        }
+
+        setWorkspace(body as FieldOfficerWorkspace);
+        setError(null);
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : "Gagal memuat workspace field officer.");
+      } finally {
+        setIsLoading(false);
       }
-
-      setWorkspace(body as FieldOfficerWorkspace);
-      setError(null);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Gagal memuat workspace field officer.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [appliedBaketFilters]);
+    },
+    [appliedBaketFilters],
+  );
 
   useEffect(() => {
     void loadWorkspace(appliedBaketFilters);
@@ -512,7 +518,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     });
   };
 
-  const changeJaringStatus = async (jaringId: string, action: "activate" | "deactivate" | "archive") => {
+  const changeJaringStatus = async (jaringId: string, action: "activate" | "deactivate" | "delete") => {
     await runAction(`jaring:${jaringId}:${action}`, async () => {
       const response = await fetch(`/api/field-officer/jaring/${jaringId}/status`, {
         method: "POST",
@@ -1332,20 +1338,20 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                             </button>
                           )}
                           <button
-                            disabled={isBusy === `jaring:${jaring.id}:archive`}
+                            disabled={isBusy === `jaring:${jaring.id}:delete`}
                             onClick={() =>
                               requestConfirmation({
-                                title: "KONFIRMASI ARSIP JARING",
-                                description: `Arsipkan jaring ${jaring.aliasName} dari daftar aktif?`,
-                                confirmLabel: "YA, ARSIPKAN",
+                                title: "KONFIRMASI HAPUS JARING",
+                                description: `Hapus jaring ${jaring.aliasName}? Data akan dihapus dari daftar aktif tanpa menghilangkan riwayatnya.`,
+                                confirmLabel: "YA, HAPUS",
                                 onConfirm: () => {
-                                  void changeJaringStatus(jaring.id, "archive");
+                                  void changeJaringStatus(jaring.id, "delete");
                                 },
                               })
                             }
                             className="h-[40px] cursor-pointer rounded-[4px] bg-[#991B1B] px-[18px] font-mono font-semibold text-white text-xs transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#DC2626] hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
                           >
-                            ARSIPKAN
+                            HAPUS
                           </button>
                         </div>
                       </div>

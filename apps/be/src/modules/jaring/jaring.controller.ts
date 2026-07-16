@@ -74,7 +74,11 @@ export class JaringController {
     operationId: 'apiJarCluster001',
     contractId: 'API-JAR-CLUSTER-001',
     summary: 'Daftar Cluster Jaring',
-    roles: ['admin_system', 'field_officer', 'operational_intelligence_manager'],
+    roles: [
+      'admin_system',
+      'field_officer',
+      'operational_intelligence_manager',
+    ],
   })
   async listClusters(@Query() query: JaringClusterQuery) {
     return apiResult(await this.jaringService.listClusters(query));
@@ -116,7 +120,11 @@ export class JaringController {
     operationId: 'apiReportCategory001',
     contractId: 'API-REPORT-CATEGORY-001',
     summary: 'Daftar kategori laporan',
-    roles: ['admin_system', 'field_officer', 'operational_intelligence_manager'],
+    roles: [
+      'admin_system',
+      'field_officer',
+      'operational_intelligence_manager',
+    ],
   })
   async listReportCategories(@Query() query: ReportCategoryQuery) {
     return apiResult(await this.jaringService.listReportCategories(query));
@@ -218,20 +226,20 @@ export class JaringController {
     return apiResult(await this.jaringService.deactivate(id, body, context));
   }
 
-  @Post(':jaringId/archive')
+  @Post(':jaringId/delete')
   @ApiContract({
     operationId: 'apiJar007',
     contractId: 'API-JAR-007',
-    summary: 'Arsipkan Jaring',
+    summary: 'Soft delete Jaring',
     roles: ['field_officer'],
     idempotent: true,
   })
-  async archive(
+  async softDelete(
     @Param('jaringId', ParseUUIDPipe) id: string,
     @Body() body: ReasonDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.jaringService.archive(id, body, context));
+    return apiResult(await this.jaringService.softDelete(id, body, context));
   }
 
   @Get(':jaringId/caretakers')

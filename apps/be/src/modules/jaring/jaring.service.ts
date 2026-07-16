@@ -112,17 +112,20 @@ export class JaringService {
     status: JaringStatus,
     reason: string,
     context: AuthorizationContext,
+    auditAction = `JARING.${status}`,
   ) {
     const data: Prisma.JaringUpdateInput = {
       status,
       ...(status === JaringStatus.INACTIVE
         ? { deactivatedAt: new Date() }
         : {}),
-      ...(status === JaringStatus.ACTIVE ? { deactivatedAt: null, deletedAt: null } : {}),
+      ...(status === JaringStatus.ACTIVE
+        ? { deactivatedAt: null, deletedAt: null }
+        : {}),
       ...(status === JaringStatus.ARCHIVED ? { deletedAt: new Date() } : {}),
     };
     await this.prisma.jaring.update({ where: { id }, data });
-    await this.audit(context, `JARING.${status}`, id, { reason });
+    await this.audit(context, auditAction, id, { reason });
     return this.detail(id, status === JaringStatus.ARCHIVED);
   }
 
@@ -497,8 +500,14 @@ export class JaringService {
     return this.status(id, JaringStatus.INACTIVE, body.reason, context);
   }
 
-  async archive(id: string, body: ReasonDto, context: AuthorizationContext) {
-    return this.status(id, JaringStatus.ARCHIVED, body.reason, context);
+  async softDelete(id: string, body: ReasonDto, context: AuthorizationContext) {
+    return this.status(
+      id,
+      JaringStatus.ARCHIVED,
+      body.reason,
+      context,
+      'JARING.DELETE',
+    );
   }
 
   async caretakers(id: string, context: AuthorizationContext) {

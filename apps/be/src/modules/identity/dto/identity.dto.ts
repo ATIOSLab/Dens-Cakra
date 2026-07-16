@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsIP,
   IsOptional,
   IsString,
   MaxLength,
@@ -24,4 +25,11 @@ export class RevokeOtherSessionsDto {
   @IsString()
   @MaxLength(500)
   reason?: string;
+}
+
+export class UpdateSessionNetworkDto {
+  @IsString()
+  @IsIP()
+  @MaxLength(64)
+  ipAddress!: string;
 }
