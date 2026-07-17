@@ -4,7 +4,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { AlertTriangle, CheckCircle2, Crosshair, Inbox, MapPin, Radio, Send, ShieldCheck, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Copy,
+  Crosshair,
+  Eye,
+  EyeOff,
+  Inbox,
+  MapPin,
+  Plus,
+  Radio,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -20,6 +35,14 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Map, MapControls, MapMarker, MarkerContent, MarkerPopup } from "@/components/ui/map";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -219,14 +242,16 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   const ITEMS_PER_PAGE = 5;
   const [forwardedAssignments, setForwardedAssignments] = useState<string[]>([]);
   const [jaringForm, setJaringForm] = useState({
-    code: "",
     aliasName: "",
     whatsappNumber: "",
     clusterId: "",
     notes: "",
     areaId: "",
   });
+  const [showJaringForm, setShowJaringForm] = useState(false);
   const [showSaveJaringConfirm, setShowSaveJaringConfirm] = useState(false);
+  const [createdJaring, setCreatedJaring] = useState<{ aliasName: string; pin: string } | null>(null);
+  const [visibleJaringPins, setVisibleJaringPins] = useState<Set<string>>(() => new Set());
   const [baketFilterDraft, setBaketFilterDraft] = useState(EMPTY_BAKET_FILTERS);
   const [appliedBaketFilters, setAppliedBaketFilters] = useState(EMPTY_BAKET_FILTERS);
   const [pendingAction, setPendingAction] = useState<PendingFieldOfficerAction | null>(null);
@@ -416,10 +441,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       return;
     }
 
-    if (!jaringForm.code.trim()) {
-      toast.error("Kode Jaring harus diisi.");
-      return;
-    }
     if (!jaringForm.aliasName.trim()) {
       toast.error("Alias / Nama Sandi harus diisi.");
       return;
@@ -433,24 +454,18 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       return;
     }
     if (!jaringForm.areaId.trim()) {
-      toast.error("Silakan pilih Area Utama.");
+      toast.error("Silakan pilih kecamatan.");
       return;
     }
-    if (!jaringForm.notes.trim()) {
-      toast.error("Catatan Pembinaan harus diisi.");
-      return;
-    }
-
     await runAction("jaring:create", async () => {
       const response = await fetch("/api/field-officer/jaring", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          code: jaringForm.code,
           aliasName: jaringForm.aliasName,
           whatsappNumber: jaringForm.whatsappNumber,
           clusterId: jaringForm.clusterId || undefined,
-          notes: jaringForm.notes,
+          notes: jaringForm.notes.trim() || undefined,
           areaIds: [jaringForm.areaId || workspace.context.areaScopes[0]?.areaId].filter(Boolean),
           fieldOfficerAssignmentId: workspace.context.primaryAssignmentId,
         }),
@@ -461,13 +476,60 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         throw new Error(body.message || "Gagal membuat jaring.");
       }
 
+      const created = (await response.json()) as { aliasName?: string | null; code?: string };
+      if (!created.code) {
+        throw new Error("Jaring berhasil dibuat, tetapi PIN tidak diterima dari server.");
+      }
+
       setJaringForm({
-        code: "",
         aliasName: "",
         whatsappNumber: "",
         clusterId: "",
         notes: "",
         areaId: "",
+      });
+      setShowJaringForm(false);
+      setCreatedJaring({
+        aliasName: created.aliasName || jaringForm.aliasName,
+        pin: created.code,
+      });
+    });
+  };
+
+  const copyCreatedJaringPin = async () => {
+    if (!createdJaring) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(createdJaring.pin);
+      toast.success("PIN Jaring berhasil disalin.");
+    } catch {
+      toast.error("PIN tidak dapat disalin otomatis. Silakan salin secara manual.");
+    }
+  };
+
+  const regenerateJaringPin = async (jaring: FieldOfficerJaring) => {
+    await runAction(`jaring:${jaring.id}:regenerate-pin`, async () => {
+      const response = await fetch(`/api/field-officer/jaring/${jaring.id}/regenerate-pin`, {
+        method: "POST",
+      });
+      const body = (await response.json().catch(() => null)) as
+        | { code?: string; aliasName?: string | null; message?: string }
+        | null;
+
+      if (!response.ok || !body?.code) {
+        throw new Error(body?.message || "Gagal membuat ulang PIN Jaring.");
+      }
+
+      setVisibleJaringPins((current) => {
+        const next = new Set(current);
+        next.delete(jaring.id);
+        return next;
+      });
+      setCreatedJaring({
+        aliasName: body.aliasName || jaring.aliasName,
+        pin: body.code,
       });
     });
   };
@@ -1169,36 +1231,35 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         <>
           <TacticalSection
             code="MOD-02"
-            title="REGISTRASI & JARING BINAAN"
-            description="Kelola identitas Jaring binaan. FO memegang ownership data. Bot pusat dikelola coordinator."
+            title="JARING BINAAN"
+            description="Daftar Jaring binaan dalam cakupan kecamatan Anda. Gunakan Tambah Jaring untuk registrasi baru."
             metadata={[
               { label: "TOTAL JARING", value: workspace.jaring.length },
               { label: "AKTIF", value: metrics.activeJaring },
             ]}
           >
-            <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+            <div className="mb-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowJaringForm(true)}
+                className="inline-flex h-10 items-center gap-2 rounded-[4px] bg-[#16A34A] px-4 font-mono font-semibold text-white text-xs uppercase tracking-wider shadow-[0_0_18px_rgba(22,163,74,0.22)] transition hover:bg-[#15803D]"
+              >
+                <Plus className="size-4" />
+                Tambah Jaring
+              </button>
+            </div>
+
+            <div>
               {/* Registrasi Jaring Baru Form */}
-              <div className="tactical-card space-y-4">
-                <h3 className="border-[var(--tactical-border)] border-b pb-2 font-semibold text-[var(--tactical-text-primary)] text-lg tracking-tight">
-                  Registrasi Jaring Baru
-                </h3>
+              <Dialog open={showJaringForm} onOpenChange={setShowJaringForm}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] font-mono sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Registrasi Jaring Baru</DialogTitle>
+                    <DialogDescription>
+                      PIN Jaring dibuat otomatis oleh sistem setelah data berhasil disimpan.
+                    </DialogDescription>
+                  </DialogHeader>
                 <div className="space-y-5">
-                  <div className="space-y-2">
-                    <label className="block font-mono font-semibold text-[11px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
-                      Kode Jaring
-                    </label>
-                    <Input
-                      className="tactical-input w-full"
-                      placeholder="Contoh: J-01"
-                      value={jaringForm.code}
-                      onChange={(event) =>
-                        setJaringForm((current) => ({
-                          ...current,
-                          code: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
                   <div className="space-y-2">
                     <label className="block font-mono font-semibold text-[11px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
                       Alias / Nama Sandi
@@ -1256,7 +1317,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                   </div>
                   <div className="space-y-2">
                     <label className="block font-mono font-semibold text-[11px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
-                      Area Utama
+                      Kecamatan
                     </label>
                     <select
                       className="tactical-input flex h-10 w-full px-3 font-mono text-[var(--tactical-text-primary)] text-sm transition-all focus:border-[#0EA5E9] focus:ring-1 focus:ring-[#0EA5E9]"
@@ -1268,8 +1329,8 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         }))
                       }
                     >
-                      <option value="">PILIH AREA UTAMA</option>
-                      {workspace.context.areaScopes.map((area) => (
+                      <option value="">PILIH KECAMATAN</option>
+                      {workspace.districtAreas.map((area) => (
                         <option key={area.areaId} value={area.areaId}>
                           {area.name.toUpperCase()}
                         </option>
@@ -1278,11 +1339,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                   </div>
                   <div className="space-y-2">
                     <label className="block font-mono font-semibold text-[11px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
-                      Catatan Pembinaan
+                      Catatan Pembinaan (Opsional)
                     </label>
                     <Textarea
                       className="tactical-input w-full"
-                      placeholder="Catatan intelijen/pembinaan..."
+                      placeholder="Tambahkan catatan bila diperlukan..."
                       value={jaringForm.notes}
                       onChange={(event) =>
                         setJaringForm((current) => ({
@@ -1295,10 +1356,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                   <button
                     disabled={isBusy === "jaring:create"}
                     onClick={() => {
-                      if (!jaringForm.code.trim()) {
-                        toast.error("Kode Jaring harus diisi.");
-                        return;
-                      }
                       if (!jaringForm.aliasName.trim()) {
                         toast.error("Alias / Nama Sandi harus diisi.");
                         return;
@@ -1312,11 +1369,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         return;
                       }
                       if (!jaringForm.areaId.trim()) {
-                        toast.error("Silakan pilih Area Utama.");
-                        return;
-                      }
-                      if (!jaringForm.notes.trim()) {
-                        toast.error("Catatan Pembinaan harus diisi.");
+                        toast.error("Silakan pilih kecamatan.");
                         return;
                       }
                       setShowSaveJaringConfirm(true);
@@ -1352,112 +1405,191 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                  <DialogFooter className="mx-0 mb-0 px-0">
+                    <p className="mr-auto self-center text-[11px] text-[var(--tactical-text-muted)]">
+                      Kecamatan mengikuti hierarki wilayah akun Anda.
+                    </p>
+                  </DialogFooter>
                 </div>
-              </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog
+                open={createdJaring !== null}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setCreatedJaring(null);
+                  }
+                }}
+              >
+                <DialogContent className="border-emerald-500/30 bg-[var(--tactical-card-bg)] font-mono sm:max-w-md">
+                  <DialogHeader className="items-center text-center">
+                    <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="size-8" />
+                    </div>
+                    <DialogTitle>Jaring Berhasil Ditambahkan</DialogTitle>
+                    <DialogDescription>
+                      Kirimkan PIN berikut kepada {createdJaring?.aliasName || "Jaring"} untuk proses verifikasi bot.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] px-6 py-5 text-center">
+                    <p className="mb-2 text-[11px] text-[var(--tactical-text-muted)] uppercase tracking-[0.22em]">
+                      PIN Jaring
+                    </p>
+                    <p className="select-all font-bold text-4xl text-[var(--tactical-text-primary)] tracking-[0.3em]">
+                      {createdJaring?.pin}
+                    </p>
+                  </div>
+
+                  <DialogFooter className="mx-0 mb-0 px-0">
+                    <button
+                      type="button"
+                      onClick={() => setCreatedJaring(null)}
+                      className="h-10 rounded-[4px] border border-[var(--tactical-border)] px-4 font-semibold text-[var(--tactical-text-secondary)] text-xs uppercase"
+                    >
+                      Tutup
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void copyCreatedJaringPin()}
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-[4px] bg-[#16A34A] px-4 font-semibold text-white text-xs uppercase hover:bg-[#15803D]"
+                    >
+                      <Copy className="size-4" />
+                      Salin PIN
+                    </button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
               {/* Jaring Binaan List */}
               <div className="space-y-4">
                 {workspace.jaring.length === 0 ? (
                   <TacticalEmptyState
                     title="Tidak ada Jaring binaan"
-                    description="Daftarkan Jaring operasional baru di formulir sebelah kiri."
+                    description="Tekan tombol Tambah Jaring untuk mendaftarkan Jaring operasional baru."
                     icon={Users}
                   />
                 ) : (
-                  workspace.jaring.map((jaring) => (
-                    <div key={jaring.id} className="tactical-card space-y-3">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="flex-1 space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(jaring.status)}`}
-                            >
-                              {jaring.status}
-                            </span>
-                            <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                              CODE: {jaring.code}
-                            </span>
-                          </div>
-                          <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
-                            {jaring.aliasName}
-                          </h3>
-                          <p className="font-mono text-[var(--tactical-text-secondary)] text-sm">
-                            {jaring.whatsappNumber}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-x-3 font-mono text-[var(--tactical-text-secondary)] text-xs">
-                            <span className="text-[var(--tactical-blue)]">{jaring.clusterName || "NO_CLUSTER"}</span>
-                            <span>&middot;</span>
-                            <span>{jaring.areaNames.join(", ") || "NO_AREA"}</span>
-                          </div>
-                          {jaring.notes && (
-                            <p className="rounded border border-[var(--tactical-border)] bg-black/5 p-2.5 text-[var(--tactical-text-secondary)] text-sm italic leading-relaxed dark:bg-white/[0.01]">
-                              {jaring.notes}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex shrink-0 flex-wrap gap-2">
-                          {jaring.status !== "ACTIVE" ? (
-                            <button
-                              disabled={isBusy === `jaring:${jaring.id}:activate`}
-                              onClick={() =>
-                                requestConfirmation({
-                                  title: "KONFIRMASI AKTIVASI JARING",
-                                  description: `Aktifkan kembali jaring ${jaring.aliasName}?`,
-                                  confirmLabel: "YA, AKTIFKAN",
-                                  onConfirm: () => {
-                                    void changeJaringStatus(jaring.id, "activate");
-                                  },
-                                })
-                              }
-                              className="h-[40px] cursor-pointer rounded-[4px] bg-[#16A34A] px-[18px] font-mono font-semibold text-white text-xs shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#15803D] hover:brightness-105 active:scale-[0.98] active:bg-[#166534] disabled:opacity-50"
-                            >
-                              AKTIFKAN
-                            </button>
-                          ) : (
-                            <button
-                              disabled={isBusy === `jaring:${jaring.id}:deactivate`}
-                              onClick={() =>
-                                requestConfirmation({
-                                  title: "KONFIRMASI NONAKTIFKAN JARING",
-                                  description: `Nonaktifkan sementara jaring ${jaring.aliasName}?`,
-                                  confirmLabel: "YA, NONAKTIFKAN",
-                                  onConfirm: () => {
-                                    void changeJaringStatus(jaring.id, "deactivate");
-                                  },
-                                })
-                              }
-                              className="h-[40px] cursor-pointer rounded-[4px] bg-[#B45309] px-[18px] font-mono font-semibold text-white text-xs shadow-[0_0_18px_rgba(217,119,6,0.20)] transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#D97706] hover:brightness-105 active:scale-[0.98] active:bg-[#92400E] disabled:opacity-50"
-                            >
-                              NONAKTIFKAN
-                            </button>
-                          )}
-                          <button
-                            disabled={isBusy === `jaring:${jaring.id}:delete`}
-                            onClick={() =>
-                              requestConfirmation({
-                                title: "KONFIRMASI HAPUS JARING",
-                                description: `Hapus jaring ${jaring.aliasName}? Data akan dihapus dari daftar aktif tanpa menghilangkan riwayatnya.`,
-                                confirmLabel: "YA, HAPUS",
-                                onConfirm: () => {
-                                  void changeJaringStatus(jaring.id, "delete");
-                                },
-                              })
-                            }
-                            className="h-[40px] cursor-pointer rounded-[4px] bg-[#991B1B] px-[18px] font-mono font-semibold text-white text-xs transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#DC2626] hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
-                          >
-                            HAPUS
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex gap-4 border-[var(--tactical-border)] border-t pt-2.5 font-mono text-[11px] text-[var(--tactical-text-muted)]">
-                        <span>SYS REV: {jaring.id.slice(0, 8).toUpperCase()}</span>
-                        <span>&middot;</span>
-                        <span>VOLUME: {jaring.messageCount} MSG</span>
-                        <span>&middot;</span>
-                        <span>BAKET: {jaring.baketCount} BKT</span>
-                      </div>
-                    </div>
-                  ))
+                  <div className="overflow-x-auto rounded-[6px] border border-[var(--tactical-border)]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>PIN</TableHead>
+                          <TableHead>Alias / Nama Sandi</TableHead>
+                          <TableHead>WhatsApp</TableHead>
+                          <TableHead>Cluster</TableHead>
+                          <TableHead>Kecamatan</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Aktivitas</TableHead>
+                          <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {workspace.jaring.map((jaring) => (
+                          <TableRow key={jaring.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2 font-mono font-semibold">
+                                <span className="min-w-16 tracking-[0.12em]">
+                                  {visibleJaringPins.has(jaring.id) ? jaring.code : "******"}
+                                </span>
+                                <button
+                                  type="button"
+                                  title={visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"}
+                                  aria-label={visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"}
+                                  onClick={() =>
+                                    setVisibleJaringPins((current) => {
+                                      const next = new Set(current);
+                                      if (next.has(jaring.id)) {
+                                        next.delete(jaring.id);
+                                      } else {
+                                        next.add(jaring.id);
+                                      }
+                                      return next;
+                                    })
+                                  }
+                                  className="rounded p-1 text-[var(--tactical-text-muted)] hover:bg-black/5 hover:text-[var(--tactical-text-primary)] dark:hover:bg-white/5"
+                                >
+                                  {visibleJaringPins.has(jaring.id) ? (
+                                    <EyeOff className="size-4" />
+                                  ) : (
+                                    <Eye className="size-4" />
+                                  )}
+                                </button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-semibold text-[var(--tactical-text-primary)]">{jaring.aliasName}</div>
+                              {jaring.notes && (
+                                <div className="max-w-48 truncate text-[11px] text-[var(--tactical-text-muted)]" title={jaring.notes}>
+                                  {jaring.notes}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-mono">{jaring.whatsappNumber}</TableCell>
+                            <TableCell>{jaring.clusterName || "-"}</TableCell>
+                            <TableCell>{jaring.areaNames.join(", ") || "-"}</TableCell>
+                            <TableCell>
+                              <span className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(jaring.status)}`}>
+                                {jaring.status}
+                              </span>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap font-mono text-xs">
+                              {jaring.messageCount} pesan / {jaring.baketCount} baket
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  disabled={isBusy === `jaring:${jaring.id}:regenerate-pin`}
+                                  onClick={() =>
+                                    requestConfirmation({
+                                      title: "KONFIRMASI REGENERATE PIN",
+                                      description: `Buat PIN baru untuk ${jaring.aliasName}? PIN lama langsung tidak dapat digunakan lagi.`,
+                                      confirmLabel: "YA, BUAT PIN BARU",
+                                      onConfirm: () => void regenerateJaringPin(jaring),
+                                    })
+                                  }
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-[4px] border border-sky-600 px-3 font-mono font-semibold text-[11px] text-sky-700 uppercase hover:bg-sky-500/10 disabled:opacity-50 dark:text-sky-400"
+                                >
+                                  <RefreshCw className="size-3.5" />
+                                  Regenerate PIN
+                                </button>
+                                <button
+                                  disabled={isBusy === `jaring:${jaring.id}:${jaring.status === "ACTIVE" ? "deactivate" : "activate"}`}
+                                  onClick={() => {
+                                    const action = jaring.status === "ACTIVE" ? "deactivate" : "activate";
+                                    requestConfirmation({
+                                      title: action === "activate" ? "KONFIRMASI AKTIVASI JARING" : "KONFIRMASI NONAKTIFKAN JARING",
+                                      description: `${action === "activate" ? "Aktifkan kembali" : "Nonaktifkan sementara"} jaring ${jaring.aliasName}?`,
+                                      confirmLabel: action === "activate" ? "YA, AKTIFKAN" : "YA, NONAKTIFKAN",
+                                      onConfirm: () => void changeJaringStatus(jaring.id, action),
+                                    });
+                                  }}
+                                  className="h-8 rounded-[4px] border border-amber-600 px-3 font-mono font-semibold text-amber-700 text-[11px] uppercase hover:bg-amber-500/10 disabled:opacity-50 dark:text-amber-400"
+                                >
+                                  {jaring.status === "ACTIVE" ? "Nonaktifkan" : "Aktifkan"}
+                                </button>
+                                <button
+                                  disabled={isBusy === `jaring:${jaring.id}:delete`}
+                                  onClick={() =>
+                                    requestConfirmation({
+                                      title: "KONFIRMASI HAPUS JARING",
+                                      description: `Hapus jaring ${jaring.aliasName}? Data akan dihapus dari daftar aktif tanpa menghilangkan riwayatnya.`,
+                                      confirmLabel: "YA, HAPUS",
+                                      onConfirm: () => void changeJaringStatus(jaring.id, "delete"),
+                                    })
+                                  }
+                                  className="h-8 rounded-[4px] bg-[#991B1B] px-3 font-mono font-semibold text-white text-[11px] uppercase hover:bg-[#DC2626] disabled:opacity-50"
+                                >
+                                  Hapus
+                                </button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </div>
             </div>

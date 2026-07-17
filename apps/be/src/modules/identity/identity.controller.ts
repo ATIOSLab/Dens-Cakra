@@ -113,4 +113,34 @@ export class IdentityController {
       }),
     );
   }
+
+  @Post('session-heartbeat')
+  @ApiContract({
+    operationId: 'apiCtx006',
+    contractId: 'API-CTX-006',
+    summary: 'Perbarui aktivitas sesi dashboard',
+  })
+  async recordSessionHeartbeat(@Req() request: AuthenticatedRequest) {
+    return apiResult(
+      await this.identity.recordSessionHeartbeat({
+        sessionId: request.authSession!.id,
+        authUserId: request.authUser!.id,
+      }),
+    );
+  }
+
+  @Post('session-inactive')
+  @ApiContract({
+    operationId: 'apiCtx007',
+    contractId: 'API-CTX-007',
+    summary: 'Tandai sesi dashboard tidak aktif saat tab ditutup',
+  })
+  async markSessionInactive(@Req() request: AuthenticatedRequest) {
+    return apiResult(
+      await this.identity.markSessionInactive({
+        sessionId: request.authSession!.id,
+        authUserId: request.authUser!.id,
+      }),
+    );
+  }
 }

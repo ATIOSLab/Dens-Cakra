@@ -16,6 +16,7 @@ import { NotificationsMenu } from "./_components/sidebar/notifications-menu";
 import { RoleWorkspaceProvider } from "./_components/sidebar/role-workspace-provider";
 import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
+import { SessionHeartbeat } from "./_components/session-heartbeat";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const principal = await requireSession();
@@ -37,6 +38,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       }
     >
       <RoleWorkspaceProvider principal={principal}>
+        <SessionHeartbeat />
         <ClientNetworkProvider
           network={{
             ipAddress: principal.session.ipAddress ?? "IP tidak tersedia",

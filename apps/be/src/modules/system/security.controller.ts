@@ -25,6 +25,23 @@ import type { AuthenticatedRequest } from '../../common/types/authenticated-requ
 import { apiResult } from '../../common/api/api-response.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+const SESSION_ONLINE_WINDOW_MS = 90_000;
+
+function isLocalhostSession(session: {
+  ipAddress: string | null;
+  locationLabel: string | null;
+}) {
+  const ipAddress = session.ipAddress?.trim().toLowerCase();
+  const locationLabel = session.locationLabel?.trim().toLowerCase();
+
+  return (
+    ipAddress === '127.0.0.1' ||
+    ipAddress === '::1' ||
+    ipAddress === 'localhost' ||
+    locationLabel?.startsWith('localhost') === true
+  );
+}
+
 class SecuritySessionQuery {
   @Type(() => Number)
   @IsOptional()
@@ -62,8 +79,17 @@ export class SecurityController {
     @Query() q: SecuritySessionQuery,
     @Req() request: AuthenticatedRequest,
   ) {
+    const now = new Date();
+    if (request.authSession?.id) {
+      await this.prisma.session.updateMany({
+        where: { id: request.authSession.id, expiresAt: { gt: now } },
+        data: { lastSeenAt: now },
+      });
+    }
+
+    const onlineThreshold = new Date(now.getTime() - SESSION_ONLINE_WINDOW_MS);
     const where = {
-      ...(q.activeOnly ? { expiresAt: { gt: new Date() } } : {}),
+      ...(q.activeOnly ? { expiresAt: { gt: now } } : {}),
       ...(q.search
         ? {
             OR: [
@@ -122,9 +148,9 @@ export class SecurityController {
         : {}),
     };
 
-    const sessions = await this.prisma.session.findMany({
+    const candidateSessions = await this.prisma.session.findMany({
       where,
-      take: q.limit,
+      take: Math.min(q.limit * 5, 500),
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
       include: {
         user: {
@@ -147,6 +173,37 @@ export class SecurityController {
       },
     });
 
+    const sessionsByUser = new Map<
+      string,
+      (typeof candidateSessions)[number]
+    >();
+
+    for (const session of candidateSessions) {
+      if (isLocalhostSession(session)) {
+        continue;
+      }
+
+      const existing = sessionsByUser.get(session.userId);
+      const isCurrentSession = request.authSession?.id === session.id;
+      const existingIsCurrent = request.authSession?.id === existing?.id;
+      const isOnline = Boolean(
+        session.lastSeenAt && session.lastSeenAt >= onlineThreshold,
+      );
+      const existingIsOnline = Boolean(
+        existing?.lastSeenAt && existing.lastSeenAt >= onlineThreshold,
+      );
+
+      if (
+        !existing ||
+        (isCurrentSession && !existingIsCurrent) ||
+        (!existingIsCurrent && isOnline && !existingIsOnline)
+      ) {
+        sessionsByUser.set(session.userId, session);
+      }
+    }
+
+    const sessions = Array.from(sessionsByUser.values()).slice(0, q.limit);
+
     return apiResult(
       sessions.map((session) => ({
         id: session.id,
@@ -162,10 +219,14 @@ export class SecurityController {
         ipAddress: session.ipAddress ?? null,
         locationLabel: session.locationLabel ?? null,
         userAgent: session.userAgent ?? null,
+        lastSeenAt: session.lastSeenAt ?? null,
         expiresAt: session.expiresAt,
         createdAt: session.createdAt,
         updatedAt: session.updatedAt,
         isCurrentSession: request.authSession?.id === session.id,
+        isOnline: Boolean(
+          session.lastSeenAt && session.lastSeenAt >= onlineThreshold,
+        ),
       })),
     );
   }

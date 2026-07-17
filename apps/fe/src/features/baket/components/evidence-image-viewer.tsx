@@ -13,13 +13,14 @@ type EvidenceImageViewerProps = {
   caption?: string | null;
 };
 
-const MIN_ZOOM = 1;
+const MIN_ZOOM = 0.25;
+const INITIAL_ZOOM = 0.75;
 const MAX_ZOOM = 5;
 const ZOOM_STEP = 0.25;
 
 export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceImageViewerProps) {
   const [open, setOpen] = useState(false);
-  const [zoom, setZoom] = useState(MIN_ZOOM);
+  const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{
     pointerId: number;
@@ -30,14 +31,14 @@ export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceIma
   } | null>(null);
 
   const resetView = () => {
-    setZoom(MIN_ZOOM);
+    setZoom(INITIAL_ZOOM);
     setOffset({ x: 0, y: 0 });
   };
 
   const changeZoom = (nextZoom: number) => {
     const clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
     setZoom(clamped);
-    if (clamped === MIN_ZOOM) {
+    if (clamped <= INITIAL_ZOOM) {
       setOffset({ x: 0, y: 0 });
     }
   };
@@ -123,14 +124,14 @@ export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceIma
         </DialogHeader>
 
         <div
-          className={`relative grid min-h-0 touch-none place-items-center overflow-hidden rounded-[4px] border border-white/10 bg-black ${zoom > MIN_ZOOM ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"}`}
-          onDoubleClick={() => changeZoom(zoom === MIN_ZOOM ? 2 : MIN_ZOOM)}
+          className={`relative grid min-h-0 touch-none place-items-center overflow-hidden rounded-[4px] border border-white/10 bg-black ${zoom > INITIAL_ZOOM ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"}`}
+          onDoubleClick={() => changeZoom(zoom === INITIAL_ZOOM ? 2 : INITIAL_ZOOM)}
           onWheel={(event) => {
             event.preventDefault();
             changeZoom(zoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
           }}
           onPointerDown={(event) => {
-            if (zoom <= MIN_ZOOM) {
+            if (zoom <= INITIAL_ZOOM) {
               return;
             }
             event.currentTarget.setPointerCapture(event.pointerId);

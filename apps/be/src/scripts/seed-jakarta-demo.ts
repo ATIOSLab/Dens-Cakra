@@ -531,10 +531,9 @@ async function seedAreaJaring(area: DemoArea, clusterIds: string[]) {
     const jaringId = deterministicUuid(`jakarta-demo:jaring:${key}`);
     const validFrom = addHours(seedBaseDate, -720 + index);
     await prisma.jaring.upsert({
-      where: {
-        code: `DEMO-JKT-${compactCode(area.officialCode)}-${index + 1}`,
-      },
+      where: { id: jaringId },
       update: {
+        code: `DEMO-JKT-${compactCode(area.officialCode)}-${index + 1}`,
         aliasName: `Jaring ${trimAreaName(area.name)} ${index + 1}`,
         whatsappNumber: `+62888${compactCode(area.officialCode).padEnd(4, '0')}${String(index + 1).padStart(4, '0')}`,
         clusterId:

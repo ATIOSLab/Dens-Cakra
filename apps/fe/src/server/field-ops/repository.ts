@@ -68,6 +68,15 @@ type MessageRecord = {
     id: string;
     name: string;
   } | null;
+  convertedBaket?: {
+    reportCategory?: {
+      id: string;
+      name: string;
+    } | null;
+    versions?: Array<{
+      urgency?: string | null;
+    }>;
+  } | null;
   jaring?: {
     id: string;
     code: string;
@@ -307,8 +316,9 @@ function mapIncoming(record: MessageRecord, jaring: FieldOfficerJaring): FieldOf
     content: record.content ?? null,
     status: record.status,
     validationSummary: record.validationSummary,
-    categoryId: record.categoryId ?? record.category?.id ?? null,
-    categoryName: record.category?.name ?? null,
+    categoryId: record.categoryId ?? record.category?.id ?? record.convertedBaket?.reportCategory?.id ?? null,
+    categoryName: record.category?.name ?? record.convertedBaket?.reportCategory?.name ?? null,
+    urgency: record.convertedBaket?.versions?.[0]?.urgency ?? null,
     receivedAt: record.receivedAt,
     eventDateTime: asString(rawPayload?.eventDateTime) ?? record.locationCapturedAt ?? null,
     gpsSharedAt: asString(rawPayload?.gpsSharedAt),
@@ -339,7 +349,7 @@ export async function getFieldOfficerWorkspace(
   const access = await getAccess(cookie);
   const assignmentId = access.context.primaryAssignmentId;
 
-  const [allJaring, jaringClusters, reportCategories, messages, tasks, baketResponse, latestLocation] =
+  const [allJaring, jaringClusters, reportCategories, messages, tasks, baketResponse, districtAreas, latestLocation] =
     await Promise.all([
       backendApi<JaringRecord[]>("/jaring", {
         cookie,
@@ -374,6 +384,10 @@ export async function getFieldOfficerWorkspace(
           to: baketFilters.to ? `${baketFilters.to}T23:59:59.999+07:00` : undefined,
           limit: 50,
         },
+      }),
+      backendApi<Array<{ areaId: string; code: string; name: string; level: string }>>("/me/area-scopes", {
+        cookie,
+        query: { includeDescendants: true, level: "DISTRICT" },
       }),
       backendApi<LocationRecord>("/personnel-location-pings/me/latest", {
         cookie,
@@ -422,6 +436,7 @@ export async function getFieldOfficerWorkspace(
       isActive: cluster.isActive,
       jaringCount: cluster._count?.jaring ?? cluster.jaringCount,
     })),
+    districtAreas,
     reportCategories: reportCategories.map((category) => ({
       id: category.id,
       code: category.code,
@@ -430,6 +445,7 @@ export async function getFieldOfficerWorkspace(
       isActive: category.isActive,
       messageCount: category._count?.whatsAppMessages ?? category.messageCount,
     })),
+    jaringReports: mappedMessages.sort((left, right) => right.receivedAt.localeCompare(left.receivedAt)),
     incoming: mappedMessages
       .filter((item) => !["READY_FOR_BAKET", "PROCESSED", "SPAM", "DUPLICATE"].includes(item.status))
       .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt)),
@@ -470,7 +486,6 @@ export async function getFieldOfficerWorkspace(
 export async function createFieldOfficerJaring(
   cookie: string,
   body: {
-    code: string;
     aliasName: string;
     whatsappNumber: string;
     clusterId?: string;
@@ -513,6 +528,14 @@ export async function updateFieldOfficerJaringStatus(
     cookie,
     method: "POST",
     body: { reason },
+    idempotent: true,
+  });
+}
+
+export async function regenerateFieldOfficerJaringPin(cookie: string, jaringId: string) {
+  return backendApi<{ code: string; aliasName?: string | null }>(`/jaring/${jaringId}/regenerate-pin`, {
+    cookie,
+    method: "POST",
     idempotent: true,
   });
 }

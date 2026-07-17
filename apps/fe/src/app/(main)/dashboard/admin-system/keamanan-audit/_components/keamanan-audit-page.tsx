@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiServerGet } from "@/lib/api/server-client";
+import { SecuritySessionAutoRefresh } from "./security-session-auto-refresh";
 
 type SecuritySessionRecord = {
   id: string;
@@ -22,10 +23,12 @@ type SecuritySessionRecord = {
   ipAddress: string | null;
   locationLabel: string | null;
   userAgent: string | null;
+  lastSeenAt: string | null;
   expiresAt: string;
   createdAt: string;
   updatedAt: string;
   isCurrentSession: boolean;
+  isOnline: boolean;
 };
 
 type AuditLogRecord = {
@@ -105,10 +108,10 @@ function getDeviceLabel(userAgent: string | null) {
   return "Desktop / browser";
 }
 
-function SessionBadge({ isCurrentSession }: { isCurrentSession: boolean }) {
+function SessionBadge({ isCurrentSession, isOnline }: { isCurrentSession: boolean; isOnline: boolean }) {
   return (
-    <Badge variant={isCurrentSession ? "default" : "outline"} className={isCurrentSession ? "" : "text-[10px]"}>
-      {isCurrentSession ? "Current" : "Terdaftar"}
+    <Badge variant={isOnline ? "default" : "outline"} className={isOnline ? "" : "text-[10px]"}>
+      {isOnline ? (isCurrentSession ? "Online / Saat ini" : "Online") : "Tidak aktif"}
     </Badge>
   );
 }
@@ -122,7 +125,8 @@ export default async function KeamananAuditPage() {
     }),
   ]);
 
-  const activeSessionCount = sessions.length;
+  const validSessionCount = sessions.length;
+  const onlineSessionCount = sessions.filter((session) => session.isOnline).length;
   const currentSession = sessions.find((session) => session.isCurrentSession) ?? sessions[0] ?? null;
   const recentLoginCount = auditLogs.filter((log) => log.action === "auth.session.created").length;
   const revokedLoginCount = auditLogs.filter((log) => log.action === "auth.session.deleted").length;
@@ -137,23 +141,24 @@ export default async function KeamananAuditPage() {
 
   return (
     <div className="space-y-5">
+      <SecuritySessionAutoRefresh />
       <Alert className="border-cyan-500/20 bg-cyan-500/5 text-cyan-950 dark:text-cyan-100">
         <ShieldCheck className="size-4" />
         <AlertTitle>Pemantauan sesi login</AlertTitle>
         <AlertDescription>
-          Satu akun dapat aktif di beberapa perangkat. IP, lokasi, dan perangkat login tetap tercatat otomatis saat
-          setiap sesi dibuat atau diakhiri.
+          Pengguna dianggap online jika dashboard mengirim heartbeat dalam 90 detik terakhir. Halaman ini diperbarui
+          otomatis setiap 30 detik; setiap akun ditampilkan satu kali berdasarkan aktivitas sesi terbarunya.
         </AlertDescription>
       </Alert>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader>
-            <CardDescription>Sesi aktif</CardDescription>
-            <CardTitle className="text-3xl">{activeSessionCount}</CardTitle>
+            <CardDescription>Pengguna online</CardDescription>
+            <CardTitle className="text-3xl">{onlineSessionCount}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Semua sesi aktif terpantau dari tabel session.
+            {validSessionCount} akun memiliki sesi login valid.
           </CardContent>
         </Card>
         <Card>
@@ -192,9 +197,9 @@ export default async function KeamananAuditPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MonitorSmartphone className="size-4 text-cyan-600 dark:text-[#14B8FF]" />
-              Sesi Login Aktif
+              Aktivitas Sesi Dashboard
             </CardTitle>
-            <CardDescription>Monitor IP, lokasi, dan perangkat yang sedang memegang sesi login.</CardDescription>
+            <CardDescription>Monitor heartbeat, IP, lokasi, dan perangkat terbaru dari setiap pengguna.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -205,6 +210,7 @@ export default async function KeamananAuditPage() {
                   <TableHead>Lokasi</TableHead>
                   <TableHead>Perangkat</TableHead>
                   <TableHead>Masuk</TableHead>
+                  <TableHead>Terakhir aktif</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -227,14 +233,15 @@ export default async function KeamananAuditPage() {
                       <TableCell>{formatLocation(session.ipAddress, session.locationLabel)}</TableCell>
                       <TableCell>{getDeviceLabel(session.userAgent)}</TableCell>
                       <TableCell>{formatDateTime(session.createdAt)}</TableCell>
+                      <TableCell>{formatDateTime(session.lastSeenAt)}</TableCell>
                       <TableCell>
-                        <SessionBadge isCurrentSession={session.isCurrentSession} />
+                        <SessionBadge isCurrentSession={session.isCurrentSession} isOnline={session.isOnline} />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                       Belum ada sesi aktif yang bisa ditampilkan.
                     </TableCell>
                   </TableRow>
@@ -289,7 +296,7 @@ export default async function KeamananAuditPage() {
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <MonitorSmartphone className="size-3.5 text-cyan-600" />
-        <span>Semua perangkat yang sedang login ditampilkan sebagai sesi aktif yang terpisah.</span>
+        <span>Heartbeat membedakan pengguna online dari sesi valid yang sedang tidak aktif.</span>
         <Link href="/dashboard/admin-system/keamanan-audit" className="text-cyan-600 hover:underline">
           Refresh halaman jika perlu
         </Link>

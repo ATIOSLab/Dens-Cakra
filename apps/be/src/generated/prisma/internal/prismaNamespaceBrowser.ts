@@ -183,6 +183,7 @@ export const SessionScalarFieldEnum = {
   locationLabel: 'locationLabel',
   userAgent: 'userAgent',
   impersonatedBy: 'impersonatedBy',
+  lastSeenAt: 'lastSeenAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

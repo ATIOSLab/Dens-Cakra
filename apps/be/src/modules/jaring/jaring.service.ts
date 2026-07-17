@@ -1,5 +1,7 @@
+import { randomInt } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
+  AdministrativeLevel,
   JaringStatus,
   PositionCode,
   Prisma,
@@ -172,6 +174,35 @@ export class JaringService {
 
   async create(body: CreateJaringDto, context: AuthorizationContext) {
     await this.ensureActiveCluster(body.clusterId);
+
+    if (body.fieldOfficerAssignmentId !== context.primaryAssignmentId) {
+      throw new ApiException(
+        'JARING_CARETAKER_SCOPE_INVALID',
+        'Jaring hanya dapat didaftarkan untuk akun Field Officer yang sedang aktif.',
+        403,
+      );
+    }
+
+    const areaIds = [...new Set(body.areaIds)];
+    await Promise.all(
+      areaIds.map((areaId) => this.domainScope.assertArea(context, areaId)),
+    );
+    const districtCount = await this.prisma.administrativeArea.count({
+      where: {
+        id: { in: areaIds },
+        level: AdministrativeLevel.DISTRICT,
+        isActive: true,
+        deletedAt: null,
+      },
+    });
+    if (districtCount !== areaIds.length) {
+      throw new ApiException(
+        'JARING_AREA_MUST_BE_DISTRICT',
+        'Wilayah Jaring harus berupa kecamatan aktif di bawah cakupan Field Officer.',
+        422,
+      );
+    }
+
     const whatsappNumber = normalizeIndonesianPhoneNumber(body.whatsappNumber);
     const duplicateNumber = await this.prisma.jaring.findFirst({
       where: {
@@ -211,18 +242,6 @@ export class JaringService {
       );
     }
 
-    const duplicateCode = await this.prisma.jaring.findFirst({
-      where: { code: { equals: body.code, mode: 'insensitive' } },
-      select: { id: true },
-    });
-    if (duplicateCode) {
-      throw new ApiException(
-        'JARING_CODE_DUPLICATE',
-        'Kode Jaring sudah digunakan.',
-        409,
-      );
-    }
-
     const officer = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: body.fieldOfficerAssignmentId },
       include: { position: true },
@@ -239,7 +258,7 @@ export class JaringService {
     }
     const jaring = await this.prisma.jaring.create({
       data: {
-        code: body.code,
+        code: randomInt(100_000, 1_000_000).toString(),
         aliasName: body.aliasName,
         whatsappNumber,
         clusterId: body.clusterId,
@@ -249,7 +268,7 @@ export class JaringService {
           create: { fieldOfficerAssignmentId: body.fieldOfficerAssignmentId },
         },
         areaCoverages: {
-          create: body.areaIds.map((areaId, index) => ({
+          create: areaIds.map((areaId, index) => ({
             areaId,
             isPrimary: index === 0,
           })),
@@ -520,6 +539,19 @@ export class JaringService {
       context,
       'JARING.DELETE',
     );
+  }
+
+  async regeneratePin(id: string, context: AuthorizationContext) {
+    await this.domainScope.assertJaring(context, id);
+    const code = randomInt(100_000, 1_000_000).toString();
+
+    await this.prisma.jaring.update({
+      where: { id },
+      data: { code },
+    });
+    await this.audit(context, 'JARING.PIN_REGENERATE', id);
+
+    return this.detail(id);
   }
 
   async caretakers(id: string, context: AuthorizationContext) {

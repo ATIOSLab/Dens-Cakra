@@ -278,10 +278,10 @@ export type JaringOrderByWithRelationInput = {
 
 export type JaringWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  code?: string
   AND?: Prisma.JaringWhereInput | Prisma.JaringWhereInput[]
   OR?: Prisma.JaringWhereInput[]
   NOT?: Prisma.JaringWhereInput | Prisma.JaringWhereInput[]
+  code?: Prisma.StringFilter<"Jaring"> | string
   aliasName?: Prisma.StringNullableFilter<"Jaring"> | string | null
   whatsappNumber?: Prisma.StringFilter<"Jaring"> | string
   clusterId?: Prisma.UuidNullableFilter<"Jaring"> | string | null
@@ -299,7 +299,7 @@ export type JaringWhereUniqueInput = Prisma.AtLeast<{
   areaCoverages?: Prisma.JaringAreaCoverageListRelationFilter
   messages?: Prisma.WhatsAppMessageListRelationFilter
   primaryBakets?: Prisma.BaketListRelationFilter
-}, "id" | "code">
+}, "id">
 
 export type JaringOrderByWithAggregationInput = {
   id?: Prisma.SortOrder

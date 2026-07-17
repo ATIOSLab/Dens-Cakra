@@ -246,6 +246,7 @@ describe('WhatsApp intake Baket', () => {
     );
     expect(message).toEqual(
       expect.objectContaining({
+        categoryId: body.categoryId,
         resolvedAreaId: RESOLVED_AREA_ID,
         areaResolutionMethod: AreaResolutionMethod.POLYGON_MATCH,
         areaResolutionConfidence: 100,

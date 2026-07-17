@@ -763,6 +763,114 @@ html {
   --dc-priority-color: #f87171;
 }
 
+.dc-leaflet-urgency-icon {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.dc-leaflet-urgency-marker {
+  --dc-urgency-animation-duration: 2s;
+  --dc-urgency-wave-delay: -1s;
+  position: relative;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--dc-priority-color) !important;
+  isolation: isolate;
+}
+
+.dc-leaflet-urgency-marker[data-priority="LOW"] {
+  --dc-urgency-animation-duration: 2.8s;
+  --dc-urgency-wave-delay: -1.4s;
+}
+
+.dc-leaflet-urgency-marker[data-priority="UNASSIGNED"] {
+  --dc-priority-color: #64748b;
+  --dc-urgency-animation-duration: 3.2s;
+  --dc-urgency-wave-delay: -1.6s;
+}
+
+.dark .dc-leaflet-urgency-marker[data-priority="UNASSIGNED"] {
+  --dc-priority-color: #94a3b8;
+}
+
+.dc-leaflet-urgency-marker[data-priority="NORMAL"] {
+  --dc-urgency-animation-duration: 2s;
+  --dc-urgency-wave-delay: -1s;
+}
+
+.dc-leaflet-urgency-marker[data-priority="HIGH"] {
+  --dc-urgency-animation-duration: 1.15s;
+  --dc-urgency-wave-delay: -0.575s;
+}
+
+.dc-leaflet-urgency-marker[data-priority="URGENT"] {
+  --dc-urgency-animation-duration: 0.65s;
+  --dc-urgency-wave-delay: -0.325s;
+}
+
+.dc-leaflet-urgency-marker__wave,
+.dc-leaflet-urgency-marker__wave::after {
+  position: absolute;
+  inset: 9px;
+  z-index: -1;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  content: "";
+  pointer-events: none;
+  animation: dc-urgency-marker-wave var(--dc-urgency-animation-duration) ease-out infinite;
+}
+
+.dc-leaflet-urgency-marker__wave::after {
+  inset: -2px;
+  animation-delay: var(--dc-urgency-wave-delay);
+}
+
+.dc-leaflet-urgency-marker__core {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgb(255 255 255 / 92%);
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 12px color-mix(in srgb, currentColor 72%, transparent);
+  animation: dc-urgency-marker-blink var(--dc-urgency-animation-duration) ease-in-out infinite;
+}
+
+@keyframes dc-urgency-marker-wave {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.65);
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(2.5);
+  }
+}
+
+@keyframes dc-urgency-marker-blink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.42;
+    transform: scale(0.78);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-leaflet-urgency-marker__wave,
+  .dc-leaflet-urgency-marker__wave::after,
+  .dc-leaflet-urgency-marker__core {
+    animation: none;
+  }
+}
+
 .dc-leaflet-location-pin {
   border: 0 !important;
   background: transparent !important;
