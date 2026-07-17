@@ -9,6 +9,7 @@ type IpLocationResult = {
 };
 
 const locationCache = new Map<string, IpLocationResult>();
+let ipApiBlockedUntil = 0;
 
 const EXPANDED_IPV6_UNSPECIFIED = '0000:0000:0000:0000:0000:0000:0000:0000';
 const EXPANDED_IPV6_LOOPBACK = '0000:0000:0000:0000:0000:0000:0000:0001';
@@ -167,10 +168,22 @@ export async function resolveIpLocation(
   }
 
   try {
+    if (Date.now() < ipApiBlockedUntil) {
+      return getFallbackLocation(normalizedIp);
+    }
+
     const response = await fetchWithTimeout(
-      `https://ipwho.is/${encodeURIComponent(normalizedIp)}`,
+      `http://ip-api.com/json/${encodeURIComponent(normalizedIp)}?fields=status,message,query,city,regionName,country,countryCode`,
       2500,
     );
+    const remainingRequests = Number(response.headers.get('x-rl'));
+    if (remainingRequests === 0) {
+      const retryAfterSeconds = Number(response.headers.get('x-ttl'));
+      ipApiBlockedUntil =
+        Date.now() +
+        (Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : 60) * 1000;
+    }
+
     if (!response.ok) {
       const fallback = getFallbackLocation(normalizedIp);
       locationCache.set(normalizedIp, fallback);
@@ -178,32 +191,32 @@ export async function resolveIpLocation(
     }
 
     const payload = (await response.json()) as {
-      success?: boolean;
+      status?: 'success' | 'fail';
       city?: string | null;
-      region?: string | null;
+      regionName?: string | null;
       country?: string | null;
-      country_code?: string | null;
-      latitude?: number | null;
-      longitude?: number | null;
+      countryCode?: string | null;
       message?: string;
     };
 
-    if (!payload.success) {
+    if (payload.status !== 'success') {
       const fallback = getFallbackLocation(normalizedIp);
       locationCache.set(normalizedIp, fallback);
       return fallback;
     }
 
     const result = toResult({
-      label: buildLabel({
-        city: payload.city,
-        region: payload.region,
-        country: payload.country,
-      }),
+      label:
+        payload.city?.trim() ||
+        buildLabel({
+          city: payload.city,
+          region: payload.regionName,
+          country: payload.country,
+        }),
       city: payload.city ?? null,
-      region: payload.region ?? null,
+      region: payload.regionName ?? null,
       country: payload.country ?? null,
-      countryCode: payload.country_code ?? null,
+      countryCode: payload.countryCode ?? null,
     });
     locationCache.set(normalizedIp, result);
     return result;

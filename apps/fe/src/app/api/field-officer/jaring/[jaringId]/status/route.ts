@@ -12,7 +12,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const { jaringId } = await params;
     const body = (await request.json()) as {
-      action: "activate" | "deactivate" | "archive";
+      action: "activate" | "deactivate" | "delete";
       reason: string;
     };
 

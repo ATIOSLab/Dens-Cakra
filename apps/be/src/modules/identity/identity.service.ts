@@ -1,6 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import {
+  normalizeIpAddress,
+  resolveIpLocation,
+} from '../../lib/ip-location.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -53,6 +61,77 @@ export class IdentityService {
       },
       branch: context.commandRouteType,
       primaryAreas: context.areaScopes.filter((scope) => scope.isPrimary),
+    };
+  }
+
+  async updateSessionNetwork(input: {
+    sessionId: string;
+    authUserId: string;
+    ipAddress: string;
+  }) {
+    const ipAddress = normalizeIpAddress(input.ipAddress);
+    if (!ipAddress) {
+      throw new BadRequestException('Public IP address is invalid.');
+    }
+
+    const existingSession = await this.prisma.session.findFirst({
+      where: { id: input.sessionId, userId: input.authUserId },
+      select: { id: true, userAgent: true },
+    });
+    if (!existingSession) {
+      throw new NotFoundException('Active session was not found.');
+    }
+
+    const location = await resolveIpLocation(ipAddress);
+    const metadata = {
+      locationLabel: location.label,
+      city: location.city,
+      region: location.region,
+      country: location.country,
+      countryCode: location.countryCode,
+      locationProvider: 'ip-api.com',
+      ipSource: 'client_public_ip',
+    } satisfies Prisma.InputJsonObject;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.session.update({
+        where: { id: input.sessionId },
+        data: { ipAddress, locationLabel: location.label },
+      });
+
+      const existingNetworkAudit = await tx.auditLog.findFirst({
+        where: {
+          action: 'auth.session.network_resolved',
+          entityType: 'Session',
+          entityId: input.sessionId,
+          ipAddress,
+        },
+        select: { id: true },
+      });
+
+      if (!existingNetworkAudit) {
+        const profile = await tx.userProfile.findUnique({
+          where: { authUserId: input.authUserId },
+          select: { id: true },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorUserProfileId: profile?.id,
+            action: 'auth.session.network_resolved',
+            entityType: 'Session',
+            entityId: input.sessionId,
+            ipAddress,
+            deviceInfo: existingSession.userAgent,
+            metadata,
+          },
+        });
+      }
+    });
+
+    return {
+      ipAddress,
+      locationLabel: location.label,
+      city: location.city,
     };
   }
 
