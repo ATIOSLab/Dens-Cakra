@@ -1,18 +1,12 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { IncomingDetailClient } from "./incoming-detail-client";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ messageId: string }>;
 };
 
-export default async function Page({ params, searchParams }: PageProps) {
-  return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/field-officer/kotak-masuk-jaring/[messageId]"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
-    />
-  );
+export default async function Page({ params }: PageProps) {
+  const { messageId } = await params;
+  return <IncomingDetailClient messageId={messageId} />;
 }

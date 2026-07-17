@@ -1,5 +1,5 @@
 import { apiServerFetchEnvelope, apiServerGet } from "@/lib/api/server-client";
-import type { PaginationMeta } from "@/lib/api/types";
+import type { PaginationMeta, QueryParams } from "@/lib/api/types";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
@@ -14,6 +14,7 @@ import type {
 } from "./executive-personnel-types";
 
 type RouteSearchParams = Record<string, string | string[] | undefined>;
+const BACKEND_MAX_LIMIT = 100;
 
 function readFirst(value?: string | string[]) {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -39,6 +40,42 @@ function sortAreaOptions(items: PersonnelAreaOption[]) {
   return [...items].sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
 }
 
+async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
+  const items: T[] = [];
+  let page = 1;
+  let latestPagination: PaginationMeta | undefined;
+
+  while (true) {
+    const envelope = await apiServerFetchEnvelope<T[]>(path, {
+      query: {
+        ...query,
+        page,
+        limit: BACKEND_MAX_LIMIT,
+      },
+    });
+
+    items.push(...envelope.data);
+    latestPagination = envelope.meta?.pagination;
+
+    const totalPages = latestPagination?.totalPages;
+    if (totalPages ? page >= totalPages : envelope.data.length < BACKEND_MAX_LIMIT) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return {
+    data: items,
+    pagination: {
+      page: 1,
+      limit: items.length,
+      total: latestPagination?.total ?? items.length,
+      totalPages: 1,
+    } satisfies PaginationMeta,
+  };
+}
+
 export async function ExecutivePersonnelPage({
   searchParams,
 }: {
@@ -54,24 +91,17 @@ export async function ExecutivePersonnelPage({
     ...(queryState.districtId ? { districtId: queryState.districtId } : {}),
   };
   const [
-    listEnvelope,
+    listResult,
     map,
-    provinces,
+    provinceResult,
     regenciesFromRegency,
     regenciesFromCity,
     districts,
   ] = await Promise.all([
-    apiServerFetchEnvelope<PersonnelListItem[]>("/executive/personnel", {
-      query: {
-        page: queryState.page,
-        limit: queryState.limit,
-        ...commonQuery,
-      },
-    }),
+    fetchAllPages<PersonnelListItem>("/executive/personnel", commonQuery),
     apiServerGet<PersonnelMapPayload>("/executive/personnel/map", commonQuery),
-    apiServerGet<PersonnelAreaOption[]>("/administrative-areas", {
+    fetchAllPages<PersonnelAreaOption>("/administrative-areas", {
       level: "PROVINCE",
-      limit: 1000,
       isActive: true,
     }),
     queryState.provinceId
@@ -96,12 +126,12 @@ export async function ExecutivePersonnelPage({
 
   return (
     <ExecutivePersonnelClient
-      items={listEnvelope.data}
-      pagination={listEnvelope.meta?.pagination as PaginationMeta | undefined}
+      items={listResult.data}
+      pagination={listResult.pagination}
       map={map}
       queryState={queryState}
       areaFilters={{
-        provinces: sortAreaOptions(provinces),
+        provinces: sortAreaOptions(provinceResult.data),
         regencies: sortAreaOptions([...regenciesFromRegency, ...regenciesFromCity]),
         districts: sortAreaOptions(districts),
       }}

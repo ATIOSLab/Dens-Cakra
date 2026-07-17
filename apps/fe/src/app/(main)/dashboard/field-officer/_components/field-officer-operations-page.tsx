@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import type {
   FieldOfficerIncoming,
@@ -234,6 +236,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   const [taskPeriodStart, setTaskPeriodStart] = useState("");
   const [taskPeriodEnd, setTaskPeriodEnd] = useState("");
 
+  const [tasksPage, setTasksPage] = useState(1);
+  const [tasksLimit, setTasksLimit] = useState(10);
+  const [incomingPage, setIncomingPage] = useState(1);
+  const [incomingLimit, setIncomingLimit] = useState(10);
+
   const filteredTasks = useMemo(() => {
     if (!workspace?.tasks) return [];
     return workspace.tasks.filter((task) => {
@@ -256,6 +263,27 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       return true;
     });
   }, [workspace?.tasks, taskClassificationFilter, taskPeriodStart, taskPeriodEnd]);
+
+  useEffect(() => {
+    setTasksPage(1);
+  }, [filteredTasks]);
+
+  const safeTasksPage = Math.min(tasksPage, Math.max(1, Math.ceil(filteredTasks.length / tasksLimit)));
+  const paginatedTasks = useMemo(() => {
+    return filteredTasks.slice((safeTasksPage - 1) * tasksLimit, safeTasksPage * tasksLimit);
+  }, [filteredTasks, safeTasksPage, tasksLimit]);
+
+  const totalIncoming = workspace?.incoming?.length ?? 0;
+  const totalIncomingPages = Math.max(1, Math.ceil(totalIncoming / incomingLimit));
+  const safeIncomingPage = Math.min(incomingPage, totalIncomingPages);
+  const paginatedIncoming = useMemo(() => {
+    if (!workspace?.incoming) return [];
+    return workspace.incoming.slice((safeIncomingPage - 1) * incomingLimit, safeIncomingPage * incomingLimit);
+  }, [workspace?.incoming, safeIncomingPage, incomingLimit]);
+
+  useEffect(() => {
+    setIncomingPage(1);
+  }, [workspace?.incoming]);
 
   useEffect(() => {
     const raw = window.sessionStorage.getItem(FORWARDED_STORAGE_KEY);
@@ -385,6 +413,31 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   const createJaring = async () => {
     if (!workspace) {
+      return;
+    }
+
+    if (!jaringForm.code.trim()) {
+      toast.error("Kode Jaring harus diisi.");
+      return;
+    }
+    if (!jaringForm.aliasName.trim()) {
+      toast.error("Alias / Nama Sandi harus diisi.");
+      return;
+    }
+    if (!jaringForm.whatsappNumber.trim()) {
+      toast.error("Nomor WhatsApp harus diisi.");
+      return;
+    }
+    if (!jaringForm.clusterId.trim()) {
+      toast.error("Silakan pilih Cluster Jaring.");
+      return;
+    }
+    if (!jaringForm.areaId.trim()) {
+      toast.error("Silakan pilih Area Utama.");
+      return;
+    }
+    if (!jaringForm.notes.trim()) {
+      toast.error("Catatan Pembinaan harus diisi.");
       return;
     }
 
@@ -987,7 +1040,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredTasks.map((task) => {
+                        {paginatedTasks.map((task) => {
                           const _action = nextTaskAction(task.assignmentStatus);
                           const forwarded = forwardedAssignments.includes(task.assignmentId);
                           const classStyle = getClassificationStyles(task.classification || "BIASA");
@@ -1069,7 +1122,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  {filteredTasks.map((task) => {
+                  {paginatedTasks.map((task) => {
                     const action = nextTaskAction(task.assignmentStatus);
                     const forwarded = forwardedAssignments.includes(task.assignmentId);
                     return (
@@ -1090,6 +1143,20 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                     );
                   })}
                 </div>
+              )}
+
+              {filteredTasks.length > 0 && (
+                <TablePagination
+                  page={safeTasksPage}
+                  limit={tasksLimit}
+                  total={filteredTasks.length}
+                  onPageChange={setTasksPage}
+                  onLimitChange={(limit) => {
+                    setTasksLimit(limit);
+                    setTasksPage(1);
+                  }}
+                  className="mt-4 border border-slate-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#131A26] px-6"
+                />
               )}
             </div>
           </TacticalSection>
@@ -1156,12 +1223,13 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       className="tactical-input w-full"
                       placeholder="Contoh: 628123456789"
                       value={jaringForm.whatsappNumber}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const val = event.target.value.replace(/\D/g, "");
                         setJaringForm((current) => ({
                           ...current,
-                          whatsappNumber: event.target.value,
-                        }))
-                      }
+                          whatsappNumber: val,
+                        }));
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1226,10 +1294,36 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                   </div>
                   <button
                     disabled={isBusy === "jaring:create"}
-                    onClick={() => setShowSaveJaringConfirm(true)}
+                    onClick={() => {
+                      if (!jaringForm.code.trim()) {
+                        toast.error("Kode Jaring harus diisi.");
+                        return;
+                      }
+                      if (!jaringForm.aliasName.trim()) {
+                        toast.error("Alias / Nama Sandi harus diisi.");
+                        return;
+                      }
+                      if (!jaringForm.whatsappNumber.trim()) {
+                        toast.error("Nomor WhatsApp harus diisi.");
+                        return;
+                      }
+                      if (!jaringForm.clusterId.trim()) {
+                        toast.error("Silakan pilih Cluster Jaring.");
+                        return;
+                      }
+                      if (!jaringForm.areaId.trim()) {
+                        toast.error("Silakan pilih Area Utama.");
+                        return;
+                      }
+                      if (!jaringForm.notes.trim()) {
+                        toast.error("Catatan Pembinaan harus diisi.");
+                        return;
+                      }
+                      setShowSaveJaringConfirm(true);
+                    }}
                     className="h-[40px] w-full cursor-pointer rounded-[4px] bg-[#16A34A] px-[18px] font-mono font-semibold text-sm text-white uppercase tracking-[0.04em] shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#15803D] hover:brightness-105 active:scale-[0.98] active:bg-[#166534] disabled:opacity-50"
                   >
-                    {isBusy === "jaring:create" ? "SAVING..." : "SIMPAN JARING"}
+                    {isBusy === "jaring:create" ? "MENYIMPAN..." : "SIMPAN JARING"}
                   </button>
 
                   <AlertDialog open={showSaveJaringConfirm} onOpenChange={setShowSaveJaringConfirm}>
@@ -1391,8 +1485,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                 icon={Inbox}
               />
             ) : (
-              <div className="grid gap-4">
-                {workspace.incoming.map((message) => (
+              <>
+                <div className="grid gap-4">
+                {paginatedIncoming.map((message) => (
                   <div key={message.id} className="tactical-card space-y-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="flex-1 space-y-2">
@@ -1409,8 +1504,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                             JARING: {message.jaringCode}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
-                          {message.title || message.jaringAlias}
+                        <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg hover:underline hover:text-[var(--tactical-blue)] cursor-pointer">
+                          <Link href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}>
+                            {message.title || message.jaringAlias}
+                          </Link>
                         </h3>
                         <p className="text-[var(--tactical-text-secondary)] text-sm leading-relaxed">
                           {message.content || "Pesan belum memiliki isi teks."}
@@ -1447,10 +1544,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                               </p>
                             )}
                             <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-[var(--tactical-text-muted)]">
-                              <span>MEDIA DB: {message.mediaCount}</span>
-                              <span>FILE ID: {message.photoFileId || "-"}</span>
-                              <span>WA ID: {message.photoMessageId || "-"}</span>
-                              {message.photoCaption && <span>CAPTION: {message.photoCaption}</span>}
+                                <span>MEDIA DB: {message.mediaCount}</span>
+                                <span>FILE ID: {message.photoFileId || "-"}</span>
+                                <span>WA ID: {message.photoMessageId || "-"}</span>
+                                {message.photoCaption && <span>CAPTION: {message.photoCaption}</span>}
                             </div>
                           </div>
                         )}
@@ -1512,7 +1609,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                           }`}
                         >
                           {isBusy === `validate:${message.id}`
-                            ? "VALIDATING..."
+                            ? "MEMVALIDASI..."
                             : message.validationSummary === "VALID"
                               ? "VERIFIKASI"
                               : "VALIDASI"}
@@ -1538,7 +1635,22 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                   </div>
                 ))}
               </div>
-            )}
+
+              {totalIncoming > 0 && (
+                <TablePagination
+                  page={safeIncomingPage}
+                  limit={incomingLimit}
+                  total={totalIncoming}
+                  onPageChange={setIncomingPage}
+                  onLimitChange={(limit) => {
+                    setIncomingLimit(limit);
+                    setIncomingPage(1);
+                  }}
+                  className="mt-4 border border-slate-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#131A26] px-6"
+                />
+              )}
+            </>
+          )}
           </TacticalSection>
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>
@@ -1995,11 +2107,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       {view === "alert" && (
         <TacticalSection
           code="MOD-06"
-          title="PANIC & EMERGENCY FLOW"
+          title="ALUR DARURAT & PANIK"
           description="Eskalasi darurat terpusat. Kirim lokasi darurat secara langsung ke coordinator."
           metadata={[
-            { label: "EMERGENCY UNIT", value: "FC COMMAND UNIT" },
-            { label: "ROUTE STATUS", value: "DIRECT LINE" },
+            { label: "UNIT DARURAT", value: "UNIT KOMANDO FC" },
+            { label: "STATUS RUTE", value: "JALUR LANGSUNG" },
           ]}
         >
           <div className="tactical-card space-y-4 border-[var(--tactical-red)]/30 bg-[var(--tactical-red)]/[0.02]">
@@ -2009,7 +2121,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               </div>
               <div>
                 <h3 className="font-semibold text-[var(--tactical-red)] text-lg tracking-tight">
-                  Panic & Emergency Flow
+                  Alur Darurat & Panik
                 </h3>
                 <p className="text-[var(--tactical-text-secondary)] text-xs">
                   Tombol darurat tetap berpusat pada pengiriman lokasi dan eskalasi ke coordinator/regional.
@@ -2049,7 +2161,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                   }
                   className="h-[40px] cursor-pointer rounded-[4px] bg-[#991B1B] px-[18px] font-mono font-semibold text-white text-xs uppercase tracking-[0.04em] transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#DC2626] hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
                 >
-                  {isBusy === "location:publish" ? "SENDING..." : "KIRIM LOKASI DARURAT"}
+                  {isBusy === "location:publish" ? "MENGIRIM..." : "KIRIM LOKASI DARURAT"}
                 </button>
               </div>
             </div>

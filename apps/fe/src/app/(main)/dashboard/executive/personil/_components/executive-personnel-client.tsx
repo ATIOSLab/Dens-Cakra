@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import { Map, MapControls, MapMarker, MapMarkerPopup } from "@/components/ui/map
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -548,13 +549,22 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [_systemClock, setSystemClock] = useState("SYNCING...");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
 
-  const totalPersonnel = pagination?.total ?? items.length;
+  const totalPersonnel = items.length;
   const onlineCount = (map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0);
   const noSignalCount = map.meta.counts.byStatus.NO_SIGNAL ?? 0;
-  const currentPage = pagination?.page ?? queryState.page;
-  const totalPages = Math.max(pagination?.totalPages ?? 1, 1);
-  const pageNumbers = paginationPages(currentPage, totalPages);
+  const totalPages = Math.max(1, Math.ceil(totalPersonnel / rowsPerPage));
+  const safePage = Math.min(page, totalPages);
+
+  const paginatedItems = useMemo(() => {
+    return items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+  }, [items, safePage, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [items]);
 
   const applyFilter = (overrides: Partial<PersonnelListQueryState>) => {
     startTransition(() => {
@@ -773,49 +783,20 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
             </section>
 
             {/* Personnel Database Table */}
-            <PersonnelTable items={items} isPending={isPending} onReset={resetFilters} />
+            <PersonnelTable items={paginatedItems} isPending={isPending} onReset={resetFilters} />
 
             {/* Pagination Controls bar */}
-            <nav className="flex select-none flex-col gap-3 rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-3 text-sm md:flex-row md:items-center md:justify-between dark:border-slate-800 dark:bg-[#080d14]/80">
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[10px] text-[var(--dc-text-muted)] uppercase">Batas:</span>
-                <select
-                  value={String(queryState.limit)}
-                  onChange={(event) => applyFilter({ limit: Number.parseInt(event.target.value, 10) })}
-                  className="h-8 rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] px-2 font-mono text-foreground text-xs outline-none focus:border-[var(--dc-primary)] dark:border-slate-800 dark:bg-slate-950"
-                >
-                  {[10, 20, 50, 100].map((value) => (
-                    <option key={value} value={value} className="bg-[var(--dc-card)] text-foreground">
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <PageLink href={paginationHref(queryState, Math.max(currentPage - 1, 1))} disabled={currentPage <= 1}>
-                  Sebelumnya
-                </PageLink>
-                {pageNumbers.map((page, index) => {
-                  const previous = pageNumbers[index - 1];
-                  return (
-                    <span key={page} className="flex items-center gap-1.5">
-                      {previous && page - previous > 1 ? (
-                        <span className="px-1 font-mono text-slate-600 text-xs">...</span>
-                      ) : null}
-                      <PageLink href={paginationHref(queryState, page)} active={page === currentPage}>
-                        {page}
-                      </PageLink>
-                    </span>
-                  );
-                })}
-                <PageLink
-                  href={paginationHref(queryState, Math.min(currentPage + 1, totalPages))}
-                  disabled={currentPage >= totalPages}
-                >
-                  Berikutnya
-                </PageLink>
-              </div>
-            </nav>
+            <TablePagination
+              page={safePage}
+              limit={rowsPerPage}
+              total={totalPersonnel}
+              onPageChange={setPage}
+              onLimitChange={(limit) => {
+                setRowsPerPage(limit);
+                setPage(1);
+              }}
+              className="rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 dark:border-slate-800 dark:bg-[#080d14]/80 px-6 py-3.5"
+            />
           </TabsContent>
 
           {/* Geospatial Map Tab View */}
