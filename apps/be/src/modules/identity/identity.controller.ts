@@ -20,6 +20,7 @@ import { apiResult } from '../../common/api/api-response.js';
 import {
   AreaScopeQueryDto,
   RevokeOtherSessionsDto,
+  UpdateSessionNetworkDto,
 } from './dto/identity.dto.js';
 import { IdentityService } from './identity.service.js';
 
@@ -91,5 +92,25 @@ export class IdentityController {
       metadata: body.reason ? { reason: body.reason } : undefined,
     });
     return apiResult({ revoked: true }, 'Other sessions were revoked.');
+  }
+
+  @Post('session-network')
+  @ApiContract({
+    operationId: 'apiCtx005',
+    contractId: 'API-CTX-005',
+    summary: 'Simpan public IP dan kota untuk sesi login aktif',
+    idempotent: true,
+  })
+  async updateSessionNetwork(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: UpdateSessionNetworkDto,
+  ) {
+    return apiResult(
+      await this.identity.updateSessionNetwork({
+        sessionId: request.authSession!.id,
+        authUserId: request.authUser!.id,
+        ipAddress: body.ipAddress,
+      }),
+    );
   }
 }

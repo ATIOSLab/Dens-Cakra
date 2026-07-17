@@ -36,7 +36,12 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       }
     >
       <RoleWorkspaceProvider principal={principal}>
-        <ClientNetworkProvider>
+        <ClientNetworkProvider
+          network={{
+            ipAddress: principal.session.ipAddress ?? "IP tidak tersedia",
+            locationLabel: principal.session.locationLabel ?? "Lokasi tidak tersedia",
+          }}
+        >
           <AppSidebar variant={variant} collapsible={collapsible} />
           <SidebarInset
             className={cn(

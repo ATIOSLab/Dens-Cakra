@@ -81,4 +81,44 @@ describe('JaringService registration security', () => {
     });
     expect(prisma.jaring.create).not.toHaveBeenCalled();
   });
+
+  it('melakukan soft delete dan menyimpan audit delete', async () => {
+    const update = jest.fn(() => Promise.resolve({}));
+    const findFirstOrThrow = jest.fn(() =>
+      Promise.resolve({
+        id: 'jaring-id',
+        status: 'ARCHIVED',
+        deletedAt: new Date(),
+      }),
+    );
+    const auditCreate = jest.fn(() => Promise.resolve({}));
+    const service = new JaringService(
+      {
+        jaring: { update, findFirstOrThrow },
+        auditLog: { create: auditCreate },
+      } as never,
+      {} as never,
+    );
+
+    await service.softDelete('jaring-id', { reason: 'Tidak lagi dibina' }, {
+      userProfileId: 'profile-id',
+      primaryAssignmentId: 'assignment-id',
+    } as never);
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'jaring-id' },
+      data: {
+        status: 'ARCHIVED',
+        deletedAt: expect.any(Date),
+      },
+    });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'JARING.DELETE',
+        entityType: 'Jaring',
+        entityId: 'jaring-id',
+        metadata: { reason: 'Tidak lagi dibina' },
+      }),
+    });
+  });
 });

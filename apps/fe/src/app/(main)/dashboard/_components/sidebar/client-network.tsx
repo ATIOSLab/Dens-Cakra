@@ -3,118 +3,35 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 import { MapPinned } from "lucide-react";
-import { publicIp } from "public-ip";
+
+import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { detectPublicIp } from "@/lib/network/public-ip";
 
 type ClientNetwork = {
   ipAddress: string;
   locationLabel: string;
 };
 
-type CachedClientNetwork = ClientNetwork & {
-  expiresAt: number;
-};
-
-type IpLocationPayload = {
-  success?: boolean;
-  city?: string | null;
-  region?: string | null;
-  country?: string | null;
-};
-
-const CLIENT_NETWORK_CACHE_KEY = "denscakra.client-network";
-const CLIENT_NETWORK_CACHE_TTL_MS = 30 * 60 * 1000;
 const ClientNetworkContext = createContext<ClientNetwork | null>(null);
 
-function readCachedClientNetwork() {
-  try {
-    const value = sessionStorage.getItem(CLIENT_NETWORK_CACHE_KEY);
-    const cached = value ? (JSON.parse(value) as Partial<CachedClientNetwork>) : null;
-
-    if (
-      cached &&
-      typeof cached.ipAddress === "string" &&
-      typeof cached.locationLabel === "string" &&
-      typeof cached.expiresAt === "number" &&
-      cached.expiresAt > Date.now()
-    ) {
-      return { ipAddress: cached.ipAddress, locationLabel: cached.locationLabel };
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function cacheClientNetwork(network: ClientNetwork) {
-  const cached: CachedClientNetwork = {
-    ...network,
-    expiresAt: Date.now() + CLIENT_NETWORK_CACHE_TTL_MS,
-  };
-
-  try {
-    sessionStorage.setItem(CLIENT_NETWORK_CACHE_KEY, JSON.stringify(cached));
-  } catch {
-    return;
-  }
-}
-
-async function getClientNetwork(signal: AbortSignal): Promise<ClientNetwork> {
-  const ipAddress = await publicIp({ signal, timeout: 5000 });
-  let locationLabel = "Lokasi tidak tersedia";
-
-  try {
-    const response = await fetch(`https://ipwho.is/${encodeURIComponent(ipAddress)}`, {
-      cache: "no-store",
-      headers: { accept: "application/json" },
-      signal,
-    });
-    const payload = response.ok ? ((await response.json()) as IpLocationPayload) : null;
-    const parts = payload?.success ? [payload.city, payload.region, payload.country].filter(Boolean) : [];
-
-    if (parts.length > 0) {
-      locationLabel = parts.join(", ");
-    }
-  } catch {
-    // The public IP remains useful when geolocation is unavailable.
-  }
-
-  return { ipAddress, locationLabel };
-}
-
-export function ClientNetworkProvider({ children }: Readonly<{ children: React.ReactNode }>) {
-  const [network, setNetwork] = useState<ClientNetwork>({
-    ipAddress: "Mendeteksi IP...",
-    locationLabel: "Jaringan perangkat pengguna",
-  });
+export function ClientNetworkProvider({
+  children,
+  network,
+}: Readonly<{ children: React.ReactNode; network: ClientNetwork }>) {
+  const [currentNetwork, setCurrentNetwork] = useState(network);
 
   useEffect(() => {
-    const cached = readCachedClientNetwork();
-    if (cached) {
-      setNetwork(cached);
-      return;
-    }
-
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 8000);
 
-    void getClientNetwork(controller.signal)
-      .then((result) => {
-        setNetwork(result);
-        cacheClientNetwork(result);
-      })
-      .catch(() => {
-        setNetwork({ ipAddress: "IP tidak tersedia", locationLabel: "Periksa koneksi jaringan" });
-      })
-      .finally(() => window.clearTimeout(timeout));
+    void detectPublicIp({ signal: controller.signal, timeout: 5000 })
+      .then((ipAddress) => apiBrowserMutation<ClientNetwork>("POST", "/me/session-network", { ipAddress }))
+      .then(setCurrentNetwork)
+      .catch(() => undefined);
 
-    return () => {
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
+    return () => controller.abort();
   }, []);
 
-  return <ClientNetworkContext.Provider value={network}>{children}</ClientNetworkContext.Provider>;
+  return <ClientNetworkContext.Provider value={currentNetwork}>{children}</ClientNetworkContext.Provider>;
 }
 
 export function useClientNetwork() {

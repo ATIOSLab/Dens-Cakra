@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { authClient } from "@/lib/auth/auth-client";
+import { detectPublicIp } from "@/lib/network/public-ip";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -23,12 +25,37 @@ const formSchema = z.object({
   remember: z.boolean().optional(),
 });
 
-export function LoginForm() {
+type LocationGateState = "idle" | "requesting" | "blocked" | "unsupported";
+
+function requestCurrentPosition() {
+  return new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 20_000,
+    });
+  });
+}
+
+async function syncCurrentSessionNetwork() {
+  const ipAddress = await detectPublicIp({ timeout: 5000 });
+  await apiBrowserMutation("POST", "/me/session-network", { ipAddress });
+}
+
+type LoginFormProps = {
+  officerOnly?: boolean;
+};
+
+export function LoginForm({ officerOnly = false }: LoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [locationGate, setLocationGate] = useState<LocationGateState>("idle");
+  const [locationMessage, setLocationMessage] = useState("");
+  const [loginPosition, setLoginPosition] = useState<GeolocationPosition | null>(null);
+  const hasRequestedLocation = useRef(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,12 +66,55 @@ export function LoginForm() {
     },
   });
 
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+  const requestLoginLocation = async () => {
+    if (!("geolocation" in navigator)) {
+      setLocationMessage("Browser ini tidak mendukung GPS. Gunakan browser modern dan akses aplikasi melalui HTTPS.");
+      setLocationGate("unsupported");
+      return null;
+    }
+
+    setLocationMessage("Menunggu izin lokasi dari browser Anda...");
+    setLocationGate("requesting");
+
+    try {
+      const position = await requestCurrentPosition();
+      setLoginPosition(position);
+      setLocationGate("idle");
+      return position;
+    } catch (error) {
+      const geolocationError = error as GeolocationPositionError;
+      const denied = geolocationError.code === geolocationError.PERMISSION_DENIED;
+      setLocationMessage(
+        denied
+          ? "Izin lokasi ditolak. Ubah izin Location situs ini menjadi Allow, lalu muat ulang halaman."
+          : "Lokasi belum dapat diperoleh. Pastikan GPS perangkat aktif dan sinyal lokasi tersedia, lalu coba lagi.",
+      );
+      setLocationGate("blocked");
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (!officerOnly || hasRequestedLocation.current) {
+      return;
+    }
+
+    hasRequestedLocation.current = true;
+    void requestLoginLocation();
+  }, [officerOnly]);
+
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setFormError(null);
+
+    if (officerOnly && !loginPosition) {
+      setLocationMessage("Izinkan akses lokasi terlebih dahulu agar form login dapat digunakan.");
+      setLocationGate("blocked");
+      return;
+    }
 
     startTransition(async () => {
       const callbackUrl = searchParams.get("callbackUrl")?.trim();
-      const { error } = await authClient.signIn.email({
+      const { data, error } = await authClient.signIn.email({
         email: values.email,
         password: values.password,
         rememberMe: values.remember ?? true,
@@ -60,13 +130,54 @@ export function LoginForm() {
         return;
       }
 
+      const isFieldOfficer = data?.user.role === "field_officer";
+      if (officerOnly && !isFieldOfficer) {
+        await authClient.signOut();
+        setFormError("Halaman ini khusus akun Field Officer. Gunakan halaman login utama untuk role lainnya.");
+        return;
+      }
+
+      if (!officerOnly && isFieldOfficer) {
+        await authClient.signOut();
+        const officerLoginUrl = callbackUrl
+          ? `/auth/officer?callbackUrl=${encodeURIComponent(callbackUrl)}`
+          : "/auth/officer";
+        router.replace(officerLoginUrl);
+        return;
+      }
+
+      await syncCurrentSessionNetwork().catch(() => undefined);
+
+      if (isFieldOfficer && loginPosition) {
+        await fetch("/api/field-officer/live-location", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            latitude: loginPosition.coords.latitude,
+            longitude: loginPosition.coords.longitude,
+            gpsAccuracyMeters: loginPosition.coords.accuracy,
+            capturedAt: new Date(loginPosition.timestamp).toISOString(),
+          }),
+        }).catch(() => undefined);
+      }
+
       router.replace(callbackUrl || "/dashboard");
       router.refresh();
     });
   };
 
+  const isLocating = locationGate === "requesting";
+  const isLocationReady = !officerOnly || loginPosition !== null;
+  const isBusy = isPending || isLocating;
+  const isFormDisabled = isBusy || !isLocationReady;
+
   return (
     <form noValidate onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-4">
+      {(locationGate === "blocked" || locationGate === "unsupported") && (
+        <Alert variant="destructive" className="rounded-xl border-red-500/20 bg-red-500/5 text-red-600">
+          <AlertDescription className="text-xs">{locationMessage}</AlertDescription>
+        </Alert>
+      )}
       {formError ? (
         <Alert
           variant="destructive"
@@ -98,7 +209,7 @@ export function LoginForm() {
                   placeholder="name@organization.gov"
                   autoComplete="email"
                   aria-invalid={fieldState.invalid}
-                  disabled={isPending}
+                  disabled={isFormDisabled}
                   className="pl-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-11"
                 />
               </div>
@@ -128,7 +239,7 @@ export function LoginForm() {
                   placeholder="••••••••"
                   autoComplete="current-password"
                   aria-invalid={fieldState.invalid}
-                  disabled={isPending}
+                  disabled={isFormDisabled}
                   className="pl-9 pr-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-11"
                 />
                 <button
@@ -157,7 +268,7 @@ export function LoginForm() {
                   checked={field.value}
                   onCheckedChange={(checked) => field.onChange(Boolean(checked))}
                   aria-invalid={fieldState.invalid}
-                  disabled={isPending}
+                  disabled={isFormDisabled}
                   className="border-border rounded-[4px]"
                 />
                 <FieldContent>
@@ -186,9 +297,14 @@ export function LoginForm() {
       <Button
         className="w-full h-11 sm:h-12 bg-cyan-600 text-white dark:bg-[#14B8FF] dark:text-slate-950 hover:bg-cyan-500 dark:hover:bg-cyan-400 font-bold font-sans rounded-[8px] cursor-pointer shadow-sm mt-2 transition-colors flex items-center justify-center gap-2"
         type="submit"
-        disabled={isPending}
+        disabled={isFormDisabled}
       >
-        {isPending ? (
+        {isLocating ? (
+          <>
+            <RefreshCw className="size-4 animate-spin" />
+            <span>MENUNGGU IZIN LOKASI...</span>
+          </>
+        ) : isPending ? (
           <>
             <RefreshCw className="size-4 animate-spin" />
             <span>CONNECTING...</span>

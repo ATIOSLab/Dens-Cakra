@@ -126,6 +126,14 @@ export default async function KeamananAuditPage() {
   const currentSession = sessions.find((session) => session.isCurrentSession) ?? sessions[0] ?? null;
   const recentLoginCount = auditLogs.filter((log) => log.action === "auth.session.created").length;
   const revokedLoginCount = auditLogs.filter((log) => log.action === "auth.session.deleted").length;
+  const resolvedSessionIds = new Set(
+    auditLogs
+      .filter((log) => log.action === "auth.session.network_resolved" && log.entityId)
+      .map((log) => log.entityId),
+  );
+  const displayedAuditLogs = auditLogs.filter(
+    (log) => !(log.action === "auth.session.created" && log.entityId && resolvedSessionIds.has(log.entityId)),
+  );
 
   return (
     <div className="space-y-5">
@@ -245,13 +253,13 @@ export default async function KeamananAuditPage() {
             <CardDescription>Jejak login dan logout yang sudah tersimpan di audit log.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {auditLogs.length > 0 ? (
-              auditLogs.map((log, index) => (
+            {displayedAuditLogs.length > 0 ? (
+              displayedAuditLogs.map((log, index) => (
                 <div key={log.id}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={log.action === "auth.session.created" ? "default" : "outline"}>
+                        <Badge variant={log.action === "auth.session.deleted" ? "outline" : "default"}>
                           {log.action}
                         </Badge>
                         <span className="text-sm font-medium text-foreground">
@@ -267,7 +275,7 @@ export default async function KeamananAuditPage() {
                     </div>
                     <span className="shrink-0 text-xs text-muted-foreground">{formatDateTime(log.createdAt)}</span>
                   </div>
-                  {index < auditLogs.length - 1 ? <Separator className="my-3" /> : null}
+                  {index < displayedAuditLogs.length - 1 ? <Separator className="my-3" /> : null}
                 </div>
               ))
             ) : (
