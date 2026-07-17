@@ -1,12 +1,14 @@
 // biome-ignore-all lint/nursery/useSortedClasses: Preserves selected finalkalife UI class composition.
+// biome-ignore-all lint/style/noNestedTernary: Keeps existing conditional UI branches readable in-place.
 
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   Background,
   BackgroundVariant,
+  Controls,
   type Edge,
   Handle,
   MarkerType,
@@ -19,7 +21,8 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { Building2, CheckCircle2, Circle, type LucideIcon, RadioTower, Shield, UserRound, Users } from "lucide-react";
+import { CheckCircle2, Circle, type LucideIcon, RadioTower, Shield, UserRound, Users } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -34,7 +37,8 @@ import { cn } from "@/lib/utils";
 import { formatDate, getCurrentVersion } from "./directive-shared";
 
 type PipelineStageId = "executive" | "regional" | "oim" | "coordinator" | "officer";
-type PipelineStatus = "COMPLETED" | "IN_PROGRESS" | "PENDING";
+type PipelineStatus = "COMPLETED" | "IN_PROGRESS" | "PENDING" | "REJECTED";
+type CommandBranch = "DIRECTORATE" | "BINDA" | "PUSAT" | "OTHER";
 
 type PipelineDetail = {
   label: string;
@@ -44,6 +48,9 @@ type PipelineDetail = {
 type PipelineItem = {
   id: string;
   parentId?: string | null;
+  branch?: CommandBranch;
+  positionCode?: string | null;
+  roleCode?: string | null;
   name: string;
   status: PipelineStatus;
   statusLabel: string;
@@ -63,9 +70,18 @@ type PipelineNodeData = Record<string, unknown> & {
   progressText: string;
   icon: LucideIcon;
   onClick: () => void;
+  animationClass?: string;
 };
 
 type PipelineReactFlowNode = Node<PipelineNodeData, "pipeline">;
+
+type LaneNodeData = Record<string, unknown> & {
+  branch: "BINDA" | "DIRECTORATE";
+  label: string;
+};
+
+type LaneReactFlowNode = Node<LaneNodeData, "lane">;
+type TrackingReactFlowNode = PipelineReactFlowNode | LaneReactFlowNode;
 
 const statusColors = {
   COMPLETED: {
@@ -98,6 +114,16 @@ const statusColors = {
     iconBg: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
     edgeColor: "#64748B",
   },
+  REJECTED: {
+    border: "border-red-500/40 dark:border-red-500/30 hover:border-red-500 dark:hover:border-red-400",
+    bg: "bg-red-50/50 dark:bg-red-950/10",
+    text: "text-red-600 dark:text-red-400",
+    badgeBg: "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400",
+    progressBg: "bg-red-500 dark:bg-red-400",
+    statusText: "Ditolak",
+    iconBg: "bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400",
+    edgeColor: "#EF4444",
+  },
 } satisfies Record<
   PipelineStatus,
   {
@@ -117,7 +143,7 @@ const COMPLETED_STATUSES = new Set(["COMPLETED", "DISTRIBUTED"]);
 const ACTIVE_STATUSES = new Set(["READ", "ACKNOWLEDGED", "IN_PROGRESS", "REASSIGNED", "SENT"]);
 
 function PipelineNodeCard({ data }: NodeProps<PipelineReactFlowNode>) {
-  const { label, subtitle, status, progressPercent, progressText, icon: Icon, onClick } = data;
+  const { label, subtitle, status, progressPercent, progressText, icon: Icon, onClick, animationClass } = data;
   const style = statusColors[status];
 
   return (
@@ -128,6 +154,7 @@ function PipelineNodeCard({ data }: NodeProps<PipelineReactFlowNode>) {
         "relative flex h-[104px] w-[220px] cursor-pointer select-none flex-col justify-between rounded-lg border bg-[var(--dc-card)] p-4 text-left shadow-[0_4px_16px_rgba(0,0,0,0.06)] outline-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_22px_rgba(0,0,0,0.12)] active:scale-[0.98]",
         style.border,
         style.bg,
+        animationClass,
       )}
     >
       <Handle type="target" position={Position.Left} className="!size-0 !opacity-0" />
@@ -170,7 +197,18 @@ function PipelineNodeCard({ data }: NodeProps<PipelineReactFlowNode>) {
 }
 
 const MemoPipelineNodeCard = memo(PipelineNodeCard);
-const NODE_TYPES = { pipeline: MemoPipelineNodeCard };
+
+function LaneBackdrop(_: NodeProps<LaneReactFlowNode>) {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none h-full w-full rounded-xl border border-border/60 bg-muted/10"
+    />
+  );
+}
+
+const MemoLaneBackdrop = memo(LaneBackdrop);
+const NODE_TYPES = { pipeline: MemoPipelineNodeCard, lane: MemoLaneBackdrop };
 
 function normalizeStatus(status?: string | null) {
   return status?.trim().toUpperCase() ?? "";
@@ -180,6 +218,55 @@ function cleanRegionName(name?: string | null) {
   const cleaned = name?.replace(/^(binda|direktorat wilayah|field coordination unit)\s+/i, "").trim();
 
   return cleaned || "Wilayah lainnya";
+}
+
+function normalizeBranch(
+  branch?: string | null,
+  positionCode?: string | null,
+  unitType?: string | null,
+): CommandBranch {
+  const code = positionCode?.trim().toUpperCase();
+  if (["DIREKTUR_WILAYAH", "KASUBDIT", "STAF_SUBDIT"].includes(code ?? "")) {
+    return "DIRECTORATE";
+  }
+
+  if (code === "KABINDA" || code === "KABAGOPS" || code === "KORWIL") {
+    return "BINDA";
+  }
+
+  const rawBranch = branch?.trim().toUpperCase();
+  if (rawBranch === "DIRECTORATE" || rawBranch === "BINDA" || rawBranch === "PUSAT") {
+    return rawBranch;
+  }
+
+  const type = unitType?.trim().toUpperCase();
+  if (type === "DIRECTORATE" || type === "SUBDIRECTORATE") {
+    return "DIRECTORATE";
+  }
+
+  if (type === "BINDA" || type === "BAGOPS") {
+    return "BINDA";
+  }
+
+  return "OTHER";
+}
+
+function branchLabel(branch?: CommandBranch) {
+  if (branch === "DIRECTORATE") return "Cabang Direktorat Wilayah";
+  if (branch === "BINDA") return "Cabang BINDA";
+  if (branch === "PUSAT") return "Pusat Komando";
+  return "Cabang Lainnya";
+}
+
+function branchSubtitle(branch?: CommandBranch) {
+  if (branch === "DIRECTORATE") return "Direktur Wilayah -> Kasubdit -> Petugas Organik";
+  if (branch === "BINDA") return "Kabinda -> Kabagops -> Korwil/Petugas";
+  if (branch === "PUSAT") return "Kendali pusat";
+  return "Jalur distribusi lainnya";
+}
+
+function statusLabel(status: PipelineStatus) {
+  return statusColors[status].statusText;
 }
 
 function detailValue(value: string | number | null | undefined) {
@@ -224,7 +311,7 @@ function resolveItemState({
   inProgressLabel?: string;
   pendingLabel?: string;
 }): Pick<PipelineItem, "status" | "statusLabel"> {
-  if (failed) return { status: "PENDING", statusLabel: pendingLabel };
+  if (failed) return { status: "REJECTED", statusLabel: "Ditolak" };
   if (completed) return { status: "COMPLETED", statusLabel: completedLabel };
   if (inProgress) return { status: "IN_PROGRESS", statusLabel: inProgressLabel };
   return { status: "PENDING", statusLabel: pendingLabel };
@@ -237,7 +324,7 @@ function assignmentStatus(
   const status = normalizeStatus(assignment.status);
 
   if (FAILURE_STATUSES.has(status)) {
-    return { status: "PENDING", statusLabel: "Belum diproses" };
+    return { status: "REJECTED", statusLabel: "Ditolak" };
   }
 
   if (
@@ -258,10 +345,12 @@ function summarizeStage(items: PipelineItem[]) {
   const total = items.length;
   const completed = items.filter((item) => item.status === "COMPLETED").length;
   const inProgress = items.filter((item) => item.status === "IN_PROGRESS").length;
+  const rejected = items.filter((item) => item.status === "REJECTED").length;
 
   let status: PipelineStatus = "PENDING";
   if (total > 0 && completed === total) status = "COMPLETED";
-  else if (completed > 0 || inProgress > 0) status = "IN_PROGRESS";
+  else if (rejected > 0 && completed === 0 && inProgress === 0) status = "REJECTED";
+  else if (completed > 0 || inProgress > 0 || rejected > 0) status = "IN_PROGRESS";
 
   return {
     status,
@@ -279,17 +368,25 @@ function itemProgress(status: PipelineStatus) {
 type TrackingFlowCanvasProps = {
   directive: DirectiveDetail;
   tracking: DirectiveTracking;
+  variant?: "compact" | "full";
 };
 
-function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
+function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingFlowCanvasProps) {
   const [activeStage, setActiveStage] = useState<PipelineStageId | null>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [activeBranch, setActiveBranch] = useState<CommandBranch | null>(null);
+  const [isThemeMounted, setIsThemeMounted] = useState(false);
+  const { resolvedTheme } = useTheme();
   const { fitView } = useReactFlow();
+  const nodeTypes = useMemo(() => NODE_TYPES, []);
+
+  useEffect(() => setIsThemeMounted(true), []);
 
   const currentVersion = getCurrentVersion(directive);
   const uukTitle = currentVersion?.strategicIssue || "STR / Direktif Strategis";
 
-  const hierarchyData = useMemo(() => {
+  const legacyHierarchyData = useMemo(() => {
+    const branchList: PipelineItem[] = [];
     const regionalList: PipelineItem[] = [];
     const oimList: PipelineItem[] = [];
     const coordinatorList: PipelineItem[] = [];
@@ -299,6 +396,13 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
       const recipient = chain.regionalRecipient;
       const regionName = cleanRegionName(
         recipient.targetUnit?.name || recipient.targetPosition?.organizationUnit?.name,
+      );
+      const branch = normalizeBranch(
+        recipient.targetPosition?.branch ||
+          recipient.targetUnit?.branch ||
+          recipient.targetPosition?.organizationUnit?.branch,
+        recipient.targetPosition?.code,
+        recipient.targetUnit?.type || recipient.targetPosition?.organizationUnit?.type,
       );
       const recipientStatus = normalizeStatus(recipient.status);
       const regionalState = resolveItemState({
@@ -312,6 +416,10 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
 
       regionalList.push({
         id: recipient.id,
+        parentId: `branch-${branch}`,
+        branch,
+        positionCode: recipient.targetPosition?.code,
+        roleCode: recipient.targetPosition?.role?.code,
         name:
           recipient.targetPosition?.assigneeName ||
           recipient.targetPosition?.title ||
@@ -327,6 +435,8 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
           { label: "Nama penerima", value: detailValue(recipient.targetPosition?.assigneeName) },
           { label: "Username", value: detailValue(recipient.targetPosition?.assigneeUsername) },
           { label: "Jabatan", value: detailValue(recipient.targetPosition?.title) },
+          { label: "Kode jabatan", value: detailValue(recipient.targetPosition?.code) },
+          { label: "Cabang komando", value: branchLabel(branch) },
           { label: "Seat code", value: detailValue(recipient.targetPosition?.seatCode) },
           {
             label: "Unit organisasi",
@@ -369,8 +479,18 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
         const oimActors = taskActors.length > 0 ? taskActors : [chain.forwarding?.createdBy];
 
         for (const actor of oimActors) {
+          const actorBranch = normalizeBranch(
+            actor?.branch || branch,
+            actor?.positionCode,
+            actor?.organizationUnitType,
+          );
+
           oimList.push({
             id: actor?.assignmentId || chain.forwarding?.id || `oim:${recipient.id}`,
+            parentId: recipient.id,
+            branch: actorBranch,
+            positionCode: actor?.positionCode,
+            roleCode: actor?.roleCode,
             name:
               actor?.fullName ||
               actor?.positionTitle ||
@@ -384,6 +504,8 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
             details: [
               { label: "Nama OIM", value: detailValue(actor?.fullName) },
               { label: "Jabatan", value: detailValue(actor?.positionTitle) },
+              { label: "Kode jabatan", value: detailValue(actor?.positionCode) },
+              { label: "Cabang komando", value: branchLabel(actorBranch) },
               {
                 label: "Unit organisasi",
                 value: detailValue(actor?.organizationUnitName || chain.forwarding?.ownerUnit?.name),
@@ -409,9 +531,23 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
         for (const coordinator of task.fieldCoordinatorAssignments ?? []) {
           const coordinatorState = assignmentStatus(coordinator, true);
           const coordinatorArea = primaryAreaName(coordinator, task, regionName);
+          const coordinatorBranch = normalizeBranch(
+            coordinator.assignee?.branch || branch,
+            coordinator.assignee?.positionCode,
+            coordinator.assignee?.organizationUnitType,
+          );
 
           coordinatorList.push({
             id: coordinator.id,
+            parentId:
+              coordinator.assigner?.assignmentId ||
+              task.createdBy?.assignmentId ||
+              chain.forwarding?.createdBy?.assignmentId ||
+              chain.forwarding?.id ||
+              recipient.id,
+            branch: coordinatorBranch,
+            positionCode: coordinator.assignee?.positionCode,
+            roleCode: coordinator.assignee?.roleCode,
             name:
               coordinator.assignee?.fullName ||
               coordinator.assignee?.positionTitle ||
@@ -427,7 +563,9 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
               { label: "Nama", value: detailValue(coordinator.assignee?.fullName) },
               { label: "Username", value: detailValue(coordinator.assignee?.username) },
               { label: "Jabatan", value: detailValue(coordinator.assignee?.positionTitle) },
+              { label: "Kode jabatan", value: detailValue(coordinator.assignee?.positionCode) },
               { label: "Role", value: detailValue(coordinator.assignee?.roleCode) },
+              { label: "Cabang komando", value: branchLabel(coordinatorBranch) },
               { label: "Unit organisasi", value: detailValue(coordinator.assignee?.organizationUnitName) },
               { label: "Wilayah tugas", value: areaScopeNames(coordinator) },
               { label: "Wilayah utama", value: coordinatorArea },
@@ -447,10 +585,18 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
           for (const officer of coordinator.downstreamAssignments ?? []) {
             const officerState = assignmentStatus(officer);
             const officerArea = primaryAreaName(officer, task, coordinatorArea);
+            const officerBranch = normalizeBranch(
+              officer.assignee?.branch || coordinatorBranch,
+              officer.assignee?.positionCode,
+              officer.assignee?.organizationUnitType,
+            );
 
             officerList.push({
               id: officer.id,
               parentId: coordinator.id,
+              branch: officerBranch,
+              positionCode: officer.assignee?.positionCode,
+              roleCode: officer.assignee?.roleCode,
               name:
                 officer.assignee?.fullName ||
                 officer.assignee?.positionTitle ||
@@ -466,7 +612,9 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
                 { label: "Nama", value: detailValue(officer.assignee?.fullName) },
                 { label: "Username", value: detailValue(officer.assignee?.username) },
                 { label: "Jabatan", value: detailValue(officer.assignee?.positionTitle) },
+                { label: "Kode jabatan", value: detailValue(officer.assignee?.positionCode) },
                 { label: "Role", value: detailValue(officer.assignee?.roleCode) },
+                { label: "Cabang komando", value: branchLabel(officerBranch) },
                 { label: "Unit organisasi", value: detailValue(officer.assignee?.organizationUnitName) },
                 { label: "Wilayah tugas", value: areaScopeNames(officer) },
                 { label: "Wilayah utama", value: officerArea },
@@ -486,7 +634,161 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
       }
     }
 
+    // Ensure both BINDA and DIRECTORATE branches always have regional placeholder nodes if empty
+    const hasBindaRegional = regionalList.some((r) => r.branch === "BINDA");
+    if (!hasBindaRegional) {
+      regionalList.push({
+        id: "binda-default-regional",
+        parentId: "branch-BINDA",
+        branch: "BINDA",
+        name: "Kabinda",
+        status: "PENDING",
+        statusLabel: "Belum diproses",
+        groupName: "Binda",
+        officer: "Kabinda",
+        details: [
+          { label: "Cabang komando", value: "BINDA" },
+          { label: "Status", value: "Belum diproses" },
+        ],
+      });
+      oimList.push({
+        id: "binda-default-oim",
+        parentId: "binda-default-regional",
+        branch: "BINDA",
+        name: "OIM Binda",
+        status: "PENDING",
+        statusLabel: "Belum diproses",
+        groupName: "Binda",
+        officer: "OIM Binda",
+        details: [],
+      });
+      coordinatorList.push({
+        id: "binda-default-coordinator",
+        parentId: "binda-default-oim",
+        branch: "BINDA",
+        name: "Kabagops",
+        status: "PENDING",
+        statusLabel: "Belum diproses",
+        groupName: "Binda",
+        officer: "Kabagops",
+        details: [],
+      });
+      officerList.push({
+        id: "binda-default-officer",
+        parentId: "binda-default-coordinator",
+        branch: "BINDA",
+        name: "Korwil",
+        status: "PENDING",
+        statusLabel: "Belum diproses",
+        groupName: "Binda",
+        officer: "Korwil",
+        details: [],
+      });
+    }
+
+    const hasDirRegional = regionalList.some((r) => r.branch === "DIRECTORATE");
+    if (!hasDirRegional) {
+      regionalList.push({
+        id: "dir-default-regional",
+        parentId: "branch-DIRECTORATE",
+        branch: "DIRECTORATE",
+        name: "Direktur Wilayah",
+        status: "PENDING",
+        statusLabel: "Belum diproses",
+        groupName: "Direktorat Wilayah",
+        officer: "Direktur Wilayah",
+        details: [
+          { label: "Cabang komando", value: "DIRECTORATE" },
+          { label: "Status", value: "Belum diproses" },
+        ],
+      });
+      oimList.push({
+        id: "dir-default-oim",
+        parentId: "dir-default-regional",
+        branch: "DIRECTORATE",
+        name: "OIM Direktorat",
+        status: "PENDING",
+        statusLabel: "Belum diproses",
+        groupName: "Direktorat Wilayah",
+        officer: "OIM Direktorat",
+        details: [],
+      });
+      coordinatorList.push({
+        id: "dir-default-coordinator",
+        parentId: "dir-default-oim",
+        branch: "DIRECTORATE",
+        name: "Staf Subdit",
+        status: "PENDING",
+        statusLabel: "Belum diproses",
+        groupName: "Direktorat Wilayah",
+        officer: "Staf Subdit",
+        details: [],
+      });
+      officerList.push({
+        id: "dir-default-officer",
+        parentId: "dir-default-coordinator",
+        branch: "DIRECTORATE",
+        name: "Agen",
+        status: "PENDING",
+        statusLabel: "Belum diproses",
+        groupName: "Direktorat Wilayah",
+        officer: "Agen",
+        details: [],
+      });
+    }
+
+    const regionalByBranch = new Map<CommandBranch, PipelineItem[]>();
+    for (const regional of regionalList) {
+      const branch = regional.branch ?? "OTHER";
+      const items = regionalByBranch.get(branch) ?? [];
+      items.push(regional);
+      regionalByBranch.set(branch, items);
+    }
+
+    // Ensure BINDA and DIRECTORATE always exist in regionalByBranch keys
+    if (!regionalByBranch.has("BINDA")) {
+      regionalByBranch.set("BINDA", []);
+    }
+    if (!regionalByBranch.has("DIRECTORATE")) {
+      regionalByBranch.set("DIRECTORATE", []);
+    }
+
+    for (const branch of Array.from(regionalByBranch.keys()).sort((left, right) => {
+      const order: Record<CommandBranch, number> = { BINDA: 0, DIRECTORATE: 1, PUSAT: 2, OTHER: 3 };
+      return order[left] - order[right];
+    })) {
+      const branchRegionalItems = regionalByBranch.get(branch) ?? [];
+      const summary =
+        branchRegionalItems.length > 0
+          ? summarizeStage(branchRegionalItems)
+          : { status: "PENDING" as PipelineStatus, progress: 0, text: "0 penerima" };
+
+      branchList.push({
+        id: `branch-${branch}`,
+        branch,
+        name: branchLabel(branch),
+        status: summary.status,
+        statusLabel: statusLabel(summary.status),
+        groupName: branchLabel(branch),
+        officer: branchSubtitle(branch),
+        details: [
+          { label: "Cabang komando", value: branchLabel(branch) },
+          { label: "Rute jabatan", value: branchSubtitle(branch) },
+          { label: "Jumlah penerima regional", value: detailValue(branchRegionalItems.length) },
+          {
+            label: "Sudah selesai",
+            value: detailValue(branchRegionalItems.filter((item) => item.status === "COMPLETED").length),
+          },
+          {
+            label: "Sebagian diproses",
+            value: detailValue(branchRegionalItems.filter((item) => item.status === "IN_PROGRESS").length),
+          },
+        ],
+      });
+    }
+
     return {
+      branch: deduplicateItems(branchList),
       regional: deduplicateItems(regionalList),
       oim: deduplicateItems(oimList),
       coordinator: deduplicateItems(coordinatorList),
@@ -494,12 +796,210 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
     };
   }, [tracking.regionalChains]);
 
+  const hierarchyData = useMemo(() => {
+    if (!tracking.routingHierarchy.length) return legacyHierarchyData;
+
+    const regionalByPositionId = new Map<string, DirectiveTracking["regionalChains"][number]>();
+    const regionalByUnitId = new Map<string, DirectiveTracking["regionalChains"][number]>();
+    const oimByPositionId = new Map<
+      string,
+      { chain: DirectiveTracking["regionalChains"][number]; task: DirectiveTrackingTask }
+    >();
+    const assignmentByPositionId = new Map<
+      string,
+      { assignment: DirectiveTrackingAssignment; task: DirectiveTrackingTask }
+    >();
+
+    for (const chain of tracking.regionalChains) {
+      const targetPositionId = chain.regionalRecipient.targetPosition?.id;
+      const targetUnitId =
+        chain.regionalRecipient.targetUnit?.id || chain.regionalRecipient.targetPosition?.organizationUnit?.id;
+      if (targetPositionId) regionalByPositionId.set(targetPositionId, chain);
+      if (targetUnitId) regionalByUnitId.set(targetUnitId, chain);
+
+      for (const task of chain.oimTasks ?? []) {
+        if (task.createdBy?.positionId) {
+          oimByPositionId.set(task.createdBy.positionId, { chain, task });
+        }
+        for (const coordinator of task.fieldCoordinatorAssignments ?? []) {
+          if (coordinator.assignee?.positionId) {
+            assignmentByPositionId.set(coordinator.assignee.positionId, { assignment: coordinator, task });
+          }
+          for (const officer of coordinator.downstreamAssignments ?? []) {
+            if (officer.assignee?.positionId) {
+              assignmentByPositionId.set(officer.assignee.positionId, { assignment: officer, task });
+            }
+          }
+        }
+      }
+    }
+
+    const regional: PipelineItem[] = [];
+    const oim: PipelineItem[] = [];
+    const coordinator: PipelineItem[] = [];
+    const officer: PipelineItem[] = [];
+
+    for (const route of tracking.routingHierarchy) {
+      const branch = normalizeBranch(route.branch, route.positionCode, route.organizationUnitType);
+      const areaNames = route.areaScopes.map((scope) => scope.name).join(", ") || "-";
+      const primaryArea = route.areaScopes.find((scope) => scope.isPrimary)?.name || route.areaScopes[0]?.name;
+      const common = {
+        id: route.positionId,
+        branch,
+        positionCode: route.positionCode,
+        roleCode: route.roleCode,
+        name: route.positionTitle,
+        officer: route.fullName || route.organizationUnitName,
+        groupName: primaryArea || cleanRegionName(route.organizationUnitName),
+      };
+      const commonDetails: PipelineDetail[] = [
+        { label: "Nama personel", value: detailValue(route.fullName) },
+        { label: "Username", value: detailValue(route.username) },
+        { label: "Jabatan", value: route.positionTitle },
+        { label: "Kode jabatan", value: route.positionCode },
+        { label: "Seat code", value: route.seatCode },
+        { label: "Cabang komando", value: branchLabel(branch) },
+        { label: "Unit organisasi", value: route.organizationUnitName },
+        { label: "Cakupan wilayah", value: areaNames },
+      ];
+
+      if (["DIREKTUR_WILAYAH", "KABINDA"].includes(route.positionCode)) {
+        const chain = regionalByPositionId.get(route.positionId) || regionalByUnitId.get(route.organizationUnitId);
+        if (!chain) continue;
+
+        const recipient = chain?.regionalRecipient;
+        const recipientStatus = normalizeStatus(recipient?.status);
+        const state = resolveItemState({
+          failed: FAILURE_STATUSES.has(recipientStatus),
+          completed: Boolean(chain?.forwarding),
+          inProgress: Boolean(
+            recipient?.sentAt || recipient?.readAt || recipient?.acknowledgedAt || ACTIVE_STATUSES.has(recipientStatus),
+          ),
+          completedLabel: "Sudah meneruskan",
+          inProgressLabel: "Sudah membaca",
+          pendingLabel: "Belum menerima STR",
+        });
+        regional.push({
+          ...common,
+          parentId: `branch-${branch}`,
+          ...state,
+          readAt: recipient?.readAt,
+          acknowledgedAt: recipient?.acknowledgedAt,
+          forwardedAt: chain?.forwarding?.createdAt,
+          details: [
+            ...commonDetails,
+            { label: "Status penerima", value: detailValue(recipient?.status) },
+            { label: "Status ringkas", value: state.statusLabel },
+            { label: "Dikirim", value: formatDate(recipient?.sentAt) },
+            { label: "Dibaca", value: formatDate(recipient?.readAt) },
+            { label: "Diteruskan", value: formatDate(chain?.forwarding?.createdAt) },
+          ],
+        });
+        continue;
+      }
+
+      if (["KASUBDIT", "KABAGOPS"].includes(route.positionCode)) {
+        const activity = oimByPositionId.get(route.positionId);
+        if (!activity) continue;
+
+        const chain = activity?.chain;
+        const forwardingStatus = normalizeStatus(chain?.forwarding?.status);
+        const state = resolveItemState({
+          failed: FAILURE_STATUSES.has(forwardingStatus),
+          completed: Boolean(chain?.oimStage.hasForwardedToFieldCoordinator),
+          inProgress: Boolean(chain?.oimStage.hasRead || chain?.oimStage.taskCount),
+          completedLabel: "Sudah meneruskan",
+          inProgressLabel: "Sedang memproses",
+          pendingLabel: "Belum menerima STR",
+        });
+        oim.push({
+          ...common,
+          parentId: route.reportsToPositionId,
+          ...state,
+          forwardedAt: chain?.forwarding?.updatedAt,
+          details: [
+            ...commonDetails,
+            { label: "Status forwarding", value: detailValue(chain?.forwarding?.status) },
+            { label: "Status ringkas", value: state.statusLabel },
+            { label: "Jumlah tugas", value: detailValue(chain?.oimStage.taskCount ?? 0) },
+            {
+              label: "Jumlah penerima lapangan",
+              value: detailValue(chain?.oimStage.fieldCoordinatorAssignmentCount ?? 0),
+            },
+          ],
+        });
+        continue;
+      }
+
+      const activity = assignmentByPositionId.get(route.positionId);
+      const assignment = activity?.assignment;
+      if (!activity || !assignment) continue;
+
+      const state = assignmentStatus(assignment, ["STAF_SUBDIT", "KORWIL"].includes(route.positionCode));
+      const item: PipelineItem = {
+        ...common,
+        parentId: route.reportsToPositionId,
+        ...state,
+        readAt: assignment?.readAt,
+        acknowledgedAt: assignment?.acknowledgedAt,
+        forwardedAt: assignment?.completedAt,
+        details: [
+          ...commonDetails,
+          { label: "Status assignment", value: detailValue(assignment?.status) },
+          { label: "Status ringkas", value: state.statusLabel },
+          { label: "Ditugaskan", value: formatDate(assignment?.assignedAt) },
+          { label: "Dibaca", value: formatDate(assignment?.readAt) },
+          { label: "Selesai", value: formatDate(assignment?.completedAt) },
+          { label: "Tugas", value: detailValue(activity?.task.title) },
+        ],
+      };
+
+      if (["STAF_SUBDIT", "KORWIL"].includes(route.positionCode)) coordinator.push(item);
+      else if (route.positionCode === "PETUGAS_ORGANIK") officer.push(item);
+    }
+
+    const regionalByBranch = new Map<CommandBranch, PipelineItem[]>();
+    for (const item of regional) {
+      const items = regionalByBranch.get(item.branch ?? "OTHER") ?? [];
+      items.push(item);
+      regionalByBranch.set(item.branch ?? "OTHER", items);
+    }
+
+    const branch = (["BINDA", "DIRECTORATE"] as CommandBranch[])
+      .filter((branchCode) => regionalByBranch.has(branchCode))
+      .map((branchCode): PipelineItem => {
+        const branchRegional = regionalByBranch.get(branchCode) ?? [];
+        const summary = summarizeStage(branchRegional);
+        return {
+          id: `branch-${branchCode}`,
+          branch: branchCode,
+          name: branchLabel(branchCode),
+          status: summary.status,
+          statusLabel: statusLabel(summary.status),
+          groupName: branchLabel(branchCode),
+          officer: branchSubtitle(branchCode),
+          details: [
+            { label: "Cabang komando", value: branchLabel(branchCode) },
+            { label: "Rute jabatan", value: branchSubtitle(branchCode) },
+            { label: "Pimpinan wilayah", value: detailValue(branchRegional.length) },
+            {
+              label: "Sudah meneruskan",
+              value: detailValue(branchRegional.filter((item) => item.status === "COMPLETED").length),
+            },
+          ],
+        };
+      });
+
+    return { branch, regional, oim, coordinator, officer };
+  }, [legacyHierarchyData, tracking.regionalChains, tracking.routingHierarchy]);
+
   const stagesData = useMemo(() => {
     const directiveStatus = normalizeStatus(directive.status);
     const executiveFailed = FAILURE_STATUSES.has(directiveStatus);
     const executiveCompleted = !["", "DRAFT"].includes(directiveStatus) && !executiveFailed;
     let executiveStatus: PipelineStatus = "PENDING";
-    if (executiveCompleted) executiveStatus = "COMPLETED";
+    if (executiveFailed) executiveStatus = "REJECTED";
+    else if (executiveCompleted) executiveStatus = "COMPLETED";
 
     return {
       executive: {
@@ -514,25 +1014,13 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
     };
   }, [directive.status, hierarchyData]);
 
-  const stageDefinitions = useMemo(
-    () =>
-      [
-        { id: "executive", label: "Pusat Komando", subtitle: "Executive Command", icon: Shield },
-        { id: "regional", label: "Regional Commander", subtitle: "Regional Headquarter", icon: Building2 },
-        { id: "oim", label: "OIM Unit", subtitle: "Intelligence Manager", icon: RadioTower },
-        { id: "coordinator", label: "Field Coordinator", subtitle: "Operations Lead", icon: Users },
-        { id: "officer", label: "Field Officer", subtitle: "Agen / Korwil Lapangan", icon: UserRound },
-      ] satisfies Array<{ id: PipelineStageId; label: string; subtitle: string; icon: LucideIcon }>,
-    [],
-  );
-
   const summaryFlowNodes = useMemo<PipelineReactFlowNode[]>(() => {
     const list: Array<{ id: PipelineStageId; label: string; subtitle: string; icon: LucideIcon; x: number }> = [
-      { id: "executive", label: "Pusat Komando", subtitle: "Executive Command", icon: Shield, x: 80 },
-      { id: "regional", label: "Regional Commander", subtitle: "Regional Headquarter", icon: Building2, x: 360 },
-      { id: "oim", label: "OIM Unit", subtitle: "Intelligence Manager", icon: RadioTower, x: 640 },
-      { id: "coordinator", label: "Field Coordinator", subtitle: "Operations Lead", icon: Users, x: 920 },
-      { id: "officer", label: "Field Officer", subtitle: "Agen / Korwil Lapangan", icon: UserRound, x: 1200 },
+      { id: "executive", label: "Deputi II", subtitle: "Executive Command", icon: Shield, x: 80 },
+      { id: "regional", label: "Pimpinan Regional", subtitle: "Kabinda / Direktur Wilayah", icon: Shield, x: 360 },
+      { id: "oim", label: "OIM Unit", subtitle: "Kabagops / Kasubdit", icon: RadioTower, x: 640 },
+      { id: "coordinator", label: "FC / Korwil", subtitle: "Koordinator lapangan", icon: Users, x: 920 },
+      { id: "officer", label: "Petugas Organik", subtitle: "Pelaksana lapangan", icon: UserRound, x: 1200 },
     ];
 
     return list.map((item) => ({
@@ -556,214 +1044,604 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
     }));
   }, [stagesData]);
 
-  const flowNodes = useMemo<PipelineReactFlowNode[]>(() => {
+  const flowNodes = useMemo<TrackingReactFlowNode[]>(() => {
+    const branchItems = hierarchyData.branch;
+    const regionalItems = hierarchyData.regional;
+    const oimItems = hierarchyData.oim;
     const coordinatorItems = hierarchyData.coordinator;
     const officerItems = hierarchyData.officer;
-    const officersByCoordinator = new Map<string, PipelineItem[]>();
 
-    for (const officer of officerItems) {
-      if (!officer.parentId) continue;
-      const list = officersByCoordinator.get(officer.parentId) ?? [];
-      list.push(officer);
-      officersByCoordinator.set(officer.parentId, list);
-    }
+    const groupByParent = (items: PipelineItem[]) => {
+      const map = new Map<string, PipelineItem[]>();
+      for (const item of items) {
+        if (!item.parentId) continue;
+        const list = map.get(item.parentId) ?? [];
+        list.push(item);
+        map.set(item.parentId, list);
+      }
+      return map;
+    };
 
+    const regionalByBranch = groupByParent(regionalItems);
+    const oimByRegional = groupByParent(oimItems);
+    const coordinatorByOim = groupByParent(coordinatorItems);
+    const officersByCoordinator = groupByParent(officerItems);
+
+    const branchPositions = new Map<string, number>();
+    const regionalPositions = new Map<string, number>();
+    const oimPositions = new Map<string, number>();
     const coordinatorPositions = new Map<string, number>();
     const officerPositions = new Map<string, { x: number; y: number }>();
+    const laneRanges = new Map<"BINDA" | "DIRECTORATE", { startY: number; endY: number }>();
+
+    const average = (values: number[], fallback: number) =>
+      values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : fallback;
+    const laneAnchor = (values: number[], fallback: number, branch?: CommandBranch) =>
+      branch === "BINDA" ? (values[0] ?? fallback) : average(values, fallback);
+
+    const branchOrder: Record<CommandBranch, number> = { BINDA: 0, DIRECTORATE: 1, PUSAT: 2, OTHER: 3 };
+    const orderedBranches = [...branchItems].sort(
+      (left, right) => branchOrder[left.branch ?? "OTHER"] - branchOrder[right.branch ?? "OTHER"],
+    );
+
     let cursorY = 80;
+    for (const branch of orderedBranches) {
+      const laneStartY = cursorY;
+      const branchRegionalItems = regionalByBranch.get(branch.id) ?? [];
+      const branchYValues: number[] = [];
 
-    for (const coordinator of coordinatorItems) {
-      const children = officersByCoordinator.get(coordinator.id) ?? [];
+      for (const regional of branchRegionalItems) {
+        const oimChildren = oimByRegional.get(regional.id) ?? [];
+        const regionalYValues: number[] = [];
 
-      if (children.length > 0) {
-        const maxRowsPerCoordinator = 4;
-        const rowCount = Math.min(maxRowsPerCoordinator, children.length);
-        const rowGap = 112;
-        const columnGap = 260;
-        const groupHeight = (rowCount - 1) * rowGap;
-        children.forEach((child, index) => {
-          const row = index % maxRowsPerCoordinator;
-          const column = Math.floor(index / maxRowsPerCoordinator);
-          const y = cursorY + row * rowGap;
-          officerPositions.set(child.id, { x: 1200 + column * columnGap, y });
-        });
-        coordinatorPositions.set(coordinator.id, cursorY + groupHeight / 2);
-        cursorY += Math.max(152, groupHeight + 172);
-      } else {
-        coordinatorPositions.set(coordinator.id, cursorY);
-        cursorY += 136;
+        if (oimChildren.length === 0) {
+          regionalPositions.set(regional.id, cursorY);
+          branchYValues.push(cursorY);
+          cursorY += 148;
+          continue;
+        }
+
+        for (const oim of oimChildren) {
+          const coordinatorChildren = coordinatorByOim.get(oim.id) ?? [];
+          const oimYValues: number[] = [];
+
+          if (coordinatorChildren.length === 0) {
+            oimPositions.set(oim.id, cursorY);
+            regionalYValues.push(cursorY);
+            cursorY += 148;
+            continue;
+          }
+
+          for (const coordinator of coordinatorChildren) {
+            const officerChildren = officersByCoordinator.get(coordinator.id) ?? [];
+
+            if (officerChildren.length > 0) {
+              const maxRowsPerCoordinator = 4;
+              const rowCount = Math.min(maxRowsPerCoordinator, officerChildren.length);
+              const rowGap = 112;
+              const columnGap = 250;
+              const groupHeight = (rowCount - 1) * rowGap;
+
+              officerChildren.forEach((child, index) => {
+                const row = index % maxRowsPerCoordinator;
+                const column = Math.floor(index / maxRowsPerCoordinator);
+                officerPositions.set(child.id, { x: 1200 + column * columnGap, y: cursorY + row * rowGap });
+              });
+
+              const coordinatorY = cursorY + groupHeight / 2;
+              coordinatorPositions.set(coordinator.id, coordinatorY);
+              oimYValues.push(coordinatorY);
+              cursorY += Math.max(152, groupHeight + 172);
+            } else {
+              coordinatorPositions.set(coordinator.id, cursorY);
+              oimYValues.push(cursorY);
+              cursorY += 136;
+            }
+          }
+
+          const oimY = laneAnchor(oimYValues, cursorY, branch.branch);
+          oimPositions.set(oim.id, oimY);
+          regionalYValues.push(oimY);
+        }
+
+        const regionalY = laneAnchor(regionalYValues, cursorY, branch.branch);
+        regionalPositions.set(regional.id, regionalY);
+        branchYValues.push(regionalY);
       }
+
+      const branchY = laneAnchor(branchYValues, cursorY, branch.branch);
+      branchPositions.set(branch.id, branchY);
+
+      if (branch.branch === "BINDA" || branch.branch === "DIRECTORATE") {
+        laneRanges.set(branch.branch, {
+          startY: laneStartY,
+          endY: Math.max(laneStartY + 104, cursorY),
+        });
+      }
+
+      // A hard gap keeps the BINDA forest visually separate from the Directorate lane.
+      cursorY += 360;
     }
 
-    const graphCenterY =
-      coordinatorItems.length > 0
-        ? Array.from(coordinatorPositions.values()).reduce((sum, y) => sum + y, 0) / coordinatorItems.length
-        : 180;
+    const graphCenterY = average(Array.from(branchPositions.values()), 180);
 
-    const stageNodes: PipelineReactFlowNode[] = stageDefinitions.slice(0, 3).map((item, index) => ({
-      id: item.id,
+    // Build direct parent-child relationships using React Flow node IDs
+    const flowParentToChildren = new Map<string, string[]>();
+    for (const regional of regionalItems) {
+      const list = flowParentToChildren.get("executive") ?? [];
+      list.push(`regional-${regional.id}`);
+      flowParentToChildren.set("executive", list);
+    }
+    for (const oim of oimItems) {
+      const list = flowParentToChildren.get(`regional-${oim.parentId}`) ?? [];
+      list.push(`oim-${oim.id}`);
+      flowParentToChildren.set(`regional-${oim.parentId}`, list);
+    }
+    for (const coordinator of coordinatorItems) {
+      const list = flowParentToChildren.get(`oim-${coordinator.parentId}`) ?? [];
+      list.push(`coordinator-${coordinator.id}`);
+      flowParentToChildren.set(`oim-${coordinator.parentId}`, list);
+    }
+    for (const officer of officerItems) {
+      const list = flowParentToChildren.get(`coordinator-${officer.parentId}`) ?? [];
+      list.push(`officer-${officer.id}`);
+      flowParentToChildren.set(`coordinator-${officer.parentId}`, list);
+    }
+
+    // Map node ID -> status
+    const nodeStatusMap = new Map<string, PipelineStatus>();
+    nodeStatusMap.set("executive", stagesData.executive.status);
+    for (const regional of regionalItems) nodeStatusMap.set(`regional-${regional.id}`, regional.status);
+    for (const oim of oimItems) nodeStatusMap.set(`oim-${oim.id}`, oim.status);
+    for (const coordinator of coordinatorItems) nodeStatusMap.set(`coordinator-${coordinator.id}`, coordinator.status);
+    for (const officer of officerItems) nodeStatusMap.set(`officer-${officer.id}`, officer.status);
+
+    const isDownstreamActive = (nodeId: string): boolean => {
+      const children = flowParentToChildren.get(nodeId) ?? [];
+      for (const childId of children) {
+        const status = nodeStatusMap.get(childId);
+        if (status && status !== "PENDING") {
+          return true;
+        }
+        if (isDownstreamActive(childId)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const getAnimationClass = (nodeId: string, status: PipelineStatus): string => {
+      if (status === "PENDING") return "flow-node-waiting";
+      if (status === "REJECTED") return "flow-node-rejected";
+
+      const hasActiveDownstream = isDownstreamActive(nodeId);
+      if (hasActiveDownstream) {
+        return "flow-node-completed";
+      }
+      if (status === "COMPLETED") return "flow-node-active";
+      return "flow-node-processing";
+    };
+
+    const makeNode = ({
+      id,
+      stage,
+      item,
+      x,
+      y,
+      icon,
+      label,
+      subtitle,
+      status,
+      progressText,
+    }: {
+      id: string;
+      stage: PipelineStageId;
+      item?: PipelineItem;
+      x: number;
+      y: number;
+      icon: LucideIcon;
+      label: string;
+      subtitle: string;
+      status: PipelineStatus;
+      progressText: string;
+    }): PipelineReactFlowNode => ({
+      id,
       type: "pipeline",
-      position: { x: 80 + index * 280, y: graphCenterY },
+      position: { x, y },
       draggable: false,
       selectable: false,
       data: {
-        label: item.label,
-        subtitle: item.subtitle,
-        status: stagesData[item.id].status,
-        progressPercent: stagesData[item.id].progress,
-        progressText: stagesData[item.id].text,
-        icon: item.icon,
+        label,
+        subtitle,
+        status,
+        progressPercent: item ? itemProgress(status) : stagesData[stage].progress,
+        progressText,
+        icon,
         onClick: () => {
-          setActiveStage(item.id);
-          setActiveItemId(null);
+          setActiveStage(stage);
+          setActiveItemId(item ? item.id : null);
         },
+        animationClass: getAnimationClass(id, status),
       },
-    }));
-
-    const coordinatorNodes: PipelineReactFlowNode[] = coordinatorItems.map((item) => ({
-      id: `coordinator-${item.id}`,
-      type: "pipeline",
-      position: { x: 920, y: coordinatorPositions.get(item.id) ?? graphCenterY },
-      draggable: false,
-      selectable: false,
-      data: {
-        label: item.name,
-        subtitle: item.officer || item.groupName || "Field Coordinator",
-        status: item.status,
-        progressPercent: itemProgress(item.status),
-        progressText: item.statusLabel,
-        icon: Users,
-        onClick: () => {
-          setActiveStage("coordinator");
-          setActiveItemId(item.id);
-        },
-      },
-    }));
-
-    const officerNodes: PipelineReactFlowNode[] = officerItems.map((item) => ({
-      id: `officer-${item.id}`,
-      type: "pipeline",
-      position: officerPositions.get(item.id) ?? { x: 1200, y: graphCenterY },
-      draggable: false,
-      selectable: false,
-      data: {
-        label: item.name,
-        subtitle: item.officer || item.groupName || "Field Officer",
-        status: item.status,
-        progressPercent: itemProgress(item.status),
-        progressText: item.statusLabel,
-        icon: UserRound,
-        onClick: () => {
-          setActiveStage("officer");
-          setActiveItemId(item.id);
-        },
-      },
-    }));
-
-    return [...stageNodes, ...coordinatorNodes, ...officerNodes];
-  }, [hierarchyData, stageDefinitions, stagesData]);
-
-  const flowEdges = useMemo<Edge[]>(() => {
-    const summaryEdges: Array<{ source: PipelineStageId; target: PipelineStageId }> = [
-      { source: "executive", target: "regional" },
-      { source: "regional", target: "oim" },
-    ];
-
-    const edges: Edge[] = summaryEdges.map((edge) => {
-      const sourceStatus = stagesData[edge.source].status;
-      const color = statusColors[sourceStatus].edgeColor;
-
-      return {
-        id: `${edge.source}-${edge.target}`,
-        source: edge.source,
-        target: edge.target,
-        type: "straight",
-        animated: sourceStatus === "IN_PROGRESS" || sourceStatus === "COMPLETED",
-        style: {
-          stroke: color,
-          strokeWidth: sourceStatus === "COMPLETED" ? 3.5 : 2,
-          opacity: sourceStatus === "PENDING" ? 0.35 : 0.9,
-          filter: `drop-shadow(0 0 3px ${color}55)`,
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 14,
-          height: 14,
-          color,
-        },
-      };
     });
 
-    for (const coordinator of hierarchyData.coordinator) {
-      const sourceStatus = coordinator.status;
-      const color = statusColors[sourceStatus].edgeColor;
+    const maxGraphX = Math.max(1440, ...Array.from(officerPositions.values(), (position) => position.x + 220));
+    const ranges = Array.from(laneRanges.values());
+    const minY = ranges.length > 0 ? Math.min(...ranges.map((r) => r.startY)) : 80;
+    const maxY = ranges.length > 0 ? Math.max(...ranges.map((r) => r.endY)) : 400;
 
-      edges.push({
-        id: `oim-coordinator-${coordinator.id}`,
-        source: "oim",
-        target: `coordinator-${coordinator.id}`,
-        type: "smoothstep",
-        animated: sourceStatus === "IN_PROGRESS" || sourceStatus === "COMPLETED",
+    const laneNodes: LaneReactFlowNode[] = [
+      {
+        id: "lane-unified",
+        type: "lane",
+        position: { x: 320, y: minY - 52 },
+        draggable: false,
+        selectable: false,
+        connectable: false,
+        focusable: false,
         style: {
-          stroke: color,
-          strokeWidth: sourceStatus === "COMPLETED" ? 3 : 2,
-          opacity: sourceStatus === "PENDING" ? 0.35 : 0.85,
-          filter: `drop-shadow(0 0 3px ${color}55)`,
+          width: maxGraphX - 280,
+          height: maxY - minY + 104,
+          zIndex: -1,
+        },
+        data: {
+          branch: "DIRECTORATE",
+          label: "",
+        },
+      },
+    ];
+
+    const nodes: TrackingReactFlowNode[] = [
+      ...laneNodes,
+      makeNode({
+        id: "executive",
+        stage: "executive",
+        x: 80,
+        y: graphCenterY,
+        icon: Shield,
+        label: "Deputi II",
+        subtitle: "Penerbit STR",
+        status: stagesData.executive.status,
+        progressText: stagesData.executive.text,
+      }),
+    ];
+
+    for (const regional of regionalItems) {
+      nodes.push(
+        makeNode({
+          id: `regional-${regional.id}`,
+          stage: "regional",
+          item: regional,
+          x: 360,
+          y: regionalPositions.get(regional.id) ?? graphCenterY,
+          icon: Shield,
+          label: regional.name,
+          subtitle: regional.officer || regional.positionCode || "Pimpinan Regional",
+          status: regional.status,
+          progressText: regional.statusLabel,
+        }),
+      );
+    }
+
+    for (const oim of oimItems) {
+      nodes.push(
+        makeNode({
+          id: `oim-${oim.id}`,
+          stage: "oim",
+          item: oim,
+          x: 640,
+          y: oimPositions.get(oim.id) ?? graphCenterY,
+          icon: RadioTower,
+          label: oim.name,
+          subtitle: oim.officer || oim.positionCode || "OIM",
+          status: oim.status,
+          progressText: oim.statusLabel,
+        }),
+      );
+    }
+
+    for (const coordinator of coordinatorItems) {
+      nodes.push(
+        makeNode({
+          id: `coordinator-${coordinator.id}`,
+          stage: "coordinator",
+          item: coordinator,
+          x: 920,
+          y: coordinatorPositions.get(coordinator.id) ?? graphCenterY,
+          icon: Users,
+          label: coordinator.name,
+          subtitle: coordinator.officer || coordinator.positionCode || "FC / Korwil",
+          status: coordinator.status,
+          progressText: coordinator.statusLabel,
+        }),
+      );
+    }
+
+    for (const officer of officerItems) {
+      nodes.push(
+        makeNode({
+          id: `officer-${officer.id}`,
+          stage: "officer",
+          item: officer,
+          x: officerPositions.get(officer.id)?.x ?? 1200,
+          y: officerPositions.get(officer.id)?.y ?? graphCenterY,
+          icon: UserRound,
+          label: officer.name,
+          subtitle: officer.officer || officer.positionCode || "Petugas Organik",
+          status: officer.status,
+          progressText: officer.statusLabel,
+        }),
+      );
+    }
+
+    return nodes;
+  }, [hierarchyData, stagesData]);
+
+  const flowEdges = useMemo<Edge[]>(() => {
+    const edgeFor = (id: string, source: string, target: string, status: PipelineStatus): Edge => {
+      const style = statusColors[status];
+      const pending = status === "PENDING";
+      const animated = status === "IN_PROGRESS";
+      let strokeWidth = 2.5;
+      if (status === "COMPLETED") strokeWidth = 3;
+      else if (pending) strokeWidth = 1.5;
+
+      return {
+        id,
+        source,
+        target,
+        type: "smoothstep",
+        animated,
+        style: {
+          stroke: pending ? "#64748B" : style.edgeColor,
+          strokeWidth,
+          opacity: pending ? 0.35 : 0.9,
+          filter: animated ? `drop-shadow(0 0 3px ${style.edgeColor}55)` : undefined,
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           width: 14,
           height: 14,
-          color,
+          color: pending ? "#64748B" : style.edgeColor,
         },
-      });
+      };
+    };
+
+    const edges: Edge[] = [];
+
+    for (const regional of hierarchyData.regional) {
+      edges.push(edgeFor(`executive-regional-${regional.id}`, "executive", `regional-${regional.id}`, regional.status));
+    }
+
+    for (const oim of hierarchyData.oim) {
+      if (!oim.parentId) continue;
+      edges.push(
+        edgeFor(`regional-${oim.parentId}-oim-${oim.id}`, `regional-${oim.parentId}`, `oim-${oim.id}`, oim.status),
+      );
+    }
+
+    for (const coordinator of hierarchyData.coordinator) {
+      if (!coordinator.parentId) continue;
+      edges.push(
+        edgeFor(
+          `oim-${coordinator.parentId}-coordinator-${coordinator.id}`,
+          `oim-${coordinator.parentId}`,
+          `coordinator-${coordinator.id}`,
+          coordinator.status,
+        ),
+      );
     }
 
     for (const officer of hierarchyData.officer) {
       if (!officer.parentId) continue;
-      const sourceStatus = officer.status;
-      const color = statusColors[sourceStatus].edgeColor;
+      edges.push(
+        edgeFor(
+          `coordinator-${officer.parentId}-officer-${officer.id}`,
+          `coordinator-${officer.parentId}`,
+          `officer-${officer.id}`,
+          officer.status,
+        ),
+      );
+    }
 
-      edges.push({
-        id: `coordinator-${officer.parentId}-officer-${officer.id}`,
-        source: `coordinator-${officer.parentId}`,
-        target: `officer-${officer.id}`,
+    return edges;
+  }, [hierarchyData]);
+
+  const compactFlowNodes = useMemo<PipelineReactFlowNode[]>(() => {
+    const branches = [
+      {
+        branch: "BINDA" as const,
+        y: 88,
+        labels: {
+          regional: ["Kabinda", "Pimpinan BINDA"],
+          oim: ["Kabagops", "Penjabaran STR BINDA"],
+          coordinator: ["Korwil", "Koordinator wilayah"],
+          officer: ["Field Officer", "Petugas organik BINDA"],
+        },
+      },
+      {
+        branch: "DIRECTORATE" as const,
+        y: 260,
+        labels: {
+          regional: ["Direktur Wilayah", "Pimpinan direktorat"],
+          oim: ["Kasubdit", "Penjabaran STR direktorat"],
+          coordinator: ["Staf Subdit", "Koordinator lapangan"],
+          officer: ["Field Officer", "Agen / petugas organik"],
+        },
+      },
+    ];
+
+    const availableBranches = branches.filter((branch) =>
+      hierarchyData.regional.some((item) => item.branch === branch.branch),
+    );
+    const visibleBranches = availableBranches.length > 0 ? availableBranches : branches;
+    const executiveY =
+      visibleBranches.reduce((sum, branch) => sum + branch.y, 0) / Math.max(visibleBranches.length, 1);
+
+    const compactNodes: PipelineReactFlowNode[] = [
+      {
+        id: "compact-executive",
+        type: "pipeline",
+        position: { x: 80, y: executiveY },
+        draggable: false,
+        selectable: false,
+        data: {
+          label: "Deputi II",
+          subtitle: "Pusat Komando",
+          status: stagesData.executive.status,
+          progressPercent: stagesData.executive.progress,
+          progressText: stagesData.executive.text,
+          icon: Shield,
+          onClick: () => {
+            setActiveStage("executive");
+            setActiveItemId(null);
+            setActiveBranch(null);
+          },
+          animationClass: stagesData.executive.status === "COMPLETED" ? "flow-node-completed" : "flow-node-active",
+        },
+      },
+    ];
+
+    const stageConfig: Array<{
+      stage: Exclude<PipelineStageId, "executive">;
+      x: number;
+      icon: LucideIcon;
+      items: PipelineItem[];
+    }> = [
+      { stage: "regional", x: 360, icon: Shield, items: hierarchyData.regional },
+      { stage: "oim", x: 640, icon: RadioTower, items: hierarchyData.oim },
+      { stage: "coordinator", x: 920, icon: Users, items: hierarchyData.coordinator },
+      { stage: "officer", x: 1200, icon: UserRound, items: hierarchyData.officer },
+    ];
+
+    for (const branch of visibleBranches) {
+      for (const config of stageConfig) {
+        const branchItems = config.items.filter((item) => item.branch === branch.branch);
+        const summary = summarizeStage(branchItems);
+        const [label, subtitle] = branch.labels[config.stage];
+
+        compactNodes.push({
+          id: `compact-${branch.branch}-${config.stage}`,
+          type: "pipeline",
+          position: { x: config.x, y: branch.y },
+          draggable: false,
+          selectable: false,
+          data: {
+            label,
+            subtitle,
+            status: summary.status,
+            progressPercent: summary.progress,
+            progressText: summary.text,
+            icon: config.icon,
+            onClick: () => {
+              setActiveStage(config.stage);
+              setActiveItemId(null);
+              setActiveBranch(branch.branch);
+            },
+            animationClass:
+              summary.status === "PENDING"
+                ? "flow-node-waiting"
+                : summary.status === "REJECTED"
+                  ? "flow-node-rejected"
+                  : summary.status === "COMPLETED"
+                    ? "flow-node-completed"
+                    : "flow-node-processing",
+          },
+        });
+      }
+    }
+
+    return compactNodes;
+  }, [hierarchyData, stagesData]);
+
+  const compactFlowEdges = useMemo<Edge[]>(() => {
+    const edgeFor = (id: string, source: string, target: string, status: PipelineStatus): Edge => {
+      const style = statusColors[status];
+      const pending = status === "PENDING";
+
+      return {
+        id,
+        source,
+        target,
         type: "smoothstep",
-        animated: sourceStatus === "IN_PROGRESS" || sourceStatus === "COMPLETED",
+        animated: status === "IN_PROGRESS",
         style: {
-          stroke: color,
-          strokeWidth: sourceStatus === "COMPLETED" ? 3 : 2,
-          opacity: sourceStatus === "PENDING" ? 0.35 : 0.85,
-          filter: `drop-shadow(0 0 3px ${color}55)`,
+          stroke: pending ? "#64748B" : style.edgeColor,
+          strokeWidth: pending ? 1.5 : 2.5,
+          opacity: pending ? 0.35 : 0.9,
+          filter: status === "IN_PROGRESS" ? `drop-shadow(0 0 3px ${style.edgeColor}55)` : undefined,
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           width: 14,
           height: 14,
-          color,
+          color: pending ? "#64748B" : style.edgeColor,
         },
-      });
+      };
+    };
+
+    const branches = ["BINDA", "DIRECTORATE"] as const;
+    const availableBranches = branches.filter((branch) =>
+      hierarchyData.regional.some((item) => item.branch === branch),
+    );
+    const visibleBranches = availableBranches.length > 0 ? availableBranches : branches;
+    const edges: Edge[] = [];
+
+    for (const branch of visibleBranches) {
+      const regionalItems = hierarchyData.regional.filter((item) => item.branch === branch);
+      const oimItems = hierarchyData.oim.filter((item) => item.branch === branch);
+      const coordinatorItems = hierarchyData.coordinator.filter((item) => item.branch === branch);
+      const officerItems = hierarchyData.officer.filter((item) => item.branch === branch);
+
+      edges.push(
+        edgeFor(
+          `compact-executive-${branch}-regional`,
+          "compact-executive",
+          `compact-${branch}-regional`,
+          summarizeStage(regionalItems).status,
+        ),
+        edgeFor(
+          `compact-${branch}-regional-oim`,
+          `compact-${branch}-regional`,
+          `compact-${branch}-oim`,
+          summarizeStage(oimItems).status,
+        ),
+        edgeFor(
+          `compact-${branch}-oim-coordinator`,
+          `compact-${branch}-oim`,
+          `compact-${branch}-coordinator`,
+          summarizeStage(coordinatorItems).status,
+        ),
+        edgeFor(
+          `compact-${branch}-coordinator-officer`,
+          `compact-${branch}-coordinator`,
+          `compact-${branch}-officer`,
+          summarizeStage(officerItems).status,
+        ),
+      );
     }
 
     return edges;
-  }, [hierarchyData, stagesData]);
+  }, [hierarchyData]);
 
-  const [nodes, setNodes] = useNodesState<PipelineReactFlowNode>(flowNodes);
-  const [edges, setEdges] = useEdgesState(flowEdges);
+  const displayFlowNodes = variant === "compact" ? compactFlowNodes : flowNodes;
+  const displayFlowEdges = variant === "compact" ? compactFlowEdges : flowEdges;
+  const [nodes, setNodes] = useNodesState<TrackingReactFlowNode>(displayFlowNodes);
+  const [edges, setEdges] = useEdgesState(displayFlowEdges);
 
-  useEffect(() => setNodes(flowNodes), [flowNodes, setNodes]);
-  useEffect(() => setEdges(flowEdges), [flowEdges, setEdges]);
+  useEffect(() => setNodes(displayFlowNodes), [displayFlowNodes, setNodes]);
+  useEffect(() => setEdges(displayFlowEdges), [displayFlowEdges, setEdges]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       fitView({
-        padding: 0.18,
-        minZoom: 0.42,
-        maxZoom: 1.05,
+        padding: variant === "compact" ? 0.22 : 0.18,
+        minZoom: variant === "compact" ? 0.35 : 0.08,
+        maxZoom: variant === "compact" ? 1.05 : 1.05,
       });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [fitView]);
+  }, [fitView, variant]);
 
   const activeStageGroupedItems = useMemo(() => {
     if (!activeStage) return null;
@@ -776,7 +1654,9 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
       officer: hierarchyData.officer,
     };
 
-    const items = listMap[activeStage];
+    const items = activeBranch
+      ? listMap[activeStage].filter((item) => item.branch === activeBranch)
+      : listMap[activeStage];
     if (items.length === 0) return null;
 
     const groups: Record<string, PipelineItem[]> = {};
@@ -785,7 +1665,7 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
       groups[item.groupName].push(item);
     }
     return groups;
-  }, [activeStage, hierarchyData]);
+  }, [activeBranch, activeStage, hierarchyData]);
 
   const activeSelectedItem = useMemo(() => {
     if (!activeStage || !activeItemId) return null;
@@ -800,6 +1680,15 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
 
     return listMap[activeStage].find((item) => item.id === activeItemId) ?? null;
   }, [activeItemId, activeStage, hierarchyData]);
+
+  const handleFlowNodeClick = useCallback((_: React.MouseEvent, node: TrackingReactFlowNode) => {
+    if (node.type === "lane") return;
+
+    const onClick = node.data.onClick;
+    if (typeof onClick === "function") {
+      onClick();
+    }
+  }, []);
 
   return (
     <div className="space-y-6 font-sans">
@@ -827,23 +1716,32 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="relative h-[560px] min-h-[420px] bg-slate-50/20 p-0 dark:bg-black/5">
-          <ReactFlow<PipelineReactFlowNode, Edge>
+        <CardContent
+          className={cn(
+            "relative bg-slate-50/20 p-0 dark:bg-black/5",
+            variant === "compact" ? "h-[420px] min-h-[380px]" : "h-[70vh] min-h-[560px] max-h-[900px]",
+          )}
+        >
+          <ReactFlow<TrackingReactFlowNode, Edge>
             nodes={nodes}
             edges={edges}
-            nodeTypes={NODE_TYPES}
+            nodeTypes={nodeTypes}
             nodesDraggable={false}
             nodesConnectable={false}
             elementsSelectable={false}
+            minZoom={variant === "compact" ? 0.25 : 0.05}
+            maxZoom={variant === "compact" ? 1.25 : 1.5}
             fitView
             fitViewOptions={{
-              padding: 0.18,
-              minZoom: 0.42,
+              padding: variant === "compact" ? 0.22 : 0.18,
+              minZoom: variant === "compact" ? 0.35 : 0.08,
               maxZoom: 1.05,
             }}
+            onNodeClick={handleFlowNodeClick}
             proOptions={{ hideAttribution: true }}
-            colorMode="system"
+            colorMode={isThemeMounted && resolvedTheme === "dark" ? "dark" : "light"}
           >
+            <Controls position="bottom-left" showInteractive={false} />
             <Background
               variant={BackgroundVariant.Dots}
               gap={24}
@@ -926,6 +1824,7 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
           if (!open) {
             setActiveStage(null);
             setActiveItemId(null);
+            setActiveBranch(null);
           }
         }}
       >
@@ -934,8 +1833,8 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
             (() => {
               const stagesPopupMeta = {
                 executive: {
-                  title: "Pusat Komando (Executive)",
-                  desc: "Titik awal penerbitan direktif strategis oleh pimpinan pusat.",
+                  title: "Deputi II (Executive)",
+                  desc: "Titik awal penerbitan direktif strategis oleh Deputi II.",
                   details: [
                     { label: "Nomor STR", value: directive.commandNumber },
                     { label: "Judul STR/UUK", value: uukTitle },
@@ -946,26 +1845,61 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
                   instructions: currentVersion?.commandDescription || "-",
                 },
                 regional: {
-                  title: "Regional Commander",
-                  desc: "Daftar Regional Commander penerima dokumen STR aktif ini.",
+                  title:
+                    activeBranch === "BINDA"
+                      ? "Kabinda"
+                      : activeBranch === "DIRECTORATE"
+                        ? "Direktur Wilayah"
+                        : "Pimpinan Regional",
+                  desc:
+                    activeBranch === "BINDA"
+                      ? "Daftar Kabinda yang menerima STR pada jalur BINDA."
+                      : activeBranch === "DIRECTORATE"
+                        ? "Daftar Direktur Wilayah yang menerima STR pada jalur direktorat."
+                        : "Daftar Kabinda dan Direktur Wilayah penerima dokumen STR aktif ini.",
                   details: [],
                   instructions: null,
                 },
                 oim: {
-                  title: "Operational Intelligence Manager (OIM)",
-                  desc: "Daftar unit OIM Wilayah yang menjabarkan penugasan STR aktif ini.",
+                  title:
+                    activeBranch === "BINDA"
+                      ? "Kabagops"
+                      : activeBranch === "DIRECTORATE"
+                        ? "Kasubdit"
+                        : "Operational Intelligence Manager (OIM)",
+                  desc:
+                    activeBranch === "BINDA"
+                      ? "Daftar Kabagops yang menjabarkan STR pada jalur BINDA."
+                      : activeBranch === "DIRECTORATE"
+                        ? "Daftar Kasubdit yang menjabarkan STR pada jalur direktorat."
+                        : "Daftar Kabagops/Kasubdit yang menjabarkan STR menjadi penugasan.",
                   details: [],
                   instructions: null,
                 },
                 coordinator: {
-                  title: "Field Coordinator",
-                  desc: "Daftar koordinator lapangan penanggung jawab instruksi taktis STR ini.",
+                  title:
+                    activeBranch === "BINDA"
+                      ? "Korwil"
+                      : activeBranch === "DIRECTORATE"
+                        ? "Staf Subdit"
+                        : "Field Coordinator / Korwil",
+                  desc:
+                    activeBranch === "BINDA"
+                      ? "Daftar Korwil yang menerima penerusan tugas dari Kabagops."
+                      : activeBranch === "DIRECTORATE"
+                        ? "Daftar Staf Subdit yang menerima penerusan tugas dari Kasubdit."
+                        : "Daftar koordinator lapangan penanggung jawab instruksi taktis STR ini.",
                   details: [],
                   instructions: null,
                 },
                 officer: {
-                  title: "Field Officer (Agen / Korwil)",
-                  desc: "Daftar agen lapangan pelaksana operasi taktis STR ini.",
+                  title: "Field Officer",
+                  desc:
+                    activeBranch === "BINDA"
+                      ? "Daftar petugas organik BINDA yang menerima tugas dari Korwil."
+                      : activeBranch === "DIRECTORATE"
+                        ? "Daftar agen atau petugas organik direktorat yang menerima tugas dari Staf Subdit."
+                        : "Daftar petugas organik pelaksana operasi taktis STR ini.",
                   details: [],
                   instructions: null,
                 },
@@ -1140,13 +2074,15 @@ function TrackingFlowCanvas({ directive, tracking }: TrackingFlowCanvasProps) {
 export function DirectiveTrackingFlow({
   directive,
   tracking,
+  variant = "full",
 }: {
   directive: DirectiveDetail;
   tracking: DirectiveTracking;
+  variant?: "compact" | "full";
 }) {
   return (
     <ReactFlowProvider>
-      <TrackingFlowCanvas directive={directive} tracking={tracking} />
+      <TrackingFlowCanvas directive={directive} tracking={tracking} variant={variant} />
     </ReactFlowProvider>
   );
 }

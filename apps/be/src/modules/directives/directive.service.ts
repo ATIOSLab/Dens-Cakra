@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
+  CommandRouteType,
   DirectiveStatus,
+  PositionCode,
   Prisma,
   RecipientStatus,
   RoleCode,
@@ -629,9 +631,7 @@ export class DirectiveService {
 
         return root;
       })
-      .catch((error: unknown) =>
-        this.handleDirectivePersistenceError(error),
-      );
+      .catch((error: unknown) => this.handleDirectivePersistenceError(error));
 
     await this.audit(context, 'DIRECTIVE.CREATE', directive.id);
     return this.detail(directive.id, context);
@@ -1141,6 +1141,11 @@ export class DirectiveService {
             },
           },
         },
+        targetAreas: {
+          include: {
+            area: true,
+          },
+        },
         uukStrs: {
           where: { deletedAt: null },
           include: {
@@ -1177,6 +1182,77 @@ export class DirectiveService {
         },
       },
     });
+
+    const routingAreaIds = version.targetAreas.map((target) => target.areaId);
+    const routingAreaWhere: Prisma.AdministrativeAreaWhereInput = {
+      OR: [
+        { id: { in: routingAreaIds } },
+        {
+          descendantLinks: {
+            some: { ancestorId: { in: routingAreaIds } },
+          },
+        },
+        {
+          ancestorLinks: {
+            some: { descendantId: { in: routingAreaIds } },
+          },
+        },
+      ],
+    };
+    const routingPositions =
+      routingAreaIds.length > 0
+        ? await this.prisma.position.findMany({
+            where: {
+              isActive: true,
+              code: {
+                in: [
+                  PositionCode.DIREKTUR_WILAYAH,
+                  PositionCode.KABINDA,
+                  PositionCode.KASUBDIT,
+                  PositionCode.KABAGOPS,
+                  PositionCode.STAF_SUBDIT,
+                  PositionCode.KORWIL,
+                  PositionCode.PETUGAS_ORGANIK,
+                ],
+              },
+              branch: {
+                in: [CommandRouteType.DIRECTORATE, CommandRouteType.BINDA],
+              },
+              areaCoverages: {
+                some: {
+                  validUntil: null,
+                  area: routingAreaWhere,
+                },
+              },
+            },
+            orderBy: [{ branch: 'asc' }, { seatCode: 'asc' }],
+            include: {
+              organizationUnit: true,
+              role: true,
+              areaCoverages: {
+                where: {
+                  validUntil: null,
+                  area: routingAreaWhere,
+                },
+                orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+                include: { area: true },
+              },
+              assignments: {
+                where: {
+                  isActive: true,
+                  validUntil: null,
+                  userProfile: {
+                    deletedAt: null,
+                    isActive: true,
+                  },
+                },
+                orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+                take: 1,
+                include: { userProfile: true },
+              },
+            },
+          })
+        : [];
 
     const relatedTasks = await this.prisma.task.findMany({
       where: {
@@ -1338,11 +1414,17 @@ export class DirectiveService {
             fullName: assignment.userProfile?.fullName ?? null,
             username: assignment.userProfile?.username ?? null,
             positionId: assignment.position?.id ?? null,
+            positionCode: assignment.position?.code ?? null,
             positionTitle: assignment.position?.title ?? null,
+            branch: assignment.position?.branch ?? null,
             organizationUnitId:
               assignment.position?.organizationUnit?.id ?? null,
+            organizationUnitCode:
+              assignment.position?.organizationUnit?.code ?? null,
             organizationUnitName:
               assignment.position?.organizationUnit?.name ?? null,
+            organizationUnitType:
+              assignment.position?.organizationUnit?.type ?? null,
             roleCode: assignment.position?.role?.code ?? null,
             areaScopes: (assignment.areaScopes ?? []).map(mapAreaScope),
           }
@@ -1437,9 +1519,20 @@ export class DirectiveService {
         createdBy: {
           assignmentId: task.createdByAssignment?.id ?? null,
           fullName: task.createdByAssignment?.userProfile?.fullName ?? null,
+          username: task.createdByAssignment?.userProfile?.username ?? null,
+          positionId: task.createdByAssignment?.position?.id ?? null,
+          positionCode: task.createdByAssignment?.position?.code ?? null,
           positionTitle: task.createdByAssignment?.position?.title ?? null,
+          branch: task.createdByAssignment?.position?.branch ?? null,
+          organizationUnitId:
+            task.createdByAssignment?.position?.organizationUnit?.id ?? null,
+          organizationUnitCode:
+            task.createdByAssignment?.position?.organizationUnit?.code ?? null,
           organizationUnitName:
             task.createdByAssignment?.position?.organizationUnit?.name ?? null,
+          organizationUnitType:
+            task.createdByAssignment?.position?.organizationUnit?.type ?? null,
+          roleCode: task.createdByAssignment?.position?.role?.code ?? null,
         },
         targetAreas: task.targetAreas.map((target: any) => ({
           areaId: target.areaId,
@@ -1533,8 +1626,10 @@ export class DirectiveService {
           targetPosition: recipient.targetPosition
             ? {
                 id: recipient.targetPosition.id,
+                code: recipient.targetPosition.code,
                 title: recipient.targetPosition.title,
                 seatCode: recipient.targetPosition.seatCode,
+                branch: recipient.targetPosition.branch,
                 role: {
                   code: recipient.targetPosition.role?.code ?? null,
                   name: recipient.targetPosition.role?.name ?? null,
@@ -1562,11 +1657,30 @@ export class DirectiveService {
                 assignmentId: forwarding.createdByAssignment?.id ?? null,
                 fullName:
                   forwarding.createdByAssignment?.userProfile?.fullName ?? null,
+                username:
+                  forwarding.createdByAssignment?.userProfile?.username ?? null,
+                positionId:
+                  forwarding.createdByAssignment?.position?.id ?? null,
+                positionCode:
+                  forwarding.createdByAssignment?.position?.code ?? null,
                 positionTitle:
                   forwarding.createdByAssignment?.position?.title ?? null,
+                branch:
+                  forwarding.createdByAssignment?.position?.branch ?? null,
+                organizationUnitId:
+                  forwarding.createdByAssignment?.position?.organizationUnit
+                    ?.id ?? null,
+                organizationUnitCode:
+                  forwarding.createdByAssignment?.position?.organizationUnit
+                    ?.code ?? null,
                 organizationUnitName:
                   forwarding.createdByAssignment?.position?.organizationUnit
                     ?.name ?? null,
+                organizationUnitType:
+                  forwarding.createdByAssignment?.position?.organizationUnit
+                    ?.type ?? null,
+                roleCode:
+                  forwarding.createdByAssignment?.position?.role?.code ?? null,
               },
               currentVersion: currentUukVersion
                 ? {
@@ -1701,6 +1815,40 @@ export class DirectiveService {
         korwil: summarizeAssignments(allKorwilAssignments),
       },
       baketCount,
+      targetAreas: version.targetAreas.map((target) => ({
+        areaId: target.areaId,
+        isPrimary: Boolean(target.isPrimary),
+        code: target.area.officialCode ?? target.area.code,
+        name: target.area.name,
+        level: target.area.level,
+      })),
+      routingHierarchy: routingPositions.map((position) => {
+        const assignment = position.assignments[0] ?? null;
+
+        return {
+          positionId: position.id,
+          reportsToPositionId: position.reportsToPositionId,
+          seatCode: position.seatCode,
+          positionCode: position.code,
+          positionTitle: position.title,
+          branch: position.branch,
+          roleCode: position.role.code,
+          organizationUnitId: position.organizationUnit.id,
+          organizationUnitCode: position.organizationUnit.code,
+          organizationUnitName: position.organizationUnit.name,
+          organizationUnitType: position.organizationUnit.type,
+          assignmentId: assignment?.id ?? null,
+          fullName: assignment?.userProfile?.fullName ?? null,
+          username: assignment?.userProfile?.username ?? null,
+          areaScopes: position.areaCoverages.map((coverage) => ({
+            areaId: coverage.areaId,
+            code: coverage.area.officialCode ?? coverage.area.code,
+            name: coverage.area.name,
+            level: coverage.area.level,
+            isPrimary: Boolean(coverage.isPrimary),
+          })),
+        };
+      }),
       regionalChains,
       tasks: includeTaskDetails ? mappedTasks : undefined,
       unlinkedTasks: includeTaskDetails ? unlinkedTasks : undefined,

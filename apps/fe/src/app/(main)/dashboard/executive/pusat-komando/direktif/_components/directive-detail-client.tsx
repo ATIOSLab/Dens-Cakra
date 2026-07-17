@@ -5,7 +5,6 @@ import { type ReactNode, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -19,18 +18,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { parseDirectiveCommandDescription } from "@/features/directives/structured-uuk";
 import type { DirectiveDetail, DirectiveTracking } from "@/features/directives/types";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { classificationBadgeClass } from "@/lib/classification";
 import { cn } from "@/lib/utils";
 
-import { DirectiveDistributionFlow } from "./directive-distribution-flow";
 import { formatDate, getCurrentVersion } from "./directive-shared";
+import { DirectiveTrackingFlow } from "./directive-tracking-flow";
 
 type DirectiveDetailClientProps = {
   directive: DirectiveDetail;
@@ -463,7 +462,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
             </div>
           </CardContent>
         </Card>
-        <DirectiveDistributionFlow directive={directive} tracking={tracking} />
+        <DirectiveTrackingFlow directive={directive} tracking={tracking} variant="compact" />
       </div>
     </div>
   );

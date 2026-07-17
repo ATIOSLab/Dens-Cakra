@@ -1,45 +1,20 @@
 "use client";
 
-import { useDeferredValue, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import {
-  ArrowRight,
-  BadgeCheck,
-  Filter,
-  Lock,
-  Search,
-  ShieldAlert,
-  UserRound,
-  Users,
-} from "lucide-react";
+import { ArrowRight, BadgeCheck, Filter, Lock, Search, ShieldAlert, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   Pagination,
   PaginationContent,
@@ -49,8 +24,9 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { apiBrowserFetch, apiBrowserFetchEnvelope } from "@/lib/api/browser-client";
 import type { PaginationMeta } from "@/lib/api/types";
+import { cn } from "@/lib/utils";
 
 import type {
   AreaSearchResult,
@@ -61,13 +37,11 @@ import type {
   UserListQueryState,
 } from "./pengguna-types";
 import {
-  POSITION_CODE_OPTIONS,
-  ROLE_CODE_OPTIONS,
-  USER_STATUS_OPTIONS,
   formatDateTime,
   getPrimaryAssignment,
-  getRoleLabel,
   isUserLocked,
+  POSITION_CODE_OPTIONS,
+  USER_STATUS_OPTIONS,
 } from "./pengguna-types";
 
 type PenggunaListClientProps = {
@@ -126,15 +100,7 @@ function StatCard({
   );
 }
 
-function SelectionSummary({
-  label,
-  value,
-  onClear,
-}: {
-  label: string;
-  value: string;
-  onClear: () => void;
-}) {
+function SelectionSummary({ label, value, onClear }: { label: string; value: string; onClear: () => void }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
       <div>
@@ -159,6 +125,18 @@ export function PenggunaListClient({
 }: PenggunaListClientProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const safeItems = Array.isArray(items) ? items : [];
+
+  const [currentPage, setCurrentPage] = useState(queryState.page);
+  const [clientItems, setClientItems] = useState<UserListItem[]>(safeItems);
+  const [clientPagination, setClientPagination] = useState<PaginationMeta | undefined>(pagination);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setClientItems(Array.isArray(items) ? items : []);
+    setClientPagination(pagination);
+    setCurrentPage(queryState.page);
+  }, [items, pagination, queryState.page]);
 
   const [q, setQ] = useState(queryState.q);
   const [status, setStatus] = useState(queryState.status);
@@ -183,13 +161,11 @@ export function PenggunaListClient({
     setActiveUnit(selectedUnit);
     setActiveArea(selectedArea);
   }, [
-    queryState.areaId,
     queryState.limit,
     queryState.positionCode,
     queryState.q,
     queryState.roleCode,
     queryState.status,
-    queryState.unitId,
     selectedArea,
     selectedUnit,
   ]);
@@ -290,25 +266,75 @@ export function PenggunaListClient({
     router.push(pathname);
   }
 
+  const handlePageChange = async (targetPage: number) => {
+    if (
+      targetPage === currentPage ||
+      targetPage < 1 ||
+      (clientPagination && clientPagination.totalPages !== undefined && targetPage > clientPagination.totalPages)
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    setCurrentPage(targetPage);
+
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.set("page", String(targetPage));
+      queryParams.set("limit", limit);
+      if (q) queryParams.set("search", q);
+      if (status) queryParams.set("status", status);
+      if (roleCode) queryParams.set("roleCode", roleCode);
+      if (positionCode) queryParams.set("positionCode", positionCode);
+      if (activeUnit?.id) queryParams.set("unitId", activeUnit.id);
+      if (activeArea?.id) queryParams.set("areaId", activeArea.id);
+
+      const res = await apiBrowserFetchEnvelope<UserListItem[]>(`/user-profiles?${queryParams.toString()}`);
+
+      setClientItems(Array.isArray(res.data) ? res.data : []);
+      if (res.meta?.pagination) {
+        setClientPagination(res.meta.pagination);
+      }
+
+      // Update URL query parameters silently without reload
+      const nextQueryState = {
+        ...queryState,
+        q,
+        status,
+        roleCode,
+        positionCode,
+        unitId: activeUnit?.id ?? "",
+        areaId: activeArea?.id ?? "",
+        limit: Number(limit) || 20,
+        page: targetPage,
+      };
+      const nextUrl = buildHref(pathname, nextQueryState);
+      window.history.pushState(null, "", nextUrl);
+    } catch (error) {
+      console.error("Gagal memuat halaman baru:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const activeCount = facets?.status?.ACTIVE ?? 0;
   const pendingCount = facets?.status?.PENDING ?? 0;
   const suspendedCount = facets?.status?.SUSPENDED ?? 0;
   const lockedCount = facets?.security?.locked ?? 0;
-  const selectedPrimaryAssignment = selectedUser ? getPrimaryAssignment(selectedUser) : null;
-  const totalPages = pagination?.totalPages ?? 1;
+  const totalPages = clientPagination?.totalPages ?? 1;
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">User Provisioning</Badge>
-          <Badge variant="outline">{pagination?.total ?? items.length} user terdeteksi</Badge>
+          <Badge variant="outline">{clientPagination?.total ?? clientItems.length} user terdeteksi</Badge>
           <Badge variant="outline">{lockedCount} profile sedang terkunci</Badge>
         </div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">Pengguna</h1>
         <p className="max-w-4xl text-muted-foreground text-sm">
-          Workspace admin untuk provisioning akun, memantau sinkronisasi role auth dengan jabatan aktif,
-          dan menjalankan aksi keamanan tanpa meninggalkan konteks tabel utama.
+          Workspace admin untuk provisioning akun, memantau sinkronisasi role auth dengan jabatan aktif, dan menjalankan
+          aksi keamanan tanpa meninggalkan konteks tabel utama.
         </p>
       </div>
 
@@ -376,7 +402,6 @@ export function PenggunaListClient({
                 ))}
               </NativeSelect>
             </div>
-
 
             <div className="space-y-2">
               <Label>Jabatan</Label>
@@ -491,8 +516,7 @@ export function PenggunaListClient({
           </div>
         </CardContent>
         <CardFooter className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-muted-foreground">
-          </div>
+          <div className="text-sm text-muted-foreground" />
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={clearFilters}>
               Reset
@@ -515,7 +539,7 @@ export function PenggunaListClient({
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            {items.length ? (
+            {clientItems.length ? (
               <div className="overflow-hidden rounded-xl border border-border/70">
                 <Table>
                   <TableHeader>
@@ -527,20 +551,22 @@ export function PenggunaListClient({
                       <TableHead>Login terakhir</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {items.map((user) => {
+                  <TableBody className={cn(loading && "opacity-50 transition-opacity duration-200")}>
+                    {clientItems.map((user) => {
                       const assignment = getPrimaryAssignment(user);
                       const locked = isUserLocked(user);
                       const isSelected = selectedUser?.id === user.id;
 
                       return (
-                        <TableRow key={user.id}>
+                        <TableRow key={user.id} className={cn(isSelected && "bg-muted/35")}>
                           <TableCell>
                             <Link
                               href={`/dashboard/admin-system/pengguna/${user.id}`}
                               className="block space-y-1 hover:underline"
                             >
-                              <div className="font-medium">{user.fullName || user.authUser.name || user.authUser.email}</div>
+                              <div className="font-medium">
+                                {user.fullName || user.authUser.name || user.authUser.email}
+                              </div>
                               <div className="text-xs text-muted-foreground">
                                 @{user.username || "-"} • {user.authUser.email}
                               </div>
@@ -552,14 +578,18 @@ export function PenggunaListClient({
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              {assignment?.position.organizationUnit?.name?.replace("Field Coordination Unit ", "") || "-"}
+                              {assignment?.position.organizationUnit?.name?.replace("Field Coordination Unit ", "") ||
+                                "-"}
                             </div>
-                            <div className="text-xs text-muted-foreground">{assignment?.position.organizationUnit?.code || "-"}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {assignment?.position.organizationUnit?.code || "-"}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap items-center gap-2">
                               <Badge variant={user.status === "ACTIVE" ? "default" : "secondary"}>
-                                {USER_STATUS_OPTIONS.find((option) => option.value === user.status)?.label || user.status}
+                                {USER_STATUS_OPTIONS.find((option) => option.value === user.status)?.label ||
+                                  user.status}
                               </Badge>
                               {locked ? <Badge variant="destructive">Locked</Badge> : null}
                             </div>
@@ -587,30 +617,35 @@ export function PenggunaListClient({
               </Empty>
             )}
 
-            {pagination && totalPages > 1 ? (
+            {clientPagination && totalPages > 1 ? (
               <Pagination className="justify-end">
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      href={buildHref(pathname, queryState, {
-                        page: Math.max(queryState.page - 1, 1),
-                      })}
-                      aria-disabled={queryState.page <= 1}
-                      className={queryState.page <= 1 ? "pointer-events-none opacity-50" : undefined}
+                      href="#"
+                      aria-disabled={currentPage <= 1}
+                      className={currentPage <= 1 ? "pointer-events-none opacity-50" : undefined}
                       text="Sebelumnya"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void handlePageChange(Math.max(currentPage - 1, 1));
+                      }}
                     />
                   </PaginationItem>
                   {Array.from({ length: totalPages }, (_, index): number => index + 1)
-                    .filter((pageNumber) =>
-                      pageNumber === 1 ||
-                      pageNumber === totalPages ||
-                      Math.abs(pageNumber - queryState.page) <= 1,
+                    .filter(
+                      (pageNumber) =>
+                        pageNumber === 1 || pageNumber === totalPages || Math.abs(pageNumber - currentPage) <= 1,
                     )
                     .map((pageNumber) => (
                       <PaginationItem key={pageNumber}>
                         <PaginationLink
-                          href={buildHref(pathname, queryState, { page: pageNumber })}
-                          isActive={pageNumber === queryState.page}
+                          href="#"
+                          isActive={pageNumber === currentPage}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            void handlePageChange(pageNumber);
+                          }}
                         >
                           {pageNumber}
                         </PaginationLink>
@@ -618,14 +653,14 @@ export function PenggunaListClient({
                     ))}
                   <PaginationItem>
                     <PaginationNext
-                      href={buildHref(pathname, queryState, {
-                        page: Math.min(queryState.page + 1, totalPages),
-                      })}
-                      aria-disabled={queryState.page >= totalPages}
-                      className={
-                        queryState.page >= totalPages ? "pointer-events-none opacity-50" : undefined
-                      }
+                      href="#"
+                      aria-disabled={currentPage >= totalPages}
+                      className={currentPage >= totalPages ? "pointer-events-none opacity-50" : undefined}
                       text="Berikutnya"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void handlePageChange(Math.min(currentPage + 1, totalPages));
+                      }}
                     />
                   </PaginationItem>
                 </PaginationContent>

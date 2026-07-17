@@ -43,7 +43,7 @@ fi
 
 if is_enabled "${RUN_SEED_ON_STARTUP:-false}" "RUN_SEED_ON_STARTUP"; then
   log "Running full baseline seed..."
-  node dist/src/scripts/seed-all.js
+  node dist/scripts/seed-all.js
 else
   log "Skipping full baseline seed."
 fi
@@ -55,10 +55,10 @@ if is_enabled "${RUN_JAKARTA_SEED_ON_STARTUP:-false}" "RUN_JAKARTA_SEED_ON_START
   fi
 
   log "Running Jakarta presentation seed..."
-  node dist/src/scripts/seed-jakarta-demo.js
+  node dist/scripts/seed-jakarta-demo.js
 else
   log "Skipping Jakarta presentation seed."
 fi
 
 log "Starting NestJS backend on port ${PORT:-3001}..."
-exec node dist/src/main.js
+exec node dist/main.js

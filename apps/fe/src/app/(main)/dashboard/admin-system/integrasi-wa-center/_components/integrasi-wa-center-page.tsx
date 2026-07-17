@@ -53,32 +53,32 @@ function tone(status: string) {
   const normalized = status.toUpperCase();
 
   if (normalized === "ACTIVE") {
-    return "bg-emerald-500/15 border-emerald-400/35 text-emerald-100";
+    return "bg-emerald-500/15 border-emerald-400/35 text-emerald-700 dark:text-emerald-100";
   }
 
   if (normalized === "DEGRADED") {
-    return "bg-amber-500/15 border-amber-300/35 text-amber-100";
+    return "bg-amber-500/15 border-amber-300/35 text-amber-700 dark:text-amber-100";
   }
 
-  return "bg-white/10 border-white/15 text-white/75";
+  return "bg-slate-100 dark:bg-white/10 border-slate-200 dark:border-white/15 text-slate-700 dark:text-white/75";
 }
 
 function connectionTone(status: string) {
   const normalized = status.toUpperCase();
 
   if (normalized === "CONNECTED") {
-    return "bg-emerald-500/15 border-emerald-400/35 text-emerald-100";
+    return "bg-emerald-500/15 border-emerald-400/35 text-emerald-700 dark:text-emerald-100";
   }
 
   if (normalized === "QR_READY" || normalized === "PAIRING_CODE_READY" || normalized === "CONNECTING") {
-    return "bg-cyan-500/15 border-cyan-300/35 text-cyan-100";
+    return "bg-cyan-500/15 border-cyan-300/35 text-cyan-700 dark:text-cyan-100";
   }
 
   if (normalized === "ERROR") {
-    return "bg-rose-500/15 border-rose-300/35 text-rose-100";
+    return "bg-rose-500/15 border-rose-300/35 text-rose-700 dark:text-rose-100";
   }
 
-  return "bg-white/10 border-white/15 text-white/75";
+  return "bg-slate-100 dark:bg-white/10 border-slate-200 dark:border-white/15 text-slate-700 dark:text-white/75";
 }
 
 function formatDateTime(value?: string | null) {
@@ -374,43 +374,43 @@ export function AdminWaCenterPage() {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <Card className="border-white/10 bg-[var(--dc-surface)] text-[var(--dc-text-primary)]">
+      <Card className="border-slate-200 dark:border-white/10 bg-card text-card-foreground">
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge className="bg-cyan-400/15 text-cyan-100">Admin WA Control</Badge>
-            <Badge variant="outline" className="border-white/15 text-white/70">
+            <Badge className="bg-cyan-500/15 text-cyan-700 dark:text-cyan-100">Admin WA Control</Badge>
+            <Badge variant="outline" className="border-slate-200 dark:border-white/15 text-slate-700 dark:text-white/70">
               Integrasi WA Center
             </Badge>
           </div>
           <CardTitle>Bot Pusat & Nomor Pengirim</CardTitle>
-          <CardDescription className="text-white/65">
+          <CardDescription>
             Admin mengelola koneksi bot pusat, health check, dan sender numbers untuk berbagai keperluan wilayah.
           </CardDescription>
           <div className="pt-4">
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+                <Button className="bg-cyan-500 text-white hover:bg-cyan-600 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300">
                   <Plus className="mr-2 size-4" />
                   Tambah Koneksi
                 </Button>
               </DialogTrigger>
-              <DialogContent className="border-white/10 bg-[var(--dc-surface)] text-[var(--dc-text-primary)] sm:max-w-[425px]">
+              <DialogContent className="border-slate-200 dark:border-white/10 bg-card text-card-foreground sm:max-w-[425px] !top-[35%]">
                 <DialogHeader>
                   <DialogTitle>Tambah Koneksi WhatsApp</DialogTitle>
-                  <DialogDescription className="text-white/60">
+                  <DialogDescription>
                     Tambahkan koneksi bot WhatsApp baru untuk koordinator lapangan atau unit.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label className="text-white">Wilayah (Field Coordinator)</Label>
+                    <Label>Wilayah (Field Coordinator)</Label>
                     <Popover open={comboOpen} onOpenChange={setComboOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           role="combobox"
                           aria-expanded={comboOpen}
-                          className="w-full justify-between bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white font-normal"
+                          className="w-full justify-between bg-transparent border-slate-200 dark:border-white/10 text-foreground hover:bg-slate-100 dark:hover:bg-white/10 font-normal"
                         >
                           {selectedArea 
                             ? selectedArea.label 
@@ -418,15 +418,20 @@ export function AdminWaCenterPage() {
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[380px] p-0 border-white/20 bg-[var(--dc-surface)]">
-                        <Command className="bg-transparent text-white" shouldFilter={false}>
+                      <PopoverContent
+                        side="bottom"
+                        align="start"
+                        avoidCollisions={false}
+                        className="w-[380px] p-0 border-slate-200 dark:border-white/20 bg-card text-card-foreground"
+                      >
+                        <Command className="bg-transparent text-foreground" shouldFilter={false}>
                           <CommandInput
                             placeholder="Cari wilayah..."
                             value={areaQuery}
                             onValueChange={setAreaQuery}
                           />
                           <CommandList>
-                            <CommandEmpty className="py-4 text-center text-sm text-white/60">
+                            <CommandEmpty className="py-4 text-center text-sm text-muted-foreground">
                               Tidak ada wilayah yang ditemukan.
                             </CommandEmpty>
                             <CommandGroup>
@@ -438,7 +443,7 @@ export function AdminWaCenterPage() {
                                     setSelectedArea(area);
                                     setComboOpen(false);
                                   }}
-                                  className="text-white/80 focus:bg-white/10"
+                                  className="text-foreground/80 focus:bg-slate-100 dark:focus:bg-white/10"
                                 >
                                   <Check
                                     className={cn(
@@ -461,13 +466,12 @@ export function AdminWaCenterPage() {
                 <DialogFooter>
                   <Button
                     variant="outline"
-                    className="border-white/15 bg-transparent text-white hover:bg-white/10"
                     onClick={() => setIsAddOpen(false)}
                   >
                     Batal
                   </Button>
                   <Button
-                    className="bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                    className="bg-cyan-500 text-white hover:bg-cyan-600 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
                     disabled={!selectedArea || busyKey === "create"}
                     onClick={() => void handleCreate()}
                   >
@@ -481,7 +485,7 @@ export function AdminWaCenterPage() {
       </Card>
 
       {error ? (
-        <Alert className="border-amber-400/25 bg-amber-500/10 text-amber-50">
+        <Alert className="border-amber-400/25 bg-amber-500/10 text-amber-800 dark:text-amber-50">
           <AlertTitle>Perlu perhatian</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
