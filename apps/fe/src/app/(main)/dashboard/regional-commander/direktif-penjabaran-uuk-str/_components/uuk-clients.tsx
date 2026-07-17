@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -775,25 +776,11 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
 
   return (
     <div className="relative mx-auto w-full max-w-[1400px] space-y-4 pb-14">
-      {/* Back Button */}
-      <div className="flex items-center">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border-white/10 hover:bg-white/[0.04] text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" />
-          <span>Kembali</span>
-        </Button>
-      </div>
-      {/* 1. Command Header */}
-      <div className="flex flex-col gap-2 border-white/[0.08] border-b pb-3 xl:flex-row xl:items-start xl:justify-between">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-bold text-[var(--dc-text-primary)] text-xl tracking-tight">
-              {currentVersion?.title ?? "Penerusan Regional"}
-            </h1>
+      <PageHeader
+        title={currentVersion?.title ?? "Penerusan Regional"}
+        backButton={true}
+        badge={
+          <div className="flex items-center gap-1.5">
             <Badge
               variant="outline"
               className="rounded-[4px] border-[var(--dc-success)]/40 bg-[var(--dc-success-soft)]/10 px-2 py-0.5 font-mono text-[10px] text-[var(--dc-success)] uppercase tracking-wider"
@@ -810,33 +797,33 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
               {classification}
             </Badge>
           </div>
+        }
+      />
 
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-muted-foreground text-xs">
-            <div className="flex items-center gap-1">
-              <BookOpenText className="size-3 text-muted-foreground/60" />
-              <span>
-                NOMOR STR:{" "}
-                <span className="text-[var(--dc-text-primary)]">
-                  {uuk.directiveVersion?.directive?.commandNumber ?? "-"}
-                </span>
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <User className="size-3 text-muted-foreground/60" />
-              <span>
-                REGIONAL PENGIRIM: <span className="text-[var(--dc-text-primary)]">{uuk.ownerUnit?.name ?? "-"}</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Calendar className="size-3 text-muted-foreground/60" />
-              <span>
-                TANGGAL:{" "}
-                <span className="text-[var(--dc-text-primary)]">
-                  {(currentVersion as any)?.createdAt ? formatDate((currentVersion as any).createdAt) : "-"}
-                </span>
-              </span>
-            </div>
-          </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-muted-foreground text-xs border-b border-white/[0.08] pb-3">
+        <div className="flex items-center gap-1">
+          <BookOpenText className="size-3 text-muted-foreground/60" />
+          <span>
+            NOMOR STR:{" "}
+            <span className="text-[var(--dc-text-primary)]">
+              {uuk.directiveVersion?.directive?.commandNumber ?? "-"}
+            </span>
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <User className="size-3 text-muted-foreground/60" />
+          <span>
+            REGIONAL PENGIRIM: <span className="text-[var(--dc-text-primary)]">{uuk.ownerUnit?.name ?? "-"}</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Calendar className="size-3 text-muted-foreground/60" />
+          <span>
+            TANGGAL:{" "}
+            <span className="text-[var(--dc-text-primary)]">
+              {(currentVersion as any)?.createdAt ? formatDate((currentVersion as any).createdAt) : "-"}
+            </span>
+          </span>
         </div>
       </div>
 

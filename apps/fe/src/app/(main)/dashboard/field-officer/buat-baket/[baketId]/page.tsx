@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { BackButton } from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -148,16 +147,16 @@ export default async function Page({ params }: PageProps) {
   );
 
   return (
-    <div className="space-y-5 p-4 md:p-6">
+    <div className="space-y-4 p-4 md:p-6">
+      <div>
+        <BackButton href="/dashboard/field-officer" />
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-muted-foreground text-sm">Field Officer · Baket terkirim</p>
+          <p className="text-muted-foreground text-sm">Petugas Lapangan · Baket Terkirim</p>
           <h1 className="font-semibold text-2xl">{version.title ?? "Detail Baket"}</h1>
           <p className="text-muted-foreground text-sm">Data yang telah dikirim bersifat baca-saja.</p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/dashboard/field-officer/buat-baket">Kembali</Link>
-        </Button>
       </div>
 
       <Card>
@@ -214,7 +213,7 @@ export default async function Page({ params }: PageProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Foto dan evidence</CardTitle>
+          <CardTitle>Foto dan bukti</CardTitle>
         </CardHeader>
         <CardContent>
           {evidence.length ? (
@@ -227,18 +226,18 @@ export default async function Page({ params }: PageProps) {
                     {String(file.mimeType ?? "").startsWith("image/") ? (
                       <EvidenceImageViewer
                         src={`/api/files/${fileId}`}
-                        alt={file.originalName ?? "Foto evidence Baket"}
-                        fileName={file.originalName ?? entry.caption ?? "Evidence Baket"}
+                        alt={file.originalName ?? "Foto bukti Baket"}
+                        fileName={file.originalName ?? entry.caption ?? "Bukti Baket"}
                         caption={entry.caption}
                       />
                     ) : null}
-                    <p className="p-3 text-sm">{file.originalName ?? entry.caption ?? "Evidence Baket"}</p>
+                    <p className="p-3 text-sm">{file.originalName ?? entry.caption ?? "Bukti Baket"}</p>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm">Tidak ada foto atau evidence.</p>
+            <p className="text-muted-foreground text-sm">Tidak ada foto atau bukti.</p>
           )}
         </CardContent>
       </Card>

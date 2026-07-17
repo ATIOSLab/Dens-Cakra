@@ -13,6 +13,7 @@ import {
   Cpu,
 } from "lucide-react";
 
+import { BackButton } from "@/components/ui/back-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
@@ -117,34 +118,18 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[var(--dc-primary)]/20 to-transparent" />
           <div className="absolute top-0 left-0 w-[4px] h-full bg-[var(--dc-primary)]" />
 
+          <div className="mb-4">
+            <BackButton href="/dashboard/executive/personil" />
+          </div>
+
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] font-mono font-bold tracking-widest text-[var(--dc-primary)] bg-[var(--dc-primary-soft)] px-2 py-0.5 border border-[var(--dc-border-subtle)] uppercase">
-                  [ DETAIL PERSONEL // NODE_INTEL ]
-                </span>
-                <span className="flex items-center gap-1.5 text-[9px] font-mono text-[var(--dc-text-muted)]">
-                  <span className="size-2 bg-emerald-500 rounded-full animate-pulse" />
-                  <span>NODE_LINK_ESTABLISHED</span>
-                </span>
-              </div>
               <h1 className="text-2xl font-mono font-bold tracking-tight text-foreground uppercase mt-2">
                 {profile.fullName ?? profile.username ?? profile.email}
               </h1>
               <p className="max-w-3xl text-[11px] text-[var(--dc-text-secondary)] font-mono leading-relaxed">
                 {profile.email} · {detail.currentAssignment?.title ?? "Belum ada jabatan aktif"}
               </p>
-            </div>
-
-            {/* Back button */}
-            <div className="flex items-center">
-              <Link
-                href="/dashboard/executive/personil"
-                className="inline-flex items-center gap-1.5 px-4 py-2 border border-[var(--dc-primary)] bg-[var(--dc-primary-soft)] text-[var(--dc-primary)] font-mono text-xs font-bold hover:bg-[var(--dc-primary)] hover:text-[var(--dc-text-inverse)] transition-all rounded-none uppercase cursor-pointer"
-              >
-                <ChevronLeft className="size-3.5" />
-                <span>KEMBALI</span>
-              </Link>
             </div>
           </div>
         </header>

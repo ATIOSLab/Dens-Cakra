@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -195,43 +196,29 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
 
   return (
     <div className="space-y-5">
-      {/* Back Button */}
-      <div className="flex items-center">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border-white/10 hover:bg-white/[0.04] text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" />
-          <span>Kembali</span>
-        </Button>
-      </div>
-      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-col justify-between gap-5 border-border border-b bg-secondary/10 p-5 lg:flex-row lg:items-center">
-          <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-bold font-mono text-primary text-xs">{directive.commandNumber}</span>
-              <StatusBadge status={directive.status} />
-              <Badge
-                variant="outline"
-                className={cn("rounded-md px-2 py-0.5", classificationBadgeClass(currentVersion?.classification))}
-              >
-                {currentVersion?.classification ?? "RAHASIA"}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="dc-priority rounded-md px-2 py-0.5 font-bold font-mono text-[10px] tracking-wider"
-                data-priority={(currentVersion?.urgency ?? "NORMAL").toUpperCase()}
-              >
-                URGENSI: {currentVersion?.urgency ?? "NORMAL"}
-              </Badge>
-            </div>
-            <h1 className="font-semibold text-foreground text-xl tracking-tight sm:text-2xl">
-              {currentVersion?.strategicIssue ?? "DENS CAKRA DIRECTIVE"}
-            </h1>
+      <PageHeader
+        title={currentVersion?.strategicIssue ?? "DENS CAKRA DIRECTIVE"}
+        backButton={true}
+        badge={
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-bold font-mono text-primary text-xs">{directive.commandNumber}</span>
+            <StatusBadge status={directive.status} />
+            <Badge
+              variant="outline"
+              className={cn("rounded-md px-2 py-0.5", classificationBadgeClass(currentVersion?.classification))}
+            >
+              {currentVersion?.classification ?? "RAHASIA"}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="dc-priority rounded-md px-2 py-0.5 font-bold font-mono text-[10px] tracking-wider"
+              data-priority={(currentVersion?.urgency ?? "NORMAL").toUpperCase()}
+            >
+              URGENSI: {currentVersion?.urgency ?? "NORMAL"}
+            </Badge>
           </div>
-
+        }
+        actions={
           <div className="flex shrink-0 flex-wrap gap-2">
             <Button asChild variant="outline" size="sm" className="cursor-pointer">
               <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}/edit`}>Edit Draft</Link>
@@ -322,7 +309,10 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
               </AlertDialogContent>
             </AlertDialog>
           </div>
-        </div>
+        }
+      />
+
+      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
 
         <div className="grid gap-5 p-5 text-xs sm:grid-cols-2 lg:grid-cols-6">
           <div>
