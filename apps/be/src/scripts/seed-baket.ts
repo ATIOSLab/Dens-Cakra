@@ -466,8 +466,9 @@ async function upsertVerifiedBaket(params: {
 
   await prisma.$transaction(async (tx) => {
     await tx.jaring.upsert({
-      where: { code: jaringCode },
+      where: { id: jaringId },
       update: {
+        code: jaringCode,
         aliasName: `Jaring ${area.name} ${String(sequence + 1).padStart(2, '0')}`,
         whatsappNumber: `+62870${String(sequence + 1).padStart(8, '0')}`,
         clusterId: params.clusterId,

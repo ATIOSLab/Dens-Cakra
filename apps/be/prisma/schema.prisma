@@ -472,12 +472,14 @@ model Session {
   locationLabel  String?  @db.VarChar(255)
   userAgent      String?
   impersonatedBy String?
+  lastSeenAt     DateTime? @db.Timestamptz(3)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([lastSeenAt])
   @@map("session")
 }
 
@@ -1219,7 +1221,7 @@ model TaskAttachment {
 
 model Jaring {
   id                    String       @id @default(uuid()) @db.Uuid
-  code                  String       @unique @db.VarChar(80)
+  code                  String       @db.VarChar(80)
   aliasName             String?      @db.VarChar(150)
   whatsappNumber        String       @db.VarChar(30)
   clusterId             String?      @db.Uuid
@@ -1241,6 +1243,7 @@ model Jaring {
   primaryBakets        Baket[]                     @relation("BaketPrimaryJaring")
 
   @@index([status, deletedAt])
+  @@index([code])
   @@index([clusterId, status])
 }
 

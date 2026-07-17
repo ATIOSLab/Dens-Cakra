@@ -135,6 +135,42 @@ export class IdentityService {
     };
   }
 
+  async recordSessionHeartbeat(input: {
+    sessionId: string;
+    authUserId: string;
+  }) {
+    const lastSeenAt = new Date();
+    const updated = await this.prisma.session.updateMany({
+      where: {
+        id: input.sessionId,
+        userId: input.authUserId,
+        expiresAt: { gt: lastSeenAt },
+      },
+      data: { lastSeenAt },
+    });
+
+    if (updated.count === 0) {
+      throw new NotFoundException('Active session was not found.');
+    }
+
+    return { lastSeenAt };
+  }
+
+  async markSessionInactive(input: {
+    sessionId: string;
+    authUserId: string;
+  }) {
+    await this.prisma.session.updateMany({
+      where: {
+        id: input.sessionId,
+        userId: input.authUserId,
+      },
+      data: { lastSeenAt: null },
+    });
+
+    return { inactive: true };
+  }
+
   async getAreaScopes(
     context: AuthorizationContext,
     includeDescendants: boolean,

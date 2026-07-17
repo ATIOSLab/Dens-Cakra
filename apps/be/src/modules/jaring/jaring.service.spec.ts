@@ -4,7 +4,6 @@ import { JaringService } from './jaring.service.js';
 
 describe('JaringService registration security', () => {
   const newJaring = {
-    code: 'JRG-NEW',
     whatsappNumber: '081234567890',
     fieldOfficerAssignmentId: '8ba6a135-9aef-43d3-a7c9-086eb4575f79',
     areaIds: ['247c7732-44df-4f4a-bf50-f80c81245205'],
@@ -24,10 +23,13 @@ describe('JaringService registration security', () => {
         create: jest.fn(),
       },
       userSeatAssignment: { findUniqueOrThrow: jest.fn() },
+      administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
-    const service = new JaringService(prisma as never, {} as never);
+    const service = new JaringService(prisma as never, {
+      assertArea: jest.fn(() => Promise.resolve()),
+    } as never);
     const create = service.create(newJaring, {
-      primaryAssignmentId: 'creator-assignment-id',
+      primaryAssignmentId: newJaring.fieldOfficerAssignmentId,
     } as never);
 
     await expect(create).rejects.toMatchObject<ApiException>({
@@ -68,12 +70,15 @@ describe('JaringService registration security', () => {
         create: jest.fn(),
       },
       userSeatAssignment: { findUniqueOrThrow: jest.fn() },
+      administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
-    const service = new JaringService(prisma as never, {} as never);
+    const service = new JaringService(prisma as never, {
+      assertArea: jest.fn(() => Promise.resolve()),
+    } as never);
 
     await expect(
       service.create(newJaring, {
-        primaryAssignmentId: 'creator-assignment-id',
+        primaryAssignmentId: newJaring.fieldOfficerAssignmentId,
       } as never),
     ).rejects.toMatchObject<ApiException>({
       code: 'JARING_WHATSAPP_DUPLICATE',
@@ -82,33 +87,36 @@ describe('JaringService registration security', () => {
     expect(prisma.jaring.create).not.toHaveBeenCalled();
   });
 
-  it('menolak kode Jaring yang sudah digunakan', async () => {
+  it('membuat PIN enam digit otomatis tanpa pemeriksaan duplikasi kode', async () => {
+    const createdJaring = { id: 'new-jaring-id' };
     const prisma = {
       jaring: {
-        findFirst: jest
-          .fn()
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce({ id: 'existing-jaring-id' }),
-        create: jest.fn(),
+        findFirst: jest.fn(() => Promise.resolve(null)),
+        create: jest.fn(() => Promise.resolve(createdJaring)),
+        findFirstOrThrow: jest.fn(() => Promise.resolve(createdJaring)),
       },
-      userSeatAssignment: { findUniqueOrThrow: jest.fn() },
+      administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
+      userSeatAssignment: {
+        findUniqueOrThrow: jest.fn(() =>
+          Promise.resolve({ isActive: true, position: { code: 'PETUGAS_ORGANIK' } }),
+        ),
+      },
+      auditLog: { create: jest.fn(() => Promise.resolve({})) },
     };
-    const service = new JaringService(prisma as never, {} as never);
+    const service = new JaringService(prisma as never, {
+      assertArea: jest.fn(() => Promise.resolve()),
+    } as never);
 
-    await expect(
-      service.create(newJaring, {
-        primaryAssignmentId: 'creator-assignment-id',
-      } as never),
-    ).rejects.toMatchObject<ApiException>({
-      code: 'JARING_CODE_DUPLICATE',
-      message: 'Kode Jaring sudah digunakan.',
-    });
-    expect(prisma.jaring.findFirst).toHaveBeenNthCalledWith(2, {
-      where: { code: { equals: newJaring.code, mode: 'insensitive' } },
-      select: { id: true },
-    });
-    expect(prisma.userSeatAssignment.findUniqueOrThrow).not.toHaveBeenCalled();
-    expect(prisma.jaring.create).not.toHaveBeenCalled();
+    await service.create(newJaring, {
+      primaryAssignmentId: newJaring.fieldOfficerAssignmentId,
+      userProfileId: 'profile-id',
+    } as never);
+
+    const createInput = prisma.jaring.create.mock.calls[0]?.[0] as {
+      data: { code: string };
+    };
+    expect(createInput.data.code).toMatch(/^\d{6}$/);
+    expect(prisma.jaring.findFirst).toHaveBeenCalledTimes(1);
   });
 
   it('melakukan soft delete dan menyimpan audit delete', async () => {
@@ -147,6 +155,42 @@ describe('JaringService registration security', () => {
         entityType: 'Jaring',
         entityId: 'jaring-id',
         metadata: { reason: 'Tidak lagi dibina' },
+      }),
+    });
+  });
+
+  it('membuat ulang PIN enam digit dan menyimpan audit', async () => {
+    const update = jest.fn(() => Promise.resolve({}));
+    const findFirstOrThrow = jest.fn(() =>
+      Promise.resolve({ id: 'jaring-id', code: '123456' }),
+    );
+    const auditCreate = jest.fn(() => Promise.resolve({}));
+    const assertJaring = jest.fn(() => Promise.resolve());
+    const service = new JaringService(
+      {
+        jaring: { update, findFirstOrThrow },
+        auditLog: { create: auditCreate },
+      } as never,
+      { assertJaring } as never,
+    );
+
+    await service.regeneratePin('jaring-id', {
+      userProfileId: 'profile-id',
+      primaryAssignmentId: 'assignment-id',
+    } as never);
+
+    expect(assertJaring).toHaveBeenCalledWith(
+      expect.anything(),
+      'jaring-id',
+    );
+    const updateInput = update.mock.calls[0]?.[0] as {
+      data: { code: string };
+    };
+    expect(updateInput.data.code).toMatch(/^\d{6}$/);
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'JARING.PIN_REGENERATE',
+        entityId: 'jaring-id',
       }),
     });
   });

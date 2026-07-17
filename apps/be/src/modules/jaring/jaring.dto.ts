@@ -22,7 +22,6 @@ export class JaringQuery {
 }
 
 export class CreateJaringDto {
-  @IsString() @MaxLength(80) code!: string;
   @IsOptional() @IsString() @MaxLength(150) aliasName?: string;
   @IsString() @MaxLength(30) whatsappNumber!: string;
   @IsOptional() @IsUUID() clusterId?: string;

@@ -81,6 +81,7 @@ export type FieldOfficerIncoming = {
   validationSummary: string;
   categoryId: string | null;
   categoryName: string | null;
+  urgency: string | null;
   receivedAt: string;
   eventDateTime: string | null;
   gpsSharedAt: string | null;
@@ -148,7 +149,14 @@ export type FieldOfficerWorkspace = {
   };
   jaring: FieldOfficerJaring[];
   jaringClusters: JaringCluster[];
+  districtAreas: Array<{
+    areaId: string;
+    code: string;
+    name: string;
+    level: string;
+  }>;
   reportCategories: ReportCategory[];
+  jaringReports: FieldOfficerIncoming[];
   incoming: FieldOfficerIncoming[];
   baketCandidates: FieldOfficerIncoming[];
   tasks: FieldOfficerTask[];

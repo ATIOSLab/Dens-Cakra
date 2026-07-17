@@ -71,6 +71,12 @@ export class WhatsAppService {
           },
         },
         category: true,
+        convertedBaket: {
+          include: {
+            reportCategory: true,
+            versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
+          },
+        },
         resolvedArea: true,
         media: {
           include: {
@@ -176,6 +182,12 @@ export class WhatsAppService {
           },
         },
         category: true,
+        convertedBaket: {
+          include: {
+            reportCategory: true,
+            versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
+          },
+        },
         resolvedArea: true,
         validationIssues: true,
         media: { include: { file: { select: publicFileSelect } } },
@@ -592,6 +604,7 @@ export class WhatsAppService {
         where: { id },
         data: {
           convertedBaketId: baket.id,
+          categoryId: category.id,
           status: WhatsAppMessageStatus.PROCESSED,
           processedAt: new Date(),
           resolvedAreaId: eventAreaId,
