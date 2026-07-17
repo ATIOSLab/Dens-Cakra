@@ -40,6 +40,71 @@ npm run seed:admin
 npm run start:dev
 ```
 
+PowerShell di Windows kadang memblokir `npm.ps1`. Kalau command `npm ...`
+terkena error Execution Policy, gunakan `npm.cmd ...` dengan command yang sama.
+
+## Local Setup After Pulling a Branch
+
+Jalankan dari folder `apps/be`.
+
+1. Install dependency yang mungkin berubah:
+
+   ```bash
+   npm install
+   ```
+
+2. Pastikan file environment ada:
+
+   ```bash
+   copy .env.example .env
+   ```
+
+   Lewati langkah ini kalau `.env` lokal sudah ada dan isinya sudah benar.
+
+3. Pastikan database PostgreSQL/PostGIS lokal hidup. Untuk helper Docker bawaan:
+
+   ```bash
+   npm run db:reset:postgis
+   ```
+
+   Command ini membutuhkan Docker Desktop dalam keadaan running dan akan mereset
+   database sesuai `DATABASE_URL` di `.env`.
+
+4. Generate Prisma client:
+
+   ```bash
+   npm run prisma:generate
+   ```
+
+5. Jalankan migration:
+
+   ```bash
+   npm run migrate:dev
+   ```
+
+   Jika membuat migration baru dari perubahan schema, beri nama:
+
+   ```bash
+   npm run migrate:dev -- --name nama_perubahan
+   ```
+
+6. Isi data awal bila database baru/reset:
+
+   ```bash
+   npm run seed:admin
+   ```
+
+7. Jalankan backend:
+
+   ```bash
+   npm run start:dev
+   ```
+
+Catatan: jangan pakai `npx run migrate dev`. Command itu menjalankan package
+bernama `run`, lalu Node mencari file lokal bernama `migrate`. Untuk project ini
+pakai `npm run migrate:dev`, `npm run prisma:migrate:dev`, atau langsung
+`npx prisma migrate dev`.
+
 ## Dokploy Deployment
 
 - Use compose path `apps/be/docker-compose.dokploy.yml`.

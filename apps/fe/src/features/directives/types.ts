@@ -36,6 +36,7 @@ export type OrganizationUnitOption = {
   code: string;
   name: string;
   type: string;
+  branch?: string | null;
 };
 
 export type PositionAssignmentOption = {
@@ -49,7 +50,9 @@ export type PositionAssignmentOption = {
 export type PositionOption = {
   id: string;
   seatCode: string;
+  code?: string | null;
   title: string;
+  branch?: string | null;
   role?: {
     code?: string;
     name?: string;
@@ -88,15 +91,9 @@ export type ProvinceBoundaryProperties = {
   recipientCount?: number;
 };
 
-export type ProvinceBoundaryFeature = Feature<
-  Polygon | MultiPolygon,
-  ProvinceBoundaryProperties
->;
+export type ProvinceBoundaryFeature = Feature<Polygon | MultiPolygon, ProvinceBoundaryProperties>;
 
-export type ProvinceBoundaryCollection = FeatureCollection<
-  Polygon | MultiPolygon,
-  ProvinceBoundaryProperties
->;
+export type ProvinceBoundaryCollection = FeatureCollection<Polygon | MultiPolygon, ProvinceBoundaryProperties>;
 
 export type RegionalMasterBinda = {
   unitId: string;
@@ -287,6 +284,36 @@ export type DirectiveTracking = {
     };
   };
   baketCount: number;
+  targetAreas: Array<{
+    areaId: string;
+    isPrimary: boolean;
+    code: string;
+    name: string;
+    level: string;
+  }>;
+  routingHierarchy: Array<{
+    positionId: string;
+    reportsToPositionId?: string | null;
+    seatCode: string;
+    positionCode: string;
+    positionTitle: string;
+    branch?: string | null;
+    roleCode: string;
+    organizationUnitId: string;
+    organizationUnitCode: string;
+    organizationUnitName: string;
+    organizationUnitType: string;
+    assignmentId?: string | null;
+    fullName?: string | null;
+    username?: string | null;
+    areaScopes: Array<{
+      areaId: string;
+      code: string;
+      name: string;
+      level: string;
+      isPrimary: boolean;
+    }>;
+  }>;
   regionalChains: Array<{
     regionalRecipient: {
       id: string;
@@ -299,15 +326,20 @@ export type DirectiveTracking = {
       targetUnit?: OrganizationUnitOption | null;
       targetPosition?: {
         id: string;
+        code?: string | null;
         title: string;
         seatCode: string;
+        branch?: string | null;
         role?: {
           code?: string | null;
           name?: string | null;
         } | null;
         organizationUnit?: {
           id: string;
+          code?: string | null;
           name: string;
+          type?: string | null;
+          branch?: string | null;
         } | null;
         assigneeName?: string | null;
         assigneeUsername?: string | null;
@@ -323,8 +355,16 @@ export type DirectiveTracking = {
       createdBy?: {
         assignmentId?: string | null;
         fullName?: string | null;
+        username?: string | null;
+        positionId?: string | null;
+        positionCode?: string | null;
         positionTitle?: string | null;
+        branch?: string | null;
+        organizationUnitId?: string | null;
+        organizationUnitCode?: string | null;
         organizationUnitName?: string | null;
+        organizationUnitType?: string | null;
+        roleCode?: string | null;
       } | null;
       currentVersion?: {
         id: string;
@@ -371,9 +411,13 @@ export type DirectiveTrackingActor = {
   fullName?: string | null;
   username?: string | null;
   positionId?: string | null;
+  positionCode?: string | null;
   positionTitle?: string | null;
+  branch?: string | null;
   organizationUnitId?: string | null;
+  organizationUnitCode?: string | null;
   organizationUnitName?: string | null;
+  organizationUnitType?: string | null;
   roleCode?: string | null;
   areaScopes: Array<{
     areaId: string;
@@ -400,67 +444,75 @@ export type DirectiveTrackingAssignment = {
 };
 
 export type DirectiveTrackingTask = {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  dueDate?: string | null;
+  ownerUnitId: string;
+  ownerUnit?: OrganizationUnitOption | null;
+  createdBy?: {
+    assignmentId?: string | null;
+    fullName?: string | null;
+    username?: string | null;
+    positionId?: string | null;
+    positionCode?: string | null;
+    positionTitle?: string | null;
+    branch?: string | null;
+    organizationUnitId?: string | null;
+    organizationUnitCode?: string | null;
+    organizationUnitName?: string | null;
+    organizationUnitType?: string | null;
+    roleCode?: string | null;
+  } | null;
+  targetAreas: Array<{
+    areaId: string;
+    isPrimary: boolean;
+    area: {
+      id: string;
+      code: string;
+      name: string;
+      level: string;
+    };
+  }>;
+  oimStage: {
+    hasRead: boolean;
+    hasForwardedToFieldCoordinator: boolean;
+    fieldCoordinatorAssignmentCount: number;
+  };
+  fieldCoordinatorSummary: {
+    total: number;
+    sent: number;
+    read: number;
+    acknowledged: number;
+    inProgress: number;
+    completed: number;
+    overdue: number;
+    reassigned: number;
+    cancelled: number;
+    distributed: number;
+  };
+  korwilSummary: {
+    total: number;
+    sent: number;
+    read: number;
+    acknowledged: number;
+    inProgress: number;
+    completed: number;
+    overdue: number;
+    reassigned: number;
+    cancelled: number;
+  };
+  fieldCoordinatorAssignments?: DirectiveTrackingAssignment[];
+  uukStr?: {
     id: string;
-    title: string;
-    status: string;
-    priority: string;
-    createdAt: string;
-    dueDate?: string | null;
     ownerUnitId: string;
     ownerUnit?: OrganizationUnitOption | null;
-    createdBy?: {
-      assignmentId?: string | null;
-      fullName?: string | null;
-      positionTitle?: string | null;
-      organizationUnitName?: string | null;
-    } | null;
-    targetAreas: Array<{
-      areaId: string;
-      isPrimary: boolean;
-      area: {
-        id: string;
-        code: string;
-        name: string;
-        level: string;
-      };
-    }>;
-    oimStage: {
-      hasRead: boolean;
-      hasForwardedToFieldCoordinator: boolean;
-      fieldCoordinatorAssignmentCount: number;
-    };
-    fieldCoordinatorSummary: {
-      total: number;
-      sent: number;
-      read: number;
-      acknowledged: number;
-      inProgress: number;
-      completed: number;
-      overdue: number;
-      reassigned: number;
-      cancelled: number;
-      distributed: number;
-    };
-    korwilSummary: {
-      total: number;
-      sent: number;
-      read: number;
-      acknowledged: number;
-      inProgress: number;
-      completed: number;
-      overdue: number;
-      reassigned: number;
-      cancelled: number;
-    };
-    fieldCoordinatorAssignments?: DirectiveTrackingAssignment[];
-    uukStr?: {
-      id: string;
-      ownerUnitId: string;
-      ownerUnit?: OrganizationUnitOption | null;
-      versionId: string;
-      versionNumber: number;
-      title: string;
-    } | null;
+    versionId: string;
+    versionNumber: number;
+    title: string;
+  } | null;
 };
 
 export type DirectiveRecipientInput = {

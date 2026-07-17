@@ -25,6 +25,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
     getPreference("sidebar_variant"),
     getPreference("sidebar_collapsible"),
   ]);
+
   return (
     <SidebarProvider
       defaultOpen={defaultOpen}
@@ -45,9 +46,6 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           <AppSidebar variant={variant} collapsible={collapsible} />
           <SidebarInset
             className={cn(
-              "[html[data-content-layout=centered]_&>*]:mx-auto",
-              "[html[data-content-layout=centered]_&>*]:w-full",
-              "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
               "peer-data-[variant=inset]:border",
               "[--dashboard-header-height:var(--dc-topbar-height)]",
               "min-w-0 overflow-x-clip",

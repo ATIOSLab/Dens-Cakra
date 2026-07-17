@@ -83,7 +83,7 @@ export function buildDirectiveTrackingGraph(
     childrenIds: [],
     depth: 0,
     kind: "COMMAND",
-    label: "Pusat Komando",
+    label: "Deputi II",
     subtitle: directive.ownerUnit?.name ?? directive.commandNumber,
     status: directive.status,
     unit: directive.ownerUnit?.name,
