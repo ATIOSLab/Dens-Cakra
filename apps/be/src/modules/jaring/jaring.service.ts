@@ -211,6 +211,18 @@ export class JaringService {
       );
     }
 
+    const duplicateCode = await this.prisma.jaring.findFirst({
+      where: { code: { equals: body.code, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (duplicateCode) {
+      throw new ApiException(
+        'JARING_CODE_DUPLICATE',
+        'Kode Jaring sudah digunakan.',
+        409,
+      );
+    }
+
     const officer = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: body.fieldOfficerAssignmentId },
       include: { position: true },

@@ -82,6 +82,35 @@ describe('JaringService registration security', () => {
     expect(prisma.jaring.create).not.toHaveBeenCalled();
   });
 
+  it('menolak kode Jaring yang sudah digunakan', async () => {
+    const prisma = {
+      jaring: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ id: 'existing-jaring-id' }),
+        create: jest.fn(),
+      },
+      userSeatAssignment: { findUniqueOrThrow: jest.fn() },
+    };
+    const service = new JaringService(prisma as never, {} as never);
+
+    await expect(
+      service.create(newJaring, {
+        primaryAssignmentId: 'creator-assignment-id',
+      } as never),
+    ).rejects.toMatchObject<ApiException>({
+      code: 'JARING_CODE_DUPLICATE',
+      message: 'Kode Jaring sudah digunakan.',
+    });
+    expect(prisma.jaring.findFirst).toHaveBeenNthCalledWith(2, {
+      where: { code: { equals: newJaring.code, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    expect(prisma.userSeatAssignment.findUniqueOrThrow).not.toHaveBeenCalled();
+    expect(prisma.jaring.create).not.toHaveBeenCalled();
+  });
+
   it('melakukan soft delete dan menyimpan audit delete', async () => {
     const update = jest.fn(() => Promise.resolve({}));
     const findFirstOrThrow = jest.fn(() =>
