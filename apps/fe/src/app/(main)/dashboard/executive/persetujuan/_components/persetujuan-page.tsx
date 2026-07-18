@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+
 import {
   AlertCircle,
   ArrowRight,
@@ -120,9 +121,25 @@ const initialReports: ApprovalReport[] = [
     v11Content:
       "Telah teridentifikasi bongkar muat 14 unit senjata serbu jenis karbin otomatis kaliber 5.56mm buatan pabrikan asing di bawah semen karungan. Pengiriman terafiliasi dengan jaringan kriminal bersenjata regional.",
     history: [
-      { role: "Satgas Intelijen Perbatasan", actor: "FO-14 / Kapten inf Yudi", action: "Submit Draft Laporan Awal (v1.0)", time: "10 Jul 2026, 21.00 WIB" },
-      { role: "Koordinator Perbatasan Binda", actor: "Letkol Edi S.", action: "Pembaruan detail tipe senjata & amunisi (v1.1)", time: "11 Jul 2026, 06.30 WIB" },
-      { role: "Deputi II BIN", actor: "Mayjen Joko W.", action: "Verifikasi & Penerusan ke Eksekutif", time: "11 Jul 2026, 08.45 WIB", note: "Rekomendasi persetujuan prioritas tinggi." },
+      {
+        role: "Satgas Intelijen Perbatasan",
+        actor: "FO-14 / Kapten inf Yudi",
+        action: "Submit Draft Laporan Awal (v1.0)",
+        time: "10 Jul 2026, 21.00 WIB",
+      },
+      {
+        role: "Koordinator Perbatasan Binda",
+        actor: "Letkol Edi S.",
+        action: "Pembaruan detail tipe senjata & amunisi (v1.1)",
+        time: "11 Jul 2026, 06.30 WIB",
+      },
+      {
+        role: "Deputi II BIN",
+        actor: "Mayjen Joko W.",
+        action: "Verifikasi & Penerusan ke Eksekutif",
+        time: "11 Jul 2026, 08.45 WIB",
+        note: "Rekomendasi persetujuan prioritas tinggi.",
+      },
     ],
     distribution: [
       { target: "Presiden RI", status: "Menunggu Pengesahan" },
@@ -152,8 +169,18 @@ const initialReports: ApprovalReport[] = [
     v11Content:
       "Distribusi dialihkan menggunakan pengawalan ketat Yon POM TNI guna menghindari penjarahan di pintu tol keluar serta stasiun pengisian depo utama Tanjung Priok.",
     history: [
-      { role: "Analis Utama DKI", actor: "AKBP Fajar", action: "Drafting Kajian Keamanan (v1.0)", time: "10 Jul 2026, 11.00 WIB" },
-      { role: "Kabinda DKI Jakarta", actor: "Brigjen Teddy", action: "Revisi skema pengamanan rute konvoi (v1.1)", time: "10 Jul 2026, 15.20 WIB" },
+      {
+        role: "Analis Utama DKI",
+        actor: "AKBP Fajar",
+        action: "Drafting Kajian Keamanan (v1.0)",
+        time: "10 Jul 2026, 11.00 WIB",
+      },
+      {
+        role: "Kabinda DKI Jakarta",
+        actor: "Brigjen Teddy",
+        action: "Revisi skema pengamanan rute konvoi (v1.1)",
+        time: "10 Jul 2026, 15.20 WIB",
+      },
     ],
     distribution: [
       { target: "Menko Polhukam", status: "Menunggu Pengesahan" },
@@ -182,9 +209,25 @@ const initialReports: ApprovalReport[] = [
     v11Content:
       "Telah diblokir IP eksternal mencurigakan sejumlah 4.200 alamat IP asing yang mencoba masuk ke port administrasi server daerah secara serentak.",
     history: [
-      { role: "Analis Siber BIN", actor: "Aris K.", action: "Drafting Laporan Insiden Siber (v1.0)", time: "08 Jul 2026, 22.00 WIB" },
-      { role: "Direktur Siber BIN", actor: "Kolonel Budi", action: "Otorisasi teknis & rekomendasi mitigasi (v1.1)", time: "09 Jul 2026, 09.00 WIB" },
-      { role: "Eksekutif Demo", actor: "Executive Demo", action: "Disetujui & TTD Elektronik", time: "09 Jul 2026, 14.00 WIB", note: "Segera koordinasikan dengan BSSN." },
+      {
+        role: "Analis Siber BIN",
+        actor: "Aris K.",
+        action: "Drafting Laporan Insiden Siber (v1.0)",
+        time: "08 Jul 2026, 22.00 WIB",
+      },
+      {
+        role: "Direktur Siber BIN",
+        actor: "Kolonel Budi",
+        action: "Otorisasi teknis & rekomendasi mitigasi (v1.1)",
+        time: "09 Jul 2026, 09.00 WIB",
+      },
+      {
+        role: "Eksekutif Demo",
+        actor: "Executive Demo",
+        action: "Disetujui & TTD Elektronik",
+        time: "09 Jul 2026, 14.00 WIB",
+        note: "Segera koordinasikan dengan BSSN.",
+      },
     ],
     distribution: [
       { target: "Presiden RI", status: "Terkirim", time: "09 Jul 2026, 14.05 WIB" },
@@ -222,9 +265,8 @@ export function PersetujuanPage() {
 
     if (activeTab === "pending") {
       return matchesSearch && r.status === "Menunggu Tindakan";
-    } else {
-      return matchesSearch && (r.status === "Disetujui" || r.status === "Dikembalikan");
     }
+    return matchesSearch && (r.status === "Disetujui" || r.status === "Dikembalikan");
   });
 
   // Action Handlers
@@ -258,7 +300,7 @@ export function PersetujuanPage() {
               time: "Sekarang",
             })),
           };
-        })
+        }),
       );
       setIsPinModalOpen(false);
       setPinInput("");
@@ -287,7 +329,7 @@ export function PersetujuanPage() {
             ...r.history,
           ],
         };
-      })
+      }),
     );
 
     setIsReturnModalOpen(false);
@@ -301,14 +343,14 @@ export function PersetujuanPage() {
         <div>
           <h1 className="font-bold text-xl tracking-tight">Otorisasi & Persetujuan</h1>
           <p className="mt-1 text-muted-foreground text-sm">
-            Kendali otorisasi dokumen intelijen strategis, perbandingan draf versi, verifikasi keandalan sumber, dan pembubuhan tanda tangan digital.
+            Kendali otorisasi dokumen intelijen strategis, perbandingan draf versi, verifikasi keandalan sumber, dan
+            pembubuhan tanda tangan digital.
           </p>
         </div>
       </div>
 
       {/* Main Approval Grid Console */}
       <div className="grid gap-6 xl:grid-cols-[400px_1fr] xl:items-stretch">
-        
         {/* Left Column: Sidebar Queue List */}
         <div className="flex flex-col gap-4 h-full">
           <Card className="flex flex-col h-full flex-1">
@@ -335,7 +377,7 @@ export function PersetujuanPage() {
                     "rounded-md py-1.5 text-center text-xs font-semibold transition-all duration-200",
                     activeTab === "pending"
                       ? "bg-amber-500/10 text-amber-500 shadow-sm border border-amber-500/15"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   type="button"
                 >
@@ -351,7 +393,7 @@ export function PersetujuanPage() {
                     "rounded-md py-1.5 text-center text-xs font-semibold transition-all duration-200",
                     activeTab === "history"
                       ? "bg-emerald-500/10 text-emerald-500 shadow-sm border border-emerald-500/15"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   type="button"
                 >
@@ -373,13 +415,16 @@ export function PersetujuanPage() {
                         "w-full flex flex-col gap-2 rounded-xl border p-3.5 text-left transition-all duration-200",
                         isSelected
                           ? "border-sky-500 bg-sky-500/[0.02] ring-1 ring-sky-500/25"
-                          : "border-border bg-card hover:bg-muted/40"
+                          : "border-border bg-card hover:bg-muted/40",
                       )}
                       type="button"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span className="font-mono text-[10px] text-muted-foreground">{r.id}</span>
-                        <Badge className={cn("text-[9px] py-0 px-1.5", classificationClass[r.classification])} variant="outline">
+                        <Badge
+                          className={cn("text-[9px] py-0 px-1.5", classificationClass[r.classification])}
+                          variant="outline"
+                        >
                           {r.classification}
                         </Badge>
                       </div>
@@ -413,7 +458,6 @@ export function PersetujuanPage() {
         <div className="flex flex-col gap-6 h-full">
           {selectedReport ? (
             <Card className="flex flex-col h-full flex-1">
-              
               {/* Card Header (Details & Status) */}
               <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4 pb-4 space-y-0 shrink-0">
                 <div className="space-y-1">
@@ -428,9 +472,13 @@ export function PersetujuanPage() {
                   </div>
                   <CardTitle className="text-base font-bold mt-1 leading-snug">{selectedReport.title}</CardTitle>
                   <CardDescription className="text-xs flex items-center gap-3">
-                    <span>Pengirim: <strong className="text-foreground">{selectedReport.sender}</strong></span>
+                    <span>
+                      Pengirim: <strong className="text-foreground">{selectedReport.sender}</strong>
+                    </span>
                     <span>•</span>
-                    <span>Tanggal Diajukan: <strong className="text-foreground">{selectedReport.date}</strong></span>
+                    <span>
+                      Tanggal Diajukan: <strong className="text-foreground">{selectedReport.date}</strong>
+                    </span>
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -449,7 +497,7 @@ export function PersetujuanPage() {
                       "border-b-2 px-4 py-3 text-xs font-semibold transition-all duration-200 -mb-px",
                       detailTab === tab.id
                         ? "border-sky-500 text-sky-500"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground",
                     )}
                     type="button"
                   >
@@ -460,11 +508,9 @@ export function PersetujuanPage() {
 
               {/* Tab Content Display */}
               <CardContent className="p-6 space-y-6 flex-1 overflow-y-auto h-0">
-                
                 {/* 1. Detail & Catatan Analis Tab */}
                 {detailTab === "detail" && (
                   <div className="space-y-6">
-                    
                     {/* Catatan Analis (Penting) */}
                     <div className="space-y-2">
                       <h3 className="text-xs font-bold text-foreground tracking-wider uppercase flex items-center gap-2">
@@ -484,7 +530,9 @@ export function PersetujuanPage() {
                         {/* Keandalan Sumber */}
                         <div className="rounded-lg border bg-muted/20 p-4 space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase">Keandalan Sumber</span>
+                            <span className="text-[10px] text-muted-foreground font-semibold uppercase">
+                              Keandalan Sumber
+                            </span>
                             <Badge className="font-mono bg-sky-500/10 text-sky-500 font-bold text-xs">
                               Klasifikasi {selectedReport.assessment.sourceReliability}
                             </Badge>
@@ -497,7 +545,9 @@ export function PersetujuanPage() {
                         {/* Kebenaran Informasi */}
                         <div className="rounded-lg border bg-muted/20 p-4 space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase">Kebenaran Informasi</span>
+                            <span className="text-[10px] text-muted-foreground font-semibold uppercase">
+                              Kebenaran Informasi
+                            </span>
                             <Badge className="font-mono bg-emerald-500/10 text-emerald-500 font-bold text-xs">
                               Derajat {selectedReport.assessment.infoAccuracy}
                             </Badge>
@@ -529,7 +579,9 @@ export function PersetujuanPage() {
                   <div className="space-y-6">
                     <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-500 flex items-center gap-2">
                       <AlertCircle className="size-4" />
-                      <span>Eksekutif membandingkan modifikasi naskah draf awal (v1.0) dengan perbaikan analis (v1.1).</span>
+                      <span>
+                        Eksekutif membandingkan modifikasi naskah draf awal (v1.0) dengan perbaikan analis (v1.1).
+                      </span>
                     </div>
 
                     <div className="grid gap-6 md:grid-cols-2">
@@ -541,7 +593,9 @@ export function PersetujuanPage() {
                         </div>
                         <div className="rounded-lg border bg-muted/25 p-4 text-xs leading-relaxed text-muted-foreground space-y-3 min-h-64">
                           <p className="font-bold text-foreground opacity-60">Ringkasan:</p>
-                          <p className="bg-background/40 p-2.5 rounded italic opacity-70">{selectedReport.v10Summary}</p>
+                          <p className="bg-background/40 p-2.5 rounded italic opacity-70">
+                            {selectedReport.v10Summary}
+                          </p>
                           <p className="font-bold text-foreground opacity-60 mt-4">Isi Draf:</p>
                           <p className="opacity-70 line-through decoration-rose-500/50">{selectedReport.v10Content}</p>
                         </div>
@@ -551,13 +605,18 @@ export function PersetujuanPage() {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between border-b pb-2">
                           <span className="font-bold text-xs text-sky-500">Revisi Terbaru (v1.1)</span>
-                          <Badge variant="outline" className="border-sky-500/30 bg-sky-500/10 text-sky-500 font-mono text-[9px]">
+                          <Badge
+                            variant="outline"
+                            className="border-sky-500/30 bg-sky-500/10 text-sky-500 font-mono text-[9px]"
+                          >
                             Aktif / Pengajuan
                           </Badge>
                         </div>
                         <div className="rounded-lg border border-sky-500/15 bg-muted/5 p-4 text-xs leading-relaxed text-muted-foreground space-y-3 min-h-64">
                           <p className="font-bold text-foreground">Ringkasan Terbaru:</p>
-                          <p className="bg-sky-500/[0.03] border border-sky-500/10 p-2.5 rounded italic text-foreground">{selectedReport.v11Summary}</p>
+                          <p className="bg-sky-500/[0.03] border border-sky-500/10 p-2.5 rounded italic text-foreground">
+                            {selectedReport.v11Summary}
+                          </p>
                           <p className="font-bold text-foreground mt-4">Isi Terbaru:</p>
                           <p className="text-foreground bg-emerald-500/[0.03] p-2.5 rounded border border-emerald-500/10">
                             {selectedReport.v11Content}
@@ -571,7 +630,6 @@ export function PersetujuanPage() {
                 {/* 3. Alur Persetujuan & Distribusi Tab */}
                 {detailTab === "distribution" && (
                   <div className="grid gap-6 md:grid-cols-2">
-                    
                     {/* Riwayat Persetujuan Berjenjang */}
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-foreground tracking-wider uppercase flex items-center gap-2">
@@ -579,7 +637,10 @@ export function PersetujuanPage() {
                       </h3>
                       <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
                         {selectedReport.history.map((log, idx) => (
-                          <div key={idx} className="flex gap-3 text-xs leading-relaxed border-l-2 border-border/70 pl-3 relative ml-1">
+                          <div
+                            key={idx}
+                            className="flex gap-3 text-xs leading-relaxed border-l-2 border-border/70 pl-3 relative ml-1"
+                          >
                             <span className="absolute -left-1.5 top-1.5 size-2.5 rounded-full border bg-background flex items-center justify-center shrink-0">
                               <span className="size-1 rounded-full bg-sky-500" />
                             </span>
@@ -612,11 +673,15 @@ export function PersetujuanPage() {
                               <span className="font-semibold text-foreground text-xs">{dist.target}</span>
                             </div>
                             <div className="pl-4 flex items-center justify-between gap-2">
-                              <Badge className={cn(
-                                "text-[9px] py-0.5 px-2 font-medium shrink-0",
-                                dist.status === "Terkirim" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                                "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                              )} variant="outline">
+                              <Badge
+                                className={cn(
+                                  "text-[9px] py-0.5 px-2 font-medium shrink-0",
+                                  dist.status === "Terkirim"
+                                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                    : "bg-amber-500/10 text-amber-500 border-amber-500/20",
+                                )}
+                                variant="outline"
+                              >
                                 {dist.status}
                               </Badge>
                               {dist.time && (
@@ -655,21 +720,16 @@ export function PersetujuanPage() {
               {/* Bottom Action Footer */}
               {selectedReport.status === "Menunggu Tindakan" && (
                 <div className="flex items-center justify-end gap-3 border-t bg-card px-6 py-4 shrink-0">
-              <Button
-                onClick={() => setIsReturnModalOpen(true)}
-                className="h-9 text-xs"
-                variant="warning"
+                  <Button
+                    onClick={() => setIsReturnModalOpen(true)}
+                    className="h-9 text-xs"
+                    variant="warning"
                     size="sm"
                   >
                     <RotateCcw className="size-3.5" />
                     Kembalikan untuk Revisi
                   </Button>
-              <Button
-                onClick={handleOpenApproveModal}
-                className="h-9 text-xs"
-                variant="success"
-                    size="sm"
-                  >
+                  <Button onClick={handleOpenApproveModal} className="h-9 text-xs" variant="success" size="sm">
                     <UserCheck className="size-3.5" />
                     Setujui & Sahkan Laporan
                   </Button>
@@ -712,7 +772,9 @@ export function PersetujuanPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase">PIN Keamanan (Kunci Demo: 123456):</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+                  PIN Keamanan (Kunci Demo: 123456):
+                </span>
                 <Input
                   type="password"
                   value={pinInput}
@@ -724,9 +786,7 @@ export function PersetujuanPage() {
                   className="text-center tracking-widest text-lg font-bold h-10"
                   maxLength={6}
                 />
-                {pinError && (
-                  <p className="text-[10px] text-rose-500 font-semibold">{pinError}</p>
-                )}
+                {pinError && <p className="text-[10px] text-rose-500 font-semibold">{pinError}</p>}
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t">
                 <Button
@@ -767,7 +827,8 @@ export function PersetujuanPage() {
                   <RotateCcw className="size-4" /> Kembalikan untuk Revisi
                 </CardTitle>
                 <CardDescription className="text-xs mt-1">
-                  Catatan revisi wajib diisi untuk memberikan arahan perbaikan teknis/taktis naskah kepada jaring analis.
+                  Catatan revisi wajib diisi untuk memberikan arahan perbaikan teknis/taktis naskah kepada jaring
+                  analis.
                 </CardDescription>
               </div>
               <Button
@@ -806,12 +867,12 @@ export function PersetujuanPage() {
                 >
                   Batal
                 </Button>
-          <Button
-            disabled={!revisionNote.trim()}
-            onClick={handleReturnSubmit}
-            size="sm"
-            className="text-xs"
-            variant="warning"
+                <Button
+                  disabled={!revisionNote.trim()}
+                  onClick={handleReturnSubmit}
+                  size="sm"
+                  className="text-xs"
+                  variant="warning"
                   type="button"
                 >
                   <Send className="size-3.5" />

@@ -1,10 +1,10 @@
 "use client";
 
-import { geoMercator, geoPath } from "d3-geo";
 import { startTransition, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
+import { geoMercator, geoPath } from "d3-geo";
 import { AlertTriangle, Building2, Landmark, MapPinned, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,8 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { apiBrowserFetch } from "@/lib/api/browser-client";
 import type { ProvinceBoundaryCollection } from "@/features/directives/types";
+import { apiBrowserFetch } from "@/lib/api/browser-client";
 
 import type {
   RegionalMasterDirectorate,
@@ -191,7 +191,8 @@ function ProvinceCoverageMap({
                     provinceId,
                     provinceName: feature.properties?.name ?? "Provinsi",
                     provinceCode: feature.properties?.code ?? "-",
-                    bindaName: fallbackMarkerProvinces.find((item) => item.province.id === provinceId)?.binda?.name ?? null,
+                    bindaName:
+                      fallbackMarkerProvinces.find((item) => item.province.id === provinceId)?.binda?.name ?? null,
                     directorateCount:
                       fallbackMarkerProvinces.find((item) => item.province.id === provinceId)?.directorates.length ?? 0,
                   })
@@ -217,12 +218,10 @@ function ProvinceCoverageMap({
         }
 
         const left =
-          ((longitude - FALLBACK_BOUNDS.minLongitude) /
-            (FALLBACK_BOUNDS.maxLongitude - FALLBACK_BOUNDS.minLongitude)) *
+          ((longitude - FALLBACK_BOUNDS.minLongitude) / (FALLBACK_BOUNDS.maxLongitude - FALLBACK_BOUNDS.minLongitude)) *
           100;
         const top =
-          ((FALLBACK_BOUNDS.maxLatitude - latitude) /
-            (FALLBACK_BOUNDS.maxLatitude - FALLBACK_BOUNDS.minLatitude)) *
+          ((FALLBACK_BOUNDS.maxLatitude - latitude) / (FALLBACK_BOUNDS.maxLatitude - FALLBACK_BOUNDS.minLatitude)) *
           100;
         const isSelected = summary.province.id === selectedProvinceId;
         const hasBinda = Boolean(summary.binda);
@@ -263,10 +262,7 @@ function ProvinceCoverageMap({
   );
 }
 
-export function OrganisasiWilayahClient({
-  initialOverview,
-  provinceBoundaries,
-}: OrganisasiWilayahClientProps) {
+export function OrganisasiWilayahClient({ initialOverview, provinceBoundaries }: OrganisasiWilayahClientProps) {
   const [overview, setOverview] = useState(initialOverview);
   const [selectedProvinceId, setSelectedProvinceId] = useState<string | null>(null);
   const [hoveredProvince, setHoveredProvince] = useState<MasterMapHoverState | null>(null);
@@ -274,32 +270,20 @@ export function OrganisasiWilayahClient({
   const [bindaPage, setBindaPage] = useState(1);
 
   const selectedProvince =
-    (selectedProvinceId
-      ? overview.provinces.find((item) => item.province.id === selectedProvinceId)
-      : null) ?? null;
+    (selectedProvinceId ? overview.provinces.find((item) => item.province.id === selectedProvinceId) : null) ?? null;
   const visibleProvinceRows = selectedProvince ? [selectedProvince] : overview.provinces;
   const visibleDirectorates = flattenDirectorates(visibleProvinceRows);
   const deputyOptions = overview.deputyOptions;
-  const boundaryCollection = buildBoundaryCollection(
-    provinceBoundaries,
-    overview.provinces,
-    selectedProvinceId,
-  );
+  const boundaryCollection = buildBoundaryCollection(provinceBoundaries, overview.provinces, selectedProvinceId);
   const hasProvinceBoundaries = boundaryCollection.features.length > 0;
   const fallbackMarkerProvinces = overview.provinces.filter(
-    (item) =>
-      item.province.centroidLatitude !== null &&
-      item.province.centroidLongitude !== null,
+    (item) => item.province.centroidLatitude !== null && item.province.centroidLongitude !== null,
   );
   const totalBindaPages = Math.max(1, Math.ceil(visibleProvinceRows.length / BINDA_PAGE_SIZE));
   const safeBindaPage = Math.min(bindaPage, totalBindaPages);
-  const paginatedProvinceRows =
-    selectedProvince
-      ? visibleProvinceRows
-      : visibleProvinceRows.slice(
-          (safeBindaPage - 1) * BINDA_PAGE_SIZE,
-          safeBindaPage * BINDA_PAGE_SIZE,
-        );
+  const paginatedProvinceRows = selectedProvince
+    ? visibleProvinceRows
+    : visibleProvinceRows.slice((safeBindaPage - 1) * BINDA_PAGE_SIZE, safeBindaPage * BINDA_PAGE_SIZE);
 
   useEffect(() => {
     setBindaPage(1);
@@ -341,8 +325,8 @@ export function OrganisasiWilayahClient({
         </div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">Organisasi Wilayah</h1>
         <p className="max-w-4xl text-muted-foreground text-sm">
-          Kelola master Binda per provinsi dan Direktorat wilayah multi-provinsi dalam satu kanvas admin. Peta di
-          atas memberi konteks coverage, sementara tabel bawah menjaga registrasi unit tetap rapi.
+          Kelola master Binda per provinsi dan Direktorat wilayah multi-provinsi dalam satu kanvas admin. Peta di atas
+          memberi konteks coverage, sementara tabel bawah menjaga registrasi unit tetap rapi.
         </p>
       </div>
 
@@ -443,189 +427,188 @@ export function OrganisasiWilayahClient({
         </Card>
 
         <div className="grid gap-4 xl:col-span-6 xl:grid-cols-2">
-        <Card className="border border-border/70 h-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="size-4" />
-              Daftar Binda per Provinsi
-            </CardTitle>
-            <CardDescription>
-              Satu provinsi hanya boleh memiliki satu Binda aktif. Gunakan peta untuk fokus ke provinsi tertentu.
-            </CardDescription>
-            <CardAction>
-              {deputyOptions.length ? (
-                <Button asChild type="button" size="sm">
-                  <Link
-                    href={buildCreateHref(
-                      "/dashboard/admin-system/organisasi-wilayah/organisasi/baru",
-                      selectedProvinceId,
-                    )}
-                  >
-                    Tambah Binda
-                  </Link>
-                </Button>
-              ) : (
-                <Button type="button" size="sm" disabled>
-                  Tambah Binda
-                </Button>
-              )}
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Provinsi</TableHead>
-                  <TableHead>Binda</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedProvinceRows.length ? (
-                  paginatedProvinceRows.map((summary) => (
-                    <TableRow key={summary.province.id}>
-                      <TableCell className="font-medium">
-                        <div>{summary.province.name}</div>
-                        <div className="text-muted-foreground text-xs">{summary.province.code}</div>
-                      </TableCell>
-                      <TableCell>
-                        {summary.binda ? (
-                          <div>
-                            <div className="font-medium">{summary.binda.name}</div>
-                            <div className="text-muted-foreground text-xs">{summary.binda.code}</div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">Belum ada Binda</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
+          <Card className="border border-border/70 h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="size-4" />
+                Daftar Binda per Provinsi
+              </CardTitle>
+              <CardDescription>
+                Satu provinsi hanya boleh memiliki satu Binda aktif. Gunakan peta untuk fokus ke provinsi tertentu.
+              </CardDescription>
+              <CardAction>
+                {deputyOptions.length ? (
+                  <Button asChild type="button" size="sm">
+                    <Link
+                      href={buildCreateHref(
+                        "/dashboard/admin-system/organisasi-wilayah/organisasi/baru",
+                        selectedProvinceId,
+                      )}
+                    >
+                      Tambah Binda
+                    </Link>
+                  </Button>
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={2} className="py-8 text-center text-muted-foreground">
-                      Belum ada provinsi yang bisa ditampilkan.
-                    </TableCell>
-                  </TableRow>
+                  <Button type="button" size="sm" disabled>
+                    Tambah Binda
+                  </Button>
                 )}
-              </TableBody>
-            </Table>
-            {!selectedProvince ? (
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
-                <div className="text-muted-foreground text-sm">
-                  Menampilkan {(safeBindaPage - 1) * BINDA_PAGE_SIZE + 1}-{Math.min(
-                    safeBindaPage * BINDA_PAGE_SIZE,
-                    visibleProvinceRows.length,
-                  )} dari {visibleProvinceRows.length} provinsi
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={safeBindaPage <= 1}
-                    onClick={() => setBindaPage((current) => Math.max(1, current - 1))}
-                  >
-                    Sebelumnya
-                  </Button>
-                  <Badge variant="outline">
-                    Halaman {safeBindaPage}/{totalBindaPages}
-                  </Badge>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={safeBindaPage >= totalBindaPages}
-                    onClick={() => setBindaPage((current) => Math.min(totalBindaPages, current + 1))}
-                  >
-                    Berikutnya
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border/70 h-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="size-4" />
-              Direktorat Wilayah
-            </CardTitle>
-            <CardDescription>
-              Satu Direktorat dapat menjangkau beberapa provinsi. Tandai provinsi utama untuk menjadi anchor coverage.
-            </CardDescription>
-            <CardAction>
-              {deputyOptions.length ? (
-                <Button asChild type="button" size="sm">
-                  <Link
-                    href={buildCreateHref(
-                      "/dashboard/admin-system/organisasi-wilayah/wilayah/baru",
-                      selectedProvinceId,
-                    )}
-                  >
-                    Tambah Direktorat
-                  </Link>
-                </Button>
-              ) : (
-                <Button type="button" size="sm" disabled>
-                  Tambah Direktorat
-                </Button>
-              )}
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Direktorat</TableHead>
-                  <TableHead>Cakupan</TableHead>
-                  <TableHead>Provinsi Utama</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleDirectorates.length ? (
-                  visibleDirectorates.map((directorate) => {
-                    const primaryProvince =
-                      directorate.coverageAreas.find((coverage) => coverage.isPrimary) ??
-                      directorate.coverageAreas[0] ??
-                      null;
-
-                    return (
-                      <TableRow key={directorate.unitId}>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Provinsi</TableHead>
+                    <TableHead>Binda</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedProvinceRows.length ? (
+                    paginatedProvinceRows.map((summary) => (
+                      <TableRow key={summary.province.id}>
                         <TableCell className="font-medium">
-                          <div>{directorate.name}</div>
-                          <div className="text-muted-foreground text-xs">
-                            {directorate.profileCode ?? directorate.code}
-                          </div>
+                          <div>{summary.province.name}</div>
+                          <div className="text-muted-foreground text-xs">{summary.province.code}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-wrap gap-1.5">
-                            {directorate.coverageAreas.slice(0, 3).map((coverage) => (
-                              <Badge key={coverage.areaId} variant={coverage.isPrimary ? "default" : "outline"}>
-                                {coverage.name}
-                              </Badge>
-                            ))}
-                            {directorate.coverageAreas.length > 3 ? (
-                              <Badge variant="outline">+{directorate.coverageAreas.length - 3}</Badge>
-                            ) : null}
-                          </div>
+                          {summary.binda ? (
+                            <div>
+                              <div className="font-medium">{summary.binda.name}</div>
+                              <div className="text-muted-foreground text-xs">{summary.binda.code}</div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Belum ada Binda</span>
+                          )}
                         </TableCell>
-                        <TableCell>{primaryProvince?.name ?? "-"}</TableCell>
                       </TableRow>
-                    );
-                  })
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="py-8 text-center text-muted-foreground">
+                        Belum ada provinsi yang bisa ditampilkan.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              {!selectedProvince ? (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
+                  <div className="text-muted-foreground text-sm">
+                    Menampilkan {(safeBindaPage - 1) * BINDA_PAGE_SIZE + 1}-
+                    {Math.min(safeBindaPage * BINDA_PAGE_SIZE, visibleProvinceRows.length)} dari{" "}
+                    {visibleProvinceRows.length} provinsi
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={safeBindaPage <= 1}
+                      onClick={() => setBindaPage((current) => Math.max(1, current - 1))}
+                    >
+                      Sebelumnya
+                    </Button>
+                    <Badge variant="outline">
+                      Halaman {safeBindaPage}/{totalBindaPages}
+                    </Badge>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={safeBindaPage >= totalBindaPages}
+                      onClick={() => setBindaPage((current) => Math.min(totalBindaPages, current + 1))}
+                    >
+                      Berikutnya
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="border border-border/70 h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="size-4" />
+                Direktorat Wilayah
+              </CardTitle>
+              <CardDescription>
+                Satu Direktorat dapat menjangkau beberapa provinsi. Tandai provinsi utama untuk menjadi anchor coverage.
+              </CardDescription>
+              <CardAction>
+                {deputyOptions.length ? (
+                  <Button asChild type="button" size="sm">
+                    <Link
+                      href={buildCreateHref(
+                        "/dashboard/admin-system/organisasi-wilayah/wilayah/baru",
+                        selectedProvinceId,
+                      )}
+                    >
+                      Tambah Direktorat
+                    </Link>
+                  </Button>
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
-                      {selectedProvince
-                        ? `Belum ada Direktorat yang mencakup ${selectedProvince.province.name}.`
-                        : "Belum ada Direktorat wilayah yang terdaftar."}
-                    </TableCell>
-                  </TableRow>
+                  <Button type="button" size="sm" disabled>
+                    Tambah Direktorat
+                  </Button>
                 )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Direktorat</TableHead>
+                    <TableHead>Cakupan</TableHead>
+                    <TableHead>Provinsi Utama</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleDirectorates.length ? (
+                    visibleDirectorates.map((directorate) => {
+                      const primaryProvince =
+                        directorate.coverageAreas.find((coverage) => coverage.isPrimary) ??
+                        directorate.coverageAreas[0] ??
+                        null;
+
+                      return (
+                        <TableRow key={directorate.unitId}>
+                          <TableCell className="font-medium">
+                            <div>{directorate.name}</div>
+                            <div className="text-muted-foreground text-xs">
+                              {directorate.profileCode ?? directorate.code}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1.5">
+                              {directorate.coverageAreas.slice(0, 3).map((coverage) => (
+                                <Badge key={coverage.areaId} variant={coverage.isPrimary ? "default" : "outline"}>
+                                  {coverage.name}
+                                </Badge>
+                              ))}
+                              {directorate.coverageAreas.length > 3 ? (
+                                <Badge variant="outline">+{directorate.coverageAreas.length - 3}</Badge>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell>{primaryProvince?.name ?? "-"}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                        {selectedProvince
+                          ? `Belum ada Direktorat yang mencakup ${selectedProvince.province.name}.`
+                          : "Belum ada Direktorat wilayah yang terdaftar."}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

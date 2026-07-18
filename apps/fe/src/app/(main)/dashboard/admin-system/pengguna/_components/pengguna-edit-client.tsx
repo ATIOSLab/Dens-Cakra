@@ -15,7 +15,7 @@ import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLab
 import { Input } from "@/components/ui/input";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 
-import { editUserSchema, type EditUserFormValues } from "./pengguna-schemas";
+import { type EditUserFormValues, editUserSchema } from "./pengguna-schemas";
 import type { UserDetail } from "./pengguna-types";
 import { formatDateTime, getPrimaryAssignment, getRoleLabel, isUserLocked } from "./pengguna-types";
 
@@ -65,7 +65,10 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
         </p>
       </div>
 
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"
+      >
         <Card className="border border-border/70">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -121,7 +124,8 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
               Ringkasan read-only
             </CardTitle>
             <CardDescription>
-              Konteks ini tetap terlihat agar perubahan metadata tidak memutus hubungan dengan role dan assignment aktif.
+              Konteks ini tetap terlihat agar perubahan metadata tidak memutus hubungan dengan role dan assignment
+              aktif.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

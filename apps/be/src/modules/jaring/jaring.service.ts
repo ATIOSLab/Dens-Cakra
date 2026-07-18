@@ -13,15 +13,18 @@ import { DomainScopeService } from '../access/domain-scope.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateJaringClusterDto,
+  CreateJaringOccupationDto,
   CreateReportCategoryDto,
   CoverageDto,
   CreateJaringDto,
   JaringClusterQuery,
+  JaringOccupationQuery,
   JaringQuery,
   ReportCategoryQuery,
   ReasonDto,
   TransferDto,
   UpdateJaringClusterDto,
+  UpdateJaringOccupationDto,
   UpdateReportCategoryDto,
   UpdateJaringDto,
 } from './jaring.dto.js';
@@ -69,11 +72,26 @@ export class JaringService {
     }
   }
 
+  private async ensureActiveOccupation(occupationId: string) {
+    const occupation = await this.prisma.jaringOccupation.findUnique({
+      where: { id: occupationId },
+    });
+
+    if (!occupation || !occupation.isActive) {
+      throw new ApiException(
+        'JARING_OCCUPATION_INVALID',
+        'Pekerjaan tidak ditemukan atau tidak aktif.',
+        422,
+      );
+    }
+  }
+
   private detail(id: string, includeDeleted = false) {
     return this.prisma.jaring.findFirstOrThrow({
       where: { id, ...(includeDeleted ? {} : { deletedAt: null }) },
       include: {
         cluster: true,
+        occupation: true,
         caretakerAssignments: {
           include: {
             fieldOfficerAssignment: {
@@ -158,6 +176,7 @@ export class JaringService {
       orderBy: { createdAt: 'desc' },
       include: {
         cluster: true,
+        occupation: true,
         caretakerAssignments: {
           where: { isActive: true, validUntil: null },
           include: {
@@ -174,6 +193,29 @@ export class JaringService {
 
   async create(body: CreateJaringDto, context: AuthorizationContext) {
     await this.ensureActiveCluster(body.clusterId);
+    await this.ensureActiveOccupation(body.occupationId);
+
+    const birthDate = new Date(body.birthDate);
+    if (Number.isNaN(birthDate.getTime()) || birthDate > new Date()) {
+      throw new ApiException(
+        'JARING_BIRTH_DATE_INVALID',
+        'Tanggal lahir Jaring harus berupa tanggal valid dan tidak boleh di masa depan.',
+        422,
+      );
+    }
+
+    const joinedAt = new Date(body.joinedAt);
+    if (
+      Number.isNaN(joinedAt.getTime()) ||
+      joinedAt > new Date() ||
+      joinedAt < birthDate
+    ) {
+      throw new ApiException(
+        'JARING_JOIN_DATE_INVALID',
+        'Tanggal bergabung harus valid, tidak boleh sebelum tanggal lahir, dan tidak boleh di masa depan.',
+        422,
+      );
+    }
 
     if (body.fieldOfficerAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
@@ -259,11 +301,22 @@ export class JaringService {
     const jaring = await this.prisma.jaring.create({
       data: {
         code: randomInt(100_000, 1_000_000).toString(),
-        aliasName: body.aliasName,
+        aliasName: body.aliasName.trim(),
         whatsappNumber,
         clusterId: body.clusterId,
+        fullName: body.fullName.trim(),
+        nationalIdNumber: body.nationalIdNumber,
+        birthPlace: body.birthPlace.trim(),
+        birthDate,
+        gender: body.gender,
+        occupationId: body.occupationId,
+        workplace: body.workplace?.trim() || undefined,
+        jobTitle: body.jobTitle?.trim() || undefined,
+        joinedAt,
+        organizationName: body.organizationName?.trim() || undefined,
+        politicalAffiliation: body.politicalAffiliation?.trim() || undefined,
         createdByAssignmentId: context.primaryAssignmentId,
-        notes: body.notes,
+        notes: body.notes?.trim() || undefined,
         caretakerAssignments: {
           create: { fieldOfficerAssignmentId: body.fieldOfficerAssignmentId },
         },
@@ -407,6 +460,120 @@ export class JaringService {
 
     await this.audit(context, 'JARING_CLUSTER.UPDATE', id);
     return cluster;
+  }
+
+  async listOccupations(query: JaringOccupationQuery) {
+    return this.prisma.jaringOccupation.findMany({
+      where: {
+        ...(query.includeInactive ? {} : { isActive: true }),
+        ...(query.search
+          ? {
+              OR: [
+                { code: { contains: query.search, mode: 'insensitive' } },
+                { name: { contains: query.search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      take: query.limit,
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+      include: {
+        _count: { select: { jaring: true } },
+      },
+    });
+  }
+
+  async createOccupation(
+    body: CreateJaringOccupationDto,
+    context: AuthorizationContext,
+  ) {
+    const code = this.clusterCode(body.code ?? body.name);
+    const name = body.name.trim();
+
+    const duplicate = await this.prisma.jaringOccupation.findFirst({
+      where: {
+        OR: [
+          { code: { equals: code, mode: 'insensitive' } },
+          { name: { equals: name, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (duplicate) {
+      throw new ApiException(
+        'JARING_OCCUPATION_DUPLICATE',
+        'Kode atau nama pekerjaan sudah digunakan.',
+        409,
+      );
+    }
+
+    const occupation = await this.prisma.jaringOccupation.create({
+      data: {
+        code,
+        name,
+        description: body.description?.trim() || null,
+      },
+    });
+
+    await this.audit(context, 'JARING_OCCUPATION.CREATE', occupation.id);
+    return occupation;
+  }
+
+  async updateOccupation(
+    id: string,
+    body: UpdateJaringOccupationDto,
+    context: AuthorizationContext,
+  ) {
+    const patch: Prisma.JaringOccupationUpdateInput = {};
+
+    if (body.code !== undefined) {
+      patch.code = this.clusterCode(body.code);
+    }
+
+    if (body.name !== undefined) {
+      patch.name = body.name.trim();
+    }
+
+    if (body.description !== undefined) {
+      patch.description = body.description.trim() || null;
+    }
+
+    if (body.isActive !== undefined) {
+      patch.isActive = body.isActive;
+    }
+
+    if (patch.code || patch.name) {
+      const duplicate = await this.prisma.jaringOccupation.findFirst({
+        where: {
+          id: { not: id },
+          OR: [
+            ...(typeof patch.code === 'string'
+              ? [{ code: { equals: patch.code, mode: 'insensitive' as const } }]
+              : []),
+            ...(typeof patch.name === 'string'
+              ? [{ name: { equals: patch.name, mode: 'insensitive' as const } }]
+              : []),
+          ],
+        },
+      });
+
+      if (duplicate) {
+        throw new ApiException(
+          'JARING_OCCUPATION_DUPLICATE',
+          'Kode atau nama pekerjaan sudah digunakan.',
+          409,
+        );
+      }
+    }
+
+    const occupation = await this.prisma.jaringOccupation.update({
+      where: { id },
+      data: patch,
+      include: { _count: { select: { jaring: true } } },
+    });
+
+    await this.audit(context, 'JARING_OCCUPATION.UPDATE', id);
+    return occupation;
   }
 
   async listReportCategories(query: ReportCategoryQuery) {

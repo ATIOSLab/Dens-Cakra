@@ -30,6 +30,17 @@ export type JaringMinAggregateOutputType = {
   aliasName: string | null
   whatsappNumber: string | null
   clusterId: string | null
+  fullName: string | null
+  nationalIdNumber: string | null
+  birthPlace: string | null
+  birthDate: Date | null
+  gender: $Enums.JaringGender | null
+  occupationId: string | null
+  workplace: string | null
+  jobTitle: string | null
+  joinedAt: Date | null
+  organizationName: string | null
+  politicalAffiliation: string | null
   status: $Enums.JaringStatus | null
   createdByAssignmentId: string | null
   notes: string | null
@@ -46,6 +57,17 @@ export type JaringMaxAggregateOutputType = {
   aliasName: string | null
   whatsappNumber: string | null
   clusterId: string | null
+  fullName: string | null
+  nationalIdNumber: string | null
+  birthPlace: string | null
+  birthDate: Date | null
+  gender: $Enums.JaringGender | null
+  occupationId: string | null
+  workplace: string | null
+  jobTitle: string | null
+  joinedAt: Date | null
+  organizationName: string | null
+  politicalAffiliation: string | null
   status: $Enums.JaringStatus | null
   createdByAssignmentId: string | null
   notes: string | null
@@ -62,6 +84,17 @@ export type JaringCountAggregateOutputType = {
   aliasName: number
   whatsappNumber: number
   clusterId: number
+  fullName: number
+  nationalIdNumber: number
+  birthPlace: number
+  birthDate: number
+  gender: number
+  occupationId: number
+  workplace: number
+  jobTitle: number
+  joinedAt: number
+  organizationName: number
+  politicalAffiliation: number
   status: number
   createdByAssignmentId: number
   notes: number
@@ -80,6 +113,17 @@ export type JaringMinAggregateInputType = {
   aliasName?: true
   whatsappNumber?: true
   clusterId?: true
+  fullName?: true
+  nationalIdNumber?: true
+  birthPlace?: true
+  birthDate?: true
+  gender?: true
+  occupationId?: true
+  workplace?: true
+  jobTitle?: true
+  joinedAt?: true
+  organizationName?: true
+  politicalAffiliation?: true
   status?: true
   createdByAssignmentId?: true
   notes?: true
@@ -96,6 +140,17 @@ export type JaringMaxAggregateInputType = {
   aliasName?: true
   whatsappNumber?: true
   clusterId?: true
+  fullName?: true
+  nationalIdNumber?: true
+  birthPlace?: true
+  birthDate?: true
+  gender?: true
+  occupationId?: true
+  workplace?: true
+  jobTitle?: true
+  joinedAt?: true
+  organizationName?: true
+  politicalAffiliation?: true
   status?: true
   createdByAssignmentId?: true
   notes?: true
@@ -112,6 +167,17 @@ export type JaringCountAggregateInputType = {
   aliasName?: true
   whatsappNumber?: true
   clusterId?: true
+  fullName?: true
+  nationalIdNumber?: true
+  birthPlace?: true
+  birthDate?: true
+  gender?: true
+  occupationId?: true
+  workplace?: true
+  jobTitle?: true
+  joinedAt?: true
+  organizationName?: true
+  politicalAffiliation?: true
   status?: true
   createdByAssignmentId?: true
   notes?: true
@@ -201,6 +267,17 @@ export type JaringGroupByOutputType = {
   aliasName: string | null
   whatsappNumber: string
   clusterId: string | null
+  fullName: string | null
+  nationalIdNumber: string | null
+  birthPlace: string | null
+  birthDate: Date | null
+  gender: $Enums.JaringGender | null
+  occupationId: string | null
+  workplace: string | null
+  jobTitle: string | null
+  joinedAt: Date | null
+  organizationName: string | null
+  politicalAffiliation: string | null
   status: $Enums.JaringStatus
   createdByAssignmentId: string
   notes: string | null
@@ -238,6 +315,17 @@ export type JaringWhereInput = {
   aliasName?: Prisma.StringNullableFilter<"Jaring"> | string | null
   whatsappNumber?: Prisma.StringFilter<"Jaring"> | string
   clusterId?: Prisma.UuidNullableFilter<"Jaring"> | string | null
+  fullName?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  nationalIdNumber?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  birthPlace?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  birthDate?: Prisma.DateTimeNullableFilter<"Jaring"> | Date | string | null
+  gender?: Prisma.EnumJaringGenderNullableFilter<"Jaring"> | $Enums.JaringGender | null
+  occupationId?: Prisma.UuidNullableFilter<"Jaring"> | string | null
+  workplace?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  jobTitle?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  joinedAt?: Prisma.DateTimeNullableFilter<"Jaring"> | Date | string | null
+  organizationName?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  politicalAffiliation?: Prisma.StringNullableFilter<"Jaring"> | string | null
   status?: Prisma.EnumJaringStatusFilter<"Jaring"> | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.UuidFilter<"Jaring"> | string
   notes?: Prisma.StringNullableFilter<"Jaring"> | string | null
@@ -248,6 +336,7 @@ export type JaringWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Jaring"> | Date | string
   createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   cluster?: Prisma.XOR<Prisma.JaringClusterNullableScalarRelationFilter, Prisma.JaringClusterWhereInput> | null
+  occupation?: Prisma.XOR<Prisma.JaringOccupationNullableScalarRelationFilter, Prisma.JaringOccupationWhereInput> | null
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentListRelationFilter
   areaCoverages?: Prisma.JaringAreaCoverageListRelationFilter
   messages?: Prisma.WhatsAppMessageListRelationFilter
@@ -260,6 +349,17 @@ export type JaringOrderByWithRelationInput = {
   aliasName?: Prisma.SortOrderInput | Prisma.SortOrder
   whatsappNumber?: Prisma.SortOrder
   clusterId?: Prisma.SortOrderInput | Prisma.SortOrder
+  fullName?: Prisma.SortOrderInput | Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  birthPlace?: Prisma.SortOrderInput | Prisma.SortOrder
+  birthDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  gender?: Prisma.SortOrderInput | Prisma.SortOrder
+  occupationId?: Prisma.SortOrderInput | Prisma.SortOrder
+  workplace?: Prisma.SortOrderInput | Prisma.SortOrder
+  jobTitle?: Prisma.SortOrderInput | Prisma.SortOrder
+  joinedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  organizationName?: Prisma.SortOrderInput | Prisma.SortOrder
+  politicalAffiliation?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -270,6 +370,7 @@ export type JaringOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   createdByAssignment?: Prisma.UserSeatAssignmentOrderByWithRelationInput
   cluster?: Prisma.JaringClusterOrderByWithRelationInput
+  occupation?: Prisma.JaringOccupationOrderByWithRelationInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentOrderByRelationAggregateInput
   areaCoverages?: Prisma.JaringAreaCoverageOrderByRelationAggregateInput
   messages?: Prisma.WhatsAppMessageOrderByRelationAggregateInput
@@ -285,6 +386,17 @@ export type JaringWhereUniqueInput = Prisma.AtLeast<{
   aliasName?: Prisma.StringNullableFilter<"Jaring"> | string | null
   whatsappNumber?: Prisma.StringFilter<"Jaring"> | string
   clusterId?: Prisma.UuidNullableFilter<"Jaring"> | string | null
+  fullName?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  nationalIdNumber?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  birthPlace?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  birthDate?: Prisma.DateTimeNullableFilter<"Jaring"> | Date | string | null
+  gender?: Prisma.EnumJaringGenderNullableFilter<"Jaring"> | $Enums.JaringGender | null
+  occupationId?: Prisma.UuidNullableFilter<"Jaring"> | string | null
+  workplace?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  jobTitle?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  joinedAt?: Prisma.DateTimeNullableFilter<"Jaring"> | Date | string | null
+  organizationName?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  politicalAffiliation?: Prisma.StringNullableFilter<"Jaring"> | string | null
   status?: Prisma.EnumJaringStatusFilter<"Jaring"> | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.UuidFilter<"Jaring"> | string
   notes?: Prisma.StringNullableFilter<"Jaring"> | string | null
@@ -295,6 +407,7 @@ export type JaringWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Jaring"> | Date | string
   createdByAssignment?: Prisma.XOR<Prisma.UserSeatAssignmentScalarRelationFilter, Prisma.UserSeatAssignmentWhereInput>
   cluster?: Prisma.XOR<Prisma.JaringClusterNullableScalarRelationFilter, Prisma.JaringClusterWhereInput> | null
+  occupation?: Prisma.XOR<Prisma.JaringOccupationNullableScalarRelationFilter, Prisma.JaringOccupationWhereInput> | null
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentListRelationFilter
   areaCoverages?: Prisma.JaringAreaCoverageListRelationFilter
   messages?: Prisma.WhatsAppMessageListRelationFilter
@@ -307,6 +420,17 @@ export type JaringOrderByWithAggregationInput = {
   aliasName?: Prisma.SortOrderInput | Prisma.SortOrder
   whatsappNumber?: Prisma.SortOrder
   clusterId?: Prisma.SortOrderInput | Prisma.SortOrder
+  fullName?: Prisma.SortOrderInput | Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  birthPlace?: Prisma.SortOrderInput | Prisma.SortOrder
+  birthDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  gender?: Prisma.SortOrderInput | Prisma.SortOrder
+  occupationId?: Prisma.SortOrderInput | Prisma.SortOrder
+  workplace?: Prisma.SortOrderInput | Prisma.SortOrder
+  jobTitle?: Prisma.SortOrderInput | Prisma.SortOrder
+  joinedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  organizationName?: Prisma.SortOrderInput | Prisma.SortOrder
+  politicalAffiliation?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -329,6 +453,17 @@ export type JaringScalarWhereWithAggregatesInput = {
   aliasName?: Prisma.StringNullableWithAggregatesFilter<"Jaring"> | string | null
   whatsappNumber?: Prisma.StringWithAggregatesFilter<"Jaring"> | string
   clusterId?: Prisma.UuidNullableWithAggregatesFilter<"Jaring"> | string | null
+  fullName?: Prisma.StringNullableWithAggregatesFilter<"Jaring"> | string | null
+  nationalIdNumber?: Prisma.StringNullableWithAggregatesFilter<"Jaring"> | string | null
+  birthPlace?: Prisma.StringNullableWithAggregatesFilter<"Jaring"> | string | null
+  birthDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Jaring"> | Date | string | null
+  gender?: Prisma.EnumJaringGenderNullableWithAggregatesFilter<"Jaring"> | $Enums.JaringGender | null
+  occupationId?: Prisma.UuidNullableWithAggregatesFilter<"Jaring"> | string | null
+  workplace?: Prisma.StringNullableWithAggregatesFilter<"Jaring"> | string | null
+  jobTitle?: Prisma.StringNullableWithAggregatesFilter<"Jaring"> | string | null
+  joinedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Jaring"> | Date | string | null
+  organizationName?: Prisma.StringNullableWithAggregatesFilter<"Jaring"> | string | null
+  politicalAffiliation?: Prisma.StringNullableWithAggregatesFilter<"Jaring"> | string | null
   status?: Prisma.EnumJaringStatusWithAggregatesFilter<"Jaring"> | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.UuidWithAggregatesFilter<"Jaring"> | string
   notes?: Prisma.StringNullableWithAggregatesFilter<"Jaring"> | string | null
@@ -344,6 +479,16 @@ export type JaringCreateInput = {
   code: string
   aliasName?: string | null
   whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   notes?: string | null
   registeredAt?: Date | string
@@ -353,6 +498,7 @@ export type JaringCreateInput = {
   updatedAt?: Date | string
   createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   cluster?: Prisma.JaringClusterCreateNestedOneWithoutJaringInput
+  occupation?: Prisma.JaringOccupationCreateNestedOneWithoutJaringInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
@@ -365,6 +511,17 @@ export type JaringUncheckedCreateInput = {
   aliasName?: string | null
   whatsappNumber: string
   clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   createdByAssignmentId: string
   notes?: string | null
@@ -384,6 +541,16 @@ export type JaringUpdateInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -393,6 +560,7 @@ export type JaringUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   cluster?: Prisma.JaringClusterUpdateOneWithoutJaringNestedInput
+  occupation?: Prisma.JaringOccupationUpdateOneWithoutJaringNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
@@ -405,6 +573,17 @@ export type JaringUncheckedUpdateInput = {
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -425,6 +604,17 @@ export type JaringCreateManyInput = {
   aliasName?: string | null
   whatsappNumber: string
   clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   createdByAssignmentId: string
   notes?: string | null
@@ -440,6 +630,16 @@ export type JaringUpdateManyMutationInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -455,6 +655,17 @@ export type JaringUncheckedUpdateManyInput = {
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -481,6 +692,17 @@ export type JaringCountOrderByAggregateInput = {
   aliasName?: Prisma.SortOrder
   whatsappNumber?: Prisma.SortOrder
   clusterId?: Prisma.SortOrder
+  fullName?: Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrder
+  birthPlace?: Prisma.SortOrder
+  birthDate?: Prisma.SortOrder
+  gender?: Prisma.SortOrder
+  occupationId?: Prisma.SortOrder
+  workplace?: Prisma.SortOrder
+  jobTitle?: Prisma.SortOrder
+  joinedAt?: Prisma.SortOrder
+  organizationName?: Prisma.SortOrder
+  politicalAffiliation?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
   notes?: Prisma.SortOrder
@@ -497,6 +719,17 @@ export type JaringMaxOrderByAggregateInput = {
   aliasName?: Prisma.SortOrder
   whatsappNumber?: Prisma.SortOrder
   clusterId?: Prisma.SortOrder
+  fullName?: Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrder
+  birthPlace?: Prisma.SortOrder
+  birthDate?: Prisma.SortOrder
+  gender?: Prisma.SortOrder
+  occupationId?: Prisma.SortOrder
+  workplace?: Prisma.SortOrder
+  jobTitle?: Prisma.SortOrder
+  joinedAt?: Prisma.SortOrder
+  organizationName?: Prisma.SortOrder
+  politicalAffiliation?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
   notes?: Prisma.SortOrder
@@ -513,6 +746,17 @@ export type JaringMinOrderByAggregateInput = {
   aliasName?: Prisma.SortOrder
   whatsappNumber?: Prisma.SortOrder
   clusterId?: Prisma.SortOrder
+  fullName?: Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrder
+  birthPlace?: Prisma.SortOrder
+  birthDate?: Prisma.SortOrder
+  gender?: Prisma.SortOrder
+  occupationId?: Prisma.SortOrder
+  workplace?: Prisma.SortOrder
+  jobTitle?: Prisma.SortOrder
+  joinedAt?: Prisma.SortOrder
+  organizationName?: Prisma.SortOrder
+  politicalAffiliation?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdByAssignmentId?: Prisma.SortOrder
   notes?: Prisma.SortOrder
@@ -575,6 +819,10 @@ export type JaringUncheckedUpdateManyWithoutCreatedByAssignmentNestedInput = {
   deleteMany?: Prisma.JaringScalarWhereInput | Prisma.JaringScalarWhereInput[]
 }
 
+export type NullableEnumJaringGenderFieldUpdateOperationsInput = {
+  set?: $Enums.JaringGender | null
+}
+
 export type EnumJaringStatusFieldUpdateOperationsInput = {
   set?: $Enums.JaringStatus
 }
@@ -618,6 +866,48 @@ export type JaringUncheckedUpdateManyWithoutClusterNestedInput = {
   connect?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
   update?: Prisma.JaringUpdateWithWhereUniqueWithoutClusterInput | Prisma.JaringUpdateWithWhereUniqueWithoutClusterInput[]
   updateMany?: Prisma.JaringUpdateManyWithWhereWithoutClusterInput | Prisma.JaringUpdateManyWithWhereWithoutClusterInput[]
+  deleteMany?: Prisma.JaringScalarWhereInput | Prisma.JaringScalarWhereInput[]
+}
+
+export type JaringCreateNestedManyWithoutOccupationInput = {
+  create?: Prisma.XOR<Prisma.JaringCreateWithoutOccupationInput, Prisma.JaringUncheckedCreateWithoutOccupationInput> | Prisma.JaringCreateWithoutOccupationInput[] | Prisma.JaringUncheckedCreateWithoutOccupationInput[]
+  connectOrCreate?: Prisma.JaringCreateOrConnectWithoutOccupationInput | Prisma.JaringCreateOrConnectWithoutOccupationInput[]
+  createMany?: Prisma.JaringCreateManyOccupationInputEnvelope
+  connect?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+}
+
+export type JaringUncheckedCreateNestedManyWithoutOccupationInput = {
+  create?: Prisma.XOR<Prisma.JaringCreateWithoutOccupationInput, Prisma.JaringUncheckedCreateWithoutOccupationInput> | Prisma.JaringCreateWithoutOccupationInput[] | Prisma.JaringUncheckedCreateWithoutOccupationInput[]
+  connectOrCreate?: Prisma.JaringCreateOrConnectWithoutOccupationInput | Prisma.JaringCreateOrConnectWithoutOccupationInput[]
+  createMany?: Prisma.JaringCreateManyOccupationInputEnvelope
+  connect?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+}
+
+export type JaringUpdateManyWithoutOccupationNestedInput = {
+  create?: Prisma.XOR<Prisma.JaringCreateWithoutOccupationInput, Prisma.JaringUncheckedCreateWithoutOccupationInput> | Prisma.JaringCreateWithoutOccupationInput[] | Prisma.JaringUncheckedCreateWithoutOccupationInput[]
+  connectOrCreate?: Prisma.JaringCreateOrConnectWithoutOccupationInput | Prisma.JaringCreateOrConnectWithoutOccupationInput[]
+  upsert?: Prisma.JaringUpsertWithWhereUniqueWithoutOccupationInput | Prisma.JaringUpsertWithWhereUniqueWithoutOccupationInput[]
+  createMany?: Prisma.JaringCreateManyOccupationInputEnvelope
+  set?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+  disconnect?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+  delete?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+  connect?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+  update?: Prisma.JaringUpdateWithWhereUniqueWithoutOccupationInput | Prisma.JaringUpdateWithWhereUniqueWithoutOccupationInput[]
+  updateMany?: Prisma.JaringUpdateManyWithWhereWithoutOccupationInput | Prisma.JaringUpdateManyWithWhereWithoutOccupationInput[]
+  deleteMany?: Prisma.JaringScalarWhereInput | Prisma.JaringScalarWhereInput[]
+}
+
+export type JaringUncheckedUpdateManyWithoutOccupationNestedInput = {
+  create?: Prisma.XOR<Prisma.JaringCreateWithoutOccupationInput, Prisma.JaringUncheckedCreateWithoutOccupationInput> | Prisma.JaringCreateWithoutOccupationInput[] | Prisma.JaringUncheckedCreateWithoutOccupationInput[]
+  connectOrCreate?: Prisma.JaringCreateOrConnectWithoutOccupationInput | Prisma.JaringCreateOrConnectWithoutOccupationInput[]
+  upsert?: Prisma.JaringUpsertWithWhereUniqueWithoutOccupationInput | Prisma.JaringUpsertWithWhereUniqueWithoutOccupationInput[]
+  createMany?: Prisma.JaringCreateManyOccupationInputEnvelope
+  set?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+  disconnect?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+  delete?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+  connect?: Prisma.JaringWhereUniqueInput | Prisma.JaringWhereUniqueInput[]
+  update?: Prisma.JaringUpdateWithWhereUniqueWithoutOccupationInput | Prisma.JaringUpdateWithWhereUniqueWithoutOccupationInput[]
+  updateMany?: Prisma.JaringUpdateManyWithWhereWithoutOccupationInput | Prisma.JaringUpdateManyWithWhereWithoutOccupationInput[]
   deleteMany?: Prisma.JaringScalarWhereInput | Prisma.JaringScalarWhereInput[]
 }
 
@@ -686,6 +976,16 @@ export type JaringCreateWithoutCreatedByAssignmentInput = {
   code: string
   aliasName?: string | null
   whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   notes?: string | null
   registeredAt?: Date | string
@@ -694,6 +994,7 @@ export type JaringCreateWithoutCreatedByAssignmentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cluster?: Prisma.JaringClusterCreateNestedOneWithoutJaringInput
+  occupation?: Prisma.JaringOccupationCreateNestedOneWithoutJaringInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
@@ -706,6 +1007,17 @@ export type JaringUncheckedCreateWithoutCreatedByAssignmentInput = {
   aliasName?: string | null
   whatsappNumber: string
   clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   notes?: string | null
   registeredAt?: Date | string
@@ -754,6 +1066,17 @@ export type JaringScalarWhereInput = {
   aliasName?: Prisma.StringNullableFilter<"Jaring"> | string | null
   whatsappNumber?: Prisma.StringFilter<"Jaring"> | string
   clusterId?: Prisma.UuidNullableFilter<"Jaring"> | string | null
+  fullName?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  nationalIdNumber?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  birthPlace?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  birthDate?: Prisma.DateTimeNullableFilter<"Jaring"> | Date | string | null
+  gender?: Prisma.EnumJaringGenderNullableFilter<"Jaring"> | $Enums.JaringGender | null
+  occupationId?: Prisma.UuidNullableFilter<"Jaring"> | string | null
+  workplace?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  jobTitle?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  joinedAt?: Prisma.DateTimeNullableFilter<"Jaring"> | Date | string | null
+  organizationName?: Prisma.StringNullableFilter<"Jaring"> | string | null
+  politicalAffiliation?: Prisma.StringNullableFilter<"Jaring"> | string | null
   status?: Prisma.EnumJaringStatusFilter<"Jaring"> | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.UuidFilter<"Jaring"> | string
   notes?: Prisma.StringNullableFilter<"Jaring"> | string | null
@@ -769,6 +1092,16 @@ export type JaringCreateWithoutClusterInput = {
   code: string
   aliasName?: string | null
   whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   notes?: string | null
   registeredAt?: Date | string
@@ -777,6 +1110,7 @@ export type JaringCreateWithoutClusterInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
+  occupation?: Prisma.JaringOccupationCreateNestedOneWithoutJaringInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
@@ -788,6 +1122,17 @@ export type JaringUncheckedCreateWithoutClusterInput = {
   code: string
   aliasName?: string | null
   whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   createdByAssignmentId: string
   notes?: string | null
@@ -828,11 +1173,21 @@ export type JaringUpdateManyWithWhereWithoutClusterInput = {
   data: Prisma.XOR<Prisma.JaringUpdateManyMutationInput, Prisma.JaringUncheckedUpdateManyWithoutClusterInput>
 }
 
-export type JaringCreateWithoutCaretakerAssignmentsInput = {
+export type JaringCreateWithoutOccupationInput = {
   id?: string
   code: string
   aliasName?: string | null
   whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   notes?: string | null
   registeredAt?: Date | string
@@ -842,6 +1197,93 @@ export type JaringCreateWithoutCaretakerAssignmentsInput = {
   updatedAt?: Date | string
   createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   cluster?: Prisma.JaringClusterCreateNestedOneWithoutJaringInput
+  caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
+  areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
+  messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
+  primaryBakets?: Prisma.BaketCreateNestedManyWithoutPrimaryJaringInput
+}
+
+export type JaringUncheckedCreateWithoutOccupationInput = {
+  id?: string
+  code: string
+  aliasName?: string | null
+  whatsappNumber: string
+  clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
+  status?: $Enums.JaringStatus
+  createdByAssignmentId: string
+  notes?: string | null
+  registeredAt?: Date | string
+  deactivatedAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  caretakerAssignments?: Prisma.JaringCaretakerAssignmentUncheckedCreateNestedManyWithoutJaringInput
+  areaCoverages?: Prisma.JaringAreaCoverageUncheckedCreateNestedManyWithoutJaringInput
+  messages?: Prisma.WhatsAppMessageUncheckedCreateNestedManyWithoutJaringInput
+  primaryBakets?: Prisma.BaketUncheckedCreateNestedManyWithoutPrimaryJaringInput
+}
+
+export type JaringCreateOrConnectWithoutOccupationInput = {
+  where: Prisma.JaringWhereUniqueInput
+  create: Prisma.XOR<Prisma.JaringCreateWithoutOccupationInput, Prisma.JaringUncheckedCreateWithoutOccupationInput>
+}
+
+export type JaringCreateManyOccupationInputEnvelope = {
+  data: Prisma.JaringCreateManyOccupationInput | Prisma.JaringCreateManyOccupationInput[]
+  skipDuplicates?: boolean
+}
+
+export type JaringUpsertWithWhereUniqueWithoutOccupationInput = {
+  where: Prisma.JaringWhereUniqueInput
+  update: Prisma.XOR<Prisma.JaringUpdateWithoutOccupationInput, Prisma.JaringUncheckedUpdateWithoutOccupationInput>
+  create: Prisma.XOR<Prisma.JaringCreateWithoutOccupationInput, Prisma.JaringUncheckedCreateWithoutOccupationInput>
+}
+
+export type JaringUpdateWithWhereUniqueWithoutOccupationInput = {
+  where: Prisma.JaringWhereUniqueInput
+  data: Prisma.XOR<Prisma.JaringUpdateWithoutOccupationInput, Prisma.JaringUncheckedUpdateWithoutOccupationInput>
+}
+
+export type JaringUpdateManyWithWhereWithoutOccupationInput = {
+  where: Prisma.JaringScalarWhereInput
+  data: Prisma.XOR<Prisma.JaringUpdateManyMutationInput, Prisma.JaringUncheckedUpdateManyWithoutOccupationInput>
+}
+
+export type JaringCreateWithoutCaretakerAssignmentsInput = {
+  id?: string
+  code: string
+  aliasName?: string | null
+  whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
+  status?: $Enums.JaringStatus
+  notes?: string | null
+  registeredAt?: Date | string
+  deactivatedAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
+  cluster?: Prisma.JaringClusterCreateNestedOneWithoutJaringInput
+  occupation?: Prisma.JaringOccupationCreateNestedOneWithoutJaringInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
   primaryBakets?: Prisma.BaketCreateNestedManyWithoutPrimaryJaringInput
@@ -853,6 +1295,17 @@ export type JaringUncheckedCreateWithoutCaretakerAssignmentsInput = {
   aliasName?: string | null
   whatsappNumber: string
   clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   createdByAssignmentId: string
   notes?: string | null
@@ -887,6 +1340,16 @@ export type JaringUpdateWithoutCaretakerAssignmentsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -896,6 +1359,7 @@ export type JaringUpdateWithoutCaretakerAssignmentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   cluster?: Prisma.JaringClusterUpdateOneWithoutJaringNestedInput
+  occupation?: Prisma.JaringOccupationUpdateOneWithoutJaringNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
   primaryBakets?: Prisma.BaketUpdateManyWithoutPrimaryJaringNestedInput
@@ -907,6 +1371,17 @@ export type JaringUncheckedUpdateWithoutCaretakerAssignmentsInput = {
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -925,6 +1400,16 @@ export type JaringCreateWithoutAreaCoveragesInput = {
   code: string
   aliasName?: string | null
   whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   notes?: string | null
   registeredAt?: Date | string
@@ -934,6 +1419,7 @@ export type JaringCreateWithoutAreaCoveragesInput = {
   updatedAt?: Date | string
   createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   cluster?: Prisma.JaringClusterCreateNestedOneWithoutJaringInput
+  occupation?: Prisma.JaringOccupationCreateNestedOneWithoutJaringInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
   primaryBakets?: Prisma.BaketCreateNestedManyWithoutPrimaryJaringInput
@@ -945,6 +1431,17 @@ export type JaringUncheckedCreateWithoutAreaCoveragesInput = {
   aliasName?: string | null
   whatsappNumber: string
   clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   createdByAssignmentId: string
   notes?: string | null
@@ -979,6 +1476,16 @@ export type JaringUpdateWithoutAreaCoveragesInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -988,6 +1495,7 @@ export type JaringUpdateWithoutAreaCoveragesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   cluster?: Prisma.JaringClusterUpdateOneWithoutJaringNestedInput
+  occupation?: Prisma.JaringOccupationUpdateOneWithoutJaringNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
   primaryBakets?: Prisma.BaketUpdateManyWithoutPrimaryJaringNestedInput
@@ -999,6 +1507,17 @@ export type JaringUncheckedUpdateWithoutAreaCoveragesInput = {
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1017,6 +1536,16 @@ export type JaringCreateWithoutMessagesInput = {
   code: string
   aliasName?: string | null
   whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   notes?: string | null
   registeredAt?: Date | string
@@ -1026,6 +1555,7 @@ export type JaringCreateWithoutMessagesInput = {
   updatedAt?: Date | string
   createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   cluster?: Prisma.JaringClusterCreateNestedOneWithoutJaringInput
+  occupation?: Prisma.JaringOccupationCreateNestedOneWithoutJaringInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   primaryBakets?: Prisma.BaketCreateNestedManyWithoutPrimaryJaringInput
@@ -1037,6 +1567,17 @@ export type JaringUncheckedCreateWithoutMessagesInput = {
   aliasName?: string | null
   whatsappNumber: string
   clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   createdByAssignmentId: string
   notes?: string | null
@@ -1071,6 +1612,16 @@ export type JaringUpdateWithoutMessagesInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1080,6 +1631,7 @@ export type JaringUpdateWithoutMessagesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   cluster?: Prisma.JaringClusterUpdateOneWithoutJaringNestedInput
+  occupation?: Prisma.JaringOccupationUpdateOneWithoutJaringNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   primaryBakets?: Prisma.BaketUpdateManyWithoutPrimaryJaringNestedInput
@@ -1091,6 +1643,17 @@ export type JaringUncheckedUpdateWithoutMessagesInput = {
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1109,6 +1672,16 @@ export type JaringCreateWithoutPrimaryBaketsInput = {
   code: string
   aliasName?: string | null
   whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   notes?: string | null
   registeredAt?: Date | string
@@ -1118,6 +1691,7 @@ export type JaringCreateWithoutPrimaryBaketsInput = {
   updatedAt?: Date | string
   createdByAssignment: Prisma.UserSeatAssignmentCreateNestedOneWithoutJaringCreatedInput
   cluster?: Prisma.JaringClusterCreateNestedOneWithoutJaringInput
+  occupation?: Prisma.JaringOccupationCreateNestedOneWithoutJaringInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentCreateNestedManyWithoutJaringInput
   areaCoverages?: Prisma.JaringAreaCoverageCreateNestedManyWithoutJaringInput
   messages?: Prisma.WhatsAppMessageCreateNestedManyWithoutJaringInput
@@ -1129,6 +1703,17 @@ export type JaringUncheckedCreateWithoutPrimaryBaketsInput = {
   aliasName?: string | null
   whatsappNumber: string
   clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   createdByAssignmentId: string
   notes?: string | null
@@ -1163,6 +1748,16 @@ export type JaringUpdateWithoutPrimaryBaketsInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1172,6 +1767,7 @@ export type JaringUpdateWithoutPrimaryBaketsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
   cluster?: Prisma.JaringClusterUpdateOneWithoutJaringNestedInput
+  occupation?: Prisma.JaringOccupationUpdateOneWithoutJaringNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
@@ -1183,6 +1779,17 @@ export type JaringUncheckedUpdateWithoutPrimaryBaketsInput = {
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1202,6 +1809,17 @@ export type JaringCreateManyCreatedByAssignmentInput = {
   aliasName?: string | null
   whatsappNumber: string
   clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   notes?: string | null
   registeredAt?: Date | string
@@ -1216,6 +1834,16 @@ export type JaringUpdateWithoutCreatedByAssignmentInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1224,6 +1852,7 @@ export type JaringUpdateWithoutCreatedByAssignmentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cluster?: Prisma.JaringClusterUpdateOneWithoutJaringNestedInput
+  occupation?: Prisma.JaringOccupationUpdateOneWithoutJaringNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
@@ -1236,6 +1865,17 @@ export type JaringUncheckedUpdateWithoutCreatedByAssignmentInput = {
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1255,6 +1895,17 @@ export type JaringUncheckedUpdateManyWithoutCreatedByAssignmentInput = {
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1269,6 +1920,17 @@ export type JaringCreateManyClusterInput = {
   code: string
   aliasName?: string | null
   whatsappNumber: string
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  occupationId?: string | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
   status?: $Enums.JaringStatus
   createdByAssignmentId: string
   notes?: string | null
@@ -1284,6 +1946,16 @@ export type JaringUpdateWithoutClusterInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1292,6 +1964,7 @@ export type JaringUpdateWithoutClusterInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
+  occupation?: Prisma.JaringOccupationUpdateOneWithoutJaringNestedInput
   caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
   areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
   messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
@@ -1303,6 +1976,17 @@ export type JaringUncheckedUpdateWithoutClusterInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1322,6 +2006,129 @@ export type JaringUncheckedUpdateManyWithoutClusterInput = {
   code?: Prisma.StringFieldUpdateOperationsInput | string
   aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  occupationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
+  createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type JaringCreateManyOccupationInput = {
+  id?: string
+  code: string
+  aliasName?: string | null
+  whatsappNumber: string
+  clusterId?: string | null
+  fullName?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.JaringGender | null
+  workplace?: string | null
+  jobTitle?: string | null
+  joinedAt?: Date | string | null
+  organizationName?: string | null
+  politicalAffiliation?: string | null
+  status?: $Enums.JaringStatus
+  createdByAssignmentId: string
+  notes?: string | null
+  registeredAt?: Date | string
+  deactivatedAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type JaringUpdateWithoutOccupationInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdByAssignment?: Prisma.UserSeatAssignmentUpdateOneRequiredWithoutJaringCreatedNestedInput
+  cluster?: Prisma.JaringClusterUpdateOneWithoutJaringNestedInput
+  caretakerAssignments?: Prisma.JaringCaretakerAssignmentUpdateManyWithoutJaringNestedInput
+  areaCoverages?: Prisma.JaringAreaCoverageUpdateManyWithoutJaringNestedInput
+  messages?: Prisma.WhatsAppMessageUpdateManyWithoutJaringNestedInput
+  primaryBakets?: Prisma.BaketUpdateManyWithoutPrimaryJaringNestedInput
+}
+
+export type JaringUncheckedUpdateWithoutOccupationInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
+  createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  registeredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  caretakerAssignments?: Prisma.JaringCaretakerAssignmentUncheckedUpdateManyWithoutJaringNestedInput
+  areaCoverages?: Prisma.JaringAreaCoverageUncheckedUpdateManyWithoutJaringNestedInput
+  messages?: Prisma.WhatsAppMessageUncheckedUpdateManyWithoutJaringNestedInput
+  primaryBakets?: Prisma.BaketUncheckedUpdateManyWithoutPrimaryJaringNestedInput
+}
+
+export type JaringUncheckedUpdateManyWithoutOccupationInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  aliasName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  clusterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumJaringGenderFieldUpdateOperationsInput | $Enums.JaringGender | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organizationName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  politicalAffiliation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumJaringStatusFieldUpdateOperationsInput | $Enums.JaringStatus
   createdByAssignmentId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1396,6 +2203,17 @@ export type JaringSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   aliasName?: boolean
   whatsappNumber?: boolean
   clusterId?: boolean
+  fullName?: boolean
+  nationalIdNumber?: boolean
+  birthPlace?: boolean
+  birthDate?: boolean
+  gender?: boolean
+  occupationId?: boolean
+  workplace?: boolean
+  jobTitle?: boolean
+  joinedAt?: boolean
+  organizationName?: boolean
+  politicalAffiliation?: boolean
   status?: boolean
   createdByAssignmentId?: boolean
   notes?: boolean
@@ -1406,6 +2224,7 @@ export type JaringSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   updatedAt?: boolean
   createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   cluster?: boolean | Prisma.Jaring$clusterArgs<ExtArgs>
+  occupation?: boolean | Prisma.Jaring$occupationArgs<ExtArgs>
   caretakerAssignments?: boolean | Prisma.Jaring$caretakerAssignmentsArgs<ExtArgs>
   areaCoverages?: boolean | Prisma.Jaring$areaCoveragesArgs<ExtArgs>
   messages?: boolean | Prisma.Jaring$messagesArgs<ExtArgs>
@@ -1419,6 +2238,17 @@ export type JaringSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   aliasName?: boolean
   whatsappNumber?: boolean
   clusterId?: boolean
+  fullName?: boolean
+  nationalIdNumber?: boolean
+  birthPlace?: boolean
+  birthDate?: boolean
+  gender?: boolean
+  occupationId?: boolean
+  workplace?: boolean
+  jobTitle?: boolean
+  joinedAt?: boolean
+  organizationName?: boolean
+  politicalAffiliation?: boolean
   status?: boolean
   createdByAssignmentId?: boolean
   notes?: boolean
@@ -1429,6 +2259,7 @@ export type JaringSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   updatedAt?: boolean
   createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   cluster?: boolean | Prisma.Jaring$clusterArgs<ExtArgs>
+  occupation?: boolean | Prisma.Jaring$occupationArgs<ExtArgs>
 }, ExtArgs["result"]["jaring"]>
 
 export type JaringSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1437,6 +2268,17 @@ export type JaringSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   aliasName?: boolean
   whatsappNumber?: boolean
   clusterId?: boolean
+  fullName?: boolean
+  nationalIdNumber?: boolean
+  birthPlace?: boolean
+  birthDate?: boolean
+  gender?: boolean
+  occupationId?: boolean
+  workplace?: boolean
+  jobTitle?: boolean
+  joinedAt?: boolean
+  organizationName?: boolean
+  politicalAffiliation?: boolean
   status?: boolean
   createdByAssignmentId?: boolean
   notes?: boolean
@@ -1447,6 +2289,7 @@ export type JaringSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   updatedAt?: boolean
   createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   cluster?: boolean | Prisma.Jaring$clusterArgs<ExtArgs>
+  occupation?: boolean | Prisma.Jaring$occupationArgs<ExtArgs>
 }, ExtArgs["result"]["jaring"]>
 
 export type JaringSelectScalar = {
@@ -1455,6 +2298,17 @@ export type JaringSelectScalar = {
   aliasName?: boolean
   whatsappNumber?: boolean
   clusterId?: boolean
+  fullName?: boolean
+  nationalIdNumber?: boolean
+  birthPlace?: boolean
+  birthDate?: boolean
+  gender?: boolean
+  occupationId?: boolean
+  workplace?: boolean
+  jobTitle?: boolean
+  joinedAt?: boolean
+  organizationName?: boolean
+  politicalAffiliation?: boolean
   status?: boolean
   createdByAssignmentId?: boolean
   notes?: boolean
@@ -1465,10 +2319,11 @@ export type JaringSelectScalar = {
   updatedAt?: boolean
 }
 
-export type JaringOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "aliasName" | "whatsappNumber" | "clusterId" | "status" | "createdByAssignmentId" | "notes" | "registeredAt" | "deactivatedAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["jaring"]>
+export type JaringOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "aliasName" | "whatsappNumber" | "clusterId" | "fullName" | "nationalIdNumber" | "birthPlace" | "birthDate" | "gender" | "occupationId" | "workplace" | "jobTitle" | "joinedAt" | "organizationName" | "politicalAffiliation" | "status" | "createdByAssignmentId" | "notes" | "registeredAt" | "deactivatedAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["jaring"]>
 export type JaringInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   cluster?: boolean | Prisma.Jaring$clusterArgs<ExtArgs>
+  occupation?: boolean | Prisma.Jaring$occupationArgs<ExtArgs>
   caretakerAssignments?: boolean | Prisma.Jaring$caretakerAssignmentsArgs<ExtArgs>
   areaCoverages?: boolean | Prisma.Jaring$areaCoveragesArgs<ExtArgs>
   messages?: boolean | Prisma.Jaring$messagesArgs<ExtArgs>
@@ -1478,10 +2333,12 @@ export type JaringInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 export type JaringIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   cluster?: boolean | Prisma.Jaring$clusterArgs<ExtArgs>
+  occupation?: boolean | Prisma.Jaring$occupationArgs<ExtArgs>
 }
 export type JaringIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   createdByAssignment?: boolean | Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>
   cluster?: boolean | Prisma.Jaring$clusterArgs<ExtArgs>
+  occupation?: boolean | Prisma.Jaring$occupationArgs<ExtArgs>
 }
 
 export type $JaringPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1489,6 +2346,7 @@ export type $JaringPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   objects: {
     createdByAssignment: Prisma.$UserSeatAssignmentPayload<ExtArgs>
     cluster: Prisma.$JaringClusterPayload<ExtArgs> | null
+    occupation: Prisma.$JaringOccupationPayload<ExtArgs> | null
     caretakerAssignments: Prisma.$JaringCaretakerAssignmentPayload<ExtArgs>[]
     areaCoverages: Prisma.$JaringAreaCoveragePayload<ExtArgs>[]
     messages: Prisma.$WhatsAppMessagePayload<ExtArgs>[]
@@ -1500,6 +2358,17 @@ export type $JaringPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     aliasName: string | null
     whatsappNumber: string
     clusterId: string | null
+    fullName: string | null
+    nationalIdNumber: string | null
+    birthPlace: string | null
+    birthDate: Date | null
+    gender: $Enums.JaringGender | null
+    occupationId: string | null
+    workplace: string | null
+    jobTitle: string | null
+    joinedAt: Date | null
+    organizationName: string | null
+    politicalAffiliation: string | null
     status: $Enums.JaringStatus
     createdByAssignmentId: string
     notes: string | null
@@ -1904,6 +2773,7 @@ export interface Prisma__JaringClient<T, Null = never, ExtArgs extends runtime.T
   readonly [Symbol.toStringTag]: "PrismaPromise"
   createdByAssignment<T extends Prisma.UserSeatAssignmentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserSeatAssignmentDefaultArgs<ExtArgs>>): Prisma.Prisma__UserSeatAssignmentClient<runtime.Types.Result.GetResult<Prisma.$UserSeatAssignmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   cluster<T extends Prisma.Jaring$clusterArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Jaring$clusterArgs<ExtArgs>>): Prisma.Prisma__JaringClusterClient<runtime.Types.Result.GetResult<Prisma.$JaringClusterPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  occupation<T extends Prisma.Jaring$occupationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Jaring$occupationArgs<ExtArgs>>): Prisma.Prisma__JaringOccupationClient<runtime.Types.Result.GetResult<Prisma.$JaringOccupationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   caretakerAssignments<T extends Prisma.Jaring$caretakerAssignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Jaring$caretakerAssignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JaringCaretakerAssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   areaCoverages<T extends Prisma.Jaring$areaCoveragesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Jaring$areaCoveragesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JaringAreaCoveragePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   messages<T extends Prisma.Jaring$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Jaring$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WhatsAppMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1942,6 +2812,17 @@ export interface JaringFieldRefs {
   readonly aliasName: Prisma.FieldRef<"Jaring", 'String'>
   readonly whatsappNumber: Prisma.FieldRef<"Jaring", 'String'>
   readonly clusterId: Prisma.FieldRef<"Jaring", 'String'>
+  readonly fullName: Prisma.FieldRef<"Jaring", 'String'>
+  readonly nationalIdNumber: Prisma.FieldRef<"Jaring", 'String'>
+  readonly birthPlace: Prisma.FieldRef<"Jaring", 'String'>
+  readonly birthDate: Prisma.FieldRef<"Jaring", 'DateTime'>
+  readonly gender: Prisma.FieldRef<"Jaring", 'JaringGender'>
+  readonly occupationId: Prisma.FieldRef<"Jaring", 'String'>
+  readonly workplace: Prisma.FieldRef<"Jaring", 'String'>
+  readonly jobTitle: Prisma.FieldRef<"Jaring", 'String'>
+  readonly joinedAt: Prisma.FieldRef<"Jaring", 'DateTime'>
+  readonly organizationName: Prisma.FieldRef<"Jaring", 'String'>
+  readonly politicalAffiliation: Prisma.FieldRef<"Jaring", 'String'>
   readonly status: Prisma.FieldRef<"Jaring", 'JaringStatus'>
   readonly createdByAssignmentId: Prisma.FieldRef<"Jaring", 'String'>
   readonly notes: Prisma.FieldRef<"Jaring", 'String'>
@@ -2367,6 +3248,25 @@ export type Jaring$clusterArgs<ExtArgs extends runtime.Types.Extensions.Internal
    */
   include?: Prisma.JaringClusterInclude<ExtArgs> | null
   where?: Prisma.JaringClusterWhereInput
+}
+
+/**
+ * Jaring.occupation
+ */
+export type Jaring$occupationArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the JaringOccupation
+   */
+  select?: Prisma.JaringOccupationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the JaringOccupation
+   */
+  omit?: Prisma.JaringOccupationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.JaringOccupationInclude<ExtArgs> | null
+  where?: Prisma.JaringOccupationWhereInput
 }
 
 /**

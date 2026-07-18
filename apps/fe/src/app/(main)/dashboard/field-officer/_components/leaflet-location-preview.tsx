@@ -51,9 +51,7 @@ export function LeafletLocationPreview({ latitude, longitude, title }: LeafletLo
         popupAnchor: [0, -36],
       });
 
-      L.marker([latitude, longitude], { icon: pinIcon })
-        .addTo(map)
-        .bindPopup(title);
+      L.marker([latitude, longitude], { icon: pinIcon }).addTo(map).bindPopup(title);
     }
 
     void mount();

@@ -1,18 +1,5 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { JaringRegistrationForm } from "../_components/jaring-registration-form";
 
-export const dynamic = "force-dynamic";
-
-type PageProps = {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function Page({ params, searchParams }: PageProps) {
-  return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/field-officer/jaring-binaan/baru"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
-    />
-  );
+export default function Page() {
+  return <JaringRegistrationForm />;
 }

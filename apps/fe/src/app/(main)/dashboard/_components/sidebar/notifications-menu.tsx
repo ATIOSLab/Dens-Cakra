@@ -4,13 +4,12 @@ import Link from "next/link";
 
 import { Bell, CheckCheck } from "lucide-react";
 
-import { dashboardNotifications, unreadNotificationsCount } from "@/app/(main)/dashboard/_components/notifications-data";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  dashboardNotifications,
+  unreadNotificationsCount,
+} from "@/app/(main)/dashboard/_components/notifications-data";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export function NotificationsMenu() {
   return (

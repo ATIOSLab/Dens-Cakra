@@ -32,11 +32,7 @@ function isOimPosition(position: Row | null | undefined) {
   const roleCode = String(position?.role?.code ?? "").toUpperCase();
   const positionCode = String(position?.code ?? "").toUpperCase();
 
-  return (
-    roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER" ||
-    positionCode === "KABAGOPS" ||
-    positionCode === "KASUBDIT"
-  );
+  return roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER" || positionCode === "KABAGOPS" || positionCode === "KASUBDIT";
 }
 
 function oimPositionTitleFrom(position: Row | null | undefined) {
@@ -56,10 +52,7 @@ function oimPositionTitleFrom(position: Row | null | undefined) {
 }
 
 function baketSentToPositionTitle(baket: Row) {
-  return (
-    oimPositionTitleFrom(baket.createdByFieldOfficerAssignment?.position) ??
-    null
-  );
+  return oimPositionTitleFrom(baket.createdByFieldOfficerAssignment?.position) ?? null;
 }
 
 function baketStatusLabel(status?: string | null, sentToPositionTitle?: string | null) {

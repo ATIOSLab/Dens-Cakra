@@ -19,15 +19,18 @@ import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   CreateJaringClusterDto,
+  CreateJaringOccupationDto,
   CreateReportCategoryDto,
   CoverageDto,
   CreateJaringDto,
   JaringClusterQuery,
+  JaringOccupationQuery,
   JaringQuery,
   ReportCategoryQuery,
   ReasonDto,
   TransferDto,
   UpdateJaringClusterDto,
+  UpdateJaringOccupationDto,
   UpdateReportCategoryDto,
   UpdateJaringDto,
 } from './jaring.dto.js';
@@ -113,6 +116,54 @@ export class JaringController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.jaringService.updateCluster(id, body, context));
+  }
+
+  @Get('occupations')
+  @ApiContract({
+    operationId: 'apiJarOccupation001',
+    contractId: 'API-JAR-OCCUPATION-001',
+    summary: 'Daftar pekerjaan Jaring',
+    roles: [
+      'admin_system',
+      'field_officer',
+      'operational_intelligence_manager',
+    ],
+  })
+  async listOccupations(@Query() query: JaringOccupationQuery) {
+    return apiResult(await this.jaringService.listOccupations(query));
+  }
+
+  @Post('occupations')
+  @ApiContract({
+    operationId: 'apiJarOccupation002',
+    contractId: 'API-JAR-OCCUPATION-002',
+    summary: 'Buat pekerjaan Jaring',
+    roles: ['admin_system'],
+    successStatus: 201,
+    idempotent: true,
+  })
+  async createOccupation(
+    @Body() body: CreateJaringOccupationDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.createOccupation(body, context));
+  }
+
+  @Patch('occupations/:occupationId')
+  @ApiContract({
+    operationId: 'apiJarOccupation003',
+    contractId: 'API-JAR-OCCUPATION-003',
+    summary: 'Ubah pekerjaan Jaring',
+    roles: ['admin_system'],
+  })
+  async updateOccupation(
+    @Param('occupationId', ParseUUIDPipe) id: string,
+    @Body() body: UpdateJaringOccupationDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.jaringService.updateOccupation(id, body, context),
+    );
   }
 
   @Get('report-categories')

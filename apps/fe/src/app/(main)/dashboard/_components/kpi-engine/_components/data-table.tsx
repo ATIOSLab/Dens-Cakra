@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -42,10 +43,10 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
   const extractKabupaten = (name: string) => {
     const bindaIndex = name.indexOf("Binda ");
     if (bindaIndex !== -1) return name.slice(bindaIndex + 6);
-    
+
     const dirIndex = name.indexOf("Direktorat ");
     if (dirIndex !== -1) return name.slice(dirIndex + 11);
-    
+
     const unitIndex = name.indexOf("Unit ");
     if (unitIndex !== -1) return name.slice(unitIndex + 5);
 
@@ -74,16 +75,14 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
     if (trendType === 0) {
       return (
         <span className="inline-flex items-center text-emerald-500 font-mono text-xs gap-0.5">
-          <TrendingUp className="size-3.5" />
-          ▲
+          <TrendingUp className="size-3.5" />▲
         </span>
       );
     }
     if (trendType === 1) {
       return (
         <span className="inline-flex items-center text-red-500 font-mono text-xs gap-0.5">
-          <TrendingDown className="size-3.5" />
-          ▼
+          <TrendingDown className="size-3.5" />▼
         </span>
       );
     }
@@ -94,7 +93,6 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
     <div className="relative overflow-x-auto rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-surface)]">
       <div className="max-h-[750px] overflow-y-auto no-scrollbar">
         <Table className="w-full border-collapse text-xs">
-
           {/* Header */}
           <TableHeader className="sticky top-0 bg-[var(--dc-surface)] border-b border-[var(--dc-divider)] shadow-[0_1px_0_var(--dc-divider)] z-10">
             <TableRow className="hover:bg-transparent">
@@ -110,8 +108,12 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
                       Unit {renderSortIcon("name")}
                     </button>
                   </TableHead>
-                  <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">Kabupaten</TableHead>
-                  <TableHead className="min-w-[100px] text-right font-semibold text-[var(--dc-text-secondary)]">Personel</TableHead>
+                  <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">
+                    Kabupaten
+                  </TableHead>
+                  <TableHead className="min-w-[100px] text-right font-semibold text-[var(--dc-text-secondary)]">
+                    Personel
+                  </TableHead>
                 </>
               ) : (
                 <>
@@ -126,7 +128,9 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
                   </TableHead>
                   <TableHead className="min-w-[140px] font-semibold text-[var(--dc-text-secondary)]">Jabatan</TableHead>
                   <TableHead className="min-w-[160px] font-semibold text-[var(--dc-text-secondary)]">Unit</TableHead>
-                  <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">Kabupaten</TableHead>
+                  <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">
+                    Kabupaten
+                  </TableHead>
                 </>
               )}
               <TableHead className="w-24 text-center">
@@ -172,9 +176,7 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
                     <TableCell className="text-center font-mono text-[var(--dc-text-muted)] font-medium">
                       {(idx + 1).toString().padStart(2, "0")}
                     </TableCell>
-                    <TableCell className="font-semibold text-[var(--dc-text-primary)]">
-                      {unitName}
-                    </TableCell>
+                    <TableCell className="font-semibold text-[var(--dc-text-primary)]">{unitName}</TableCell>
                     <TableCell className="text-[var(--dc-text-secondary)]">{kabupaten}</TableCell>
                     <TableCell className="text-right font-mono font-medium text-[var(--dc-text-secondary)]">
                       {personnelCount}
@@ -210,10 +212,11 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
               const unitName = text(unitObj.name);
 
               const areas = Array.isArray(item.areas) ? item.areas : [];
-              const kabupaten = areas
-                .map((area: any) => text(area?.name, ""))
-                .filter(Boolean)
-                .join(", ") || "Belum ditentukan";
+              const kabupaten =
+                areas
+                  .map((area: any) => text(area?.name, ""))
+                  .filter(Boolean)
+                  .join(", ") || "Belum ditentukan";
 
               return (
                 <TableRow
@@ -223,9 +226,7 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
                   <TableCell className="text-center font-mono text-[var(--dc-text-muted)] font-medium">
                     {(idx + 1).toString().padStart(2, "0")}
                   </TableCell>
-                  <TableCell className="font-semibold text-[var(--dc-text-primary)]">
-                    {personName}
-                  </TableCell>
+                  <TableCell className="font-semibold text-[var(--dc-text-primary)]">{personName}</TableCell>
                   <TableCell className="text-[var(--dc-text-secondary)]">{position}</TableCell>
                   <TableCell className="text-[var(--dc-text-muted)]">{unitName}</TableCell>
                   <TableCell className="text-[var(--dc-text-secondary)] truncate max-w-[120px]" title={kabupaten}>

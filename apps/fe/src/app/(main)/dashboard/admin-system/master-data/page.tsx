@@ -1,36 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import {
+  AlertCircle,
+  AlertTriangle,
+  BriefcaseBusiness,
   CheckCircle2,
-  Layers3,
-  Plus,
-  Power,
-  RefreshCw,
-  Tags,
-  Search,
-  SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
   Edit2,
-  Trash2,
-  X,
-  AlertCircle,
-  FolderTree,
-  MapPin,
-  ShieldCheck,
-  AlertTriangle,
   FileText,
-  UserCheck
+  FolderTree,
+  Layers3,
+  MapPin,
+  Plus,
+  Power,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Tags,
+  Trash2,
+  UserCheck,
+  X,
 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,15 +37,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import type { JaringCluster, ReportCategory } from "@/server/field-ops/types";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import type { JaringCluster, JaringOccupation, ReportCategory } from "@/server/field-ops/types";
 
 type ClusterResponse = JaringCluster & {
   _count?: {
@@ -63,6 +66,53 @@ type CategoryResponse = ReportCategory & {
   };
 };
 
+type OccupationResponse = JaringOccupation & {
+  _count?: {
+    jaring?: number;
+  };
+};
+
+type MasterEntity = "cluster" | "category" | "occupation";
+type MasterItem = JaringCluster | ReportCategory | JaringOccupation;
+
+function entityApiPath(entity: MasterEntity) {
+  if (entity === "cluster") return "/api/admin-system/master-data/jaring-clusters";
+  if (entity === "occupation") return "/api/admin-system/master-data/occupations";
+  return "/api/admin-system/master-data/report-categories";
+}
+
+function entityLabel(entity: MasterEntity, detailed = false) {
+  if (entity === "cluster") return detailed ? "Cluster Jaring" : "Cluster";
+  if (entity === "occupation") return "Pekerjaan";
+  return detailed ? "Kategori Laporan" : "Kategori";
+}
+
+function usageCount(item: MasterItem, entity: MasterEntity) {
+  if (entity === "category") return (item as ReportCategory).messageCount ?? 0;
+  return (item as JaringCluster | JaringOccupation).jaringCount ?? 0;
+}
+
+function entityPlaceholder(entity: MasterEntity) {
+  if (entity === "cluster") return "Contoh: Mahasiswa, Tokoh Adat";
+  if (entity === "occupation") return "Contoh: Analis Keuangan";
+  return "Contoh: Keamanan, Politik";
+}
+
+function validateMasterName(entity: MasterEntity, rawName: string) {
+  const name = rawName.trim();
+  const label = entityLabel(entity, true).toLowerCase();
+
+  if (name.length === 0) {
+    return `Nama ${label} wajib diisi.`;
+  }
+
+  if (name.length < 2) {
+    return `Nama ${label} minimal 2 karakter.`;
+  }
+
+  return null;
+}
+
 type ConfirmDialogState = {
   title: string;
   description: string;
@@ -74,13 +124,14 @@ type ConfirmDialogState = {
 export default function AdminMasterDataPage() {
   const [clusters, setClusters] = useState<JaringCluster[]>([]);
   const [categories, setCategories] = useState<ReportCategory[]>([]);
-  const [activeEntity, setActiveEntity] = useState<"cluster" | "category" | "region" | "role" | "priority" | "str" | "class" | "intel">("cluster");
-  
+  const [occupations, setOccupations] = useState<JaringOccupation[]>([]);
+  const [activeEntity, setActiveEntity] = useState<MasterEntity>("cluster");
+
   // Drawer form state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", isActive: true });
-  const [editingItem, setEditingItem] = useState<JaringCluster | ReportCategory | null>(null);
-  
+  const [editingItem, setEditingItem] = useState<MasterItem | null>(null);
+
   // Table search & filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -88,28 +139,32 @@ export default function AdminMasterDataPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(20);
-  
+
   // Row selection checkboxes state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>("-");
+  const [formErrors, setFormErrors] = useState<{ name?: string }>({});
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Dynamic Alert Dialog State
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   // Scalable entities listing (inspired by Palantir Foundry / Azure Admin)
-  const entities = [
+  const entities: Array<{ id: MasterEntity; label: string; icon: typeof Layers3 }> = [
     { id: "cluster", label: "Cluster Jaring", icon: Layers3 },
     { id: "category", label: "Kategori Laporan", icon: Tags },
+    { id: "occupation", label: "Pekerjaan", icon: BriefcaseBusiness },
   ];
 
   // Summary Metrics
   const totalEntities = entities.length;
-  const totalDataCount = clusters.length + categories.length;
-  
+  const totalDataCount = clusters.length + categories.length + occupations.length;
+
   const loadClusters = async () => {
     try {
       setBusyKey("load");
@@ -170,18 +225,51 @@ export default function AdminMasterDataPage() {
     }
   };
 
+  const loadOccupations = async () => {
+    try {
+      setBusyKey("load-occupations");
+      const response = await fetch("/api/admin-system/master-data/occupations", { cache: "no-store" });
+      const body = (await response.json()) as OccupationResponse[] | { message?: string };
+
+      if (!response.ok) {
+        throw new Error("message" in body ? body.message : "Gagal memuat pekerjaan.");
+      }
+
+      setOccupations(
+        (body as OccupationResponse[]).map((occupation) => ({
+          id: occupation.id,
+          code: occupation.code,
+          name: occupation.name,
+          description: occupation.description ?? null,
+          isActive: occupation.isActive,
+          jaringCount: occupation._count?.jaring ?? occupation.jaringCount ?? 0,
+        })),
+      );
+      setError(null);
+      const now = new Date();
+      setLastUpdate(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Gagal memuat pekerjaan.");
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   useEffect(() => {
     void loadClusters();
     void loadCategories();
+    void loadOccupations();
   }, []);
+
+  const loadActiveEntity = async () => {
+    if (activeEntity === "cluster") return loadClusters();
+    if (activeEntity === "occupation") return loadOccupations();
+    return loadCategories();
+  };
 
   const handleRefresh = async () => {
     setSelectedIds([]);
-    if (activeEntity === "cluster") {
-      await loadClusters();
-    } else {
-      await loadCategories();
-    }
+    await loadActiveEntity();
     setSuccess("Data berhasil diperbarui.");
     setTimeout(() => setSuccess(null), 3000);
   };
@@ -193,10 +281,8 @@ export default function AdminMasterDataPage() {
       setBusyKey("save");
       if (editingItem) {
         // Edit flow
-        const url = activeEntity === "cluster"
-          ? `/api/admin-system/master-data/jaring-clusters/${editingItem.id}`
-          : `/api/admin-system/master-data/report-categories/${editingItem.id}`;
-          
+        const url = `${entityApiPath(activeEntity)}/${editingItem.id}`;
+
         const response = await fetch(url, {
           method: "PATCH",
           headers: { "content-type": "application/json" },
@@ -212,13 +298,11 @@ export default function AdminMasterDataPage() {
           throw new Error(body.message || "Gagal memperbarui data.");
         }
 
-        setSuccess(`${activeEntity === "cluster" ? "Cluster" : "Kategori"} berhasil diperbarui.`);
+        setSuccess(`${entityLabel(activeEntity)} berhasil diperbarui.`);
         setEditingItem(null);
       } else {
         // Create flow
-        const url = activeEntity === "cluster"
-          ? "/api/admin-system/master-data/jaring-clusters"
-          : "/api/admin-system/master-data/report-categories";
+        const url = entityApiPath(activeEntity);
 
         const response = await fetch(url, {
           method: "POST",
@@ -234,41 +318,95 @@ export default function AdminMasterDataPage() {
           throw new Error(body.message || "Gagal menyimpan data.");
         }
 
-        setSuccess(`${activeEntity === "cluster" ? "Cluster" : "Kategori"} baru berhasil ditambahkan.`);
+        setSuccess(`${entityLabel(activeEntity)} baru berhasil ditambahkan.`);
       }
 
       setForm({ name: "", description: "", isActive: true });
       setError(null);
+      setFormErrors({});
+      setDialogError(null);
       setIsDrawerOpen(false);
-      if (activeEntity === "cluster") {
-        await loadClusters();
-      } else {
-        await loadCategories();
-      }
+      await loadActiveEntity();
       setTimeout(() => setSuccess(null), 3000);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Gagal menyimpan data.");
+      setDialogError(saveError instanceof Error ? saveError.message : "Gagal menyimpan data.");
     } finally {
       setBusyKey(null);
     }
   };
 
-  const saveEntity = () => {
-    const name = form.name.trim();
-    if (name.length < 2) {
-      setError("Nama minimal 2 karakter.");
-      return;
+  const handleCancelClick = () => {
+    const isModified = form.name.trim() !== "" || form.description.trim() !== "";
+
+    if (isModified) {
+      const isEdit = editingItem !== null;
+      const typeLabel = entityLabel(activeEntity, true);
+
+      let description = "";
+      if (isEdit) {
+        description = `Apakah Anda yakin ingin membatalkan perubahan data ${typeLabel.toLowerCase()} ini? Perubahan yang belum disimpan akan hilang.`;
+      } else {
+        description = `Apakah Anda yakin ingin membatalkan pembuatan ${typeLabel.toLowerCase()} baru ini? Data yang telah diisi akan hilang.`;
+      }
+
+      setConfirmDialog({
+        title: isEdit ? "Batalkan Perubahan?" : "Batalkan Pembuatan?",
+        description,
+        actionLabel: "Ya, Batalkan",
+        actionVariant: "destructive",
+        onConfirm: () => {
+          setIsDrawerOpen(false);
+          setFormErrors({});
+          setDialogError(null);
+        },
+      });
+    } else {
+      setIsDrawerOpen(false);
+      setFormErrors({});
+      setDialogError(null);
     }
-    void executeSave();
   };
 
-  const startEdit = (item: JaringCluster | ReportCategory) => {
+  const saveEntity = () => {
+    const name = form.name.trim();
+    const nameError = validateMasterName(activeEntity, form.name);
+    if (nameError) {
+      setFormErrors({ name: nameError });
+      setDialogError(null);
+      nameInputRef.current?.focus();
+      return;
+    }
+    setFormErrors({});
+    setDialogError(null);
+
+    const isEdit = editingItem !== null;
+    const typeLabel = entityLabel(activeEntity, true);
+
+    let description = "";
+    if (isEdit) {
+      description = `Apakah Anda yakin ingin menyimpan perubahan pada ${typeLabel.toLowerCase()} "${editingItem.name}"?`;
+    } else {
+      description = `Apakah Anda yakin ingin menambahkan ${typeLabel.toLowerCase()} baru "${name}" ke dalam sistem?`;
+    }
+
+    setConfirmDialog({
+      title: isEdit ? "Simpan Perubahan?" : "Simpan Data Baru?",
+      description,
+      actionLabel: "Ya, Simpan",
+      actionVariant: "success",
+      onConfirm: () => void executeSave(),
+    });
+  };
+
+  const startEdit = (item: MasterItem) => {
     setEditingItem(item);
     setForm({
       name: item.name,
       description: item.description || "",
       isActive: item.isActive,
     });
+    setFormErrors({});
+    setDialogError(null);
     setError(null);
     setSuccess(null);
     setIsDrawerOpen(true);
@@ -277,18 +415,18 @@ export default function AdminMasterDataPage() {
   const startCreate = () => {
     setEditingItem(null);
     setForm({ name: "", description: "", isActive: true });
+    setFormErrors({});
+    setDialogError(null);
     setError(null);
     setSuccess(null);
     setIsDrawerOpen(true);
   };
 
   // Toggle status execution
-  const executeToggleStatus = async (item: JaringCluster | ReportCategory) => {
+  const executeToggleStatus = async (item: MasterItem) => {
     try {
       setBusyKey(`toggle:${item.id}`);
-      const url = activeEntity === "cluster"
-        ? `/api/admin-system/master-data/jaring-clusters/${item.id}`
-        : `/api/admin-system/master-data/report-categories/${item.id}`;
+      const url = `${entityApiPath(activeEntity)}/${item.id}`;
 
       const response = await fetch(url, {
         method: "PATCH",
@@ -302,11 +440,7 @@ export default function AdminMasterDataPage() {
       }
 
       setSuccess(`Status berhasil diubah.`);
-      if (activeEntity === "cluster") {
-        await loadClusters();
-      } else {
-        await loadCategories();
-      }
+      await loadActiveEntity();
       setTimeout(() => setSuccess(null), 3000);
     } catch (toggleError) {
       setError(toggleError instanceof Error ? toggleError.message : "Gagal memperbarui status.");
@@ -315,12 +449,12 @@ export default function AdminMasterDataPage() {
     }
   };
 
-  const toggleStatus = (item: JaringCluster | ReportCategory) => {
+  const toggleStatus = (item: MasterItem) => {
     const actionStr = item.isActive ? "Menonaktifkan" : "Mengaktifkan";
-    const typeStr = activeEntity === "cluster" ? "Cluster Jaring" : "Kategori Laporan";
+    const typeStr = entityLabel(activeEntity, true);
     setConfirmDialog({
       title: `${actionStr} ${typeStr}?`,
-      description: item.isActive 
+      description: item.isActive
         ? `Apakah Anda yakin ingin menonaktifkan "${item.name}"? Entitas ini tidak akan dapat dipilih di form baru.`
         : `Apakah Anda yakin ingin mengaktifkan kembali "${item.name}"? Entitas ini akan segera tersedia untuk form baru.`,
       actionLabel: item.isActive ? "Ya, Nonaktifkan" : "Ya, Aktifkan",
@@ -330,12 +464,10 @@ export default function AdminMasterDataPage() {
   };
 
   // Soft delete execution
-  const executeSoftDelete = async (item: JaringCluster | ReportCategory) => {
+  const executeSoftDelete = async (item: MasterItem) => {
     try {
       setBusyKey(`delete:${item.id}`);
-      const url = activeEntity === "cluster"
-        ? `/api/admin-system/master-data/jaring-clusters/${item.id}`
-        : `/api/admin-system/master-data/report-categories/${item.id}`;
+      const url = `${entityApiPath(activeEntity)}/${item.id}`;
 
       const response = await fetch(url, {
         method: "PATCH",
@@ -349,11 +481,7 @@ export default function AdminMasterDataPage() {
       }
 
       setSuccess(`Data dinonaktifkan (Soft Delete).`);
-      if (activeEntity === "cluster") {
-        await loadClusters();
-      } else {
-        await loadCategories();
-      }
+      await loadActiveEntity();
       setTimeout(() => setSuccess(null), 3000);
     } catch (delError) {
       setError(delError instanceof Error ? delError.message : "Gagal menonaktifkan data.");
@@ -362,12 +490,12 @@ export default function AdminMasterDataPage() {
     }
   };
 
-  const softDelete = (item: JaringCluster | ReportCategory) => {
+  const softDelete = (item: MasterItem) => {
     if (!item.isActive) {
       setError("Data sudah dalam keadaan Nonaktif.");
       return;
     }
-    const typeStr = activeEntity === "cluster" ? "Cluster" : "Kategori";
+    const typeStr = entityLabel(activeEntity);
     setConfirmDialog({
       title: `Soft Delete ${typeStr}?`,
       description: `Apakah Anda yakin ingin menonaktifkan "${item.name}" secara permanen? Data historis lama akan tetap dipertahankan namun entitas referensi tidak akan muncul lagi di formulir baru.`,
@@ -388,40 +516,36 @@ export default function AdminMasterDataPage() {
       onConfirm: async () => {
         try {
           setBusyKey("bulk");
-          const urlPrefix = activeEntity === "cluster"
-            ? "/api/admin-system/master-data/jaring-clusters"
-            : "/api/admin-system/master-data/report-categories";
-            
+          const urlPrefix = entityApiPath(activeEntity);
+
           await Promise.all(
             selectedIds.map((id) =>
               fetch(`${urlPrefix}/${id}`, {
                 method: "PATCH",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ isActive: targetActive }),
-              })
-            )
+              }),
+            ),
           );
-          
+
           setSuccess(`Berhasil memperbarui ${selectedIds.length} item secara massal.`);
           setSelectedIds([]);
-          if (activeEntity === "cluster") {
-            await loadClusters();
-          } else {
-            await loadCategories();
-          }
+          await loadActiveEntity();
           setTimeout(() => setSuccess(null), 3000);
         } catch (bulkError) {
           setError("Gagal memproses perubahan status massal.");
         } finally {
           setBusyKey(null);
         }
-      }
+      },
     });
   };
 
   // Filter & Sort Logic
   const filteredAndSortedItems = useMemo(() => {
-    const rawList = activeEntity === "cluster" ? clusters : categories;
+    let rawList: MasterItem[] = categories;
+    if (activeEntity === "cluster") rawList = clusters;
+    if (activeEntity === "occupation") rawList = occupations;
     let list = [...rawList];
 
     // Search Query filter
@@ -447,8 +571,8 @@ export default function AdminMasterDataPage() {
       let valB: any = b[sortField as keyof typeof b] ?? "";
 
       if (sortField === "usage") {
-        valA = activeEntity === "cluster" ? (a as JaringCluster).jaringCount ?? 0 : (a as ReportCategory).messageCount ?? 0;
-        valB = activeEntity === "cluster" ? (b as JaringCluster).jaringCount ?? 0 : (b as ReportCategory).messageCount ?? 0;
+        valA = usageCount(a, activeEntity);
+        valB = usageCount(b, activeEntity);
       }
 
       if (typeof valA === "string") valA = valA.toLowerCase();
@@ -460,12 +584,12 @@ export default function AdminMasterDataPage() {
     });
 
     return list;
-  }, [activeEntity, clusters, categories, searchQuery, statusFilter, sortField, sortDirection]);
+  }, [activeEntity, clusters, categories, occupations, searchQuery, statusFilter, sortField, sortDirection]);
 
   // Pagination calculations
   const totalItems = filteredAndSortedItems.length;
   const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
-  
+
   useEffect(() => {
     setCurrentPage(1);
     setSelectedIds([]);
@@ -555,7 +679,7 @@ export default function AdminMasterDataPage() {
                 "px-4 py-2.5 text-xs font-mono font-bold flex items-center gap-2 border-b-2 tracking-wide cursor-pointer transition-all focus:outline-none whitespace-nowrap",
                 isActive
                   ? "border-[#14B8FF] text-cyan-600 dark:text-[#14B8FF] bg-secondary/30 dark:bg-white/[0.01]"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/20 dark:hover:bg-white/[0.01]"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/20 dark:hover:bg-white/[0.01]",
               )}
             >
               <Icon className="size-3.5" />
@@ -568,6 +692,11 @@ export default function AdminMasterDataPage() {
               {ent.id === "category" && (
                 <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-secondary text-foreground font-mono">
                   {categories.length}
+                </span>
+              )}
+              {ent.id === "occupation" && (
+                <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-secondary text-foreground font-mono">
+                  {occupations.length}
                 </span>
               )}
             </button>
@@ -601,12 +730,15 @@ export default function AdminMasterDataPage() {
               <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground/50" />
               <Input
                 className="pl-9 rounded-[6px] border-border bg-background dark:bg-slate-900/40 text-xs focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/45 text-foreground"
-                placeholder={`Cari nama, kode, atau deskripsi ${activeEntity === "cluster" ? "cluster" : "kategori"}...`}
+                placeholder={`Cari nama, kode, atau deskripsi ${entityLabel(activeEntity).toLowerCase()}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground">
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                >
                   <X className="size-4" />
                 </button>
               )}
@@ -614,15 +746,16 @@ export default function AdminMasterDataPage() {
 
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="size-4 text-muted-foreground/60" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="rounded-[6px] border border-border bg-background dark:bg-slate-900/40 px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:focus:ring-[#14B8FF]/30 cursor-pointer"
-              >
-                <option value="all">Semua Status</option>
-                <option value="active">Aktif</option>
-                <option value="inactive">Nonaktif</option>
-              </select>
+              <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
+                <SelectTrigger className="w-[125px] h-8 border-border bg-background dark:bg-slate-900/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30">
+                  <SelectValue placeholder="Pilih Status" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="active">Aktif</SelectItem>
+                  <SelectItem value="inactive">Nonaktif</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -632,11 +765,11 @@ export default function AdminMasterDataPage() {
               size="sm"
               className="h-8 rounded-[6px] border-border text-muted-foreground hover:bg-secondary/40 cursor-pointer"
               onClick={() => void handleRefresh()}
-              disabled={busyKey === "load" || busyKey === "load-categories"}
+              disabled={busyKey === "load" || busyKey === "load-categories" || busyKey === "load-occupations"}
             >
               <RefreshCw className="mr-2 size-3.5" /> Refresh
             </Button>
-            
+
             <Button
               className="h-8 rounded-[6px] bg-[#14B8FF] text-white dark:text-slate-950 font-bold hover:bg-cyan-400 cursor-pointer text-xs"
               onClick={startCreate}
@@ -648,16 +781,19 @@ export default function AdminMasterDataPage() {
 
         {/* WORKSPACE DATA LIST TABLE */}
         <CardContent className="p-0 min-h-[350px]">
-          {busyKey === "load" || busyKey === "load-categories" ? (
+          {busyKey === "load" || busyKey === "load-categories" || busyKey === "load-occupations" ? (
             <div className="p-6">
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 border border-border/60 bg-secondary/10 rounded-[8px] animate-pulse">
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-4 border border-border/60 bg-secondary/10 rounded-[8px] animate-pulse"
+                  >
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-muted rounded w-1/3"></div>
-                      <div className="h-3 bg-muted/65 rounded w-1/2"></div>
+                      <div className="h-4 bg-muted rounded w-1/3" />
+                      <div className="h-3 bg-muted/65 rounded w-1/2" />
                     </div>
-                    <div className="h-6 bg-muted rounded w-16"></div>
+                    <div className="h-6 bg-muted rounded w-16" />
                   </div>
                 ))}
               </div>
@@ -666,13 +802,22 @@ export default function AdminMasterDataPage() {
             <div className="p-8">
               <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed border-border rounded-[12px] bg-secondary/10 dark:bg-slate-900/5">
                 <div className="size-12 rounded-full bg-secondary border border-border flex items-center justify-center mb-4">
-                  {activeEntity === "cluster" ? <Layers3 className="size-6 text-muted-foreground/50" /> : <Tags className="size-6 text-muted-foreground/50" />}
+                  {activeEntity === "cluster" && <Layers3 className="size-6 text-muted-foreground/50" />}
+                  {activeEntity === "category" && <Tags className="size-6 text-muted-foreground/50" />}
+                  {activeEntity === "occupation" && <BriefcaseBusiness className="size-6 text-muted-foreground/50" />}
                 </div>
-                <h3 className="text-sm font-semibold text-foreground font-mono uppercase tracking-wider">Belum ada data</h3>
+                <h3 className="text-sm font-semibold text-foreground font-mono uppercase tracking-wider">
+                  Belum ada data
+                </h3>
                 <p className="text-xs text-muted-foreground mt-1 max-w-xs font-sans">
                   Tambahkan data pertama untuk mulai menggunakan modul ini.
                 </p>
-                <Button onClick={startCreate} variant="outline" size="sm" className="mt-4 rounded-[6px] border-[#14B8FF]/20 text-[#14B8FF] hover:bg-[#14B8FF]/10">
+                <Button
+                  onClick={startCreate}
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 rounded-[6px] border-[#14B8FF]/20 text-[#14B8FF] hover:bg-[#14B8FF]/10"
+                >
                   <Plus className="mr-2 size-3.5" /> Tambah Data
                 </Button>
               </div>
@@ -689,11 +834,17 @@ export default function AdminMasterDataPage() {
                         className="rounded-[4px] border-border"
                       />
                     </th>
-                    <th onClick={() => handleSort("name")} className="p-4 font-bold cursor-pointer hover:text-foreground transition-colors">
+                    <th
+                      onClick={() => handleSort("name")}
+                      className="p-4 font-bold cursor-pointer hover:text-foreground transition-colors"
+                    >
                       Nama {sortField === "name" && (sortDirection === "asc" ? "▲" : "▼")}
                     </th>
                     <th className="p-4 font-bold">Deskripsi</th>
-                    <th onClick={() => handleSort("isActive")} className="p-4 font-bold cursor-pointer hover:text-foreground transition-colors text-center w-28">
+                    <th
+                      onClick={() => handleSort("isActive")}
+                      className="p-4 font-bold cursor-pointer hover:text-foreground transition-colors text-center w-28"
+                    >
                       Status {sortField === "isActive" && (sortDirection === "asc" ? "▲" : "▼")}
                     </th>
                     <th className="p-4 font-bold text-center w-28">Last Update</th>
@@ -702,16 +853,16 @@ export default function AdminMasterDataPage() {
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {paginatedItems.map((item) => {
-                    const usageCount = activeEntity === "cluster" ? (item as JaringCluster).jaringCount ?? 0 : (item as ReportCategory).messageCount ?? 0;
-                    const usageLabel = activeEntity === "cluster" ? `${usageCount} jaring` : `${usageCount} laporan`;
+                    const count = usageCount(item, activeEntity);
+                    const usageLabel = activeEntity === "category" ? `${count} laporan` : `${count} jaring`;
                     const isSelected = selectedIds.includes(item.id);
-                    
+
                     return (
-                      <tr 
-                        key={item.id} 
+                      <tr
+                        key={item.id}
                         className={cn(
                           "hover:bg-secondary/20 dark:hover:bg-white/[0.02] transition-colors group",
-                          isSelected && "bg-cyan-500/5 dark:bg-[#14B8FF]/5"
+                          isSelected && "bg-cyan-500/5 dark:bg-[#14B8FF]/5",
                         )}
                       >
                         <td className="p-4 text-center">
@@ -729,7 +880,9 @@ export default function AdminMasterDataPage() {
                         </td>
                         <td className="p-4 max-w-xs">
                           <span className="text-muted-foreground font-sans line-clamp-2">
-                            {item.description || <span className="italic text-muted-foreground/30">Tidak ada deskripsi</span>}
+                            {item.description || (
+                              <span className="italic text-muted-foreground/30">Tidak ada deskripsi</span>
+                            )}
                           </span>
                         </td>
                         <td className="p-4 text-center">
@@ -739,15 +892,13 @@ export default function AdminMasterDataPage() {
                               "font-mono text-[9px] uppercase tracking-wider rounded-[4px] px-2 py-0.5",
                               item.isActive
                                 ? "border-emerald-500/20 text-emerald-600 dark:text-emerald-500 bg-emerald-500/5"
-                                : "border-border dark:border-white/10 text-muted-foreground bg-secondary/40 dark:bg-white/[0.02]"
+                                : "border-border dark:border-white/10 text-muted-foreground bg-secondary/40 dark:bg-white/[0.02]",
                             )}
                           >
                             {item.isActive ? "Aktif" : "Nonaktif"}
                           </Badge>
                         </td>
-                        <td className="p-4 text-center text-muted-foreground/75">
-                          13-07-2026 17:15
-                        </td>
+                        <td className="p-4 text-center text-muted-foreground/75">13-07-2026 17:15</td>
                         <td className="p-4">
                           <div className="flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                             <button
@@ -765,7 +916,7 @@ export default function AdminMasterDataPage() {
                                 "size-7 rounded-[4px] border border-border bg-background dark:bg-slate-900/50 flex items-center justify-center transition-all cursor-pointer text-muted-foreground hover:text-foreground",
                                 item.isActive
                                   ? "hover:border-amber-500/50 hover:text-amber-600 dark:hover:text-amber-400"
-                                  : "hover:border-emerald-500/50 hover:text-emerald-600 dark:hover:text-emerald-400"
+                                  : "hover:border-emerald-500/50 hover:text-emerald-600 dark:hover:text-emerald-400",
                               )}
                             >
                               <Power className="size-3.5" />
@@ -794,23 +945,31 @@ export default function AdminMasterDataPage() {
           <div className="p-4 border-t border-border/40 bg-secondary/15 dark:bg-slate-950/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono select-none">
             <div className="text-muted-foreground flex items-center gap-4">
               <div>
-                Showing <span className="text-foreground font-semibold">{(currentPage - 1) * rowsPerPage + 1}–{Math.min(currentPage * rowsPerPage, totalItems)}</span> of <span className="text-foreground font-semibold">{totalItems}</span> records.
+                Showing{" "}
+                <span className="text-foreground font-semibold">
+                  {(currentPage - 1) * rowsPerPage + 1}–{Math.min(currentPage * rowsPerPage, totalItems)}
+                </span>{" "}
+                of <span className="text-foreground font-semibold">{totalItems}</span> records.
               </div>
-              
+
               <div className="flex items-center gap-2 border-l border-border/50 pl-4">
                 <span>Rows per page:</span>
-                <select
-                  value={rowsPerPage}
-                  onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                  className="rounded-[4px] border border-border bg-background dark:bg-slate-900/40 px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#14B8FF]/20 cursor-pointer"
+                <Select
+                  value={String(rowsPerPage)}
+                  onValueChange={(val) => setRowsPerPage(Number(val))}
                 >
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+                  <SelectTrigger size="sm" className="w-[65px] border-border bg-background dark:bg-slate-900/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#14B8FF]/20">
+                    <SelectValue placeholder={String(rowsPerPage)} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border text-foreground min-w-[65px]">
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-1">
               <Button
                 variant="outline"
@@ -821,7 +980,7 @@ export default function AdminMasterDataPage() {
               >
                 <ChevronLeft className="size-4" />
               </Button>
-              
+
               {[...Array(totalPages)].map((_, i) => {
                 const pageNum = i + 1;
                 const isCurrent = currentPage === pageNum;
@@ -833,7 +992,7 @@ export default function AdminMasterDataPage() {
                       "size-7 rounded-[4px] border px-0 text-xs font-bold",
                       isCurrent
                         ? "border-cyan-500/30 dark:border-[#14B8FF]/30 bg-cyan-500/10 dark:bg-[#14B8FF]/10 text-cyan-600 dark:text-[#14B8FF]"
-                        : "border-border bg-background dark:bg-slate-900/40 text-muted-foreground hover:bg-secondary/40"
+                        : "border-border bg-background dark:bg-slate-900/40 text-muted-foreground hover:bg-secondary/40",
                     )}
                     onClick={() => setCurrentPage(pageNum)}
                   >
@@ -841,7 +1000,7 @@ export default function AdminMasterDataPage() {
                   </Button>
                 );
               })}
-              
+
               <Button
                 variant="outline"
                 size="icon"
@@ -859,9 +1018,7 @@ export default function AdminMasterDataPage() {
       {/* BULK ACTION FLOATING COMMAND BAR */}
       {selectedIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#0B1220] text-white px-5 py-3 rounded-full shadow-lg border border-white/10 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <span className="text-xs font-mono font-bold text-[#14B8FF]">
-            {selectedIds.length} item terpilih
-          </span>
+          <span className="text-xs font-mono font-bold text-[#14B8FF]">{selectedIds.length} item terpilih</span>
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">
             <Button
@@ -892,8 +1049,14 @@ export default function AdminMasterDataPage() {
       )}
 
       {/* DYNAMIC CONFIRMATION ALERT DIALOG */}
-      <AlertDialog open={confirmDialog !== null} onOpenChange={(open) => { if (!open) setConfirmDialog(null); }}>
-        <AlertDialogContent className="border-border bg-card max-w-sm rounded-[12px] p-5 shadow-lg">
+      {confirmDialog && <div aria-hidden="true" className="fixed inset-0 z-[2200] bg-black/10 backdrop-blur-xs" />}
+      <AlertDialog
+        open={confirmDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDialog(null);
+        }}
+      >
+        <AlertDialogContent className="z-[2202] border-border bg-card max-w-sm rounded-[12px] p-5 shadow-lg">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base font-bold text-foreground font-sans tracking-tight">
               {confirmDialog?.title}
@@ -903,7 +1066,7 @@ export default function AdminMasterDataPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-4 gap-2">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => setConfirmDialog(null)}
               className="rounded-[6px] border-border text-muted-foreground hover:bg-secondary text-xs"
             >
@@ -925,34 +1088,71 @@ export default function AdminMasterDataPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* RIGHT SIDE DRAWER SHEET FOR TAMBAH/EDIT */}
-      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent 
-          side="right" 
-          className="w-full sm:max-w-[480px] bg-card p-6 flex flex-col gap-6 border-l border-border shadow-lg"
-        >
-          <SheetHeader className="border-b border-border/40 pb-4">
-            <SheetTitle className="text-base font-bold text-foreground font-sans uppercase tracking-wider flex items-center gap-2">
+      {/* CENTER MODAL DIALOG FOR TAMBAH/EDIT */}
+      <Dialog
+        open={isDrawerOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCancelClick();
+        }}
+      >
+        <DialogContent className="w-full sm:max-w-[480px] bg-card p-6 flex flex-col gap-6 border border-border shadow-lg rounded-xl">
+          <DialogHeader className="border-b border-border/40 pb-4">
+            <DialogTitle className="text-base font-bold text-foreground font-sans uppercase tracking-wider flex items-center gap-2">
               <FolderTree className="size-5 text-[#14B8FF]" />
-              {editingItem ? "Edit" : "Tambah"} {activeEntity === "cluster" ? "Cluster Jaring" : "Kategori Laporan"}
-            </SheetTitle>
-            <SheetDescription className="text-xs text-muted-foreground font-sans">
+              {editingItem ? "Edit" : "Tambah"} {entityLabel(activeEntity, true)}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-sans">
               Lengkapi formulir di bawah ini untuk menyimpan perubahan data referensi.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
+
+          {dialogError && (
+            <Alert className="border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 rounded-[8px] py-2 px-3">
+              <AlertCircle className="size-4 text-red-500" />
+              <AlertDescription className="text-xs">{dialogError}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Form Content */}
-          <div className="flex-1 space-y-4">
+          <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/60 font-bold">
-                Nama {activeEntity === "cluster" ? "Cluster" : "Kategori"}
+              <label
+                htmlFor="master-data-name"
+                className={cn(
+                  "text-[10px] uppercase font-mono tracking-wider font-bold",
+                  formErrors.name ? "text-destructive" : "text-muted-foreground/60",
+                )}
+              >
+                Nama {entityLabel(activeEntity)}
               </label>
               <Input
-                className="rounded-[6px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-10"
-                placeholder={activeEntity === "cluster" ? "Contoh: Mahasiswa, Tokoh Adat" : "Contoh: Keamanan, Politik"}
+                id="master-data-name"
+                ref={nameInputRef}
+                aria-invalid={Boolean(formErrors.name)}
+                aria-describedby={formErrors.name ? "master-data-name-error" : undefined}
+                className={cn(
+                  "rounded-[6px] bg-background dark:bg-slate-900/35 text-sm h-10",
+                  formErrors.name
+                    ? "border-destructive focus-visible:ring-1 focus-visible:ring-destructive focus-visible:border-destructive"
+                    : "border-border focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30",
+                )}
+                placeholder={entityPlaceholder(activeEntity)}
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setForm((f) => ({ ...f, name: val }));
+                  const isValid = validateMasterName(activeEntity, val) === null;
+                  if (isValid) {
+                    setFormErrors((errs) => ({ ...errs, name: undefined }));
+                    setDialogError(null);
+                  }
+                }}
               />
+              {formErrors.name && (
+                <p id="master-data-name-error" className="text-[10px] text-destructive font-mono mt-0.5">
+                  {formErrors.name}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -978,30 +1178,31 @@ export default function AdminMasterDataPage() {
                 onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
                 className={cn(
                   "w-10 h-6 rounded-full transition-colors relative focus:outline-none cursor-pointer border border-border dark:border-white/10",
-                  form.isActive ? "bg-cyan-500" : "bg-secondary/80 dark:bg-white/10"
+                  form.isActive ? "bg-cyan-500" : "bg-secondary/80 dark:bg-white/10",
                 )}
               >
                 <span
                   className={cn(
                     "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-card transition-transform shadow-sm",
-                    form.isActive ? "translate-x-4" : "translate-x-0"
+                    form.isActive ? "translate-x-4" : "translate-x-0",
                   )}
                 />
               </button>
             </div>
           </div>
 
-          {/* Drawer Actions */}
+          {/* Dialog Actions */}
           <div className="border-t border-border/40 pt-4 flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={handleCancelClick}
               className="flex-1 rounded-[6px] border-border text-muted-foreground hover:bg-secondary/40 cursor-pointer h-10 text-xs font-bold"
             >
               Cancel
             </Button>
             <Button
+              type="button"
               className="flex-1 rounded-[6px] bg-[#14B8FF] text-white dark:text-slate-950 font-bold hover:bg-cyan-400 cursor-pointer h-10 text-xs"
               disabled={busyKey === "save"}
               onClick={saveEntity}
@@ -1009,8 +1210,8 @@ export default function AdminMasterDataPage() {
               {busyKey === "save" ? "Memproses..." : "Simpan"}
             </Button>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

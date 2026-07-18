@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import { BriefcaseBusiness, MapPin, Plus, Search, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +58,8 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
           <Badge variant="outline">Master Jabatan</Badge>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">Jabatan & Reporting Line</h1>
           <p className="max-w-4xl text-sm text-muted-foreground">
-            Kelola jabatan sebagai slot personel lengkap dengan role, unit organisasi, cabang komando, dan wilayah tanggung jawab.
+            Kelola jabatan sebagai slot personel lengkap dengan role, unit organisasi, cabang komando, dan wilayah
+            tanggung jawab.
           </p>
         </div>
         <Button asChild>
@@ -105,7 +107,11 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
               </NativeSelectOption>
             ))}
           </NativeSelect>
-          <Button type="button" variant="outline" onClick={() => applyFilter({ q: "", roleCode: "", positionCode: "" })}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => applyFilter({ q: "", roleCode: "", positionCode: "" })}
+          >
             Reset
           </Button>
         </CardContent>
@@ -140,7 +146,8 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
                       <span className="truncate">{position.title}</span>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {position.seatCode} - {position.role?.name ?? position.role?.code ?? position.code} - {branchLabel(position.branch)}
+                      {position.seatCode} - {position.role?.name ?? position.role?.code ?? position.code} -{" "}
+                      {branchLabel(position.branch)}
                     </div>
                   </div>
                   <div className="min-w-0">
@@ -162,7 +169,11 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
                 </Link>
               );
             })}
-            {!items.length ? <div className="px-3 py-8 text-center text-sm text-muted-foreground">Belum ada jabatan sesuai filter.</div> : null}
+            {!items.length ? (
+              <div className="px-3 py-8 text-center text-sm text-muted-foreground">
+                Belum ada jabatan sesuai filter.
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>

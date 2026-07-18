@@ -121,24 +121,34 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
   const executiveComplete = ["PUBLISHED", "DISTRIBUTED", "COMPLETED", "ACKNOWLEDGED"].includes(directive.status);
 
   // Partition chains into Binda and Direktorat Wilayah branches
-  const bindaChains = regionalChains.filter(chain => {
-    const name = (chain.regionalRecipient.targetUnit?.name || chain.regionalRecipient.targetPosition?.organizationUnit?.name || "").toUpperCase();
+  const bindaChains = regionalChains.filter((chain) => {
+    const name = (
+      chain.regionalRecipient.targetUnit?.name ||
+      chain.regionalRecipient.targetPosition?.organizationUnit?.name ||
+      ""
+    ).toUpperCase();
     const seatCode = (chain.regionalRecipient.targetPosition?.seatCode || "").toUpperCase();
     const roleCode = (chain.regionalRecipient.targetPosition?.role?.code || "").toUpperCase();
-    return name.includes("BINDA") || seatCode.includes("KABINDA") || roleCode.includes("KABINDA") || seatCode.includes("KABAGOPS") || seatCode.includes("KORWIL");
+    return (
+      name.includes("BINDA") ||
+      seatCode.includes("KABINDA") ||
+      roleCode.includes("KABINDA") ||
+      seatCode.includes("KABAGOPS") ||
+      seatCode.includes("KORWIL")
+    );
   });
 
-  const direktoratChains = regionalChains.filter(chain => !bindaChains.includes(chain));
+  const direktoratChains = regionalChains.filter((chain) => !bindaChains.includes(chain));
 
   // 1. BINDA Branch Stats
   const regionalBindaCount = bindaChains.length;
   const regionalBindaRead = bindaChains.filter((c) => c.regionalRecipient.readAt).length;
   const regionalBindaForwarded = bindaChains.filter((c) => c.forwarding).length;
   const regionalBindaFailed = bindaChains.filter((c) => c.regionalRecipient.status === "FAILED").length;
-  
+
   const oimBindaRead = bindaChains.filter((c) => c.oimStage.hasRead).length;
   const oimBindaForwarded = bindaChains.filter((c) => c.oimStage.hasForwardedToFieldCoordinator).length;
-  
+
   const bindaTasks = bindaChains.flatMap((c) => c.oimTasks ?? []);
   const bindaCoordinators = bindaTasks.flatMap((t) => t.fieldCoordinatorAssignments ?? []);
   const bindaOfficers = bindaCoordinators.flatMap((c) => c.downstreamAssignments ?? []);
@@ -187,7 +197,8 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
       role: "Regional Commander",
       title: "Kabinda",
       status: statusFromCounts(regionalBindaCount, regionalBindaForwarded, regionalBindaFailed),
-      statusLabel: STATUS_STYLES[statusFromCounts(regionalBindaCount, regionalBindaForwarded, regionalBindaFailed)].label,
+      statusLabel:
+        STATUS_STYLES[statusFromCounts(regionalBindaCount, regionalBindaForwarded, regionalBindaFailed)].label,
       progress: percent(regionalBindaForwarded, regionalBindaCount),
       stats: [
         { label: "Jumlah Kabinda", value: regionalBindaCount },
@@ -196,7 +207,10 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
         { label: "Sudah meneruskan", value: regionalBindaForwarded },
       ],
       items: bindaChains.map((c) => ({
-        label: c.regionalRecipient.targetPosition?.organizationUnit?.name ?? c.regionalRecipient.targetUnit?.name ?? "Kabinda",
+        label:
+          c.regionalRecipient.targetPosition?.organizationUnit?.name ??
+          c.regionalRecipient.targetUnit?.name ??
+          "Kabinda",
         status: translateStatus(c.regionalRecipient.status),
       })),
     },
@@ -222,12 +236,27 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
       id: "coordinator_binda",
       role: "Field Coordinator",
       title: "Kabagops",
-      status: statusFromCounts(bindaCoordinators.length, bindaCoordinators.filter(c => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length),
-      statusLabel: STATUS_STYLES[statusFromCounts(bindaCoordinators.length, bindaCoordinators.filter(c => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length)].label,
-      progress: percent(bindaCoordinators.filter(c => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length, bindaCoordinators.length),
+      status: statusFromCounts(
+        bindaCoordinators.length,
+        bindaCoordinators.filter((c) => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length,
+      ),
+      statusLabel:
+        STATUS_STYLES[
+          statusFromCounts(
+            bindaCoordinators.length,
+            bindaCoordinators.filter((c) => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length,
+          )
+        ].label,
+      progress: percent(
+        bindaCoordinators.filter((c) => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length,
+        bindaCoordinators.length,
+      ),
       stats: [
         { label: "Jumlah Kabagops", value: bindaCoordinators.length },
-        { label: "Sudah meneruskan", value: bindaCoordinators.filter(c => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length },
+        {
+          label: "Sudah meneruskan",
+          value: bindaCoordinators.filter((c) => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length,
+        },
       ],
       items: bindaCoordinators.map((c) => ({
         label: c.assignee?.organizationUnitName ?? c.assignee?.fullName ?? "Kabagops",
@@ -267,7 +296,10 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
         { label: "Sudah meneruskan", value: regionalDirForwarded },
       ],
       items: direktoratChains.map((c) => ({
-        label: c.regionalRecipient.targetPosition?.organizationUnit?.name ?? c.regionalRecipient.targetUnit?.name ?? "Direktur Wilayah",
+        label:
+          c.regionalRecipient.targetPosition?.organizationUnit?.name ??
+          c.regionalRecipient.targetUnit?.name ??
+          "Direktur Wilayah",
         status: translateStatus(c.regionalRecipient.status),
       })),
     },
@@ -293,12 +325,27 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
       id: "coordinator_dir",
       role: "Field Coordinator",
       title: "Staf Subdit",
-      status: statusFromCounts(dirCoordinators.length, dirCoordinators.filter(c => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length),
-      statusLabel: STATUS_STYLES[statusFromCounts(dirCoordinators.length, dirCoordinators.filter(c => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length)].label,
-      progress: percent(dirCoordinators.filter(c => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length, dirCoordinators.length),
+      status: statusFromCounts(
+        dirCoordinators.length,
+        dirCoordinators.filter((c) => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length,
+      ),
+      statusLabel:
+        STATUS_STYLES[
+          statusFromCounts(
+            dirCoordinators.length,
+            dirCoordinators.filter((c) => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length,
+          )
+        ].label,
+      progress: percent(
+        dirCoordinators.filter((c) => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length,
+        dirCoordinators.length,
+      ),
       stats: [
         { label: "Jumlah Staf Subdit", value: dirCoordinators.length },
-        { label: "Sudah meneruskan", value: dirCoordinators.filter(c => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length },
+        {
+          label: "Sudah meneruskan",
+          value: dirCoordinators.filter((c) => ["COMPLETED", "DISTRIBUTED"].includes(c.status)).length,
+        },
       ],
       items: dirCoordinators.map((c) => ({
         label: c.assignee?.organizationUnitName ?? c.assignee?.fullName ?? "Staf Subdit",
@@ -352,7 +399,7 @@ function DistributionNode({ data }: NodeProps<FlowNode>) {
         className={cn(
           "group flex h-[128px] w-[205px] cursor-pointer flex-col rounded-lg border bg-card p-3 text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg",
           style.border,
-          data.animationClass
+          data.animationClass,
         )}
         aria-label={`Lihat detail ${data.stage.role}`}
       >
@@ -460,8 +507,11 @@ function StageDialog({ stage, onClose }: { stage: StageDetail; onClose: () => vo
 function findActiveStageIndex(stageIds: string[], stages: StageDetail[]): number {
   // Scan from right (furthest stage) to left (earliest stage)
   for (let i = stageIds.length - 1; i >= 0; i--) {
-    const stage = stages.find(s => s.id === stageIds[i]);
-    if (stage && (stage.status === "done" || stage.status === "partial" || stage.status === "failed" || stage.progress > 0)) {
+    const stage = stages.find((s) => s.id === stageIds[i]);
+    if (
+      stage &&
+      (stage.status === "done" || stage.status === "partial" || stage.status === "failed" || stage.progress > 0)
+    ) {
       return i;
     }
   }
@@ -484,207 +534,231 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
   }, []);
 
   const selectStage = useCallback((stageId: string) => setSelectedStageId(stageId), []);
-  const flowNodes = useMemo<FlowNode[]>(
-    () => {
-      const bindaStageIds = ["regional_binda", "oim_binda", "coordinator_binda", "officer_binda"];
-      const activeBindaSubIdx = findActiveStageIndex(bindaStageIds, stages);
+  const flowNodes = useMemo<FlowNode[]>(() => {
+    const bindaStageIds = ["regional_binda", "oim_binda", "coordinator_binda", "officer_binda"];
+    const activeBindaSubIdx = findActiveStageIndex(bindaStageIds, stages);
 
-      const dirStageIds = ["regional_dir", "oim_dir", "coordinator_dir", "officer_dir"];
-      const activeDirSubIdx = findActiveStageIndex(dirStageIds, stages);
+    const dirStageIds = ["regional_dir", "oim_dir", "coordinator_dir", "officer_dir"];
+    const activeDirSubIdx = findActiveStageIndex(dirStageIds, stages);
 
-      const nodes: FlowNode[] = [];
+    const nodes: FlowNode[] = [];
 
-      // Executive Stage
-      const execStage = stages[0];
-      const executiveComplete = execStage.status === "done";
+    // Executive Stage
+    const execStage = stages[0];
+    const executiveComplete = execStage.status === "done";
+    nodes.push({
+      id: execStage.id,
+      type: "distribution-stage",
+      position: isMobile ? { x: 150, y: 20 } : { x: 50, y: 170 },
+      data: {
+        stage: execStage,
+        onSelect: selectStage,
+        isMobile,
+        animationClass: executiveComplete ? "flow-node-completed" : "flow-node-active",
+      },
+      draggable: false,
+      selectable: true,
+    });
+
+    // Binda branch stages
+    bindaStageIds.forEach((id, subIndex) => {
+      const stage = stages.find((s) => s.id === id);
+      if (!stage) return;
+
+      let animationClass = "flow-node-waiting";
+      if (subIndex < activeBindaSubIdx) {
+        animationClass = stage.status === "failed" ? "flow-node-rejected" : "flow-node-completed";
+      } else if (subIndex === activeBindaSubIdx) {
+        animationClass =
+          stage.status === "failed"
+            ? "flow-node-rejected"
+            : stage.status === "partial"
+              ? "flow-node-processing"
+              : "flow-node-active";
+      } else {
+        animationClass = "flow-node-waiting";
+      }
+
       nodes.push({
-        id: execStage.id,
+        id: stage.id,
         type: "distribution-stage",
-        position: isMobile ? { x: 150, y: 20 } : { x: 50, y: 170 },
-        data: { 
-          stage: execStage, 
-          onSelect: selectStage, 
-          isMobile,
-          animationClass: executiveComplete ? "flow-node-completed" : "flow-node-active"
-        },
+        position: isMobile ? { x: 30, y: 160 + subIndex * 155 } : { x: 280 + subIndex * 240, y: 65 },
+        data: { stage, onSelect: selectStage, isMobile, animationClass },
         draggable: false,
         selectable: true,
       });
+    });
 
-      // Binda branch stages
-      bindaStageIds.forEach((id, subIndex) => {
-        const stage = stages.find(s => s.id === id);
-        if (!stage) return;
-        
-        let animationClass = "flow-node-waiting";
-        if (subIndex < activeBindaSubIdx) {
-          animationClass = stage.status === "failed" ? "flow-node-rejected" : "flow-node-completed";
-        } else if (subIndex === activeBindaSubIdx) {
-          animationClass = stage.status === "failed" ? "flow-node-rejected" : stage.status === "partial" ? "flow-node-processing" : "flow-node-active";
-        } else {
-          animationClass = "flow-node-waiting";
-        }
+    // Direktorat branch stages
+    dirStageIds.forEach((id, subIndex) => {
+      const stage = stages.find((s) => s.id === id);
+      if (!stage) return;
 
-        nodes.push({
-          id: stage.id,
-          type: "distribution-stage",
-          position: isMobile ? { x: 30, y: 160 + subIndex * 155 } : { x: 280 + subIndex * 240, y: 65 },
-          data: { stage, onSelect: selectStage, isMobile, animationClass },
-          draggable: false,
-          selectable: true,
-        });
+      let animationClass = "flow-node-waiting";
+      if (subIndex < activeDirSubIdx) {
+        animationClass = stage.status === "failed" ? "flow-node-rejected" : "flow-node-completed";
+      } else if (subIndex === activeDirSubIdx) {
+        animationClass =
+          stage.status === "failed"
+            ? "flow-node-rejected"
+            : stage.status === "partial"
+              ? "flow-node-processing"
+              : "flow-node-active";
+      } else {
+        animationClass = "flow-node-waiting";
+      }
+
+      nodes.push({
+        id: stage.id,
+        type: "distribution-stage",
+        position: isMobile ? { x: 260, y: 160 + subIndex * 155 } : { x: 280 + subIndex * 240, y: 275 },
+        data: { stage, onSelect: selectStage, isMobile, animationClass },
+        draggable: false,
+        selectable: true,
       });
+    });
 
-      // Direktorat branch stages
-      dirStageIds.forEach((id, subIndex) => {
-        const stage = stages.find(s => s.id === id);
-        if (!stage) return;
-        
-        let animationClass = "flow-node-waiting";
-        if (subIndex < activeDirSubIdx) {
-          animationClass = stage.status === "failed" ? "flow-node-rejected" : "flow-node-completed";
-        } else if (subIndex === activeDirSubIdx) {
-          animationClass = stage.status === "failed" ? "flow-node-rejected" : stage.status === "partial" ? "flow-node-processing" : "flow-node-active";
-        } else {
-          animationClass = "flow-node-waiting";
-        }
+    return nodes;
+  }, [isMobile, selectStage, stages]);
+  const flowEdges = useMemo<FlowEdge[]>(() => {
+    const edges: FlowEdge[] = [];
 
-        nodes.push({
-          id: stage.id,
-          type: "distribution-stage",
-          position: isMobile ? { x: 260, y: 160 + subIndex * 155 } : { x: 280 + subIndex * 240, y: 275 },
-          data: { stage, onSelect: selectStage, isMobile, animationClass },
-          draggable: false,
-          selectable: true,
-        });
+    const bindaStageIds = ["regional_binda", "oim_binda", "coordinator_binda", "officer_binda"];
+    const activeBindaSubIdx = findActiveStageIndex(bindaStageIds, stages);
+
+    const dirStageIds = ["regional_dir", "oim_dir", "coordinator_dir", "officer_dir"];
+    const activeDirSubIdx = findActiveStageIndex(dirStageIds, stages);
+
+    // 1. Executive to Binda Branch
+    {
+      const targetBindaNode = stages.find((s) => s.id === "regional_binda");
+      const bindaActive = activeBindaSubIdx === 0;
+      const bindaCompleted = activeBindaSubIdx > 0;
+      let bindaColor = "var(--dc-border)";
+      let animated = false;
+
+      if (bindaCompleted) {
+        bindaColor = "var(--dc-success)";
+      } else if (bindaActive) {
+        bindaColor =
+          targetBindaNode?.status === "failed"
+            ? "var(--dc-danger)"
+            : targetBindaNode?.status === "partial"
+              ? "var(--dc-warning)"
+              : "var(--dc-success)";
+        animated = true;
+      }
+
+      edges.push({
+        id: `executive-regional_binda`,
+        source: "executive",
+        target: "regional_binda",
+        type: "smoothstep",
+        animated,
+        markerEnd: { type: MarkerType.ArrowClosed, color: bindaColor },
+        style: { stroke: bindaColor, strokeWidth: 2 },
       });
+    }
 
-      return nodes;
-    },
-    [isMobile, selectStage, stages],
-  );
-  const flowEdges = useMemo<FlowEdge[]>(
-    () => {
-      const edges: FlowEdge[] = [];
+    // 2. Executive to Direktorat Branch
+    {
+      const targetDirNode = stages.find((s) => s.id === "regional_dir");
+      const dirActive = activeDirSubIdx === 0;
+      const dirCompleted = activeDirSubIdx > 0;
+      let dirColor = "var(--dc-border)";
+      let animated = false;
 
-      const bindaStageIds = ["regional_binda", "oim_binda", "coordinator_binda", "officer_binda"];
-      const activeBindaSubIdx = findActiveStageIndex(bindaStageIds, stages);
-
-      const dirStageIds = ["regional_dir", "oim_dir", "coordinator_dir", "officer_dir"];
-      const activeDirSubIdx = findActiveStageIndex(dirStageIds, stages);
-
-      // 1. Executive to Binda Branch
-      {
-        const targetBindaNode = stages.find(s => s.id === "regional_binda");
-        const bindaActive = activeBindaSubIdx === 0;
-        const bindaCompleted = activeBindaSubIdx > 0;
-        let bindaColor = "var(--dc-border)";
-        let animated = false;
-        
-        if (bindaCompleted) {
-          bindaColor = "var(--dc-success)";
-        } else if (bindaActive) {
-          bindaColor = targetBindaNode?.status === "failed" ? "var(--dc-danger)" : targetBindaNode?.status === "partial" ? "var(--dc-warning)" : "var(--dc-success)";
-          animated = true;
-        }
-        
-        edges.push({
-          id: `executive-regional_binda`,
-          source: "executive",
-          target: "regional_binda",
-          type: "smoothstep",
-          animated,
-          markerEnd: { type: MarkerType.ArrowClosed, color: bindaColor },
-          style: { stroke: bindaColor, strokeWidth: 2 },
-        });
+      if (dirCompleted) {
+        dirColor = "var(--dc-success)";
+      } else if (dirActive) {
+        dirColor =
+          targetDirNode?.status === "failed"
+            ? "var(--dc-danger)"
+            : targetDirNode?.status === "partial"
+              ? "var(--dc-warning)"
+              : "var(--dc-success)";
+        animated = true;
       }
 
-      // 2. Executive to Direktorat Branch
-      {
-        const targetDirNode = stages.find(s => s.id === "regional_dir");
-        const dirActive = activeDirSubIdx === 0;
-        const dirCompleted = activeDirSubIdx > 0;
-        let dirColor = "var(--dc-border)";
-        let animated = false;
+      edges.push({
+        id: `executive-regional_dir`,
+        source: "executive",
+        target: "regional_dir",
+        type: "smoothstep",
+        animated,
+        markerEnd: { type: MarkerType.ArrowClosed, color: dirColor },
+        style: { stroke: dirColor, strokeWidth: 2 },
+      });
+    }
 
-        if (dirCompleted) {
-          dirColor = "var(--dc-success)";
-        } else if (dirActive) {
-          dirColor = targetDirNode?.status === "failed" ? "var(--dc-danger)" : targetDirNode?.status === "partial" ? "var(--dc-warning)" : "var(--dc-success)";
-          animated = true;
-        }
+    // 3. Connect Binda internal stages
+    for (let i = 0; i < bindaStageIds.length - 1; i++) {
+      const sourceId = bindaStageIds[i];
+      const targetId = bindaStageIds[i + 1];
+      const nextStageIdx = i + 1;
+      const targetNode = stages.find((s) => s.id === targetId);
 
-        edges.push({
-          id: `executive-regional_dir`,
-          source: "executive",
-          target: "regional_dir",
-          type: "smoothstep",
-          animated,
-          markerEnd: { type: MarkerType.ArrowClosed, color: dirColor },
-          style: { stroke: dirColor, strokeWidth: 2 },
-        });
+      let edgeColor = "var(--dc-border)";
+      let animated = false;
+
+      if (nextStageIdx < activeBindaSubIdx) {
+        edgeColor = "var(--dc-success)";
+      } else if (nextStageIdx === activeBindaSubIdx) {
+        edgeColor =
+          targetNode?.status === "failed"
+            ? "var(--dc-danger)"
+            : targetNode?.status === "partial"
+              ? "var(--dc-warning)"
+              : "var(--dc-success)";
+        animated = true;
       }
 
-      // 3. Connect Binda internal stages
-      for (let i = 0; i < bindaStageIds.length - 1; i++) {
-        const sourceId = bindaStageIds[i];
-        const targetId = bindaStageIds[i + 1];
-        const nextStageIdx = i + 1;
-        const targetNode = stages.find(s => s.id === targetId);
+      edges.push({
+        id: `${sourceId}-${targetId}`,
+        source: sourceId,
+        target: targetId,
+        type: "straight",
+        animated,
+        markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
+        style: { stroke: edgeColor, strokeWidth: 2 },
+      });
+    }
 
-        let edgeColor = "var(--dc-border)";
-        let animated = false;
+    // 4. Connect Direktorat internal stages
+    for (let i = 0; i < dirStageIds.length - 1; i++) {
+      const sourceId = dirStageIds[i];
+      const targetId = dirStageIds[i + 1];
+      const nextStageIdx = i + 1;
+      const targetNode = stages.find((s) => s.id === targetId);
 
-        if (nextStageIdx < activeBindaSubIdx) {
-          edgeColor = "var(--dc-success)";
-        } else if (nextStageIdx === activeBindaSubIdx) {
-          edgeColor = targetNode?.status === "failed" ? "var(--dc-danger)" : targetNode?.status === "partial" ? "var(--dc-warning)" : "var(--dc-success)";
-          animated = true;
-        }
+      let edgeColor = "var(--dc-border)";
+      let animated = false;
 
-        edges.push({
-          id: `${sourceId}-${targetId}`,
-          source: sourceId,
-          target: targetId,
-          type: "straight",
-          animated,
-          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
-          style: { stroke: edgeColor, strokeWidth: 2 },
-        });
+      if (nextStageIdx < activeDirSubIdx) {
+        edgeColor = "var(--dc-success)";
+      } else if (nextStageIdx === activeDirSubIdx) {
+        edgeColor =
+          targetNode?.status === "failed"
+            ? "var(--dc-danger)"
+            : targetNode?.status === "partial"
+              ? "var(--dc-warning)"
+              : "var(--dc-success)";
+        animated = true;
       }
 
-      // 4. Connect Direktorat internal stages
-      for (let i = 0; i < dirStageIds.length - 1; i++) {
-        const sourceId = dirStageIds[i];
-        const targetId = dirStageIds[i + 1];
-        const nextStageIdx = i + 1;
-        const targetNode = stages.find(s => s.id === targetId);
+      edges.push({
+        id: `${sourceId}-${targetId}`,
+        source: sourceId,
+        target: targetId,
+        type: "straight",
+        animated,
+        markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
+        style: { stroke: edgeColor, strokeWidth: 2 },
+      });
+    }
 
-        let edgeColor = "var(--dc-border)";
-        let animated = false;
-
-        if (nextStageIdx < activeDirSubIdx) {
-          edgeColor = "var(--dc-success)";
-        } else if (nextStageIdx === activeDirSubIdx) {
-          edgeColor = targetNode?.status === "failed" ? "var(--dc-danger)" : targetNode?.status === "partial" ? "var(--dc-warning)" : "var(--dc-success)";
-          animated = true;
-        }
-
-        edges.push({
-          id: `${sourceId}-${targetId}`,
-          source: sourceId,
-          target: targetId,
-          type: "straight",
-          animated,
-          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
-          style: { stroke: edgeColor, strokeWidth: 2 },
-        });
-      }
-
-      return edges;
-    },
-    [stages],
-  );
+    return edges;
+  }, [stages]);
 
   const fitDistributionView = useCallback(() => {
     void fitView({

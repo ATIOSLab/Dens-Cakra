@@ -422,6 +422,7 @@ export const ModelName = {
   TaskAttachment: 'TaskAttachment',
   Jaring: 'Jaring',
   JaringCluster: 'JaringCluster',
+  JaringOccupation: 'JaringOccupation',
   ReportCategory: 'ReportCategory',
   JaringCaretakerAssignment: 'JaringCaretakerAssignment',
   JaringAreaCoverage: 'JaringAreaCoverage',
@@ -487,7 +488,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "userProfile" | "role" | "organizationUnit" | "organizationUnitClosure" | "position" | "organizationRoleSeat" | "userSeatAssignment" | "roleAreaPolicy" | "positionAreaScope" | "positionAreaCoverage" | "administrativeArea" | "administrativeAreaClosure" | "administrativeAreaDataSource" | "administrativeAreaBoundary" | "organizationAreaCoverage" | "directorateProfile" | "directorateCoverage" | "bindaProfile" | "fileAsset" | "directive" | "directiveVersion" | "directiveTargetArea" | "directiveRecipient" | "uukStr" | "uukStrVersion" | "uukStrSection" | "uukStrSectionItem" | "task" | "taskTargetArea" | "taskAssignment" | "taskProgressLog" | "taskAttachment" | "jaring" | "jaringCluster" | "reportCategory" | "jaringCaretakerAssignment" | "jaringAreaCoverage" | "whatsAppMessage" | "whatsAppValidationIssue" | "whatsAppMessageMedia" | "whatsAppRoutingLog" | "baket" | "baketVersion" | "baketVersionSourceMessage" | "baketVersionAttachment" | "baketRevisionRequest" | "baketVerification" | "baketCoverageCheck" | "baketVerificationCheck" | "baketVerificationCrossReference" | "analysisCase" | "analysisSourceVerification" | "analysisVersion" | "analysisEntity" | "analysisRelationship" | "productTypeDefinition" | "productNumberSequence" | "productTemplate" | "productTemplateSection" | "productTemplateField" | "intelligenceProduct" | "productVersion" | "productSourceVerification" | "productSourceAnalysis" | "productAttachment" | "productApprovalWorkflow" | "productApprovalStep" | "productDistribution" | "emergencyIncident" | "emergencyAttachment" | "alert" | "personnelLocationPing" | "notification" | "auditLog" | "integrationChannel" | "whatsAppBotChannelState" | "whatsAppSenderNumber" | "integrationWebhookEvent" | "systemSetting" | "apiIdempotencyRecord" | "asyncJob" | "outboxEvent" | "fileUploadReservation" | "productApprovalEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "userProfile" | "role" | "organizationUnit" | "organizationUnitClosure" | "position" | "organizationRoleSeat" | "userSeatAssignment" | "roleAreaPolicy" | "positionAreaScope" | "positionAreaCoverage" | "administrativeArea" | "administrativeAreaClosure" | "administrativeAreaDataSource" | "administrativeAreaBoundary" | "organizationAreaCoverage" | "directorateProfile" | "directorateCoverage" | "bindaProfile" | "fileAsset" | "directive" | "directiveVersion" | "directiveTargetArea" | "directiveRecipient" | "uukStr" | "uukStrVersion" | "uukStrSection" | "uukStrSectionItem" | "task" | "taskTargetArea" | "taskAssignment" | "taskProgressLog" | "taskAttachment" | "jaring" | "jaringCluster" | "jaringOccupation" | "reportCategory" | "jaringCaretakerAssignment" | "jaringAreaCoverage" | "whatsAppMessage" | "whatsAppValidationIssue" | "whatsAppMessageMedia" | "whatsAppRoutingLog" | "baket" | "baketVersion" | "baketVersionSourceMessage" | "baketVersionAttachment" | "baketRevisionRequest" | "baketVerification" | "baketCoverageCheck" | "baketVerificationCheck" | "baketVerificationCrossReference" | "analysisCase" | "analysisSourceVerification" | "analysisVersion" | "analysisEntity" | "analysisRelationship" | "productTypeDefinition" | "productNumberSequence" | "productTemplate" | "productTemplateSection" | "productTemplateField" | "intelligenceProduct" | "productVersion" | "productSourceVerification" | "productSourceAnalysis" | "productAttachment" | "productApprovalWorkflow" | "productApprovalStep" | "productDistribution" | "emergencyIncident" | "emergencyAttachment" | "alert" | "personnelLocationPing" | "notification" | "auditLog" | "integrationChannel" | "whatsAppBotChannelState" | "whatsAppSenderNumber" | "integrationWebhookEvent" | "systemSetting" | "apiIdempotencyRecord" | "asyncJob" | "outboxEvent" | "fileUploadReservation" | "productApprovalEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3284,6 +3285,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.JaringClusterCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.JaringClusterCountAggregateOutputType> | number
+        }
+      }
+    }
+    JaringOccupation: {
+      payload: Prisma.$JaringOccupationPayload<ExtArgs>
+      fields: Prisma.JaringOccupationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.JaringOccupationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.JaringOccupationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload>
+        }
+        findFirst: {
+          args: Prisma.JaringOccupationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.JaringOccupationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload>
+        }
+        findMany: {
+          args: Prisma.JaringOccupationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload>[]
+        }
+        create: {
+          args: Prisma.JaringOccupationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload>
+        }
+        createMany: {
+          args: Prisma.JaringOccupationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.JaringOccupationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload>[]
+        }
+        delete: {
+          args: Prisma.JaringOccupationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload>
+        }
+        update: {
+          args: Prisma.JaringOccupationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload>
+        }
+        deleteMany: {
+          args: Prisma.JaringOccupationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.JaringOccupationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.JaringOccupationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload>[]
+        }
+        upsert: {
+          args: Prisma.JaringOccupationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$JaringOccupationPayload>
+        }
+        aggregate: {
+          args: Prisma.JaringOccupationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateJaringOccupation>
+        }
+        groupBy: {
+          args: Prisma.JaringOccupationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.JaringOccupationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.JaringOccupationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.JaringOccupationCountAggregateOutputType> | number
         }
       }
     }
@@ -7538,6 +7613,17 @@ export const JaringScalarFieldEnum = {
   aliasName: 'aliasName',
   whatsappNumber: 'whatsappNumber',
   clusterId: 'clusterId',
+  fullName: 'fullName',
+  nationalIdNumber: 'nationalIdNumber',
+  birthPlace: 'birthPlace',
+  birthDate: 'birthDate',
+  gender: 'gender',
+  occupationId: 'occupationId',
+  workplace: 'workplace',
+  jobTitle: 'jobTitle',
+  joinedAt: 'joinedAt',
+  organizationName: 'organizationName',
+  politicalAffiliation: 'politicalAffiliation',
   status: 'status',
   createdByAssignmentId: 'createdByAssignmentId',
   notes: 'notes',
@@ -7562,6 +7648,19 @@ export const JaringClusterScalarFieldEnum = {
 } as const
 
 export type JaringClusterScalarFieldEnum = (typeof JaringClusterScalarFieldEnum)[keyof typeof JaringClusterScalarFieldEnum]
+
+
+export const JaringOccupationScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  description: 'description',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type JaringOccupationScalarFieldEnum = (typeof JaringOccupationScalarFieldEnum)[keyof typeof JaringOccupationScalarFieldEnum]
 
 
 export const ReportCategoryScalarFieldEnum = {
@@ -8727,6 +8826,20 @@ export type ListEnumTaskAssignmentStatusFieldRefInput<$PrismaModel> = FieldRefIn
 
 
 /**
+ * Reference to a field of type 'JaringGender'
+ */
+export type EnumJaringGenderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JaringGender'>
+
+
+
+/**
+ * Reference to a field of type 'JaringGender[]'
+ */
+export type ListEnumJaringGenderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JaringGender[]'>
+
+
+
+/**
  * Reference to a field of type 'JaringStatus'
  */
 export type EnumJaringStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JaringStatus'>
@@ -9321,6 +9434,7 @@ export type GlobalOmitConfig = {
   taskAttachment?: Prisma.TaskAttachmentOmit
   jaring?: Prisma.JaringOmit
   jaringCluster?: Prisma.JaringClusterOmit
+  jaringOccupation?: Prisma.JaringOccupationOmit
   reportCategory?: Prisma.ReportCategoryOmit
   jaringCaretakerAssignment?: Prisma.JaringCaretakerAssignmentOmit
   jaringAreaCoverage?: Prisma.JaringAreaCoverageOmit
@@ -9433,4 +9547,3 @@ export type PrismaAction =
  * `PrismaClient` proxy available in interactive transactions.
  */
 export type TransactionClient = Omit<DefaultPrismaClient, runtime.ITXClientDenyList>
-

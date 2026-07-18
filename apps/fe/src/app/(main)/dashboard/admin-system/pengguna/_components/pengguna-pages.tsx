@@ -33,10 +33,7 @@ function readPositiveInt(value: string, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-async function safeOptionalServerGet<T>(
-  path: string,
-  query?: Record<string, string | number | boolean>,
-) {
+async function safeOptionalServerGet<T>(path: string, query?: Record<string, string | number | boolean>) {
   try {
     return await apiServerGet<T>(path, query);
   } catch (error) {
@@ -62,11 +59,7 @@ function buildListQueryState(searchParams?: RouteSearchParams): UserListQuerySta
   };
 }
 
-export async function PenggunaListPage({
-  searchParams,
-}: {
-  searchParams?: Promise<RouteSearchParams>;
-}) {
+export async function PenggunaListPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
   await requireRole(SYSTEM_ROLES.ADMIN_SYSTEM);
 
   const queryState = buildListQueryState(await searchParams);
@@ -86,18 +79,12 @@ export async function PenggunaListPage({
   const items = listEnvelope.data;
   const selectedUserId = queryState.selected || items[0]?.id || "";
   const [selectedUser, selectedUnit, selectedArea] = await Promise.all([
-    selectedUserId
-      ? safeOptionalServerGet<UserDetail>(`/user-profiles/${selectedUserId}`)
-      : Promise.resolve(null),
+    selectedUserId ? safeOptionalServerGet<UserDetail>(`/user-profiles/${selectedUserId}`) : Promise.resolve(null),
     queryState.unitId
-      ? safeOptionalServerGet<OrganizationUnitSummary>(
-          `/organization-units/${queryState.unitId}`,
-        )
+      ? safeOptionalServerGet<OrganizationUnitSummary>(`/organization-units/${queryState.unitId}`)
       : Promise.resolve(null),
     queryState.areaId
-      ? safeOptionalServerGet<AreaSearchResult>(
-          `/administrative-areas/${queryState.areaId}`,
-        )
+      ? safeOptionalServerGet<AreaSearchResult>(`/administrative-areas/${queryState.areaId}`)
       : Promise.resolve(null),
   ]);
 
@@ -120,11 +107,7 @@ export async function PenggunaCreatePage() {
   return <PenggunaCreateClient />;
 }
 
-export async function PenggunaDetailPage({
-  userProfileId,
-}: {
-  userProfileId: string;
-}) {
+export async function PenggunaDetailPage({ userProfileId }: { userProfileId: string }) {
   await requireRole(SYSTEM_ROLES.ADMIN_SYSTEM);
 
   const [user, access] = await Promise.all([
@@ -132,19 +115,10 @@ export async function PenggunaDetailPage({
     apiServerGet<AccessMeResource>("/access/me"),
   ]);
 
-  return (
-    <PenggunaDetailClient
-      user={user}
-      actorUserProfileId={access.authorizationContext.userProfileId}
-    />
-  );
+  return <PenggunaDetailClient user={user} actorUserProfileId={access.authorizationContext.userProfileId} />;
 }
 
-export async function PenggunaEditPage({
-  userProfileId,
-}: {
-  userProfileId: string;
-}) {
+export async function PenggunaEditPage({ userProfileId }: { userProfileId: string }) {
   await requireRole(SYSTEM_ROLES.ADMIN_SYSTEM);
 
   const user = await apiServerGet<UserDetail>(`/user-profiles/${userProfileId}`);

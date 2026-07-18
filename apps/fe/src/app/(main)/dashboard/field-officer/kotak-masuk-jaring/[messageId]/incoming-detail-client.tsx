@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import Link from "next/link";
+
+import { Calendar, CheckCircle2, Inbox, MapPin, Phone, ShieldAlert, Tag, User } from "lucide-react";
+
 import { BackButton } from "@/components/ui/back-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Inbox, CheckCircle2, Calendar, Phone, ShieldAlert, Tag, User } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
+import type { FieldOfficerIncoming, FieldOfficerWorkspace } from "@/server/field-ops/types";
+
 import { LeafletLocationPreview } from "../../_components/leaflet-location-preview";
-import type { FieldOfficerWorkspace, FieldOfficerIncoming } from "@/server/field-ops/types";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";

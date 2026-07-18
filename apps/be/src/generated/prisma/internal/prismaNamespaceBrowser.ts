@@ -89,6 +89,7 @@ export const ModelName = {
   TaskAttachment: 'TaskAttachment',
   Jaring: 'Jaring',
   JaringCluster: 'JaringCluster',
+  JaringOccupation: 'JaringOccupation',
   ReportCategory: 'ReportCategory',
   JaringCaretakerAssignment: 'JaringCaretakerAssignment',
   JaringAreaCoverage: 'JaringAreaCoverage',
@@ -685,6 +686,17 @@ export const JaringScalarFieldEnum = {
   aliasName: 'aliasName',
   whatsappNumber: 'whatsappNumber',
   clusterId: 'clusterId',
+  fullName: 'fullName',
+  nationalIdNumber: 'nationalIdNumber',
+  birthPlace: 'birthPlace',
+  birthDate: 'birthDate',
+  gender: 'gender',
+  occupationId: 'occupationId',
+  workplace: 'workplace',
+  jobTitle: 'jobTitle',
+  joinedAt: 'joinedAt',
+  organizationName: 'organizationName',
+  politicalAffiliation: 'politicalAffiliation',
   status: 'status',
   createdByAssignmentId: 'createdByAssignmentId',
   notes: 'notes',
@@ -709,6 +721,19 @@ export const JaringClusterScalarFieldEnum = {
 } as const
 
 export type JaringClusterScalarFieldEnum = (typeof JaringClusterScalarFieldEnum)[keyof typeof JaringClusterScalarFieldEnum]
+
+
+export const JaringOccupationScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  description: 'description',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type JaringOccupationScalarFieldEnum = (typeof JaringOccupationScalarFieldEnum)[keyof typeof JaringOccupationScalarFieldEnum]
 
 
 export const ReportCategoryScalarFieldEnum = {

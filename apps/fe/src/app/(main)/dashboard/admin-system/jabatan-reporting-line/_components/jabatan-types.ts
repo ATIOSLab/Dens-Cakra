@@ -1,4 +1,5 @@
 import type { PaginationMeta } from "@/lib/api/types";
+
 import type {
   AreaSearchResult,
   CommandRouteType,

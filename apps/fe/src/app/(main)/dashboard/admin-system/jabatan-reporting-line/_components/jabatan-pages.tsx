@@ -1,8 +1,9 @@
+import { redirect } from "next/navigation";
+
 import { apiServerFetchEnvelope, apiServerGet } from "@/lib/api/server-client";
 import type { PaginationMeta } from "@/lib/api/types";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
-import { redirect } from "next/navigation";
 
 import { JabatanDetailClient } from "./jabatan-detail-client";
 import { JabatanFormClient } from "./jabatan-form-client";
@@ -31,11 +32,7 @@ function buildQueryState(searchParams?: RouteSearchParams): JabatanListQueryStat
   };
 }
 
-export async function JabatanListPage({
-  searchParams,
-}: {
-  searchParams?: Promise<RouteSearchParams>;
-}) {
+export async function JabatanListPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
   await requireRole(SYSTEM_ROLES.ADMIN_SYSTEM);
 
   const queryState = buildQueryState(await searchParams);

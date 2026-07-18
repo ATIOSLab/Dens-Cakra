@@ -9,6 +9,7 @@ import { requireSession } from "@/lib/auth/server-session";
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 
+import { SessionHeartbeat } from "./_components/session-heartbeat";
 import { AccountSwitcher } from "./_components/sidebar/account-switcher";
 import { ClientNetworkBadge, ClientNetworkProvider } from "./_components/sidebar/client-network";
 import { LayoutControls } from "./_components/sidebar/layout-controls";
@@ -16,7 +17,6 @@ import { NotificationsMenu } from "./_components/sidebar/notifications-menu";
 import { RoleWorkspaceProvider } from "./_components/sidebar/role-workspace-provider";
 import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
-import { SessionHeartbeat } from "./_components/session-heartbeat";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const principal = await requireSession();

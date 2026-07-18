@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { AlertTriangle, ChevronsUpDown, ExternalLink, FileText, FilterX, RefreshCw } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -128,10 +129,7 @@ export function PetaLaporanMap() {
     });
   }, [categoryId, clusterId, periodFrom, periodTo, reports, urgency]);
   const locatedReports = useMemo(
-    () =>
-      filteredReports.filter(
-        (item) => typeof item.latitude === "number" && typeof item.longitude === "number",
-      ),
+    () => filteredReports.filter((item) => typeof item.latitude === "number" && typeof item.longitude === "number"),
     [filteredReports],
   );
 
@@ -304,7 +302,10 @@ export function PetaLaporanMap() {
                 Scope: {workspace?.profile.name ?? "Field Officer"}
               </span>
             </div>
-            <div ref={containerRef} className="h-[42rem] w-full overflow-hidden rounded-lg border border-white/10 bg-black/20" />
+            <div
+              ref={containerRef}
+              className="h-[42rem] w-full overflow-hidden rounded-lg border border-white/10 bg-black/20"
+            />
           </CardContent>
         </Card>
 
@@ -443,7 +444,10 @@ export function PetaLaporanMap() {
                 const hasLocation = report.latitude !== null && report.longitude !== null;
 
                 return (
-                  <div key={report.id} className="flex h-full flex-col rounded-lg border border-white/10 bg-black/15 p-4 text-sm text-white/75 transition hover:border-cyan-400/30 hover:bg-white/10">
+                  <div
+                    key={report.id}
+                    className="flex h-full flex-col rounded-lg border border-white/10 bg-black/15 p-4 text-sm text-white/75 transition hover:border-cyan-400/30 hover:bg-white/10"
+                  >
                     <button
                       className="w-full flex-1 text-left disabled:cursor-default"
                       type="button"

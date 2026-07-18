@@ -131,7 +131,11 @@ const selectedPanelClasses: Record<RiskTone, string> = {
 const statusConfig = {
   critical: { text: "Kritis", color: "bg-red-500 shadow-red-500/50 animate-pulse", textClass: "text-red-500" },
   high: { text: "Waspada", color: "bg-orange-500 shadow-orange-500/50", textClass: "text-orange-500" },
-  medium: { text: "Perhatian", color: "bg-yellow-500 shadow-yellow-500/50", textClass: "text-yellow-600 dark:text-yellow-500" },
+  medium: {
+    text: "Perhatian",
+    color: "bg-yellow-500 shadow-yellow-500/50",
+    textClass: "text-yellow-600 dark:text-yellow-500",
+  },
   watch: { text: "Normal", color: "bg-emerald-500 shadow-emerald-500/50", textClass: "text-emerald-500" },
 };
 

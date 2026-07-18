@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
-import { createOwnLocationPing } from "@/server/field-ops/repository";
 import { backendApi } from "@/server/backend-api";
+import { createOwnLocationPing } from "@/server/field-ops/repository";
 import type { AccessContext } from "@/server/field-ops/types";
 
 type AccessMeResponse = {
@@ -26,10 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Assignment Field Officer tidak tersedia." }, { status: 403 });
     }
 
-    return NextResponse.json(
-      await createOwnLocationPing(cookie, { ...body, positionAssignmentId }),
-      { status: 201 },
-    );
+    return NextResponse.json(await createOwnLocationPing(cookie, { ...body, positionAssignmentId }), { status: 201 });
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : "Gagal mengirim ping lokasi." },

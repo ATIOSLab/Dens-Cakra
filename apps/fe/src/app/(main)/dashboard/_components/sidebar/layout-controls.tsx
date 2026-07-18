@@ -1,8 +1,8 @@
 "use client";
- 
+
 import { Settings } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
- 
+
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,7 +12,7 @@ import { type FontKey, fontOptions } from "@/lib/fonts/registry";
 import type { NavbarStyle, SidebarCollapsible, SidebarVariant } from "@/lib/preferences/layout";
 import type { ThemeMode } from "@/lib/preferences/theme";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
- 
+
 export function LayoutControls() {
   const { values, setPreference, resetPreferences } = usePreferencesStore(
     useShallow((state) => ({
@@ -21,7 +21,7 @@ export function LayoutControls() {
       resetPreferences: state.resetPreferences,
     })),
   );
- 
+
   const {
     theme_mode: themeMode,
     navbar_style: navbarStyle,
@@ -29,32 +29,32 @@ export function LayoutControls() {
     sidebar_collapsible: collapsible,
     font,
   } = values;
- 
+
   const onThemeModeChange = (mode: ThemeMode | "") => {
     if (!mode) return;
     setPreference("theme_mode", mode);
   };
- 
+
   const onNavbarStyleChange = (style: NavbarStyle | "") => {
     if (!style) return;
     setPreference("navbar_style", style);
   };
- 
+
   const onSidebarStyleChange = (value: SidebarVariant | "") => {
     if (!value) return;
     setPreference("sidebar_variant", value);
   };
- 
+
   const onSidebarCollapseModeChange = (value: SidebarCollapsible | "") => {
     if (!value) return;
     setPreference("sidebar_collapsible", value);
   };
- 
+
   const onFontChange = (value: FontKey | "") => {
     if (!value) return;
     setPreference("font", value);
   };
- 
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -86,7 +86,7 @@ export function LayoutControls() {
                 </SelectContent>
               </Select>
             </div>
- 
+
             <div className="space-y-1">
               <Label className="font-medium text-xs">Theme Mode</Label>
               <ToggleGroup
@@ -108,7 +108,7 @@ export function LayoutControls() {
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
- 
+
             <div className="space-y-1">
               <Label className="font-medium text-xs">Navbar Behavior</Label>
               <ToggleGroup
@@ -127,7 +127,7 @@ export function LayoutControls() {
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
- 
+
             <div className="space-y-1">
               <Label className="font-medium text-xs">Sidebar Style</Label>
               <ToggleGroup
@@ -149,7 +149,7 @@ export function LayoutControls() {
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
- 
+
             <div className="space-y-1">
               <Label className="font-medium text-xs">Sidebar Collapse Mode</Label>
               <ToggleGroup
@@ -168,7 +168,7 @@ export function LayoutControls() {
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
- 
+
             <Button type="button" size="sm" variant="outline" className="w-full text-xs" onClick={resetPreferences}>
               Restore Defaults
             </Button>

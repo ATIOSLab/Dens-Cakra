@@ -54,7 +54,10 @@ describe('BaketQueryService detail serialization', () => {
   });
 
   it('applies category, cluster, and Baket creation period filters', async () => {
-    const findMany = jest.fn(() => []);
+    type FindManyInput = {
+      where?: Record<string, unknown>;
+    };
+    const findMany = jest.fn((input: FindManyInput) => []);
     const count = jest.fn(() => 0);
     const service = new BaketQueryService(
       { baket: { findMany, count } } as never,
@@ -73,9 +76,7 @@ describe('BaketQueryService detail serialization', () => {
       { roleCode: 'FIELD_OFFICER' } as never,
     );
 
-    const query = findMany.mock.calls[0]?.[0] as {
-      where?: Record<string, unknown>;
-    };
+    const query = findMany.mock.calls[0]?.[0];
     expect(query.where).toEqual(
       expect.objectContaining({
         reportCategoryId: '11111111-1111-4111-8111-111111111111',

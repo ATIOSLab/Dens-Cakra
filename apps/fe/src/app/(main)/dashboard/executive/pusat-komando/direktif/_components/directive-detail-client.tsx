@@ -254,12 +254,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
             </AlertDialog>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="success"
-                  disabled={isActionDisabled}
-                  className="cursor-pointer"
-                >
+                <Button size="sm" variant="success" disabled={isActionDisabled} className="cursor-pointer">
                   {isSubmitting === "distribute" ? "Memproses..." : "Distribusikan"}
                 </Button>
               </AlertDialogTrigger>
@@ -312,7 +307,6 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
       />
 
       <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-
         <div className="grid gap-5 p-5 text-xs sm:grid-cols-2 lg:grid-cols-6">
           <div>
             <p className="text-[10px] text-muted-foreground uppercase">Pemberi Perintah</p>

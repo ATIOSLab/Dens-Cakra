@@ -224,6 +224,14 @@ export const JaringStatus = {
 export type JaringStatus = (typeof JaringStatus)[keyof typeof JaringStatus]
 
 
+export const JaringGender = {
+  MALE: 'MALE',
+  FEMALE: 'FEMALE'
+} as const
+
+export type JaringGender = (typeof JaringGender)[keyof typeof JaringGender]
+
+
 export const WhatsAppMessageStatus = {
   RECEIVED: 'RECEIVED',
   UNKNOWN_SENDER: 'UNKNOWN_SENDER',

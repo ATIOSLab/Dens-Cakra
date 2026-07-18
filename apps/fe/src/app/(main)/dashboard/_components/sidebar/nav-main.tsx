@@ -94,7 +94,7 @@ export function NavMain({ items }: NavMainProps) {
 
   const isSubItemActive = (url: string) => {
     if (path === url) return true;
-    const isDashboardHome = /^\/dashboard\/[^\/]+$/.test(url);
+    const isDashboardHome = /^\/dashboard\/[^/]+$/.test(url);
     if (isDashboardHome) {
       return path === url;
     }

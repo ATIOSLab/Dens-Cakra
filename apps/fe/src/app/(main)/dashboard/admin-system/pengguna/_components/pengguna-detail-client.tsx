@@ -5,16 +5,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import {
-  ArrowRightLeft,
-  CheckCircle2,
-  Lock,
-  ShieldAlert,
-  ShieldCheck,
-  UserCog,
-  UserRound,
-  UserX,
-} from "lucide-react";
+import { ArrowRightLeft, CheckCircle2, Lock, ShieldAlert, ShieldCheck, UserCog, UserRound, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -36,11 +27,11 @@ import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
 import type { PositionSummary, UserDetail } from "./pengguna-types";
 import {
-  ROLE_CODE_TO_AUTH_ROLE,
   formatDateTime,
   getPrimaryAssignment,
   getRoleLabel,
   isUserLocked,
+  ROLE_CODE_TO_AUTH_ROLE,
   toDateTimeLocalValue,
   toIsoFromLocalValue,
 } from "./pengguna-types";
@@ -50,19 +41,9 @@ type PenggunaDetailClientProps = {
   actorUserProfileId: string;
 };
 
-type DialogState =
-  | null
-  | "activate"
-  | "suspend"
-  | "lock"
-  | "unlock"
-  | "archive"
-  | "transfer";
+type DialogState = null | "activate" | "suspend" | "lock" | "unlock" | "archive" | "transfer";
 
-export function PenggunaDetailClient({
-  user,
-  actorUserProfileId,
-}: PenggunaDetailClientProps) {
+export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetailClientProps) {
   const router = useRouter();
   const primaryAssignment = getPrimaryAssignment(user);
   const locked = isUserLocked(user);
@@ -127,8 +108,7 @@ export function PenggunaDetailClient({
   const assignmentTimeline = useMemo(
     () =>
       [...user.positionAssignments].sort(
-        (left, right) =>
-          new Date(right.validFrom).getTime() - new Date(left.validFrom).getTime(),
+        (left, right) => new Date(right.validFrom).getTime() - new Date(left.validFrom).getTime(),
       ),
     [user.positionAssignments],
   );
@@ -214,8 +194,8 @@ export function PenggunaDetailClient({
                   <ShieldAlert className="size-4" />
                   <AlertTitle>Role auth tidak sinkron</AlertTitle>
                   <AlertDescription>
-                    Role Better Auth pada akun ini tidak cocok dengan role jabatan utama aktif. Lakukan mutasi
-                    ulang atau audit assignment sebelum user dipakai operasional.
+                    Role Better Auth pada akun ini tidak cocok dengan role jabatan utama aktif. Lakukan mutasi ulang
+                    atau audit assignment sebelum user dipakai operasional.
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -224,9 +204,7 @@ export function PenggunaDetailClient({
                 <div className="rounded-xl border border-border/70 p-4">
                   <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Status profile</div>
                   <div className="mt-2 font-medium">{user.status}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Login terakhir {formatDateTime(user.lastLoginAt)}
-                  </div>
+                  <div className="text-sm text-muted-foreground">Login terakhir {formatDateTime(user.lastLoginAt)}</div>
                 </div>
                 <div className="rounded-xl border border-border/70 p-4">
                   <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Kondisi auth</div>
@@ -253,7 +231,8 @@ export function PenggunaDetailClient({
               <div className="rounded-xl border border-border/70 p-4">
                 <div className="font-medium">{primaryAssignment?.position.title || "-"}</div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  {primaryAssignment?.position.organizationUnit?.name || "-"} • {primaryAssignment?.position.seatCode || "-"}
+                  {primaryAssignment?.position.organizationUnit?.name || "-"} •{" "}
+                  {primaryAssignment?.position.seatCode || "-"}
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
                   Berlaku sejak {formatDateTime(primaryAssignment?.validFrom)}
@@ -261,7 +240,10 @@ export function PenggunaDetailClient({
               </div>
               <div className="flex flex-wrap gap-2">
                 {primaryAssignment?.areaScopes.map((scope) => (
-                  <Badge key={`${scope.area.id}-${scope.id ?? scope.areaId}`} variant={scope.isPrimary ? "default" : "outline"}>
+                  <Badge
+                    key={`${scope.area.id}-${scope.id ?? scope.areaId}`}
+                    variant={scope.isPrimary ? "default" : "outline"}
+                  >
                     {scope.area.name}
                     {scope.isPrimary ? " • utama" : ""}
                   </Badge>
@@ -274,7 +256,8 @@ export function PenggunaDetailClient({
             <CardHeader>
               <CardTitle>Timeline assignment</CardTitle>
               <CardDescription>
-                Histori assignment disimpan di halaman ini agar mutasi dan tindakan keamanan bisa dilihat dalam satu alur.
+                Histori assignment disimpan di halaman ini agar mutasi dan tindakan keamanan bisa dilihat dalam satu
+                alur.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -326,30 +309,15 @@ export function PenggunaDetailClient({
                 <CheckCircle2 className="size-4" />
                 Aktivasi ulang
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setActiveDialog("suspend")}
-                disabled={isSelf}
-              >
+              <Button type="button" variant="outline" onClick={() => setActiveDialog("suspend")} disabled={isSelf}>
                 <UserX className="size-4" />
                 Suspend user
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setActiveDialog("lock")}
-                disabled={locked}
-              >
+              <Button type="button" variant="outline" onClick={() => setActiveDialog("lock")} disabled={locked}>
                 <Lock className="size-4" />
                 Lock operasional
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setActiveDialog("unlock")}
-                disabled={!locked}
-              >
+              <Button type="button" variant="outline" onClick={() => setActiveDialog("unlock")} disabled={!locked}>
                 <ShieldCheck className="size-4" />
                 Unlock operasional
               </Button>
@@ -428,7 +396,9 @@ export function PenggunaDetailClient({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Suspend user</DialogTitle>
-            <DialogDescription>Sesi aktif bisa dicabut langsung agar akses operasional berhenti seketika.</DialogDescription>
+            <DialogDescription>
+              Sesi aktif bisa dicabut langsung agar akses operasional berhenti seketika.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -545,11 +515,7 @@ export function PenggunaDetailClient({
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="unlock-reason">Alasan</Label>
-            <Input
-              id="unlock-reason"
-              value={unlockReason}
-              onChange={(event) => setUnlockReason(event.target.value)}
-            />
+            <Input id="unlock-reason" value={unlockReason} onChange={(event) => setUnlockReason(event.target.value)} />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setActiveDialog(null)}>
@@ -581,7 +547,8 @@ export function PenggunaDetailClient({
           <DialogHeader>
             <DialogTitle>Arsipkan user</DialogTitle>
             <DialogDescription>
-              Semua assignment aktif akan ditutup pada waktu efektif yang Anda tentukan dan user dikeluarkan dari roster aktif.
+              Semua assignment aktif akan ditutup pada waktu efektif yang Anda tentukan dan user dikeluarkan dari roster
+              aktif.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

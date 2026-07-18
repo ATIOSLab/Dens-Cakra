@@ -76,11 +76,7 @@ async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
   };
 }
 
-export async function ExecutivePersonnelPage({
-  searchParams,
-}: {
-  searchParams?: Promise<RouteSearchParams>;
-}) {
+export async function ExecutivePersonnelPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
   await requireRole(SYSTEM_ROLES.EXECUTIVE);
 
   const queryState = buildQueryState(await searchParams);
@@ -90,14 +86,7 @@ export async function ExecutivePersonnelPage({
     ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
     ...(queryState.districtId ? { districtId: queryState.districtId } : {}),
   };
-  const [
-    listResult,
-    map,
-    provinceResult,
-    regenciesFromRegency,
-    regenciesFromCity,
-    districts,
-  ] = await Promise.all([
+  const [listResult, map, provinceResult, regenciesFromRegency, regenciesFromCity, districts] = await Promise.all([
     fetchAllPages<PersonnelListItem>("/executive/personnel", commonQuery),
     apiServerGet<PersonnelMapPayload>("/executive/personnel/map", commonQuery),
     fetchAllPages<PersonnelAreaOption>("/administrative-areas", {
@@ -105,22 +94,19 @@ export async function ExecutivePersonnelPage({
       isActive: true,
     }),
     queryState.provinceId
-      ? apiServerGet<PersonnelAreaOption[]>(
-          `/administrative-areas/${queryState.provinceId}/children`,
-          { level: "REGENCY" },
-        )
+      ? apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.provinceId}/children`, {
+          level: "REGENCY",
+        })
       : Promise.resolve([]),
     queryState.provinceId
-      ? apiServerGet<PersonnelAreaOption[]>(
-          `/administrative-areas/${queryState.provinceId}/children`,
-          { level: "CITY" },
-        )
+      ? apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.provinceId}/children`, {
+          level: "CITY",
+        })
       : Promise.resolve([]),
     queryState.regencyId
-      ? apiServerGet<PersonnelAreaOption[]>(
-          `/administrative-areas/${queryState.regencyId}/children`,
-          { level: "DISTRICT" },
-        )
+      ? apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.regencyId}/children`, {
+          level: "DISTRICT",
+        })
       : Promise.resolve([]),
   ]);
 
@@ -139,16 +125,10 @@ export async function ExecutivePersonnelPage({
   );
 }
 
-export async function ExecutivePersonnelDetailPage({
-  userProfileId,
-}: {
-  userProfileId: string;
-}) {
+export async function ExecutivePersonnelDetailPage({ userProfileId }: { userProfileId: string }) {
   await requireRole(SYSTEM_ROLES.EXECUTIVE);
 
-  const detail = await apiServerGet<PersonnelDetail>(
-    `/executive/personnel/${userProfileId}`,
-  );
+  const detail = await apiServerGet<PersonnelDetail>(`/executive/personnel/${userProfileId}`);
 
   return <ExecutivePersonnelDetailClient detail={detail} />;
 }

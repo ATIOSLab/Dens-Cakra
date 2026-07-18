@@ -43,14 +43,9 @@ type DirectorateFormState = {
   primaryProvinceAreaId: string;
 };
 
-function buildDefaultBindaForm(
-  overview: RegionalMasterOverview,
-  selectedProvinceAreaId?: string,
-): BindaFormState {
+function buildDefaultBindaForm(overview: RegionalMasterOverview, selectedProvinceAreaId?: string): BindaFormState {
   const preferredProvince =
-    (selectedProvinceAreaId
-      ? overview.provinces.find((item) => item.province.id === selectedProvinceAreaId)
-      : null) ??
+    (selectedProvinceAreaId ? overview.provinces.find((item) => item.province.id === selectedProvinceAreaId) : null) ??
     overview.provinces.find((item) => !item.binda) ??
     overview.provinces[0];
 
@@ -93,8 +88,7 @@ export function OrganisasiWilayahCreateClient({
   );
 
   const selectedProvince = useMemo(() => {
-    const provinceId =
-      masterType === "binda" ? bindaForm.provinceAreaId : directorateForm.primaryProvinceAreaId;
+    const provinceId = masterType === "binda" ? bindaForm.provinceAreaId : directorateForm.primaryProvinceAreaId;
 
     return overview.provinces.find((item) => item.province.id === provinceId) ?? null;
   }, [bindaForm.provinceAreaId, directorateForm.primaryProvinceAreaId, masterType, overview.provinces]);
@@ -375,7 +369,7 @@ export function OrganisasiWilayahCreateClient({
                                     current.primaryProvinceAreaId,
                                   )
                                     ? current.primaryProvinceAreaId
-                                    : nextProvinceAreaIds[0] ?? "";
+                                    : (nextProvinceAreaIds[0] ?? "");
 
                                   return {
                                     ...current,
@@ -436,11 +430,7 @@ export function OrganisasiWilayahCreateClient({
                 onClick={isBinda ? handleCreateBinda : handleCreateDirectorate}
                 disabled={isSaving || !deputyOptions.length}
               >
-                {isSaving
-                  ? "Menyimpan..."
-                  : isBinda
-                    ? "Simpan Binda"
-                    : "Simpan Direktorat"}
+                {isSaving ? "Menyimpan..." : isBinda ? "Simpan Binda" : "Simpan Direktorat"}
               </Button>
             </div>
           </CardContent>
@@ -453,7 +443,9 @@ export function OrganisasiWilayahCreateClient({
                 <Landmark className="size-4" />
                 Ringkasan Konteks
               </CardTitle>
-              <CardDescription>Snapshot cepat untuk memastikan master yang akan didaftarkan sudah tepat.</CardDescription>
+              <CardDescription>
+                Snapshot cepat untuk memastikan master yang akan didaftarkan sudah tepat.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex flex-wrap gap-2">

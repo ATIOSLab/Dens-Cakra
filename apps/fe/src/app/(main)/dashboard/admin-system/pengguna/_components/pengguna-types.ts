@@ -1,5 +1,5 @@
 import type { PaginationMeta } from "@/lib/api/types";
-import { SYSTEM_ROLES, SYSTEM_ROLE_LABELS, type SystemRole } from "@/navigation/sidebar/system-roles";
+import { SYSTEM_ROLE_LABELS, SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
 export type UserProfileStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
 export type RoleCode =
@@ -230,8 +230,7 @@ export const ROLE_CODE_TO_AUTH_ROLE: Record<RoleCode, SystemRole> = {
   ADMIN_SYSTEM: SYSTEM_ROLES.ADMIN_SYSTEM,
   EXECUTIVE: SYSTEM_ROLES.EXECUTIVE,
   REGIONAL_COMMANDER: SYSTEM_ROLES.REGIONAL_COMMANDER,
-  OPERATIONAL_INTELLIGENCE_MANAGER:
-    SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
+  OPERATIONAL_INTELLIGENCE_MANAGER: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
   FIELD_COORDINATOR: SYSTEM_ROLES.FIELD_COORDINATOR,
   FIELD_OFFICER: SYSTEM_ROLES.FIELD_OFFICER,
 };
@@ -239,10 +238,7 @@ export const ROLE_CODE_TO_AUTH_ROLE: Record<RoleCode, SystemRole> = {
 export function getPrimaryAssignment(user: UserListItem | UserDetail) {
   return (
     user.positionAssignments.find(
-      (assignment) =>
-        assignment.isPrimary !== false &&
-        assignment.isActive !== false &&
-        !assignment.validUntil,
+      (assignment) => assignment.isPrimary !== false && assignment.isActive !== false && !assignment.validUntil,
     ) ??
     user.positionAssignments.find((assignment) => assignment.isPrimary !== false) ??
     user.positionAssignments[0] ??

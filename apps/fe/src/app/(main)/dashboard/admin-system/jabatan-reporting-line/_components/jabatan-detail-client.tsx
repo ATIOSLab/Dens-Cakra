@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import { ArrowLeft, MapPin, Pencil, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,9 @@ export function JabatanDetailClient({ position }: Props) {
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline">{branchLabel(position.branch)}</Badge>
-            <Badge variant={position.isActive ? "default" : "outline"}>{position.isActive ? "Aktif" : "Nonaktif"}</Badge>
+            <Badge variant={position.isActive ? "default" : "outline"}>
+              {position.isActive ? "Aktif" : "Nonaktif"}
+            </Badge>
           </div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">{position.title}</h1>
           <p className="max-w-4xl text-sm text-muted-foreground">
@@ -84,7 +87,9 @@ export function JabatanDetailClient({ position }: Props) {
             {assignments.length ? (
               assignments.map((assignment) => (
                 <div key={assignment.id} className="rounded-lg border border-border/70 p-3">
-                  <div className="font-medium">{assignment.userProfile?.fullName ?? assignment.userProfile?.username ?? "Personel aktif"}</div>
+                  <div className="font-medium">
+                    {assignment.userProfile?.fullName ?? assignment.userProfile?.username ?? "Personel aktif"}
+                  </div>
                   <div className="text-xs text-muted-foreground">{assignment.validFrom}</div>
                 </div>
               ))
