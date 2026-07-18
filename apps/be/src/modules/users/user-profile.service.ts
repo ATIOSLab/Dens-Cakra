@@ -176,6 +176,40 @@ export class UserProfileService {
             phone: input.profile.phone
               ? normalizeIndonesianPhoneNumber(input.profile.phone)
               : null,
+            nationalIdNumber: input.profile.nationalIdNumber ?? null,
+            birthPlace: input.profile.birthPlace ?? null,
+            birthDate: input.profile.birthDate
+              ? new Date(input.profile.birthDate)
+              : null,
+            gender: input.profile.gender ?? null,
+            religion: input.profile.religion ?? null,
+            maritalStatus: input.profile.maritalStatus ?? null,
+            bloodType: input.profile.bloodType ?? null,
+            personnelNumber: input.profile.personnelNumber ?? null,
+            rankGrade: input.profile.rankGrade ?? null,
+            personnelStatus: input.profile.personnelStatus ?? null,
+            joinedAt: input.profile.joinedAt
+              ? new Date(input.profile.joinedAt)
+              : null,
+            lastEducation: input.profile.lastEducation ?? null,
+            educationInstitution: input.profile.educationInstitution ?? null,
+            educationMajor: input.profile.educationMajor ?? null,
+            graduationYear: input.profile.graduationYear ?? null,
+            ...(input.profile.positionHistory
+              ? {
+                  positionHistory:
+                    input.profile.positionHistory as unknown as Prisma.InputJsonValue,
+                }
+              : {}),
+            ...(input.profile.assignmentHistory
+              ? {
+                  assignmentHistory:
+                    input.profile.assignmentHistory as unknown as Prisma.InputJsonValue,
+                }
+              : {}),
+            ...(input.profile.competencies
+              ? { competencies: input.profile.competencies as Prisma.InputJsonValue }
+              : {}),
             status: UserProfileStatus.PENDING,
             isActive: false,
           },

@@ -16,6 +16,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
 import type { RegionalMasterOverview } from "../../organisasi-wilayah/_components/organisasi-wilayah-types";
@@ -142,6 +152,13 @@ export function JabatanFormClient({ mode, position }: Props) {
   const [drilldownAreas, setDrilldownAreas] = useState<AreaSearchResult[]>([]);
   const [drilldownLoading, setDrilldownLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    description: string;
+    actionLabel: string;
+    actionVariant: "default" | "destructive" | "success" | "warning";
+    onConfirm: () => void;
+  } | null>(null);
 
   const deferredUnitQuery = useDeferredValue(unitQuery);
   const roleCode = useMemo(() => roleForPosition(positionCode), [positionCode]);
@@ -623,22 +640,96 @@ export function JabatanFormClient({ mode, position }: Props) {
           </FieldGroup>
         </CardContent>
         <CardFooter className="justify-end gap-2">
-          <Button asChild type="button" variant="outline">
-            <Link
-              href={
-                position
-                  ? `/dashboard/admin-system/jabatan-reporting-line/${position.id}`
-                  : "/dashboard/admin-system/jabatan-reporting-line"
-              }
-            >
-              Batal
-            </Link>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setConfirmDialog({
+                title: "Batalkan Perubahan?",
+                description: isEdit
+                  ? "Apakah Anda yakin ingin membatalkan perubahan data jabatan ini? Perubahan yang belum disimpan akan hilang."
+                  : "Apakah Anda yakin ingin membatalkan pembuatan jabatan baru ini? Data yang telah diisi akan hilang.",
+                actionLabel: "Ya, Batalkan",
+                actionVariant: "destructive",
+                onConfirm: () => {
+                  router.push(
+                    position
+                      ? `/dashboard/admin-system/jabatan-reporting-line/${position.id}`
+                      : "/dashboard/admin-system/jabatan-reporting-line"
+                  );
+                },
+              });
+            }}
+          >
+            Batal
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={submitting}>
+          <Button
+            type="button"
+            onClick={() => {
+              if (isCreate && (!selectedUnit?.id || !seatCode.trim() || !title.trim() || selectedAreas.length === 0)) {
+                toast.error("Lengkapi kode seat, nama jabatan, penempatan, dan wilayah tanggung jawab.");
+                return;
+              }
+              if (isEdit && !title.trim()) {
+                toast.error("Nama jabatan tidak boleh kosong.");
+                return;
+              }
+
+              setConfirmDialog({
+                title: isEdit ? "Simpan Perubahan?" : "Simpan Data Baru?",
+                description: isEdit
+                  ? `Apakah Anda yakin ingin menyimpan perubahan pada jabatan "${position?.title}"?`
+                  : `Apakah Anda yakin ingin menambahkan jabatan baru "${title.trim()}" ke dalam sistem?`,
+                actionLabel: "Ya, Simpan",
+                actionVariant: "default",
+                onConfirm: () => void handleSubmit(),
+              });
+            }}
+            disabled={submitting}
+          >
             {submitting ? "Menyimpan..." : "Simpan"}
           </Button>
         </CardFooter>
       </Card>
+
+      {confirmDialog && <div aria-hidden="true" className="fixed inset-0 z-[2200] bg-black/10 backdrop-blur-xs" />}
+      <AlertDialog
+        open={confirmDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDialog(null);
+        }}
+      >
+        <AlertDialogContent className="z-[2202] border-border bg-card max-w-sm rounded-[12px] p-5 shadow-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-bold text-foreground font-sans tracking-tight">
+              {confirmDialog?.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-muted-foreground font-sans mt-2 leading-relaxed">
+              {confirmDialog?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 gap-2">
+            <AlertDialogCancel
+              onClick={() => setConfirmDialog(null)}
+              className="rounded-[6px] border-border text-muted-foreground hover:bg-secondary text-xs cursor-pointer"
+            >
+              Kembali
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant={confirmDialog?.actionVariant ?? "default"}
+              onClick={() => {
+                if (confirmDialog) {
+                  confirmDialog.onConfirm();
+                  setConfirmDialog(null);
+                }
+              }}
+              className="rounded-[6px] text-xs font-bold cursor-pointer"
+            >
+              {confirmDialog?.actionLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

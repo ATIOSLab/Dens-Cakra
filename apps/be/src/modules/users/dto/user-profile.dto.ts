@@ -10,6 +10,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -18,6 +19,9 @@ import {
 } from 'class-validator';
 import {
   CommandRouteType,
+  PersonnelGender,
+  PersonnelMaritalStatus,
+  PersonnelStatus,
   PositionCode,
   RoleCode,
   UserProfileStatus,
@@ -43,10 +47,60 @@ export class ProvisionAuthDto {
   @IsOptional() @IsString() @MaxLength(80) role?: string;
 }
 
+export class PersonnelPositionHistoryDto {
+  @IsString() @MinLength(2) @MaxLength(180) title!: string;
+  @IsOptional() @IsString() @MaxLength(180) organizationUnit?: string;
+  @IsOptional() @IsString() @MaxLength(180) area?: string;
+  @IsDateString() startedAt!: string;
+  @IsOptional() @IsDateString() endedAt?: string;
+  @IsString() @MaxLength(30) status!: string;
+}
+
+export class PersonnelAssignmentHistoryDto {
+  @IsString() @MinLength(2) @MaxLength(180) name!: string;
+  @IsOptional() @IsString() @MaxLength(180) unit?: string;
+  @IsOptional() @IsString() @MaxLength(180) location?: string;
+  @IsOptional() @IsString() @MaxLength(120) period?: string;
+  @IsOptional() @IsString() @MaxLength(1000) description?: string;
+}
+
 export class ProvisionProfileDto {
   @IsString() @MinLength(2) @MaxLength(100) username!: string;
   @IsString() @MinLength(2) @MaxLength(180) fullName!: string;
   @IsOptional() @IsString() @MaxLength(30) phone?: string;
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{16}$/, { message: 'nationalIdNumber must contain exactly 16 digits' })
+  nationalIdNumber?: string;
+  @IsOptional() @IsString() @MaxLength(120) birthPlace?: string;
+  @IsOptional() @IsDateString() birthDate?: string;
+  @IsOptional() @IsEnum(PersonnelGender) gender?: PersonnelGender;
+  @IsOptional() @IsString() @MaxLength(80) religion?: string;
+  @IsOptional() @IsEnum(PersonnelMaritalStatus) maritalStatus?: PersonnelMaritalStatus;
+  @IsOptional() @IsString() @MaxLength(5) bloodType?: string;
+  @IsOptional() @IsString() @MaxLength(80) personnelNumber?: string;
+  @IsOptional() @IsString() @MaxLength(120) rankGrade?: string;
+  @IsOptional() @IsEnum(PersonnelStatus) personnelStatus?: PersonnelStatus;
+  @IsOptional() @IsDateString() joinedAt?: string;
+  @IsOptional() @IsString() @MaxLength(120) lastEducation?: string;
+  @IsOptional() @IsString() @MaxLength(180) educationInstitution?: string;
+  @IsOptional() @IsString() @MaxLength(150) educationMajor?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1900) @Max(2100) graduationYear?: number;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PersonnelPositionHistoryDto)
+  positionHistory?: PersonnelPositionHistoryDto[];
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PersonnelAssignmentHistoryDto)
+  assignmentHistory?: PersonnelAssignmentHistoryDto[];
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
+  competencies?: string[];
 }
 
 export class ProvisionAssignmentDto {

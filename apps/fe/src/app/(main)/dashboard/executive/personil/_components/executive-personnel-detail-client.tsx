@@ -26,6 +26,46 @@ function areaText(assignment?: PersonnelAssignment | null) {
   return area ? `${area.name} - ${area.level}` : "-";
 }
 
+function activityActionLabel(action: string) {
+  const labels: Record<string, string> = {
+    "POSITION.CREATE": "Jabatan dibuat",
+    "POSITION.UPDATE": "Jabatan diperbarui",
+    "POSITION.DELETE": "Jabatan dihapus",
+    "USER.PROVISION": "Pengguna diprovision",
+    "USER.UPDATE": "Profil pengguna diperbarui",
+    "USER.ACTIVATE": "Pengguna diaktifkan",
+    "USER.SUSPEND": "Pengguna ditangguhkan",
+    "USER.ARCHIVE": "Pengguna diarsipkan",
+    "JARING_OCCUPATION.CREATE": "Master pekerjaan jaring dibuat",
+    "JARING_OCCUPATION.UPDATE": "Master pekerjaan jaring diperbarui",
+    "JARING_OCCUPATION.DELETE": "Master pekerjaan jaring dihapus",
+    "auth.session.network_resolved": "Lokasi jaringan sesi dikenali",
+  };
+
+  if (labels[action]) {
+    return labels[action];
+  }
+
+  return action
+    .replace(/[_./-]+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/^\w/, (letter) => letter.toUpperCase());
+}
+
+function entityTypeLabel(entityType?: string | null) {
+  const labels: Record<string, string> = {
+    Position: "Jabatan",
+    UserProfile: "Profil pengguna",
+    User: "Akun auth",
+    Jaring: "Jaring",
+    JaringOccupation: "Master pekerjaan jaring",
+    Session: "Sesi",
+  };
+
+  return entityType ? (labels[entityType] ?? entityType.replace(/([a-z])([A-Z])/g, "$1 $2")) : "Aktivitas";
+}
+
 /* -------------------------------------------------------------------------- */
 /* TACTICAL BACKGROUND ANIMATIONS                                             */
 /* -------------------------------------------------------------------------- */
@@ -114,20 +154,23 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
 
       <div className="relative z-10 space-y-6 text-foreground">
         {/* Header Section */}
-        <header className="relative border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-5 rounded-none overflow-hidden select-none dark:border-slate-800 dark:bg-[#080d14]/80">
+        <header className="relative overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-5 text-center select-none dark:border-slate-800 dark:bg-[#080d14]/80">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[var(--dc-primary)]/20 to-transparent" />
           <div className="absolute top-0 left-0 w-[4px] h-full bg-[var(--dc-primary)]" />
 
-          <div className="mb-4">
+          <div className="mb-4 flex justify-start">
             <BackButton href="/dashboard/executive/personil" />
           </div>
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col items-center gap-4">
             <div className="space-y-1">
               <h1 className="text-2xl font-mono font-bold tracking-tight text-foreground uppercase mt-2">
                 {profile.fullName ?? profile.username ?? profile.email}
               </h1>
-              <p className="max-w-3xl text-[11px] text-[var(--dc-text-secondary)] font-mono leading-relaxed">
+              <p className="max-w-3xl font-mono text-[11px] text-[var(--dc-text-secondary)] leading-relaxed">
+                {profile.email} - {detail.currentAssignment?.title ?? "Belum ada jabatan aktif"}
+              </p>
+              <p className="hidden">
                 {profile.email} · {detail.currentAssignment?.title ?? "Belum ada jabatan aktif"}
               </p>
             </div>
@@ -136,41 +179,41 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
 
         {/* Tab Selection */}
         <Tabs defaultValue="profil" className="space-y-4">
-          <TabsList className="h-11 rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 p-1 w-full md:w-auto justify-start dark:border-slate-800 dark:bg-[#080d14]/60">
+          <TabsList className="h-11 w-full justify-center rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 p-1 dark:border-slate-800 dark:bg-[#080d14]/60">
             <TabsTrigger
               value="profil"
               className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
             >
               <User className="size-3.5 mr-2 text-[var(--dc-primary)]" />
-              [PROFIL_NODE]
+              Profil
             </TabsTrigger>
             <TabsTrigger
               value="penugasan"
               className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
             >
               <ClipboardList className="size-3.5 mr-2 text-[var(--dc-primary)]" />
-              [PENUGASAN_NODE]
+              Penugasan
             </TabsTrigger>
             <TabsTrigger
               value="aktivitas"
               className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
             >
               <Activity className="size-3.5 mr-2 text-[var(--dc-primary)]" />
-              [AKTIVITAS_NODE]
+              Aktivitas
             </TabsTrigger>
             <TabsTrigger
               value="laporan"
               className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
             >
               <FileText className="size-3.5 mr-2 text-[var(--dc-primary)]" />
-              [LAPORAN_NODE]
+              Laporan
             </TabsTrigger>
             <TabsTrigger
               value="kpi"
               className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
             >
               <BarChart3 className="size-3.5 mr-2 text-[var(--dc-primary)]" />
-              [KPI_NODE]
+              KPI
             </TabsTrigger>
           </TabsList>
 
@@ -216,7 +259,10 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between border-b border-[var(--dc-border-subtle)] pb-3 dark:border-slate-900/60">
                   <div>
                     <h2 className="font-mono text-sm font-bold text-[var(--dc-text-primary)]">{assignment.title}</h2>
-                    <p className="text-[10px] font-mono text-[var(--dc-text-muted)] mt-1">
+                    <p className="mt-1 font-mono text-[10px] text-[var(--dc-text-muted)]">
+                      {assignment.unit.name} - {assignment.seatCode}
+                    </p>
+                    <p className="hidden">
                       {assignment.unit.name} · {assignment.seatCode}
                     </p>
                   </div>
@@ -249,8 +295,18 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
                 className="relative border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 rounded-none dark:border-slate-800 dark:bg-[#080d14]/80"
               >
                 <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[var(--dc-border-subtle)] dark:border-slate-700" />
-                <p className="font-mono text-xs font-bold text-[var(--dc-text-primary)]">{log.action}</p>
-                <p className="text-[10px] font-mono text-[var(--dc-text-secondary)] mt-1.5 leading-relaxed">
+                <p className="font-mono text-xs font-bold text-[var(--dc-text-primary)]">
+                  {activityActionLabel(log.action)}
+                </p>
+                <p className="mt-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] leading-relaxed">
+                  {entityTypeLabel(log.entityType)} {log.entityId ? `- ID ${log.entityId}` : ""} -{" "}
+                  {formatDate(log.createdAt)}
+                </p>
+                <p className="hidden">
+                  {entityTypeLabel(log.entityType)} {log.entityId ? `· ID ${log.entityId}` : ""} ·{" "}
+                  {formatDate(log.createdAt)}
+                </p>
+                <p className="hidden">
                   {log.entityType} {log.entityId ? `· ${log.entityId}` : ""} · {formatDate(log.createdAt)}
                 </p>
               </div>
@@ -270,7 +326,10 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div>
                     <h2 className="font-mono text-xs font-bold text-[var(--dc-text-primary)]">{report.title}</h2>
-                    <p className="text-[10px] font-mono text-[var(--dc-text-secondary)] mt-1.5 leading-relaxed">
+                    <p className="mt-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] leading-relaxed">
+                      {report.category?.name ?? "Tanpa kategori"} - {report.eventArea?.name ?? "Area belum ada"}
+                    </p>
+                    <p className="hidden">
                       {report.category?.name ?? "Tanpa kategori"} · {report.eventArea?.name ?? "Area belum ada"}
                     </p>
                   </div>
@@ -309,7 +368,7 @@ function InfoPanel({ title, items }: { title: string; items: Array<[string, stri
       <div className="flex items-center gap-1.5 border-b border-[var(--dc-border-subtle)] pb-2 mb-4 dark:border-slate-900">
         <Cpu className="size-3.5 text-[var(--dc-primary)]" />
         <h2 className="text-[10px] font-mono font-bold tracking-widest text-[var(--dc-text-muted)] uppercase">
-          [ {title} ]
+          {title}
         </h2>
       </div>
 
@@ -334,7 +393,7 @@ function Field({ label, value }: { label: string; value: string }) {
 function EmptyState({ title }: { title: string }) {
   return (
     <div className="border border-dashed border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/30 py-8 px-4 text-center font-mono text-[11px] text-[var(--dc-text-muted)] uppercase rounded-none dark:border-slate-800 dark:bg-slate-950/20">
-      [ NOTICE: {title} ]
+      {title}
     </div>
   );
 }

@@ -204,12 +204,12 @@ export type TaskAttachment = Prisma.TaskAttachmentModel
 export type Jaring = Prisma.JaringModel
 /**
  * Model JaringCluster
- *
+ * 
  */
 export type JaringCluster = Prisma.JaringClusterModel
 /**
  * Model JaringOccupation
- *
+ * 
  */
 export type JaringOccupation = Prisma.JaringOccupationModel
 /**

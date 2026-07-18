@@ -579,6 +579,34 @@ export const UserProfileStatus = {
 export type UserProfileStatus = (typeof UserProfileStatus)[keyof typeof UserProfileStatus]
 
 
+export const PersonnelGender = {
+  MALE: 'MALE',
+  FEMALE: 'FEMALE'
+} as const
+
+export type PersonnelGender = (typeof PersonnelGender)[keyof typeof PersonnelGender]
+
+
+export const PersonnelMaritalStatus = {
+  SINGLE: 'SINGLE',
+  MARRIED: 'MARRIED',
+  DIVORCED: 'DIVORCED',
+  WIDOWED: 'WIDOWED'
+} as const
+
+export type PersonnelMaritalStatus = (typeof PersonnelMaritalStatus)[keyof typeof PersonnelMaritalStatus]
+
+
+export const PersonnelStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  RETIRED: 'RETIRED',
+  CONTRACT: 'CONTRACT'
+} as const
+
+export type PersonnelStatus = (typeof PersonnelStatus)[keyof typeof PersonnelStatus]
+
+
 export const CommandRouteType = {
   PUSAT: 'PUSAT',
   DIRECTORATE: 'DIRECTORATE',
