@@ -1,12 +1,22 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { apiResult } from '../../common/api/api-response.js';
 import { ApiContract } from '../../common/decorators/api-contract.decorator.js';
+import { CurrentAccessContext } from '../../common/decorators/current-access-context.decorator.js';
 import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
+import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   ExecutivePersonnelListQuery,
   ExecutivePersonnelMapQuery,
+  FieldCoordinatorPersonnelAreaFilterQuery,
 } from './executive-personnel.dto.js';
 import { ExecutivePersonnelService } from './executive-personnel.service.js';
 
@@ -50,5 +60,64 @@ export class ExecutivePersonnelController {
   })
   async detail(@Param('userProfileId', ParseUUIDPipe) userProfileId: string) {
     return apiResult(await this.service.detail(userProfileId));
+  }
+}
+
+@ApiTags('Field Coordinator Personnel')
+@UseGuards(SessionGuard, DomainAccessGuard)
+@Controller('field-coordinator/personnel')
+export class FieldCoordinatorPersonnelController {
+  constructor(private readonly service: ExecutivePersonnelService) {}
+
+  @Get()
+  @ApiContract({
+    operationId: 'apiFieldCoordinatorPersonnel001',
+    contractId: 'API-FIELD-COORDINATOR-PERSONNEL-001',
+    summary: 'Daftar petugas lapangan dalam hierarki Field Coordinator',
+    roles: ['field_coordinator'],
+  })
+  async list(
+    @Query() query: ExecutivePersonnelListQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    const result = await this.service.listFieldCoordinatorPersonnel(
+      query,
+      context,
+    );
+    return apiResult(result.items, undefined, result.meta);
+  }
+
+  @Get('map')
+  @ApiContract({
+    operationId: 'apiFieldCoordinatorPersonnel002',
+    contractId: 'API-FIELD-COORDINATOR-PERSONNEL-002',
+    summary: 'Peta petugas lapangan dalam hierarki Field Coordinator',
+    roles: ['field_coordinator'],
+  })
+  async map(
+    @Query() query: ExecutivePersonnelMapQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.service.mapFieldCoordinatorPersonnel(query, context),
+      undefined,
+      { appliedFilters: query },
+    );
+  }
+
+  @Get('area-filters')
+  @ApiContract({
+    operationId: 'apiFieldCoordinatorPersonnel003',
+    contractId: 'API-FIELD-COORDINATOR-PERSONNEL-003',
+    summary: 'Filter wilayah bertingkat sesuai scope Field Coordinator',
+    roles: ['field_coordinator'],
+  })
+  async areaFilters(
+    @Query() query: FieldCoordinatorPersonnelAreaFilterQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.service.fieldCoordinatorAreaFilters(query, context),
+    );
   }
 }

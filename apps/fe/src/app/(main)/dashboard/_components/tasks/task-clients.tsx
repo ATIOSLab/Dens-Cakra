@@ -12,7 +12,6 @@ import {
   ArrowLeft,
   ArrowUpDown,
   Award,
-  BarChart4,
   BookOpenText,
   Calendar,
   Check,
@@ -75,6 +74,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Textarea } from "@/components/ui/textarea";
 import { assigneeSelectionSchema, assignmentProgressSchema, taskBuilderSchema } from "@/features/tasks/schemas";
 import type {
@@ -193,6 +193,61 @@ function taskClassificationLabel(task: Pick<TaskSummary, "directiveVersion" | "u
   return task.directiveVersion?.classification ?? task.uukStrVersion?.uukStr?.directiveVersion?.classification ?? null;
 }
 
+function taskDirectiveVersion(task: Pick<TaskSummary, "directiveVersion" | "uukStrVersion">) {
+  return task.directiveVersion ?? task.uukStrVersion?.uukStr?.directiveVersion ?? null;
+}
+
+function taskStrUrgency(task: Pick<TaskSummary, "directiveVersion" | "uukStrVersion">) {
+  return taskDirectiveVersion(task)?.urgency ?? null;
+}
+
+function taskStrDueDate(task: Pick<TaskSummary, "directiveVersion" | "uukStrVersion" | "dueDate">) {
+  return taskDirectiveVersion(task)?.dueDate ?? task.dueDate ?? null;
+}
+
+function formatEnumLabel(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return value.replaceAll("_", " ");
+}
+
+function urgencyLabel(value?: string | null) {
+  switch (value) {
+    case "URGENT":
+      return "MENDESAK";
+    case "HIGH":
+      return "TINGGI";
+    case "NORMAL":
+      return "NORMAL";
+    case "LOW":
+      return "RENDAH";
+    default:
+      return "-";
+  }
+}
+
+function deadlineCountdown(value: string) {
+  const deadlineDate = new Date(value);
+  const now = new Date();
+  const deadline = deadlineDate.getTime();
+  const difference = deadline - now.getTime();
+  const deadlineDay = new Date(deadlineDate.getFullYear(), deadlineDate.getMonth(), deadlineDate.getDate()).getTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const calendarDays = Math.round((deadlineDay - today) / 86_400_000);
+
+  if (calendarDays === 0) {
+    return difference < 0 ? "TERLEWAT HARI INI" : "HARI INI";
+  }
+
+  if (difference < 0) {
+    return `TERLEWAT ${Math.abs(calendarDays)} HARI`;
+  }
+
+  return `${calendarDays} HARI LAGI`;
+}
+
 function _taskMetaLine(task: Pick<TaskSummary, "ownerUnit" | "priority" | "directiveVersion" | "uukStrVersion">) {
   const classification = taskClassificationLabel(task);
   const parts = [task.ownerUnit?.name ?? "-", task.priority, classification].filter(Boolean);
@@ -274,9 +329,13 @@ type FieldCoordinatorTaskWithAssignments = TaskSummary & {
 export function TaskListClient({ title, description, tasks, createHref, detailBasePath }: TaskListClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [periodFrom, setPeriodFrom] = useState("");
+  const [periodTo, setPeriodTo] = useState("");
+  const [classificationFilter, setClassificationFilter] = useState("ALL");
+  const [urgencyFilter, setUrgencyFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("latest");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(9);
+  const [pageSize, setPageSize] = useState(5);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Simulated refresh handler
@@ -290,27 +349,51 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
 
   // Filter and Sort logic
   const filteredTasks = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+    const fromTime = periodFrom ? new Date(`${periodFrom}T00:00:00`).getTime() : null;
+    const toTime = periodTo ? new Date(`${periodTo}T23:59:59.999`).getTime() : null;
+
     return tasks
       .filter((task) => {
-        const matchesSearch =
-          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.description?.toLowerCase().includes(searchQuery.toLowerCase());
+        const directive = taskDirectiveVersion(task);
+        const searchableText = [
+          task.title,
+          task.description,
+          task.uukStrVersion?.title,
+          directive?.directive?.commandNumber,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
         const matchesStatus = statusFilter === "ALL" || task.status === statusFilter;
-        return matchesSearch && matchesStatus;
+        const matchesClassification =
+          classificationFilter === "ALL" || taskClassificationLabel(task) === classificationFilter;
+        const matchesUrgency = urgencyFilter === "ALL" || taskStrUrgency(task) === urgencyFilter;
+        const strDueDate = taskStrDueDate(task);
+        const dueTime = strDueDate ? new Date(strDueDate).getTime() : null;
+        const matchesPeriod =
+          (fromTime === null || (dueTime !== null && dueTime >= fromTime)) &&
+          (toTime === null || (dueTime !== null && dueTime <= toTime));
+
+        return matchesSearch && matchesStatus && matchesClassification && matchesUrgency && matchesPeriod;
       })
       .sort((a, b) => {
         if (sortBy === "latest") {
-          return new Date((b as any).createdAt || 0).getTime() - new Date((a as any).createdAt || 0).getTime();
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }
         if (sortBy === "oldest") {
-          return new Date((a as any).createdAt || 0).getTime() - new Date((b as any).createdAt || 0).getTime();
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         }
         if (sortBy === "due_soon") {
-          return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
+          const aDueTime = taskStrDueDate(a) ? new Date(taskStrDueDate(a) as string).getTime() : Number.POSITIVE_INFINITY;
+          const bDueTime = taskStrDueDate(b) ? new Date(taskStrDueDate(b) as string).getTime() : Number.POSITIVE_INFINITY;
+
+          return aDueTime - bDueTime;
         }
         return 0;
       });
-  }, [tasks, searchQuery, statusFilter, sortBy]);
+  }, [tasks, searchQuery, statusFilter, periodFrom, periodTo, classificationFilter, urgencyFilter, sortBy]);
 
   // Pagination logic
   const totalItems = filteredTasks.length;
@@ -334,6 +417,65 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
     const inProgress = tasks.filter((t) => ["IN_PROGRESS", "ASSIGNED", "ACKNOWLEDGED"].includes(t.status)).length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, inProgress, completionRate };
+  }, [tasks]);
+
+  const deadlineStrs = useMemo(() => {
+    const urgencyRank: Record<string, number> = { LOW: 1, NORMAL: 2, HIGH: 3, URGENT: 4 };
+    const byStr = new Map<
+      string,
+      {
+        key: string;
+        title: string;
+        commandNumber: string | null;
+        classification: string | null;
+        urgency: string | null;
+        dueDate: string;
+      }
+    >();
+
+    for (const task of tasks) {
+      if (["COMPLETED", "CANCELLED"].includes(task.status)) {
+        continue;
+      }
+
+      const dueDate = taskStrDueDate(task);
+      if (!dueDate) {
+        continue;
+      }
+
+      const directive = taskDirectiveVersion(task);
+      const key =
+        task.uukStrVersion?.uukStr?.id ??
+        task.uukStrVersion?.id ??
+        directive?.directive?.id ??
+        directive?.id ??
+        task.id;
+      const candidate = {
+        key,
+        title: task.uukStrVersion?.title ?? task.title,
+        commandNumber: directive?.directive?.commandNumber ?? null,
+        classification: taskClassificationLabel(task),
+        urgency: taskStrUrgency(task),
+        dueDate,
+      };
+      const existing = byStr.get(key);
+
+      if (!existing || new Date(candidate.dueDate).getTime() < new Date(existing.dueDate).getTime()) {
+        byStr.set(key, candidate);
+      }
+    }
+
+    return Array.from(byStr.values())
+      .sort((a, b) => {
+        const deadlineOrder = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        if (deadlineOrder !== 0) {
+          return deadlineOrder;
+        }
+
+        const urgencyOrder = (urgencyRank[b.urgency ?? ""] ?? 0) - (urgencyRank[a.urgency ?? ""] ?? 0);
+        return urgencyOrder !== 0 ? urgencyOrder : a.title.localeCompare(b.title, "id");
+      })
+      .slice(0, 5);
   }, [tasks]);
 
   return (
@@ -420,15 +562,24 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
               <Input
                 placeholder="Cari nama tugas atau deskripsi..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 font-mono text-xs placeholder:text-muted-foreground/60"
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
                 <Filter className="size-3 text-muted-foreground/50" />
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value);
+                    setCurrentPage(1);
+                  }}
+                >
                   <SelectTrigger className="h-6 border-none bg-transparent p-0 pr-4 font-mono text-[10px] shadow-none focus:ring-0">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -441,6 +592,50 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                   </SelectContent>
                 </Select>
               </div>
+
+              <Select
+                value={classificationFilter}
+                onValueChange={(value) => {
+                  setClassificationFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Filter klasifikasi STR"
+                  className="h-8 w-[148px] rounded-[4px] border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] font-mono text-[10px] shadow-none"
+                >
+                  <SelectValue placeholder="Klasifikasi STR" />
+                </SelectTrigger>
+                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover font-mono text-popover-foreground text-xs">
+                  <SelectItem value="ALL">SEMUA KLASIFIKASI</SelectItem>
+                  <SelectItem value="BIASA">BIASA</SelectItem>
+                  <SelectItem value="TERBATAS">TERBATAS</SelectItem>
+                  <SelectItem value="RAHASIA">RAHASIA</SelectItem>
+                  <SelectItem value="SANGAT_RAHASIA">SANGAT RAHASIA</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={urgencyFilter}
+                onValueChange={(value) => {
+                  setUrgencyFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Filter urgensi STR"
+                  className="h-8 w-[132px] rounded-[4px] border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] font-mono text-[10px] shadow-none"
+                >
+                  <SelectValue placeholder="Urgensi STR" />
+                </SelectTrigger>
+                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover font-mono text-popover-foreground text-xs">
+                  <SelectItem value="ALL">SEMUA URGENSI</SelectItem>
+                  <SelectItem value="URGENT">MENDESAK</SelectItem>
+                  <SelectItem value="HIGH">TINGGI</SelectItem>
+                  <SelectItem value="NORMAL">NORMAL</SelectItem>
+                  <SelectItem value="LOW">RENDAH</SelectItem>
+                </SelectContent>
+              </Select>
 
               <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
                 <ArrowUpDown className="size-3 text-muted-foreground/50" />
@@ -455,6 +650,51 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="flex w-full flex-wrap items-center gap-2 border-[var(--dc-border-subtle)] border-t pt-2">
+              <div className="flex items-center gap-1.5 font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">
+                <Calendar className="size-3" />
+                <span>PERIODE DEADLINE STR</span>
+              </div>
+              <Input
+                aria-label="Periode deadline STR mulai"
+                type="date"
+                value={periodFrom}
+                max={periodTo || undefined}
+                onChange={(event) => {
+                  setPeriodFrom(event.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-8 w-[145px] rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 font-mono text-[10px]"
+              />
+              <span className="font-mono text-[9px] text-muted-foreground/50">S.D.</span>
+              <Input
+                aria-label="Periode deadline STR sampai"
+                type="date"
+                value={periodTo}
+                min={periodFrom || undefined}
+                onChange={(event) => {
+                  setPeriodTo(event.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-8 w-[145px] rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 font-mono text-[10px]"
+              />
+              {(periodFrom || periodTo) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPeriodFrom("");
+                    setPeriodTo("");
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 px-2 font-mono text-[9px] text-muted-foreground"
+                >
+                  RESET PERIODE
+                </Button>
+              )}
             </div>
           </div>
 
@@ -484,6 +724,24 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                         </h3>
                       </div>
 
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {taskDirectiveVersion(task)?.directive?.commandNumber ? (
+                          <span className="font-mono text-[9px] text-muted-foreground/60">
+                            STR {taskDirectiveVersion(task)?.directive?.commandNumber}
+                          </span>
+                        ) : null}
+                        {taskClassificationLabel(task) ? (
+                          <Badge variant="outline" className={classificationBadgeClass(taskClassificationLabel(task))}>
+                            {formatEnumLabel(taskClassificationLabel(task))}
+                          </Badge>
+                        ) : null}
+                        {taskStrUrgency(task) ? (
+                          <Badge variant="outline" className="rounded-[3px] px-1.5 font-mono text-[9px] uppercase">
+                            URGENSI {urgencyLabel(taskStrUrgency(task))}
+                          </Badge>
+                        ) : null}
+                      </div>
+
                       {task.description && (
                         <p className="line-clamp-2 font-sans text-muted-foreground text-xs leading-normal">
                           {task.description}
@@ -495,7 +753,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                           <Clock className="size-3 text-muted-foreground/60" />
                           <span>
                             BATAS WAKTU:{" "}
-                            <span className="text-[var(--dc-text-primary)]">{formatDate(task.dueDate)}</span>
+                            <span className="text-[var(--dc-text-primary)]">{formatDate(taskStrDueDate(task))}</span>
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
@@ -533,48 +791,17 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
             </div>
           )}
 
-          {/* Pagination Component */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-white/[0.08] border-t pt-4 font-mono text-[10px] text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span>TAMPILKAN:</span>
-                <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
-                  <SelectTrigger className="h-7 w-20 border-white/10 bg-white/[0.02] font-mono text-[10px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-[var(--dc-border-subtle)] bg-popover font-mono text-popover-foreground text-xs">
-                    <SelectItem value="9">9 DATA</SelectItem>
-                    <SelectItem value="12">12 DATA</SelectItem>
-                    <SelectItem value="18">18 DATA</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span>DARI {totalItems} TUGAS</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="h-7 border-white/10 px-2 font-mono text-[10px] hover:bg-white/[0.04]"
-                >
-                  <ChevronLeft className="mr-1 size-3" /> SEBELUMNYA
-                </Button>
-                <span className="font-bold text-[var(--dc-text-primary)]">
-                  HALAMAN {currentPage} DARI {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="h-7 border-white/10 px-2 font-mono text-[10px] hover:bg-white/[0.04]"
-                >
-                  SELANJUTNYA <ChevronRight className="ml-1 size-3" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            page={currentPage}
+            limit={pageSize}
+            total={totalItems}
+            onPageChange={setCurrentPage}
+            onLimitChange={(limit) => {
+              setPageSize(limit);
+              setCurrentPage(1);
+            }}
+            className="rounded-[6px] border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] px-4"
+          />
         </div>
 
         {/* Right Column (4 cols): Sticky Sidebar */}
@@ -582,141 +809,63 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
           {/* Mission Overview / Critical items */}
           <div className="space-y-3.5 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 shadow-sm">
             <div className="flex items-center justify-between border-white/[0.08] border-b pb-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">
-              <span>HITUNG MUNDUR BATAS WAKTU</span>
+              <div>
+                <div>HITUNG MUNDUR BATAS WAKTU</div>
+                <div className="mt-0.5 text-[8px] normal-case tracking-normal">Deadline terdekat, lalu urgensi STR</div>
+              </div>
               <Clock className="size-3 text-[var(--dc-warning)]" />
             </div>
 
-            {/* Find tasks due soon */}
-            {(() => {
-              const dueSoonTasks = tasks
-                .filter((t) => t.status !== "COMPLETED" && t.dueDate)
-                .sort((a, b) => new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime())
-                .slice(0, 2);
-
-              if (dueSoonTasks.length === 0) {
-                return (
-                  <div className="py-2 font-mono text-muted-foreground text-xs">
-                    Tidak ada tugas aktif dengan batas waktu yang mendesak.
-                  </div>
-                );
-              }
-
-              return (
-                <div className="space-y-3">
-                  {dueSoonTasks.map((t) => (
-                    <div
-                      key={t.id}
-                      className="space-y-1.5 rounded-[4px] border border-white/[0.04] bg-white/[0.01] p-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
+            {deadlineStrs.length === 0 ? (
+              <div className="py-2 font-mono text-muted-foreground text-xs">
+                Tidak ada STR aktif dengan batas waktu.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {deadlineStrs.map((str) => (
+                  <div
+                    key={str.key}
+                    className="space-y-2 rounded-[4px] border border-white/[0.04] bg-white/[0.01] p-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        {str.commandNumber ? (
+                          <div className="truncate font-mono text-[9px] text-muted-foreground/55">
+                            {str.commandNumber}
+                          </div>
+                        ) : null}
                         <span
-                          className="truncate font-bold font-sans text-[var(--dc-text-primary)] text-xs"
-                          title={t.title}
+                          className="line-clamp-2 font-bold font-sans text-[var(--dc-text-primary)] text-xs leading-snug"
+                          title={str.title}
                         >
-                          {t.title}
+                          {str.title}
                         </span>
-                        <Badge variant="destructive" className="shrink-0 rounded-[2px] px-1 py-0 font-mono text-[8px]">
-                          BATAS WAKTU
-                        </Badge>
                       </div>
-                      <div className="flex justify-between font-mono text-[10px] text-muted-foreground">
-                        <span>BATAS WAKTU:</span>
-                        <span className="font-bold text-[var(--dc-warning)]">{formatDate(t.dueDate)}</span>
-                      </div>
+                      <Badge
+                        variant={str.urgency === "URGENT" ? "destructive" : "outline"}
+                        className="shrink-0 rounded-[2px] px-1 py-0 font-mono text-[8px]"
+                      >
+                        {urgencyLabel(str.urgency)}
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Operational Statistics */}
-          <div className="space-y-4 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 shadow-sm">
-            <div className="flex items-center justify-between border-white/[0.08] border-b pb-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">
-              <span>TINGKAT PENYELESAIAN</span>
-              <BarChart4 className="size-3 text-[var(--dc-primary)]" />
-            </div>
-            <div className="space-y-2.5 font-mono text-xs">
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-muted-foreground">SELESAI:</span>
-                  <span className="font-bold text-[var(--dc-success)]">
-                    {tasks.filter((t) => t.status === "COMPLETED").length}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
-                  <div
-                    className="h-full bg-[var(--dc-success)] transition-all duration-300"
-                    style={{
-                      width: `${tasks.length > 0 ? (tasks.filter((t) => t.status === "COMPLETED").length / tasks.length) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {str.classification ? (
+                        <Badge variant="outline" className={classificationBadgeClass(str.classification)}>
+                          {formatEnumLabel(str.classification)}
+                        </Badge>
+                      ) : null}
+                      <Badge variant="outline" className="rounded-[2px] px-1 py-0 font-mono text-[8px]">
+                        {deadlineCountdown(str.dueDate)}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between gap-3 font-mono text-[10px] text-muted-foreground">
+                      <span>DEADLINE STR:</span>
+                      <span className="text-right font-bold text-[var(--dc-warning)]">{formatDate(str.dueDate)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-muted-foreground">BERJALAN:</span>
-                  <span className="font-bold text-[var(--dc-warning)]">
-                    {tasks.filter((t) => t.status === "IN_PROGRESS").length}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
-                  <div
-                    className="h-full bg-[var(--dc-warning)] transition-all duration-300"
-                    style={{
-                      width: `${tasks.length > 0 ? (tasks.filter((t) => t.status === "IN_PROGRESS").length / tasks.length) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-muted-foreground">DIDISTRIBUSIKAN:</span>
-                  <span className="font-bold text-[var(--dc-primary)]">
-                    {tasks.filter((t) => t.status === "ASSIGNED").length}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
-                  <div
-                    className="h-full bg-[var(--dc-primary)] transition-all duration-300"
-                    style={{
-                      width: `${tasks.length > 0 ? (tasks.filter((t) => t.status === "ASSIGNED").length / tasks.length) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Activity Feed */}
-          <div className="space-y-3.5 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 shadow-sm">
-            <div className="flex items-center justify-between border-white/[0.08] border-b pb-2 font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">
-              <span>AKTIVITAS TERBARU</span>
-              <Activity className="size-3 text-[var(--dc-primary)]" />
-            </div>
-            <div className="space-y-3 text-xs">
-              <div className="flex gap-2.5">
-                <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--dc-success)]" />
-                <div className="space-y-0.5">
-                  <p className="font-sans text-muted-foreground/80 leading-normal">
-                    Distribusi tugas <strong className="text-[var(--dc-text-primary)]">Aceh Selatan</strong> tervalidasi
-                    100% aman.
-                  </p>
-                  <span className="font-mono text-[9px] text-muted-foreground/45">10 MENIT YANG LALU</span>
-                </div>
-              </div>
-              <div className="flex gap-2.5">
-                <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--dc-primary)]" />
-                <div className="space-y-0.5">
-                  <p className="font-sans text-muted-foreground/80 leading-normal">
-                    STR berjenjang regional terintegrasi ke dalam data tugas koordinator.
-                  </p>
-                  <span className="font-mono text-[9px] text-muted-foreground/45">42 MENIT YANG LALU</span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -3874,7 +4023,7 @@ function CommandHierarchyFlow() {
   );
 }
 
-function MissionStatusPanel({ status, progressPercentage }: { status: string; progressPercentage: number }) {
+function MissionStatusPanel({ status }: { status: string }) {
   return (
     <div className="space-y-3 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 shadow-sm">
       <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">STATUS MISI</div>
@@ -3888,64 +4037,6 @@ function MissionStatusPanel({ status, progressPercentage }: { status: string; pr
             {friendlyStatusLabel(status)}
           </Badge>
         </div>
-
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between font-mono text-[10px] text-muted-foreground">
-            <span>TARGET PENYELESAIAN</span>
-            <span className="font-bold text-[var(--dc-success)]">{progressPercentage}%</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/30">
-            <div
-              className="h-full rounded-full bg-[var(--dc-success)] transition-all duration-300"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OperationalActivityLog({ task }: { task: TaskDetail }) {
-  const creatorName =
-    task.createdByAssignment?.userProfile?.fullName || task.createdByAssignment?.position?.title || "Sistem";
-  const creatorRole = task.createdByAssignment?.position?.title || "HQ Operator";
-
-  const activities = [
-    {
-      time: formatDate((task as any).createdAt),
-      title: "Task Created",
-      desc: `Tugas diinisiasi oleh ${creatorName} (${creatorRole})`,
-    },
-    ...(task.assignments.length > 0
-      ? [
-          {
-            time: formatDate((task.assignments[0] as any)?.createdAt || (task as any).createdAt),
-            title: "Task Assigned",
-            desc: `Tugas didistribusikan ke ${task.assignments.length} Field Coordinator`,
-          },
-        ]
-      : []),
-    {
-      time: (task as any).updatedAt ? formatDate((task as any).updatedAt) : formatDate((task as any).createdAt),
-      title: "System Synchronization",
-      desc: `Status tugas disinkronkan ke status ${task.status}`,
-    },
-  ];
-
-  return (
-    <div className="space-y-3 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 shadow-sm">
-      <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">SYSTEM_ACTIVITY_LOG</div>
-      <div className="space-y-3 border-white/[0.08] border-t pt-3">
-        {activities.map((act, idx) => (
-          <div key={idx} className="flex gap-3 text-xs">
-            <div className="w-28 shrink-0 font-mono text-[10px] text-muted-foreground/40">{act.time}</div>
-            <div className="space-y-0.5">
-              <div className="font-bold text-[var(--dc-text-primary)]">{act.title}</div>
-              <div className="text-[10px] text-muted-foreground">{act.desc}</div>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -3972,11 +4063,7 @@ export function TaskDetailClient({
   const showStructuredUuk = hasStructuredUukSections(task);
   const classification = taskClassificationLabel(task);
   const areaSummary = task.targetAreas.map((t) => t.area.name).join(", ") ?? "-";
-  const completedAssignments = task.assignments.filter((a) => a.status === "COMPLETED").length;
-  const progressPercentage = task.assignments.length
-    ? Math.round((completedAssignments / task.assignments.length) * 100)
-    : 0;
-
+  
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-6">
       {/* Back Button */}
@@ -4027,12 +4114,6 @@ export function TaskDetailClient({
               <span>
                 BATAS WAKTU:{" "}
                 <span className="text-[var(--dc-text-primary)]">{task.dueDate ? formatDate(task.dueDate) : "-"}</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Activity className="size-3 text-muted-foreground/60" />
-              <span>
-                PROGRES: <span className="text-[var(--dc-text-primary)]">{progressPercentage}%</span>
               </span>
             </div>
           </div>
@@ -4151,16 +4232,13 @@ export function TaskDetailClient({
         {/* Right Column (4/12) - Right Panel */}
         <div className="space-y-6 lg:col-span-4">
           {/* Mission Status */}
-          <MissionStatusPanel status={task.status} progressPercentage={progressPercentage} />
+          <MissionStatusPanel status={task.status} />
 
           {/* 5. Timeline */}
           <OperationalTimeline status={task.status} hasAssignments={task.assignments.length > 0} />
 
           {/* Hierarchy Flow */}
           <CommandHierarchyFlow />
-
-          {/* 7. Activity Log */}
-          <OperationalActivityLog task={task} />
         </div>
       </div>
     </div>

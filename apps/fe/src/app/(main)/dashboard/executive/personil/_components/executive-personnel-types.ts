@@ -88,7 +88,7 @@ export type PersonnelMapPayload = {
       totalFieldOfficers: number;
       located: number;
       unlocated: number;
-      byStatus: Record<string, number>;
+      byStatus: Partial<Record<string, number>>;
     };
     legend: Array<{
       code: string;
@@ -169,5 +169,15 @@ export type PersonnelListProps = {
     provinces: PersonnelAreaOption[];
     regencies: PersonnelAreaOption[];
     districts: PersonnelAreaOption[];
+  };
+  pageConfig?: {
+    basePath: string;
+    title: string;
+    description: string;
+    tableTabLabel: string;
+    mapTabLabel: string;
+    detailTarget: "userProfile" | "assignment";
+    showExecutiveSummary?: boolean;
+    showProvinceFilter?: boolean;
   };
 };

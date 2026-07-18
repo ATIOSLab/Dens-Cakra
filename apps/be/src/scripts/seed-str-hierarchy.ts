@@ -16,6 +16,19 @@ import { prisma } from '../modules/prisma/prisma.service.js';
 const SEED_TAG = '[SEED_STR_HIERARCHY]';
 const directiveBaseDate = new Date('2026-07-01T08:00:00.000Z');
 const STR_VARIANTS_PER_CHAIN = 6;
+const STR_UUK_MARKER_START = '<!--DENS_CAKRA_STR_UUK_START-->';
+const STR_UUK_MARKER_END = '<!--DENS_CAKRA_STR_UUK_END-->';
+const UUK_SECTION_ORDER = [
+  UukStrSectionType.BASIS_BACKGROUND,
+  UukStrSectionType.INVESTIGATION_TARGETS,
+  UukStrSectionType.EEI_PIR,
+  UukStrSectionType.COLLECTION_PLAN,
+  UukStrSectionType.THREAT_RISK_ANALYSIS,
+  UukStrSectionType.IMPLEMENTATION_MECHANISM,
+  UukStrSectionType.COORDINATION_REPORTING,
+  UukStrSectionType.RECOMMENDATION,
+  UukStrSectionType.AUTHENTICATION,
+] as const;
 
 type AssignmentNode = {
   id: string;
@@ -469,16 +482,22 @@ function buildDirectiveSeed(
     primaryArea?.areaName ?? chain.regionalCommander.organizationUnitName;
   const commandSuffix = String(sequence + 1).padStart(3, '0');
   const title = `STR ${scenario.category} - ${scenario.title} ${branchLabel} ${areaLabel}`;
+  const commandNarrative = [
+    title,
+    `Tujuan operasi adalah ${scenario.objective}.`,
+    `Fokus wilayah berada pada ${areaLabel} dengan jalur kendali ${branchLabel.toLowerCase()} melalui ${chain.regionalCommander.positionTitle}, ${chain.operationalManager.positionTitle}, Field Coordinator, dan Field Officer.`,
+    'Seluruh laporan wajib membedakan fakta lapangan, indikasi, penilaian sementara, dan rekomendasi tindak lanjut.',
+  ].join('\n');
+  const uukSections = buildUukSections(chain, scenario, title, commandDate);
 
   return {
     commandNumber: `SEED/STR/${chain.regionalCommander.organizationUnitCode}/2026/${commandSuffix}`,
     strategicIssue: `${scenario.issue} pada ${areaLabel}.`,
-    commandDescription: [
-      title,
-      `Tujuan operasi adalah ${scenario.objective}.`,
-      `Fokus wilayah berada pada ${areaLabel} dengan jalur kendali ${branchLabel.toLowerCase()} melalui ${chain.regionalCommander.positionTitle}, ${chain.operationalManager.positionTitle}, Field Coordinator, dan Field Officer.`,
-      'Seluruh laporan wajib membedakan fakta lapangan, indikasi, penilaian sementara, dan rekomendasi tindak lanjut.',
-    ].join('\n'),
+    commandDescription: serializeDirectiveCommandDescription({
+      commandNarrative,
+      uukTitle: title,
+      uukSections,
+    }),
     versionTitle: title,
     commandSource: 'Deputi II DENS CAKRA',
     commandIssuer: 'Deputi II',
@@ -495,6 +514,33 @@ function createSectionItems(lines: readonly string[]) {
     content,
     orderNumber: index + 1,
   }));
+}
+
+function serializeDirectiveCommandDescription(input: {
+  commandNarrative: string;
+  uukTitle: string;
+  uukSections: UukSectionSeed[];
+}) {
+  const payload = {
+    title: input.uukTitle.trim(),
+    sections: input.uukSections.map((section) => ({
+      sectionType: section.sectionType,
+      title: section.title,
+      orderNumber: UUK_SECTION_ORDER.indexOf(section.sectionType) + 1,
+      content: section.items
+        .map((item) => `${item.orderNumber}. ${item.content.trim()}`)
+        .join('\n'),
+    })),
+  };
+
+  return [
+    STR_UUK_MARKER_START,
+    JSON.stringify(payload),
+    STR_UUK_MARKER_END,
+    input.commandNarrative.trim(),
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function buildUukSections(

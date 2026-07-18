@@ -80,6 +80,13 @@ type RegencyCityArea = {
   parentId: string;
 };
 
+type DistrictArea = {
+  id: string;
+  officialCode: string;
+  name: string;
+  parentId: string;
+};
+
 type DirectorateRegionSeed = {
   key: string;
   name: string;
@@ -398,15 +405,51 @@ async function loadAreaTopology() {
     );
   }
 
+  const districts = await prisma.administrativeArea.findMany({
+    where: {
+      level: AdministrativeLevel.DISTRICT,
+      parentId: {
+        in: normalizedRegencyCities.map((area) => area.id),
+      },
+      isActive: true,
+      deletedAt: null,
+      officialCode: {
+        not: null,
+      },
+    },
+    orderBy: [{ parentId: 'asc' }, { officialCode: 'asc' }, { name: 'asc' }],
+    select: {
+      id: true,
+      officialCode: true,
+      name: true,
+      parentId: true,
+    },
+  });
+
+  const normalizedDistricts: DistrictArea[] = districts.flatMap((area) =>
+    area.officialCode && area.parentId
+      ? [
+          {
+            id: area.id,
+            officialCode: area.officialCode,
+            name: area.name,
+            parentId: area.parentId,
+          },
+        ]
+      : [],
+  );
+
   return {
     provinces: normalizedProvinces,
     regencyCities: normalizedRegencyCities,
+    districts: normalizedDistricts,
   };
 }
 
 function buildSeedPlan(
   provinces: ProvinceArea[],
   regencyCities: RegencyCityArea[],
+  districts: DistrictArea[],
 ): SeedPlan {
   let humanNameIndex = 2;
   const nextHumanName = () => humanNames[humanNameIndex++ % humanNames.length];
@@ -436,11 +479,18 @@ function buildSeedPlan(
     operationalProvinces.map((province) => [province.officialCode, province]),
   );
   const regencyCitiesByProvinceId = new Map<string, RegencyCityArea[]>();
+  const districtsByRegencyCityId = new Map<string, DistrictArea[]>();
 
   for (const area of operationalRegencyCities) {
     const items = regencyCitiesByProvinceId.get(area.parentId) ?? [];
     items.push(area);
     regencyCitiesByProvinceId.set(area.parentId, items);
+  }
+
+  for (const district of districts) {
+    const items = districtsByRegencyCityId.get(district.parentId) ?? [];
+    items.push(district);
+    districtsByRegencyCityId.set(district.parentId, items);
   }
 
   const mappedProvinceCodes = new Set<string>(
@@ -622,32 +672,36 @@ function buildSeedPlan(
       });
 
       for (const area of provinceRegencyCities) {
-        const compactCode = compactAreaCode(area.officialCode);
-        const agentEmail = `agent.dir.${compactCode}@denscakra.local`;
+        const fieldOfficerAreas = districtsByRegencyCityId.get(area.id) ?? [];
 
-        accounts.push({
-          email: agentEmail,
-          name: nextHumanName(),
-          password: defaultDemoPassword,
-          role: SYSTEM_ROLES.FIELD_OFFICER,
-        });
+        for (const fieldOfficerArea of fieldOfficerAreas) {
+          const compactCode = compactAreaCode(fieldOfficerArea.officialCode);
+          const agentEmail = `agent.dir.${compactCode}@denscakra.local`;
 
-        positions.push({
-          key: `agent-directorate:${area.officialCode}`,
-          seatCode: `AGD-${compactCode}`,
-          code: PositionCode.PETUGAS_ORGANIK,
-          title: `Petugas Organik Direktorat ${area.name}`,
-          roleCode: RoleCode.FIELD_OFFICER,
-          organizationUnitCode: fcuCode,
-          reportsToKey: `staf-subdit:${province.officialCode}`,
-          branch: CommandRouteType.DIRECTORATE,
-        });
+          accounts.push({
+            email: agentEmail,
+            name: nextHumanName(),
+            password: defaultDemoPassword,
+            role: SYSTEM_ROLES.FIELD_OFFICER,
+          });
 
-        assignments.push({
-          email: agentEmail,
-          positionKey: `agent-directorate:${area.officialCode}`,
-          areaCodes: [area.officialCode],
-        });
+          positions.push({
+            key: `agent-directorate:${fieldOfficerArea.officialCode}`,
+            seatCode: `AGD-${compactCode}`,
+            code: PositionCode.PETUGAS_ORGANIK,
+            title: `Petugas Organik Direktorat ${fieldOfficerArea.name}`,
+            roleCode: RoleCode.FIELD_OFFICER,
+            organizationUnitCode: fcuCode,
+            reportsToKey: `staf-subdit:${province.officialCode}`,
+            branch: CommandRouteType.DIRECTORATE,
+          });
+
+          assignments.push({
+            email: agentEmail,
+            positionKey: `agent-directorate:${fieldOfficerArea.officialCode}`,
+            areaCodes: [fieldOfficerArea.officialCode],
+          });
+        }
       }
     }
   }
@@ -756,7 +810,6 @@ function buildSeedPlan(
       const compactCode = compactAreaCode(area.officialCode);
       const fcuCode = `FCB-${compactCode}`;
       const korwilEmail = `korwil.binda.${compactCode}@denscakra.local`;
-      const agentEmail = `agent.binda.${compactCode}@denscakra.local`;
 
       organizations.push({
         code: fcuCode,
@@ -772,56 +825,62 @@ function buildSeedPlan(
         primaryAreaCode: area.officialCode,
       });
 
-      accounts.push(
-        {
-          email: korwilEmail,
-          name: nextHumanName(),
-          password: defaultDemoPassword,
-          role: SYSTEM_ROLES.FIELD_COORDINATOR,
-        },
-        {
+      accounts.push({
+        email: korwilEmail,
+        name: nextHumanName(),
+        password: defaultDemoPassword,
+        role: SYSTEM_ROLES.FIELD_COORDINATOR,
+      });
+
+      positions.push({
+        key: `korwil-binda:${area.officialCode}`,
+        seatCode: `KWB-${compactCode}`,
+        code: PositionCode.KORWIL,
+        title: `Korwil ${area.name}`,
+        roleCode: RoleCode.FIELD_COORDINATOR,
+        organizationUnitCode: fcuCode,
+        reportsToKey: `kabagops:${province.officialCode}`,
+        branch: CommandRouteType.BINDA,
+      });
+
+      assignments.push({
+        email: korwilEmail,
+        positionKey: `korwil-binda:${area.officialCode}`,
+        areaCodes: [area.officialCode],
+      });
+
+      const fieldOfficerAreas = districtsByRegencyCityId.get(area.id) ?? [];
+
+      for (const fieldOfficerArea of fieldOfficerAreas) {
+        const compactDistrictCode = compactAreaCode(
+          fieldOfficerArea.officialCode,
+        );
+        const agentEmail = `agent.binda.${compactDistrictCode}@denscakra.local`;
+
+        accounts.push({
           email: agentEmail,
           name: nextHumanName(),
           password: defaultDemoPassword,
           role: SYSTEM_ROLES.FIELD_OFFICER,
-        },
-      );
+        });
 
-      positions.push(
-        {
-          key: `korwil-binda:${area.officialCode}`,
-          seatCode: `KWB-${compactCode}`,
-          code: PositionCode.KORWIL,
-          title: `Korwil ${area.name}`,
-          roleCode: RoleCode.FIELD_COORDINATOR,
-          organizationUnitCode: fcuCode,
-          reportsToKey: `kabagops:${province.officialCode}`,
-          branch: CommandRouteType.BINDA,
-        },
-        {
-          key: `agent-binda:${area.officialCode}`,
-          seatCode: `AGB-${compactCode}`,
+        positions.push({
+          key: `agent-binda:${fieldOfficerArea.officialCode}`,
+          seatCode: `AGB-${compactDistrictCode}`,
           code: PositionCode.PETUGAS_ORGANIK,
-          title: `Petugas Organik Binda ${area.name}`,
+          title: `Petugas Organik Binda ${fieldOfficerArea.name}`,
           roleCode: RoleCode.FIELD_OFFICER,
           organizationUnitCode: fcuCode,
           reportsToKey: `korwil-binda:${area.officialCode}`,
           branch: CommandRouteType.BINDA,
-        },
-      );
+        });
 
-      assignments.push(
-        {
-          email: korwilEmail,
-          positionKey: `korwil-binda:${area.officialCode}`,
-          areaCodes: [area.officialCode],
-        },
-        {
+        assignments.push({
           email: agentEmail,
-          positionKey: `agent-binda:${area.officialCode}`,
-          areaCodes: [area.officialCode],
-        },
-      );
+          positionKey: `agent-binda:${fieldOfficerArea.officialCode}`,
+          areaCodes: [fieldOfficerArea.officialCode],
+        });
+      }
     }
   }
 
@@ -1590,8 +1649,8 @@ async function logSeedSummary(plan: SeedPlan) {
 }
 
 async function seedRoleAccounts() {
-  const { provinces, regencyCities } = await loadAreaTopology();
-  const plan = buildSeedPlan(provinces, regencyCities);
+  const { provinces, regencyCities, districts } = await loadAreaTopology();
+  const plan = buildSeedPlan(provinces, regencyCities, districts);
 
   const existingAccounts = await prisma.user.findMany({
     where: {

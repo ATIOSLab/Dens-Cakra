@@ -42,11 +42,14 @@ export type TaskSummary = {
   priority: string;
   dueDate?: string | null;
   status: string;
+  createdAt: string;
   ownerUnitId: string;
   ownerUnit?: OrganizationUnitOption | null;
   directiveVersion?: {
     id: string;
     classification?: string;
+    urgency?: string | null;
+    dueDate?: string | null;
     directive?: {
       id: string;
       commandNumber: string;
@@ -56,9 +59,12 @@ export type TaskSummary = {
     id: string;
     title: string;
     uukStr?: {
+      id?: string;
       directiveVersion?: {
         id: string;
         classification?: string;
+        urgency?: string | null;
+        dueDate?: string | null;
         directive?: {
           id: string;
           commandNumber: string;
