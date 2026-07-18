@@ -67,6 +67,22 @@ export const env = {
     pollIntervalMs: getNumber('WORKER_POLL_INTERVAL_MS', 1000),
     leaseTimeoutMs: getNumber('WORKER_LEASE_TIMEOUT_MS', 60_000),
   },
+  redis: {
+    url: getString('REDIS_URL', 'redis://127.0.0.1:6379'),
+    keyPrefix: getString('REDIS_KEY_PREFIX', 'denscakra'),
+  },
+  whatsappBot: {
+    reportSessionTtlSeconds: getNumber(
+      'WHATSAPP_REPORT_SESSION_TTL_SECONDS',
+      30 * 60,
+    ),
+    reportLockTtlMs: getNumber('WHATSAPP_REPORT_LOCK_TTL_MS', 180_000),
+    reportLockWaitMs: getNumber('WHATSAPP_REPORT_LOCK_WAIT_MS', 120_000),
+    messageDedupeTtlSeconds: getNumber(
+      'WHATSAPP_MESSAGE_DEDUPE_TTL_SECONDS',
+      24 * 60 * 60,
+    ),
+  },
   storage: {
     root: getString('LOCAL_STORAGE_ROOT', './storage'),
     signingSecret: getString(

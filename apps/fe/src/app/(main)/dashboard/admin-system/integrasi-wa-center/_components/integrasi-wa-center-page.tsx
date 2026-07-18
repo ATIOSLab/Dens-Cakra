@@ -414,7 +414,7 @@ export function AdminWaCenterPage() {
                         side="bottom"
                         align="start"
                         avoidCollisions={false}
-                        className="w-[380px] p-0 border-slate-200 dark:border-white/20 bg-card text-card-foreground"
+                        className="z-[2002] w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] border-slate-200 bg-card p-0 text-card-foreground dark:border-white/20"
                       >
                         <Command className="bg-transparent text-foreground" shouldFilter={false}>
                           <CommandInput placeholder="Cari wilayah..." value={areaQuery} onValueChange={setAreaQuery} />

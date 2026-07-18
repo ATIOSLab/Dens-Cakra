@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Boom } from '@hapi/boom';
@@ -7,6 +7,7 @@ import {
   Logger,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import makeWASocket, {
   Browsers,
@@ -39,10 +40,12 @@ import {
   type EncryptedValue,
 } from '../infrastructure/secret-vault.service.js';
 import { LocalStorageService } from '../infrastructure/local-storage.service.js';
+import { RedisService } from '../infrastructure/redis.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import { WhatsAppChannelScopeService } from '../whatsapp/whatsapp-channel-scope.service.js';
+import { env } from '../../lib/env.js';
 
 type RuntimeState = {
   connecting: boolean;
@@ -235,7 +238,7 @@ export class WhatsappBotRuntimeService
 {
   private readonly logger = new Logger(WhatsappBotRuntimeService.name);
   private readonly runtimes = new Map<string, RuntimeState>();
-  private readonly reportSessions = new Map<string, ReportSession>();
+  private readonly fallbackReportSessions = new Map<string, ReportSession>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -244,6 +247,7 @@ export class WhatsappBotRuntimeService
     private readonly storage: LocalStorageService,
     private readonly spatial: SpatialRepository,
     private readonly channelScope: WhatsAppChannelScopeService,
+    @Optional() private readonly redis?: RedisService,
   ) {}
 
   async onModuleInit() {
@@ -679,6 +683,10 @@ export class WhatsappBotRuntimeService
       message.key.id ??
       `${remoteJid}:${String(message.messageTimestamp ?? Date.now())}`;
 
+    if (!(await this.markIncomingMessageOnce(channel.id, externalMessageId))) {
+      return;
+    }
+
     const existing = await this.prisma.integrationWebhookEvent.findUnique({
       where: {
         channelId_externalEventId: {
@@ -697,47 +705,50 @@ export class WhatsappBotRuntimeService
       senderPhone,
       externalMessageId,
     );
-    const handled = await this.handleBotInteraction(
-      channel,
-      socket,
-      message,
-      payload,
-    ).catch((error: unknown) => {
-      this.logger.error(
-        `Failed to send WhatsApp bot command response for ${remoteJid}: ${this.messageOf(error)}`,
-      );
-      return false;
-    });
 
-    if (handled) {
+    await this.withReportConversationLock(channel.id, remoteJid, async () => {
+      const handled = await this.handleBotInteraction(
+        channel,
+        socket,
+        message,
+        payload,
+      ).catch((error: unknown) => {
+        this.logger.error(
+          `Failed to send WhatsApp bot command response for ${remoteJid}: ${this.messageOf(error)}`,
+        );
+        return false;
+      });
+
+      if (handled) {
+        await this.prisma.integrationChannel.update({
+          where: { id: channel.id },
+          data: { lastHealthAt: new Date() },
+        });
+        return;
+      }
+
+      const event = await this.prisma.integrationWebhookEvent.create({
+        data: {
+          channelId: channel.id,
+          externalEventId: externalMessageId,
+          eventType: 'WHATSAPP_BAILEYS_MESSAGE',
+          payload: payload.rawPayload as Prisma.InputJsonValue,
+        },
+      });
+
+      await this.jobs.enqueue({
+        type: 'WHATSAPP_PROCESS',
+        correlationId: externalMessageId,
+        payload: {
+          eventId: event.id,
+          message: payload,
+        } as unknown as Prisma.InputJsonValue,
+      });
+
       await this.prisma.integrationChannel.update({
         where: { id: channel.id },
         data: { lastHealthAt: new Date() },
       });
-      return;
-    }
-
-    const event = await this.prisma.integrationWebhookEvent.create({
-      data: {
-        channelId: channel.id,
-        externalEventId: externalMessageId,
-        eventType: 'WHATSAPP_BAILEYS_MESSAGE',
-        payload: payload.rawPayload as Prisma.InputJsonValue,
-      },
-    });
-
-    await this.jobs.enqueue({
-      type: 'WHATSAPP_PROCESS',
-      correlationId: externalMessageId,
-      payload: {
-        eventId: event.id,
-        message: payload,
-      } as unknown as Prisma.InputJsonValue,
-    });
-
-    await this.prisma.integrationChannel.update({
-      where: { id: channel.id },
-      data: { lastHealthAt: new Date() },
     });
   }
 
@@ -1036,11 +1047,11 @@ export class WhatsappBotRuntimeService
     }
 
     const sessionKey = this.reportSessionKey(channel.id, remoteJid);
-    const activeSession = this.reportSessions.get(sessionKey);
+    const activeSession = await this.getReportSession(sessionKey);
 
     if (this.isCancelIntent(text)) {
       if (activeSession) {
-        this.reportSessions.delete(sessionKey);
+        await this.deleteReportSession(sessionKey);
         await this.sendHumanLikeReplies(
           socket,
           remoteJid,
@@ -1126,7 +1137,7 @@ export class WhatsappBotRuntimeService
     }
 
     const jaringLabel = jaring.aliasName || jaring.code;
-    this.reportSessions.set(sessionKey, {
+    await this.saveReportSession(sessionKey, {
       channelId: channel.id,
       remoteJid,
       senderPhone: payload.senderPhone,
@@ -1178,6 +1189,7 @@ export class WhatsappBotRuntimeService
       }
 
       session.step = 'AWAITING_LIVE_LOCATION';
+      await this.saveReportSession(sessionKey, session);
       await this.sendHumanLikeReplies(
         socket,
         remoteJid,
@@ -1212,6 +1224,7 @@ export class WhatsappBotRuntimeService
       session.locationMessageId = payload.externalMessageId;
       session.locationSharedAt = new Date(payload.receivedAt);
       session.step = 'AWAITING_TITLE';
+      await this.saveReportSession(sessionKey, session);
       await this.sendHumanLikeReplies(
         socket,
         remoteJid,
@@ -1228,6 +1241,7 @@ export class WhatsappBotRuntimeService
 
       session.title = text.slice(0, 300);
       session.step = 'AWAITING_CONTENT';
+      await this.saveReportSession(sessionKey, session);
       await this.sendHumanLikeReplies(
         socket,
         remoteJid,
@@ -1244,6 +1258,7 @@ export class WhatsappBotRuntimeService
 
       session.content = text;
       session.step = 'AWAITING_EVENT_TIME';
+      await this.saveReportSession(sessionKey, session);
       await this.sendHumanLikeReplies(
         socket,
         remoteJid,
@@ -1272,6 +1287,7 @@ export class WhatsappBotRuntimeService
       session.eventDateTime = eventDateTime;
       session.eventDateTimeText = text;
       session.step = 'AWAITING_PHOTO';
+      await this.saveReportSession(sessionKey, session);
       await this.sendHumanLikeReplies(
         socket,
         remoteJid,
@@ -1301,6 +1317,7 @@ export class WhatsappBotRuntimeService
       );
       if (!session.location) {
         session.step = 'AWAITING_LIVE_LOCATION';
+        await this.saveReportSession(sessionKey, session);
         await this.sendHumanLikeReplies(
           socket,
           remoteJid,
@@ -1316,7 +1333,7 @@ export class WhatsappBotRuntimeService
         session,
         session.location,
       );
-      this.reportSessions.delete(sessionKey);
+      await this.deleteReportSession(sessionKey);
 
       await this.sendHumanLikeReplies(
         socket,
@@ -1501,8 +1518,141 @@ export class WhatsappBotRuntimeService
     return date;
   }
 
+  private async withReportConversationLock<T>(
+    channelId: string,
+    remoteJid: string,
+    handler: () => Promise<T>,
+  ) {
+    if (!this.redis) {
+      return handler();
+    }
+
+    const lockKey = this.reportLockKey(channelId, remoteJid);
+    const token = randomUUID();
+    const waitUntil = Date.now() + env.whatsappBot.reportLockWaitMs;
+
+    while (Date.now() <= waitUntil) {
+      const acquired = await this.redis.acquireLock(
+        lockKey,
+        token,
+        env.whatsappBot.reportLockTtlMs,
+      );
+
+      if (acquired) {
+        try {
+          return await handler();
+        } finally {
+          await this.redis.releaseLock(lockKey, token);
+        }
+      }
+
+      await sleep(200 + Math.floor(Math.random() * 150));
+    }
+
+    throw new Error(
+      `WhatsApp report conversation lock timed out for ${channelId}:${remoteJid}`,
+    );
+  }
+
+  private async markIncomingMessageOnce(
+    channelId: string,
+    externalMessageId: string,
+  ) {
+    if (!this.redis) {
+      return true;
+    }
+
+    return this.redis.setIfAbsent(
+      this.messageDedupeKey(channelId, externalMessageId),
+      new Date().toISOString(),
+      env.whatsappBot.messageDedupeTtlSeconds,
+    );
+  }
+
+  private async getReportSession(sessionKey: string) {
+    if (!this.redis) {
+      return this.fallbackReportSessions.get(sessionKey);
+    }
+
+    const raw = await this.redis.get(this.reportSessionRedisKey(sessionKey));
+    if (!raw) {
+      return undefined;
+    }
+
+    return this.deserializeReportSession(raw);
+  }
+
+  private async saveReportSession(sessionKey: string, session: ReportSession) {
+    if (!this.redis) {
+      this.fallbackReportSessions.set(sessionKey, session);
+      return;
+    }
+
+    await this.redis.setJson(
+      this.reportSessionRedisKey(sessionKey),
+      this.serializeReportSession(session),
+      env.whatsappBot.reportSessionTtlSeconds,
+    );
+  }
+
+  private async deleteReportSession(sessionKey: string) {
+    if (!this.redis) {
+      this.fallbackReportSessions.delete(sessionKey);
+      return;
+    }
+
+    await this.redis.delete(this.reportSessionRedisKey(sessionKey));
+  }
+
+  private serializeReportSession(session: ReportSession) {
+    return {
+      ...session,
+      startedAt: session.startedAt.toISOString(),
+      eventDateTime: session.eventDateTime?.toISOString(),
+      locationSharedAt: session.locationSharedAt?.toISOString(),
+    };
+  }
+
+  private deserializeReportSession(raw: string): ReportSession | undefined {
+    try {
+      const parsed = JSON.parse(raw) as ReportSession & {
+        startedAt: string;
+        eventDateTime?: string;
+        locationSharedAt?: string;
+      };
+
+      return {
+        ...parsed,
+        startedAt: new Date(parsed.startedAt),
+        eventDateTime: parsed.eventDateTime
+          ? new Date(parsed.eventDateTime)
+          : undefined,
+        locationSharedAt: parsed.locationSharedAt
+          ? new Date(parsed.locationSharedAt)
+          : undefined,
+      };
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Failed to read WhatsApp report session from Redis: ${this.messageOf(error)}`,
+      );
+      return undefined;
+    }
+  }
+
   private reportSessionKey(channelId: string, remoteJid: string) {
     return `${channelId}:${remoteJid}`;
+  }
+
+  private reportSessionRedisKey(sessionKey: string) {
+    return `whatsapp:report-session:${sessionKey}`;
+  }
+
+  private reportLockKey(channelId: string, remoteJid: string) {
+    return `whatsapp:report-lock:${channelId}:${remoteJid}`;
+  }
+
+  private messageDedupeKey(channelId: string, externalMessageId: string) {
+    return `whatsapp:message-seen:${channelId}:${externalMessageId}`;
   }
 
   private findActiveJaring(senderPhone: string) {
