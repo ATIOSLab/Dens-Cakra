@@ -9,23 +9,21 @@ export default function ForgotPasswordPage() {
         <div className="flex flex-col items-center text-center gap-2">
           {/* Custom SVG Key Logo */}
           <div className="size-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-1">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
               className="size-6 text-cyan-600 dark:text-[#14B8FF]"
             >
               <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
             </svg>
           </div>
-          
-          <h1 className="font-sans font-extrabold text-2xl tracking-tight text-foreground">
-            DENS CAKRA
-          </h1>
+
+          <h1 className="font-sans font-extrabold text-2xl tracking-tight text-foreground">DENS CAKRA</h1>
         </div>
 
         {/* Input Form Fields */}
@@ -42,9 +40,7 @@ export default function ForgotPasswordPage() {
 
       {/* 2. EXTERNAL FOOTER (BELOW CARD) */}
       <div className="flex w-full items-center justify-center text-[10px] font-mono text-muted-foreground/60 select-none text-center">
-        <div>
-          © 2026 DENS CAKRA
-        </div>
+        <div>© 2026 DENS CAKRA</div>
       </div>
     </div>
   );

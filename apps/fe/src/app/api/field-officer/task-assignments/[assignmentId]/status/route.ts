@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { updateTaskAssignmentStatus } from "@/server/field-ops/repository";
 
@@ -17,12 +17,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     };
 
     return NextResponse.json(
-      await updateTaskAssignmentStatus(
-        request.headers.get("cookie") ?? "",
-        assignmentId,
-        body.nextStatus,
-        body.note,
-      ),
+      await updateTaskAssignmentStatus(request.headers.get("cookie") ?? "", assignmentId, body.nextStatus, body.note),
     );
   } catch (error) {
     return NextResponse.json(

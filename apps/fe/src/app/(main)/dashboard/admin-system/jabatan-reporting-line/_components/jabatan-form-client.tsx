@@ -1,9 +1,10 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from "react";
+import { type ReactNode, useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import { ArrowLeft, Save, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,15 +18,15 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
+import type { RegionalMasterOverview } from "../../organisasi-wilayah/_components/organisasi-wilayah-types";
 import {
-  POSITION_CODE_OPTIONS,
   type AreaSearchResult,
   type AreaSummary,
   type OrganizationUnitSummary,
+  POSITION_CODE_OPTIONS,
   type PositionCode,
   type RoleCode,
 } from "../../pengguna/_components/pengguna-types";
-import type { RegionalMasterOverview } from "../../organisasi-wilayah/_components/organisasi-wilayah-types";
 import { BRANCH_OPTIONS, type JabatanResource } from "./jabatan-types";
 
 type Mode = "create" | "edit";
@@ -449,7 +450,13 @@ export function JabatanFormClient({ mode, position }: Props) {
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href={position ? `/dashboard/admin-system/jabatan-reporting-line/${position.id}` : "/dashboard/admin-system/jabatan-reporting-line"}>
+          <Link
+            href={
+              position
+                ? `/dashboard/admin-system/jabatan-reporting-line/${position.id}`
+                : "/dashboard/admin-system/jabatan-reporting-line"
+            }
+          >
             <ArrowLeft className="size-4" />
             Kembali
           </Link>
@@ -462,147 +469,168 @@ export function JabatanFormClient({ mode, position }: Props) {
             <Save className="size-4" />
             Data jabatan
           </CardTitle>
-          <CardDescription>
-            Master jabatan menjadi sumber unit, penempatan, dan scope wilayah user.
-          </CardDescription>
+          <CardDescription>Master jabatan menjadi sumber unit, penempatan, dan scope wilayah user.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <FieldGroup>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field>
-                  <FieldLabel>Unit</FieldLabel>
-                  <FieldContent>
-                    <NativeSelect value={branch} disabled={!isCreate} onChange={(event) => setBranch(event.target.value as BranchValue)}>
-                      {BRANCH_OPTIONS.map((option) => (
-                        <NativeSelectOption key={option.value} value={option.value}>
-                          {option.label}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel>Tipe jabatan</FieldLabel>
-                  <FieldContent>
-                    <NativeSelect value={positionCode} disabled={!isCreate} onChange={(event) => setPositionCode(event.target.value as PositionCode)}>
-                      {positionOptions.map((option) => (
-                        <NativeSelectOption key={option.value} value={option.value}>
-                          {option.label}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel>Status aktif</FieldLabel>
-                  <FieldContent>
-                    <div className="flex h-10 items-center gap-3 rounded-md border border-border/70 px-3">
-                      <Switch checked={isActive} disabled={isCreate} onCheckedChange={setIsActive} />
-                      <span className="text-sm">{isActive ? "Aktif" : "Nonaktif"}</span>
-                    </div>
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel>Kode seat</FieldLabel>
-                  <FieldContent>
-                    <Input value={seatCode} disabled={!isCreate} onChange={(event) => setSeatCode(event.target.value)} placeholder="Misalnya KWB-3171" />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel>Nama jabatan</FieldLabel>
-                  <FieldContent>
-                    <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Misalnya Korwil Kota Jakarta Selatan" />
-                  </FieldContent>
-                </Field>
-              </div>
-
-              {isCreate ? (
-                <>
-                  {branch === "PUSAT" ? (
-                    <SearchUnit
-                      query={unitQuery}
-                      setQuery={setUnitQuery}
-                      results={unitResults}
-                      selected={selectedUnit}
-                      onSelect={(unit) => {
-                        setSelectedUnit(unit);
-                        setUnitQuery("");
-                        setUnitResults([]);
-                      }}
-                      onClear={() => setSelectedUnit(null)}
-                    />
-                  ) : (
-                    <RegionalAnchorSelector
-                      branch={branch}
-                      loading={regionalLoading}
-                      anchors={regionalAnchors}
-                      selectedAnchor={selectedAnchor}
-                      onSelect={(anchor) => {
-                        setSelectedUnit({
-                          id: anchor.unitId,
-                          code: anchor.code,
-                          name: anchor.name,
-                          type: anchor.type,
-                          branch,
-                        });
-                        setSelectedProvinceId(anchor.primaryProvinceAreaId ?? anchor.coverageAreas[0]?.id ?? null);
-                        setSelectedAreas(
-                          roleCode === "REGIONAL_COMMANDER" || roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER"
-                            ? anchor.coverageAreas
-                            : [],
-                        );
-                      }}
-                      onClear={() => {
-                        setSelectedUnit(null);
-                        setSelectedProvinceId(null);
-                        setSelectedAreas([]);
-                      }}
-                    />
-                  )}
-                  {branch !== "PUSAT" && selectedAnchor ? (
-                    <ProvinceCoverageSelector
-                      roleCode={roleCode}
-                      coverageAreas={selectedAnchor.coverageAreas}
-                      selectedProvinceId={selectedProvinceId}
-                      selectedAreas={selectedAreas}
-                      onSelectProvince={(area) => {
-                        setSelectedProvinceId(area.id);
-                        if (roleCode === "FIELD_COORDINATOR" || roleCode === "FIELD_OFFICER") {
-                          setSelectedRegencyCityId(null);
-                          setSelectedAreas([]);
-                        }
-                      }}
-                      onToggleProvinceScope={(area) => setSelectedAreas((current) => toggleArea(current, area))}
-                    />
-                  ) : null}
-                  {roleCode === "FIELD_OFFICER" && regencyCityAreas.length ? (
-                    <RegencyCitySelector
-                      areas={regencyCityAreas}
-                      selectedAreaId={selectedRegencyCityId}
-                      onSelect={(area) => {
-                        setSelectedRegencyCityId(area.id);
-                        setSelectedAreas([]);
-                      }}
-                    />
-                  ) : null}
-                  <AreaScopeSelector
-                    roleCode={roleCode}
-                    selectedAreas={selectedAreas}
-                    drilldownAreas={drilldownAreas}
-                    drilldownLoading={drilldownLoading}
-                    selectedProvince={selectedProvince}
-                    selectedRegencyCity={regencyCityAreas.find((area) => area.id === selectedRegencyCityId) ?? null}
-                    isPusat={branch === "PUSAT"}
-                    onToggleArea={(area) => setSelectedAreas((current) => toggleArea(current, area))}
-                    onRemoveArea={(areaId) => setSelectedAreas((current) => current.filter((area) => area.id !== areaId))}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field>
+                <FieldLabel>Unit</FieldLabel>
+                <FieldContent>
+                  <NativeSelect
+                    value={branch}
+                    disabled={!isCreate}
+                    onChange={(event) => setBranch(event.target.value as BranchValue)}
+                  >
+                    {BRANCH_OPTIONS.map((option) => (
+                      <NativeSelectOption key={option.value} value={option.value}>
+                        {option.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </FieldContent>
+              </Field>
+              <Field>
+                <FieldLabel>Tipe jabatan</FieldLabel>
+                <FieldContent>
+                  <NativeSelect
+                    value={positionCode}
+                    disabled={!isCreate}
+                    onChange={(event) => setPositionCode(event.target.value as PositionCode)}
+                  >
+                    {positionOptions.map((option) => (
+                      <NativeSelectOption key={option.value} value={option.value}>
+                        {option.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </FieldContent>
+              </Field>
+              <Field>
+                <FieldLabel>Status aktif</FieldLabel>
+                <FieldContent>
+                  <div className="flex h-10 items-center gap-3 rounded-md border border-border/70 px-3">
+                    <Switch checked={isActive} disabled={isCreate} onCheckedChange={setIsActive} />
+                    <span className="text-sm">{isActive ? "Aktif" : "Nonaktif"}</span>
+                  </div>
+                </FieldContent>
+              </Field>
+              <Field>
+                <FieldLabel>Kode seat</FieldLabel>
+                <FieldContent>
+                  <Input
+                    value={seatCode}
+                    disabled={!isCreate}
+                    onChange={(event) => setSeatCode(event.target.value)}
+                    placeholder="Misalnya KWB-3171"
                   />
-                </>
-              ) : null}
+                </FieldContent>
+              </Field>
+              <Field>
+                <FieldLabel>Nama jabatan</FieldLabel>
+                <FieldContent>
+                  <Input
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder="Misalnya Korwil Kota Jakarta Selatan"
+                  />
+                </FieldContent>
+              </Field>
+            </div>
+
+            {isCreate ? (
+              <>
+                {branch === "PUSAT" ? (
+                  <SearchUnit
+                    query={unitQuery}
+                    setQuery={setUnitQuery}
+                    results={unitResults}
+                    selected={selectedUnit}
+                    onSelect={(unit) => {
+                      setSelectedUnit(unit);
+                      setUnitQuery("");
+                      setUnitResults([]);
+                    }}
+                    onClear={() => setSelectedUnit(null)}
+                  />
+                ) : (
+                  <RegionalAnchorSelector
+                    branch={branch}
+                    loading={regionalLoading}
+                    anchors={regionalAnchors}
+                    selectedAnchor={selectedAnchor}
+                    onSelect={(anchor) => {
+                      setSelectedUnit({
+                        id: anchor.unitId,
+                        code: anchor.code,
+                        name: anchor.name,
+                        type: anchor.type,
+                        branch,
+                      });
+                      setSelectedProvinceId(anchor.primaryProvinceAreaId ?? anchor.coverageAreas[0]?.id ?? null);
+                      setSelectedAreas(
+                        roleCode === "REGIONAL_COMMANDER" || roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER"
+                          ? anchor.coverageAreas
+                          : [],
+                      );
+                    }}
+                    onClear={() => {
+                      setSelectedUnit(null);
+                      setSelectedProvinceId(null);
+                      setSelectedAreas([]);
+                    }}
+                  />
+                )}
+                {branch !== "PUSAT" && selectedAnchor ? (
+                  <ProvinceCoverageSelector
+                    roleCode={roleCode}
+                    coverageAreas={selectedAnchor.coverageAreas}
+                    selectedProvinceId={selectedProvinceId}
+                    selectedAreas={selectedAreas}
+                    onSelectProvince={(area) => {
+                      setSelectedProvinceId(area.id);
+                      if (roleCode === "FIELD_COORDINATOR" || roleCode === "FIELD_OFFICER") {
+                        setSelectedRegencyCityId(null);
+                        setSelectedAreas([]);
+                      }
+                    }}
+                    onToggleProvinceScope={(area) => setSelectedAreas((current) => toggleArea(current, area))}
+                  />
+                ) : null}
+                {roleCode === "FIELD_OFFICER" && regencyCityAreas.length ? (
+                  <RegencyCitySelector
+                    areas={regencyCityAreas}
+                    selectedAreaId={selectedRegencyCityId}
+                    onSelect={(area) => {
+                      setSelectedRegencyCityId(area.id);
+                      setSelectedAreas([]);
+                    }}
+                  />
+                ) : null}
+                <AreaScopeSelector
+                  roleCode={roleCode}
+                  selectedAreas={selectedAreas}
+                  drilldownAreas={drilldownAreas}
+                  drilldownLoading={drilldownLoading}
+                  selectedProvince={selectedProvince}
+                  selectedRegencyCity={regencyCityAreas.find((area) => area.id === selectedRegencyCityId) ?? null}
+                  isPusat={branch === "PUSAT"}
+                  onToggleArea={(area) => setSelectedAreas((current) => toggleArea(current, area))}
+                  onRemoveArea={(areaId) => setSelectedAreas((current) => current.filter((area) => area.id !== areaId))}
+                />
+              </>
+            ) : null}
           </FieldGroup>
         </CardContent>
         <CardFooter className="justify-end gap-2">
           <Button asChild type="button" variant="outline">
-            <Link href={position ? `/dashboard/admin-system/jabatan-reporting-line/${position.id}` : "/dashboard/admin-system/jabatan-reporting-line"}>
+            <Link
+              href={
+                position
+                  ? `/dashboard/admin-system/jabatan-reporting-line/${position.id}`
+                  : "/dashboard/admin-system/jabatan-reporting-line"
+              }
+            >
               Batal
             </Link>
           </Button>
@@ -644,7 +672,11 @@ function RegionalAnchorSelector({
         }}
       >
         <NativeSelectOption value="">
-          {loading ? "Memuat master wilayah..." : branch === "DIRECTORATE" ? "Pilih dari daftar Direktorat" : "Pilih dari daftar Binda"}
+          {loading
+            ? "Memuat master wilayah..."
+            : branch === "DIRECTORATE"
+              ? "Pilih dari daftar Direktorat"
+              : "Pilih dari daftar Binda"}
         </NativeSelectOption>
         {anchors.map((anchor) => (
           <NativeSelectOption key={anchor.unitId} value={anchor.unitId}>
@@ -841,7 +873,9 @@ function AreaChoiceButton({
       }`}
     >
       <span className="block font-medium">{area.name}</span>
-      <span className="text-xs text-muted-foreground">{area.code} - {area.level}</span>
+      <span className="text-xs text-muted-foreground">
+        {area.code} - {area.level}
+      </span>
     </button>
   );
 }
@@ -868,17 +902,29 @@ function SearchUnit({
   return (
     <div className="space-y-3 rounded-lg border border-border/70 p-4">
       <Label htmlFor="unit-query">Penempatan</Label>
-      <Input id="unit-query" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari Deputi, Binda, Direktorat, Bagops, atau unit koordinasi" />
+      <Input
+        id="unit-query"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Cari Deputi, Binda, Direktorat, Bagops, atau unit koordinasi"
+      />
       {selected ? (
         <SelectedBox title={selected.name} subtitle={`${selected.code} - ${selected.type}`} onClear={onClear} />
       ) : null}
       {results.length ? (
         <ResultList>
           {results.map((unit) => (
-            <button key={unit.id} type="button" onClick={() => onSelect(unit)} className="flex w-full items-start justify-between gap-3 border-b border-border/60 px-3 py-2 text-left text-sm transition hover:bg-muted/40 last:border-b-0">
+            <button
+              key={unit.id}
+              type="button"
+              onClick={() => onSelect(unit)}
+              className="flex w-full items-start justify-between gap-3 border-b border-border/60 px-3 py-2 text-left text-sm transition hover:bg-muted/40 last:border-b-0"
+            >
               <span>
                 <span className="block font-medium">{unit.name}</span>
-                <span className="text-xs text-muted-foreground">{unit.code} - {unit.type}</span>
+                <span className="text-xs text-muted-foreground">
+                  {unit.code} - {unit.type}
+                </span>
               </span>
               <Search className="mt-0.5 size-4 text-muted-foreground" />
             </button>

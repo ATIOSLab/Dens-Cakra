@@ -1,8 +1,8 @@
+import type { ProvinceBoundaryCollection } from "@/features/directives/types";
 import { ApiClientError } from "@/lib/api/errors";
 import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
-import type { ProvinceBoundaryCollection } from "@/features/directives/types";
 
 import { OrganisasiWilayahClient } from "./organisasi-wilayah-client";
 import { OrganisasiWilayahCreateClient } from "./organisasi-wilayah-create-client";
@@ -15,10 +15,7 @@ function createEmptyProvinceBoundaryCollection(): ProvinceBoundaryCollection {
   };
 }
 
-async function safeOptionalServerGet<T>(
-  path: string,
-  query: Record<string, string | number | boolean>,
-) {
+async function safeOptionalServerGet<T>(path: string, query: Record<string, string | number | boolean>) {
   try {
     return await apiServerGet<T>(path, query);
   } catch (error) {

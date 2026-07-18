@@ -37,9 +37,7 @@ export function deriveRegionalRecipientPreview(
     }
 
     const recipients = uniqBy(
-      regionalAssignments.filter((assignment) =>
-        assignment.areaScopes.some((scope) => scope.areaId === provinceId),
-      ),
+      regionalAssignments.filter((assignment) => assignment.areaScopes.some((scope) => scope.areaId === provinceId)),
       (assignment) => assignment.positionId,
     );
 

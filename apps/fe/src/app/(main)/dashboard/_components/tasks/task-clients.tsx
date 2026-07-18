@@ -38,7 +38,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { BackButton } from "@/components/ui/back-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -51,6 +50,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { BackButton } from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -1105,12 +1105,24 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-white/[0.08] bg-white/[0.01]">
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 pl-4 py-3">Status</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">Nama Tugas</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">Batas Waktu</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">Progres Petugas</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">Jumlah Penugasan</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 pr-4 py-3 text-right">Aksi</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 pl-4 py-3">
+                      Status
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">
+                      Nama Tugas
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">
+                      Batas Waktu
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">
+                      Progres Petugas
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">
+                      Jumlah Penugasan
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 pr-4 py-3 text-right">
+                      Aksi
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1138,7 +1150,9 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
                         </TableCell>
                         <TableCell className="py-3.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold font-mono text-[10px] text-[var(--dc-success)]">{taskRate}%</span>
+                            <span className="font-bold font-mono text-[10px] text-[var(--dc-success)]">
+                              {taskRate}%
+                            </span>
                             <div className="h-1.5 w-16 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
                               <div className="h-full bg-[var(--dc-success)]" style={{ width: `${taskRate}%` }} />
                             </div>
@@ -3564,16 +3578,11 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Batalkan Penerusan STR?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Apakah Anda yakin ingin membatalkan penerusan STR ini?
-                </AlertDialogDescription>
+                <AlertDialogDescription>Apakah Anda yakin ingin membatalkan penerusan STR ini?</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Kembali</AlertDialogCancel>
-                <AlertDialogAction
-                  variant="destructive"
-                  onClick={() => router.push("/dashboard/oim/direktif-tugas")}
-                >
+                <AlertDialogAction variant="destructive" onClick={() => router.push("/dashboard/oim/direktif-tugas")}>
                   Ya, Batalkan
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -3595,16 +3604,13 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
               <AlertDialogHeader>
                 <AlertDialogTitle>Teruskan STR?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Apakah Anda yakin ingin meneruskan STR ini ke {selectedAssigneeIds.length} Field Coordinator yang dipilih?
+                  Apakah Anda yakin ingin meneruskan STR ini ke {selectedAssigneeIds.length} Field Coordinator yang
+                  dipilih?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Kembali</AlertDialogCancel>
-                <AlertDialogAction
-                  variant="success"
-                  onClick={handleForward}
-                  disabled={isSubmitting}
-                >
+                <AlertDialogAction variant="success" onClick={handleForward} disabled={isSubmitting}>
                   Ya, Teruskan
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -4316,139 +4322,133 @@ export function AssignmentBoardClient({
         <BackButton />
       </div>
       <Card>
-      <CardHeader>
-        <CardTitle>{submitLabel}</CardTitle>
-        <CardDescription>{task.title}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {!candidates.length ? (
-          <Alert>
-            <AlertTriangle className="size-4" />
-            <AlertTitle>Field Officer belum tersedia</AlertTitle>
-            <AlertDescription>
-              Tidak ada Field Officer aktif di bawah reporting line Field Coordinator ini.
-            </AlertDescription>
-          </Alert>
-        ) : null}
-        {rows.map((row, index) => (
-          <div
-            key={index}
-            className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-[minmax(0,1fr)_180px_minmax(0,1.2fr)_auto]"
-          >
-            <Select
-              value={row.assigneeAssignmentId}
-              onValueChange={(value) =>
-                setRows((current) =>
-                  current.map((item, itemIndex) =>
-                    itemIndex === index ? { ...item, assigneeAssignmentId: value } : item,
-                  ),
-                )
+        <CardHeader>
+          <CardTitle>{submitLabel}</CardTitle>
+          <CardDescription>{task.title}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!candidates.length ? (
+            <Alert>
+              <AlertTriangle className="size-4" />
+              <AlertTitle>Field Officer belum tersedia</AlertTitle>
+              <AlertDescription>
+                Tidak ada Field Officer aktif di bawah reporting line Field Coordinator ini.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {rows.map((row, index) => (
+            <div
+              key={index}
+              className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-[minmax(0,1fr)_180px_minmax(0,1.2fr)_auto]"
+            >
+              <Select
+                value={row.assigneeAssignmentId}
+                onValueChange={(value) =>
+                  setRows((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, assigneeAssignmentId: value } : item,
+                    ),
+                  )
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pilih assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {candidates.map((candidate) => (
+                    <SelectItem key={candidate.id} value={candidate.id}>
+                      {candidate.userProfile?.fullName ?? candidate.position?.title ?? candidate.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="date"
+                value={row.dueDate}
+                onChange={(event) =>
+                  setRows((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, dueDate: event.target.value } : item,
+                    ),
+                  )
+                }
+              />
+              <Textarea
+                value={row.assignmentNote}
+                onChange={(event) =>
+                  setRows((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, assignmentNote: event.target.value } : item,
+                    ),
+                  )
+                }
+                placeholder="Instruksi operasional untuk Field Officer"
+                className="min-h-20 resize-y"
+              />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="destructive" disabled={rows.length === 1 || mode === "reassign"}>
+                    Hapus
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Hapus Penugasan?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Apakah Anda yakin ingin menghapus baris penugasan ini?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                      onClick={() => setRows((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                    >
+                      Ya, Hapus
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          ))}
+
+          {mode === "assign" ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setRows((current) => [
+                  ...current,
+                  { assigneeAssignmentId: "", dueDate: task.dueDate?.slice(0, 10) ?? "", assignmentNote: "" },
+                ])
               }
             >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pilih assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                {candidates.map((candidate) => (
-                  <SelectItem key={candidate.id} value={candidate.id}>
-                    {candidate.userProfile?.fullName ?? candidate.position?.title ?? candidate.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="date"
-              value={row.dueDate}
-              onChange={(event) =>
-                setRows((current) =>
-                  current.map((item, itemIndex) =>
-                    itemIndex === index ? { ...item, dueDate: event.target.value } : item,
-                  ),
-                )
-              }
-            />
-            <Textarea
-              value={row.assignmentNote}
-              onChange={(event) =>
-                setRows((current) =>
-                  current.map((item, itemIndex) =>
-                    itemIndex === index ? { ...item, assignmentNote: event.target.value } : item,
-                  ),
-                )
-              }
-              placeholder="Instruksi operasional untuk Field Officer"
-              className="min-h-20 resize-y"
-            />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={rows.length === 1 || mode === "reassign"}
-                >
-                  Hapus
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Hapus Penugasan?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Apakah Anda yakin ingin menghapus baris penugasan ini?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                    onClick={() => setRows((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                  >
-                    Ya, Hapus
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        ))}
-
-        {mode === "assign" ? (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              setRows((current) => [
-                ...current,
-                { assigneeAssignmentId: "", dueDate: task.dueDate?.slice(0, 10) ?? "", assignmentNote: "" },
-              ])
-            }
-          >
-            Tambah Assignee
-          </Button>
-        ) : null}
-      </CardContent>
-      <CardFooter className="justify-end">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button disabled={isSubmitting || !candidates.length}>
-              {isSubmitting ? "Memproses..." : submitLabel}
+              Tambah Assignee
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Distribusikan Penugasan?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Apakah Anda yakin ingin mendistribusikan penugasan operasional ini kepada petugas terpilih?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Kembali</AlertDialogCancel>
-              <AlertDialogAction onClick={handleSubmit}>
-                Ya, Distribusikan
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </CardFooter>
-    </Card>
+          ) : null}
+        </CardContent>
+        <CardFooter className="justify-end">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button disabled={isSubmitting || !candidates.length}>
+                {isSubmitting ? "Memproses..." : submitLabel}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Distribusikan Penugasan?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Apakah Anda yakin ingin mendistribusikan penugasan operasional ini kepada petugas terpilih?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Kembali</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSubmit}>Ya, Distribusikan</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

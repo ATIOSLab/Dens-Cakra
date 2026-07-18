@@ -1,18 +1,11 @@
 "use client";
 
+import { CartesianGrid, Tooltip as ChartTooltip, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip as ChartTooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 type DataRecord = Record<string, unknown>;
 
@@ -56,9 +49,10 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
   const scoreLabel = score === null ? "Belum cukup bukti" : score.toLocaleString("id-ID", { maximumFractionDigits: 1 });
 
   // Format the last update date based on record updatedAt or fallback
-  const lastUpdateLabel = typeof data.updatedAt === "string"
-    ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(data.updatedAt))
-    : "14 Jul 2026"; // Fallback to period's end date
+  const lastUpdateLabel =
+    typeof data.updatedAt === "string"
+      ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(data.updatedAt))
+      : "14 Jul 2026"; // Fallback to period's end date
 
   // Helper for KPI labels
   const getKpiName = (kpiCode: string) => {
@@ -82,7 +76,8 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
   const hasHistory = Array.isArray(data.history) && data.history.length > 0;
 
   // Check if evidence exists in the backend record
-  const hasEvidence = Boolean(data.evidence) && (reports > 0 || tasks > 0 || verifications > 0 || measuredIndicators > 0);
+  const hasEvidence =
+    Boolean(data.evidence) && (reports > 0 || tasks > 0 || verifications > 0 || measuredIndicators > 0);
 
   // Check if timeline or audit logs exist in the backend record
   const hasTimeline = Array.isArray(data.auditLogs) && data.auditLogs.length > 0;
@@ -119,16 +114,16 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
           <div className="rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--dc-text-muted)]">Skor Evaluasi</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--dc-text-muted)]">
+                  Skor Evaluasi
+                </p>
                 <h4 className="font-mono text-3xl font-bold mt-1 text-[var(--dc-text-primary)]">{scoreLabel}</h4>
               </div>
               <div className="text-right">
                 <Badge variant={getGradeVariant(grade)} className="font-mono text-xs font-semibold px-2 py-0.5">
                   Grade {grade}
                 </Badge>
-                <p className="text-[10px] text-[var(--dc-text-muted)] mt-1.5 font-mono">
-                  Update: {lastUpdateLabel}
-                </p>
+                <p className="text-[10px] text-[var(--dc-text-muted)] mt-1.5 font-mono">Update: {lastUpdateLabel}</p>
               </div>
             </div>
 
@@ -163,24 +158,30 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
 
           {/* Section 2: Individual 5 KPIs */}
           <div className="space-y-3">
-            <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--dc-text-secondary)]">Kinerja per Indikator</h5>
+            <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--dc-text-secondary)]">
+              Kinerja per Indikator
+            </h5>
             <div className="space-y-2">
               {indicators.map((ind: any) => {
                 const kpiScore = ind.score !== null && ind.score !== undefined ? Number(ind.score) : null;
-                const formattedKpiScore = kpiScore === null ? "-" : kpiScore.toLocaleString("id-ID", { maximumFractionDigits: 1 });
+                const formattedKpiScore =
+                  kpiScore === null ? "-" : kpiScore.toLocaleString("id-ID", { maximumFractionDigits: 1 });
                 const sample = ind.sample !== undefined && ind.sample !== null ? Number(ind.sample) : null;
 
                 return (
-                  <div key={ind.code} className="p-2.5 rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] space-y-2">
+                  <div
+                    key={ind.code}
+                    className="p-2.5 rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] space-y-2"
+                  >
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono font-semibold text-[var(--dc-text-primary)]">{ind.code} • {getKpiName(ind.code)}</span>
+                      <span className="font-mono font-semibold text-[var(--dc-text-primary)]">
+                        {ind.code} • {getKpiName(ind.code)}
+                      </span>
                       <span className="font-mono font-bold text-[var(--dc-text-primary)]">{formattedKpiScore}</span>
                     </div>
                     <Progress value={kpiScore ?? 0} className="h-1.5 [&>div]:bg-[var(--dc-primary)]" />
                     <div className="flex justify-between items-center text-[10px] text-[var(--dc-text-muted)]">
-                      <span>
-                        {sample !== null && sample > 0 ? `Jumlah bukti: ${sample}` : ""}
-                      </span>
+                      <span>{sample !== null && sample > 0 ? `Jumlah bukti: ${sample}` : ""}</span>
                       <span>Target: 100</span>
                     </div>
                   </div>
@@ -195,11 +196,15 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
           {/* Section 3: Evidence Breakdown (Only shown if evidence data exists in backend) */}
           {hasEvidence && (
             <div className="space-y-3">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--dc-text-secondary)]">Kualitas Bukti Laporan</h5>
+              <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--dc-text-secondary)]">
+                Kualitas Bukti Laporan
+              </h5>
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 border rounded-lg bg-[var(--dc-surface)] text-center">
                   <span className="text-[10px] text-[var(--dc-text-muted)] block">Total Baket</span>
-                  <span className="font-mono text-lg font-bold text-[var(--dc-text-primary)] mt-1 block">{reports}</span>
+                  <span className="font-mono text-lg font-bold text-[var(--dc-text-primary)] mt-1 block">
+                    {reports}
+                  </span>
                 </div>
                 <div className="p-3 border rounded-lg bg-[var(--dc-surface)] text-center">
                   <span className="text-[10px] text-[var(--dc-text-muted)] block">Tugas Terpenuhi</span>
@@ -207,11 +212,15 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
                 </div>
                 <div className="p-3 border rounded-lg bg-[var(--dc-surface)] text-center">
                   <span className="text-[10px] text-[var(--dc-text-muted)] block">Verifikasi Neraca</span>
-                  <span className="font-mono text-lg font-bold text-[var(--dc-text-primary)] mt-1 block">{verifications}</span>
+                  <span className="font-mono text-lg font-bold text-[var(--dc-text-primary)] mt-1 block">
+                    {verifications}
+                  </span>
                 </div>
                 <div className="p-3 border rounded-lg bg-[var(--dc-surface)] text-center">
                   <span className="text-[10px] text-[var(--dc-text-muted)] block">Indikator Terukur</span>
-                  <span className="font-mono text-lg font-bold text-[var(--dc-text-primary)] mt-1 block">{measuredIndicators} / 5</span>
+                  <span className="font-mono text-lg font-bold text-[var(--dc-text-primary)] mt-1 block">
+                    {measuredIndicators} / 5
+                  </span>
                 </div>
               </div>
             </div>
@@ -220,7 +229,9 @@ export function RightDrawer({ isOpen, onClose, type, data }: RightDrawerProps) {
           {/* Section 4: Riwayat Evaluasi (Only shown if history/logs exist in backend) */}
           {hasTimeline && (
             <div className="space-y-3">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--dc-text-secondary)]">Riwayat Evaluasi</h5>
+              <h5 className="text-xs font-bold uppercase tracking-wider text-[var(--dc-text-secondary)]">
+                Riwayat Evaluasi
+              </h5>
               <div className="relative pl-4 border-l border-[var(--dc-divider)] space-y-4 text-xs">
                 {(data.auditLogs as Array<any>).map((log: any, idx: number) => (
                   <div key={log.id ?? idx} className="relative">

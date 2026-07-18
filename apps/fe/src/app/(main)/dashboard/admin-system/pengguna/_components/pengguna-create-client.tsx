@@ -19,18 +19,9 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
-import { createUserSchema, type CreateUserFormValues } from "./pengguna-schemas";
-import type {
-  AreaSearchResult,
-  PositionSummary,
-  UserProvisionResponse,
-} from "./pengguna-types";
-import {
-  ROLE_CODE_TO_AUTH_ROLE,
-  formatDateTime,
-  toDateTimeLocalValue,
-  toIsoFromLocalValue,
-} from "./pengguna-types";
+import { type CreateUserFormValues, createUserSchema } from "./pengguna-schemas";
+import type { AreaSearchResult, PositionSummary, UserProvisionResponse } from "./pengguna-types";
+import { formatDateTime, ROLE_CODE_TO_AUTH_ROLE, toDateTimeLocalValue, toIsoFromLocalValue } from "./pengguna-types";
 
 export function PenggunaCreateClient() {
   const form = useForm<CreateUserFormValues>({
@@ -94,24 +85,24 @@ export function PenggunaCreateClient() {
       }
     }
 
-    loadPositionOptions().catch(() => {
-      if (!cancelled) {
-        setPositionOptions([]);
-      }
-    }).finally(() => {
-      if (!cancelled) {
-        setPositionsLoading(false);
-      }
-    });
+    loadPositionOptions()
+      .catch(() => {
+        if (!cancelled) {
+          setPositionOptions([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPositionsLoading(false);
+        }
+      });
 
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const derivedAuthRole = selectedPosition?.role?.code
-    ? ROLE_CODE_TO_AUTH_ROLE[selectedPosition.role.code]
-    : null;
+  const derivedAuthRole = selectedPosition?.role?.code ? ROLE_CODE_TO_AUTH_ROLE[selectedPosition.role.code] : null;
 
   async function handleCopyPassword() {
     if (!successState?.generatedTempPassword) {
@@ -140,28 +131,24 @@ export function PenggunaCreateClient() {
     setIsSubmitting(true);
 
     try {
-      const response = await apiBrowserMutation<UserProvisionResponse>(
-        "POST",
-        "/user-profiles/provision",
-        {
-          auth: {
-            name: values.name.trim(),
-            email: values.email.trim(),
-            role: derivedAuthRole,
-          },
-          profile: {
-            username: values.username.trim(),
-            fullName: values.fullName.trim(),
-            ...(values.phone?.trim() ? { phone: values.phone.trim() } : {}),
-          },
-          assignment: {
-            organizationUnitId: selectedPosition.organizationUnit.id,
-            ...(selectedPosition.branch ? { branch: selectedPosition.branch } : {}),
-            positionId: selectedPosition.id,
-            validFrom: toIsoFromLocalValue(values.validFrom),
-          },
+      const response = await apiBrowserMutation<UserProvisionResponse>("POST", "/user-profiles/provision", {
+        auth: {
+          name: values.name.trim(),
+          email: values.email.trim(),
+          role: derivedAuthRole,
         },
-      );
+        profile: {
+          username: values.username.trim(),
+          fullName: values.fullName.trim(),
+          ...(values.phone?.trim() ? { phone: values.phone.trim() } : {}),
+        },
+        assignment: {
+          organizationUnitId: selectedPosition.organizationUnit.id,
+          ...(selectedPosition.branch ? { branch: selectedPosition.branch } : {}),
+          positionId: selectedPosition.id,
+          validFrom: toIsoFromLocalValue(values.validFrom),
+        },
+      });
 
       setSuccessState(response);
       toast.success("User baru berhasil diprovision.");
@@ -181,8 +168,8 @@ export function PenggunaCreateClient() {
           </div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">Password sementara siap diserahkan</h1>
           <p className="max-w-3xl text-muted-foreground text-sm">
-            Secret ini hanya ditampilkan sekali setelah provisioning berhasil. Simpan atau serahkan ke operator
-            yang berwenang sebelum meninggalkan halaman.
+            Secret ini hanya ditampilkan sekali setelah provisioning berhasil. Simpan atau serahkan ke operator yang
+            berwenang sebelum meninggalkan halaman.
           </p>
         </div>
 
@@ -247,8 +234,8 @@ export function PenggunaCreateClient() {
                 <KeyRound className="size-4" />
                 <AlertTitle>Langkah setelah ini</AlertTitle>
                 <AlertDescription>
-                  Sampaikan password sementara lewat kanal yang aman, lalu minta user mengganti kredensialnya
-                  melalui flow reset password saat diperlukan.
+                  Sampaikan password sementara lewat kanal yang aman, lalu minta user mengganti kredensialnya melalui
+                  flow reset password saat diperlukan.
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -293,7 +280,10 @@ export function PenggunaCreateClient() {
         </p>
       </div>
 
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]"
+      >
         <Card className="border border-border/70">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -317,7 +307,12 @@ export function PenggunaCreateClient() {
                 <Field>
                   <FieldLabel htmlFor="auth-email">Email</FieldLabel>
                   <FieldContent>
-                    <Input id="auth-email" type="email" {...form.register("email")} placeholder="operator@denscakra.local" />
+                    <Input
+                      id="auth-email"
+                      type="email"
+                      {...form.register("email")}
+                      placeholder="operator@denscakra.local"
+                    />
                     <FieldError errors={[form.formState.errors.email]} />
                   </FieldContent>
                 </Field>
@@ -451,12 +446,15 @@ export function PenggunaCreateClient() {
                 <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Jabatan</div>
                 <div className="mt-2 font-medium">{selectedPosition?.title || "-"}</div>
                 <div className="text-sm text-muted-foreground">
-                  {selectedPosition?.seatCode || "-"} - {selectedPosition?.organizationUnit?.name || "Pilih jabatan untuk melihat penempatan."}
+                  {selectedPosition?.seatCode || "-"} -{" "}
+                  {selectedPosition?.organizationUnit?.name || "Pilih jabatan untuk melihat penempatan."}
                 </div>
               </div>
 
               <div className="rounded-xl border border-border/70 p-4">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Ringkasan assignment</div>
+                <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                  Ringkasan assignment
+                </div>
                 <div className="mt-2 space-y-1 text-sm">
                   <div>Unit: {selectedPosition?.branch || "-"}</div>
                   <div>Penempatan: {selectedPosition?.organizationUnit?.name || "-"}</div>
@@ -470,8 +468,8 @@ export function PenggunaCreateClient() {
             <AlertTriangle className="size-4" />
             <AlertTitle>Catatan operasional</AlertTitle>
             <AlertDescription>
-              Endpoint provisioning sekarang menggenerate password sementara di backend. Secret hanya muncul
-              sekali setelah sukses dan tidak disimpan ulang pada halaman detail.
+              Endpoint provisioning sekarang menggenerate password sementara di backend. Secret hanya muncul sekali
+              setelah sukses dan tidak disimpan ulang pada halaman detail.
             </AlertDescription>
           </Alert>
         </div>

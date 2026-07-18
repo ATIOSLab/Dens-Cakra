@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { forwardTaskInstructionToJaring } from "@/server/field-ops/repository";
 
@@ -17,20 +17,13 @@ export async function POST(request: NextRequest, { params }: Params) {
     };
 
     return NextResponse.json(
-      await forwardTaskInstructionToJaring(
-        request.headers.get("cookie") ?? "",
-        assignmentId,
-        body,
-      ),
+      await forwardTaskInstructionToJaring(request.headers.get("cookie") ?? "", assignmentId, body),
       { status: 201 },
     );
   } catch (error) {
     return NextResponse.json(
       {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Gagal meneruskan instruksi ke Jaring.",
+        message: error instanceof Error ? error.message : "Gagal meneruskan instruksi ke Jaring.",
       },
       { status: 500 },
     );

@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+
 import { Award, BarChart3, ShieldAlert, Target } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-
 
 type DataRecord = Record<string, unknown>;
 
@@ -48,10 +49,11 @@ export function Top5Units({ topPerformers, onSelectUnit }: Top5UnitsProps) {
               className="flex items-center justify-between text-left p-1.5 w-full rounded hover:bg-[var(--dc-surface-hover)] border border-transparent hover:border-[var(--dc-primary-soft)] transition-all"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="font-mono text-[10px] font-bold text-emerald-500 w-4">
-                  #{index + 1}
-                </span>
-                <span className="text-xs text-[var(--dc-text-secondary)] truncate max-w-[170px]" title={String(item.name)}>
+                <span className="font-mono text-[10px] font-bold text-emerald-500 w-4">#{index + 1}</span>
+                <span
+                  className="text-xs text-[var(--dc-text-secondary)] truncate max-w-[170px]"
+                  title={String(item.name)}
+                >
                   {String(item.name)}
                 </span>
               </div>
@@ -98,10 +100,11 @@ export function LowestUnits({ lowestPerformers, onSelectUnit }: LowestUnitsProps
               className="flex items-center justify-between text-left p-1.5 w-full rounded hover:bg-[var(--dc-surface-hover)] border border-transparent hover:border-[var(--dc-primary-soft)] transition-all"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="font-mono text-[10px] font-bold text-[var(--dc-danger)] w-4">
-                  #{index + 1}
-                </span>
-                <span className="text-xs text-[var(--dc-text-secondary)] truncate max-w-[170px]" title={String(item.name)}>
+                <span className="font-mono text-[10px] font-bold text-[var(--dc-danger)] w-4">#{index + 1}</span>
+                <span
+                  className="text-xs text-[var(--dc-text-secondary)] truncate max-w-[170px]"
+                  title={String(item.name)}
+                >
                   {String(item.name)}
                 </span>
               </div>
@@ -129,7 +132,10 @@ interface GradeDistributionProps {
 export function GradeDistribution({ units }: GradeDistributionProps) {
   // Aggregate grade frequencies dynamically from the units data
   const gradeCounts = useMemo(() => {
-    let a = 0, b = 0, c = 0, d = 0;
+    let a = 0,
+      b = 0,
+      c = 0,
+      d = 0;
     for (const unit of units) {
       const g = String(unit.grade ?? "");
       if (g === "A") a++;
@@ -139,10 +145,34 @@ export function GradeDistribution({ units }: GradeDistributionProps) {
     }
     const total = a + b + c + d || 1;
     return [
-      { grade: "A", count: a, percent: parseFloat(((a / total) * 100).toFixed(1)), color: "bg-emerald-500", textClass: "text-emerald-500" },
-      { grade: "B", count: b, percent: parseFloat(((b / total) * 100).toFixed(1)), color: "bg-[var(--dc-primary)]", textClass: "text-[var(--dc-primary)]" },
-      { grade: "C", count: c, percent: parseFloat(((c / total) * 100).toFixed(1)), color: "bg-amber-500", textClass: "text-amber-500" },
-      { grade: "D", count: d, percent: parseFloat(((d / total) * 100).toFixed(1)), color: "bg-[var(--dc-danger)]", textClass: "text-[var(--dc-danger)]" },
+      {
+        grade: "A",
+        count: a,
+        percent: parseFloat(((a / total) * 100).toFixed(1)),
+        color: "bg-emerald-500",
+        textClass: "text-emerald-500",
+      },
+      {
+        grade: "B",
+        count: b,
+        percent: parseFloat(((b / total) * 100).toFixed(1)),
+        color: "bg-[var(--dc-primary)]",
+        textClass: "text-[var(--dc-primary)]",
+      },
+      {
+        grade: "C",
+        count: c,
+        percent: parseFloat(((c / total) * 100).toFixed(1)),
+        color: "bg-amber-500",
+        textClass: "text-amber-500",
+      },
+      {
+        grade: "D",
+        count: d,
+        percent: parseFloat(((d / total) * 100).toFixed(1)),
+        color: "bg-[var(--dc-danger)]",
+        textClass: "text-[var(--dc-danger)]",
+      },
     ];
   }, [units]);
 

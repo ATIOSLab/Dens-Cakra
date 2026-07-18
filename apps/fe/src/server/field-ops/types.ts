@@ -47,9 +47,29 @@ export type FieldOfficerJaring = {
   areaIds: string[];
   messageCount: number;
   baketCount: number;
+  fullName: string | null;
+  nationalIdNumber: string | null;
+  birthPlace: string | null;
+  birthDate: string | null;
+  gender: string | null;
+  occupationName: string | null;
+  workplace: string | null;
+  jobTitle: string | null;
+  joinedAt: string | null;
+  organizationName: string | null;
+  politicalAffiliation: string | null;
 };
 
 export type JaringCluster = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  jaringCount?: number;
+};
+
+export type JaringOccupation = {
   id: string;
   code: string;
   name: string;
@@ -149,6 +169,7 @@ export type FieldOfficerWorkspace = {
   };
   jaring: FieldOfficerJaring[];
   jaringClusters: JaringCluster[];
+  occupations: JaringOccupation[];
   districtAreas: Array<{
     areaId: string;
     code: string;

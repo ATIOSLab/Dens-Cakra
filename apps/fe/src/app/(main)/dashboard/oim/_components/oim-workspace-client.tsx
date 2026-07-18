@@ -7,15 +7,20 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
+  Activity,
+  AlertCircle,
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
   BarChart3,
   CheckCircle2,
   ClipboardCheck,
+  Clock,
+  FileCheck,
+  FileDown,
   FileSearch,
   FileText,
-  FileDown,
+  Inbox,
   MapPin,
   MapPinned,
   Maximize2,
@@ -24,21 +29,14 @@ import {
   Plus,
   Printer,
   RadioTower,
+  RefreshCw,
   Send,
   ShieldCheck,
   UserRound,
-  Inbox,
-  Clock,
-  Activity,
-  RefreshCw,
-  FileCheck,
   Users,
   Zap,
-  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-
-import { cn } from "@/lib/utils";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -52,27 +50,28 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PageHeader } from "@/components/ui/page-header";
-import { TableToolbar } from "@/components/ui/table-toolbar";
-import { TablePagination } from "@/components/ui/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { TableToolbar } from "@/components/ui/table-toolbar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { administrativeAreaLabel } from "@/features/baket/administrative-area";
 import { BaketAdministrativeArea } from "@/features/baket/components/baket-administrative-area";
+import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { cn } from "@/lib/utils";
 
 import type { OimPageData, OimView } from "./oim-types";
-import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 
 const SituationMap = dynamic(() => import("./oim-situation-map").then((module) => module.OimSituationMap), {
   ssr: false,
@@ -92,11 +91,7 @@ type Props = { view: OimView; data: OimPageData; params: Record<string, string> 
 
 const VIEW_META: Record<OimView, [string, string, typeof FileText]> = {
   dashboard: ["Pusat Kendali OIM", "Ringkasan antrean intelijen dalam scope komando dan wilayah Anda.", RadioTower],
-  reports: [
-    "Laporan Masuk",
-    "",
-    FileSearch,
-  ],
+  reports: ["Laporan Masuk", "", FileSearch],
   "report-detail": ["Detail Baket", "Bukti, peta lokasi, versi, dan jejak keputusan.", FileSearch],
   "report-version": ["Snapshot Versi Baket", "Versi historis bersifat baca-saja.", FileText],
   verification: [
@@ -204,23 +199,32 @@ function StatusBadge({ value }: { value?: string }) {
 function Header({ view, data }: { view: OimView; data?: OimPageData }) {
   const [title, description, Icon] = VIEW_META[view];
   const router = useRouter();
-  
+
   const root = (data?.areas ?? {}) as Row;
   const topLevel = rows(root.children);
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
   const provinceName = provinces[0]?.name || "REGIONAL";
-  
-  const hasBackButton = ["report-detail", "analysis-detail", "analysis-new", "analysis-edit", "product-new", "product-edit", "product-detail"].includes(view);
+
+  const hasBackButton = [
+    "report-detail",
+    "analysis-detail",
+    "analysis-new",
+    "analysis-edit",
+    "product-new",
+    "product-edit",
+    "product-detail",
+  ].includes(view);
 
   const backButtonSettings = hasBackButton
     ? {
-        href: view === "report-detail"
-          ? "/dashboard/oim/laporan-masuk"
-          : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
-          ? "/dashboard/oim/analisis-intelijen"
-          : ["product-new", "product-edit", "product-detail"].includes(view)
-          ? "/dashboard/oim/produk-intelijen/daftar-produk"
-          : undefined
+        href:
+          view === "report-detail"
+            ? "/dashboard/oim/laporan-masuk"
+            : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
+              ? "/dashboard/oim/analisis-intelijen"
+              : ["product-new", "product-edit", "product-detail"].includes(view)
+                ? "/dashboard/oim/produk-intelijen/daftar-produk"
+                : undefined,
       }
     : undefined;
 
@@ -232,11 +236,11 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
         backButton={backButtonSettings}
         badge={
           <div className="flex items-center gap-2">
-            <div 
+            <div
               className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-card"
               style={{ color: "#06B6D4" }}
             >
-              <div 
+              <div
                 className="size-full flex items-center justify-center rounded-lg"
                 style={{ backgroundColor: "#06B6D41c" }}
               >
@@ -247,8 +251,8 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
         }
         actions={
           <div className="flex items-center gap-3 shrink-0 print:hidden">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               asChild
               className="border border-border bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-[150ms] ease-out rounded-lg h-10 px-4"
             >
@@ -257,7 +261,7 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
                 <span>PETA</span>
               </Link>
             </Button>
-            <Button 
+            <Button
               asChild
               className="bg-[#3B82F6] hover:bg-[#2563EB] text-white transition-all duration-[150ms] ease-out rounded-lg h-10 px-4 shadow-[0_4px_12px_rgba(59,130,246,0.2)] border-none"
             >
@@ -274,7 +278,7 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
           MANAJER OPERASIONAL INTELIJEN
         </p>
-        
+
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
           <span className="flex items-center gap-1.5 text-[#16C784]">
             <span className="size-1.5 rounded-full bg-[#16C784] animate-pulse" />
@@ -447,15 +451,24 @@ function getClassificationStyles(value?: string) {
 
 function productStatusLabel(value?: string) {
   switch ((value ?? "").toUpperCase()) {
-    case "DRAFT": return "Draf";
-    case "READY_FOR_SUBMISSION": return "Siap Diajukan";
-    case "SUBMITTED": return "Diajukan";
-    case "IN_REVIEW": return "Sedang Ditinjau";
-    case "NEEDS_REVISION": return "Perlu Revisi";
-    case "APPROVED": return "Disetujui";
-    case "REJECTED": return "Ditolak";
-    case "UNDER_REGIONAL_REVIEW": return "Peninjauan Regional";
-    default: return value ?? "—";
+    case "DRAFT":
+      return "Draf";
+    case "READY_FOR_SUBMISSION":
+      return "Siap Diajukan";
+    case "SUBMITTED":
+      return "Diajukan";
+    case "IN_REVIEW":
+      return "Sedang Ditinjau";
+    case "NEEDS_REVISION":
+      return "Perlu Revisi";
+    case "APPROVED":
+      return "Disetujui";
+    case "REJECTED":
+      return "Ditolak";
+    case "UNDER_REGIONAL_REVIEW":
+      return "Peninjauan Regional";
+    default:
+      return value ?? "—";
   }
 }
 
@@ -615,7 +628,7 @@ function Filters({
     periodEnd,
     mode,
     router,
-    searchParams
+    searchParams,
   ]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -623,7 +636,10 @@ function Filters({
   };
 
   return (
-    <form className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-2 xl:grid-cols-4 animate-in fade-in" onSubmit={handleSubmit}>
+    <form
+      className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-2 xl:grid-cols-4 animate-in fade-in"
+      onSubmit={handleSubmit}
+    >
       <Input
         name="search"
         placeholder="Cari judul, isi, nomor produk…"
@@ -631,7 +647,7 @@ function Filters({
         onChange={(e) => setSearch(e.target.value)}
         className="h-9 text-sm bg-background border-border text-foreground"
       />
-      
+
       {/* Kabupaten/Kota Select */}
       <Select
         value={regencyId || "ALL"}
@@ -654,10 +670,7 @@ function Filters({
       </Select>
 
       {/* Kecamatan Select */}
-      <Select
-        value={districtId || "ALL"}
-        onValueChange={(val) => setDistrictId(val === "ALL" ? "" : val)}
-      >
+      <Select value={districtId || "ALL"} onValueChange={(val) => setDistrictId(val === "ALL" ? "" : val)}>
         <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
           <SelectValue placeholder="Seluruh kecamatan" />
         </SelectTrigger>
@@ -672,10 +685,7 @@ function Filters({
       </Select>
 
       {/* Status Select */}
-      <Select
-        value={status || "ALL"}
-        onValueChange={(val) => setStatus(val === "ALL" ? "" : val)}
-      >
+      <Select value={status || "ALL"} onValueChange={(val) => setStatus(val === "ALL" ? "" : val)}>
         <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
           <SelectValue placeholder="Seluruh status" />
         </SelectTrigger>
@@ -690,10 +700,7 @@ function Filters({
       </Select>
 
       {/* Urgensi Select */}
-      <Select
-        value={urgency || "ALL"}
-        onValueChange={(val) => setUrgency(val === "ALL" ? "" : val)}
-      >
+      <Select value={urgency || "ALL"} onValueChange={(val) => setUrgency(val === "ALL" ? "" : val)}>
         <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
           <SelectValue placeholder="Semua urgensi" />
         </SelectTrigger>
@@ -707,10 +714,7 @@ function Filters({
 
       {/* Classification Select (for Product mode) */}
       {mode === "product" ? (
-        <Select
-          value={classification || "ALL"}
-          onValueChange={(val) => setClassification(val === "ALL" ? "" : val)}
-        >
+        <Select value={classification || "ALL"} onValueChange={(val) => setClassification(val === "ALL" ? "" : val)}>
           <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
             <SelectValue placeholder="Semua klasifikasi" />
           </SelectTrigger>
@@ -726,10 +730,7 @@ function Filters({
 
       {/* Kategori Select (for Baket mode) */}
       {mode === "baket" ? (
-        <Select
-          value={categoryId || "ALL"}
-          onValueChange={(val) => setCategoryId(val === "ALL" ? "" : val)}
-        >
+        <Select value={categoryId || "ALL"} onValueChange={(val) => setCategoryId(val === "ALL" ? "" : val)}>
           <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
             <SelectValue placeholder="Semua kategori" />
           </SelectTrigger>
@@ -746,10 +747,7 @@ function Filters({
 
       {/* Klaster Select (for Baket mode) */}
       {mode === "baket" ? (
-        <Select
-          value={jaringClusterId || "ALL"}
-          onValueChange={(val) => setJaringClusterId(val === "ALL" ? "" : val)}
-        >
+        <Select value={jaringClusterId || "ALL"} onValueChange={(val) => setJaringClusterId(val === "ALL" ? "" : val)}>
           <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
             <SelectValue placeholder="Semua klaster" />
           </SelectTrigger>
@@ -780,7 +778,18 @@ function Filters({
         onChange={(e) => setPeriodEnd(e.target.value)}
         className="h-9 text-sm bg-background border-border text-foreground"
       />
-      {!!(search || regencyId || districtId || status || urgency || classification || categoryId || jaringClusterId || periodStart || periodEnd) && (
+      {!!(
+        search ||
+        regencyId ||
+        districtId ||
+        status ||
+        urgency ||
+        classification ||
+        categoryId ||
+        jaringClusterId ||
+        periodStart ||
+        periodEnd
+      ) && (
         <Button
           type="button"
           variant="outline"
@@ -873,13 +882,27 @@ function BaketList({ data }: { data: OimPageData }) {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">Status & Urgensi</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Judul Laporan</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Kategori & Klaster</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Pengirim</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Wilayah</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Tanggal</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">Aksi</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">
+                      Status & Urgensi
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Judul Laporan
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Kategori & Klaster
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Pengirim
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Wilayah
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Tanggal
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">
+                      Aksi
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -887,10 +910,13 @@ function BaketList({ data }: { data: OimPageData }) {
                     const version = currentVersion(item);
                     const fieldOfficer = item.createdByFieldOfficerAssignment;
                     return (
-                      <TableRow key={item.id} className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                      <TableRow
+                        key={item.id}
+                        className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors"
+                      >
                         <TableCell className="pl-6 py-4">
                           <div className="flex flex-col gap-1 items-start">
-                            <span 
+                            <span
                               className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
                               style={{
                                 color: item.status === "SENT_TO_OIM" ? "#06B6D4" : "#10B981",
@@ -900,12 +926,27 @@ function BaketList({ data }: { data: OimPageData }) {
                             >
                               {baketStatusLabel(item.status)}
                             </span>
-                            <span 
+                            <span
                               className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
                               style={{
-                                color: version.urgency === "URGENT" ? "#EF4444" : version.urgency === "HIGH" ? "#F59E0B" : "#3B82F6",
-                                backgroundColor: version.urgency === "URGENT" ? "#EF444415" : version.urgency === "HIGH" ? "#F59E0B15" : "#3B82F615",
-                                borderColor: version.urgency === "URGENT" ? "#EF444430" : version.urgency === "HIGH" ? "#F59E0B30" : "#3B82F630",
+                                color:
+                                  version.urgency === "URGENT"
+                                    ? "#EF4444"
+                                    : version.urgency === "HIGH"
+                                      ? "#F59E0B"
+                                      : "#3B82F6",
+                                backgroundColor:
+                                  version.urgency === "URGENT"
+                                    ? "#EF444415"
+                                    : version.urgency === "HIGH"
+                                      ? "#F59E0B15"
+                                      : "#3B82F615",
+                                borderColor:
+                                  version.urgency === "URGENT"
+                                    ? "#EF444430"
+                                    : version.urgency === "HIGH"
+                                      ? "#F59E0B30"
+                                      : "#3B82F630",
                               }}
                             >
                               {version.urgency ?? "NORMAL"}
@@ -913,7 +954,9 @@ function BaketList({ data }: { data: OimPageData }) {
                           </div>
                         </TableCell>
                         <TableCell className="py-4 max-w-[280px]">
-                          <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-2 leading-relaxed">{version.title ?? "Baket tanpa judul"}</h4>
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-2 leading-relaxed">
+                            {version.title ?? "Baket tanpa judul"}
+                          </h4>
                         </TableCell>
                         <TableCell className="py-4">
                           <div className="flex flex-col gap-1 items-start">
@@ -935,14 +978,12 @@ function BaketList({ data }: { data: OimPageData }) {
                           {fmtDate(item.updatedAt)}
                         </TableCell>
                         <TableCell className="pr-6 py-4 text-right">
-                          <Button 
-                            asChild 
+                          <Button
+                            asChild
                             variant="ghost"
                             className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-8 px-3 transition-all duration-[150ms] ease-out cursor-pointer"
                           >
-                            <Link href={`/dashboard/oim/laporan-masuk/${item.id}`}>
-                              Tinjau
-                            </Link>
+                            <Link href={`/dashboard/oim/laporan-masuk/${item.id}`}>Tinjau</Link>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -960,14 +1001,14 @@ function BaketList({ data }: { data: OimPageData }) {
                 const version = currentVersion(item);
                 const fieldOfficer = item.createdByFieldOfficerAssignment;
                 return (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 transition-all duration-[150ms] ease-out hover:translate-y-[-2px] hover:border-slate-300 dark:hover:border-white/15 cursor-pointer flex flex-col group shadow-sm dark:shadow-none"
                   >
                     <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
                       <div className="space-y-2.5">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span 
+                          <span
                             className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
                             style={{
                               color: item.status === "SENT_TO_OIM" ? "#06B6D4" : "#10B981",
@@ -977,41 +1018,62 @@ function BaketList({ data }: { data: OimPageData }) {
                           >
                             {baketStatusLabel(item.status)}
                           </span>
-                          <span 
+                          <span
                             className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
                             style={{
-                              color: version.urgency === "URGENT" ? "#EF4444" : version.urgency === "HIGH" ? "#F59E0B" : "#3B82F6",
-                              backgroundColor: version.urgency === "URGENT" ? "#EF444415" : version.urgency === "HIGH" ? "#F59E0B15" : "#3B82F615",
-                              borderColor: version.urgency === "URGENT" ? "#EF444430" : version.urgency === "HIGH" ? "#F59E0B30" : "#3B82F630",
+                              color:
+                                version.urgency === "URGENT"
+                                  ? "#EF4444"
+                                  : version.urgency === "HIGH"
+                                    ? "#F59E0B"
+                                    : "#3B82F6",
+                              backgroundColor:
+                                version.urgency === "URGENT"
+                                  ? "#EF444415"
+                                  : version.urgency === "HIGH"
+                                    ? "#F59E0B15"
+                                    : "#3B82F615",
+                              borderColor:
+                                version.urgency === "URGENT"
+                                  ? "#EF444430"
+                                  : version.urgency === "HIGH"
+                                    ? "#F59E0B30"
+                                    : "#3B82F630",
                             }}
                           >
                             {version.urgency ?? "NORMAL"}
                           </span>
-                          
+
                           <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
                             KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
                           </span>
-                          
+
                           <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
                             {item.jaringCluster?.name ?? "KLASTER OIM"}
                           </span>
 
-                          <span className="text-xs text-muted-foreground/60 font-mono">v{item.currentVersionNumber}</span>
+                          <span className="text-xs text-muted-foreground/60 font-mono">
+                            v{item.currentVersionNumber}
+                          </span>
                         </div>
 
-                        <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">{version.title ?? "Baket tanpa judul"}</h2>
-                        
+                        <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">
+                          {version.title ?? "Baket tanpa judul"}
+                        </h2>
+
                         <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] leading-relaxed line-clamp-2">
                           {version.normalizedContent ?? version.originalContent ?? "Belum ada ringkasan."}
                         </p>
-                        
+
                         <p className="text-[12px] font-mono text-slate-500 dark:text-[#7C8798] pt-1">
-                          PETUGAS: {fieldOfficerUserName(fieldOfficer).toUpperCase()} · {administrativeAreaLabel(version.eventArea).toUpperCase()} · {fmtDate(item.updatedAt).toUpperCase()}
+                          PETUGAS: {fieldOfficerUserName(fieldOfficer).toUpperCase()} ·{" "}
+                          {administrativeAreaLabel(version.eventArea).toUpperCase()} ·{" "}
+                          {fmtDate(item.updatedAt).toUpperCase()}
                         </p>
                       </div>
-                      
-                      <Button 
-                        asChild 
+
+                      <Button
+                        asChild
                         variant="ghost"
                         className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-10 px-4 transition-all duration-[150ms] ease-out shrink-0 cursor-pointer"
                       >
@@ -1036,11 +1098,15 @@ function BaketList({ data }: { data: OimPageData }) {
             <Inbox className="size-6" style={{ strokeWidth: "2px" }} />
           </div>
           <div className="space-y-1">
-            <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">TIDAK ADA INTAKE AKTIF</h3>
-            <p className="text-[13px] text-slate-600 dark:text-[#94A3B8]">Semua laporan intelijen telah selesai diproses.</p>
+            <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              TIDAK ADA INTAKE AKTIF
+            </h3>
+            <p className="text-[13px] text-slate-600 dark:text-[#94A3B8]">
+              Semua laporan intelijen telah selesai diproses.
+            </p>
           </div>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => window.location.reload()}
             className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-xs text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-md h-8 px-3 flex items-center gap-1.5 transition-all duration-[150ms] cursor-pointer"
           >
@@ -1173,7 +1239,9 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
                   <EvidenceImageViewer
                     src={`/api/files/${primaryPhoto.fileId ?? primaryPhoto.file?.id}`}
                     alt={primaryPhoto.file?.originalName ?? "Foto bukti laporan Baket"}
-                    fileName={primaryPhoto.file?.originalName ?? String(primaryPhoto.fileId ?? primaryPhoto.file?.id ?? "bukti")}
+                    fileName={
+                      primaryPhoto.file?.originalName ?? String(primaryPhoto.fileId ?? primaryPhoto.file?.id ?? "bukti")
+                    }
                     caption={primaryPhoto.caption ?? primaryPhoto.file?.mimeType}
                   />
                 </div>
@@ -1448,11 +1516,7 @@ function VerificationEditor({ item }: { item?: unknown }) {
           </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button
-                disabled={locked || pending || !reliability || !credibility}
-                variant="success"
-                className="w-full"
-              >
+              <Button disabled={locked || pending || !reliability || !credibility} variant="success" className="w-full">
                 <CheckCircle2 />
                 Terverifikasi
               </Button>
@@ -1461,7 +1525,8 @@ function VerificationEditor({ item }: { item?: unknown }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Verifikasi Laporan Baket?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Apakah Anda yakin ingin menyelesaikan penilaian dan menetapkan status laporan ini sebagai Terverifikasi?
+                  Apakah Anda yakin ingin menyelesaikan penilaian dan menetapkan status laporan ini sebagai
+                  Terverifikasi?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -1492,11 +1557,7 @@ function VerificationEditor({ item }: { item?: unknown }) {
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button
-                disabled={locked || pending}
-                variant="warning"
-                className="w-full"
-              >
+              <Button disabled={locked || pending} variant="warning" className="w-full">
                 Perlu pengembangan
               </Button>
             </AlertDialogTrigger>
@@ -1528,11 +1589,7 @@ function VerificationEditor({ item }: { item?: unknown }) {
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button
-                disabled={locked || pending}
-                variant="destructive"
-                className="w-full"
-              >
+              <Button disabled={locked || pending} variant="destructive" className="w-full">
                 Tolak
               </Button>
             </AlertDialogTrigger>
@@ -1624,17 +1681,32 @@ function AnalysisList({ data }: { data: OimPageData }) {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">Status</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Judul Analisis</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Sumber</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Versi Aktif</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Terakhir Diperbarui</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">Aksi</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">
+                      Status
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Judul Analisis
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Sumber
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Versi Aktif
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Terakhir Diperbarui
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">
+                      Aksi
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedItems.map((item) => (
-                    <TableRow key={item.id} className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                    <TableRow
+                      key={item.id}
+                      className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors"
+                    >
                       <TableCell className="pl-6 py-4">
                         <StatusBadge value={item.status} />
                       </TableCell>
@@ -1759,9 +1831,7 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button
-              disabled={pending || !title.trim() || selected.length === 0}
-            >
+            <Button disabled={pending || !title.trim() || selected.length === 0}>
               <Plus />
               {pending ? "Membuat…" : "Buat case analisis"}
             </Button>
@@ -1770,7 +1840,8 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
             <AlertDialogHeader>
               <AlertDialogTitle>Buat Kasus Analisis?</AlertDialogTitle>
               <AlertDialogDescription>
-                Apakah Anda yakin ingin membuat kasus analisis baru dengan {selected.length} sumber Baket terverifikasi yang dipilih?
+                Apakah Anda yakin ingin membuat kasus analisis baru dengan {selected.length} sumber Baket terverifikasi
+                yang dipilih?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1866,11 +1937,7 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
           <CardContent className="space-y-3">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button
-                  disabled={locked || pending || !version.id}
-                  variant="outline"
-                  className="w-full"
-                >
+                <Button disabled={locked || pending || !version.id} variant="outline" className="w-full">
                   Simpan draft
                 </Button>
               </AlertDialogTrigger>
@@ -1904,11 +1971,7 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button
-                  disabled={locked || pending || !version.id}
-                  variant="success"
-                  className="w-full"
-                >
+                <Button disabled={locked || pending || !version.id} variant="success" className="w-full">
                   <CheckCircle2 />
                   Finalkan analisis
                 </Button>
@@ -1917,7 +1980,8 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Finalkan Analisis Intelijen?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Apakah Anda yakin ingin memfinalkan analisis ini? Analisis yang difinalkan akan dikunci dan siap digunakan untuk membuat Produk Intelijen.
+                    Apakah Anda yakin ingin memfinalkan analisis ini? Analisis yang difinalkan akan dikunci dan siap
+                    digunakan untuk membuat Produk Intelijen.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -2031,12 +2095,24 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">Klasifikasi & Status</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Judul Produk</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Nomor Produk</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Jenis Produk</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">Tanggal</TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">Aksi</TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">
+                      Klasifikasi & Status
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Judul Produk
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Nomor Produk
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Jenis Produk
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                      Tanggal
+                    </TableHead>
+                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">
+                      Aksi
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -2044,10 +2120,13 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                     const classStyle = getClassificationStyles(item.classification);
                     const statusStyle = getProductStatusStyles(item.status);
                     return (
-                      <TableRow key={item.id} className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                      <TableRow
+                        key={item.id}
+                        className="border-slate-200 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors"
+                      >
                         <TableCell className="pl-6 py-4">
                           <div className="flex flex-col gap-1 items-start">
-                            <span 
+                            <span
                               className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
                               style={{
                                 color: classStyle.color,
@@ -2057,7 +2136,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                             >
                               {classStyle.label}
                             </span>
-                            <span 
+                            <span
                               className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
                               style={{
                                 color: statusStyle.color,
@@ -2070,7 +2149,9 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                           </div>
                         </TableCell>
                         <TableCell className="py-4 max-w-[320px]">
-                          <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{item.title ?? "Produk tanpa judul"}</h4>
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">
+                            {item.title ?? "Produk tanpa judul"}
+                          </h4>
                         </TableCell>
                         <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
                           {item.productNumber ?? "—"}
@@ -2082,8 +2163,8 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                           {fmtDate(item.updatedAt)}
                         </TableCell>
                         <TableCell className="pr-6 py-4 text-right">
-                          <Button 
-                            asChild 
+                          <Button
+                            asChild
                             variant="ghost"
                             className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-8 px-3 transition-all duration-[150ms] ease-out cursor-pointer"
                           >
@@ -2113,7 +2194,11 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                 const classStyle = getClassificationStyles(item.classification);
                 const statusStyle = getProductStatusStyles(item.status);
                 return (
-                  <Card key={item.id} size="sm" className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5">
+                  <Card
+                    key={item.id}
+                    size="sm"
+                    className="bg-white dark:bg-[#131A26] border-slate-200 dark:border-white/5"
+                  >
                     <CardContent className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                       <div className="flex items-start gap-3">
                         <div className="grid size-10 place-items-center rounded-lg bg-primary/10">
@@ -2121,7 +2206,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                         </div>
                         <div>
                           <div className="flex flex-wrap gap-2">
-                            <span 
+                            <span
                               className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
                               style={{
                                 color: classStyle.color,
@@ -2131,7 +2216,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                             >
                               {classStyle.label}
                             </span>
-                            <span 
+                            <span
                               className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
                               style={{
                                 color: statusStyle.color,
@@ -2175,7 +2260,9 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
             <Inbox className="size-6" style={{ strokeWidth: "2px" }} />
           </div>
           <div className="space-y-1">
-            <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">TIDAK ADA PRODUK</h3>
+            <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              TIDAK ADA PRODUK
+            </h3>
             <p className="text-[13px] text-slate-600 dark:text-[#94A3B8]">Belum ada produk intelijen yang terdaftar.</p>
           </div>
         </div>
@@ -2814,9 +2901,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Kembali</AlertDialogCancel>
-                <AlertDialogAction onClick={() => saveProduct(false)}>
-                  Ya, Simpan
-                </AlertDialogAction>
+                <AlertDialogAction onClick={() => saveProduct(false)}>Ya, Simpan</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -3115,7 +3200,7 @@ function VerificationList({ data }: { data: OimPageData }) {
 
 export function OimWorkspaceClient({ view, data }: Props) {
   const detailBaket = ["report-detail", "monitoring-report", "map-report"].includes(view);
-  
+
   // Extract lists for dynamic workflow mapping
   const bakets = rows(data.bakets);
   const verifications = rows(data.verifications);
@@ -3125,436 +3210,467 @@ export function OimWorkspaceClient({ view, data }: Props) {
   return (
     <div className="w-full min-h-screen bg-background relative text-foreground overflow-hidden">
       {/* Dynamic Tactical Grid overlay */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-[0.015] dark:opacity-[0.03] z-0 bg-[linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] bg-[size:24px_24px] text-foreground/5 dark:text-white/5"
-      />
-      
+      <div className="absolute inset-0 pointer-events-none opacity-[0.015] dark:opacity-[0.03] z-0 bg-[linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] bg-[size:24px_24px] text-foreground/5 dark:text-white/5" />
+
       {/* Noise Overlay */}
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none opacity-[0.01] dark:opacity-[0.015] z-0"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
         }}
       />
 
       <main className="mx-auto w-full max-w-[1600px] space-y-6 p-6 md:p-8 relative z-10">
-      <Header view={view} data={data} />
-      <ErrorBanner errors={data.errors} />
-      {view === "dashboard" && (
-        <>
-          <Kpis data={data} />
-          
-          <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr] items-start">
-            {/* Left Column: Prioritas Intake */}
-            <div className="space-y-4">
-              {/* SECTION HEADER */}
-              <div className="space-y-1.5 border-b border-slate-200 dark:border-white/10 pb-4">
-                <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">PRIORITAS INTAKE</h3>
-                <p className="text-[12px] font-medium text-slate-500 dark:text-[#7C8798]">ANTREAN LAPORAN LAPANGAN PERLU TINDAK LANJUT</p>
+        <Header view={view} data={data} />
+        <ErrorBanner errors={data.errors} />
+        {view === "dashboard" && (
+          <>
+            <Kpis data={data} />
+
+            <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr] items-start">
+              {/* Left Column: Prioritas Intake */}
+              <div className="space-y-4">
+                {/* SECTION HEADER */}
+                <div className="space-y-1.5 border-b border-slate-200 dark:border-white/10 pb-4">
+                  <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    PRIORITAS INTAKE
+                  </h3>
+                  <p className="text-[12px] font-medium text-slate-500 dark:text-[#7C8798]">
+                    ANTREAN LAPORAN LAPANGAN PERLU TINDAK LANJUT
+                  </p>
+                </div>
+                <BaketList data={data} />
               </div>
-              <BaketList data={data} />
+
+              {/* Right Column: Mission Pipeline Timeline */}
+              <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 space-y-6 shadow-sm dark:shadow-none">
+                {/* SECTION HEADER */}
+                <div className="space-y-1.5 border-b border-slate-200 dark:border-white/10 pb-4">
+                  <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    PIPELINE MISI
+                  </h3>
+                  <p className="text-[12px] font-medium text-slate-500 dark:text-[#7C8798]">
+                    MONITORING ALUR KERJA INTELIJEN AKTIF HARI INI
+                  </p>
+                </div>
+
+                <div className="relative border-l border-slate-200 dark:border-white/10 ml-3 pl-6 space-y-8 py-2">
+                  {[
+                    {
+                      label: "Intake Baket",
+                      count: bakets.filter((item) => item.status === "SENT_TO_OIM").length,
+                      get status() {
+                        return this.count === 0
+                          ? "SELESAI DIPROSES"
+                          : this.count > 5
+                            ? "ANTREAN PENUH"
+                            : "INTAKE BERJALAN";
+                      },
+                      get state() {
+                        return this.count === 0 ? "completed" : this.count > 5 ? "bottleneck" : "active";
+                      },
+                      get eta() {
+                        return this.count === 0 ? "0m" : `${this.count * 10}m`;
+                      },
+                    },
+                    {
+                      label: "Neraca Penilaian",
+                      count: verifications.filter((item) => ["DRAFT", "IN_PROGRESS"].includes(item.status)).length,
+                      get status() {
+                        return this.count === 0
+                          ? "TERVERIFIKASI"
+                          : this.count > 5
+                            ? "TERDETEKSI PENUMPUKAN"
+                            : "DALAM TINJAUAN";
+                      },
+                      get state() {
+                        return this.count === 0 ? "completed" : this.count > 5 ? "bottleneck" : "active";
+                      },
+                      get eta() {
+                        return this.count === 0 ? "0m" : `${this.count * 15}m`;
+                      },
+                    },
+                    {
+                      label: "Analisis manual",
+                      count: analyses.filter((item) => item.status !== "ARCHIVED").length,
+                      get status() {
+                        return this.count === 0 ? "SIAGA" : "MENGANALISIS";
+                      },
+                      get state() {
+                        return this.count === 0 ? "pending" : "active";
+                      },
+                      get eta() {
+                        return this.count === 0 ? "—" : "AKTIF";
+                      },
+                    },
+                    {
+                      label: "Produk resmi",
+                      count: products.filter((item) => ["DRAFT", "NEEDS_REVISION"].includes(item.status)).length,
+                      get status() {
+                        return this.count === 0 ? "TIDAK ADA DRAF" : "PENULISAN";
+                      },
+                      get state() {
+                        return this.count === 0 ? "pending" : "active";
+                      },
+                      get eta() {
+                        return this.count === 0 ? "—" : "DALAM PROSES";
+                      },
+                    },
+                    {
+                      label: "Direktur/Kabinda",
+                      count: products.filter((item) => ["SUBMITTED", "IN_REVIEW"].includes(item.status)).length,
+                      get status() {
+                        return this.count === 0 ? "MENUNGGU" : "PENGIRIMAN";
+                      },
+                      get state() {
+                        return this.count === 0 ? "pending" : "active";
+                      },
+                      get eta() {
+                        return this.count === 0 ? "—" : "TERTUNDA";
+                      },
+                    },
+                  ].map((step) => {
+                    const dotColor =
+                      step.state === "completed"
+                        ? "#10B981"
+                        : // Emerald green
+                          step.state === "active"
+                          ? "#3B82F6"
+                          : // Tactical blue
+                            step.state === "bottleneck"
+                            ? "#F59E0B"
+                            : // Amber yellow
+                              "#7C8798"; // Slate gray pending
+
+                    return (
+                      <div key={step.label} className="relative flex items-start justify-between">
+                        {/* Timeline Node dot */}
+                        <div
+                          className="absolute left-[-31px] top-1 size-[11px] rounded-full border-2 bg-background flex items-center justify-center"
+                          style={{ borderColor: dotColor }}
+                        >
+                          {step.state === "active" && (
+                            <span className="size-1.5 rounded-full animate-ping absolute bg-[#3B82F6] opacity-75" />
+                          )}
+                          <span className="size-1 rounded-full" style={{ backgroundColor: dotColor }} />
+                        </div>
+
+                        {/* Step detail info */}
+                        <div className="space-y-1">
+                          <h4
+                            className={cn(
+                              "text-[13px] font-bold tracking-wide uppercase",
+                              step.state === "active"
+                                ? "text-blue-600 dark:text-[#3B82F6]"
+                                : "text-slate-900 dark:text-white",
+                            )}
+                          >
+                            {step.label}
+                          </h4>
+                          <div className="flex items-center gap-2 text-[12px] font-mono text-slate-500 dark:text-[#7C8798] uppercase">
+                            <span>STATUS:</span>
+                            <span style={{ color: dotColor }} className="font-semibold">
+                              {step.status}
+                            </span>
+                            <span>·</span>
+                            <span>ETA: {step.eta}</span>
+                          </div>
+                        </div>
+
+                        {/* Right item count badge */}
+                        <div
+                          className="px-2 py-0.5 rounded text-[11px] font-mono font-bold border shrink-0"
+                          style={{
+                            color: dotColor,
+                            backgroundColor: `${dotColor}12`,
+                            borderColor: `${dotColor}25`,
+                          }}
+                        >
+                          {step.count} UNIT
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+        {view === "reports" && (
+          <>
+            <Filters areas={data.areas} reportCategories={data.reportCategories} jaringClusters={data.jaringClusters} />
+            <Kpis data={data} />
+            <BaketList data={data} />
+          </>
+        )}
+        {detailBaket && <BaketDetail item={data.baket} activeTab={data.activeTab} />}
+        {view === "report-version" && <BaketDetail item={{ versions: [data.version] }} />}
+        {view === "verification" && (
+          <>
+            <Filters areas={data.areas} mode="verification" />
+            <VerificationList data={data} />
+          </>
+        )}
+        {view === "verification-detail" && <VerificationEditor item={data.verification} />}
+        {view === "analysis" && (
+          <>
+            <div className="flex justify-end">
+              <Button asChild>
+                <Link href="/dashboard/oim/analisis-intelijen/baru">
+                  <Plus />
+                  Analisis baru
+                </Link>
+              </Button>
+            </div>
+            <AnalysisList data={data} />
+          </>
+        )}
+        {view === "analysis-new" && <AnalysisCreate data={data} />}
+        {["analysis-detail", "analysis-edit", "analysis-version"].includes(view) && (
+          <AnalysisWorkspace
+            item={view === "analysis-version" ? { versions: [data.version], status: "VALIDATED" } : data.analysis}
+          />
+        )}
+        {view === "products" && (
+          <>
+            <div className="flex justify-end">
+              <Button asChild>
+                <Link href="/dashboard/oim/produk-intelijen/buat-produk">
+                  <Plus />
+                  Buat Laporan Intelijen
+                </Link>
+              </Button>
+            </div>
+            <ProductList data={data} />
+          </>
+        )}
+        {view === "product-list" && (
+          <>
+            <Filters areas={data.areas} mode="product" />
+            <ProductList data={data} />
+          </>
+        )}
+        {view === "product-new" && <ProductBuilder data={data} />}
+        {["product-detail", "product-edit", "product-version"].includes(view) && (
+          <ProductDetail item={view === "product-version" ? { versions: [data.version] } : data.product} />
+        )}
+        {view === "approval" && <ProductList data={data} approval />}
+        {view === "approval-detail" && <ProductDetail item={data.product} approval />}
+        {view === "workflow-detail" && <ProductDetail item={(data.workflow as Row)?.productVersion?.product} />}
+        {view === "monitoring" && (
+          <div
+            className="space-y-6 relative p-4 border border-border/20 bg-background/5 rounded-none overflow-hidden select-none"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.007) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.007) 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+            }}
+          >
+            {/* Tactical Frame Core Identifier */}
+            <div className="absolute top-1.5 right-4 font-mono text-[7px] text-muted-foreground/20 pointer-events-none uppercase">
+              C2 MONITORING CORE // SYS-REV-09
             </div>
 
-            {/* Right Column: Mission Pipeline Timeline */}
-            <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 space-y-6 shadow-sm dark:shadow-none">
-              {/* SECTION HEADER */}
-              <div className="space-y-1.5 border-b border-slate-200 dark:border-white/10 pb-4">
-                <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">PIPELINE MISI</h3>
-                <p className="text-[12px] font-medium text-slate-500 dark:text-[#7C8798]">MONITORING ALUR KERJA INTELIJEN AKTIF HARI INI</p>
-              </div>
-              
-              <div className="relative border-l border-slate-200 dark:border-white/10 ml-3 pl-6 space-y-8 py-2">
-                {[
-                  {
-                    label: "Intake Baket",
-                    count: bakets.filter((item) => item.status === "SENT_TO_OIM").length,
-                    get status() {
-                      return this.count === 0 ? "SELESAI DIPROSES" : this.count > 5 ? "ANTREAN PENUH" : "INTAKE BERJALAN";
-                    },
-                    get state() {
-                      return this.count === 0 ? "completed" : this.count > 5 ? "bottleneck" : "active";
-                    },
-                    get eta() {
-                      return this.count === 0 ? "0m" : `${this.count * 10}m`;
-                    }
-                  },
-                  {
-                    label: "Neraca Penilaian",
-                    count: verifications.filter((item) => ["DRAFT", "IN_PROGRESS"].includes(item.status)).length,
-                    get status() {
-                      return this.count === 0 ? "TERVERIFIKASI" : this.count > 5 ? "TERDETEKSI PENUMPUKAN" : "DALAM TINJAUAN";
-                    },
-                    get state() {
-                      return this.count === 0 ? "completed" : this.count > 5 ? "bottleneck" : "active";
-                    },
-                    get eta() {
-                      return this.count === 0 ? "0m" : `${this.count * 15}m`;
-                    }
-                  },
-                  {
-                    label: "Analisis manual",
-                    count: analyses.filter((item) => item.status !== "ARCHIVED").length,
-                    get status() {
-                      return this.count === 0 ? "SIAGA" : "MENGANALISIS";
-                    },
-                    get state() {
-                      return this.count === 0 ? "pending" : "active";
-                    },
-                    get eta() {
-                      return this.count === 0 ? "—" : "AKTIF";
-                    }
-                  },
-                  {
-                    label: "Produk resmi",
-                    count: products.filter((item) => ["DRAFT", "NEEDS_REVISION"].includes(item.status)).length,
-                    get status() {
-                      return this.count === 0 ? "TIDAK ADA DRAF" : "PENULISAN";
-                    },
-                    get state() {
-                      return this.count === 0 ? "pending" : "active";
-                    },
-                    get eta() {
-                      return this.count === 0 ? "—" : "DALAM PROSES";
-                    }
-                  },
-                  {
-                    label: "Direktur/Kabinda",
-                    count: products.filter((item) => ["SUBMITTED", "IN_REVIEW"].includes(item.status)).length,
-                    get status() {
-                      return this.count === 0 ? "MENUNGGU" : "PENGIRIMAN";
-                    },
-                    get state() {
-                      return this.count === 0 ? "pending" : "active";
-                    },
-                    get eta() {
-                      return this.count === 0 ? "—" : "TERTUNDA";
-                    }
-                  }
-                ].map((step) => {
-                  const dotColor = 
-                    step.state === "completed" ? "#10B981" : // Emerald green
-                    step.state === "active" ? "#3B82F6" : // Tactical blue
-                    step.state === "bottleneck" ? "#F59E0B" : // Amber yellow
-                    "#7C8798"; // Slate gray pending
-                  
-                  return (
-                    <div key={step.label} className="relative flex items-start justify-between">
-                      {/* Timeline Node dot */}
-                      <div 
-                        className="absolute left-[-31px] top-1 size-[11px] rounded-full border-2 bg-background flex items-center justify-center"
-                        style={{ borderColor: dotColor }}
-                      >
-                        {step.state === "active" && (
-                          <span className="size-1.5 rounded-full animate-ping absolute bg-[#3B82F6] opacity-75" />
-                        )}
-                        <span className="size-1 rounded-full" style={{ backgroundColor: dotColor }} />
-                      </div>
+            <Kpis data={data} />
 
-                      {/* Step detail info */}
-                      <div className="space-y-1">
-                        <h4 
-                          className={cn(
-                            "text-[13px] font-bold tracking-wide uppercase",
-                            step.state === "active" ? "text-blue-600 dark:text-[#3B82F6]" : "text-slate-900 dark:text-white"
-                          )}
-                        >
-                          {step.label}
-                        </h4>
-                        <div className="flex items-center gap-2 text-[12px] font-mono text-slate-500 dark:text-[#7C8798] uppercase">
-                          <span>STATUS:</span>
-                          <span style={{ color: dotColor }} className="font-semibold">{step.status}</span>
-                          <span>·</span>
-                          <span>ETA: {step.eta}</span>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[
+                {
+                  id: "MOD-01",
+                  label: "WORKLOAD PERSONEL",
+                  value: 72,
+                  desc: "ACTIVE STRENGTH // 72 OF 100 OPs",
+                  status: "NORMAL",
+                  statusColor: "bg-emerald-500",
+                  progressColor: "bg-emerald-500/90",
+                  trend: "+2.4% CHANGE",
+                  trendPositive: true,
+                  icon: Users,
+                },
+                {
+                  id: "MOD-02",
+                  label: "DEADLINE TUGAS",
+                  value: 45,
+                  desc: "COMPLETED MISSION // 45 OF 100 STRs",
+                  status: "WARNING",
+                  statusColor: "bg-amber-500",
+                  progressColor: "bg-amber-500/90",
+                  trend: "-1.5% DRIFT",
+                  trendPositive: false,
+                  icon: Clock,
+                },
+                {
+                  id: "MOD-03",
+                  label: "COVERAGE WILAYAH",
+                  value: 86,
+                  desc: "INTEL COVERAGE // TARGET SECTOR SECURED",
+                  status: "ACTIVE",
+                  statusColor: "bg-emerald-500",
+                  progressColor: "bg-emerald-500/90",
+                  trend: "+5.1% RATIO",
+                  trendPositive: true,
+                  icon: MapPin,
+                },
+                {
+                  id: "MOD-04",
+                  label: "LAPORAN MASUK",
+                  value: 64,
+                  desc: "VERIFIED INTAKE // 64 VALID BAKETs",
+                  status: "NORMAL",
+                  statusColor: "bg-sky-500",
+                  progressColor: "bg-sky-500/90",
+                  trend: "+12.8% VOL",
+                  trendPositive: true,
+                  icon: FileText,
+                },
+                {
+                  id: "MOD-05",
+                  label: "INSIDEN AKTIF",
+                  value: 18,
+                  desc: "CRITICAL ALERT // 18 EMERGENCY PINGs",
+                  status: "CRITICAL",
+                  statusColor: "bg-red-500",
+                  progressColor: "bg-red-500/90",
+                  trend: "+2 ACTIVE PINGS",
+                  trendPositive: false,
+                  icon: AlertCircle,
+                },
+                {
+                  id: "MOD-06",
+                  label: "PROGRESS LAPANGAN",
+                  value: 58,
+                  desc: "DATA COLLECTION // UUK TARGETS MET",
+                  status: "ACTIVE",
+                  statusColor: "bg-purple-500",
+                  progressColor: "bg-purple-500/90",
+                  trend: "+8.2% PROGRESS",
+                  trendPositive: true,
+                  icon: Zap,
+                },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Card
+                    key={item.label}
+                    className="rounded-none border border-border/80 bg-card/65 relative overflow-hidden transition-all duration-150 hover:border-sky-500/50 hover:shadow-[0_0_12px_rgba(14,165,233,0.1)] group flex flex-col"
+                  >
+                    {/* Tactical Corner Brackets */}
+                    <div className="absolute top-0 left-0 size-2 border-t border-l border-muted-foreground/30 group-hover:border-sky-400" />
+                    <div className="absolute top-0 right-0 size-2 border-t border-r border-muted-foreground/30 group-hover:border-sky-400" />
+                    <div className="absolute bottom-0 left-0 size-2 border-b border-l border-muted-foreground/30 group-hover:border-sky-400" />
+                    <div className="absolute bottom-0 right-0 size-2 border-b border-r border-muted-foreground/30 group-hover:border-sky-400" />
+
+                    {/* Side Accent Line for Critical/Warnings */}
+                    {item.status === "CRITICAL" && (
+                      <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-red-500" />
+                    )}
+                    {item.status === "WARNING" && (
+                      <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-amber-500" />
+                    )}
+
+                    <CardHeader className="p-3.5 pb-2 flex flex-row items-center justify-between space-y-0 shrink-0">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[8px] font-mono font-bold text-muted-foreground/40">{item.id}</span>
+                          <CardTitle className="font-mono text-[9px] font-bold text-foreground tracking-wider">
+                            {item.label}
+                          </CardTitle>
+                        </div>
+                        <CardDescription className="text-[8px] font-mono text-muted-foreground/50 uppercase tracking-widest">
+                          C2 // UNIT SCAN
+                        </CardDescription>
+                      </div>
+                      <div className="p-1 rounded bg-secondary/15 text-muted-foreground/60 group-hover:text-sky-400 transition-colors">
+                        <Icon className="size-3.5 shrink-0" />
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="p-3.5 pt-0 space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="flex items-end justify-between select-none">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-mono font-extrabold tracking-tight text-foreground">
+                            {item.value}%
+                          </span>
+                          <span className="text-[8px] font-mono text-muted-foreground/50 uppercase">capaian</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full",
+                              item.statusColor,
+                              item.status === "CRITICAL" && "animate-ping",
+                            )}
+                          />
+                          <span className="text-[8px] font-mono font-bold leading-none tracking-widest">
+                            ● {item.status}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Right item count badge */}
-                      <div 
-                        className="px-2 py-0.5 rounded text-[11px] font-mono font-bold border shrink-0"
-                        style={{ 
-                          color: dotColor, 
-                          backgroundColor: `${dotColor}12`,
-                          borderColor: `${dotColor}25`
-                        }}
-                      >
-                        {step.count} UNIT
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-      {view === "reports" && (
-        <>
-          <Filters areas={data.areas} reportCategories={data.reportCategories} jaringClusters={data.jaringClusters} />
-          <Kpis data={data} />
-          <BaketList data={data} />
-        </>
-      )}
-      {detailBaket && <BaketDetail item={data.baket} activeTab={data.activeTab} />}
-      {view === "report-version" && <BaketDetail item={{ versions: [data.version] }} />}
-      {view === "verification" && (
-        <>
-          <Filters areas={data.areas} mode="verification" />
-          <VerificationList data={data} />
-        </>
-      )}
-      {view === "verification-detail" && <VerificationEditor item={data.verification} />}
-      {view === "analysis" && (
-        <>
-          <div className="flex justify-end">
-            <Button asChild>
-              <Link href="/dashboard/oim/analisis-intelijen/baru">
-                <Plus />
-                Analisis baru
-              </Link>
-            </Button>
-          </div>
-          <AnalysisList data={data} />
-        </>
-      )}
-      {view === "analysis-new" && <AnalysisCreate data={data} />}
-      {["analysis-detail", "analysis-edit", "analysis-version"].includes(view) && (
-        <AnalysisWorkspace
-          item={view === "analysis-version" ? { versions: [data.version], status: "VALIDATED" } : data.analysis}
-        />
-      )}
-      {view === "products" && (
-        <>
-          <div className="flex justify-end">
-            <Button asChild>
-              <Link href="/dashboard/oim/produk-intelijen/buat-produk">
-                <Plus />
-                Buat Laporan Intelijen
-              </Link>
-            </Button>
-          </div>
-          <ProductList data={data} />
-        </>
-      )}
-      {view === "product-list" && (
-        <>
-          <Filters areas={data.areas} mode="product" />
-          <ProductList data={data} />
-        </>
-      )}
-      {view === "product-new" && <ProductBuilder data={data} />}
-      {["product-detail", "product-edit", "product-version"].includes(view) && (
-        <ProductDetail item={view === "product-version" ? { versions: [data.version] } : data.product} />
-      )}
-      {view === "approval" && <ProductList data={data} approval />}
-      {view === "approval-detail" && <ProductDetail item={data.product} approval />}
-      {view === "workflow-detail" && <ProductDetail item={(data.workflow as Row)?.productVersion?.product} />}
-      {view === "monitoring" && (
-        <div
-          className="space-y-6 relative p-4 border border-border/20 bg-background/5 rounded-none overflow-hidden select-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.007) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.007) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        >
-          {/* Tactical Frame Core Identifier */}
-          <div className="absolute top-1.5 right-4 font-mono text-[7px] text-muted-foreground/20 pointer-events-none uppercase">
-            C2 MONITORING CORE // SYS-REV-09
-          </div>
-
-          <Kpis data={data} />
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                id: "MOD-01",
-                label: "WORKLOAD PERSONEL",
-                value: 72,
-                desc: "ACTIVE STRENGTH // 72 OF 100 OPs",
-                status: "NORMAL",
-                statusColor: "bg-emerald-500",
-                progressColor: "bg-emerald-500/90",
-                trend: "+2.4% CHANGE",
-                trendPositive: true,
-                icon: Users,
-              },
-              {
-                id: "MOD-02",
-                label: "DEADLINE TUGAS",
-                value: 45,
-                desc: "COMPLETED MISSION // 45 OF 100 STRs",
-                status: "WARNING",
-                statusColor: "bg-amber-500",
-                progressColor: "bg-amber-500/90",
-                trend: "-1.5% DRIFT",
-                trendPositive: false,
-                icon: Clock,
-              },
-              {
-                id: "MOD-03",
-                label: "COVERAGE WILAYAH",
-                value: 86,
-                desc: "INTEL COVERAGE // TARGET SECTOR SECURED",
-                status: "ACTIVE",
-                statusColor: "bg-emerald-500",
-                progressColor: "bg-emerald-500/90",
-                trend: "+5.1% RATIO",
-                trendPositive: true,
-                icon: MapPin,
-              },
-              {
-                id: "MOD-04",
-                label: "LAPORAN MASUK",
-                value: 64,
-                desc: "VERIFIED INTAKE // 64 VALID BAKETs",
-                status: "NORMAL",
-                statusColor: "bg-sky-500",
-                progressColor: "bg-sky-500/90",
-                trend: "+12.8% VOL",
-                trendPositive: true,
-                icon: FileText,
-              },
-              {
-                id: "MOD-05",
-                label: "INSIDEN AKTIF",
-                value: 18,
-                desc: "CRITICAL ALERT // 18 EMERGENCY PINGs",
-                status: "CRITICAL",
-                statusColor: "bg-red-500",
-                progressColor: "bg-red-500/90",
-                trend: "+2 ACTIVE PINGS",
-                trendPositive: false,
-                icon: AlertCircle,
-              },
-              {
-                id: "MOD-06",
-                label: "PROGRESS LAPANGAN",
-                value: 58,
-                desc: "DATA COLLECTION // UUK TARGETS MET",
-                status: "ACTIVE",
-                statusColor: "bg-purple-500",
-                progressColor: "bg-purple-500/90",
-                trend: "+8.2% PROGRESS",
-                trendPositive: true,
-                icon: Zap,
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <Card
-                  key={item.label}
-                  className="rounded-none border border-border/80 bg-card/65 relative overflow-hidden transition-all duration-150 hover:border-sky-500/50 hover:shadow-[0_0_12px_rgba(14,165,233,0.1)] group flex flex-col"
-                >
-                  {/* Tactical Corner Brackets */}
-                  <div className="absolute top-0 left-0 size-2 border-t border-l border-muted-foreground/30 group-hover:border-sky-400" />
-                  <div className="absolute top-0 right-0 size-2 border-t border-r border-muted-foreground/30 group-hover:border-sky-400" />
-                  <div className="absolute bottom-0 left-0 size-2 border-b border-l border-muted-foreground/30 group-hover:border-sky-400" />
-                  <div className="absolute bottom-0 right-0 size-2 border-b border-r border-muted-foreground/30 group-hover:border-sky-400" />
-
-                  {/* Side Accent Line for Critical/Warnings */}
-                  {item.status === "CRITICAL" && <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-red-500" />}
-                  {item.status === "WARNING" && <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-amber-500" />}
-
-                  <CardHeader className="p-3.5 pb-2 flex flex-row items-center justify-between space-y-0 shrink-0">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[8px] font-mono font-bold text-muted-foreground/40">{item.id}</span>
-                        <CardTitle className="font-mono text-[9px] font-bold text-foreground tracking-wider">
-                          {item.label}
-                        </CardTitle>
-                      </div>
-                      <CardDescription className="text-[8px] font-mono text-muted-foreground/50 uppercase tracking-widest">
-                        C2 // UNIT SCAN
-                      </CardDescription>
-                    </div>
-                    <div className="p-1 rounded bg-secondary/15 text-muted-foreground/60 group-hover:text-sky-400 transition-colors">
-                      <Icon className="size-3.5 shrink-0" />
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="p-3.5 pt-0 space-y-3 flex-1 flex flex-col justify-between">
-                    <div className="flex items-end justify-between select-none">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-mono font-extrabold tracking-tight text-foreground">
-                          {item.value}%
-                        </span>
-                        <span className="text-[8px] font-mono text-muted-foreground/50 uppercase">capaian</span>
+                      {/* Monospace Progress bar (non-rounded, flat) */}
+                      <div className="w-full bg-secondary/35 h-1 border border-border/10">
+                        <div
+                          className={cn("h-full transition-all duration-300", item.progressColor)}
+                          style={{ width: `${item.value}%` }}
+                        />
                       </div>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center justify-between text-[8px] font-mono mt-1 pt-1.5 border-t border-border/10 select-none">
+                        <span className="text-muted-foreground/70 truncate max-w-[190px]">{item.desc}</span>
                         <span
                           className={cn(
-                            "size-1.5 rounded-full",
-                            item.statusColor,
-                            item.status === "CRITICAL" && "animate-ping",
+                            "font-bold shrink-0",
+                            item.trendPositive ? "text-emerald-500" : "text-amber-500",
                           )}
-                        />
-                        <span className="text-[8px] font-mono font-bold leading-none tracking-widest">
-                          ● {item.status}
+                        >
+                          {item.trend}
                         </span>
                       </div>
-                    </div>
-
-                    {/* Monospace Progress bar (non-rounded, flat) */}
-                    <div className="w-full bg-secondary/35 h-1 border border-border/10">
-                      <div
-                        className={cn("h-full transition-all duration-300", item.progressColor)}
-                        style={{ width: `${item.value}%` }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[8px] font-mono mt-1 pt-1.5 border-t border-border/10 select-none">
-                      <span className="text-muted-foreground/70 truncate max-w-[190px]">{item.desc}</span>
-                      <span
-                        className={cn("font-bold shrink-0", item.trendPositive ? "text-emerald-500" : "text-amber-500")}
-                      >
-                        {item.trend}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
-      {view === "map" && (
-        <>
-          <Filters areas={data.areas} reportCategories={data.reportCategories} jaringClusters={data.jaringClusters} />
-          <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
-            <SituationMap reports={data.map} boundaries={data.boundaries} />
-            <Card>
-              <CardHeader>
-                <CardTitle>Legenda situasi</CardTitle>
-                <CardDescription>Zoom rendah menampilkan agregasi; zoom tinggi menampilkan marker.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span>Baket masuk</span>
-                  <b>{rows((data.map as Row)?.features).length}</b>
-                </div>
-                <Separator />
-                <p className="text-xs text-muted-foreground">
-                  Merah: urgent · Kuning: high · Biru: normal. Baket tanpa koordinat tetap tersedia pada daftar laporan
-                  masuk.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      )}
-      {["monitoring-task", "monitoring-personnel", "map-alert"].includes(view) && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <ShieldCheck className="mx-auto size-8 text-primary" />
-            <h2 className="mt-3 font-medium">Data operasional berada dalam scope OIM</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Detail ini menggunakan kontrak monitoring dan traceability yang sama tanpa membuka data lintas rantai
-              komando.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+        )}
+        {view === "map" && (
+          <>
+            <Filters areas={data.areas} reportCategories={data.reportCategories} jaringClusters={data.jaringClusters} />
+            <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
+              <SituationMap reports={data.map} boundaries={data.boundaries} />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Legenda situasi</CardTitle>
+                  <CardDescription>Zoom rendah menampilkan agregasi; zoom tinggi menampilkan marker.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between">
+                    <span>Baket masuk</span>
+                    <b>{rows((data.map as Row)?.features).length}</b>
+                  </div>
+                  <Separator />
+                  <p className="text-xs text-muted-foreground">
+                    Merah: urgent · Kuning: high · Biru: normal. Baket tanpa koordinat tetap tersedia pada daftar
+                    laporan masuk.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
+        {["monitoring-task", "monitoring-personnel", "map-alert"].includes(view) && (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <ShieldCheck className="mx-auto size-8 text-primary" />
+              <h2 className="mt-3 font-medium">Data operasional berada dalam scope OIM</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Detail ini menggunakan kontrak monitoring dan traceability yang sama tanpa membuka data lintas rantai
+                komando.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

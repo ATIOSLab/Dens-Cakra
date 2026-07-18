@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 interface PaginationProps {
@@ -45,8 +46,11 @@ export function Pagination({ currentPage, totalItems, pageSize, onPageChange }: 
     <div className="flex flex-col items-center justify-between gap-4 border-t border-[var(--dc-divider)] pt-4 sm:flex-row">
       {/* 1. Showing range */}
       <div className="text-xs text-[var(--dc-text-muted)] font-mono">
-        Showing <span className="font-semibold text-[var(--dc-text-primary)]">{startItem}–{endItem}</span> of{" "}
-        <span className="font-semibold text-[var(--dc-text-primary)]">{totalItems}</span>
+        Showing{" "}
+        <span className="font-semibold text-[var(--dc-text-primary)]">
+          {startItem}–{endItem}
+        </span>{" "}
+        of <span className="font-semibold text-[var(--dc-text-primary)]">{totalItems}</span>
       </div>
 
       {/* 2. Controls */}
@@ -68,10 +72,7 @@ export function Pagination({ currentPage, totalItems, pageSize, onPageChange }: 
           {pages.map((p, idx) => {
             if (p === "...") {
               return (
-                <span
-                  key={`ellipsis-${idx}`}
-                  className="px-2 py-1 text-xs text-[var(--dc-text-muted)] font-mono"
-                >
+                <span key={`ellipsis-${idx}`} className="px-2 py-1 text-xs text-[var(--dc-text-muted)] font-mono">
                   ...
                 </span>
               );

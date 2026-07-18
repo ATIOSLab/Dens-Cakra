@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { updateFieldOfficerJaring } from "@/server/field-ops/repository";
 
@@ -17,9 +17,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       notes?: string;
     };
 
-    return NextResponse.json(
-      await updateFieldOfficerJaring(request.headers.get("cookie") ?? "", jaringId, body),
-    );
+    return NextResponse.json(await updateFieldOfficerJaring(request.headers.get("cookie") ?? "", jaringId, body));
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : "Gagal memperbarui jaring." },

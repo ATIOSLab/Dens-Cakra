@@ -667,11 +667,28 @@ export type EnumTaskAssignmentStatusWithAggregatesFilter<$PrismaModel = never> =
   _max?: Prisma.NestedEnumTaskAssignmentStatusFilter<$PrismaModel>
 }
 
+export type EnumJaringGenderNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.JaringGender | Prisma.EnumJaringGenderFieldRefInput<$PrismaModel> | null
+  in?: $Enums.JaringGender[] | Prisma.ListEnumJaringGenderFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.JaringGender[] | Prisma.ListEnumJaringGenderFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumJaringGenderNullableFilter<$PrismaModel> | $Enums.JaringGender | null
+}
+
 export type EnumJaringStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.JaringStatus | Prisma.EnumJaringStatusFieldRefInput<$PrismaModel>
   in?: $Enums.JaringStatus[] | Prisma.ListEnumJaringStatusFieldRefInput<$PrismaModel>
   notIn?: $Enums.JaringStatus[] | Prisma.ListEnumJaringStatusFieldRefInput<$PrismaModel>
   not?: Prisma.NestedEnumJaringStatusFilter<$PrismaModel> | $Enums.JaringStatus
+}
+
+export type EnumJaringGenderNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.JaringGender | Prisma.EnumJaringGenderFieldRefInput<$PrismaModel> | null
+  in?: $Enums.JaringGender[] | Prisma.ListEnumJaringGenderFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.JaringGender[] | Prisma.ListEnumJaringGenderFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumJaringGenderNullableWithAggregatesFilter<$PrismaModel> | $Enums.JaringGender | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumJaringGenderNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumJaringGenderNullableFilter<$PrismaModel>
 }
 
 export type EnumJaringStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -1954,11 +1971,28 @@ export type NestedEnumTaskAssignmentStatusWithAggregatesFilter<$PrismaModel = ne
   _max?: Prisma.NestedEnumTaskAssignmentStatusFilter<$PrismaModel>
 }
 
+export type NestedEnumJaringGenderNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.JaringGender | Prisma.EnumJaringGenderFieldRefInput<$PrismaModel> | null
+  in?: $Enums.JaringGender[] | Prisma.ListEnumJaringGenderFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.JaringGender[] | Prisma.ListEnumJaringGenderFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumJaringGenderNullableFilter<$PrismaModel> | $Enums.JaringGender | null
+}
+
 export type NestedEnumJaringStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.JaringStatus | Prisma.EnumJaringStatusFieldRefInput<$PrismaModel>
   in?: $Enums.JaringStatus[] | Prisma.ListEnumJaringStatusFieldRefInput<$PrismaModel>
   notIn?: $Enums.JaringStatus[] | Prisma.ListEnumJaringStatusFieldRefInput<$PrismaModel>
   not?: Prisma.NestedEnumJaringStatusFilter<$PrismaModel> | $Enums.JaringStatus
+}
+
+export type NestedEnumJaringGenderNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.JaringGender | Prisma.EnumJaringGenderFieldRefInput<$PrismaModel> | null
+  in?: $Enums.JaringGender[] | Prisma.ListEnumJaringGenderFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.JaringGender[] | Prisma.ListEnumJaringGenderFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumJaringGenderNullableWithAggregatesFilter<$PrismaModel> | $Enums.JaringGender | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumJaringGenderNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumJaringGenderNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumJaringStatusWithAggregatesFilter<$PrismaModel = never> = {

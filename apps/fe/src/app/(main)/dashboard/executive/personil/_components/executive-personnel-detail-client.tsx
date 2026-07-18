@@ -1,17 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { type ReactNode, useEffect, useRef } from "react";
+
+import Link from "next/link";
+
 import { motion } from "framer-motion";
-import {
-  Activity,
-  BarChart3,
-  ClipboardList,
-  FileText,
-  User,
-  ChevronLeft,
-  Cpu,
-} from "lucide-react";
+import { Activity, BarChart3, ChevronLeft, ClipboardList, Cpu, FileText, User } from "lucide-react";
 
 import { BackButton } from "@/components/ui/back-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -52,7 +46,10 @@ function TacticalBackground() {
       />
 
       {/* 2. Circuit Pattern Overlay */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.015] text-[var(--dc-primary)]" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.015] text-[var(--dc-primary)]"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <title>Circuit Overlay Pattern</title>
         <defs>
           <pattern id="circuit-grid" width="128" height="128" patternUnits="userSpaceOnUse">
@@ -79,7 +76,10 @@ function TacticalBackground() {
           <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.04 0" />
         </filter>
       </svg>
-      <div className="absolute inset-0 opacity-[0.4] dark:opacity-[0.35] pointer-events-none" style={{ filter: "url(#noise-filter)" }} />
+      <div
+        className="absolute inset-0 opacity-[0.4] dark:opacity-[0.35] pointer-events-none"
+        style={{ filter: "url(#noise-filter)" }}
+      />
 
       {/* 4. Radial Ambient Gradients */}
       <div className="absolute -top-[30%] -left-[10%] w-[60%] h-[70%] rounded-full bg-[var(--dc-primary)]/4 dark:bg-[var(--dc-primary)]/5 blur-[120px] pointer-events-none" />

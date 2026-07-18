@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Bot, QrCode, Save, CheckCircle2 } from "lucide-react";
+
+import { Activity, Bot, CheckCircle2, QrCode, Save } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -88,7 +89,7 @@ export function FieldCoordinatorWhatsappPage() {
       (c) =>
         c.connectionStatus === "CONNECTING" ||
         c.connectionStatus === "QR_READY" ||
-        c.connectionStatus === "PAIRING_CODE_READY"
+        c.connectionStatus === "PAIRING_CODE_READY",
     );
 
     if (!needsPolling) return;
@@ -101,9 +102,7 @@ export function FieldCoordinatorWhatsappPage() {
   }, [channels]);
 
   const updateDraft = (channelId: string, patch: Partial<WhatsappControlChannel>) => {
-    setChannels((current) =>
-      current.map((item) => (item.id === channelId ? { ...item, ...patch } : item)),
-    );
+    setChannels((current) => current.map((item) => (item.id === channelId ? { ...item, ...patch } : item)));
   };
 
   const updateChannel = async (channel: WhatsappControlChannel) => {
@@ -135,10 +134,7 @@ export function FieldCoordinatorWhatsappPage() {
     }
   };
 
-  const runAction = async (
-    channelId: string,
-    action: "activate" | "deactivate" | "test" | "request-qr",
-  ) => {
+  const runAction = async (channelId: string, action: "activate" | "deactivate" | "test" | "request-qr") => {
     try {
       setBusyKey(`${action}:${channelId}`);
       const response = await fetch(`/api/field-coordinator/personel-jaring/whatsapp-control/${channelId}/actions`, {
@@ -172,7 +168,8 @@ export function FieldCoordinatorWhatsappPage() {
           </div>
           <CardTitle>Bot Pusat & Nomor Pengirim</CardTitle>
           <CardDescription className="text-white/65">
-            Coordinator mengelola koneksi bot, health check, dan sender numbers pusat. Ownership data Jaring tetap di field officer.
+            Coordinator mengelola koneksi bot, health check, dan sender numbers pusat. Ownership data Jaring tetap di
+            field officer.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -188,7 +185,8 @@ export function FieldCoordinatorWhatsappPage() {
         <Alert className="border-white/10 bg-white/5 text-white">
           <AlertTitle>Belum ada channel WhatsApp</AlertTitle>
           <AlertDescription>
-            Seed atau buat `IntegrationChannel` bertipe WhatsApp terlebih dahulu agar coordinator bisa mengelola bot dan nomor pengirim di sini.
+            Seed atau buat `IntegrationChannel` bertipe WhatsApp terlebih dahulu agar coordinator bisa mengelola bot dan
+            nomor pengirim di sini.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -246,8 +244,8 @@ export function FieldCoordinatorWhatsappPage() {
 
               <div className="space-y-3">
                 <div className="rounded-xl border border-white/10 bg-black/15 p-4 text-sm text-white/75">
-                    <p className="font-semibold text-white">Ringkasan kanal</p>
-                    <div className="mt-3 space-y-1">
+                  <p className="font-semibold text-white">Ringkasan kanal</p>
+                  <div className="mt-3 space-y-1">
                     <p>Bot state: {channel.connectionStatus}</p>
                     <p>Health terakhir: {formatDateTime(channel.lastHealthAt)}</p>
                     <p>Update config: {formatDateTime(channel.updatedAt)}</p>
@@ -311,11 +309,11 @@ export function FieldCoordinatorWhatsappPage() {
                   </Button>
                   <Button
                     variant="outline"
-                      className="border-white/15 bg-transparent text-white hover:bg-white/10"
-                      disabled={busyKey === `test:${channel.id}`}
-                      onClick={() => void runAction(channel.id, "test")}
-                    >
-                      <Activity className="mr-2 size-4" />
+                    className="border-white/15 bg-transparent text-white hover:bg-white/10"
+                    disabled={busyKey === `test:${channel.id}`}
+                    onClick={() => void runAction(channel.id, "test")}
+                  >
+                    <Activity className="mr-2 size-4" />
                     Health Check
                   </Button>
                   <Button

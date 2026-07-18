@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiServerGet } from "@/lib/api/server-client";
+
 import { SecuritySessionAutoRefresh } from "./security-session-auto-refresh";
 
 type SecuritySessionRecord = {
@@ -199,7 +200,9 @@ export default async function KeamananAuditPage() {
               <MonitorSmartphone className="size-4 text-cyan-600 dark:text-[#14B8FF]" />
               Aktivitas Sesi Dashboard
             </CardTitle>
-            <CardDescription>Monitor heartbeat, IP, lokasi, dan perangkat terbaru dari setiap pengguna.</CardDescription>
+            <CardDescription>
+              Monitor heartbeat, IP, lokasi, dan perangkat terbaru dari setiap pengguna.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>

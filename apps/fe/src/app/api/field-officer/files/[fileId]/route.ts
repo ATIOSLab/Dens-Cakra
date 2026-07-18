@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { getBackendInternalUrl } from "@/lib/auth/backend-url";
 import { backendApi } from "@/server/backend-api";
@@ -21,9 +21,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
         disposition: "inline",
       },
     });
-    const fileUrl = access.url.startsWith("http")
-      ? access.url
-      : `${getBackendInternalUrl()}${access.url}`;
+    const fileUrl = access.url.startsWith("http") ? access.url : `${getBackendInternalUrl()}${access.url}`;
     const response = await fetch(fileUrl, { cache: "no-store" });
 
     if (!response.ok || !response.body) {

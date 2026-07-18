@@ -12,9 +12,6 @@ export default async function Page({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
 
   return (
-    <OrganisasiWilayahCreatePage
-      masterType="binda"
-      selectedProvinceAreaId={resolvedSearchParams?.provinceAreaId}
-    />
+    <OrganisasiWilayahCreatePage masterType="binda" selectedProvinceAreaId={resolvedSearchParams?.provinceAreaId} />
   );
 }

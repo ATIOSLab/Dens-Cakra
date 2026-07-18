@@ -1,6 +1,9 @@
 import { CheckCheck } from "lucide-react";
 
-import { dashboardNotifications, unreadNotificationsCount } from "@/app/(main)/dashboard/_components/notifications-data";
+import {
+  dashboardNotifications,
+  unreadNotificationsCount,
+} from "@/app/(main)/dashboard/_components/notifications-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +18,9 @@ export function NotificationsPage() {
               <CardTitle>Notifications</CardTitle>
               <Badge variant="outline">{unreadNotificationsCount} unread</Badge>
             </div>
-            <CardDescription>Pusat notifikasi untuk pembaruan aktivitas, review, dan sistem DENS CAKRA.</CardDescription>
+            <CardDescription>
+              Pusat notifikasi untuk pembaruan aktivitas, review, dan sistem DENS CAKRA.
+            </CardDescription>
           </div>
           <Button variant="outline" className="gap-2">
             <CheckCheck />
@@ -28,9 +33,7 @@ export function NotificationsPage() {
         {dashboardNotifications.map((notification) => (
           <Card key={notification.id}>
             <CardContent className="flex items-start gap-3 pt-(--card-spacing)">
-              <span
-                className={`mt-2 size-2 rounded-full ${notification.unread ? "bg-rose-500" : "bg-border"}`}
-              />
+              <span className={`mt-2 size-2 rounded-full ${notification.unread ? "bg-rose-500" : "bg-border"}`} />
               <div className="min-w-0">
                 <p className="font-medium text-base">{notification.title}</p>
                 <p className="mt-1 text-muted-foreground text-sm">{notification.description}</p>

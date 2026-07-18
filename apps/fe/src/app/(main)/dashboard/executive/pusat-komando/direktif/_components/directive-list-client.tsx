@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+
 import Link from "next/link";
 
 import { ArrowUpRight, FileText, Plus, RadioTower, Search, ShieldCheck, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { buildDirectiveUukSummary, parseDirectiveCommandDescription } from "@/features/directives/structured-uuk";
@@ -84,20 +85,18 @@ function PremiumKpiCard({
   }
 
   return (
-    <div className={`relative flex flex-col justify-between rounded-xl border border-[var(--dc-border-subtle)] ${borderLeftClass} bg-[var(--dc-card)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md min-h-[140px] ${className}`}>
+    <div
+      className={`relative flex flex-col justify-between rounded-xl border border-[var(--dc-border-subtle)] ${borderLeftClass} bg-[var(--dc-card)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md min-h-[140px] ${className}`}
+    >
       <div className="flex items-start justify-between gap-2">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground line-clamp-1">
-          {title}
-        </div>
-        <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${iconBgClass}`}>
-          {icon}
-        </div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground line-clamp-1">{title}</div>
+        <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${iconBgClass}`}>{icon}</div>
       </div>
       <div className="mt-2 flex flex-col justify-end flex-1">
         <div className={`text-3xl font-bold [font-family:var(--dc-font-metadata)] ${colorClass} ${shadowClass}`}>
           {typeof value === "number" ? value.toLocaleString("id-ID") : value}
         </div>
-        
+
         {progress !== undefined ? (
           <div className="mt-3 space-y-1">
             <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
@@ -105,16 +104,11 @@ function PremiumKpiCard({
               <span className={colorClass}>{progress}%</span>
             </div>
             <div className="h-1 w-full rounded-full bg-muted/30 overflow-hidden">
-              <div
-                className={`h-full rounded-full bg-current ${colorClass}`}
-                style={{ width: `${progress}%` }}
-              />
+              <div className={`h-full rounded-full bg-current ${colorClass}`} style={{ width: `${progress}%` }} />
             </div>
           </div>
         ) : (
-          <div className="mt-2 text-[10px] text-muted-foreground leading-tight line-clamp-2">
-            {description}
-          </div>
+          <div className="mt-2 text-[10px] text-muted-foreground leading-tight line-clamp-2">{description}</div>
         )}
       </div>
     </div>
@@ -212,7 +206,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
     return Array.from(set).sort();
   }, [directives]);
 
-const totalRecipients = directives.reduce((sum, directive) => {
+  const totalRecipients = directives.reduce((sum, directive) => {
     return sum + (getCurrentVersion(directive)?.recipients.length ?? 0);
   }, 0);
   const publishedCount = directives.filter((directive) =>
@@ -233,10 +227,7 @@ const totalRecipients = directives.reduce((sum, directive) => {
         const title = parsed.uukTitle || directive.commandNumber;
         const desc = buildDirectiveUukSummary(parsed.uukSections) || "";
         const classification = currentVersion?.classification || "";
-        const areaSummary =
-          currentVersion?.targetAreas
-            .map((item) => item.area.name)
-            .join(", ") ?? "";
+        const areaSummary = currentVersion?.targetAreas.map((item) => item.area.name).join(", ") ?? "";
 
         return (
           directive.commandNumber.toLowerCase().includes(q) ||
@@ -267,7 +258,7 @@ const totalRecipients = directives.reduce((sum, directive) => {
         const currentVersion = getCurrentVersion(d);
         if (!currentVersion?.commandDate) return false;
         const cmdTime = new Date(currentVersion.commandDate).getTime();
-        
+
         if (filterStartDate) {
           const startTime = new Date(`${filterStartDate}T00:00:00`).getTime();
           if (cmdTime < startTime) return false;
@@ -298,15 +289,7 @@ const totalRecipients = directives.reduce((sum, directive) => {
     }
 
     return result;
-  }, [
-    directives,
-    searchQuery,
-    filterClassification,
-    filterRegion,
-    filterStartDate,
-    filterEndDate,
-    filterUnitType,
-  ]);
+  }, [directives, searchQuery, filterClassification, filterRegion, filterStartDate, filterEndDate, filterUnitType]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDirectives.length / rowsPerPage));
   const safePage = Math.min(page, totalPages);
@@ -316,7 +299,9 @@ const totalRecipients = directives.reduce((sum, directive) => {
 
   const pageNumbers = useMemo(() => {
     const pages = new Set([1, totalPages, safePage, safePage - 1, safePage + 1]);
-    return Array.from(pages).filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+    return Array.from(pages)
+      .filter((p) => p >= 1 && p <= totalPages)
+      .sort((a, b) => a - b);
   }, [safePage, totalPages]);
 
   useEffect(() => {
@@ -429,10 +414,7 @@ const totalRecipients = directives.reduce((sum, directive) => {
               <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
                 Wilayah
               </label>
-              <Select
-                value={filterRegion || "ALL"}
-                onValueChange={(val) => setFilterRegion(val === "ALL" ? "" : val)}
-              >
+              <Select value={filterRegion || "ALL"} onValueChange={(val) => setFilterRegion(val === "ALL" ? "" : val)}>
                 <SelectTrigger className="h-9 text-xs bg-background/50 border-[var(--dc-border-subtle)] focus:border-[var(--dc-primary)]/50 focus:ring-0 text-[var(--dc-text-primary)]">
                   <SelectValue placeholder="Semua Wilayah" />
                 </SelectTrigger>

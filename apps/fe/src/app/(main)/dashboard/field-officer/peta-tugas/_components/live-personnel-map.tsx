@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { AlertTriangle, Crosshair, ExternalLink, RefreshCw } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -256,7 +257,10 @@ export function LivePersonnelMap() {
                 Belum ada data
               </span>
             </div>
-            <div ref={containerRef} className="h-[34rem] overflow-hidden rounded-lg border border-white/10 bg-black/20" />
+            <div
+              ref={containerRef}
+              className="h-[34rem] overflow-hidden rounded-lg border border-white/10 bg-black/20"
+            />
           </CardContent>
         </Card>
 
@@ -266,9 +270,7 @@ export function LivePersonnelMap() {
               <Crosshair className="size-4 text-cyan-300" />
               Personel
             </CardTitle>
-            <CardDescription className="text-white/65">
-              Auto-refresh tiap 15 detik.
-            </CardDescription>
+            <CardDescription className="text-white/65">Auto-refresh tiap 15 detik.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button
@@ -297,11 +299,7 @@ export function LivePersonnelMap() {
                     key={feature.id}
                     className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-white/75 hover:bg-white/10"
                   >
-                    <button
-                      className="w-full text-left"
-                      type="button"
-                      onClick={() => focusPersonnel(feature)}
-                    >
+                    <button className="w-full text-left" type="button" onClick={() => focusPersonnel(feature)}>
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="font-semibold text-white">{feature.properties.userName}</p>
@@ -309,14 +307,18 @@ export function LivePersonnelMap() {
                         </div>
                         <Badge className={status.className}>{status.label}</Badge>
                       </div>
-                      <p className="mt-2 text-xs text-white/55">{feature.properties.areaName || feature.properties.unitName}</p>
+                      <p className="mt-2 text-xs text-white/55">
+                        {feature.properties.areaName || feature.properties.unitName}
+                      </p>
                       <p className="mt-1 text-xs text-white/55">
                         Atasan: {feature.properties.supervisorName || feature.properties.supervisorPositionTitle || "-"}
                       </p>
                       <p className="mt-1 font-mono text-xs text-white/60">
                         {latitude.toFixed(5)}, {longitude.toFixed(5)}
                       </p>
-                      <p className="mt-1 text-xs text-white/45">Last GPS: {formatDateTime(feature.properties.capturedAt)}</p>
+                      <p className="mt-1 text-xs text-white/45">
+                        Last GPS: {formatDateTime(feature.properties.capturedAt)}
+                      </p>
                     </button>
                     <Button
                       asChild

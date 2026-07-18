@@ -13,6 +13,7 @@ import type {
   FieldOfficerWorkspace,
   JaringInstructionDispatch,
   JaringCluster,
+  JaringOccupation,
   ReportCategory,
   WhatsappControlChannel,
 } from "./types";
@@ -54,6 +55,20 @@ type JaringRecord = {
     messages?: number;
     primaryBakets?: number;
   };
+  fullName?: string | null;
+  nationalIdNumber?: string | null;
+  birthPlace?: string | null;
+  birthDate?: string | Date | null;
+  gender?: string | null;
+  occupation?: {
+    id: string;
+    name: string;
+  } | null;
+  workplace?: string | null;
+  jobTitle?: string | null;
+  joinedAt?: string | Date | null;
+  organizationName?: string | null;
+  politicalAffiliation?: string | null;
 };
 
 type MessageRecord = {
@@ -349,13 +364,27 @@ export async function getFieldOfficerWorkspace(
   const access = await getAccess(cookie);
   const assignmentId = access.context.primaryAssignmentId;
 
-  const [allJaring, jaringClusters, reportCategories, messages, tasks, baketResponse, districtAreas, latestLocation] =
+  const [
+    allJaring,
+    jaringClusters,
+    occupations,
+    reportCategories,
+    messages,
+    tasks,
+    baketResponse,
+    districtAreas,
+    latestLocation,
+  ] =
     await Promise.all([
       backendApi<JaringRecord[]>("/jaring", {
         cookie,
         query: { limit: 100 },
       }),
       backendApi<Array<JaringCluster & { _count?: { jaring?: number } }>>("/jaring/clusters", {
+        cookie,
+        query: { limit: 200 },
+      }),
+      backendApi<Array<JaringOccupation & { _count?: { jaring?: number } }>>("/jaring/occupations", {
         cookie,
         query: { limit: 200 },
       }),
@@ -413,6 +442,17 @@ export async function getFieldOfficerWorkspace(
       areaIds: (item.areaCoverages ?? []).map((coverage) => coverage.areaId),
       messageCount: item._count?.messages ?? 0,
       baketCount: item._count?.primaryBakets ?? 0,
+      fullName: item.fullName ?? null,
+      nationalIdNumber: item.nationalIdNumber ?? null,
+      birthPlace: item.birthPlace ?? null,
+      birthDate: item.birthDate ? (typeof item.birthDate === "string" ? item.birthDate : item.birthDate.toISOString()) : null,
+      gender: item.gender ?? null,
+      occupationName: item.occupation?.name ?? null,
+      workplace: item.workplace ?? null,
+      jobTitle: item.jobTitle ?? null,
+      joinedAt: item.joinedAt ? (typeof item.joinedAt === "string" ? item.joinedAt : item.joinedAt.toISOString()) : null,
+      organizationName: item.organizationName ?? null,
+      politicalAffiliation: item.politicalAffiliation ?? null,
     }));
 
   const baketIndex = new Map<string, FieldOfficerJaring>();
@@ -435,6 +475,14 @@ export async function getFieldOfficerWorkspace(
       description: cluster.description ?? null,
       isActive: cluster.isActive,
       jaringCount: cluster._count?.jaring ?? cluster.jaringCount,
+    })),
+    occupations: occupations.map((occupation) => ({
+      id: occupation.id,
+      code: occupation.code,
+      name: occupation.name,
+      description: occupation.description ?? null,
+      isActive: occupation.isActive,
+      jaringCount: occupation._count?.jaring ?? occupation.jaringCount,
     })),
     districtAreas,
     reportCategories: reportCategories.map((category) => ({

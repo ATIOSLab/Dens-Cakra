@@ -1475,8 +1475,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
       hierarchyData.regional.some((item) => item.branch === branch.branch),
     );
     const visibleBranches = availableBranches.length > 0 ? availableBranches : branches;
-    const executiveY =
-      visibleBranches.reduce((sum, branch) => sum + branch.y, 0) / Math.max(visibleBranches.length, 1);
+    const executiveY = visibleBranches.reduce((sum, branch) => sum + branch.y, 0) / Math.max(visibleBranches.length, 1);
 
     const compactNodes: PipelineReactFlowNode[] = [
       {

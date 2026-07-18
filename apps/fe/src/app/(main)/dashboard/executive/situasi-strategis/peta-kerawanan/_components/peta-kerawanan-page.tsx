@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -16,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 
 import { PetaKerawananMap } from "./peta-kerawanan-map";
 
@@ -137,7 +138,11 @@ export function PetaKerawananPage() {
           const Icon = metric.icon;
 
           return (
-            <Link href={metric.url} key={metric.label} className="block transition-transform hover:scale-[1.01] active:scale-[0.99]">
+            <Link
+              href={metric.url}
+              key={metric.label}
+              className="block transition-transform hover:scale-[1.01] active:scale-[0.99]"
+            >
               <div className="rounded-xl border bg-card p-5 text-card-foreground ring-1 ring-foreground/5 shadow-sm h-full">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">

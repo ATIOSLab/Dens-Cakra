@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 
+import type { UukDetail, UukDirectiveOption, UukSummary } from "@/features/uuk-str/types";
 import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 import { UukDetailClient, UukEditorClient, UukListClient } from "./uuk-clients";
-import type { UukDetail, UukDirectiveOption, UukSummary } from "@/features/uuk-str/types";
 
 async function loadDirectiveOptions() {
   return apiServerGet<UukDirectiveOption[]>("/directives", {

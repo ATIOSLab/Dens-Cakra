@@ -941,7 +941,7 @@ export function IntelligenceProductDetail({
     <main className="mx-auto w-full max-w-[1600px] space-y-5 p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-            <BackButton className="print:hidden" />
+          <BackButton className="print:hidden" />
           <p className="font-semibold text-muted-foreground text-xs uppercase tracking-[0.18em]">
             {executive ? "Executive" : approvalStep ? "Regional Commander" : "Produk Intelijen"}
           </p>
