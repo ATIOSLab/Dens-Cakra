@@ -292,7 +292,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "field-coordinator-assignment",
-        title: "Penugasan Field Officer",
+        title: "Penugasan Agent ",
         url: "/dashboard/field-coordinator/penugasan-field-officer",
         icon: ClipboardList,
         roles: FIELD_COORDINATOR_ROLE,

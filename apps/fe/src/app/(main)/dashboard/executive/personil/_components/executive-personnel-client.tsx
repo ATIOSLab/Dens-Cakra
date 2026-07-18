@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,8 +12,8 @@ import { Activity, BarChart3, Layers, List, Map as MapIcon, Search, ShieldAlert,
 import { Map, MapControls, MapMarker, MapMarkerPopup } from "@/components/ui/map";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TablePagination } from "@/components/ui/table-pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -22,6 +22,20 @@ import type {
   PersonnelListQueryState,
   PersonnelMapFeature,
 } from "./executive-personnel-types";
+
+type PersonnelPageConfig = NonNullable<PersonnelListProps["pageConfig"]>;
+
+const DEFAULT_PAGE_CONFIG: PersonnelPageConfig = {
+  basePath: "/dashboard/executive/personil",
+  title: "Daftar Personel",
+  description:
+    "Konsolidasi personel nasional dari user aktif, jabatan, wilayah penugasan, lokasi petugas organik, laporan, dan aktivitas operasional.",
+  tableTabLabel: "DAFTAR PERSONIL",
+  mapTabLabel: "PETA NASIONAL",
+  detailTarget: "userProfile",
+  showExecutiveSummary: true,
+  showProvinceFilter: true,
+};
 
 function _formatDate(value?: string | null) {
   if (!value) return "-";
@@ -32,7 +46,7 @@ function _formatDate(value?: string | null) {
 }
 
 function primaryArea(item: PersonnelListItem) {
-  const areas = item.assignment?.areas ?? [];
+  const areas = item.assignment ? item.assignment.areas : [];
   return areas.find((area) => area.isPrimary) ?? areas[0] ?? null;
 }
 
@@ -63,11 +77,11 @@ function getStatusDotColor(status: string) {
   return "bg-amber-500 dark:bg-amber-400";
 }
 
-function paginationHref(queryState: PersonnelListQueryState, page: number) {
-  return buildPersonnelHref(queryState, { page });
-}
-
-function buildPersonnelHref(queryState: PersonnelListQueryState, overrides: Partial<PersonnelListQueryState>) {
+function buildPersonnelHref(
+  basePath: string,
+  queryState: PersonnelListQueryState,
+  overrides: Partial<PersonnelListQueryState>,
+) {
   const params = new URLSearchParams();
   const nextState = { ...queryState, ...overrides };
   if (nextState.q) params.set("q", nextState.q);
@@ -76,17 +90,18 @@ function buildPersonnelHref(queryState: PersonnelListQueryState, overrides: Part
   if (nextState.districtId) params.set("districtId", nextState.districtId);
   params.set("page", String(nextState.page));
   params.set("limit", String(nextState.limit));
-  return `/dashboard/executive/personil?${params.toString()}`;
+  return `${basePath}?${params.toString()}`;
 }
 
-function paginationPages(currentPage: number, totalPages: number) {
-  const pages = new Set([1, totalPages]);
-  for (let page = currentPage - 2; page <= currentPage + 2; page += 1) {
-    if (page >= 1 && page <= totalPages) {
-      pages.add(page);
-    }
-  }
-  return [...pages].sort((a, b) => a - b);
+function personnelDetailHref(item: PersonnelListItem, config: PersonnelPageConfig) {
+  const targetId = config.detailTarget === "assignment" ? item.assignment?.id : item.id;
+  return targetId ? `${config.basePath}/${targetId}` : config.basePath;
+}
+
+function markerDetailHref(feature: PersonnelMapFeature, config: PersonnelPageConfig) {
+  const targetId =
+    config.detailTarget === "assignment" ? feature.properties.assignmentId : feature.properties.userProfileId;
+  return `${config.basePath}/${targetId}`;
 }
 
 function _formatSyncTime(dateStr?: string) {
@@ -313,6 +328,8 @@ function KpiCard({
 }
 
 function TableSkeleton() {
+  const skeletonRows = ["one", "two", "three", "four", "five"];
+
   return (
     <div className="overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/40 dark:border-slate-800 dark:bg-[#080d14]/40">
       <Table>
@@ -336,9 +353,9 @@ function TableSkeleton() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {Array.from({ length: 5 }).map((_, idx) => (
+          {skeletonRows.map((rowId) => (
             <TableRow
-              key={`sk-${idx}`}
+              key={`sk-${rowId}`}
               className="border-[var(--dc-border-subtle)] border-b hover:bg-transparent dark:border-slate-900/60"
             >
               <TableCell className="py-4 pl-6">
@@ -409,7 +426,7 @@ function RadarEmptyState({ onReset }: { onReset?: () => void }) {
   );
 }
 
-function LocationMarker({ feature }: { feature: PersonnelMapFeature }) {
+function LocationMarker({ feature, config }: { feature: PersonnelMapFeature; config: PersonnelPageConfig }) {
   return (
     <MapMarker
       longitude={feature.geometry.coordinates[0]}
@@ -417,7 +434,7 @@ function LocationMarker({ feature }: { feature: PersonnelMapFeature }) {
       pulse={pulseByStatus(feature.properties.status)}
     >
       <Link
-        href={`/dashboard/executive/personil/${feature.properties.userProfileId}`}
+        href={markerDetailHref(feature, config)}
         className="group block"
         aria-label={`Buka detail ${feature.properties.name ?? feature.properties.email}`}
       >
@@ -444,10 +461,12 @@ function PersonnelTable({
   items,
   isPending,
   onReset,
+  config,
 }: {
   items: PersonnelListItem[];
   isPending: boolean;
   onReset?: () => void;
+  config: PersonnelPageConfig;
 }) {
   if (isPending) {
     return <TableSkeleton />;
@@ -482,6 +501,7 @@ function PersonnelTable({
         <TableBody>
           {items.map((item) => {
             const area = primaryArea(item);
+            const detailHref = personnelDetailHref(item, config);
             return (
               <TableRow
                 key={item.id}
@@ -490,7 +510,7 @@ function PersonnelTable({
                 {/* Left Cyan Indicator on Hover */}
                 <TableCell className="relative py-3.5 pl-6">
                   <div className="absolute top-0 bottom-0 left-0 w-[2.5px] bg-[var(--dc-primary)] opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
-                  <Link href={`/dashboard/executive/personil/${item.id}`} className="block min-w-56">
+                  <Link href={detailHref} className="block min-w-56">
                     <span className="block font-bold font-mono text-foreground text-xs transition-colors group-hover:text-[var(--dc-primary)]">
                       {item.fullName ?? item.username ?? item.email}
                     </span>
@@ -525,7 +545,7 @@ function PersonnelTable({
                 </TableCell>
                 <TableCell className="pr-6 text-right">
                   <Link
-                    href={`/dashboard/executive/personil/${item.id}`}
+                    href={detailHref}
                     className="inline-flex items-center gap-1 rounded-none border border-[var(--dc-primary)]/40 bg-[var(--dc-primary-soft)] px-2 py-1 font-bold font-mono text-[9px] text-[var(--dc-primary)] tracking-wider transition-all duration-150 hover:bg-[var(--dc-primary)] hover:text-[var(--dc-text-inverse)] group-hover:border-[var(--dc-primary)] dark:text-cyan-400"
                   >
                     <Terminal className="size-3" />
@@ -545,7 +565,8 @@ function PersonnelTable({
 /* MAIN EXPORT COMPONENT                                                      */
 /* -------------------------------------------------------------------------- */
 
-export function ExecutivePersonnelClient({ items, map, pagination, queryState, areaFilters }: PersonnelListProps) {
+export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, pageConfig }: PersonnelListProps) {
+  const config = { ...DEFAULT_PAGE_CONFIG, ...pageConfig };
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [_systemClock, setSystemClock] = useState("SYNCING...");
@@ -562,14 +583,11 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
     return items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
   }, [items, safePage, rowsPerPage]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [items]);
-
   const applyFilter = (overrides: Partial<PersonnelListQueryState>) => {
+    setPage(1);
     startTransition(() => {
       router.push(
-        buildPersonnelHref(queryState, {
+        buildPersonnelHref(config.basePath, queryState, {
           ...overrides,
           page: 1,
         }),
@@ -578,8 +596,9 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
   };
 
   const resetFilters = () => {
+    setPage(1);
     startTransition(() => {
-      router.push("/dashboard/executive/personil?page=1&limit=20");
+      router.push(`${config.basePath}?page=1&limit=20`);
     });
   };
 
@@ -611,11 +630,10 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1">
               <h1 className="mt-2 flex items-baseline gap-2 font-bold font-mono text-2xl text-foreground uppercase tracking-tight">
-                <span>Daftar Personel</span>
+                <span>{config.title}</span>
               </h1>
               <p className="max-w-3xl font-mono text-[11px] text-[var(--dc-text-secondary)] leading-relaxed">
-                Konsolidasi personel nasional dari user aktif, jabatan, wilayah penugasan, lokasi petugas organik,
-                laporan, dan aktivitas operasional.
+                {config.description}
               </p>
             </div>
           </div>
@@ -624,7 +642,10 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
         {/* Grouped Filter Panel Section */}
         <section className="space-y-3 rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 p-4 dark:border-slate-800 dark:bg-[#080d14]/60">
           <form
-            className="grid w-full items-end gap-4 md:grid-cols-[1.5fr_1fr_1fr_1fr]"
+            className={cn(
+              "grid w-full items-end gap-4",
+              config.showProvinceFilter ? "md:grid-cols-[1.5fr_1fr_1fr_1fr]" : "md:grid-cols-[1.5fr_1fr_1fr]",
+            )}
             onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
@@ -648,37 +669,40 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
               </div>
             </div>
 
-            {/* Province selection */}
-            <div className="space-y-1.5">
-              <div className="font-mono text-[9px] text-[var(--dc-text-muted)] uppercase tracking-wider">PROVINSI</div>
-              <Select
-                name="provinceId"
-                value={queryState.provinceId || "ALL"}
-                onValueChange={(val) =>
-                  applyFilter({
-                    provinceId: val === "ALL" ? "" : val,
-                    regencyId: "",
-                    districtId: "",
-                  })
-                }
-              >
-                <SelectTrigger className="h-10 w-full rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] px-3 font-mono text-foreground text-xs outline-none transition-all focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 dark:border-slate-800 dark:bg-slate-950/80">
-                  <SelectValue placeholder="Semua provinsi" />
-                </SelectTrigger>
-                <SelectContent
-                  position="popper"
-                  side="bottom"
-                  className="relative z-50 max-h-[300px] select-none overflow-y-auto rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] font-mono text-foreground text-xs"
+            {config.showProvinceFilter && (
+              <div className="space-y-1.5">
+                <div className="font-mono text-[9px] text-[var(--dc-text-muted)] uppercase tracking-wider">
+                  PROVINSI
+                </div>
+                <Select
+                  name="provinceId"
+                  value={queryState.provinceId || "ALL"}
+                  onValueChange={(val) =>
+                    applyFilter({
+                      provinceId: val === "ALL" ? "" : val,
+                      regencyId: "",
+                      districtId: "",
+                    })
+                  }
                 >
-                  <SelectItem value="ALL">Semua provinsi</SelectItem>
-                  {areaFilters.provinces.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
-                      {area.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  <SelectTrigger className="h-10 w-full rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] px-3 font-mono text-foreground text-xs outline-none transition-all focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 dark:border-slate-800 dark:bg-slate-950/80">
+                    <SelectValue placeholder="Semua provinsi" />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    className="relative z-50 max-h-[300px] select-none overflow-y-auto rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] font-mono text-foreground text-xs"
+                  >
+                    <SelectItem value="ALL">Semua provinsi</SelectItem>
+                    {areaFilters.provinces.map((area) => (
+                      <SelectItem key={area.id} value={area.id}>
+                        {area.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Regency selection */}
             <div className="space-y-1.5">
@@ -688,7 +712,7 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
               <Select
                 name="regencyId"
                 value={queryState.regencyId || "ALL"}
-                disabled={!queryState.provinceId}
+                disabled={config.showProvinceFilter ? !queryState.provinceId : false}
                 onValueChange={(val) =>
                   applyFilter({
                     regencyId: val === "ALL" ? "" : val,
@@ -755,22 +779,24 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
               className="cursor-pointer rounded-none border border-transparent px-6 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider transition-all hover:text-foreground data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800"
             >
               <List className="mr-2 size-3.5 text-[var(--dc-primary)]" />
-              DAFTAR PERSONIL
+              {config.tableTabLabel}
             </TabsTrigger>
             <TabsTrigger
               value="peta"
               className="cursor-pointer rounded-none border border-transparent px-6 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider transition-all hover:text-foreground data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800"
             >
               <MapIcon className="mr-2 size-3.5 text-[var(--dc-primary)]" />
-              PETA NASIONAL
+              {config.mapTabLabel}
             </TabsTrigger>
-            <TabsTrigger
-              value="eksekutif"
-              className="cursor-pointer rounded-none border border-transparent px-6 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider transition-all hover:text-foreground data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800"
-            >
-              <BarChart3 className="mr-2 size-3.5 text-[var(--dc-primary)]" />
-              EXECUTIVE
-            </TabsTrigger>
+            {config.showExecutiveSummary && (
+              <TabsTrigger
+                value="eksekutif"
+                className="cursor-pointer rounded-none border border-transparent px-6 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider transition-all hover:text-foreground data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800"
+              >
+                <BarChart3 className="mr-2 size-3.5 text-[var(--dc-primary)]" />
+                EXECUTIVE
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Database List Tab View */}
@@ -783,7 +809,7 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
             </section>
 
             {/* Personnel Database Table */}
-            <PersonnelTable items={paginatedItems} isPending={isPending} onReset={resetFilters} />
+            <PersonnelTable items={paginatedItems} isPending={isPending} onReset={resetFilters} config={config} />
 
             {/* Pagination Controls bar */}
             <TablePagination
@@ -795,7 +821,7 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
                 setRowsPerPage(limit);
                 setPage(1);
               }}
-              className="rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 dark:border-slate-800 dark:bg-[#080d14]/80 px-6 py-3.5"
+              className="rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 px-6 py-3.5 dark:border-slate-800 dark:bg-[#080d14]/80"
             />
           </TabsContent>
 
@@ -812,7 +838,7 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
                 <Map center={[118, -2.5]} zoom={4.2} minZoom={3} maxZoom={15}>
                   <MapControls showZoom showCompass position="top-right" />
                   {map.features.map((feature) => (
-                    <LocationMarker key={feature.id} feature={feature} />
+                    <LocationMarker key={feature.id} feature={feature} config={config} />
                   ))}
                 </Map>
               </div>
@@ -857,89 +883,57 @@ export function ExecutivePersonnelClient({ items, map, pagination, queryState, a
           </TabsContent>
 
           {/* Executive Summary Analytics Tab View */}
-          <TabsContent value="eksekutif" className="outline-none">
-            <section className="relative rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-6 dark:border-slate-800 dark:bg-[#080d14]/70">
-              <div className="absolute top-0 left-0 h-3.5 w-3.5 border-[var(--dc-primary)] border-t-2 border-l-2" />
-              <div className="absolute top-0 right-0 h-3.5 w-3.5 border-[var(--dc-primary)] border-t-2 border-r-2" />
-              <div className="absolute bottom-0 left-0 h-3.5 w-3.5 border-[var(--dc-primary)] border-b-2 border-l-2" />
-              <div className="absolute right-0 bottom-0 h-3.5 w-3.5 border-[var(--dc-primary)] border-r-2 border-b-2" />
+          {config.showExecutiveSummary && (
+            <TabsContent value="eksekutif" className="outline-none">
+              <section className="relative rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-6 dark:border-slate-800 dark:bg-[#080d14]/70">
+                <div className="absolute top-0 left-0 h-3.5 w-3.5 border-[var(--dc-primary)] border-t-2 border-l-2" />
+                <div className="absolute top-0 right-0 h-3.5 w-3.5 border-[var(--dc-primary)] border-t-2 border-r-2" />
+                <div className="absolute bottom-0 left-0 h-3.5 w-3.5 border-[var(--dc-primary)] border-b-2 border-l-2" />
+                <div className="absolute right-0 bottom-0 h-3.5 w-3.5 border-[var(--dc-primary)] border-r-2 border-b-2" />
 
-              <div className="mb-5 flex items-center gap-1.5 border-[var(--dc-border-subtle)] border-b pb-3 dark:border-slate-900">
-                <Activity className="size-4 text-[var(--dc-primary)]" />
-                <h2 className="font-bold font-mono text-[var(--dc-text-primary)] text-sm uppercase tracking-widest">
-                  Ringkasan Eksekutif Analitik
-                </h2>
-              </div>
+                <div className="mb-5 flex items-center gap-1.5 border-[var(--dc-border-subtle)] border-b pb-3 dark:border-slate-900">
+                  <Activity className="size-4 text-[var(--dc-primary)]" />
+                  <h2 className="font-bold font-mono text-[var(--dc-text-primary)] text-sm uppercase tracking-widest">
+                    Ringkasan Eksekutif Analitik
+                  </h2>
+                </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
-                <KpiCard
-                  label="Total Field Officers"
-                  value={map.meta.counts.totalFieldOfficers}
-                  trend="SYS_ACTIVE_AGENTS"
-                  progress={100}
-                  variant="cyan"
-                />
-                <KpiCard
-                  label="Lokasi Live / Recent"
-                  value={(map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0)}
-                  trend="ONLINE_NODE_COVERAGE"
-                  progress={
-                    (((map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0)) /
-                      (map.meta.counts.totalFieldOfficers || 1)) *
-                    100
-                  }
-                  variant="emerald"
-                />
-                <KpiCard
-                  label="Lokasi Stale / No Signal"
-                  value={(map.meta.counts.byStatus.STALE ?? 0) + (map.meta.counts.byStatus.NO_SIGNAL ?? 0)}
-                  trend="DISCONNECTED_TIMEOUT"
-                  progress={
-                    (((map.meta.counts.byStatus.STALE ?? 0) + (map.meta.counts.byStatus.NO_SIGNAL ?? 0)) /
-                      (map.meta.counts.totalFieldOfficers || 1)) *
-                    100
-                  }
-                  variant="amber"
-                />
-              </div>
-            </section>
-          </TabsContent>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <KpiCard
+                    label="Total Field Officers"
+                    value={map.meta.counts.totalFieldOfficers}
+                    trend="SYS_ACTIVE_AGENTS"
+                    progress={100}
+                    variant="cyan"
+                  />
+                  <KpiCard
+                    label="Lokasi Live / Recent"
+                    value={(map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0)}
+                    trend="ONLINE_NODE_COVERAGE"
+                    progress={
+                      (((map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0)) /
+                        (map.meta.counts.totalFieldOfficers || 1)) *
+                      100
+                    }
+                    variant="emerald"
+                  />
+                  <KpiCard
+                    label="Lokasi Stale / No Signal"
+                    value={(map.meta.counts.byStatus.STALE ?? 0) + (map.meta.counts.byStatus.NO_SIGNAL ?? 0)}
+                    trend="DISCONNECTED_TIMEOUT"
+                    progress={
+                      (((map.meta.counts.byStatus.STALE ?? 0) + (map.meta.counts.byStatus.NO_SIGNAL ?? 0)) /
+                        (map.meta.counts.totalFieldOfficers || 1)) *
+                      100
+                    }
+                    variant="amber"
+                  />
+                </div>
+              </section>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </main>
-  );
-}
-
-function PageLink({
-  href,
-  active,
-  disabled,
-  children,
-}: {
-  href: string;
-  active?: boolean;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  if (disabled) {
-    return (
-      <span className="min-w-9 cursor-not-allowed select-none rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-3 py-1.5 text-center font-bold font-mono text-[var(--dc-text-muted)] text-xs opacity-50 dark:border-slate-900 dark:bg-slate-950/20">
-        {children}
-      </span>
-    );
-  }
-
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "min-w-9 select-none rounded-none border px-3 py-1.5 text-center font-bold font-mono text-xs uppercase transition-all",
-        active
-          ? "border-[var(--dc-primary)] bg-[var(--dc-primary)] text-[var(--dc-text-inverse)]"
-          : "border-[var(--dc-border-subtle)] bg-[var(--dc-card)] text-foreground hover:border-[var(--dc-primary)] hover:text-[var(--dc-primary)] dark:border-slate-800 dark:bg-[#080d14]/75 dark:text-slate-350",
-      )}
-    >
-      {children}
-    </Link>
   );
 }

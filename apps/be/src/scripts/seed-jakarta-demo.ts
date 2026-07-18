@@ -345,6 +345,23 @@ async function loadContext() {
     const officialCode = rawArea.officialCode;
     if (!officialCode) continue;
     const coordinator = await findAssignment(PositionCode.KORWIL, officialCode);
+    const districtCodes = (
+      await prisma.administrativeArea.findMany({
+        where: {
+          parentId: rawArea.id,
+          level: 'DISTRICT',
+          isActive: true,
+          deletedAt: null,
+          officialCode: { not: null },
+        },
+        orderBy: { officialCode: 'asc' },
+        select: { officialCode: true },
+      })
+    ).flatMap((district) =>
+      district.officialCode ? [district.officialCode] : [],
+    );
+    const fieldOfficerAreaCodes =
+      districtCodes.length > 0 ? districtCodes : [officialCode];
     const fieldOfficer = await prisma.userSeatAssignment.findFirstOrThrow({
       where: {
         isPrimary: true,
@@ -357,9 +374,13 @@ async function loadContext() {
           isActive: true,
         },
         areaScopes: {
-          some: { validUntil: null, area: { officialCode } },
+          some: {
+            validUntil: null,
+            area: { officialCode: { in: fieldOfficerAreaCodes } },
+          },
         },
       },
+      orderBy: { validFrom: 'asc' },
       select: assignmentSelect,
     });
     const fallback = fallbackCoordinates(officialCode);

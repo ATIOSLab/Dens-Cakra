@@ -1,14 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
+  AdministrativeLevel,
   PositionCode,
   Prisma,
   RoleCode,
   UserProfileStatus,
 } from '../../generated/prisma/client.js';
+import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { DomainScopeService } from '../access/domain-scope.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ExecutivePersonnelListQuery,
   ExecutivePersonnelMapQuery,
+  FieldCoordinatorPersonnelAreaFilterQuery,
 } from './executive-personnel.dto.js';
 
 type ActiveAssignment = Awaited<
@@ -18,6 +22,11 @@ type ActiveAssignment = Awaited<
 type LatestPing = Awaited<
   ReturnType<ExecutivePersonnelService['latestLocationPings']>
 >[number];
+
+type PersonnelScopeOptions = {
+  assignmentIds?: string[];
+  requiredPositionCode?: PositionCode;
+};
 
 const LOCATION_LEGEND = [
   {
@@ -52,28 +61,65 @@ const LOCATION_LEGEND = [
 
 @Injectable()
 export class ExecutivePersonnelService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly domainScope: DomainScopeService,
+  ) {}
 
   async list(query: ExecutivePersonnelListQuery) {
+    return this.listPersonnel(query);
+  }
+
+  async listFieldCoordinatorPersonnel(
+    query: ExecutivePersonnelListQuery,
+    context: AuthorizationContext,
+  ) {
+    await this.assertAreaOverlapsScope(query, context);
+    const scope = await this.domainScope.resolve(context);
+
+    return this.listPersonnel(query, {
+      assignmentIds: scope.assignmentIds,
+      requiredPositionCode: PositionCode.PETUGAS_ORGANIK,
+    });
+  }
+
+  private async listPersonnel(
+    query: ExecutivePersonnelListQuery,
+    scopeOptions: PersonnelScopeOptions = {},
+  ) {
     const page = Math.max(query.page ?? 1, 1);
     const limit = Math.min(Math.max(query.limit ?? 20, 1), 100);
-    const where = this.buildProfileWhere(query);
+    const where = this.buildProfileWhere(query, scopeOptions);
     const [total, profiles] = await Promise.all([
       this.prisma.userProfile.count({ where }),
       this.prisma.userProfile.findMany({
         where,
         include: {
           authUser: {
-            select: { id: true, email: true, name: true, role: true, banned: true },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              role: true,
+              banned: true,
+            },
           },
         },
-        orderBy: [{ fullName: 'asc' }, { username: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [
+          { fullName: 'asc' },
+          { username: 'asc' },
+          { createdAt: 'desc' },
+        ],
         skip: (page - 1) * limit,
         take: limit,
       }),
     ]);
     const profileIds = profiles.map((profile) => profile.id);
-    const assignments = await this.findActiveAssignmentsForProfiles(profileIds);
+    const assignments = await this.findActiveAssignmentsForProfiles(
+      profileIds,
+      query,
+      scopeOptions,
+    );
     const assignmentByProfile = new Map(
       assignments.map((assignment) => [assignment.userProfileId, assignment]),
     );
@@ -89,7 +135,9 @@ export class ExecutivePersonnelService {
     return {
       items: profiles.map((profile) => {
         const assignment = assignmentByProfile.get(profile.id) ?? null;
-        const ping = assignment ? (pingByAssignment.get(assignment.id) ?? null) : null;
+        const ping = assignment
+          ? (pingByAssignment.get(assignment.id) ?? null)
+          : null;
         return {
           id: profile.id,
           username: profile.username,
@@ -122,16 +170,96 @@ export class ExecutivePersonnelService {
   }
 
   async map(query: ExecutivePersonnelMapQuery) {
+    return this.mapPersonnel(query);
+  }
+
+  async mapFieldCoordinatorPersonnel(
+    query: ExecutivePersonnelMapQuery,
+    context: AuthorizationContext,
+  ) {
+    await this.assertAreaOverlapsScope(query, context);
+    const scope = await this.domainScope.resolve(context);
+
+    return this.mapPersonnel(query, {
+      assignmentIds: scope.assignmentIds,
+      requiredPositionCode: PositionCode.PETUGAS_ORGANIK,
+    });
+  }
+
+  async fieldCoordinatorAreaFilters(
+    query: FieldCoordinatorPersonnelAreaFilterQuery,
+    context: AuthorizationContext,
+  ) {
+    if (query.provinceId) {
+      await this.assertAreaOverlapsScope(
+        { provinceId: query.provinceId },
+        context,
+      );
+    }
+    if (query.regencyId) {
+      await this.assertAreaOverlapsScope(
+        { regencyId: query.regencyId },
+        context,
+      );
+    }
+
+    const scope = await this.domainScope.resolve(context);
+    const areaSelect = {
+      id: true,
+      code: true,
+      name: true,
+      level: true,
+      parentId: true,
+    } satisfies Prisma.AdministrativeAreaSelect;
+
+    const [regencies, districts] = await Promise.all([
+      this.prisma.administrativeArea.findMany({
+        where: {
+          ...this.scopedAreaWhere(scope.areaRootIds, [
+            AdministrativeLevel.REGENCY,
+            AdministrativeLevel.CITY,
+          ]),
+          ...(query.provinceId ? { parentId: query.provinceId } : {}),
+        },
+        select: areaSelect,
+        orderBy: { name: 'asc' },
+      }),
+      query.regencyId
+        ? this.prisma.administrativeArea.findMany({
+            where: {
+              ...this.scopedAreaWhere(
+                scope.areaRootIds,
+                AdministrativeLevel.DISTRICT,
+              ),
+              parentId: query.regencyId,
+            },
+            select: areaSelect,
+            orderBy: { name: 'asc' },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    return { provinces: [], regencies, districts };
+  }
+
+  private async mapPersonnel(
+    query: ExecutivePersonnelMapQuery,
+    scopeOptions: PersonnelScopeOptions = {},
+  ) {
     const selectedAreaId = this.selectedAreaId(query);
     const assignments = await this.prisma.userSeatAssignment.findMany({
       where: {
         isActive: true,
         validUntil: null,
+        ...(scopeOptions.assignmentIds
+          ? { id: { in: scopeOptions.assignmentIds } }
+          : {}),
         ...(selectedAreaId
           ? { areaScopes: { some: this.areaScopeWhere(selectedAreaId) } }
           : {}),
         position: {
-          code: PositionCode.PETUGAS_ORGANIK,
+          code:
+            scopeOptions.requiredPositionCode ?? PositionCode.PETUGAS_ORGANIK,
           ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
         },
         userProfile: { deletedAt: null, isActive: true },
@@ -156,7 +284,9 @@ export class ExecutivePersonnelService {
       },
       orderBy: { validFrom: 'desc' },
     });
-    const pings = await this.latestLocationPings(assignments.map((item) => item.id));
+    const pings = await this.latestLocationPings(
+      assignments.map((item) => item.id),
+    );
     const pingByAssignment = new Map(
       pings.map((ping) => [ping.positionAssignmentId, ping]),
     );
@@ -168,8 +298,7 @@ export class ExecutivePersonnelService {
         assignment.areaScopes.find((scope) => scope.isPrimary)?.area ??
         assignment.areaScopes[0]?.area ??
         null;
-      const latitude =
-        ping?.latitude ?? primaryArea?.centroidLatitude ?? null;
+      const latitude = ping?.latitude ?? primaryArea?.centroidLatitude ?? null;
       const longitude =
         ping?.longitude ?? primaryArea?.centroidLongitude ?? null;
 
@@ -192,7 +321,10 @@ export class ExecutivePersonnelService {
           id: assignment.id,
           geometry: {
             type: 'Point' as const,
-            coordinates: [Number(longitude), Number(latitude)] as [number, number],
+            coordinates: [Number(longitude), Number(latitude)] as [
+              number,
+              number,
+            ],
           },
           properties: {
             markerType: 'personnel',
@@ -347,10 +479,16 @@ export class ExecutivePersonnelService {
         updatedAt: profile.updatedAt,
       },
       currentAssignment: currentAssignment
-        ? this.assignmentDetail(currentAssignment, pingByAssignment.get(currentAssignment.id) ?? null)
+        ? this.assignmentDetail(
+            currentAssignment,
+            pingByAssignment.get(currentAssignment.id) ?? null,
+          )
         : null,
       assignments: profile.positionAssignments.map((assignment) =>
-        this.assignmentDetail(assignment, pingByAssignment.get(assignment.id) ?? null),
+        this.assignmentDetail(
+          assignment,
+          pingByAssignment.get(assignment.id) ?? null,
+        ),
       ),
       activityLogs: profile.auditLogs.map((log) => ({
         id: log.id,
@@ -383,7 +521,10 @@ export class ExecutivePersonnelService {
     };
   }
 
-  private buildProfileWhere(query: ExecutivePersonnelListQuery) {
+  private buildProfileWhere(
+    query: ExecutivePersonnelListQuery,
+    scopeOptions: PersonnelScopeOptions = {},
+  ) {
     const where: Prisma.UserProfileWhereInput = { deletedAt: null };
     const and: Prisma.UserProfileWhereInput[] = [];
     const search = query.search?.trim();
@@ -393,20 +534,16 @@ export class ExecutivePersonnelService {
       and.push({ status: query.status });
     }
 
-    if (query.roleCode || query.unitId || selectedAreaId) {
+    if (
+      query.roleCode ||
+      query.unitId ||
+      selectedAreaId ||
+      scopeOptions.assignmentIds ||
+      scopeOptions.requiredPositionCode
+    ) {
       and.push({
         positionAssignments: {
-          some: {
-            isActive: true,
-            validUntil: null,
-            ...(selectedAreaId
-              ? { areaScopes: { some: this.areaScopeWhere(selectedAreaId) } }
-              : {}),
-            position: {
-              ...(query.roleCode ? { role: { code: query.roleCode } } : {}),
-              ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
-            },
-          },
+          some: this.activeAssignmentWhere(query, scopeOptions),
         },
       });
     }
@@ -452,16 +589,22 @@ export class ExecutivePersonnelService {
     return where;
   }
 
-  private async findActiveAssignmentsForProfiles(profileIds: string[]) {
+  private async findActiveAssignmentsForProfiles(
+    profileIds: string[],
+    query: Pick<
+      ExecutivePersonnelListQuery,
+      'roleCode' | 'unitId' | 'provinceId' | 'regencyId' | 'districtId'
+    > = {},
+    scopeOptions: PersonnelScopeOptions = {},
+  ) {
     if (!profileIds.length) {
       return [];
     }
 
     return this.prisma.userSeatAssignment.findMany({
       where: {
+        ...this.activeAssignmentWhere(query, scopeOptions),
         userProfileId: { in: profileIds },
-        isActive: true,
-        validUntil: null,
       },
       include: {
         position: {
@@ -489,6 +632,34 @@ export class ExecutivePersonnelService {
     return query.districtId ?? query.regencyId ?? query.provinceId ?? null;
   }
 
+  private activeAssignmentWhere(
+    query: Pick<
+      ExecutivePersonnelListQuery,
+      'roleCode' | 'unitId' | 'provinceId' | 'regencyId' | 'districtId'
+    >,
+    scopeOptions: PersonnelScopeOptions = {},
+  ): Prisma.UserSeatAssignmentWhereInput {
+    const selectedAreaId = this.selectedAreaId(query);
+
+    return {
+      isActive: true,
+      validUntil: null,
+      ...(scopeOptions.assignmentIds
+        ? { id: { in: scopeOptions.assignmentIds } }
+        : {}),
+      ...(selectedAreaId
+        ? { areaScopes: { some: this.areaScopeWhere(selectedAreaId) } }
+        : {}),
+      position: {
+        ...(query.roleCode ? { role: { code: query.roleCode } } : {}),
+        ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
+        ...(scopeOptions.requiredPositionCode
+          ? { code: scopeOptions.requiredPositionCode }
+          : {}),
+      },
+    };
+  }
+
   private areaScopeWhere(areaId: string): Prisma.PositionAreaScopeWhereInput {
     return {
       area: {
@@ -498,6 +669,64 @@ export class ExecutivePersonnelService {
         ],
       },
     };
+  }
+
+  private scopedAreaWhere(
+    areaRootIds: string[],
+    level: AdministrativeLevel | AdministrativeLevel[],
+  ): Prisma.AdministrativeAreaWhereInput {
+    if (!areaRootIds.length) {
+      return { id: { in: [] } };
+    }
+
+    return {
+      isActive: true,
+      deletedAt: null,
+      level: Array.isArray(level) ? { in: level } : level,
+      ...this.areaOverlapScopeWhere(areaRootIds),
+    };
+  }
+
+  private areaOverlapScopeWhere(
+    areaRootIds: string[],
+  ): Prisma.AdministrativeAreaWhereInput {
+    return {
+      OR: [
+        { id: { in: areaRootIds } },
+        { descendantLinks: { some: { ancestorId: { in: areaRootIds } } } },
+        { ancestorLinks: { some: { descendantId: { in: areaRootIds } } } },
+      ],
+    };
+  }
+
+  private async assertAreaOverlapsScope(
+    query: Pick<
+      ExecutivePersonnelListQuery | ExecutivePersonnelMapQuery,
+      'provinceId' | 'regencyId' | 'districtId'
+    >,
+    context: AuthorizationContext,
+  ) {
+    const selectedAreaId = this.selectedAreaId(query);
+    if (!selectedAreaId) {
+      return;
+    }
+
+    const scope = await this.domainScope.resolve(context);
+    if (!scope.areaRootIds.length) {
+      throw new NotFoundException('Resource not found.');
+    }
+
+    const allowed = await this.prisma.administrativeArea.findFirst({
+      where: {
+        id: selectedAreaId,
+        ...this.areaOverlapScopeWhere(scope.areaRootIds),
+      },
+      select: { id: true },
+    });
+
+    if (!allowed) {
+      throw new NotFoundException('Resource not found.');
+    }
   }
 
   private async latestLocationPings(assignmentIds: string[]) {

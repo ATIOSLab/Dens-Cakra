@@ -84,3 +84,13 @@ export class ExecutivePersonnelMapQuery {
   @IsUUID()
   districtId?: string;
 }
+
+export class FieldCoordinatorPersonnelAreaFilterQuery {
+  @IsOptional()
+  @IsUUID()
+  provinceId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  regencyId?: string;
+}
