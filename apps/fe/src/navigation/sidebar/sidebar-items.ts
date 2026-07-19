@@ -312,13 +312,6 @@ export const sidebarItems: NavGroup[] = [
         roles: FIELD_COORDINATOR_ROLE,
       },
       {
-        id: "field-coordinator-map",
-        title: "Peta Lapangan",
-        url: "/dashboard/field-coordinator/peta-lapangan",
-        icon: MapPinned,
-        roles: FIELD_COORDINATOR_ROLE,
-      },
-      {
         id: "field-coordinator-emergency",
         title: "Laporan Darurat",
         url: "/dashboard/field-coordinator/laporan-darurat",
