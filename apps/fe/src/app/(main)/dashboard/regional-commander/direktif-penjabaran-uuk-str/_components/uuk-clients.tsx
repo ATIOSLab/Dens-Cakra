@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -323,7 +324,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                 <TableHead>Judul UUK/STR</TableHead>
                 <TableHead>Klasifikasi</TableHead>
                 <TableHead>Pemberi</TableHead>
-                <TableHead>Batas Waktu</TableHead>
+                <SortableTableHeader column="effectiveDeadline">Deadline</SortableTableHeader>
                 <TableHead>Status Penerusan</TableHead>
                 <TableHead className="pr-5 text-right">Aksi</TableHead>
               </TableRow>

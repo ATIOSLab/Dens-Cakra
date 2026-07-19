@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
@@ -16,6 +16,10 @@ import {
 } from "lucide-react";
 
 import { BackButton } from "@/components/ui/back-button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
@@ -180,6 +184,26 @@ export function ExecutivePersonnelDetailClient({
   backHref?: string;
 }) {
   const profile = detail.profile;
+  const [activityViewMode, setActivityViewMode] = useState<"card" | "table">("card");
+  const [activityPeriodFrom, setActivityPeriodFrom] = useState("");
+  const [activityPeriodTo, setActivityPeriodTo] = useState("");
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityLimit, setActivityLimit] = useState(10);
+  const filteredActivityLogs = useMemo(() => {
+    const fromTime = activityPeriodFrom ? new Date(`${activityPeriodFrom}T00:00:00`).getTime() : null;
+    const toTime = activityPeriodTo ? new Date(`${activityPeriodTo}T23:59:59.999`).getTime() : null;
+
+    return detail.activityLogs.filter((log) => {
+      const createdAt = new Date(log.createdAt).getTime();
+      return (fromTime === null || createdAt >= fromTime) && (toTime === null || createdAt <= toTime);
+    });
+  }, [activityPeriodFrom, activityPeriodTo, detail.activityLogs]);
+  const activityTotalPages = Math.max(1, Math.ceil(filteredActivityLogs.length / activityLimit));
+  const safeActivityPage = Math.min(activityPage, activityTotalPages);
+  const paginatedActivityLogs = filteredActivityLogs.slice(
+    (safeActivityPage - 1) * activityLimit,
+    safeActivityPage * activityLimit,
+  );
 
   return (
     <main className="space-y-6 p-6 relative min-h-screen">
@@ -332,24 +356,130 @@ export function ExecutivePersonnelDetailClient({
           </TabsContent>
 
           {/* Aktivitas Node View */}
-          <TabsContent value="aktivitas" className="space-y-3 outline-none">
-            {detail.activityLogs.map((log) => (
+          <TabsContent value="aktivitas" className="space-y-4 outline-none">
+            <div className="flex flex-col gap-3 border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 dark:border-slate-800 dark:bg-[#080d14]/80 lg:flex-row lg:items-end lg:justify-between">
+              <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                <label className="space-y-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase">
+                  <span>Periode mulai</span>
+                  <Input
+                    className="h-9 bg-background/50"
+                    max={activityPeriodTo || undefined}
+                    onChange={(event) => {
+                      setActivityPeriodFrom(event.target.value);
+                      setActivityPage(1);
+                    }}
+                    type="date"
+                    value={activityPeriodFrom}
+                  />
+                </label>
+                <label className="space-y-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase">
+                  <span>Periode selesai</span>
+                  <Input
+                    className="h-9 bg-background/50"
+                    min={activityPeriodFrom || undefined}
+                    onChange={(event) => {
+                      setActivityPeriodTo(event.target.value);
+                      setActivityPage(1);
+                    }}
+                    type="date"
+                    value={activityPeriodTo}
+                  />
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {(activityPeriodFrom || activityPeriodTo) && (
+                  <Button
+                    className="h-9 font-mono text-[10px]"
+                    onClick={() => {
+                      setActivityPeriodFrom("");
+                      setActivityPeriodTo("");
+                      setActivityPage(1);
+                    }}
+                    type="button"
+                    variant="ghost"
+                  >
+                    RESET PERIODE
+                  </Button>
+                )}
+                <div className="flex h-9 items-center gap-1 border border-[var(--dc-border-subtle)] bg-background/40 p-1">
+                  <Button
+                    className="h-7 rounded-none px-3 font-mono text-[10px]"
+                    onClick={() => setActivityViewMode("card")}
+                    size="sm"
+                    type="button"
+                    variant={activityViewMode === "card" ? "secondary" : "ghost"}
+                  >
+                    KARTU
+                  </Button>
+                  <Button
+                    className="h-7 rounded-none px-3 font-mono text-[10px]"
+                    onClick={() => setActivityViewMode("table")}
+                    size="sm"
+                    type="button"
+                    variant={activityViewMode === "table" ? "secondary" : "ghost"}
+                  >
+                    TABEL
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {activityViewMode === "card" ? paginatedActivityLogs.map((log) => (
               <div
                 key={log.id}
                 className="relative border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 rounded-none dark:border-slate-800 dark:bg-[#080d14]/80"
               >
                 <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[var(--dc-border-subtle)] dark:border-slate-700" />
                 <p className="font-mono text-xs font-bold text-[var(--dc-text-primary)]">
-                  {log.action}
+                  {activityActionLabel(log.action)}
                 </p>
                 <p className="text-[10px] font-mono text-[var(--dc-text-secondary)] mt-1.5 leading-relaxed">
                   {log.entityType} {log.entityId ? `· ${log.entityId}` : ""} ·{" "}
                   {formatDate(log.createdAt)}
                 </p>
               </div>
-            ))}
-            {!detail.activityLogs.length ? (
-              <EmptyState title="Belum ada log aktivitas" />
+            )) : (
+              <Table className="min-w-[760px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Waktu</TableHead>
+                    <TableHead>Aktivitas</TableHead>
+                    <TableHead>Entitas</TableHead>
+                    <TableHead>Alamat IP</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedActivityLogs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-xs text-[var(--dc-text-secondary)]">
+                        {formatDate(log.createdAt)}
+                      </TableCell>
+                      <TableCell className="whitespace-normal font-medium">{activityActionLabel(log.action)}</TableCell>
+                      <TableCell className="font-mono text-xs text-[var(--dc-text-secondary)]">
+                        {entityTypeLabel(log.entityType)}
+                        {log.entityId ? ` · ${log.entityId}` : ""}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-[var(--dc-text-secondary)]">
+                        {log.ipAddress ?? "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {!paginatedActivityLogs.length ? <EmptyState title="Belum ada log aktivitas pada periode ini" /> : null}
+            {filteredActivityLogs.length ? (
+              <TablePagination
+                className="border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80"
+                limit={activityLimit}
+                onLimitChange={(limit) => {
+                  setActivityLimit(limit);
+                  setActivityPage(1);
+                }}
+                onPageChange={setActivityPage}
+                page={safeActivityPage}
+                total={filteredActivityLogs.length}
+              />
             ) : null}
           </TabsContent>
 

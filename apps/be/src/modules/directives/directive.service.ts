@@ -25,6 +25,7 @@ import type {
   UpdateDirectiveVersionDto,
   VersionRecipientDto,
 } from './directive.dto.js';
+import { DirectiveSortField } from './directive.dto.js';
 
 @Injectable()
 export class DirectiveService {
@@ -537,32 +538,70 @@ export class DirectiveService {
   }
 
   async list(query: DirectiveQuery, context: AuthorizationContext) {
-    return this.prisma.directive.findMany({
-      where: this.directiveListWhere(query, context),
-      take: query.limit,
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        ownerUnit: true,
-        versions: {
-          orderBy: { versionNumber: 'desc' },
-          take: 1,
-          include: {
-            targetAreas: { include: { area: true } },
-            recipients: {
-              include: {
-                targetUnit: true,
-                targetPosition: true,
-              },
+    const include = {
+      ownerUnit: true,
+      versions: {
+        orderBy: { versionNumber: 'desc' as const },
+        take: 1,
+        include: {
+          targetAreas: { include: { area: true } },
+          recipients: {
+            include: {
+              targetUnit: true,
+              targetPosition: true,
             },
           },
         },
-        _count: {
-          select: {
-            versions: true,
-          },
+      },
+      _count: {
+        select: {
+          versions: true,
         },
       },
+    } satisfies Prisma.DirectiveInclude;
+    const sortOrder = query.sortOrder ?? 'desc';
+    const sortBy = query.sortBy ?? DirectiveSortField.UPDATED_AT;
+    const requiresVersionSort =
+      sortBy === DirectiveSortField.DUE_DATE ||
+      sortBy === DirectiveSortField.EFFECTIVE_DEADLINE;
+
+    const directives = await this.prisma.directive.findMany({
+      where: this.directiveListWhere(query, context),
+      take: requiresVersionSort ? undefined : query.limit,
+      orderBy: requiresVersionSort
+        ? { id: 'asc' }
+        : [{ updatedAt: sortOrder }, { id: 'asc' }],
+      include,
     });
+
+    if (!requiresVersionSort) {
+      return directives;
+    }
+
+    const timestamp = (directive: (typeof directives)[number]) => {
+      const version = directive.versions[0];
+      const value =
+        sortBy === DirectiveSortField.EFFECTIVE_DEADLINE
+          ? (version?.dueDate ?? version?.commandDate)
+          : version?.dueDate;
+      return value ? value.getTime() : null;
+    };
+
+    directives.sort((left, right) => {
+      const leftTime = timestamp(left);
+      const rightTime = timestamp(right);
+
+      if (leftTime === null && rightTime === null)
+        return left.id.localeCompare(right.id);
+      if (leftTime === null) return 1;
+      if (rightTime === null) return -1;
+
+      const compared =
+        sortOrder === 'asc' ? leftTime - rightTime : rightTime - leftTime;
+      return compared || left.id.localeCompare(right.id);
+    });
+
+    return directives.slice(0, query.limit);
   }
 
   async create(body: CreateDirectiveDto, context: AuthorizationContext) {

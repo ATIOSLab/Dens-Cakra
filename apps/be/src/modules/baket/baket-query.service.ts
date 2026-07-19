@@ -321,7 +321,7 @@ export class BaketQueryService {
         where,
         skip: (query.page - 1) * query.limit,
         take: query.limit,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: [{ updatedAt: query.sortOrder ?? 'desc' }, { id: 'asc' }],
         include: {
           createdByFieldOfficerAssignment: {
             include: {

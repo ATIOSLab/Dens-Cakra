@@ -6,10 +6,10 @@ import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 import { IntelligenceProductDetail, IntelligenceProductList } from "./intelligence-product-client";
 
-export async function RegionalProductListPage() {
+export async function RegionalProductListPage({ sortBy, sortOrder }: { sortBy?: string; sortOrder?: string }) {
   await requireRole(SYSTEM_ROLES.REGIONAL_COMMANDER);
   const [products, approvalInbox] = await Promise.all([
-    apiServerGet("/products", { page: 1, limit: 100 }),
+    apiServerGet("/products", { page: 1, limit: 100, sortBy, sortOrder }),
     apiServerGet("/approval-inbox", {
       stage: "REGIONAL",
       status: "ACTIVE",
@@ -51,9 +51,9 @@ export async function RegionalProductDetailPage({
   return <IntelligenceProductDetail product={product} approvalStep={approvalStep} />;
 }
 
-export async function ExecutiveProductListPage() {
+export async function ExecutiveProductListPage({ sortBy, sortOrder }: { sortBy?: string; sortOrder?: string }) {
   await requireRole(SYSTEM_ROLES.EXECUTIVE);
-  const products = await apiServerGet("/products", { page: 1, limit: 100 });
+  const products = await apiServerGet("/products", { page: 1, limit: 100, sortBy, sortOrder });
   return (
     <IntelligenceProductList
       data={products}

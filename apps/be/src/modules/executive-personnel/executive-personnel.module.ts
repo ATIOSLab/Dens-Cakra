@@ -4,6 +4,7 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import {
   ExecutivePersonnelController,
   FieldCoordinatorPersonnelController,
+  RegionalCommanderPersonnelController,
 } from './executive-personnel.controller.js';
 import { ExecutivePersonnelService } from './executive-personnel.service.js';
 
@@ -12,6 +13,7 @@ import { ExecutivePersonnelService } from './executive-personnel.service.js';
   controllers: [
     ExecutivePersonnelController,
     FieldCoordinatorPersonnelController,
+    RegionalCommanderPersonnelController,
   ],
   providers: [ExecutivePersonnelService],
 })

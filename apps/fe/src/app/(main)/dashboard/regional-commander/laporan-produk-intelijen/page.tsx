@@ -2,6 +2,16 @@ import { RegionalProductListPage } from "@/app/(main)/dashboard/_components/inte
 
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
-  return <RegionalProductListPage />;
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Page({ searchParams }: PageProps) {
+  const query = (await searchParams) ?? {};
+  return (
+    <RegionalProductListPage
+      sortBy={typeof query.sortBy === "string" ? query.sortBy : undefined}
+      sortOrder={typeof query.sortOrder === "string" ? query.sortOrder : undefined}
+    />
+  );
 }

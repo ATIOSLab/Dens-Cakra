@@ -386,8 +386,12 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         }
         if (sortBy === "due_soon") {
-          const aDueTime = taskStrDueDate(a) ? new Date(taskStrDueDate(a) as string).getTime() : Number.POSITIVE_INFINITY;
-          const bDueTime = taskStrDueDate(b) ? new Date(taskStrDueDate(b) as string).getTime() : Number.POSITIVE_INFINITY;
+          const aDueTime = taskStrDueDate(a)
+            ? new Date(taskStrDueDate(a) as string).getTime()
+            : Number.POSITIVE_INFINITY;
+          const bDueTime = taskStrDueDate(b)
+            ? new Date(taskStrDueDate(b) as string).getTime()
+            : Number.POSITIVE_INFINITY;
 
           return aDueTime - bDueTime;
         }
@@ -823,10 +827,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
             ) : (
               <div className="space-y-3">
                 {deadlineStrs.map((str) => (
-                  <div
-                    key={str.key}
-                    className="space-y-2 rounded-[4px] border border-white/[0.04] bg-white/[0.01] p-3"
-                  >
+                  <div key={str.key} className="space-y-2 rounded-[4px] border border-white/[0.04] bg-white/[0.01] p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         {str.commandNumber ? (
@@ -1112,7 +1113,7 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
                       Nama Tugas
                     </TableHead>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">
-                      Batas Waktu
+                      Deadline
                     </TableHead>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">
                       Progres Petugas
@@ -2690,7 +2691,7 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
               <TableHead className="pl-4">Nomor STR</TableHead>
               <TableHead>Judul STR</TableHead>
               <TableHead>Klasifikasi</TableHead>
-              <TableHead>Batas Waktu</TableHead>
+              <TableHead>Deadline</TableHead>
               <TableHead>Status Baca / Teruskan</TableHead>
               <TableHead className="pr-4 text-right">Aksi</TableHead>
             </TableRow>
@@ -4063,7 +4064,7 @@ export function TaskDetailClient({
   const showStructuredUuk = hasStructuredUukSections(task);
   const classification = taskClassificationLabel(task);
   const areaSummary = task.targetAreas.map((t) => t.area.name).join(", ") ?? "-";
-  
+
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-6">
       {/* Back Button */}

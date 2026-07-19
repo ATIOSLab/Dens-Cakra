@@ -7,17 +7,19 @@ import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 import { UukDetailClient, UukEditorClient, UukListClient } from "./uuk-clients";
 
-async function loadDirectiveOptions() {
+async function loadDirectiveOptions(sortBy?: string, sortOrder?: string) {
   return apiServerGet<UukDirectiveOption[]>("/directives", {
     assignedToMe: true,
     limit: 50,
+    sortBy,
+    sortOrder,
   });
 }
 
-export async function UukListPage() {
+export async function UukListPage({ sortBy, sortOrder }: { sortBy?: string; sortOrder?: string }) {
   await requireRole(SYSTEM_ROLES.REGIONAL_COMMANDER);
   const [directives, uuks] = await Promise.all([
-    loadDirectiveOptions(),
+    loadDirectiveOptions(sortBy, sortOrder),
     apiServerGet<UukSummary[]>("/uuk-strs", { limit: 50 }),
   ]);
 

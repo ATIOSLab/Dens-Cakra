@@ -18,6 +18,11 @@ import {
   AnalysisStatus,
   IntelEntityType,
 } from '../../generated/prisma/client.js';
+import { SortOrder } from '../../common/dto/sort-order.dto.js';
+
+export enum AnalysisSortField {
+  UPDATED_AT = 'updatedAt',
+}
 
 export class AnalysisQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
@@ -25,6 +30,8 @@ export class AnalysisQuery {
   @IsOptional() @IsEnum(AnalysisStatus) status?: AnalysisStatus;
   @IsOptional() @IsUUID() ownerUnitId?: string;
   @IsOptional() @IsString() search?: string;
+  @IsOptional() @IsEnum(AnalysisSortField) sortBy?: AnalysisSortField;
+  @IsOptional() @IsEnum(SortOrder) sortOrder?: SortOrder;
 }
 
 export class CreateAnalysisCaseDto {

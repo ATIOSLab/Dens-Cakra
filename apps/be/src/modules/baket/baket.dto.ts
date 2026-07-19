@@ -26,6 +26,11 @@ import {
   SourceReliability,
   VerificationStatus,
 } from '../../generated/prisma/client.js';
+import { SortOrder } from '../../common/dto/sort-order.dto.js';
+
+export enum BaketSortField {
+  UPDATED_AT = 'updatedAt',
+}
 
 export class BaketQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
@@ -45,6 +50,8 @@ export class BaketQuery {
   @IsOptional()
   @IsEnum(CoverageValidationStatus)
   coverageStatus?: CoverageValidationStatus;
+  @IsOptional() @IsEnum(BaketSortField) sortBy?: BaketSortField;
+  @IsOptional() @IsEnum(SortOrder) sortOrder?: SortOrder;
 }
 
 export class BaketVersionPayloadDto {

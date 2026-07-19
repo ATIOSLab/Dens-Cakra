@@ -253,6 +253,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   const [taskViewMode, setTaskViewMode] = useState<"card" | "table">("card");
   const [taskClassificationFilter, setTaskClassificationFilter] = useState("");
+  const [taskPriorityFilter, setTaskPriorityFilter] = useState("");
   const [taskPeriodStart, setTaskPeriodStart] = useState("");
   const [taskPeriodEnd, setTaskPeriodEnd] = useState("");
 
@@ -308,6 +309,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       if (taskClassificationFilter && task.classification !== taskClassificationFilter) {
         return false;
       }
+      if (taskPriorityFilter && task.priority !== taskPriorityFilter) {
+        return false;
+      }
       if (task.dueDate) {
         const taskTime = new Date(task.dueDate).getTime();
         if (taskPeriodStart) {
@@ -323,7 +327,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       }
       return true;
     });
-  }, [workspace?.tasks, taskClassificationFilter, taskPeriodStart, taskPeriodEnd]);
+  }, [workspace?.tasks, taskClassificationFilter, taskPriorityFilter, taskPeriodStart, taskPeriodEnd]);
 
   useEffect(() => {
     setTasksPage(1);
@@ -979,7 +983,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
           >
             <div className="space-y-4">
               {/* Task filters */}
-              <div className="grid items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 sm:grid-cols-3 dark:border-white/5 dark:bg-white/[0.02]">
+              <div className="grid items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 dark:border-white/5 dark:bg-white/[0.02]">
                 <div className="space-y-1.5">
                   <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
                     Klasifikasi
@@ -994,6 +998,23 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                     <option value="TERBATAS">TERBATAS</option>
                     <option value="RAHASIA">RAHASIA</option>
                     <option value="SANGAT_RAHASIA">SANGAT RAHASIA</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
+                    Prioritas
+                  </label>
+                  <select
+                    value={taskPriorityFilter}
+                    onChange={(e) => setTaskPriorityFilter(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-slate-900 text-sm dark:border-white/10 dark:bg-[#131A26] dark:text-white"
+                  >
+                    <option value="">Semua Prioritas</option>
+                    <option value="LOW">LOW</option>
+                    <option value="NORMAL">NORMAL</option>
+                    <option value="HIGH">HIGH</option>
+                    <option value="URGENT">URGENT</option>
                   </select>
                 </div>
 
@@ -1060,7 +1081,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       <TableHeader>
                         <TableRow className="border-slate-200 bg-slate-50/50 hover:bg-transparent dark:border-white/5 dark:bg-white/[0.01]">
                           <TableHead className="py-3.5 pl-6 font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
-                            Klasifikasi & Prioritas
+                            Klasifikasi
+                          </TableHead>
+                          <TableHead className="py-3.5 font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
+                            Prioritas
                           </TableHead>
                           <TableHead className="py-3.5 font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
                             Judul Tugas
@@ -1090,21 +1114,21 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                               className="border-slate-200 transition-colors hover:bg-slate-50/50 dark:border-white/5 dark:hover:bg-white/[0.02]"
                             >
                               <TableCell className="py-4 pl-6">
-                                <div className="flex flex-col items-start gap-1">
-                                  <span
-                                    className="rounded border px-2 py-0.5 font-bold font-mono text-[9px] tracking-wider"
-                                    style={{
-                                      color: classStyle.color,
-                                      backgroundColor: classStyle.bgColor,
-                                      borderColor: classStyle.borderColor,
-                                    }}
-                                  >
-                                    {classStyle.label}
-                                  </span>
-                                  <span className="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 font-bold font-mono text-[9px] text-slate-600 tracking-wider dark:border-white/10 dark:bg-white/5 dark:text-[#7C8798]">
-                                    {task.priority}
-                                  </span>
-                                </div>
+                                <span
+                                  className="rounded border px-2 py-0.5 font-bold font-mono text-[9px] tracking-wider uppercase"
+                                  style={{
+                                    color: classStyle.color,
+                                    backgroundColor: classStyle.bgColor,
+                                    borderColor: classStyle.borderColor,
+                                  }}
+                                >
+                                  {classStyle.label}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-4">
+                                <span className="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 font-bold font-mono text-[9px] text-slate-600 tracking-wider uppercase dark:border-white/10 dark:bg-white/5 dark:text-[#7C8798]">
+                                  {task.priority}
+                                </span>
                               </TableCell>
                               <TableCell className="w-[320px] max-w-[320px] py-4">
                                 <div className="min-w-0 space-y-1">
@@ -1346,7 +1370,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         </div>
                       </div>
 
-                      {(jaringSearch || jaringClusterFilter !== "all" || jaringAreaFilter !== "all" || jaringStatusFilter !== "all") && (
+                      {(jaringSearch ||
+                        jaringClusterFilter !== "all" ||
+                        jaringAreaFilter !== "all" ||
+                        jaringStatusFilter !== "all") && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1394,7 +1421,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                     <button
                                       type="button"
                                       title={visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"}
-                                      aria-label={visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"}
+                                      aria-label={
+                                        visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"
+                                      }
                                       onClick={() =>
                                         setVisibleJaringPins((current) => {
                                           const next = new Set(current);
@@ -1525,7 +1554,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               </div>
             </div>
           </TacticalSection>
-
 
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>

@@ -359,6 +359,8 @@ export async function getFieldOfficerWorkspace(
     jaringClusterId?: string;
     from?: string;
     to?: string;
+    sortBy?: string;
+    sortOrder?: string;
   } = {},
 ): Promise<FieldOfficerWorkspace> {
   const access = await getAccess(cookie);
@@ -401,6 +403,8 @@ export async function getFieldOfficerWorkspace(
         query: {
           assigneeAssignmentId: assignmentId,
           limit: 50,
+          sortBy: baketFilters.sortBy,
+          sortOrder: baketFilters.sortOrder,
         },
       }),
       backendApi<BaketRecord[] | PagedResponse<BaketRecord>>("/bakets", {

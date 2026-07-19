@@ -21,6 +21,7 @@ import type {
   PersonnelListProps,
   PersonnelListQueryState,
   PersonnelMapFeature,
+  PersonnelMapPayload,
 } from "./executive-personnel-types";
 
 type PersonnelPageConfig = NonNullable<PersonnelListProps["pageConfig"]>;
@@ -43,6 +44,20 @@ function _formatDate(value?: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function isPersonnelOnline(
+  item: PersonnelListItem,
+  freshness?: { activeWithinMinutes: number; recentWithinHours: number },
+) {
+  const lastLocation = item.lastLocation || item.assignment?.lastLocation;
+  if (!lastLocation || !lastLocation.capturedAt) return false;
+
+  const activeWithinMinutes = freshness?.activeWithinMinutes ?? 30;
+  const recentWithinHours = freshness?.recentWithinHours ?? 24;
+
+  const ageMs = Date.now() - new Date(lastLocation.capturedAt).getTime();
+  return ageMs <= recentWithinHours * 3_600_000;
 }
 
 function primaryArea(item: PersonnelListItem) {
@@ -470,11 +485,13 @@ function PersonnelTable({
   isPending,
   onReset,
   config,
+  freshness,
 }: {
   items: PersonnelListItem[];
   isPending: boolean;
   onReset?: () => void;
   config: PersonnelPageConfig;
+  freshness?: PersonnelMapPayload["meta"]["freshness"];
 }) {
   if (isPending) {
     return <TableSkeleton />;
@@ -541,15 +558,29 @@ function PersonnelTable({
                   </span>
                 </TableCell>
                 <TableCell className="text-center">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-none border px-2 py-0.5 font-mono font-semibold text-[9px] uppercase tracking-wider",
-                      statusClass(item.status),
-                    )}
-                  >
-                    <span className={cn("size-1 rounded-full", getStatusDotColor(item.status))} />
-                    {personnelStatusLabel(item.status)}
-                  </span>
+                  {(() => {
+                    const online = isPersonnelOnline(item, freshness);
+                    return (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-none border px-2 py-0.5 font-mono font-semibold text-[9px] uppercase tracking-wider",
+                          online
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-950/20"
+                            : "border-slate-500/40 bg-slate-500/10 text-slate-500 dark:text-slate-400 dark:bg-slate-900/20",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "size-1 rounded-full",
+                            online
+                              ? "bg-emerald-500 dark:bg-emerald-400 animate-pulse"
+                              : "bg-slate-500 dark:bg-slate-400",
+                          )}
+                        />
+                        {online ? "Online" : "Offline"}
+                      </span>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell className="text-center">
                   <Link
@@ -817,7 +848,13 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
             </section>
 
             {/* Personnel Database Table */}
-            <PersonnelTable items={paginatedItems} isPending={isPending} onReset={resetFilters} config={config} />
+            <PersonnelTable
+              items={paginatedItems}
+              isPending={isPending}
+              onReset={resetFilters}
+              config={config}
+              freshness={map.meta.freshness}
+            />
 
             {/* Pagination Controls bar */}
             <TablePagination

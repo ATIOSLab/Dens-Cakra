@@ -137,3 +137,26 @@ export class FieldCoordinatorPersonnelController {
     );
   }
 }
+
+@ApiTags('Regional Commander Personnel')
+@UseGuards(SessionGuard, DomainAccessGuard)
+@Controller('regional-commander/personnel')
+export class RegionalCommanderPersonnelController {
+  constructor(private readonly service: ExecutivePersonnelService) {}
+
+  @Get(':assignmentId')
+  @ApiContract({
+    operationId: 'apiRegionalCommanderPersonnel001',
+    contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-001',
+    summary: 'Detail personel dalam hierarki Regional Commander',
+    roles: ['regional_commander'],
+  })
+  async detail(
+    @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.service.detailRegionalPersonnel(assignmentId, context),
+    );
+  }
+}

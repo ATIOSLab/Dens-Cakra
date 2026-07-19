@@ -1549,7 +1549,18 @@ export class IntelligenceProductsService {
         where,
         skip: (query.page - 1) * query.limit,
         take: query.limit,
-        orderBy: { updatedAt: 'desc' },
+        orderBy:
+          query.sortBy === 'periodStart'
+            ? [
+                {
+                  periodStart: {
+                    sort: query.sortOrder ?? 'desc',
+                    nulls: 'last',
+                  },
+                },
+                { id: 'asc' },
+              ]
+            : [{ updatedAt: query.sortOrder ?? 'desc' }, { id: 'asc' }],
         include: {
           productType: true,
           ownerUnit: true,

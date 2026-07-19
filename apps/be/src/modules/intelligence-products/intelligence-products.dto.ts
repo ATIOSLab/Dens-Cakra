@@ -25,6 +25,12 @@ import {
   DistributionStatus,
   ProductStatus,
 } from '../../generated/prisma/client.js';
+import { SortOrder } from '../../common/dto/sort-order.dto.js';
+
+export enum ProductSortField {
+  UPDATED_AT = 'updatedAt',
+  PERIOD_START = 'periodStart',
+}
 
 export class ProductTypeQuery {
   @IsOptional() @Type(() => Boolean) isActive?: boolean;
@@ -101,6 +107,8 @@ export class ProductQuery {
   @IsOptional() @IsDateString() periodTo?: string;
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsUUID() createdByAssignmentId?: string;
+  @IsOptional() @IsEnum(ProductSortField) sortBy?: ProductSortField;
+  @IsOptional() @IsEnum(SortOrder) sortOrder?: SortOrder;
 }
 
 export class ProductVersionAttachmentDto {

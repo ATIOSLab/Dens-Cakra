@@ -2,6 +2,16 @@ import { OimTaskListPage } from "@/app/(main)/dashboard/_components/tasks/task-p
 
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
-  return <OimTaskListPage />;
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Page({ searchParams }: PageProps) {
+  const query = (await searchParams) ?? {};
+  return (
+    <OimTaskListPage
+      sortBy={typeof query.sortBy === "string" ? query.sortBy : undefined}
+      sortOrder={typeof query.sortOrder === "string" ? query.sortOrder : undefined}
+    />
+  );
 }

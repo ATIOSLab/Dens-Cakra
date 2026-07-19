@@ -1,18 +1,21 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { ExecutivePersonnelDetailClient } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-detail-client";
+import type { PersonnelDetail } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-types";
+import { apiServerGet } from "@/lib/api/server-client";
+import { requireRole } from "@/lib/auth/server-session";
+import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ assignmentId: string }>;
 };
 
-export default async function Page({ params, searchParams }: PageProps) {
+export default async function Page({ params }: PageProps) {
+  await requireRole(SYSTEM_ROLES.REGIONAL_COMMANDER);
+  const { assignmentId } = await params;
+  const detail = await apiServerGet<PersonnelDetail>(`/regional-commander/personnel/${assignmentId}`);
+
   return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/regional-commander/personel-jaring/personel/[assignmentId]"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
-    />
+    <ExecutivePersonnelDetailClient backHref="/dashboard/regional-commander/personel-jaring" detail={detail} />
   );
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { ArrowUpRight, FileText, Plus, RadioTower, Search, ShieldCheck, Users } from "lucide-react";
 
+import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -460,7 +461,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                   <TableHead>Urgensi</TableHead>
                   <TableHead>Wilayah</TableHead>
                   <TableHead>Penugasan</TableHead>
-                  <TableHead>Deadline</TableHead>
+                  <SortableTableHeader column="dueDate">Deadline</SortableTableHeader>
                   <TableHead>Status</TableHead>
                   <TableHead className="pr-4 text-right">Aksi</TableHead>
                 </TableRow>

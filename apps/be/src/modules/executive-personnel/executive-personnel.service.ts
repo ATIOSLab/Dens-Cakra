@@ -277,6 +277,38 @@ export class ExecutivePersonnelService {
     return this.detail(assignment.userProfileId);
   }
 
+  async detailRegionalPersonnel(
+    assignmentId: string,
+    context: AuthorizationContext,
+  ) {
+    const scope = await this.domainScope.resolve(context);
+
+    if (!scope.assignmentIds.includes(assignmentId)) {
+      throw new NotFoundException('Personel tidak ditemukan.');
+    }
+
+    const assignment = await this.prisma.userSeatAssignment.findFirst({
+      where: {
+        id: assignmentId,
+        isActive: true,
+        validUntil: null,
+        userProfile: {
+          deletedAt: null,
+          isActive: true,
+        },
+      },
+      select: {
+        userProfileId: true,
+      },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Personel tidak ditemukan.');
+    }
+
+    return this.detail(assignment.userProfileId);
+  }
+
   private async mapPersonnel(
     query: ExecutivePersonnelMapQuery,
     scopeOptions: PersonnelScopeOptions = {},
