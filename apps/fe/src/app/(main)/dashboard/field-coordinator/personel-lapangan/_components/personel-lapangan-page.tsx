@@ -1,6 +1,8 @@
 import { ExecutivePersonnelClient } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-client";
+import { ExecutivePersonnelDetailClient } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-detail-client";
 import type {
   PersonnelAreaOption,
+  PersonnelDetail,
   PersonnelListItem,
   PersonnelListQueryState,
   PersonnelMapPayload,
@@ -28,7 +30,9 @@ function readPositiveInt(value: string, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function buildQueryState(searchParams?: RouteSearchParams): PersonnelListQueryState {
+function buildQueryState(
+  searchParams?: RouteSearchParams,
+): PersonnelListQueryState {
   return {
     q: readFirst(searchParams?.q),
     provinceId: "",
@@ -58,7 +62,9 @@ async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
     latestPagination = envelope.meta?.pagination;
 
     const totalPages = latestPagination?.totalPages;
-    if (totalPages ? page >= totalPages : envelope.data.length < BACKEND_MAX_LIMIT) {
+    if (
+      totalPages ? page >= totalPages : envelope.data.length < BACKEND_MAX_LIMIT
+    ) {
       hasMore = false;
     } else {
       page += 1;
@@ -76,7 +82,11 @@ async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
   };
 }
 
-export async function PersonelLapanganPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
+export async function PersonelLapanganPage({
+  searchParams,
+}: {
+  searchParams?: Promise<RouteSearchParams>;
+}) {
   await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR);
 
   const queryState = buildQueryState(await searchParams);
@@ -86,11 +96,20 @@ export async function PersonelLapanganPage({ searchParams }: { searchParams?: Pr
     ...(queryState.districtId ? { districtId: queryState.districtId } : {}),
   };
   const [listResult, map, areaFilters] = await Promise.all([
-    fetchAllPages<PersonnelListItem>("/field-coordinator/personnel", commonQuery),
-    apiServerGet<PersonnelMapPayload>("/field-coordinator/personnel/map", commonQuery),
-    apiServerGet<PersonnelAreaFilters>("/field-coordinator/personnel/area-filters", {
-      ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
-    }),
+    fetchAllPages<PersonnelListItem>(
+      "/field-coordinator/personnel",
+      commonQuery,
+    ),
+    apiServerGet<PersonnelMapPayload>(
+      "/field-coordinator/personnel/map",
+      commonQuery,
+    ),
+    apiServerGet<PersonnelAreaFilters>(
+      "/field-coordinator/personnel/area-filters",
+      {
+        ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
+      },
+    ),
   ]);
 
   return (
@@ -111,6 +130,25 @@ export async function PersonelLapanganPage({ searchParams }: { searchParams?: Pr
         showExecutiveSummary: false,
         showProvinceFilter: false,
       }}
+    />
+  );
+}
+
+export async function PersonelLapanganDetailPage({
+  assignmentId,
+}: {
+  assignmentId: string;
+}) {
+  await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR);
+
+  const detail = await apiServerGet<PersonnelDetail>(
+    `/field-coordinator/personnel/${assignmentId}`,
+  );
+
+  return (
+    <ExecutivePersonnelDetailClient
+      detail={detail}
+      backHref="/dashboard/field-coordinator/personel-lapangan"
     />
   );
 }

@@ -242,6 +242,41 @@ export class ExecutivePersonnelService {
     return { provinces: [], regencies, districts };
   }
 
+  async detailFieldCoordinatorPersonnel(
+    assignmentId: string,
+    context: AuthorizationContext,
+  ) {
+    const scope = await this.domainScope.resolve(context);
+
+    if (!scope.assignmentIds.includes(assignmentId)) {
+      throw new NotFoundException('Personel tidak ditemukan.');
+    }
+
+    const assignment = await this.prisma.userSeatAssignment.findFirst({
+      where: {
+        id: assignmentId,
+        isActive: true,
+        validUntil: null,
+        position: {
+          code: PositionCode.PETUGAS_ORGANIK,
+        },
+        userProfile: {
+          deletedAt: null,
+          isActive: true,
+        },
+      },
+      select: {
+        userProfileId: true,
+      },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Personel tidak ditemukan.');
+    }
+
+    return this.detail(assignment.userProfileId);
+  }
+
   private async mapPersonnel(
     query: ExecutivePersonnelMapQuery,
     scopeOptions: PersonnelScopeOptions = {},

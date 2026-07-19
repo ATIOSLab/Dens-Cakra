@@ -120,4 +120,20 @@ export class FieldCoordinatorPersonnelController {
       await this.service.fieldCoordinatorAreaFilters(query, context),
     );
   }
+
+  @Get(':assignmentId')
+  @ApiContract({
+    operationId: 'apiFieldCoordinatorPersonnel004',
+    contractId: 'API-FIELD-COORDINATOR-PERSONNEL-004',
+    summary: 'Detail petugas lapangan dalam hierarki Field Coordinator',
+    roles: ['field_coordinator'],
+  })
+  async detail(
+    @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.service.detailFieldCoordinatorPersonnel(assignmentId, context),
+    );
+  }
 }

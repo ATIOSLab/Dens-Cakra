@@ -5,13 +5,24 @@ import { type ReactNode, useEffect, useRef } from "react";
 import Link from "next/link";
 
 import { motion } from "framer-motion";
-import { Activity, BarChart3, ChevronLeft, ClipboardList, Cpu, FileText, User } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  ChevronLeft,
+  ClipboardList,
+  Cpu,
+  FileText,
+  User,
+} from "lucide-react";
 
 import { BackButton } from "@/components/ui/back-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-import type { PersonnelAssignment, PersonnelDetail } from "./executive-personnel-types";
+import type {
+  PersonnelAssignment,
+  PersonnelDetail,
+} from "./executive-personnel-types";
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -22,7 +33,8 @@ function formatDate(value?: string | null) {
 }
 
 function areaText(assignment?: PersonnelAssignment | null) {
-  const area = assignment?.areas.find((item) => item.isPrimary) ?? assignment?.areas[0];
+  const area =
+    assignment?.areas.find((item) => item.isPrimary) ?? assignment?.areas[0];
   return area ? `${area.name} - ${area.level}` : "-";
 }
 
@@ -72,7 +84,10 @@ function entityTypeLabel(entityType?: string | null) {
 
 function TacticalBackground() {
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0" aria-hidden="true">
+    <div
+      className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0"
+      aria-hidden="true"
+    >
       {/* 1. Tactical Grid Pattern */}
       <div
         className="absolute inset-0 opacity-[0.05] dark:opacity-[0.03]"
@@ -92,7 +107,12 @@ function TacticalBackground() {
       >
         <title>Circuit Overlay Pattern</title>
         <defs>
-          <pattern id="circuit-grid" width="128" height="128" patternUnits="userSpaceOnUse">
+          <pattern
+            id="circuit-grid"
+            width="128"
+            height="128"
+            patternUnits="userSpaceOnUse"
+          >
             <path
               d="M 0 64 L 32 64 L 48 48 L 80 48 L 96 64 L 128 64 M 64 0 L 64 32 L 48 48 M 64 80 L 64 128 M 48 48 L 48 80 M 80 48 L 80 96 L 96 112"
               fill="none"
@@ -112,8 +132,16 @@ function TacticalBackground() {
       <svg className="absolute w-0 h-0" aria-hidden="true">
         <title>Digital Noise Effect</title>
         <filter id="noise-filter">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch" />
-          <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.04 0" />
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.9"
+            numOctaves="3"
+            stitchTiles="stitch"
+          />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.04 0"
+          />
         </filter>
       </svg>
       <div
@@ -144,7 +172,13 @@ function TacticalBackground() {
 /* MAIN EXPORT CLIENT COMPONENT                                               */
 /* -------------------------------------------------------------------------- */
 
-export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDetail }) {
+export function ExecutivePersonnelDetailClient({
+  detail,
+  backHref = "/dashboard/executive/personil",
+}: {
+  detail: PersonnelDetail;
+  backHref?: string;
+}) {
   const profile = detail.profile;
 
   return (
@@ -158,8 +192,8 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[var(--dc-primary)]/20 to-transparent" />
           <div className="absolute top-0 left-0 w-[4px] h-full bg-[var(--dc-primary)]" />
 
-          <div className="mb-4 flex justify-start">
-            <BackButton href="/dashboard/executive/personil" />
+          <div className="mb-4">
+            <BackButton href={backHref} />
           </div>
 
           <div className="flex flex-col items-center gap-4">
@@ -167,11 +201,9 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
               <h1 className="text-2xl font-mono font-bold tracking-tight text-foreground uppercase mt-2">
                 {profile.fullName ?? profile.username ?? profile.email}
               </h1>
-              <p className="max-w-3xl font-mono text-[11px] text-[var(--dc-text-secondary)] leading-relaxed">
-                {profile.email} - {detail.currentAssignment?.title ?? "Belum ada jabatan aktif"}
-              </p>
-              <p className="hidden">
-                {profile.email} · {detail.currentAssignment?.title ?? "Belum ada jabatan aktif"}
+              <p className="max-w-3xl text-[11px] text-[var(--dc-text-secondary)] font-mono leading-relaxed">
+                {profile.email} ·{" "}
+                {detail.currentAssignment?.title ?? "Belum ada jabatan aktif"}
               </p>
             </div>
           </div>
@@ -236,7 +268,12 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
                 items={[
                   ["Aktif", profile.isActive ? "Ya" : "Tidak"],
                   ["Auth banned", profile.authBanned ? "Ya" : "Tidak"],
-                  ["Lock operasional", profile.operationalLockedAt ? formatDate(profile.operationalLockedAt) : "-"],
+                  [
+                    "Lock operasional",
+                    profile.operationalLockedAt
+                      ? formatDate(profile.operationalLockedAt)
+                      : "-",
+                  ],
                   ["Login terakhir", formatDate(profile.lastLoginAt)],
                   ["Dibuat", formatDate(profile.createdAt)],
                   ["Diperbarui", formatDate(profile.updatedAt)],
@@ -258,11 +295,10 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
 
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between border-b border-[var(--dc-border-subtle)] pb-3 dark:border-slate-900/60">
                   <div>
-                    <h2 className="font-mono text-sm font-bold text-[var(--dc-text-primary)]">{assignment.title}</h2>
-                    <p className="mt-1 font-mono text-[10px] text-[var(--dc-text-muted)]">
-                      {assignment.unit.name} - {assignment.seatCode}
-                    </p>
-                    <p className="hidden">
+                    <h2 className="font-mono text-sm font-bold text-[var(--dc-text-primary)]">
+                      {assignment.title}
+                    </h2>
+                    <p className="text-[10px] font-mono text-[var(--dc-text-muted)] mt-1">
                       {assignment.unit.name} · {assignment.seatCode}
                     </p>
                   </div>
@@ -279,12 +315,20 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
                 </div>
                 <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
                   <Field label="Wilayah" value={areaText(assignment)} />
-                  <Field label="Mulai" value={formatDate(assignment.validFrom)} />
-                  <Field label="Selesai" value={formatDate(assignment.validUntil)} />
+                  <Field
+                    label="Mulai"
+                    value={formatDate(assignment.validFrom)}
+                  />
+                  <Field
+                    label="Selesai"
+                    value={formatDate(assignment.validUntil)}
+                  />
                 </dl>
               </div>
             ))}
-            {!detail.assignments.length ? <EmptyState title="Belum ada penugasan" /> : null}
+            {!detail.assignments.length ? (
+              <EmptyState title="Belum ada penugasan" />
+            ) : null}
           </TabsContent>
 
           {/* Aktivitas Node View */}
@@ -296,22 +340,17 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
               >
                 <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[var(--dc-border-subtle)] dark:border-slate-700" />
                 <p className="font-mono text-xs font-bold text-[var(--dc-text-primary)]">
-                  {activityActionLabel(log.action)}
+                  {log.action}
                 </p>
-                <p className="mt-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] leading-relaxed">
-                  {entityTypeLabel(log.entityType)} {log.entityId ? `- ID ${log.entityId}` : ""} -{" "}
+                <p className="text-[10px] font-mono text-[var(--dc-text-secondary)] mt-1.5 leading-relaxed">
+                  {log.entityType} {log.entityId ? `· ${log.entityId}` : ""} ·{" "}
                   {formatDate(log.createdAt)}
-                </p>
-                <p className="hidden">
-                  {entityTypeLabel(log.entityType)} {log.entityId ? `· ID ${log.entityId}` : ""} ·{" "}
-                  {formatDate(log.createdAt)}
-                </p>
-                <p className="hidden">
-                  {log.entityType} {log.entityId ? `· ${log.entityId}` : ""} · {formatDate(log.createdAt)}
                 </p>
               </div>
             ))}
-            {!detail.activityLogs.length ? <EmptyState title="Belum ada log aktivitas" /> : null}
+            {!detail.activityLogs.length ? (
+              <EmptyState title="Belum ada log aktivitas" />
+            ) : null}
           </TabsContent>
 
           {/* Laporan Node View */}
@@ -325,12 +364,12 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
 
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <h2 className="font-mono text-xs font-bold text-[var(--dc-text-primary)]">{report.title}</h2>
-                    <p className="mt-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] leading-relaxed">
-                      {report.category?.name ?? "Tanpa kategori"} - {report.eventArea?.name ?? "Area belum ada"}
-                    </p>
-                    <p className="hidden">
-                      {report.category?.name ?? "Tanpa kategori"} · {report.eventArea?.name ?? "Area belum ada"}
+                    <h2 className="font-mono text-xs font-bold text-[var(--dc-text-primary)]">
+                      {report.title}
+                    </h2>
+                    <p className="text-[10px] font-mono text-[var(--dc-text-secondary)] mt-1.5 leading-relaxed">
+                      {report.category?.name ?? "Tanpa kategori"} ·{" "}
+                      {report.eventArea?.name ?? "Area belum ada"}
                     </p>
                   </div>
                   <span className="border border-[var(--dc-border-subtle)] px-2 py-0.5 text-[9px] font-mono tracking-wider font-semibold rounded-none uppercase bg-[var(--dc-surface-raised)] text-foreground dark:border-slate-800 dark:bg-slate-950">
@@ -339,7 +378,9 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
                 </div>
               </div>
             ))}
-            {!detail.reports.length ? <EmptyState title="Belum ada laporan" /> : null}
+            {!detail.reports.length ? (
+              <EmptyState title="Belum ada laporan" />
+            ) : null}
           </TabsContent>
 
           {/* KPI Node View */}
@@ -356,7 +397,13 @@ export function ExecutivePersonnelDetailClient({ detail }: { detail: PersonnelDe
 /* INFORMATION & STRUCTURE PANEL HELPERS                                      */
 /* -------------------------------------------------------------------------- */
 
-function InfoPanel({ title, items }: { title: string; items: Array<[string, string]> }) {
+function InfoPanel({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<[string, string]>;
+}) {
   return (
     <section className="relative border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-5 rounded-none overflow-hidden group select-none hover:border-[var(--dc-primary)]/40 transition-all dark:border-slate-800 dark:bg-[#080d14]/80">
       {/* Corner Brackets */}
@@ -384,8 +431,12 @@ function InfoPanel({ title, items }: { title: string; items: Array<[string, stri
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="font-mono py-1.5 border-b border-[var(--dc-border-subtle)]/30 last:border-0 dark:border-slate-900/30">
-      <dt className="text-[9px] tracking-wider text-[var(--dc-text-muted)] uppercase">{label}</dt>
-      <dd className="mt-1 text-xs font-bold text-[var(--dc-text-primary)]">{value}</dd>
+      <dt className="text-[9px] tracking-wider text-[var(--dc-text-muted)] uppercase">
+        {label}
+      </dt>
+      <dd className="mt-1 text-xs font-bold text-[var(--dc-text-primary)]">
+        {value}
+      </dd>
     </div>
   );
 }
