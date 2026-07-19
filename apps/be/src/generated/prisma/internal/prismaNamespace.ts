@@ -7156,6 +7156,24 @@ export const UserProfileScalarFieldEnum = {
   username: 'username',
   fullName: 'fullName',
   phone: 'phone',
+  nationalIdNumber: 'nationalIdNumber',
+  birthPlace: 'birthPlace',
+  birthDate: 'birthDate',
+  gender: 'gender',
+  religion: 'religion',
+  maritalStatus: 'maritalStatus',
+  bloodType: 'bloodType',
+  personnelNumber: 'personnelNumber',
+  rankGrade: 'rankGrade',
+  personnelStatus: 'personnelStatus',
+  joinedAt: 'joinedAt',
+  lastEducation: 'lastEducation',
+  educationInstitution: 'educationInstitution',
+  educationMajor: 'educationMajor',
+  graduationYear: 'graduationYear',
+  positionHistory: 'positionHistory',
+  assignmentHistory: 'assignmentHistory',
+  competencies: 'competencies',
   status: 'status',
   isActive: 'isActive',
   operationalLockedAt: 'operationalLockedAt',
@@ -8518,6 +8536,76 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'PersonnelGender'
+ */
+export type EnumPersonnelGenderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonnelGender'>
+    
+
+
+/**
+ * Reference to a field of type 'PersonnelGender[]'
+ */
+export type ListEnumPersonnelGenderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonnelGender[]'>
+    
+
+
+/**
+ * Reference to a field of type 'PersonnelMaritalStatus'
+ */
+export type EnumPersonnelMaritalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonnelMaritalStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'PersonnelMaritalStatus[]'
+ */
+export type ListEnumPersonnelMaritalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonnelMaritalStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'PersonnelStatus'
+ */
+export type EnumPersonnelStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonnelStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'PersonnelStatus[]'
+ */
+export type ListEnumPersonnelStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PersonnelStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
  * Reference to a field of type 'UserProfileStatus'
  */
 export type EnumUserProfileStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserProfileStatus'>
@@ -8570,20 +8658,6 @@ export type EnumCommandRouteTypeFieldRefInput<$PrismaModel> = FieldRefInputType<
  * Reference to a field of type 'CommandRouteType[]'
  */
 export type ListEnumCommandRouteTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CommandRouteType[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -8696,20 +8770,6 @@ export type EnumFileLifecycleStatusFieldRefInput<$PrismaModel> = FieldRefInputTy
  * Reference to a field of type 'FileLifecycleStatus[]'
  */
 export type ListEnumFileLifecycleStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FileLifecycleStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -8829,14 +8889,14 @@ export type ListEnumTaskAssignmentStatusFieldRefInput<$PrismaModel> = FieldRefIn
  * Reference to a field of type 'JaringGender'
  */
 export type EnumJaringGenderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JaringGender'>
-
+    
 
 
 /**
  * Reference to a field of type 'JaringGender[]'
  */
 export type ListEnumJaringGenderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JaringGender[]'>
-
+    
 
 
 /**
@@ -9547,3 +9607,4 @@ export type PrismaAction =
  * `PrismaClient` proxy available in interactive transactions.
  */
 export type TransactionClient = Omit<DefaultPrismaClient, runtime.ITXClientDenyList>
+

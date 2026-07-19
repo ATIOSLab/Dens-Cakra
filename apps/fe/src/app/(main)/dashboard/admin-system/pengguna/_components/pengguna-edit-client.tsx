@@ -35,6 +35,10 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
   });
   const primaryAssignment = getPrimaryAssignment(user);
 
+  function sanitizePhoneInput(value: string) {
+    return value.replace(/\D/g, "");
+  }
+
   async function handleSubmit(values: EditUserFormValues) {
     try {
       await apiBrowserMutation("PATCH", `/user-profiles/${user.id}`, {
@@ -98,7 +102,20 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
               <Field>
                 <FieldLabel htmlFor="edit-phone">Nomor telepon</FieldLabel>
                 <FieldContent>
-                  <Input id="edit-phone" {...form.register("phone")} />
+                  <Input
+                    id="edit-phone"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    {...form.register("phone", {
+                      onChange: (event) => {
+                        const sanitizedValue = sanitizePhoneInput(event.target.value);
+                        form.setValue("phone", sanitizedValue, {
+                          shouldDirty: true,
+                          shouldValidate: Boolean(form.formState.errors.phone),
+                        });
+                      },
+                    })}
+                  />
                   <FieldDescription>
                     Biarkan kosong jika profil domain memang belum memiliki nomor aktif.
                   </FieldDescription>

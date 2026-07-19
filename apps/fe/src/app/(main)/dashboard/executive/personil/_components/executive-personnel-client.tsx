@@ -77,6 +77,14 @@ function getStatusDotColor(status: string) {
   return "bg-amber-500 dark:bg-amber-400";
 }
 
+function personnelStatusLabel(status: string) {
+  if (status === "ACTIVE") return "Aktif";
+  if (status === "SUSPENDED") return "Ditangguhkan";
+  if (status === "ARCHIVED") return "Diarsipkan";
+  if (status === "PENDING") return "Menunggu";
+  return status;
+}
+
 function buildPersonnelHref(
   basePath: string,
   queryState: PersonnelListQueryState,
@@ -335,20 +343,20 @@ function TableSkeleton() {
       <Table>
         <TableHeader className="border-[var(--dc-border-subtle)] border-b bg-[var(--dc-surface-raised)] dark:border-slate-850 dark:bg-slate-950/80">
           <TableRow className="border-[var(--dc-border-subtle)] border-b hover:bg-transparent dark:border-slate-800">
-            <TableHead className="h-10 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
-              [PERSONEL]
+            <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
+              Personel
             </TableHead>
-            <TableHead className="h-10 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
-              [JABATAN]
+            <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
+              Jabatan
             </TableHead>
-            <TableHead className="h-10 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
-              [WILAYAH]
+            <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
+              Wilayah
             </TableHead>
-            <TableHead className="h-10 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
-              [STATUS]
+            <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
+              Status
             </TableHead>
-            <TableHead className="h-10 pr-4 text-right font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
-              [AKSES]
+            <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
+              Akses
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -406,7 +414,7 @@ function RadarEmptyState({ onReset }: { onReset?: () => void }) {
       </div>
 
       <h3 className="mt-6 font-bold font-mono text-[var(--dc-text-primary)] text-xs uppercase tracking-widest">
-        [WARNING: NO_ACTIVE_SIGNALS]
+        Tidak ada personel aktif
       </h3>
       <p className="mt-2 max-w-md font-mono text-[11px] text-[var(--dc-text-secondary)] leading-relaxed">
         Pencarian tidak menemukan sinyal personel yang cocok dengan parameter kueri yang ditentukan. Silakan setel ulang
@@ -419,7 +427,7 @@ function RadarEmptyState({ onReset }: { onReset?: () => void }) {
           onClick={onReset}
           className="mt-6 rounded-none border border-[var(--dc-primary)]/50 bg-[var(--dc-primary-soft)] px-4 py-2 font-bold font-mono text-[10px] text-[var(--dc-primary)] uppercase tracking-wider transition-colors hover:bg-[var(--dc-primary)] hover:text-slate-950 dark:bg-cyan-950/30 dark:text-cyan-400"
         >
-          [ RESET_QUERY_PARAMETERS ]
+          Atur ulang filter
         </button>
       )}
     </div>
@@ -481,20 +489,20 @@ function PersonnelTable({
       <Table>
         <TableHeader className="sticky top-0 z-10 border-[var(--dc-border-subtle)] border-b bg-[var(--dc-surface-raised)] dark:border-slate-850 dark:bg-slate-950/90">
           <TableRow className="border-[var(--dc-border-subtle)] border-b hover:bg-transparent dark:border-slate-800">
-            <TableHead className="h-11 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-              [PERSONEL]
+            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+              Personel
             </TableHead>
-            <TableHead className="h-11 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-              [JABATAN]
+            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+              Jabatan
             </TableHead>
-            <TableHead className="h-11 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-              [WILAYAH]
+            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+              Wilayah
             </TableHead>
-            <TableHead className="h-11 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-              [STATUS]
+            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+              Status
             </TableHead>
-            <TableHead className="h-11 pr-6 text-right font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-              [AKSES]
+            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+              Akses
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -532,7 +540,7 @@ function PersonnelTable({
                     {area?.name ?? "-"}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   <span
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-none border px-2 py-0.5 font-mono font-semibold text-[9px] uppercase tracking-wider",
@@ -540,10 +548,10 @@ function PersonnelTable({
                     )}
                   >
                     <span className={cn("size-1 rounded-full", getStatusDotColor(item.status))} />
-                    {item.status}
+                    {personnelStatusLabel(item.status)}
                   </span>
                 </TableCell>
-                <TableCell className="pr-6 text-right">
+                <TableCell className="text-center">
                   <Link
                     href={detailHref}
                     className="inline-flex items-center gap-1 rounded-none border border-[var(--dc-primary)]/40 bg-[var(--dc-primary-soft)] px-2 py-1 font-bold font-mono text-[9px] text-[var(--dc-primary)] tracking-wider transition-all duration-150 hover:bg-[var(--dc-primary)] hover:text-[var(--dc-text-inverse)] group-hover:border-[var(--dc-primary)] dark:text-cyan-400"
@@ -852,7 +860,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                   <div className="mb-3 flex items-center gap-1.5 border-[var(--dc-border-subtle)] border-b pb-2 dark:border-slate-900">
                     <Layers className="size-3.5 text-[var(--dc-primary)]" />
                     <h2 className="font-bold font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-widest">
-                      [ LEGEND_MARKERS ]
+                      Keterangan Marker
                     </h2>
                   </div>
 
@@ -900,16 +908,16 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
 
                 <div className="grid gap-4 md:grid-cols-3">
                   <KpiCard
-                    label="Total Field Officers"
+                    label="Total Petugas Lapangan"
                     value={map.meta.counts.totalFieldOfficers}
-                    trend="SYS_ACTIVE_AGENTS"
+                    trend="Agen Aktif"
                     progress={100}
                     variant="cyan"
                   />
                   <KpiCard
                     label="Lokasi Live / Recent"
                     value={(map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0)}
-                    trend="ONLINE_NODE_COVERAGE"
+                    trend="Cakupan Online"
                     progress={
                       (((map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0)) /
                         (map.meta.counts.totalFieldOfficers || 1)) *
@@ -918,9 +926,9 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                     variant="emerald"
                   />
                   <KpiCard
-                    label="Lokasi Stale / No Signal"
+                    label="Lokasi Lama / Tanpa Sinyal"
                     value={(map.meta.counts.byStatus.STALE ?? 0) + (map.meta.counts.byStatus.NO_SIGNAL ?? 0)}
-                    trend="DISCONNECTED_TIMEOUT"
+                    trend="Sinyal Terputus"
                     progress={
                       (((map.meta.counts.byStatus.STALE ?? 0) + (map.meta.counts.byStatus.NO_SIGNAL ?? 0)) /
                         (map.meta.counts.totalFieldOfficers || 1)) *

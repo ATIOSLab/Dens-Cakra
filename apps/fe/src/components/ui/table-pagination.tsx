@@ -76,6 +76,7 @@ export function TablePagination({
 
         <div className="flex items-center gap-1.5">
           <Button
+            type="button"
             variant="outline"
             size="icon"
             onClick={() => onPageChange(safePage - 1)}
@@ -88,6 +89,7 @@ export function TablePagination({
           {pagesList.map((pageNum) => (
             <Button
               key={pageNum}
+              type="button"
               variant={pageNum === safePage ? "default" : "outline"}
               size="sm"
               onClick={() => onPageChange(pageNum)}
@@ -104,6 +106,7 @@ export function TablePagination({
           ))}
 
           <Button
+            type="button"
             variant="outline"
             size="icon"
             onClick={() => onPageChange(safePage + 1)}

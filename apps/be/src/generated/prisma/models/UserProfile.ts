@@ -20,8 +20,18 @@ export type UserProfileModel = runtime.Types.Result.DefaultSelection<Prisma.$Use
 
 export type AggregateUserProfile = {
   _count: UserProfileCountAggregateOutputType | null
+  _avg: UserProfileAvgAggregateOutputType | null
+  _sum: UserProfileSumAggregateOutputType | null
   _min: UserProfileMinAggregateOutputType | null
   _max: UserProfileMaxAggregateOutputType | null
+}
+
+export type UserProfileAvgAggregateOutputType = {
+  graduationYear: number | null
+}
+
+export type UserProfileSumAggregateOutputType = {
+  graduationYear: number | null
 }
 
 export type UserProfileMinAggregateOutputType = {
@@ -30,6 +40,21 @@ export type UserProfileMinAggregateOutputType = {
   username: string | null
   fullName: string | null
   phone: string | null
+  nationalIdNumber: string | null
+  birthPlace: string | null
+  birthDate: Date | null
+  gender: $Enums.PersonnelGender | null
+  religion: string | null
+  maritalStatus: $Enums.PersonnelMaritalStatus | null
+  bloodType: string | null
+  personnelNumber: string | null
+  rankGrade: string | null
+  personnelStatus: $Enums.PersonnelStatus | null
+  joinedAt: Date | null
+  lastEducation: string | null
+  educationInstitution: string | null
+  educationMajor: string | null
+  graduationYear: number | null
   status: $Enums.UserProfileStatus | null
   isActive: boolean | null
   operationalLockedAt: Date | null
@@ -47,6 +72,21 @@ export type UserProfileMaxAggregateOutputType = {
   username: string | null
   fullName: string | null
   phone: string | null
+  nationalIdNumber: string | null
+  birthPlace: string | null
+  birthDate: Date | null
+  gender: $Enums.PersonnelGender | null
+  religion: string | null
+  maritalStatus: $Enums.PersonnelMaritalStatus | null
+  bloodType: string | null
+  personnelNumber: string | null
+  rankGrade: string | null
+  personnelStatus: $Enums.PersonnelStatus | null
+  joinedAt: Date | null
+  lastEducation: string | null
+  educationInstitution: string | null
+  educationMajor: string | null
+  graduationYear: number | null
   status: $Enums.UserProfileStatus | null
   isActive: boolean | null
   operationalLockedAt: Date | null
@@ -64,6 +104,24 @@ export type UserProfileCountAggregateOutputType = {
   username: number
   fullName: number
   phone: number
+  nationalIdNumber: number
+  birthPlace: number
+  birthDate: number
+  gender: number
+  religion: number
+  maritalStatus: number
+  bloodType: number
+  personnelNumber: number
+  rankGrade: number
+  personnelStatus: number
+  joinedAt: number
+  lastEducation: number
+  educationInstitution: number
+  educationMajor: number
+  graduationYear: number
+  positionHistory: number
+  assignmentHistory: number
+  competencies: number
   status: number
   isActive: number
   operationalLockedAt: number
@@ -77,12 +135,35 @@ export type UserProfileCountAggregateOutputType = {
 }
 
 
+export type UserProfileAvgAggregateInputType = {
+  graduationYear?: true
+}
+
+export type UserProfileSumAggregateInputType = {
+  graduationYear?: true
+}
+
 export type UserProfileMinAggregateInputType = {
   id?: true
   authUserId?: true
   username?: true
   fullName?: true
   phone?: true
+  nationalIdNumber?: true
+  birthPlace?: true
+  birthDate?: true
+  gender?: true
+  religion?: true
+  maritalStatus?: true
+  bloodType?: true
+  personnelNumber?: true
+  rankGrade?: true
+  personnelStatus?: true
+  joinedAt?: true
+  lastEducation?: true
+  educationInstitution?: true
+  educationMajor?: true
+  graduationYear?: true
   status?: true
   isActive?: true
   operationalLockedAt?: true
@@ -100,6 +181,21 @@ export type UserProfileMaxAggregateInputType = {
   username?: true
   fullName?: true
   phone?: true
+  nationalIdNumber?: true
+  birthPlace?: true
+  birthDate?: true
+  gender?: true
+  religion?: true
+  maritalStatus?: true
+  bloodType?: true
+  personnelNumber?: true
+  rankGrade?: true
+  personnelStatus?: true
+  joinedAt?: true
+  lastEducation?: true
+  educationInstitution?: true
+  educationMajor?: true
+  graduationYear?: true
   status?: true
   isActive?: true
   operationalLockedAt?: true
@@ -117,6 +213,24 @@ export type UserProfileCountAggregateInputType = {
   username?: true
   fullName?: true
   phone?: true
+  nationalIdNumber?: true
+  birthPlace?: true
+  birthDate?: true
+  gender?: true
+  religion?: true
+  maritalStatus?: true
+  bloodType?: true
+  personnelNumber?: true
+  rankGrade?: true
+  personnelStatus?: true
+  joinedAt?: true
+  lastEducation?: true
+  educationInstitution?: true
+  educationMajor?: true
+  graduationYear?: true
+  positionHistory?: true
+  assignmentHistory?: true
+  competencies?: true
   status?: true
   isActive?: true
   operationalLockedAt?: true
@@ -167,6 +281,18 @@ export type UserProfileAggregateArgs<ExtArgs extends runtime.Types.Extensions.In
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserProfileAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserProfileSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserProfileMinAggregateInputType
@@ -197,6 +323,8 @@ export type UserProfileGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   _count?: UserProfileCountAggregateInputType | true
+  _avg?: UserProfileAvgAggregateInputType
+  _sum?: UserProfileSumAggregateInputType
   _min?: UserProfileMinAggregateInputType
   _max?: UserProfileMaxAggregateInputType
 }
@@ -207,6 +335,24 @@ export type UserProfileGroupByOutputType = {
   username: string | null
   fullName: string | null
   phone: string | null
+  nationalIdNumber: string | null
+  birthPlace: string | null
+  birthDate: Date | null
+  gender: $Enums.PersonnelGender | null
+  religion: string | null
+  maritalStatus: $Enums.PersonnelMaritalStatus | null
+  bloodType: string | null
+  personnelNumber: string | null
+  rankGrade: string | null
+  personnelStatus: $Enums.PersonnelStatus | null
+  joinedAt: Date | null
+  lastEducation: string | null
+  educationInstitution: string | null
+  educationMajor: string | null
+  graduationYear: number | null
+  positionHistory: runtime.JsonValue | null
+  assignmentHistory: runtime.JsonValue | null
+  competencies: runtime.JsonValue | null
   status: $Enums.UserProfileStatus
   isActive: boolean
   operationalLockedAt: Date | null
@@ -217,6 +363,8 @@ export type UserProfileGroupByOutputType = {
   createdAt: Date
   updatedAt: Date
   _count: UserProfileCountAggregateOutputType | null
+  _avg: UserProfileAvgAggregateOutputType | null
+  _sum: UserProfileSumAggregateOutputType | null
   _min: UserProfileMinAggregateOutputType | null
   _max: UserProfileMaxAggregateOutputType | null
 }
@@ -245,6 +393,24 @@ export type UserProfileWhereInput = {
   username?: Prisma.StringNullableFilter<"UserProfile"> | string | null
   fullName?: Prisma.StringNullableFilter<"UserProfile"> | string | null
   phone?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  nationalIdNumber?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  birthPlace?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  birthDate?: Prisma.DateTimeNullableFilter<"UserProfile"> | Date | string | null
+  gender?: Prisma.EnumPersonnelGenderNullableFilter<"UserProfile"> | $Enums.PersonnelGender | null
+  religion?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  maritalStatus?: Prisma.EnumPersonnelMaritalStatusNullableFilter<"UserProfile"> | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  personnelNumber?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  rankGrade?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  personnelStatus?: Prisma.EnumPersonnelStatusNullableFilter<"UserProfile"> | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.DateTimeNullableFilter<"UserProfile"> | Date | string | null
+  lastEducation?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  educationInstitution?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  educationMajor?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  graduationYear?: Prisma.IntNullableFilter<"UserProfile"> | number | null
+  positionHistory?: Prisma.JsonNullableFilter<"UserProfile">
+  assignmentHistory?: Prisma.JsonNullableFilter<"UserProfile">
+  competencies?: Prisma.JsonNullableFilter<"UserProfile">
   status?: Prisma.EnumUserProfileStatusFilter<"UserProfile"> | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFilter<"UserProfile"> | boolean
   operationalLockedAt?: Prisma.DateTimeNullableFilter<"UserProfile"> | Date | string | null
@@ -267,6 +433,24 @@ export type UserProfileOrderByWithRelationInput = {
   username?: Prisma.SortOrderInput | Prisma.SortOrder
   fullName?: Prisma.SortOrderInput | Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  birthPlace?: Prisma.SortOrderInput | Prisma.SortOrder
+  birthDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  gender?: Prisma.SortOrderInput | Prisma.SortOrder
+  religion?: Prisma.SortOrderInput | Prisma.SortOrder
+  maritalStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  bloodType?: Prisma.SortOrderInput | Prisma.SortOrder
+  personnelNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  rankGrade?: Prisma.SortOrderInput | Prisma.SortOrder
+  personnelStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  joinedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastEducation?: Prisma.SortOrderInput | Prisma.SortOrder
+  educationInstitution?: Prisma.SortOrderInput | Prisma.SortOrder
+  educationMajor?: Prisma.SortOrderInput | Prisma.SortOrder
+  graduationYear?: Prisma.SortOrderInput | Prisma.SortOrder
+  positionHistory?: Prisma.SortOrderInput | Prisma.SortOrder
+  assignmentHistory?: Prisma.SortOrderInput | Prisma.SortOrder
+  competencies?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   operationalLockedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -292,6 +476,24 @@ export type UserProfileWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.UserProfileWhereInput | Prisma.UserProfileWhereInput[]
   fullName?: Prisma.StringNullableFilter<"UserProfile"> | string | null
   phone?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  nationalIdNumber?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  birthPlace?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  birthDate?: Prisma.DateTimeNullableFilter<"UserProfile"> | Date | string | null
+  gender?: Prisma.EnumPersonnelGenderNullableFilter<"UserProfile"> | $Enums.PersonnelGender | null
+  religion?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  maritalStatus?: Prisma.EnumPersonnelMaritalStatusNullableFilter<"UserProfile"> | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  personnelNumber?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  rankGrade?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  personnelStatus?: Prisma.EnumPersonnelStatusNullableFilter<"UserProfile"> | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.DateTimeNullableFilter<"UserProfile"> | Date | string | null
+  lastEducation?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  educationInstitution?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  educationMajor?: Prisma.StringNullableFilter<"UserProfile"> | string | null
+  graduationYear?: Prisma.IntNullableFilter<"UserProfile"> | number | null
+  positionHistory?: Prisma.JsonNullableFilter<"UserProfile">
+  assignmentHistory?: Prisma.JsonNullableFilter<"UserProfile">
+  competencies?: Prisma.JsonNullableFilter<"UserProfile">
   status?: Prisma.EnumUserProfileStatusFilter<"UserProfile"> | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFilter<"UserProfile"> | boolean
   operationalLockedAt?: Prisma.DateTimeNullableFilter<"UserProfile"> | Date | string | null
@@ -314,6 +516,24 @@ export type UserProfileOrderByWithAggregationInput = {
   username?: Prisma.SortOrderInput | Prisma.SortOrder
   fullName?: Prisma.SortOrderInput | Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  birthPlace?: Prisma.SortOrderInput | Prisma.SortOrder
+  birthDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  gender?: Prisma.SortOrderInput | Prisma.SortOrder
+  religion?: Prisma.SortOrderInput | Prisma.SortOrder
+  maritalStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  bloodType?: Prisma.SortOrderInput | Prisma.SortOrder
+  personnelNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  rankGrade?: Prisma.SortOrderInput | Prisma.SortOrder
+  personnelStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  joinedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastEducation?: Prisma.SortOrderInput | Prisma.SortOrder
+  educationInstitution?: Prisma.SortOrderInput | Prisma.SortOrder
+  educationMajor?: Prisma.SortOrderInput | Prisma.SortOrder
+  graduationYear?: Prisma.SortOrderInput | Prisma.SortOrder
+  positionHistory?: Prisma.SortOrderInput | Prisma.SortOrder
+  assignmentHistory?: Prisma.SortOrderInput | Prisma.SortOrder
+  competencies?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   operationalLockedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -324,8 +544,10 @@ export type UserProfileOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserProfileCountOrderByAggregateInput
+  _avg?: Prisma.UserProfileAvgOrderByAggregateInput
   _max?: Prisma.UserProfileMaxOrderByAggregateInput
   _min?: Prisma.UserProfileMinOrderByAggregateInput
+  _sum?: Prisma.UserProfileSumOrderByAggregateInput
 }
 
 export type UserProfileScalarWhereWithAggregatesInput = {
@@ -337,6 +559,24 @@ export type UserProfileScalarWhereWithAggregatesInput = {
   username?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
   fullName?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
   phone?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  nationalIdNumber?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  birthPlace?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  birthDate?: Prisma.DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
+  gender?: Prisma.EnumPersonnelGenderNullableWithAggregatesFilter<"UserProfile"> | $Enums.PersonnelGender | null
+  religion?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  maritalStatus?: Prisma.EnumPersonnelMaritalStatusNullableWithAggregatesFilter<"UserProfile"> | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  personnelNumber?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  rankGrade?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  personnelStatus?: Prisma.EnumPersonnelStatusNullableWithAggregatesFilter<"UserProfile"> | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
+  lastEducation?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  educationInstitution?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  educationMajor?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+  graduationYear?: Prisma.IntNullableWithAggregatesFilter<"UserProfile"> | number | null
+  positionHistory?: Prisma.JsonNullableWithAggregatesFilter<"UserProfile">
+  assignmentHistory?: Prisma.JsonNullableWithAggregatesFilter<"UserProfile">
+  competencies?: Prisma.JsonNullableWithAggregatesFilter<"UserProfile">
   status?: Prisma.EnumUserProfileStatusWithAggregatesFilter<"UserProfile"> | $Enums.UserProfileStatus
   isActive?: Prisma.BoolWithAggregatesFilter<"UserProfile"> | boolean
   operationalLockedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
@@ -353,6 +593,24 @@ export type UserProfileCreateInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -375,6 +633,24 @@ export type UserProfileUncheckedCreateInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -395,6 +671,24 @@ export type UserProfileUpdateInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -417,6 +711,24 @@ export type UserProfileUncheckedUpdateInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -438,6 +750,24 @@ export type UserProfileCreateManyInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -454,6 +784,24 @@ export type UserProfileUpdateManyMutationInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -471,6 +819,24 @@ export type UserProfileUncheckedUpdateManyInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -493,6 +859,24 @@ export type UserProfileCountOrderByAggregateInput = {
   username?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
   phone?: Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrder
+  birthPlace?: Prisma.SortOrder
+  birthDate?: Prisma.SortOrder
+  gender?: Prisma.SortOrder
+  religion?: Prisma.SortOrder
+  maritalStatus?: Prisma.SortOrder
+  bloodType?: Prisma.SortOrder
+  personnelNumber?: Prisma.SortOrder
+  rankGrade?: Prisma.SortOrder
+  personnelStatus?: Prisma.SortOrder
+  joinedAt?: Prisma.SortOrder
+  lastEducation?: Prisma.SortOrder
+  educationInstitution?: Prisma.SortOrder
+  educationMajor?: Prisma.SortOrder
+  graduationYear?: Prisma.SortOrder
+  positionHistory?: Prisma.SortOrder
+  assignmentHistory?: Prisma.SortOrder
+  competencies?: Prisma.SortOrder
   status?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   operationalLockedAt?: Prisma.SortOrder
@@ -504,12 +888,31 @@ export type UserProfileCountOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type UserProfileAvgOrderByAggregateInput = {
+  graduationYear?: Prisma.SortOrder
+}
+
 export type UserProfileMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   authUserId?: Prisma.SortOrder
   username?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
   phone?: Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrder
+  birthPlace?: Prisma.SortOrder
+  birthDate?: Prisma.SortOrder
+  gender?: Prisma.SortOrder
+  religion?: Prisma.SortOrder
+  maritalStatus?: Prisma.SortOrder
+  bloodType?: Prisma.SortOrder
+  personnelNumber?: Prisma.SortOrder
+  rankGrade?: Prisma.SortOrder
+  personnelStatus?: Prisma.SortOrder
+  joinedAt?: Prisma.SortOrder
+  lastEducation?: Prisma.SortOrder
+  educationInstitution?: Prisma.SortOrder
+  educationMajor?: Prisma.SortOrder
+  graduationYear?: Prisma.SortOrder
   status?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   operationalLockedAt?: Prisma.SortOrder
@@ -527,6 +930,21 @@ export type UserProfileMinOrderByAggregateInput = {
   username?: Prisma.SortOrder
   fullName?: Prisma.SortOrder
   phone?: Prisma.SortOrder
+  nationalIdNumber?: Prisma.SortOrder
+  birthPlace?: Prisma.SortOrder
+  birthDate?: Prisma.SortOrder
+  gender?: Prisma.SortOrder
+  religion?: Prisma.SortOrder
+  maritalStatus?: Prisma.SortOrder
+  bloodType?: Prisma.SortOrder
+  personnelNumber?: Prisma.SortOrder
+  rankGrade?: Prisma.SortOrder
+  personnelStatus?: Prisma.SortOrder
+  joinedAt?: Prisma.SortOrder
+  lastEducation?: Prisma.SortOrder
+  educationInstitution?: Prisma.SortOrder
+  educationMajor?: Prisma.SortOrder
+  graduationYear?: Prisma.SortOrder
   status?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   operationalLockedAt?: Prisma.SortOrder
@@ -536,6 +954,10 @@ export type UserProfileMinOrderByAggregateInput = {
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserProfileSumOrderByAggregateInput = {
+  graduationYear?: Prisma.SortOrder
 }
 
 export type UserProfileScalarRelationFilter = {
@@ -573,6 +995,26 @@ export type UserProfileUncheckedUpdateOneWithoutAuthUserNestedInput = {
   delete?: Prisma.UserProfileWhereInput | boolean
   connect?: Prisma.UserProfileWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserProfileUpdateToOneWithWhereWithoutAuthUserInput, Prisma.UserProfileUpdateWithoutAuthUserInput>, Prisma.UserProfileUncheckedUpdateWithoutAuthUserInput>
+}
+
+export type NullableEnumPersonnelGenderFieldUpdateOperationsInput = {
+  set?: $Enums.PersonnelGender | null
+}
+
+export type NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput = {
+  set?: $Enums.PersonnelMaritalStatus | null
+}
+
+export type NullableEnumPersonnelStatusFieldUpdateOperationsInput = {
+  set?: $Enums.PersonnelStatus | null
+}
+
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
 }
 
 export type EnumUserProfileStatusFieldUpdateOperationsInput = {
@@ -644,6 +1086,24 @@ export type UserProfileCreateWithoutAuthUserInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -664,6 +1124,24 @@ export type UserProfileUncheckedCreateWithoutAuthUserInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -700,6 +1178,24 @@ export type UserProfileUpdateWithoutAuthUserInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -720,6 +1216,24 @@ export type UserProfileUncheckedUpdateWithoutAuthUserInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -740,6 +1254,24 @@ export type UserProfileCreateWithoutPositionAssignmentsInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -761,6 +1293,24 @@ export type UserProfileUncheckedCreateWithoutPositionAssignmentsInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -796,6 +1346,24 @@ export type UserProfileUpdateWithoutPositionAssignmentsInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -817,6 +1385,24 @@ export type UserProfileUncheckedUpdateWithoutPositionAssignmentsInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -836,6 +1422,24 @@ export type UserProfileCreateWithoutReceivedDistributionsInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -857,6 +1461,24 @@ export type UserProfileUncheckedCreateWithoutReceivedDistributionsInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -892,6 +1514,24 @@ export type UserProfileUpdateWithoutReceivedDistributionsInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -913,6 +1553,24 @@ export type UserProfileUncheckedUpdateWithoutReceivedDistributionsInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -932,6 +1590,24 @@ export type UserProfileCreateWithoutNotificationsInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -953,6 +1629,24 @@ export type UserProfileUncheckedCreateWithoutNotificationsInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -988,6 +1682,24 @@ export type UserProfileUpdateWithoutNotificationsInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1009,6 +1721,24 @@ export type UserProfileUncheckedUpdateWithoutNotificationsInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1028,6 +1758,24 @@ export type UserProfileCreateWithoutAuditLogsInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -1049,6 +1797,24 @@ export type UserProfileUncheckedCreateWithoutAuditLogsInput = {
   username?: string | null
   fullName?: string | null
   phone?: string | null
+  nationalIdNumber?: string | null
+  birthPlace?: string | null
+  birthDate?: Date | string | null
+  gender?: $Enums.PersonnelGender | null
+  religion?: string | null
+  maritalStatus?: $Enums.PersonnelMaritalStatus | null
+  bloodType?: string | null
+  personnelNumber?: string | null
+  rankGrade?: string | null
+  personnelStatus?: $Enums.PersonnelStatus | null
+  joinedAt?: Date | string | null
+  lastEducation?: string | null
+  educationInstitution?: string | null
+  educationMajor?: string | null
+  graduationYear?: number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: $Enums.UserProfileStatus
   isActive?: boolean
   operationalLockedAt?: Date | string | null
@@ -1084,6 +1850,24 @@ export type UserProfileUpdateWithoutAuditLogsInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1105,6 +1889,24 @@ export type UserProfileUncheckedUpdateWithoutAuditLogsInput = {
   username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nationalIdNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthPlace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.NullableEnumPersonnelGenderFieldUpdateOperationsInput | $Enums.PersonnelGender | null
+  religion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maritalStatus?: Prisma.NullableEnumPersonnelMaritalStatusFieldUpdateOperationsInput | $Enums.PersonnelMaritalStatus | null
+  bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rankGrade?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  personnelStatus?: Prisma.NullableEnumPersonnelStatusFieldUpdateOperationsInput | $Enums.PersonnelStatus | null
+  joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEducation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationInstitution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationMajor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  graduationYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  positionHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  assignmentHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  competencies?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   status?: Prisma.EnumUserProfileStatusFieldUpdateOperationsInput | $Enums.UserProfileStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   operationalLockedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1183,6 +1985,24 @@ export type UserProfileSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   username?: boolean
   fullName?: boolean
   phone?: boolean
+  nationalIdNumber?: boolean
+  birthPlace?: boolean
+  birthDate?: boolean
+  gender?: boolean
+  religion?: boolean
+  maritalStatus?: boolean
+  bloodType?: boolean
+  personnelNumber?: boolean
+  rankGrade?: boolean
+  personnelStatus?: boolean
+  joinedAt?: boolean
+  lastEducation?: boolean
+  educationInstitution?: boolean
+  educationMajor?: boolean
+  graduationYear?: boolean
+  positionHistory?: boolean
+  assignmentHistory?: boolean
+  competencies?: boolean
   status?: boolean
   isActive?: boolean
   operationalLockedAt?: boolean
@@ -1206,6 +2026,24 @@ export type UserProfileSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   username?: boolean
   fullName?: boolean
   phone?: boolean
+  nationalIdNumber?: boolean
+  birthPlace?: boolean
+  birthDate?: boolean
+  gender?: boolean
+  religion?: boolean
+  maritalStatus?: boolean
+  bloodType?: boolean
+  personnelNumber?: boolean
+  rankGrade?: boolean
+  personnelStatus?: boolean
+  joinedAt?: boolean
+  lastEducation?: boolean
+  educationInstitution?: boolean
+  educationMajor?: boolean
+  graduationYear?: boolean
+  positionHistory?: boolean
+  assignmentHistory?: boolean
+  competencies?: boolean
   status?: boolean
   isActive?: boolean
   operationalLockedAt?: boolean
@@ -1224,6 +2062,24 @@ export type UserProfileSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   username?: boolean
   fullName?: boolean
   phone?: boolean
+  nationalIdNumber?: boolean
+  birthPlace?: boolean
+  birthDate?: boolean
+  gender?: boolean
+  religion?: boolean
+  maritalStatus?: boolean
+  bloodType?: boolean
+  personnelNumber?: boolean
+  rankGrade?: boolean
+  personnelStatus?: boolean
+  joinedAt?: boolean
+  lastEducation?: boolean
+  educationInstitution?: boolean
+  educationMajor?: boolean
+  graduationYear?: boolean
+  positionHistory?: boolean
+  assignmentHistory?: boolean
+  competencies?: boolean
   status?: boolean
   isActive?: boolean
   operationalLockedAt?: boolean
@@ -1242,6 +2098,24 @@ export type UserProfileSelectScalar = {
   username?: boolean
   fullName?: boolean
   phone?: boolean
+  nationalIdNumber?: boolean
+  birthPlace?: boolean
+  birthDate?: boolean
+  gender?: boolean
+  religion?: boolean
+  maritalStatus?: boolean
+  bloodType?: boolean
+  personnelNumber?: boolean
+  rankGrade?: boolean
+  personnelStatus?: boolean
+  joinedAt?: boolean
+  lastEducation?: boolean
+  educationInstitution?: boolean
+  educationMajor?: boolean
+  graduationYear?: boolean
+  positionHistory?: boolean
+  assignmentHistory?: boolean
+  competencies?: boolean
   status?: boolean
   isActive?: boolean
   operationalLockedAt?: boolean
@@ -1253,7 +2127,7 @@ export type UserProfileSelectScalar = {
   updatedAt?: boolean
 }
 
-export type UserProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "authUserId" | "username" | "fullName" | "phone" | "status" | "isActive" | "operationalLockedAt" | "operationalLockReason" | "operationalLockedUntil" | "lastLoginAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["userProfile"]>
+export type UserProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "authUserId" | "username" | "fullName" | "phone" | "nationalIdNumber" | "birthPlace" | "birthDate" | "gender" | "religion" | "maritalStatus" | "bloodType" | "personnelNumber" | "rankGrade" | "personnelStatus" | "joinedAt" | "lastEducation" | "educationInstitution" | "educationMajor" | "graduationYear" | "positionHistory" | "assignmentHistory" | "competencies" | "status" | "isActive" | "operationalLockedAt" | "operationalLockReason" | "operationalLockedUntil" | "lastLoginAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["userProfile"]>
 export type UserProfileInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   authUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   positionAssignments?: boolean | Prisma.UserProfile$positionAssignmentsArgs<ExtArgs>
@@ -1284,6 +2158,24 @@ export type $UserProfilePayload<ExtArgs extends runtime.Types.Extensions.Interna
     username: string | null
     fullName: string | null
     phone: string | null
+    nationalIdNumber: string | null
+    birthPlace: string | null
+    birthDate: Date | null
+    gender: $Enums.PersonnelGender | null
+    religion: string | null
+    maritalStatus: $Enums.PersonnelMaritalStatus | null
+    bloodType: string | null
+    personnelNumber: string | null
+    rankGrade: string | null
+    personnelStatus: $Enums.PersonnelStatus | null
+    joinedAt: Date | null
+    lastEducation: string | null
+    educationInstitution: string | null
+    educationMajor: string | null
+    graduationYear: number | null
+    positionHistory: runtime.JsonValue | null
+    assignmentHistory: runtime.JsonValue | null
+    competencies: runtime.JsonValue | null
     status: $Enums.UserProfileStatus
     isActive: boolean
     operationalLockedAt: Date | null
@@ -1726,6 +2618,24 @@ export interface UserProfileFieldRefs {
   readonly username: Prisma.FieldRef<"UserProfile", 'String'>
   readonly fullName: Prisma.FieldRef<"UserProfile", 'String'>
   readonly phone: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly nationalIdNumber: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly birthPlace: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly birthDate: Prisma.FieldRef<"UserProfile", 'DateTime'>
+  readonly gender: Prisma.FieldRef<"UserProfile", 'PersonnelGender'>
+  readonly religion: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly maritalStatus: Prisma.FieldRef<"UserProfile", 'PersonnelMaritalStatus'>
+  readonly bloodType: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly personnelNumber: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly rankGrade: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly personnelStatus: Prisma.FieldRef<"UserProfile", 'PersonnelStatus'>
+  readonly joinedAt: Prisma.FieldRef<"UserProfile", 'DateTime'>
+  readonly lastEducation: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly educationInstitution: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly educationMajor: Prisma.FieldRef<"UserProfile", 'String'>
+  readonly graduationYear: Prisma.FieldRef<"UserProfile", 'Int'>
+  readonly positionHistory: Prisma.FieldRef<"UserProfile", 'Json'>
+  readonly assignmentHistory: Prisma.FieldRef<"UserProfile", 'Json'>
+  readonly competencies: Prisma.FieldRef<"UserProfile", 'Json'>
   readonly status: Prisma.FieldRef<"UserProfile", 'UserProfileStatus'>
   readonly isActive: Prisma.FieldRef<"UserProfile", 'Boolean'>
   readonly operationalLockedAt: Prisma.FieldRef<"UserProfile", 'DateTime'>

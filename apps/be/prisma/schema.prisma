@@ -436,6 +436,25 @@ enum UserProfileStatus {
   ARCHIVED
 }
 
+enum PersonnelGender {
+  MALE
+  FEMALE
+}
+
+enum PersonnelMaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum PersonnelStatus {
+  ACTIVE
+  INACTIVE
+  RETIRED
+  CONTRACT
+}
+
 enum CommandRouteType {
   PUSAT
   DIRECTORATE
@@ -528,6 +547,24 @@ model UserProfile {
   username               String?           @unique @db.VarChar(100)
   fullName               String?           @db.VarChar(180)
   phone                  String?           @db.VarChar(30)
+  nationalIdNumber       String?           @db.Char(16)
+  birthPlace             String?           @db.VarChar(120)
+  birthDate              DateTime?         @db.Date
+  gender                 PersonnelGender?
+  religion               String?           @db.VarChar(80)
+  maritalStatus          PersonnelMaritalStatus?
+  bloodType              String?           @db.VarChar(5)
+  personnelNumber        String?           @db.VarChar(80)
+  rankGrade              String?           @db.VarChar(120)
+  personnelStatus        PersonnelStatus?
+  joinedAt               DateTime?         @db.Date
+  lastEducation          String?           @db.VarChar(120)
+  educationInstitution   String?           @db.VarChar(180)
+  educationMajor         String?           @db.VarChar(150)
+  graduationYear         Int?
+  positionHistory        Json?
+  assignmentHistory      Json?
+  competencies           Json?
   status                 UserProfileStatus @default(PENDING)
   isActive               Boolean           @default(true)
   operationalLockedAt    DateTime?
@@ -547,6 +584,8 @@ model UserProfile {
 
   @@index([isActive, deletedAt])
   @@index([status, deletedAt])
+  @@index([nationalIdNumber])
+  @@index([personnelStatus])
   @@map("user_profile")
 }
 
