@@ -170,6 +170,9 @@ export class PositionQueryService {
         ? { reportsToPositionId: query.reportsToPositionId }
         : {}),
       ...(query.isActive === undefined ? {} : { isActive: query.isActive }),
+      ...(query.availableOnly
+        ? { assignments: { none: { isActive: true, validUntil: null } } }
+        : {}),
     };
     const [items, total] = await Promise.all([
       this.prisma.position.findMany({

@@ -2143,6 +2143,7 @@ model IntegrationChannel {
   status       IntegrationStatus @default(INACTIVE)
   config       Json
   lastHealthAt DateTime?
+  deletedAt    DateTime?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
@@ -2150,6 +2151,8 @@ model IntegrationChannel {
   webhookEvents    IntegrationWebhookEvent[]
   botState         WhatsAppBotChannelState?
   senderNumbers    WhatsAppSenderNumber[]
+
+  @@index([deletedAt])
 }
 
 model WhatsAppBotChannelState {

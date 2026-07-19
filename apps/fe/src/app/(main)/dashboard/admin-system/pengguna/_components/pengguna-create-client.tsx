@@ -171,6 +171,7 @@ export function PenggunaCreateClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [positionOptions, setPositionOptions] = useState<PositionSummary[]>([]);
   const [positionsLoading, setPositionsLoading] = useState(true);
+  const [positionsError, setPositionsError] = useState("");
   const [selectedPosition, setSelectedPosition] = useState<PositionSummary | null>(null);
   const [selectedAreas, setSelectedAreas] = useState<AreaSearchResult[]>([]);
   const [successState, setSuccessState] = useState<UserProvisionResponse | null>(null);
@@ -207,11 +208,13 @@ export function PenggunaCreateClient() {
 
     async function loadPositionOptions() {
       setPositionsLoading(true);
+      setPositionsError("");
       const results = await apiBrowserFetch<PositionSummary[]>("/positions", {
         query: {
           isActive: true,
+          availableOnly: true,
           page: 1,
-          limit: 200,
+          limit: 100,
         },
       });
 
@@ -221,9 +224,10 @@ export function PenggunaCreateClient() {
     }
 
     loadPositionOptions()
-      .catch(() => {
+      .catch((error) => {
         if (!cancelled) {
           setPositionOptions([]);
+          setPositionsError(error instanceof Error ? error.message : "Daftar jabatan gagal dimuat.");
         }
       })
       .finally(() => {
@@ -1056,7 +1060,9 @@ export function PenggunaCreateClient() {
                       ? "Memuat daftar jabatan..."
                       : positionOptions.length
                         ? "Pilih jabatan dari master jabatan"
-                        : "Belum ada jabatan aktif"}
+                        : positionsError
+                          ? "Daftar jabatan gagal dimuat"
+                          : "Belum ada jabatan aktif kosong"}
                   </NativeSelectOption>
                   {positionOptions.map((position) => (
                     <NativeSelectOption key={position.id} value={position.id}>
@@ -1079,7 +1085,7 @@ export function PenggunaCreateClient() {
                 ) : null}
                 {!positionsLoading && !positionOptions.length ? (
                   <div className="text-sm text-muted-foreground">
-                    Belum ada jabatan aktif yang bisa dipilih untuk user.
+                    {positionsError || "Belum ada jabatan aktif kosong yang bisa dipilih untuk user."}
                   </div>
                 ) : null}
                 <FieldError errors={[form.formState.errors.positionId]} />

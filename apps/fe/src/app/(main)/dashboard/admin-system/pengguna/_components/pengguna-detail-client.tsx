@@ -84,6 +84,7 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
         query: {
           search: deferredTransferPositionQuery.trim(),
           isActive: true,
+          availableOnly: true,
           page: 1,
           limit: 20,
         },

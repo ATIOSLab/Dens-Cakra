@@ -30,6 +30,7 @@ export class PositionListQueryDto {
   @IsOptional() @IsUUID() unitId?: string;
   @IsOptional() @IsUUID() reportsToPositionId?: string;
   @IsOptional() @Type(() => Boolean) @IsBoolean() isActive?: boolean;
+  @IsOptional() @Type(() => Boolean) @IsBoolean() availableOnly?: boolean;
 }
 
 export class CreatePositionDto {

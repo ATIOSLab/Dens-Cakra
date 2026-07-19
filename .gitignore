@@ -11,6 +11,9 @@ dist/
 apps/be/dist/
 coverage/
 
+# Generated clients
+apps/be/src/generated/prisma/
+
 # Local environment files
 .env
 .env.local

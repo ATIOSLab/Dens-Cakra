@@ -249,6 +249,7 @@ export class WhatsappBotRuntimeService
   async onModuleInit() {
     const channels = await this.prisma.integrationChannel.findMany({
       where: {
+        deletedAt: null,
         OR: [
           { channelType: { contains: 'WHATSAPP', mode: 'insensitive' } },
           { channelType: { contains: 'WA', mode: 'insensitive' } },
@@ -338,8 +339,8 @@ export class WhatsappBotRuntimeService
   }
 
   private async getChannel(channelId: string): Promise<WhatsAppChannelRecord> {
-    const channel = await this.prisma.integrationChannel.findUniqueOrThrow({
-      where: { id: channelId },
+    const channel = await this.prisma.integrationChannel.findFirstOrThrow({
+      where: { id: channelId, deletedAt: null },
       select: {
         id: true,
         code: true,

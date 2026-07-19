@@ -90,8 +90,8 @@ export class WhatsAppService {
   }
 
   async webhook(code: string, signature: string | undefined, body: WebhookDto) {
-    const channel = await this.prisma.integrationChannel.findUniqueOrThrow({
-      where: { code },
+    const channel = await this.prisma.integrationChannel.findFirstOrThrow({
+      where: { code, deletedAt: null },
     });
     const cfg = channel.config as unknown as Record<string, unknown>;
     let secret: string | undefined;

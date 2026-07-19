@@ -49,6 +49,11 @@ export class IntegrationService {
     return (config as Record<string, unknown> | null) ?? {};
   }
 
+  private archivedCode(code: string, deletedAt: Date) {
+    const suffix = `__deleted_${deletedAt.getTime()}`;
+    return `${code.slice(0, 80 - suffix.length)}${suffix}`;
+  }
+
   private whatsappControlView(channel: {
     id: string;
     code: string;
@@ -135,6 +140,7 @@ export class IntegrationService {
     return (
       await this.prisma.integrationChannel.findMany({
         where: {
+          deletedAt: null,
           ...(query.status ? { status: query.status } : {}),
           ...(query.channelType ? { channelType: query.channelType } : {}),
         },
@@ -146,6 +152,7 @@ export class IntegrationService {
   async whatsappControl() {
     const channels = await this.prisma.integrationChannel.findMany({
       where: {
+        deletedAt: null,
         OR: [
           { channelType: { contains: 'WHATSAPP', mode: 'insensitive' } },
           { channelType: { contains: 'WA', mode: 'insensitive' } },
@@ -220,8 +227,8 @@ export class IntegrationService {
 
   async detail(id: string) {
     return this.view(
-      await this.prisma.integrationChannel.findUniqueOrThrow({
-        where: { id },
+      await this.prisma.integrationChannel.findFirstOrThrow({
+        where: { id, deletedAt: null },
       }),
     );
   }
@@ -231,8 +238,12 @@ export class IntegrationService {
     body: UpdateIntegrationDto,
     context: AuthorizationContext,
   ) {
+    const existing = await this.prisma.integrationChannel.findFirstOrThrow({
+      where: { id, deletedAt: null },
+      select: { id: true },
+    });
     const channel = await this.prisma.integrationChannel.update({
-      where: { id },
+      where: { id: existing.id },
       data: {
         ...(body.name ? { name: body.name } : {}),
         ...(body.configPatch
@@ -249,8 +260,8 @@ export class IntegrationService {
     body: UpdateWhatsappControlDto,
     context: AuthorizationContext,
   ) {
-    const existing = await this.prisma.integrationChannel.findUniqueOrThrow({
-      where: { id },
+    const existing = await this.prisma.integrationChannel.findFirstOrThrow({
+      where: { id, deletedAt: null },
     });
     const currentConfig = this.readConfig(existing.config);
     const senderNumbers = body.senderNumbers
@@ -326,8 +337,8 @@ export class IntegrationService {
   }
 
   async activate(id: string, body: ReasonDto, context: AuthorizationContext) {
-    const channel = await this.prisma.integrationChannel.findUniqueOrThrow({
-      where: { id },
+    const channel = await this.prisma.integrationChannel.findFirstOrThrow({
+      where: { id, deletedAt: null },
     });
 
     if (this.whatsappBotRuntime.isWhatsAppChannel(channel.channelType)) {
@@ -346,8 +357,8 @@ export class IntegrationService {
   }
 
   async deactivate(id: string, body: ReasonDto, context: AuthorizationContext) {
-    const channel = await this.prisma.integrationChannel.findUniqueOrThrow({
-      where: { id },
+    const channel = await this.prisma.integrationChannel.findFirstOrThrow({
+      where: { id, deletedAt: null },
     });
 
     if (this.whatsappBotRuntime.isWhatsAppChannel(channel.channelType)) {
@@ -370,8 +381,8 @@ export class IntegrationService {
     body: TestIntegrationDto,
     context: AuthorizationContext,
   ) {
-    const channel = await this.prisma.integrationChannel.findUniqueOrThrow({
-      where: { id },
+    const channel = await this.prisma.integrationChannel.findFirstOrThrow({
+      where: { id, deletedAt: null },
     });
 
     if (this.whatsappBotRuntime.isWhatsAppChannel(channel.channelType)) {
@@ -398,8 +409,8 @@ export class IntegrationService {
   }
 
   private async whatsappControlDetail(id: string) {
-    const channel = await this.prisma.integrationChannel.findUniqueOrThrow({
-      where: { id },
+    const channel = await this.prisma.integrationChannel.findFirstOrThrow({
+      where: { id, deletedAt: null },
       include: {
         botState: true,
         senderNumbers: {
@@ -416,6 +427,7 @@ export class IntegrationService {
     return this.prisma.integrationWebhookEvent.findMany({
       where: {
         channelId: id,
+        channel: { deletedAt: null },
         ...(query.eventType ? { eventType: query.eventType } : {}),
         ...(query.success === undefined ? {} : { success: query.success }),
       },
@@ -471,8 +483,8 @@ export class IntegrationService {
   }
 
   async remove(id: string, context: AuthorizationContext) {
-    const channel = await this.prisma.integrationChannel.findUniqueOrThrow({
-      where: { id },
+    const channel = await this.prisma.integrationChannel.findFirstOrThrow({
+      where: { id, deletedAt: null },
     });
 
     if (
@@ -482,8 +494,14 @@ export class IntegrationService {
       await this.whatsappBotRuntime.deleteChannelSession(id);
     }
 
-    await this.prisma.integrationChannel.delete({
+    const deletedAt = new Date();
+    await this.prisma.integrationChannel.update({
       where: { id },
+      data: {
+        code: this.archivedCode(channel.code, deletedAt),
+        status: IntegrationStatus.INACTIVE,
+        deletedAt,
+      },
     });
 
     await this.audit(context, 'INTEGRATION.DELETE', id);
