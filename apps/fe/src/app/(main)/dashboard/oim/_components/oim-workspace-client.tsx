@@ -39,6 +39,7 @@ import {
 import { toast } from "sonner";
 
 import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -897,24 +898,7 @@ function BaketList({ data }: { data: OimPageData }) {
         <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
           Daftar Laporan ({items.length})
         </h3>
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
-          <Button
-            variant={viewMode === "card" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Kartu
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Tabel
-          </Button>
-        </div>
+        <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
       </div>
 
       {items.length ? (
@@ -1703,24 +1687,7 @@ function AnalysisList({ data }: { data: OimPageData }) {
         <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
           Daftar Analisis ({items.length})
         </h3>
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
-          <Button
-            variant={viewMode === "card" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Kartu
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Tabel
-          </Button>
-        </div>
+        <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
       </div>
 
       {items.length ? (
@@ -2169,24 +2136,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
         <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
           Daftar Produk ({items.length})
         </h3>
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
-          <Button
-            variant={viewMode === "card" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Kartu
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Tabel
-          </Button>
-        </div>
+        <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
       </div>
 
       {items.length ? (

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { BriefcaseBusiness, MapPin, Plus, Search, Users } from "lucide-react";
 
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -192,29 +193,16 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
               {clientPagination?.total ?? clientItems.length} jabatan aktif terdaftar sebagai master penempatan personel.
             </CardDescription>
           </div>
-          <div className="flex items-center gap-1.5 border dark:border-blue-400/12 border-slate-200 rounded-[6px] p-0.5 dark:bg-slate-900 bg-slate-100">
-            <Button
-              type="button"
-              variant={viewType === "table" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewType("table")}
-              className={`h-7 px-2.5 text-[11px] font-semibold font-mono rounded-[4px] cursor-pointer ${
-                viewType === "table" ? "dark:bg-slate-800 bg-white shadow-xs" : ""
-              }`}
-            >
-              TABLE
-            </Button>
-            <Button
-              type="button"
-              variant={viewType === "card" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewType("card")}
-              className={`h-7 px-2.5 text-[11px] font-semibold font-mono rounded-[4px] cursor-pointer ${
-                viewType === "card" ? "dark:bg-slate-800 bg-white shadow-xs" : ""
-              }`}
-            >
-              CARD
-            </Button>
+          <div className="flex items-center gap-3">
+            <span className="hidden font-bold font-mono text-[10px] text-muted-foreground uppercase tracking-[0.28em] sm:inline">
+              Tampilan
+            </span>
+            <ViewModeToggle
+              value={viewType}
+              onValueChange={setViewType}
+              className="rounded-[6px] border-slate-200 bg-slate-100 dark:border-blue-400/12 dark:bg-slate-900"
+              buttonClassName="size-8 rounded-[4px]"
+            />
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

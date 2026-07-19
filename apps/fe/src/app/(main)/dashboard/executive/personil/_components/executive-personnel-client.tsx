@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Activity, BarChart3, Layers, List, Map as MapIcon, Search, ShieldAlert, Terminal } from "lucide-react";
 
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 // biome-ignore lint/suspicious/noShadowRestrictedNames: Map component shadow
 import { Map, MapControls, MapMarker, MapMarkerPopup } from "@/components/ui/map";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -600,6 +601,94 @@ function PersonnelTable({
   );
 }
 
+function PersonnelCardGrid({
+  items,
+  isPending,
+  onReset,
+  config,
+  freshness,
+}: {
+  items: PersonnelListItem[];
+  isPending: boolean;
+  onReset?: () => void;
+  config: PersonnelPageConfig;
+  freshness?: PersonnelMapPayload["meta"]["freshness"];
+}) {
+  if (isPending) {
+    return (
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {["one", "two", "three", "four", "five", "six"].map((rowId) => (
+          <div
+            key={`personnel-card-skeleton-${rowId}`}
+            className="h-40 animate-pulse rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 dark:border-slate-800"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (!items.length) {
+    return <RadarEmptyState onReset={onReset} />;
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {items.map((item) => {
+        const area = primaryArea(item);
+        const detailHref = personnelDetailHref(item, config);
+        const online = isPersonnelOnline(item, freshness);
+
+        return (
+          <Link
+            key={item.id}
+            href={detailHref}
+            className="group relative min-w-0 overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-[var(--dc-primary)]/50 hover:bg-[var(--dc-primary-soft)]/10 dark:border-slate-800 dark:bg-[#080d14]/70"
+          >
+            <div className="absolute top-0 left-0 h-full w-[3px] bg-[var(--dc-primary)] opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="truncate font-bold font-mono text-foreground text-xs group-hover:text-[var(--dc-primary)]">
+                  {item.fullName ?? item.username ?? item.email}
+                </h3>
+                <p className="mt-1 truncate font-mono text-[10px] text-[var(--dc-text-secondary)]">{item.email}</p>
+              </div>
+              <span
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-none border px-2 py-0.5 font-mono font-semibold text-[9px] uppercase tracking-wider",
+                  online
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-950/20"
+                    : "border-slate-500/40 bg-slate-500/10 text-slate-500 dark:text-slate-400 dark:bg-slate-900/20",
+                )}
+              >
+                <span
+                  className={cn("size-1 rounded-full", online ? "animate-pulse bg-emerald-500" : "bg-slate-500")}
+                />
+                {online ? "Online" : "Offline"}
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-2 border-[var(--dc-border-subtle)] border-t pt-3 font-mono text-[10px] text-[var(--dc-text-secondary)]">
+              <div>
+                <span className="block text-[var(--dc-text-muted)] uppercase">Jabatan</span>
+                <span className="block truncate text-[var(--dc-text-primary)]">{item.assignment?.title ?? "-"}</span>
+              </div>
+              <div>
+                <span className="block text-[var(--dc-text-muted)] uppercase">Wilayah</span>
+                <span className="block truncate text-[var(--dc-text-primary)]">{area?.name ?? "-"}</span>
+              </div>
+            </div>
+
+            <div className="mt-4 inline-flex items-center gap-1 rounded-none border border-[var(--dc-primary)]/40 bg-[var(--dc-primary-soft)] px-2 py-1 font-bold font-mono text-[9px] text-[var(--dc-primary)] tracking-wider transition-all group-hover:bg-[var(--dc-primary)] group-hover:text-[var(--dc-text-inverse)]">
+              <Terminal className="size-3" />
+              DETAIL
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* MAIN EXPORT COMPONENT                                                      */
 /* -------------------------------------------------------------------------- */
@@ -611,6 +700,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   const [_systemClock, setSystemClock] = useState("SYNCING...");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
 
   const totalPersonnel = items.length;
   const onlineCount = (map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0);
@@ -847,14 +937,35 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
               <KpiCard label="Tanpa Sinyal" value={noSignalCount} progress={offlinePercentage} variant="amber" />
             </section>
 
-            {/* Personnel Database Table */}
-            <PersonnelTable
-              items={paginatedItems}
-              isPending={isPending}
-              onReset={resetFilters}
-              config={config}
-              freshness={map.meta.freshness}
-            />
+            <div className="flex items-center justify-end gap-3">
+              <span className="font-bold font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-[0.28em]">
+                Tampilan
+              </span>
+              <ViewModeToggle
+                value={viewMode}
+                onValueChange={setViewMode}
+                className="rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80"
+                buttonClassName="size-8 rounded-none"
+              />
+            </div>
+
+            {viewMode === "table" ? (
+              <PersonnelTable
+                items={paginatedItems}
+                isPending={isPending}
+                onReset={resetFilters}
+                config={config}
+                freshness={map.meta.freshness}
+              />
+            ) : (
+              <PersonnelCardGrid
+                items={paginatedItems}
+                isPending={isPending}
+                onReset={resetFilters}
+                config={config}
+                freshness={map.meta.freshness}
+              />
+            )}
 
             {/* Pagination Controls bar */}
             <TablePagination
