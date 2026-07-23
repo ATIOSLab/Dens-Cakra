@@ -35,6 +35,7 @@ export type UukVersionResource = {
   id: string;
   versionNumber: number;
   title: string;
+  createdAt?: string | null;
   changeReason?: string | null;
   sections: UukSection[];
   tasks?: Array<{

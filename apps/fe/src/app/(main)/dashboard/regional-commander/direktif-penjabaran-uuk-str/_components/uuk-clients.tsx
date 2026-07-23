@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
-  ArrowLeft,
   Award,
   BookOpenText,
   Calendar,
@@ -138,6 +137,14 @@ function buildForwardingDraftFromDirective(commandDescription?: string | null) {
     sourceTitle: parsed.uukTitle.trim(),
     sections,
   };
+}
+
+function useDirectiveMarkRead(directiveVersionId?: string | null) {
+  useEffect(() => {
+    if (!directiveVersionId) return;
+
+    apiBrowserMutation("POST", `/directive-versions/${directiveVersionId}/mark-read`).catch(() => undefined);
+  }, [directiveVersionId]);
 }
 
 function getCurrentVersion(uuk: UukDetail | UukSummary) {
@@ -588,7 +595,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [directiveVersionId] = useState(initialDirectiveVersionId ?? directives[0]?.versions?.[0]?.id ?? "");
-  const [_hasReadSource, _setHasReadSource] = useState(false);
+  useDirectiveMarkRead(initialDirectiveVersionId ? directiveVersionId : null);
   const selectedDirective = useMemo(() => {
     for (const directive of directives) {
       const version = directive.versions.find((item) => item.id === directiveVersionId);
@@ -846,6 +853,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
   const [_openSection, _setOpenSection] = useState(firstSectionType);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const isActionDisabled = action !== null;
+  useDirectiveMarkRead(uuk.directiveVersion?.id);
 
   async function triggerAction(nextAction: "publish" | "cancel") {
     if (!currentVersion) {
@@ -881,8 +889,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
   const classification = uuk.directiveVersion?.classification || "RAHASIA";
   const commandNumber = uuk.directiveVersion?.directive?.commandNumber ?? "-";
   const ownerUnitName = uuk.ownerUnit?.name ?? "unit regional";
-  const forwardingTitle = currentVersion?.title ?? "Penerusan Regional";
-  const downstreamTaskCount = currentVersion?.tasks?.length ?? 0;
+  const currentVersionCreatedAt = currentVersion?.createdAt ?? null;
 
   return (
     <div className="relative mx-auto w-full max-w-[1400px] space-y-4 pb-14">
@@ -910,7 +917,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
         }
       />
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-muted-foreground text-xs border-b border-white/[0.08] pb-3">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 border-white/[0.08] border-b pb-3 font-mono text-muted-foreground text-xs">
         <div className="flex items-center gap-1">
           <BookOpenText className="size-3 text-muted-foreground/60" />
           <span>
@@ -929,10 +936,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
         <div className="flex items-center gap-1">
           <Calendar className="size-3 text-muted-foreground/60" />
           <span>
-            TANGGAL:{" "}
-            <span className="text-[var(--dc-text-primary)]">
-              {(currentVersion as any)?.createdAt ? formatDate((currentVersion as any).createdAt) : "-"}
-            </span>
+            TANGGAL: <span className="text-[var(--dc-text-primary)]">{formatDate(currentVersionCreatedAt)}</span>
           </span>
         </div>
       </div>
@@ -1151,9 +1155,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
               </div>
               <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">
                 <span className="text-muted-foreground/60">TANGGAL:</span>
-                <span className="text-muted-foreground/80">
-                  {(currentVersion as any)?.createdAt ? formatDate((currentVersion as any).createdAt) : "-"}
-                </span>
+                <span className="text-muted-foreground/80">{formatDate(currentVersionCreatedAt)}</span>
               </div>
               <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">
                 <span className="text-muted-foreground/60">TUGAS TURUNAN:</span>

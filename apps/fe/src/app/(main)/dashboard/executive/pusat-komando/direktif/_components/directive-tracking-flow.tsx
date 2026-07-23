@@ -3,7 +3,7 @@
 
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, type UIEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   Background,
@@ -21,7 +21,17 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { CheckCircle2, Circle, type LucideIcon, RadioTower, Shield, UserRound, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Circle,
+  type LucideIcon,
+  RadioTower,
+  Search,
+  Shield,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -140,7 +150,9 @@ const statusColors = {
 
 const FAILURE_STATUSES = new Set(["FAILED", "CANCELLED", "REJECTED"]);
 const COMPLETED_STATUSES = new Set(["COMPLETED", "DISTRIBUTED"]);
-const ACTIVE_STATUSES = new Set(["READ", "ACKNOWLEDGED", "IN_PROGRESS", "REASSIGNED", "SENT"]);
+const ACTIVE_STATUSES = new Set(["READ", "ACKNOWLEDGED", "IN_PROGRESS", "REASSIGNED"]);
+const CLOSED_TRACKING_STATUSES = new Set(["COMPLETED", "CANCELLED", "REASSIGNED"]);
+const MODAL_BATCH_SIZE = 12;
 
 function PipelineNodeCard({ data }: NodeProps<PipelineReactFlowNode>) {
   const { label, subtitle, status, progressPercent, progressText, icon: Icon, onClick, animationClass } = data;
@@ -274,6 +286,48 @@ function detailValue(value: string | number | null | undefined) {
   return String(value);
 }
 
+function resolveTimeliness({
+  dueDate,
+  completedAt,
+  fallbackCompletedAt,
+  status,
+}: {
+  dueDate?: string | null;
+  completedAt?: string | null;
+  fallbackCompletedAt?: string | null;
+  status?: string | null;
+}) {
+  if (!dueDate) return "Tidak ada batas waktu";
+
+  const dueTime = new Date(dueDate).getTime();
+  const finishAt = completedAt ?? fallbackCompletedAt;
+  if (finishAt) {
+    return new Date(finishAt).getTime() <= dueTime ? "Tepat waktu" : "Terlambat";
+  }
+
+  const normalizedStatus = normalizeStatus(status);
+  if (!CLOSED_TRACKING_STATUSES.has(normalizedStatus) && Date.now() > dueTime) {
+    return "Terlambat berjalan";
+  }
+
+  return "Masih dalam batas waktu";
+}
+
+function itemSearchText(item: PipelineItem) {
+  return [
+    item.name,
+    item.officer,
+    item.groupName,
+    item.statusLabel,
+    item.positionCode,
+    item.roleCode,
+    ...item.details.flatMap((detail) => [detail.label, detail.value]),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 function areaScopeNames(assignment?: DirectiveTrackingAssignment | null) {
   const names = assignment?.assignee?.areaScopes.map((scope) => scope.name).filter(Boolean) ?? [];
 
@@ -375,6 +429,8 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
   const [activeStage, setActiveStage] = useState<PipelineStageId | null>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [activeBranch, setActiveBranch] = useState<CommandBranch | null>(null);
+  const [modalSearch, setModalSearch] = useState("");
+  const [visibleItemCount, setVisibleItemCount] = useState(MODAL_BATCH_SIZE);
   const [isThemeMounted, setIsThemeMounted] = useState(false);
   const { resolvedTheme } = useTheme();
   const { fitView } = useReactFlow();
@@ -384,6 +440,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
 
   const currentVersion = getCurrentVersion(directive);
   const uukTitle = currentVersion?.strategicIssue || "STR / Direktif Strategis";
+  const directiveDueDate = currentVersion?.dueDate;
 
   const legacyHierarchyData = useMemo(() => {
     const branchList: PipelineItem[] = [];
@@ -405,6 +462,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
         recipient.targetUnit?.type || recipient.targetPosition?.organizationUnit?.type,
       );
       const recipientStatus = normalizeStatus(recipient.status);
+      const regionalForwardedAt = chain.forwarding?.createdAt;
       const regionalState = resolveItemState({
         failed: FAILURE_STATUSES.has(recipientStatus),
         completed: Boolean(chain.forwarding),
@@ -428,7 +486,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
         ...regionalState,
         readAt: recipient.readAt,
         acknowledgedAt: recipient.acknowledgedAt,
-        forwardedAt: chain.forwarding?.createdAt,
+        forwardedAt: regionalForwardedAt,
         officer: recipient.targetUnit?.name || recipient.targetPosition?.organizationUnit?.name,
         groupName: regionName,
         details: [
@@ -449,7 +507,16 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
           { label: "Terkirim", value: formatDate(recipient.deliveredAt) },
           { label: "Dibaca", value: formatDate(recipient.readAt) },
           { label: "Diakui", value: formatDate(recipient.acknowledgedAt) },
-          { label: "Diteruskan", value: formatDate(chain.forwarding?.createdAt) },
+          { label: "Diteruskan", value: formatDate(regionalForwardedAt) },
+          { label: "Batas waktu", value: formatDate(directiveDueDate) },
+          {
+            label: "Ketepatan waktu",
+            value: resolveTimeliness({
+              dueDate: directiveDueDate,
+              completedAt: regionalForwardedAt,
+              status: recipient.status,
+            }),
+          },
         ],
       });
 
@@ -578,6 +645,14 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
               { label: "Mulai", value: formatDate(coordinator.startedAt) },
               { label: "Selesai", value: formatDate(coordinator.completedAt) },
               { label: "Tenggat", value: formatDate(coordinator.dueDate) },
+              {
+                label: "Ketepatan waktu",
+                value: resolveTimeliness({
+                  dueDate: coordinator.dueDate || task.dueDate,
+                  completedAt: coordinator.completedAt,
+                  status: coordinator.status,
+                }),
+              },
               { label: "Catatan assignment", value: detailValue(coordinator.assignmentNote) },
             ],
           });
@@ -626,6 +701,14 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
                 { label: "Mulai", value: formatDate(officer.startedAt) },
                 { label: "Selesai", value: formatDate(officer.completedAt) },
                 { label: "Tenggat", value: formatDate(officer.dueDate) },
+                {
+                  label: "Ketepatan waktu",
+                  value: resolveTimeliness({
+                    dueDate: officer.dueDate || task.dueDate,
+                    completedAt: officer.completedAt,
+                    status: officer.status,
+                  }),
+                },
                 { label: "Catatan assignment", value: detailValue(officer.assignmentNote) },
               ],
             });
@@ -794,7 +877,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
       coordinator: deduplicateItems(coordinatorList),
       officer: deduplicateItems(officerList),
     };
-  }, [tracking.regionalChains]);
+  }, [directiveDueDate, tracking.regionalChains]);
 
   const hierarchyData = useMemo(() => {
     if (!tracking.routingHierarchy.length) return legacyHierarchyData;
@@ -869,12 +952,11 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
 
         const recipient = chain?.regionalRecipient;
         const recipientStatus = normalizeStatus(recipient?.status);
+        const regionalForwardedAt = chain?.forwarding?.createdAt;
         const state = resolveItemState({
           failed: FAILURE_STATUSES.has(recipientStatus),
           completed: Boolean(chain?.forwarding),
-          inProgress: Boolean(
-            recipient?.sentAt || recipient?.readAt || recipient?.acknowledgedAt || ACTIVE_STATUSES.has(recipientStatus),
-          ),
+          inProgress: Boolean(recipient?.readAt || recipient?.acknowledgedAt || ACTIVE_STATUSES.has(recipientStatus)),
           completedLabel: "Sudah meneruskan",
           inProgressLabel: "Sudah membaca",
           pendingLabel: "Belum menerima STR",
@@ -885,14 +967,23 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
           ...state,
           readAt: recipient?.readAt,
           acknowledgedAt: recipient?.acknowledgedAt,
-          forwardedAt: chain?.forwarding?.createdAt,
+          forwardedAt: regionalForwardedAt,
           details: [
             ...commonDetails,
             { label: "Status penerima", value: detailValue(recipient?.status) },
             { label: "Status ringkas", value: state.statusLabel },
             { label: "Dikirim", value: formatDate(recipient?.sentAt) },
             { label: "Dibaca", value: formatDate(recipient?.readAt) },
-            { label: "Diteruskan", value: formatDate(chain?.forwarding?.createdAt) },
+            { label: "Diteruskan", value: formatDate(regionalForwardedAt) },
+            { label: "Batas waktu", value: formatDate(directiveDueDate) },
+            {
+              label: "Ketepatan waktu",
+              value: resolveTimeliness({
+                dueDate: directiveDueDate,
+                completedAt: regionalForwardedAt,
+                status: recipient?.status,
+              }),
+            },
           ],
         });
         continue;
@@ -926,6 +1017,23 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
               label: "Jumlah penerima lapangan",
               value: detailValue(chain?.oimStage.fieldCoordinatorAssignmentCount ?? 0),
             },
+            { label: "Sudah dibaca", value: chain?.oimStage.hasRead ? "Ya" : "Belum" },
+            {
+              label: "Sudah diteruskan",
+              value: chain?.oimStage.hasForwardedToFieldCoordinator ? "Ya" : "Belum",
+            },
+            { label: "Dibuat", value: formatDate(chain?.forwarding?.createdAt) },
+            { label: "Update terakhir", value: formatDate(chain?.forwarding?.updatedAt) },
+            { label: "Batas waktu", value: formatDate(directiveDueDate) },
+            {
+              label: "Ketepatan waktu",
+              value: resolveTimeliness({
+                dueDate: directiveDueDate,
+                completedAt: chain?.oimStage.hasForwardedToFieldCoordinator ? chain?.forwarding?.updatedAt : null,
+                fallbackCompletedAt: chain?.forwarding?.createdAt,
+                status: chain?.forwarding?.status,
+              }),
+            },
           ],
         });
         continue;
@@ -936,6 +1044,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
       if (!activity || !assignment) continue;
 
       const state = assignmentStatus(assignment, ["STAF_SUBDIT", "KORWIL"].includes(route.positionCode));
+      const assignmentDueDate = assignment?.dueDate || activity?.task.dueDate;
       const item: PipelineItem = {
         ...common,
         parentId: route.reportsToPositionId,
@@ -949,7 +1058,18 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
           { label: "Status ringkas", value: state.statusLabel },
           { label: "Ditugaskan", value: formatDate(assignment?.assignedAt) },
           { label: "Dibaca", value: formatDate(assignment?.readAt) },
+          { label: "Diakui", value: formatDate(assignment?.acknowledgedAt) },
+          { label: "Mulai", value: formatDate(assignment?.startedAt) },
           { label: "Selesai", value: formatDate(assignment?.completedAt) },
+          { label: "Batas waktu", value: formatDate(assignmentDueDate) },
+          {
+            label: "Ketepatan waktu",
+            value: resolveTimeliness({
+              dueDate: assignmentDueDate,
+              completedAt: assignment?.completedAt,
+              status: assignment?.status,
+            }),
+          },
           { label: "Tugas", value: detailValue(activity?.task.title) },
         ],
       };
@@ -991,7 +1111,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
       });
 
     return { branch, regional, oim, coordinator, officer };
-  }, [legacyHierarchyData, tracking.regionalChains, tracking.routingHierarchy]);
+  }, [directiveDueDate, legacyHierarchyData, tracking.regionalChains, tracking.routingHierarchy]);
 
   const stagesData = useMemo(() => {
     const directiveStatus = normalizeStatus(directive.status);
@@ -1039,6 +1159,9 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
         onClick: () => {
           setActiveStage(item.id);
           setActiveItemId(null);
+          setActiveBranch(null);
+          setModalSearch("");
+          setVisibleItemCount(MODAL_BATCH_SIZE);
         },
       },
     }));
@@ -1260,6 +1383,9 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
         onClick: () => {
           setActiveStage(stage);
           setActiveItemId(item ? item.id : null);
+          setActiveBranch(null);
+          setModalSearch("");
+          setVisibleItemCount(MODAL_BATCH_SIZE);
         },
         animationClass: getAnimationClass(id, status),
       },
@@ -1495,6 +1621,8 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
             setActiveStage("executive");
             setActiveItemId(null);
             setActiveBranch(null);
+            setModalSearch("");
+            setVisibleItemCount(MODAL_BATCH_SIZE);
           },
           animationClass: stagesData.executive.status === "COMPLETED" ? "flow-node-completed" : "flow-node-active",
         },
@@ -1536,6 +1664,8 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
               setActiveStage(config.stage);
               setActiveItemId(null);
               setActiveBranch(branch.branch);
+              setModalSearch("");
+              setVisibleItemCount(MODAL_BATCH_SIZE);
             },
             animationClass:
               summary.status === "PENDING"
@@ -1642,7 +1772,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
     return () => window.cancelAnimationFrame(frame);
   }, [fitView, variant]);
 
-  const activeStageGroupedItems = useMemo(() => {
+  const activeStageItems = useMemo(() => {
     if (!activeStage) return null;
 
     const listMap = {
@@ -1653,32 +1783,57 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
       officer: hierarchyData.officer,
     };
 
-    const items = activeBranch
-      ? listMap[activeStage].filter((item) => item.branch === activeBranch)
-      : listMap[activeStage];
-    if (items.length === 0) return null;
+    return activeBranch ? listMap[activeStage].filter((item) => item.branch === activeBranch) : listMap[activeStage];
+  }, [activeBranch, activeStage, hierarchyData]);
+
+  const filteredActiveStageItems = useMemo(() => {
+    if (!activeStageItems) return null;
+
+    const query = modalSearch.trim().toLowerCase();
+    if (!query) return activeStageItems;
+
+    return activeStageItems.filter((item) => itemSearchText(item).includes(query));
+  }, [activeStageItems, modalSearch]);
+
+  const visibleActiveStageItems = useMemo(() => {
+    if (!filteredActiveStageItems) return null;
+
+    return filteredActiveStageItems.slice(0, visibleItemCount);
+  }, [filteredActiveStageItems, visibleItemCount]);
+
+  const hasMoreActiveStageItems = Boolean(
+    filteredActiveStageItems && visibleItemCount < filteredActiveStageItems.length,
+  );
+
+  const activeStageGroupedItems = useMemo(() => {
+    if (!visibleActiveStageItems?.length) return null;
 
     const groups: Record<string, PipelineItem[]> = {};
-    for (const item of items) {
+    for (const item of visibleActiveStageItems) {
       if (!groups[item.groupName]) groups[item.groupName] = [];
       groups[item.groupName].push(item);
     }
     return groups;
-  }, [activeBranch, activeStage, hierarchyData]);
+  }, [visibleActiveStageItems]);
 
   const activeSelectedItem = useMemo(() => {
     if (!activeStage || !activeItemId) return null;
 
-    const listMap = {
-      executive: [] as PipelineItem[],
-      regional: hierarchyData.regional,
-      oim: hierarchyData.oim,
-      coordinator: hierarchyData.coordinator,
-      officer: hierarchyData.officer,
-    };
+    return activeStageItems?.find((item) => item.id === activeItemId) ?? null;
+  }, [activeItemId, activeStage, activeStageItems]);
 
-    return listMap[activeStage].find((item) => item.id === activeItemId) ?? null;
-  }, [activeItemId, activeStage, hierarchyData]);
+  const handleModalScroll = useCallback(
+    (event: UIEvent<HTMLDivElement>) => {
+      if (!hasMoreActiveStageItems) return;
+
+      const target = event.currentTarget;
+      const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+      if (distanceToBottom < 160) {
+        setVisibleItemCount((count) => count + MODAL_BATCH_SIZE);
+      }
+    },
+    [hasMoreActiveStageItems],
+  );
 
   const handleFlowNodeClick = useCallback((_: React.MouseEvent, node: TrackingReactFlowNode) => {
     if (node.type === "lane") return;
@@ -1772,6 +1927,9 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
                 onClick={() => {
                   setActiveStage(stageId);
                   setActiveItemId(null);
+                  setActiveBranch(null);
+                  setModalSearch("");
+                  setVisibleItemCount(MODAL_BATCH_SIZE);
                 }}
                 className="group relative flex w-full cursor-pointer items-start gap-4 text-left"
               >
@@ -1916,7 +2074,38 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
                     <DialogDescription className="mt-1 text-xs text-muted-foreground">{data.desc}</DialogDescription>
                   </DialogHeader>
 
-                  <div className="mt-4 flex-1 space-y-4 overflow-y-auto pr-1 text-[11.5px]">
+                  {activeStage !== "executive" && (
+                    <div className="mt-4 shrink-0">
+                      {activeSelectedItem ? (
+                        <button
+                          type="button"
+                          onClick={() => setActiveItemId(null)}
+                          className="inline-flex h-8 items-center gap-2 rounded-md border border-[var(--dc-border-subtle)] bg-muted/20 px-3 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted/40"
+                        >
+                          <ArrowLeft className="size-3.5" />
+                          Kembali
+                        </button>
+                      ) : (
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                          <input
+                            value={modalSearch}
+                            onChange={(event) => {
+                              setModalSearch(event.target.value);
+                              setVisibleItemCount(MODAL_BATCH_SIZE);
+                            }}
+                            placeholder="Cari nama, wilayah, jabatan, status"
+                            className="h-9 w-full rounded-md border border-[var(--dc-border-subtle)] bg-muted/10 pl-9 pr-3 text-[12px] font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-sky-400 focus:bg-background"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div
+                    className="mt-4 flex-1 space-y-4 overflow-y-auto pr-1 text-[11.5px]"
+                    onScroll={activeSelectedItem ? undefined : handleModalScroll}
+                  >
                     {activeStage === "executive" ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-3 rounded-xl border border-[var(--dc-border-subtle)] bg-muted/20 p-3">
@@ -2054,10 +2243,21 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
                             </div>
                           </div>
                         ))}
+                        {hasMoreActiveStageItems && (
+                          <div className="py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Memuat data berikutnya...
+                          </div>
+                        )}
+                        <div className="pb-1 text-center text-[10px] font-medium text-muted-foreground">
+                          Menampilkan {visibleActiveStageItems?.length ?? 0} dari{" "}
+                          {filteredActiveStageItems?.length ?? 0} record
+                        </div>
                       </div>
                     ) : (
                       <div className="py-8 text-center text-xs italic text-muted-foreground">
-                        Tidak ada penerima aktif STR di tahap ini.
+                        {modalSearch.trim()
+                          ? "Tidak ada record yang cocok dengan pencarian."
+                          : "Tidak ada penerima aktif STR di tahap ini."}
                       </div>
                     )}
                   </div>

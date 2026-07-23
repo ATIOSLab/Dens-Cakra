@@ -1,7 +1,7 @@
-import { PersonelJaringPage } from "./_components/personel-jaring-page";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
-  return <PersonelJaringPage />;
+export default function Page() {
+  redirect("/dashboard/regional-commander/personel-lapangan");
 }

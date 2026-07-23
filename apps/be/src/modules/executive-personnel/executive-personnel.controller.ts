@@ -149,6 +149,63 @@ export class RegionalCommanderPersonnelController {
     operationId: 'apiRegionalCommanderPersonnel001',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-001',
     summary: 'Detail personel dalam hierarki Regional Commander',
+  @Get()
+  @ApiContract({
+    operationId: 'apiRegionalCommanderPersonnel001',
+    contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-001',
+    summary: 'Daftar petugas lapangan dalam hierarki Regional Commander',
+    roles: ['regional_commander'],
+  })
+  async list(
+    @Query() query: ExecutivePersonnelListQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    const result = await this.service.listRegionalCommanderPersonnel(
+      query,
+      context,
+    );
+    return apiResult(result.items, undefined, result.meta);
+  }
+
+  @Get('map')
+  @ApiContract({
+    operationId: 'apiRegionalCommanderPersonnel002',
+    contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-002',
+    summary: 'Peta petugas lapangan dalam hierarki Regional Commander',
+    roles: ['regional_commander'],
+  })
+  async map(
+    @Query() query: ExecutivePersonnelMapQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.service.mapRegionalCommanderPersonnel(query, context),
+      undefined,
+      { appliedFilters: query },
+    );
+  }
+
+  @Get('area-filters')
+  @ApiContract({
+    operationId: 'apiRegionalCommanderPersonnel003',
+    contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-003',
+    summary: 'Filter wilayah bertingkat sesuai scope Regional Commander',
+    roles: ['regional_commander'],
+  })
+  async areaFilters(
+    @Query() query: FieldCoordinatorPersonnelAreaFilterQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.service.regionalCommanderAreaFilters(query, context),
+    );
+  }
+
+  @Get(':assignmentId')
+  @ApiContract({
+    operationId: 'apiRegionalCommanderPersonnel004',
+    contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-004',
+    summary: 'Detail petugas lapangan dalam hierarki Regional Commander',
     roles: ['regional_commander'],
   })
   async detail(

@@ -3,6 +3,7 @@ import type { PersonnelDetail } from "@/app/(main)/dashboard/executive/personil/
 import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -18,4 +19,7 @@ export default async function Page({ params }: PageProps) {
   return (
     <ExecutivePersonnelDetailClient backHref="/dashboard/regional-commander/personel-jaring" detail={detail} />
   );
+  const { assignmentId } = await params;
+
+  redirect(`/dashboard/regional-commander/personel-lapangan/${assignmentId}`);
 }

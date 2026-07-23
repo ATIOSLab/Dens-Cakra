@@ -1,7 +1,7 @@
 import {
   BellRing,
-  BriefcaseBusiness,
   BrainCircuit,
+  BriefcaseBusiness,
   ChartColumn,
   ClipboardList,
   Command,
@@ -202,8 +202,8 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "regional-personnel-network",
-        title: "Personel & Jaring",
-        url: "/dashboard/regional-commander/personel-jaring",
+        title: "Personel Lapangan",
+        url: "/dashboard/regional-commander/personel-lapangan",
         icon: Users,
         roles: REGIONAL_COMMANDER_ROLE,
       },

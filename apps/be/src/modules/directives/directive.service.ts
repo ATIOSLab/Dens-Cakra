@@ -1127,6 +1127,55 @@ export class DirectiveService {
     });
   }
 
+  async markRead(versionId: string, context: AuthorizationContext) {
+    const recipient = await this.prisma.directiveRecipient.findFirst({
+      where: {
+        directiveVersionId: versionId,
+        OR: [
+          { targetPositionId: context.positionId },
+          { targetUnitId: context.organizationUnitId },
+        ],
+      },
+      orderBy: [{ targetPositionId: 'desc' }, { sentAt: 'desc' }],
+    });
+
+    if (!recipient) {
+      throw new ApiException(
+        'DIRECTIVE_RECIPIENT_NOT_OWNER',
+        'Directive recipient does not belong to the current access context.',
+        403,
+      );
+    }
+
+    const now = new Date();
+    const nextStatus =
+      recipient.status === RecipientStatus.SENT ||
+      recipient.status === RecipientStatus.DELIVERED
+        ? RecipientStatus.READ
+        : recipient.status;
+
+    await this.prisma.directiveRecipient.update({
+      where: { id: recipient.id },
+      data: {
+        status: nextStatus,
+        deliveredAt: recipient.deliveredAt ?? now,
+        readAt: recipient.readAt ?? now,
+      },
+    });
+
+    await this.audit(context, 'DIRECTIVE.READ', versionId, {
+      recipientId: recipient.id,
+    });
+
+    return this.prisma.directiveRecipient.findUniqueOrThrow({
+      where: { id: recipient.id },
+      include: {
+        targetUnit: true,
+        targetPosition: true,
+      },
+    });
+  }
+
   async tracking(
     directiveId: string,
     areaId: string | undefined,
