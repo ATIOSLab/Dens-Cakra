@@ -83,6 +83,13 @@ export class ExecutivePersonnelService {
     });
   }
 
+  async listRegionalCommanderPersonnel(
+    query: ExecutivePersonnelListQuery,
+    context: AuthorizationContext,
+  ) {
+    return this.listFieldCoordinatorPersonnel(query, context);
+  }
+
   private async listPersonnel(
     query: ExecutivePersonnelListQuery,
     scopeOptions: PersonnelScopeOptions = {},
@@ -186,6 +193,13 @@ export class ExecutivePersonnelService {
     });
   }
 
+  async mapRegionalCommanderPersonnel(
+    query: ExecutivePersonnelMapQuery,
+    context: AuthorizationContext,
+  ) {
+    return this.mapFieldCoordinatorPersonnel(query, context);
+  }
+
   async fieldCoordinatorAreaFilters(
     query: FieldCoordinatorPersonnelAreaFilterQuery,
     context: AuthorizationContext,
@@ -242,6 +256,13 @@ export class ExecutivePersonnelService {
     return { provinces: [], regencies, districts };
   }
 
+  async regionalCommanderAreaFilters(
+    query: FieldCoordinatorPersonnelAreaFilterQuery,
+    context: AuthorizationContext,
+  ) {
+    return this.fieldCoordinatorAreaFilters(query, context);
+  }
+
   async detailFieldCoordinatorPersonnel(
     assignmentId: string,
     context: AuthorizationContext,
@@ -275,6 +296,13 @@ export class ExecutivePersonnelService {
     }
 
     return this.detail(assignment.userProfileId);
+  }
+
+  async detailRegionalCommanderPersonnel(
+    assignmentId: string,
+    context: AuthorizationContext,
+  ) {
+    return this.detailFieldCoordinatorPersonnel(assignmentId, context);
   }
 
   private async mapPersonnel(

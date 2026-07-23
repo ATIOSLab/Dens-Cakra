@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { RegionalCommanderPersonelLapanganDetailPage } from "../_components/personel-lapangan-page";
 
 export const dynamic = "force-dynamic";
 
@@ -9,5 +9,5 @@ type PageProps = {
 export default async function Page({ params }: PageProps) {
   const { assignmentId } = await params;
 
-  redirect(`/dashboard/regional-commander/personel-lapangan/${assignmentId}`);
+  return <RegionalCommanderPersonelLapanganDetailPage assignmentId={assignmentId} />;
 }

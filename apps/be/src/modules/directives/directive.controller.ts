@@ -258,6 +258,25 @@ export class DirectiveController {
     );
   }
 
+  @Post('directive-versions/:versionId/mark-read')
+  @ApiContract({
+    operationId: 'apiDir012a',
+    contractId: 'API-DIR-012A',
+    summary: 'Tandai directive dibaca penerima',
+    roles: [
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+    ],
+    idempotent: true,
+  })
+  async markRead(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.directiveService.markRead(versionId, context));
+  }
+
   @Post('directive-recipients/:recipientId/acknowledge')
   @ApiContract({
     operationId: 'apiDir012',
