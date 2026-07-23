@@ -144,10 +144,12 @@ async function loadSubordinateCandidates(
   return assignments;
 }
 
-async function loadIncomingOimSources(): Promise<OimIncomingForwardingSource[]> {
+async function loadIncomingOimSources(sortBy?: string, sortOrder?: string): Promise<OimIncomingForwardingSource[]> {
   const uuks = await apiServerGet<UukSummary[]>("/uuk-strs", {
     status: "PUBLISHED",
     limit: 50,
+    sortBy,
+    sortOrder,
   });
 
   return uuks
@@ -176,7 +178,7 @@ function buildCoordinatorTaskViews(tasks: TaskSummary[], primaryAssignmentId: st
     .filter((task) => Boolean(task.coordinatorAssignmentId) || task.subordinateAssignments.length > 0);
 }
 
-export async function OimTaskListPage() {
+export async function OimTaskListPage({ sortBy, sortOrder }: { sortBy?: string; sortOrder?: string }) {
   await requireRole(SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER);
   const access = await apiServerGet<AccessMe>("/access/me");
   const [tasks, sources] = await Promise.all([
@@ -184,7 +186,7 @@ export async function OimTaskListPage() {
       ownerUnitId: access.authorizationContext.organizationUnitId,
       limit: 50,
     }),
-    loadIncomingOimSources(),
+    loadIncomingOimSources(sortBy, sortOrder),
   ]);
 
   return (
@@ -333,11 +335,19 @@ export async function FieldCoordinatorAssignmentPage({
   );
 }
 
-export async function FieldCoordinatorFieldOfficerAssignmentListPage() {
+export async function FieldCoordinatorFieldOfficerAssignmentListPage({
+  sortBy,
+  sortOrder,
+}: {
+  sortBy?: string;
+  sortOrder?: string;
+}) {
   await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR);
   const access = await apiServerGet<AccessMe>("/access/me");
   const tasks = await apiServerGet<TaskSummary[]>("/tasks", {
     limit: 100,
+    sortBy,
+    sortOrder,
   });
   const distributedTasks = buildCoordinatorTaskViews(tasks, access.authorizationContext.primaryAssignmentId);
 

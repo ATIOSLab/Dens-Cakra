@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FieldOfficerIncoming, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
@@ -58,23 +57,23 @@ function SearchableFilter({
   const selectedLabel = options.find((option) => option.value === value)?.label;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          aria-expanded={open}
-          className="w-full justify-between border-white/10 bg-white/5 font-normal text-white hover:bg-white/10"
-          role="combobox"
-          type="button"
-          variant="outline"
-        >
-          <span className="truncate">{selectedLabel ?? placeholder}</span>
-          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+    <div className="w-full">
+      <Button
+        aria-expanded={open}
+        className="w-full justify-between border-white/10 bg-white/5 font-normal text-white hover:bg-white/10"
+        onClick={() => setOpen((current) => !current)}
+        role="combobox"
+        type="button"
+        variant="outline"
+      >
+        <span className="truncate">{selectedLabel ?? placeholder}</span>
+        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+      </Button>
+      {open ? (
+        <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-popover text-popover-foreground shadow-sm">
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
+          <CommandList className="max-h-52">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
@@ -93,8 +92,9 @@ function SearchableFilter({
             </CommandGroup>
           </CommandList>
         </Command>
-      </PopoverContent>
-    </Popover>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

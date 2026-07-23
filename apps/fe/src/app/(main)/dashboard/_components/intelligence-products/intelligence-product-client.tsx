@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronLeft, FileText, Grid2X2, List, Printer, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
+import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -473,7 +474,7 @@ function ProductBrowser({
                     <TableHead>Klasifikasi</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Unit</TableHead>
-                    <TableHead>Periode</TableHead>
+                    <SortableTableHeader column="periodStart">Periode</SortableTableHeader>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>

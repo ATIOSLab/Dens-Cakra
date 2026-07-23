@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -38,6 +38,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -217,15 +219,15 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
 
   const backButtonSettings = hasBackButton
     ? {
-        href:
-          view === "report-detail"
-            ? "/dashboard/oim/laporan-masuk"
-            : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
-              ? "/dashboard/oim/analisis-intelijen"
-              : ["product-new", "product-edit", "product-detail"].includes(view)
-                ? "/dashboard/oim/produk-intelijen/daftar-produk"
-                : undefined,
-      }
+      href:
+        view === "report-detail"
+          ? "/dashboard/oim/laporan-masuk"
+          : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
+            ? "/dashboard/oim/analisis-intelijen"
+            : ["product-new", "product-edit", "product-detail"].includes(view)
+              ? "/dashboard/oim/produk-intelijen/daftar-produk"
+              : undefined,
+    }
     : undefined;
 
   return (
@@ -790,26 +792,26 @@ function Filters({
         periodStart ||
         periodEnd
       ) && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setSearch("");
-            setRegencyId("");
-            setDistrictId("");
-            setStatus("");
-            setUrgency("");
-            setClassification("");
-            setCategoryId("");
-            setJaringClusterId("");
-            setPeriodStart("");
-            setPeriodEnd("");
-          }}
-          className="h-9 font-mono text-xs uppercase border-dashed border-border text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center gap-1.5"
-        >
-          Reset Filter
-        </Button>
-      )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setSearch("");
+              setRegencyId("");
+              setDistrictId("");
+              setStatus("");
+              setUrgency("");
+              setClassification("");
+              setCategoryId("");
+              setJaringClusterId("");
+              setPeriodStart("");
+              setPeriodEnd("");
+            }}
+            className="h-9 font-mono text-xs uppercase border-dashed border-border text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            Reset Filter
+          </Button>
+        )}
     </form>
   );
 }
@@ -825,10 +827,50 @@ function paginationNumbers(currentPage: number, totalPages: number) {
 }
 
 function BaketList({ data }: { data: OimPageData }) {
-  const items = rows(data.bakets);
+  const searchParams = useSearchParams();
+  const initialItems = useMemo(() => rows(data.bakets), [data.bakets]);
+  const [items, setItems] = useState<Row[]>(initialItems);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [dateSortDirection, setDateSortDirection] = useState<"asc" | "desc">("desc");
+  const [isSorting, setIsSorting] = useState(false);
+
+  useEffect(() => {
+    setItems(initialItems);
+    setPage(1);
+  }, [initialItems]);
+
+  async function sortByDate(direction: "asc" | "desc") {
+    try {
+      setIsSorting(true);
+      const selectedStatuses = searchParams.get("statuses") || undefined;
+      const result = await apiBrowserFetch<unknown>("/bakets", {
+        query: {
+          limit: 100,
+          status: searchParams.get("status") || (selectedStatuses ? undefined : "SENT_TO_OIM"),
+          statuses: selectedStatuses,
+          areaId: searchParams.get("areaId") || undefined,
+          search: searchParams.get("search") || undefined,
+          urgency: searchParams.get("urgency") || undefined,
+          categoryId: searchParams.get("categoryId") || undefined,
+          jaringClusterId: searchParams.get("jaringClusterId") || undefined,
+          from: searchParams.get("periodStart") || undefined,
+          to: searchParams.get("periodEnd") || undefined,
+          sortBy: "updatedAt",
+          sortOrder: direction,
+        },
+      });
+
+      setItems(rows(result));
+      setDateSortDirection(direction);
+      setPage(1);
+    } catch {
+      toast.error("Urutan tanggal laporan belum dapat diperbarui.");
+    } finally {
+      setIsSorting(false);
+    }
+  }
 
   const totalPages = Math.ceil(items.length / rowsPerPage) || 1;
   const safePage = Math.min(page, totalPages);
@@ -846,40 +888,24 @@ function BaketList({ data }: { data: OimPageData }) {
         setRowsPerPage(limit);
         setPage(1);
       }}
+      loading={isSorting}
     />
   );
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
         <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
           Daftar Laporan ({items.length})
         </h3>
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
-          <Button
-            variant={viewMode === "card" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Kartu
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Tabel
-          </Button>
-        </div>
+        <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
       </div>
 
       {items.length ? (
         viewMode === "table" ? (
-          <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+          <div className="min-w-0 rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[1180px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">
@@ -897,15 +923,22 @@ function BaketList({ data }: { data: OimPageData }) {
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
                       Wilayah
                     </TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                    <SortableTableHeader
+                      className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5"
+                      column="updatedAt"
+                      sortDirection={dateSortDirection}
+                      onSortChange={(direction) => {
+                        void sortByDate(direction);
+                      }}
+                    >
                       Tanggal
-                    </TableHead>
+                    </SortableTableHeader>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">
                       Aksi
                     </TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody className={isSorting ? "opacity-50" : undefined}>
                   {paginatedItems.map((item) => {
                     const version = currentVersion(item);
                     const fieldOfficer = item.createdByFieldOfficerAssignment;
@@ -1654,24 +1687,7 @@ function AnalysisList({ data }: { data: OimPageData }) {
         <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
           Daftar Analisis ({items.length})
         </h3>
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
-          <Button
-            variant={viewMode === "card" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Kartu
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Tabel
-          </Button>
-        </div>
+        <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
       </div>
 
       {items.length ? (
@@ -1693,9 +1709,12 @@ function AnalysisList({ data }: { data: OimPageData }) {
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
                       Versi Aktif
                     </TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                    <SortableTableHeader
+                      className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5"
+                      column="updatedAt"
+                    >
                       Terakhir Diperbarui
-                    </TableHead>
+                    </SortableTableHeader>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">
                       Aksi
                     </TableHead>
@@ -2035,13 +2054,61 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
 }
 
 function ProductList({ data, approval = false }: { data: OimPageData; approval?: boolean }) {
-  const items = rows(data.products).filter(
-    (item) =>
-      !approval || ["DRAFT", "READY_FOR_SUBMISSION", "NEEDS_REVISION", "UNDER_REGIONAL_REVIEW"].includes(item.status),
+  const searchParams = useSearchParams();
+  const initialItems = useMemo(
+    () =>
+      rows(data.products).filter(
+        (item) =>
+          !approval ||
+          ["DRAFT", "READY_FOR_SUBMISSION", "NEEDS_REVISION", "UNDER_REGIONAL_REVIEW"].includes(item.status),
+      ),
+    [approval, data.products],
   );
+  const [items, setItems] = useState<Row[]>(initialItems);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [dateSortDirection, setDateSortDirection] = useState<"asc" | "desc">("desc");
+  const [isSorting, setIsSorting] = useState(false);
+
+  useEffect(() => {
+    setItems(initialItems);
+    setPage(1);
+  }, [initialItems]);
+
+  async function sortByDate(direction: "asc" | "desc") {
+    try {
+      setIsSorting(true);
+      const result = await apiBrowserFetch<unknown>("/products", {
+        query: {
+          page: 1,
+          limit: 100,
+          areaId: searchParams.get("areaId") || undefined,
+          search: searchParams.get("search") || undefined,
+          status: searchParams.get("status") || undefined,
+          classification: searchParams.get("classification") || undefined,
+          periodFrom: searchParams.get("periodStart") || undefined,
+          periodTo: searchParams.get("periodEnd") || undefined,
+          sortBy: "updatedAt",
+          sortOrder: direction,
+        },
+      });
+
+      setItems(
+        rows(result).filter(
+          (item) =>
+            !approval ||
+            ["DRAFT", "READY_FOR_SUBMISSION", "NEEDS_REVISION", "UNDER_REGIONAL_REVIEW"].includes(item.status),
+        ),
+      );
+      setDateSortDirection(direction);
+      setPage(1);
+    } catch {
+      toast.error("Urutan tanggal produk belum dapat diperbarui.");
+    } finally {
+      setIsSorting(false);
+    }
+  }
 
   const totalPages = Math.ceil(items.length / rowsPerPage) || 1;
   const safePage = Math.min(page, totalPages);
@@ -2059,6 +2126,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
         setRowsPerPage(limit);
         setPage(1);
       }}
+      loading={isSorting}
     />
   );
 
@@ -2068,24 +2136,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
         <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
           Daftar Produk ({items.length})
         </h3>
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-0.5 rounded-lg border border-slate-200 dark:border-white/5">
-          <Button
-            variant={viewMode === "card" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Kartu
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="h-7 px-2.5 text-xs font-medium rounded-md cursor-pointer"
-          >
-            Tabel
-          </Button>
-        </div>
+        <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
       </div>
 
       {items.length ? (
@@ -2107,15 +2158,20 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
                       Jenis Produk
                     </TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
+                    <SortableTableHeader
+                      className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5"
+                      column="updatedAt"
+                      sortDirection={dateSortDirection}
+                      onSortChange={(direction) => void sortByDate(direction)}
+                    >
                       Tanggal
-                    </TableHead>
+                    </SortableTableHeader>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">
                       Aksi
                     </TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody className={isSorting ? "opacity-60 transition-opacity" : "transition-opacity"}>
                   {paginatedItems.map((item) => {
                     const classStyle = getClassificationStyles(item.classification);
                     const statusStyle = getProductStatusStyles(item.status);
@@ -2483,10 +2539,10 @@ function ProductBuilder({ data }: { data: OimPageData }) {
 
   const canSave = Boolean(
     selectedProductTypeId &&
-      template &&
-      analysisVersion.id &&
-      title.trim() &&
-      templateContentComplete(template, fieldValues, journalRows),
+    template &&
+    analysisVersion.id &&
+    title.trim() &&
+    templateContentComplete(template, fieldValues, journalRows),
   );
 
   return (
@@ -3227,9 +3283,9 @@ export function OimWorkspaceClient({ view, data }: Props) {
           <>
             <Kpis data={data} />
 
-            <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr] items-start">
+            <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-start">
               {/* Left Column: Prioritas Intake */}
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 {/* SECTION HEADER */}
                 <div className="space-y-1.5 border-b border-slate-200 dark:border-white/10 pb-4">
                   <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
@@ -3243,7 +3299,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
               </div>
 
               {/* Right Column: Mission Pipeline Timeline */}
-              <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 space-y-6 shadow-sm dark:shadow-none">
+              <div className="min-w-0 rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 space-y-6 shadow-sm dark:shadow-none">
                 {/* SECTION HEADER */}
                 <div className="space-y-1.5 border-b border-slate-200 dark:border-white/10 pb-4">
                   <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
@@ -3334,13 +3390,13 @@ export function OimWorkspaceClient({ view, data }: Props) {
                       step.state === "completed"
                         ? "#10B981"
                         : // Emerald green
-                          step.state === "active"
+                        step.state === "active"
                           ? "#3B82F6"
                           : // Tactical blue
-                            step.state === "bottleneck"
+                          step.state === "bottleneck"
                             ? "#F59E0B"
                             : // Amber yellow
-                              "#7C8798"; // Slate gray pending
+                            "#7C8798"; // Slate gray pending
 
                     return (
                       <div key={step.label} className="relative flex items-start justify-between">

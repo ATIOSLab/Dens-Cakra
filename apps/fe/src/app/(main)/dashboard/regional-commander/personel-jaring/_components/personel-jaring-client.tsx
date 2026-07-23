@@ -4,6 +4,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import Link from "next/link";
+
 import {
   Activity,
   AlertTriangle,
@@ -691,33 +693,17 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
   }, []);
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
-      case "SUPERVISOR":
-        return "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]";
-      case "DUTY":
-        return "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]";
-      case "EMERGENCY":
-        return "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]";
-      default:
-        return "bg-neutral-500";
+    if (status === "OFFLINE") {
+      return "bg-neutral-500";
     }
+    return "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "Aktif";
-      case "SUPERVISOR":
-        return "Supervisor";
-      case "DUTY":
-        return "Sedang Bertugas";
-      case "EMERGENCY":
-        return "Emergency";
-      default:
-        return "Offline";
+    if (status === "OFFLINE") {
+      return "Offline";
     }
+    return "Online";
   };
 
   const unitCount = new Set(assignments.map((item) => text(record(record(item.position).organizationUnit).id, "")))
@@ -966,7 +952,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                                 </Badge>
                                 <Badge
                                   variant="outline"
-                                  className={`font-mono text-[9px] rounded px-1.5 py-0 uppercase border-transparent text-white ${status === "EMERGENCY" ? "bg-red-600" : status === "SUPERVISOR" ? "bg-blue-600" : status === "DUTY" ? "bg-orange-500" : status === "ACTIVE" ? "bg-emerald-600" : "bg-neutral-600"}`}
+                                  className={`font-mono text-[9px] rounded px-1.5 py-0 uppercase border-transparent text-white ${status === "OFFLINE" ? "bg-neutral-600" : "bg-emerald-600"}`}
                                 >
                                   {getStatusLabel(status)}
                                 </Badge>
@@ -978,6 +964,13 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                                 {text(position.title)} / {text(unit.name)}
                               </CardDescription>
                             </div>
+                            <Button asChild className="h-8 shrink-0 font-mono text-[10px]" size="sm" variant="outline">
+                              <Link
+                                href={`/dashboard/regional-commander/personel-jaring/personel/${text(assignment.id)}`}
+                              >
+                                DETAIL LENGKAP
+                              </Link>
+                            </Button>
                           </CardHeader>
 
                           <CardContent className="p-4 space-y-4 text-xs">

@@ -21,6 +21,13 @@ import {
   DirectiveStatus,
   PriorityLevel,
 } from '../../generated/prisma/client.js';
+import { SortOrder } from '../../common/dto/sort-order.dto.js';
+
+export enum DirectiveSortField {
+  UPDATED_AT = 'updatedAt',
+  DUE_DATE = 'dueDate',
+  EFFECTIVE_DEADLINE = 'effectiveDeadline',
+}
 
 export class DirectiveQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
@@ -31,6 +38,8 @@ export class DirectiveQuery {
   @IsOptional() @IsDateString() to?: string;
   @IsOptional() @IsString() search?: string;
   @IsOptional() @Type(() => Boolean) @IsBoolean() assignedToMe?: boolean;
+  @IsOptional() @IsEnum(DirectiveSortField) sortBy?: DirectiveSortField;
+  @IsOptional() @IsEnum(SortOrder) sortOrder?: SortOrder;
 }
 
 export enum DirectiveAiScope {

@@ -38,6 +38,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
+import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -337,6 +339,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   // Simulated refresh handler
   const handleRefresh = () => {
@@ -386,10 +389,24 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         }
         if (sortBy === "due_soon") {
-          const aDueTime = taskStrDueDate(a) ? new Date(taskStrDueDate(a) as string).getTime() : Number.POSITIVE_INFINITY;
-          const bDueTime = taskStrDueDate(b) ? new Date(taskStrDueDate(b) as string).getTime() : Number.POSITIVE_INFINITY;
+          const aDueTime = taskStrDueDate(a)
+            ? new Date(taskStrDueDate(a) as string).getTime()
+            : Number.POSITIVE_INFINITY;
+          const bDueTime = taskStrDueDate(b)
+            ? new Date(taskStrDueDate(b) as string).getTime()
+            : Number.POSITIVE_INFINITY;
 
           return aDueTime - bDueTime;
+        }
+        if (sortBy === "due_late") {
+          const aDueTime = taskStrDueDate(a)
+            ? new Date(taskStrDueDate(a) as string).getTime()
+            : Number.NEGATIVE_INFINITY;
+          const bDueTime = taskStrDueDate(b)
+            ? new Date(taskStrDueDate(b) as string).getTime()
+            : Number.NEGATIVE_INFINITY;
+
+          return bDueTime - aDueTime;
         }
         return 0;
       });
@@ -570,7 +587,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-1 flex-wrap items-center gap-2">
               <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
                 <Filter className="size-3 text-muted-foreground/50" />
                 <Select
@@ -639,7 +656,13 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
 
               <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
                 <ArrowUpDown className="size-3 text-muted-foreground/50" />
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select
+                  value={sortBy}
+                  onValueChange={(value) => {
+                    setSortBy(value);
+                    setCurrentPage(1);
+                  }}
+                >
                   <SelectTrigger className="h-6 border-none bg-transparent p-0 pr-4 font-mono text-[10px] shadow-none focus:ring-0">
                     <SelectValue placeholder="Urutkan" />
                   </SelectTrigger>
@@ -647,8 +670,18 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                     <SelectItem value="latest">TERBARU</SelectItem>
                     <SelectItem value="oldest">TERLAMA</SelectItem>
                     <SelectItem value="due_soon">BATAS WAKTU TERDEKAT</SelectItem>
+                    <SelectItem value="due_late">BATAS WAKTU TERJAUH</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="ml-auto">
+                <ViewModeToggle
+                  value={viewMode}
+                  onValueChange={setViewMode}
+                  className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)]"
+                  buttonClassName="size-6 rounded-[2px]"
+                />
               </div>
             </div>
 
@@ -698,10 +731,110 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
             </div>
           </div>
 
-          {/* Compact Cards List */}
+          {/* Compact Cards/Table List */}
           {paginatedTasks.length === 0 ? (
             <div className="rounded-[6px] border border-white/[0.08] border-dashed p-12 text-center font-mono text-muted-foreground text-xs">
               Tidak ada tugas yang cocok dengan filter atau kriteria pencarian.
+            </div>
+          ) : viewMode === "table" ? (
+            <div className="overflow-hidden rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] shadow-sm">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-white/[0.08] bg-white/[0.01] hover:bg-transparent">
+                      <TableHead className="pl-4 font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Status
+                      </TableHead>
+                      <TableHead className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Judul Tugas
+                      </TableHead>
+                      <TableHead className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Klasifikasi
+                      </TableHead>
+                      <TableHead className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Urgensi
+                      </TableHead>
+                      <SortableTableHeader
+                        column="deadline"
+                        sortDirection={sortBy === "due_late" ? "desc" : sortBy === "due_soon" ? "asc" : null}
+                        onSortChange={(direction) => {
+                          setSortBy(direction === "asc" ? "due_soon" : "due_late");
+                          setCurrentPage(1);
+                        }}
+                        className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider"
+                      >
+                        Deadline
+                      </SortableTableHeader>
+                      <TableHead className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Area
+                      </TableHead>
+                      <TableHead className="pr-4 text-right font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Aksi
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedTasks.map((task) => (
+                      <TableRow key={task.id} className="border-white/[0.08] hover:bg-white/[0.02]">
+                        <TableCell className="py-3.5 pl-4">
+                          <Badge
+                            variant={badgeVariant(task.status)}
+                            className="rounded-[2px] px-1.5 py-0.5 font-mono text-[8px] uppercase"
+                          >
+                            {taskStatusLabel(task.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-sm py-3.5">
+                          <div className="space-y-1">
+                            <p className="truncate font-semibold text-[var(--dc-text-primary)]">{task.title}</p>
+                            {taskDirectiveVersion(task)?.directive?.commandNumber ? (
+                              <p className="font-mono text-[9px] text-muted-foreground/60">
+                                STR {taskDirectiveVersion(task)?.directive?.commandNumber}
+                              </p>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3.5">
+                          {taskClassificationLabel(task) ? (
+                            <Badge
+                              variant="outline"
+                              className={classificationBadgeClass(taskClassificationLabel(task))}
+                            >
+                              {formatEnumLabel(taskClassificationLabel(task))}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-3.5">
+                          {taskStrUrgency(task) ? (
+                            <Badge variant="outline" className="rounded-[3px] px-1.5 font-mono text-[9px] uppercase">
+                              {urgencyLabel(taskStrUrgency(task))}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap py-3.5 font-mono text-[10px] text-muted-foreground">
+                          {formatDate(taskStrDueDate(task))}
+                        </TableCell>
+                        <TableCell className="py-3.5 font-mono text-[10px] text-muted-foreground">
+                          {task.targetAreas.length} Wilayah
+                        </TableCell>
+                        <TableCell className="py-3.5 pr-4 text-right">
+                          <Button
+                            asChild
+                            size="sm"
+                            className="h-7 rounded-[4px] border border-white/10 bg-white/[0.04] font-mono text-[10px] text-[var(--dc-text-primary)] shadow-none hover:bg-white/[0.08]"
+                          >
+                            <Link href={`${detailBasePath}/${task.id}`}>Buka Detail</Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           ) : (
             <div className="grid gap-3.5 md:grid-cols-1">
@@ -752,7 +885,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                         <div className="flex items-center gap-1">
                           <Clock className="size-3 text-muted-foreground/60" />
                           <span>
-                            BATAS WAKTU:{" "}
+                            DEADLINE:{" "}
                             <span className="text-[var(--dc-text-primary)]">{formatDate(taskStrDueDate(task))}</span>
                           </span>
                         </div>
@@ -823,10 +956,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
             ) : (
               <div className="space-y-3">
                 {deadlineStrs.map((str) => (
-                  <div
-                    key={str.key}
-                    className="space-y-2 rounded-[4px] border border-white/[0.04] bg-white/[0.01] p-3"
-                  >
+                  <div key={str.key} className="space-y-2 rounded-[4px] border border-white/[0.04] bg-white/[0.01] p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         {str.commandNumber ? (
@@ -1046,7 +1176,13 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
           <div className="flex items-center gap-2">
             <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
               <Filter className="size-3 text-muted-foreground/50" />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
                 <SelectTrigger className="h-6 border-none bg-transparent p-0 pr-4 font-mono text-[10px] shadow-none focus:ring-0">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -1062,7 +1198,13 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
 
             <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
               <ArrowUpDown className="size-3 text-muted-foreground/50" />
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <Select
+                value={sortBy}
+                onValueChange={(value) => {
+                  setSortBy(value);
+                  setCurrentPage(1);
+                }}
+              >
                 <SelectTrigger className="h-6 border-none bg-transparent p-0 pr-4 font-mono text-[10px] shadow-none focus:ring-0">
                   <SelectValue placeholder="Urutkan" />
                 </SelectTrigger>
@@ -1073,24 +1215,12 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
               </Select>
             </div>
 
-            <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-[4px] border border-white/10 h-8">
-              <Button
-                variant={viewMode === "card" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("card")}
-                className="h-6 px-2 text-[10px] font-mono rounded-[2px] cursor-pointer"
-              >
-                Kartu
-              </Button>
-              <Button
-                variant={viewMode === "table" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("table")}
-                className="h-6 px-2 text-[10px] font-mono rounded-[2px] cursor-pointer"
-              >
-                Tabel
-              </Button>
-            </div>
+            <ViewModeToggle
+              value={viewMode}
+              onValueChange={setViewMode}
+              className="h-8 rounded-[4px] border-white/10 bg-white/5"
+              buttonClassName="size-6 rounded-[2px]"
+            />
           </div>
         </div>
 
@@ -1111,9 +1241,17 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">
                       Nama Tugas
                     </TableHead>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">
-                      Batas Waktu
-                    </TableHead>
+                    <SortableTableHeader
+                      column="deadline"
+                      sortDirection={sortBy === "oldest" ? "asc" : "desc"}
+                      onSortChange={(direction) => {
+                        setSortBy(direction === "asc" ? "oldest" : "latest");
+                        setCurrentPage(1);
+                      }}
+                      className="py-3 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75"
+                    >
+                      Deadline
+                    </SortableTableHeader>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 py-3">
                       Progres Petugas
                     </TableHead>
@@ -1208,7 +1346,7 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
                         </h3>
                       </div>
                       <div className="font-mono text-[10px] text-muted-foreground/60">
-                        BATAS WAKTU: {formatDate(task.dueDate)} | AREA SASARAN: {task.targetAreas.length} WILAYAH
+                        DEADLINE: {formatDate(task.dueDate)} | AREA SASARAN: {task.targetAreas.length} WILAYAH
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
@@ -1248,48 +1386,17 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
           </div>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-white/[0.08] border-t pt-4 font-mono text-[10px] text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span>TAMPILKAN:</span>
-              <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
-                <SelectTrigger className="h-7 w-20 border-white/10 bg-white/[0.02] font-mono text-[10px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="border-[var(--dc-border-subtle)] bg-popover font-mono text-popover-foreground text-xs">
-                  <SelectItem value="9">9 DATA</SelectItem>
-                  <SelectItem value="12">12 DATA</SelectItem>
-                  <SelectItem value="18">18 DATA</SelectItem>
-                </SelectContent>
-              </Select>
-              <span>DARI {totalItems} TUGAS</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="h-7 border-white/10 px-2 font-mono text-[10px] hover:bg-white/[0.04]"
-              >
-                <ChevronLeft className="mr-1 size-3" /> SEBELUMNYA
-              </Button>
-              <span className="font-bold text-[var(--dc-text-primary)]">
-                HALAMAN {currentPage} DARI {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="h-7 border-white/10 px-2 font-mono text-[10px] hover:bg-white/[0.04]"
-              >
-                SELANJUTNYA <ChevronRight className="ml-1 size-3" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <TablePagination
+          page={currentPage}
+          limit={pageSize}
+          total={totalItems}
+          onPageChange={setCurrentPage}
+          onLimitChange={(limit) => {
+            setPageSize(limit);
+            setCurrentPage(1);
+          }}
+          className="rounded-[6px] border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] px-4"
+        />
       </div>
 
       {/* Sticky Bottom Actions Bar */}
@@ -1734,6 +1841,7 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(9);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -1877,7 +1985,10 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
               <Input
                 placeholder="Cari tugas, FO, atau instruksi..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 font-mono text-xs placeholder:text-muted-foreground/60"
               />
             </div>
@@ -1885,7 +1996,13 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
             <div className="flex items-center gap-2">
               <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
                 <Filter className="size-3 text-muted-foreground/50" />
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value);
+                    setCurrentPage(1);
+                  }}
+                >
                   <SelectTrigger className="h-6 border-none bg-transparent p-0 pr-4 font-mono text-[10px] shadow-none focus:ring-0">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -1901,7 +2018,13 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
 
               <div className="flex h-8 items-center gap-1 rounded-[4px] border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-1.5">
                 <ArrowUpDown className="size-3 text-muted-foreground/50" />
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select
+                  value={sortBy}
+                  onValueChange={(value) => {
+                    setSortBy(value);
+                    setCurrentPage(1);
+                  }}
+                >
                   <SelectTrigger className="h-6 border-none bg-transparent p-0 pr-4 font-mono text-[10px] shadow-none focus:ring-0">
                     <SelectValue placeholder="Urutkan" />
                   </SelectTrigger>
@@ -1911,6 +2034,13 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
                   </SelectContent>
                 </Select>
               </div>
+
+              <ViewModeToggle
+                value={viewMode}
+                onValueChange={setViewMode}
+                className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)]"
+                buttonClassName="size-6 rounded-[2px]"
+              />
             </div>
           </div>
 
@@ -1918,6 +2048,84 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
           {paginatedTasks.length === 0 ? (
             <div className="rounded-[6px] border border-white/[0.08] border-dashed p-12 text-center font-mono text-muted-foreground text-xs">
               Belum ada data monitoring yang cocok dengan kriteria filter.
+            </div>
+          ) : viewMode === "table" ? (
+            <div className="overflow-hidden rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] shadow-sm">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-white/[0.08] bg-white/[0.01] hover:bg-transparent">
+                      <TableHead className="pl-4 font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Status
+                      </TableHead>
+                      <TableHead className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Tugas
+                      </TableHead>
+                      <TableHead className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Pemilik
+                      </TableHead>
+                      <TableHead className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Sudah Ack
+                      </TableHead>
+                      <TableHead className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Belum Respond
+                      </TableHead>
+                      <TableHead className="font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Overdue
+                      </TableHead>
+                      <TableHead className="pr-4 text-right font-mono font-bold text-[10px] text-muted-foreground/75 uppercase tracking-wider">
+                        Aksi
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedTasks.map((task) => {
+                      const summary = countAssignmentStatuses(task.subordinateAssignments);
+                      const overdueCount = task.subordinateAssignments.filter(isAssignmentOverdue).length;
+                      const acknowledged = summary.acknowledged + summary.inProgress + summary.completed;
+
+                      return (
+                        <TableRow key={task.id} className="border-white/[0.08] hover:bg-white/[0.02]">
+                          <TableCell className="py-3.5 pl-4">
+                            <Badge
+                              variant={badgeVariant(task.status)}
+                              className="rounded-[2px] px-1.5 py-0.5 font-mono text-[8px] uppercase"
+                            >
+                              {friendlyStatusLabel(task.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-sm py-3.5">
+                            <p className="truncate font-semibold text-[var(--dc-text-primary)]">{task.title}</p>
+                          </TableCell>
+                          <TableCell className="py-3.5 font-mono text-[10px] text-muted-foreground">
+                            {task.ownerUnit?.name ?? "-"}
+                          </TableCell>
+                          <TableCell className="py-3.5 font-mono text-[10px] text-[var(--dc-success)]">
+                            {acknowledged}
+                          </TableCell>
+                          <TableCell className="py-3.5 font-mono text-[10px] text-[var(--dc-warning)]">
+                            {summary.sent}
+                          </TableCell>
+                          <TableCell className="py-3.5 font-mono text-[10px] text-[var(--dc-danger)]">
+                            {overdueCount}
+                          </TableCell>
+                          <TableCell className="py-3.5 pr-4 text-right">
+                            <Button
+                              asChild
+                              size="sm"
+                              className="h-7 rounded-[4px] bg-[var(--dc-primary)] font-mono text-[10px] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
+                            >
+                              <Link href={`/dashboard/field-coordinator/monitoring-tugas/${task.id}`}>
+                                Buka Monitoring
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -2037,48 +2245,17 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-white/[0.08] border-t pt-4 font-mono text-[10px] text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span>TAMPILKAN:</span>
-                <Select value={pageSize.toString()} onValueChange={(val) => setPageSize(Number(val))}>
-                  <SelectTrigger className="h-7 w-20 border-white/10 bg-white/[0.02] font-mono text-[10px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-[var(--dc-border-subtle)] bg-popover font-mono text-popover-foreground text-xs">
-                    <SelectItem value="9">9 DATA</SelectItem>
-                    <SelectItem value="12">12 DATA</SelectItem>
-                    <SelectItem value="18">18 DATA</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span>DARI {totalItems} TUGAS</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="h-7 border-white/10 px-2 font-mono text-[10px] hover:bg-white/[0.04]"
-                >
-                  <ChevronLeft className="mr-1 size-3" /> SEBELUMNYA
-                </Button>
-                <span className="font-bold text-[var(--dc-text-primary)]">
-                  HALAMAN {currentPage} DARI {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="h-7 border-white/10 px-2 font-mono text-[10px] hover:bg-white/[0.04]"
-                >
-                  SELANJUTNYA <ChevronRight className="ml-1 size-3" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            page={currentPage}
+            limit={pageSize}
+            total={totalItems}
+            onPageChange={setCurrentPage}
+            onLimitChange={(limit) => {
+              setPageSize(limit);
+              setCurrentPage(1);
+            }}
+            className="rounded-[6px] border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] px-4"
+          />
         </div>
 
         {/* Right Column (4 cols): Sticky Sidebar */}
@@ -2556,6 +2733,8 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [filterClassification, setFilterClassification] = useState("");
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [deadlineSortOrder, setDeadlineSortOrder] = useState<"asc" | "desc">("asc");
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -2563,7 +2742,7 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
 
   // Apply Filters
   const filteredSources = useMemo(() => {
-    return sources.filter((source) => {
+    const filtered = sources.filter((source) => {
       // 1. Classification filter
       if (filterClassification && source.directiveVersion?.classification !== filterClassification) {
         return false;
@@ -2586,17 +2765,28 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
 
       return true;
     });
-  }, [sources, filterStartDate, filterEndDate, filterClassification]);
+
+    return [...filtered].sort((a, b) => {
+      const aTime = a.directiveVersion?.dueDate
+        ? new Date(a.directiveVersion.dueDate).getTime()
+        : Number.MAX_SAFE_INTEGER;
+      const bTime = b.directiveVersion?.dueDate
+        ? new Date(b.directiveVersion.dueDate).getTime()
+        : Number.MAX_SAFE_INTEGER;
+      return deadlineSortOrder === "asc" ? aTime - bTime : bTime - aTime;
+    });
+  }, [sources, filterStartDate, filterEndDate, filterClassification, deadlineSortOrder]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, []);
+  }, [filterStartDate, filterEndDate, filterClassification, deadlineSortOrder, pageSize]);
 
   // Pagination calculations
   const totalCount = filteredSources.length;
-  const totalPages = Math.ceil(totalCount / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalCount);
 
   const paginatedSources = useMemo(() => {
@@ -2609,6 +2799,20 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <CardTitle>STR Diterima dari Regional</CardTitle>
+            <CardDescription>
+              Pilih STR yang sudah masuk untuk dibaca, lalu lanjutkan sebagai penerusan regional.
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-bold font-mono text-[10px] text-muted-foreground uppercase tracking-[0.28em]">
+              Tampilan
+            </span>
+            <ViewModeToggle
+              value={viewMode}
+              onValueChange={setViewMode}
+              className="rounded-[6px] border-border bg-secondary/70"
+              buttonClassName="size-8 rounded-[4px]"
+            />
           </div>
         </div>
 
@@ -2684,32 +2888,102 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-4">Nomor STR</TableHead>
-              <TableHead>Judul STR</TableHead>
-              <TableHead>Klasifikasi</TableHead>
-              <TableHead>Batas Waktu</TableHead>
-              <TableHead>Status Baca / Teruskan</TableHead>
-              <TableHead className="pr-4 text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedSources.length ? (
-              paginatedSources.map((source) => {
-                const linkedTask = taskByUukVersionId.get(source.currentVersion.id);
-                const classStyle = getClassificationStyles(source.directiveVersion?.classification);
+        {viewMode === "table" ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">Nomor STR</TableHead>
+                <TableHead>Judul STR</TableHead>
+                <TableHead>Klasifikasi</TableHead>
+                <SortableTableHeader
+                  column="deadline"
+                  sortDirection={deadlineSortOrder}
+                  onSortChange={(direction) => {
+                    setDeadlineSortOrder(direction);
+                    setCurrentPage(1);
+                  }}
+                >
+                  Deadline
+                </SortableTableHeader>
+                <TableHead>Status Baca / Teruskan</TableHead>
+                <TableHead className="pr-4 text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedSources.length ? (
+                paginatedSources.map((source) => {
+                  const linkedTask = taskByUukVersionId.get(source.currentVersion.id);
+                  const classStyle = getClassificationStyles(source.directiveVersion?.classification);
 
-                return (
-                  <TableRow key={source.id}>
-                    <TableCell className="pl-4 font-semibold text-[var(--dc-text-primary)]">
-                      {source.directiveVersion?.directive?.commandNumber ?? "-"}
-                    </TableCell>
-                    <TableCell className="max-w-[20rem] whitespace-normal font-medium leading-5">
-                      {source.currentVersion.title}
-                    </TableCell>
-                    <TableCell>
+                  return (
+                    <TableRow key={source.id}>
+                      <TableCell className="pl-4 font-semibold text-[var(--dc-text-primary)]">
+                        {source.directiveVersion?.directive?.commandNumber ?? "-"}
+                      </TableCell>
+                      <TableCell className="max-w-[20rem] whitespace-normal font-medium leading-5">
+                        {source.currentVersion.title}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          style={{
+                            color: classStyle.color,
+                            backgroundColor: classStyle.bgColor,
+                            borderColor: classStyle.borderColor,
+                          }}
+                          className="font-bold font-mono tracking-wider"
+                        >
+                          {classStyle.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-[var(--dc-text-secondary)]">
+                        {source.directiveVersion?.dueDate ? formatDate(source.directiveVersion.dueDate) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={incomingForwardingStatusVariant(linkedTask)}>
+                          {incomingForwardingStatusLabel(linkedTask)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="pr-4">
+                        <div className="flex justify-end gap-2">
+                          {linkedTask ? (
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Detail</Link>
+                            </Button>
+                          ) : (
+                            <Button asChild size="sm" variant="success">
+                              <Link href={`/dashboard/oim/direktif-tugas/baru?uukStrId=${source.id}`}>
+                                Baca & Teruskan
+                              </Link>
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                    Belum ada STR regional yang sesuai dengan filter pencarian.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        ) : paginatedSources.length ? (
+          <div className="grid gap-3 border-border/60 border-t p-4 lg:grid-cols-2">
+            {paginatedSources.map((source) => {
+              const linkedTask = taskByUukVersionId.get(source.currentVersion.id);
+              const classStyle = getClassificationStyles(source.directiveVersion?.classification);
+
+              return (
+                <Card
+                  key={source.id}
+                  className="border-border/70 bg-card/70 transition-colors hover:border-sky-500/45 hover:bg-sky-500/5"
+                >
+                  <CardContent className="space-y-4 p-4">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge
                         variant="outline"
                         style={{
@@ -2721,101 +2995,63 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
                       >
                         {classStyle.label}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-[var(--dc-text-secondary)]">
-                      {source.directiveVersion?.dueDate ? formatDate(source.directiveVersion.dueDate) : "-"}
-                    </TableCell>
-                    <TableCell>
                       <Badge variant={incomingForwardingStatusVariant(linkedTask)}>
                         {incomingForwardingStatusLabel(linkedTask)}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="pr-4">
-                      <div className="flex justify-end gap-2">
-                        {linkedTask ? (
-                          <Button asChild size="sm" variant="outline">
-                            <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Detail</Link>
-                          </Button>
-                        ) : (
-                          <Button asChild size="sm" variant="success">
-                            <Link href={`/dashboard/oim/direktif-tugas/baru?uukStrId=${source.id}`}>
-                              Baca & Teruskan
-                            </Link>
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                  Belum ada STR regional yang sesuai dengan filter pencarian.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                    </div>
 
-        {/* Pagination Footer */}
-        <div className="flex flex-col items-center justify-between gap-4 border-border/40 border-t p-4 font-mono text-[10px] uppercase sm:flex-row">
-          <div className="flex items-center gap-4">
-            <div className="text-muted-foreground">
-              Menampilkan{" "}
-              <span className="font-bold text-foreground">
-                {totalCount > 0 ? startIndex + 1 : 0}-{endIndex}
-              </span>{" "}
-              dari <span className="font-bold text-foreground">{totalCount}</span> STR
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Baris:</span>
-              <Select
-                value={String(pageSize)}
-                onValueChange={(val) => {
-                  setPageSize(Number(val));
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="h-7 w-[65px] border-border bg-background font-mono text-[10px] text-foreground focus:ring-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                    <div className="space-y-1">
+                      <p className="font-mono text-muted-foreground text-[10px] uppercase tracking-[0.18em]">
+                        {source.directiveVersion?.directive?.commandNumber ?? "-"}
+                      </p>
+                      <h3 className="font-semibold text-[var(--dc-text-primary)] leading-snug">
+                        {source.currentVersion.title}
+                      </h3>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-border/50 border-t pt-3 text-muted-foreground text-xs">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock className="size-3.5" />
+                        Deadline:{" "}
+                        <strong className="font-medium text-foreground">
+                          {source.directiveVersion?.dueDate ? formatDate(source.directiveVersion.dueDate) : "-"}
+                        </strong>
+                      </span>
+                    </div>
+
+                    <div className="flex justify-end">
+                      {linkedTask ? (
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Detail</Link>
+                        </Button>
+                      ) : (
+                        <Button asChild size="sm" variant="success">
+                          <Link href={`/dashboard/oim/direktif-tugas/baru?uukStrId=${source.id}`}>Baca & Teruskan</Link>
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
+        ) : (
+          <div className="border-border/60 border-t py-8 text-center text-muted-foreground">
+            Belum ada STR regional yang sesuai dengan filter pencarian.
+          </div>
+        )}
 
-          {totalPages > 1 && (
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="h-7 border-border px-2 font-mono text-[10px] hover:bg-accent"
-              >
-                <ChevronLeft className="mr-1 size-3" /> SEBELUMNYA
-              </Button>
-              <span className="font-bold text-muted-foreground">
-                HALAMAN {currentPage} DARI {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="h-7 border-border px-2 font-mono text-[10px] hover:bg-accent"
-              >
-                SELANJUTNYA <ChevronRight className="ml-1 size-3" />
-              </Button>
-            </div>
-          )}
-        </div>
+        <TablePagination
+          page={safePage}
+          limit={pageSize}
+          total={totalCount}
+          onPageChange={setCurrentPage}
+          onLimitChange={(limit) => {
+            setPageSize(limit);
+            setCurrentPage(1);
+          }}
+          className="border-border/40 bg-card/60"
+        />
       </CardContent>
     </Card>
   );
@@ -3276,23 +3512,12 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                       </select>
                     </div>
 
-                    {/* View Mode Toggle: Card vs Table */}
-                    <div className="flex items-center gap-1 rounded-[4px] border border-border bg-secondary p-1">
-                      <button
-                        type="button"
-                        onClick={() => setViewMode("card")}
-                        className={`h-7 rounded-[2px] px-2.5 font-mono text-[10px] uppercase transition-colors ${viewMode === "card" ? "bg-primary font-bold text-primary-foreground" : "text-muted-foreground hover:bg-accent"}`}
-                      >
-                        Card
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setViewMode("table")}
-                        className={`h-7 rounded-[2px] px-2.5 font-mono text-[10px] uppercase transition-colors ${viewMode === "table" ? "bg-primary font-bold text-primary-foreground" : "text-muted-foreground hover:bg-accent"}`}
-                      >
-                        Table
-                      </button>
-                    </div>
+                    <ViewModeToggle
+                      value={viewMode}
+                      onValueChange={setViewMode}
+                      className="rounded-[4px] border-border bg-secondary"
+                      buttonClassName="size-8 rounded-[2px]"
+                    />
 
                     {/* Select All */}
                     <Button
@@ -4063,7 +4288,7 @@ export function TaskDetailClient({
   const showStructuredUuk = hasStructuredUukSections(task);
   const classification = taskClassificationLabel(task);
   const areaSummary = task.targetAreas.map((t) => t.area.name).join(", ") ?? "-";
-  
+
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-6">
       {/* Back Button */}

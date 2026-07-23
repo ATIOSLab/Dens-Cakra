@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     const jaringClusterId = request.nextUrl.searchParams.get("jaringClusterId") || undefined;
     const from = request.nextUrl.searchParams.get("from") || undefined;
     const to = request.nextUrl.searchParams.get("to") || undefined;
+    const sortBy = request.nextUrl.searchParams.get("sortBy") || undefined;
+    const sortOrder = request.nextUrl.searchParams.get("sortOrder") || undefined;
 
     return NextResponse.json(
       await getFieldOfficerWorkspace(request.headers.get("cookie") ?? "", {
@@ -15,6 +17,8 @@ export async function GET(request: NextRequest) {
         jaringClusterId,
         from,
         to,
+        sortBy,
+        sortOrder,
       }),
     );
   } catch (error) {

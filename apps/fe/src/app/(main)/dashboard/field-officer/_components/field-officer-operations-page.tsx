@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
+import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -242,8 +244,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   const [isBusy, setIsBusy] = useState<string | null>(null);
   const [baketTab, setBaketTab] = useState(view === "reports" ? "sent" : "ready-to-send");
   const [readyToSendPage, setReadyToSendPage] = useState(1);
+  const [readyToSendLimit, setReadyToSendLimit] = useState(5);
   const [sentPage, setSentPage] = useState(1);
-  const ITEMS_PER_PAGE = 5;
+  const [sentLimit, setSentLimit] = useState(5);
+  const [baketViewMode, setBaketViewMode] = useState<"card" | "table">("card");
+  const [baketCreatedSortOrder, setBaketCreatedSortOrder] = useState<"asc" | "desc">("desc");
   const [forwardedAssignments, setForwardedAssignments] = useState<string[]>([]);
   const [createdJaring, setCreatedJaring] = useState<{ aliasName: string; pin: string } | null>(null);
   const [visibleJaringPins, setVisibleJaringPins] = useState<Set<string>>(() => new Set());
@@ -253,8 +258,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   const [taskViewMode, setTaskViewMode] = useState<"card" | "table">("card");
   const [taskClassificationFilter, setTaskClassificationFilter] = useState("");
+  const [taskPriorityFilter, setTaskPriorityFilter] = useState("");
   const [taskPeriodStart, setTaskPeriodStart] = useState("");
   const [taskPeriodEnd, setTaskPeriodEnd] = useState("");
+  const [taskDeadlineSortOrder, setTaskDeadlineSortOrder] = useState<"asc" | "desc">("asc");
 
   const [tasksPage, setTasksPage] = useState(1);
   const [tasksLimit, setTasksLimit] = useState(10);
@@ -304,8 +311,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   const filteredTasks = useMemo(() => {
     if (!workspace?.tasks) return [];
-    return workspace.tasks.filter((task) => {
+    const filtered = workspace.tasks.filter((task) => {
       if (taskClassificationFilter && task.classification !== taskClassificationFilter) {
+        return false;
+      }
+      if (taskPriorityFilter && task.priority !== taskPriorityFilter) {
         return false;
       }
       if (task.dueDate) {
@@ -323,7 +333,20 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       }
       return true;
     });
-  }, [workspace?.tasks, taskClassificationFilter, taskPeriodStart, taskPeriodEnd]);
+
+    return [...filtered].sort((a, b) => {
+      const aTime = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTime = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      return taskDeadlineSortOrder === "asc" ? aTime - bTime : bTime - aTime;
+    });
+  }, [
+    workspace?.tasks,
+    taskClassificationFilter,
+    taskPriorityFilter,
+    taskPeriodStart,
+    taskPeriodEnd,
+    taskDeadlineSortOrder,
+  ]);
 
   useEffect(() => {
     setTasksPage(1);
@@ -414,12 +437,39 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   const registeredJaring = useMemo(() => workspace?.jaring ?? [], [workspace]);
 
   const readyToSendBakets = useMemo(
-    () => workspace?.bakets.filter((item) => item.status === "DRAFT" || item.status === "READY_TO_SEND") ?? [],
-    [workspace],
+    () =>
+      [
+        ...(workspace?.bakets.filter((item) => item.status === "DRAFT" || item.status === "READY_TO_SEND") ?? []),
+      ].sort((a, b) => {
+        const aTime = new Date(a.createdAt).getTime();
+        const bTime = new Date(b.createdAt).getTime();
+        return baketCreatedSortOrder === "asc" ? aTime - bTime : bTime - aTime;
+      }),
+    [workspace, baketCreatedSortOrder],
   );
   const submittedBakets = useMemo(
-    () => workspace?.bakets.filter((item) => item.status !== "DRAFT" && item.status !== "READY_TO_SEND") ?? [],
-    [workspace],
+    () =>
+      [
+        ...(workspace?.bakets.filter((item) => item.status !== "DRAFT" && item.status !== "READY_TO_SEND") ?? []),
+      ].sort((a, b) => {
+        const aTime = new Date(a.createdAt).getTime();
+        const bTime = new Date(b.createdAt).getTime();
+        return baketCreatedSortOrder === "asc" ? aTime - bTime : bTime - aTime;
+      }),
+    [workspace, baketCreatedSortOrder],
+  );
+  const safeReadyToSendPage = Math.min(
+    readyToSendPage,
+    Math.max(1, Math.ceil(readyToSendBakets.length / readyToSendLimit)),
+  );
+  const paginatedReadyToSendBakets = useMemo(
+    () => readyToSendBakets.slice((safeReadyToSendPage - 1) * readyToSendLimit, safeReadyToSendPage * readyToSendLimit),
+    [readyToSendBakets, safeReadyToSendPage, readyToSendLimit],
+  );
+  const safeSentPage = Math.min(sentPage, Math.max(1, Math.ceil(submittedBakets.length / sentLimit)));
+  const paginatedSubmittedBakets = useMemo(
+    () => submittedBakets.slice((safeSentPage - 1) * sentLimit, safeSentPage * sentLimit),
+    [submittedBakets, safeSentPage, sentLimit],
   );
   const pendingOutgoingCount = (workspace?.baketCandidates.length ?? 0) + readyToSendBakets.length;
 
@@ -713,42 +763,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     return [lng, lat] as [number, number];
   }, [mapPoints]);
 
-  const PaginationControls = ({
-    currentPage,
-    totalItems,
-    setPage,
-  }: {
-    currentPage: number;
-    totalItems: number;
-    setPage: (p: number) => void;
-  }) => {
-    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-    if (totalPages <= 1) return null;
-    return (
-      <div className="mt-4 flex items-center justify-between border-[var(--tactical-border)] border-t pt-4">
-        <span className="font-mono text-[var(--tactical-text-muted)] text-xs">
-          PAGE {currentPage} OF {totalPages} &middot; TOTAL {totalItems}
-        </span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="cursor-pointer rounded border border-[var(--tactical-border)] px-3 py-1 font-medium font-mono text-[var(--tactical-text-secondary)] text-xs transition-colors hover:bg-[var(--tactical-text-secondary)]/10 disabled:opacity-50"
-          >
-            PREV
-          </button>
-          <button
-            onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-            className="cursor-pointer rounded border border-[var(--tactical-border)] px-3 py-1 font-medium font-mono text-[var(--tactical-text-secondary)] text-xs transition-colors hover:bg-[var(--tactical-text-secondary)]/10 disabled:opacity-50"
-          >
-            NEXT
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   if (isLoading) {
     return (
       <div className="grid gap-4 lg:grid-cols-4">
@@ -979,7 +993,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
           >
             <div className="space-y-4">
               {/* Task filters */}
-              <div className="grid items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 sm:grid-cols-3 dark:border-white/5 dark:bg-white/[0.02]">
+              <div className="grid items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 dark:border-white/5 dark:bg-white/[0.02]">
                 <div className="space-y-1.5">
                   <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
                     Klasifikasi
@@ -994,6 +1008,23 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                     <option value="TERBATAS">TERBATAS</option>
                     <option value="RAHASIA">RAHASIA</option>
                     <option value="SANGAT_RAHASIA">SANGAT RAHASIA</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
+                    Prioritas
+                  </label>
+                  <select
+                    value={taskPriorityFilter}
+                    onChange={(e) => setTaskPriorityFilter(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-slate-900 text-sm dark:border-white/10 dark:bg-[#131A26] dark:text-white"
+                  >
+                    <option value="">Semua Prioritas</option>
+                    <option value="LOW">LOW</option>
+                    <option value="NORMAL">NORMAL</option>
+                    <option value="HIGH">HIGH</option>
+                    <option value="URGENT">URGENT</option>
                   </select>
                 </div>
 
@@ -1027,24 +1058,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                 <span className="font-bold font-mono text-[11px] text-slate-500 uppercase dark:text-[#7C8798]">
                   Daftar Tugas ({filteredTasks.length})
                 </span>
-                <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-0.5 dark:border-white/5 dark:bg-white/5">
-                  <Button
-                    variant={taskViewMode === "card" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setTaskViewMode("card")}
-                    className="h-7 cursor-pointer rounded-md px-2.5 font-medium text-xs"
-                  >
-                    Card
-                  </Button>
-                  <Button
-                    variant={taskViewMode === "table" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setTaskViewMode("table")}
-                    className="h-7 cursor-pointer rounded-md px-2.5 font-medium text-xs"
-                  >
-                    Table
-                  </Button>
-                </div>
+                <ViewModeToggle value={taskViewMode} onValueChange={setTaskViewMode} buttonClassName="size-7" />
               </div>
 
               {filteredTasks.length === 0 ? (
@@ -1060,7 +1074,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       <TableHeader>
                         <TableRow className="border-slate-200 bg-slate-50/50 hover:bg-transparent dark:border-white/5 dark:bg-white/[0.01]">
                           <TableHead className="py-3.5 pl-6 font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
-                            Klasifikasi & Prioritas
+                            Klasifikasi
+                          </TableHead>
+                          <TableHead className="py-3.5 font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
+                            Prioritas
                           </TableHead>
                           <TableHead className="py-3.5 font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
                             Judul Tugas
@@ -1071,9 +1088,17 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                           <TableHead className="py-3.5 font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
                             Target Area
                           </TableHead>
-                          <TableHead className="py-3.5 font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
-                            Batas Waktu
-                          </TableHead>
+                          <SortableTableHeader
+                            column="dueDate"
+                            sortDirection={taskDeadlineSortOrder}
+                            onSortChange={(direction) => {
+                              setTaskDeadlineSortOrder(direction);
+                              setTasksPage(1);
+                            }}
+                            className="py-3.5 font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]"
+                          >
+                            Deadline
+                          </SortableTableHeader>
                           <TableHead className="py-3.5 pr-6 text-right font-bold font-mono text-[10px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
                             Aksi
                           </TableHead>
@@ -1090,21 +1115,21 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                               className="border-slate-200 transition-colors hover:bg-slate-50/50 dark:border-white/5 dark:hover:bg-white/[0.02]"
                             >
                               <TableCell className="py-4 pl-6">
-                                <div className="flex flex-col items-start gap-1">
-                                  <span
-                                    className="rounded border px-2 py-0.5 font-bold font-mono text-[9px] tracking-wider"
-                                    style={{
-                                      color: classStyle.color,
-                                      backgroundColor: classStyle.bgColor,
-                                      borderColor: classStyle.borderColor,
-                                    }}
-                                  >
-                                    {classStyle.label}
-                                  </span>
-                                  <span className="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 font-bold font-mono text-[9px] text-slate-600 tracking-wider dark:border-white/10 dark:bg-white/5 dark:text-[#7C8798]">
-                                    {task.priority}
-                                  </span>
-                                </div>
+                                <span
+                                  className="rounded border px-2 py-0.5 font-bold font-mono text-[9px] tracking-wider uppercase"
+                                  style={{
+                                    color: classStyle.color,
+                                    backgroundColor: classStyle.bgColor,
+                                    borderColor: classStyle.borderColor,
+                                  }}
+                                >
+                                  {classStyle.label}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-4">
+                                <span className="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 font-bold font-mono text-[9px] text-slate-600 tracking-wider uppercase dark:border-white/10 dark:bg-white/5 dark:text-[#7C8798]">
+                                  {task.priority}
+                                </span>
                               </TableCell>
                               <TableCell className="w-[320px] max-w-[320px] py-4">
                                 <div className="min-w-0 space-y-1">
@@ -1346,7 +1371,10 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         </div>
                       </div>
 
-                      {(jaringSearch || jaringClusterFilter !== "all" || jaringAreaFilter !== "all" || jaringStatusFilter !== "all") && (
+                      {(jaringSearch ||
+                        jaringClusterFilter !== "all" ||
+                        jaringAreaFilter !== "all" ||
+                        jaringStatusFilter !== "all") && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1394,7 +1422,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                     <button
                                       type="button"
                                       title={visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"}
-                                      aria-label={visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"}
+                                      aria-label={
+                                        visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"
+                                      }
                                       onClick={() =>
                                         setVisibleJaringPins((current) => {
                                           const next = new Set(current);
@@ -1525,7 +1555,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               </div>
             </div>
           </TacticalSection>
-
 
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>
@@ -1733,7 +1762,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               { label: "TERKIRIM", value: submittedBakets.length },
             ]}
           >
-            <div className="tactical-card !p-1 rounded-[6px] bg-black/5 dark:bg-white/[0.01]">
+            <div className="tactical-card !p-1 min-w-0 max-w-full overflow-hidden rounded-[6px] bg-black/5 dark:bg-white/[0.01]">
               <Tabs value={baketTab} onValueChange={setBaketTab} className="space-y-4">
                 <TabsList className="flex flex-wrap gap-1 rounded-[4px] border border-[var(--tactical-border)] bg-black/10 p-1 font-mono text-xs dark:bg-white/[0.02]">
                   <TabsTrigger
@@ -1845,7 +1874,19 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                   </button>
                 </div>
 
-                <TabsContent value="ready-to-send" className="grid gap-4 pt-2">
+                <div className="flex items-center justify-end gap-3 border-[var(--tactical-border)] border-b pb-2">
+                  <span className="font-bold font-mono text-[11px] text-[var(--tactical-text-muted)] uppercase tracking-[0.24em]">
+                    Tampilan
+                  </span>
+                  <ViewModeToggle
+                    value={baketViewMode}
+                    onValueChange={setBaketViewMode}
+                    className="rounded-[6px] border-[var(--tactical-border)] bg-black/5 dark:bg-white/[0.03]"
+                    buttonClassName="size-8 rounded-[4px]"
+                  />
+                </div>
+
+                <TabsContent value="ready-to-send" className="min-w-0 grid gap-4 pt-2">
                   {pendingOutgoingCount === 0 ? (
                     <TacticalEmptyState
                       title="Semua Laporan Telah Diproses"
@@ -1885,9 +1926,96 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                               </p>
                             </div>
                           )}
-                          {readyToSendBakets
-                            .slice((readyToSendPage - 1) * ITEMS_PER_PAGE, readyToSendPage * ITEMS_PER_PAGE)
-                            .map((baket) => (
+                          {baketViewMode === "table" ? (
+                            <div className="max-w-full overflow-hidden rounded-[10px] border border-[var(--tactical-border)]">
+                              <div className="w-full overflow-x-auto">
+                                <Table className="w-full table-fixed">
+                                  <TableHeader>
+                                    <TableRow className="border-[var(--tactical-border)] bg-black/5 hover:bg-transparent dark:bg-white/[0.01]">
+                                      <TableHead className="w-[34%] pl-4 font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                        Judul Baket
+                                      </TableHead>
+                                      <TableHead className="w-[17%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                        Kategori
+                                      </TableHead>
+                                      <TableHead className="w-[17%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                        Klaster
+                                      </TableHead>
+                                      <TableHead className="w-[10%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                        Urgensi
+                                      </TableHead>
+                                      <SortableTableHeader
+                                        column="createdAt"
+                                        sortDirection={baketCreatedSortOrder}
+                                        onSortChange={(direction) => {
+                                          setBaketCreatedSortOrder(direction);
+                                          setReadyToSendPage(1);
+                                          setSentPage(1);
+                                        }}
+                                        className="w-[14%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider"
+                                      >
+                                        Dibuat
+                                      </SortableTableHeader>
+                                      <TableHead className="w-[120px] pr-4 text-right font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                        Aksi
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {paginatedReadyToSendBakets.map((baket) => (
+                                      <TableRow key={baket.id} className="border-[var(--tactical-border)]">
+                                        <TableCell className="min-w-0 py-4 pl-4">
+                                          <div className="space-y-1">
+                                            <p className="truncate font-semibold text-[var(--tactical-text-primary)]">
+                                              {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                                            </p>
+                                            <p className="font-mono text-[10px] text-[var(--tactical-text-muted)]">
+                                              {baket.primaryJaringAlias || baket.primaryJaringCode || "-"}
+                                            </p>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                                          <span className="block truncate">{baket.categoryName || "LEGACY"}</span>
+                                        </TableCell>
+                                        <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                                          <span className="block truncate">{baket.clusterName || "LEGACY"}</span>
+                                        </TableCell>
+                                        <TableCell className="py-4">
+                                          <span
+                                            className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
+                                          >
+                                            {baketUrgencyLabel(baket.urgency)}
+                                          </span>
+                                        </TableCell>
+                                        <TableCell className="truncate whitespace-nowrap py-4 font-mono text-xs text-[var(--tactical-text-muted)]">
+                                          {formatDateTime(baket.createdAt)}
+                                        </TableCell>
+                                        <TableCell className="py-4 pr-4 text-right">
+                                          <button
+                                            disabled={isBusy === `submit:${baket.id}`}
+                                            onClick={() =>
+                                              requestConfirmation({
+                                                title: "KONFIRMASI KIRIM KE OIM",
+                                                description: "Apakah Anda yakin ingin mengirim laporan Baket ini ke OIM?",
+                                                confirmLabel: "YA, KIRIM",
+                                                onConfirm: () => {
+                                                  void submitBaket(baket.id);
+                                                },
+                                              })
+                                            }
+                                            className="h-8 cursor-pointer rounded-[4px] bg-[#16A34A] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#15803D] disabled:opacity-50 sm:px-3"
+                                          >
+                                            Kirim
+                                          </button>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </div>
+                          ) : (
+                            paginatedReadyToSendBakets.map((baket) => (
                               <div key={baket.id} className="tactical-card space-y-3">
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                   <div className="flex-1 space-y-1.5">
@@ -1942,21 +2070,28 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                   <span>CREATED: {formatDateTime(baket.createdAt)}</span>
                                 </div>
                               </div>
-                            ))}
+                            ))
+                          )}
                         </div>
                       )}
                     </>
                   )}
                   {readyToSendBakets.length > 0 && (
-                    <PaginationControls
-                      currentPage={readyToSendPage}
-                      totalItems={readyToSendBakets.length}
-                      setPage={setReadyToSendPage}
+                    <TablePagination
+                      page={safeReadyToSendPage}
+                      limit={readyToSendLimit}
+                      total={readyToSendBakets.length}
+                      onPageChange={setReadyToSendPage}
+                      onLimitChange={(limit) => {
+                        setReadyToSendLimit(limit);
+                        setReadyToSendPage(1);
+                      }}
+                      className="rounded-[10px] border border-[var(--tactical-border)] bg-black/5 px-4 dark:bg-white/[0.01]"
                     />
                   )}
                 </TabsContent>
 
-                <TabsContent value="sent" className="grid gap-4 pt-2">
+                <TabsContent value="sent" className="min-w-0 grid gap-4 pt-2">
                   {submittedBakets.length === 0 ? (
                     <TacticalEmptyState
                       title="Tidak ada Baket terkirim"
@@ -1964,49 +2099,135 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       icon={Send}
                     />
                   ) : (
-                    submittedBakets.slice((sentPage - 1) * ITEMS_PER_PAGE, sentPage * ITEMS_PER_PAGE).map((baket) => (
-                      <div key={baket.id} className="tactical-card space-y-3">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="flex-1 space-y-1.5">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(baket.status)}`}
-                              >
-                                {baketStatusLabel(baket.status, baket.sentToPositionTitle)}
-                              </span>
-                              <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                                KATEGORI: {baket.categoryName || "LEGACY"}
-                              </span>
-                              <span
-                                className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
-                              >
-                                URGENSI: {baketUrgencyLabel(baket.urgency)}
-                              </span>
-                            </div>
-                            <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
-                              {baket.currentVersionTitle || "Tanpa judul versi aktif"}
-                            </h3>
-                            <p className="text-[var(--tactical-text-secondary)] text-sm">
-                              Dikirim ke OIM &middot; data terkunci dan hanya dapat dilihat.
-                            </p>
-                          </div>
-                          <button className="h-[40px] shrink-0 cursor-pointer rounded-[4px] border border-[#475569] bg-transparent px-[18px] font-mono font-semibold text-[#CBD5E1] text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:border-[#64748B] hover:bg-[#334155] hover:brightness-105 active:scale-[0.98]">
-                            <Link href={`/dashboard/field-officer/buat-baket/${baket.id}`}>LIHAT BAKET</Link>
-                          </button>
-                        </div>
-                        <div className="flex gap-4 border-[var(--tactical-border)] border-t pt-2.5 font-mono text-[11px] text-[var(--tactical-text-muted)]">
-                          <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
-                          <span>&middot;</span>
-                          <span>SUBMITTED: {formatDateTime(baket.createdAt)}</span>
+                    baketViewMode === "table" ? (
+                      <div className="max-w-full overflow-hidden rounded-[10px] border border-[var(--tactical-border)]">
+                        <div className="w-full overflow-x-auto">
+                          <Table className="w-full table-fixed">
+                            <TableHeader>
+                              <TableRow className="border-[var(--tactical-border)] bg-black/5 hover:bg-transparent dark:bg-white/[0.01]">
+                                <TableHead className="w-[34%] pl-4 font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                  Judul Baket
+                                </TableHead>
+                                <TableHead className="w-[20%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                  Status
+                                </TableHead>
+                                <TableHead className="w-[18%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                  Kategori
+                                </TableHead>
+                                <TableHead className="w-[10%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                  Urgensi
+                                </TableHead>
+                                <SortableTableHeader
+                                  column="createdAt"
+                                  sortDirection={baketCreatedSortOrder}
+                                  onSortChange={(direction) => {
+                                    setBaketCreatedSortOrder(direction);
+                                    setReadyToSendPage(1);
+                                    setSentPage(1);
+                                  }}
+                                  className="w-[14%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider"
+                                >
+                                  Dibuat
+                                </SortableTableHeader>
+                                <TableHead className="w-[110px] pr-4 text-right font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                  Aksi
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {paginatedSubmittedBakets.map((baket) => (
+                                <TableRow key={baket.id} className="border-[var(--tactical-border)]">
+                                  <TableCell className="min-w-0 py-4 pl-4">
+                                    <p className="truncate font-semibold text-[var(--tactical-text-primary)]">
+                                      {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                                    </p>
+                                  </TableCell>
+                                  <TableCell className="min-w-0 py-4">
+                                    <span
+                                      className={`tactical-badge inline-block max-w-full truncate rounded px-2 py-0.5 text-[11px] ${statusTone(baket.status)}`}
+                                    >
+                                      {baketStatusLabel(baket.status, baket.sentToPositionTitle)}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                                    <span className="block truncate">{baket.categoryName || "LEGACY"}</span>
+                                  </TableCell>
+                                  <TableCell className="py-4">
+                                    <span
+                                      className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
+                                    >
+                                      {baketUrgencyLabel(baket.urgency)}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="truncate whitespace-nowrap py-4 font-mono text-xs text-[var(--tactical-text-muted)]">
+                                    {formatDateTime(baket.createdAt)}
+                                  </TableCell>
+                                  <TableCell className="py-4 pr-4 text-right">
+                                    <Button
+                                      asChild
+                                      variant="ghost"
+                                      className="h-8 rounded-[4px] border border-[#475569] px-2 font-mono text-[10px] sm:px-3"
+                                    >
+                                      <Link href={`/dashboard/field-officer/buat-baket/${baket.id}`}>Lihat Baket</Link>
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
                       </div>
-                    ))
+                    ) : (
+                      paginatedSubmittedBakets.map((baket) => (
+                        <div key={baket.id} className="tactical-card space-y-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="flex-1 space-y-1.5">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(baket.status)}`}
+                                >
+                                  {baketStatusLabel(baket.status, baket.sentToPositionTitle)}
+                                </span>
+                                <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
+                                  KATEGORI: {baket.categoryName || "LEGACY"}
+                                </span>
+                                <span
+                                  className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
+                                >
+                                  URGENSI: {baketUrgencyLabel(baket.urgency)}
+                                </span>
+                              </div>
+                              <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
+                                {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                              </h3>
+                              <p className="text-[var(--tactical-text-secondary)] text-sm">
+                                Dikirim ke OIM &middot; data terkunci dan hanya dapat dilihat.
+                              </p>
+                            </div>
+                            <button className="h-[40px] shrink-0 cursor-pointer rounded-[4px] border border-[#475569] bg-transparent px-[18px] font-mono font-semibold text-[#CBD5E1] text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:border-[#64748B] hover:bg-[#334155] hover:brightness-105 active:scale-[0.98]">
+                              <Link href={`/dashboard/field-officer/buat-baket/${baket.id}`}>LIHAT BAKET</Link>
+                            </button>
+                          </div>
+                          <div className="flex gap-4 border-[var(--tactical-border)] border-t pt-2.5 font-mono text-[11px] text-[var(--tactical-text-muted)]">
+                            <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
+                            <span>&middot;</span>
+                            <span>SUBMITTED: {formatDateTime(baket.createdAt)}</span>
+                          </div>
+                        </div>
+                      ))
+                    )
                   )}
                   {submittedBakets.length > 0 && (
-                    <PaginationControls
-                      currentPage={sentPage}
-                      totalItems={submittedBakets.length}
-                      setPage={setSentPage}
+                    <TablePagination
+                      page={safeSentPage}
+                      limit={sentLimit}
+                      total={submittedBakets.length}
+                      onPageChange={setSentPage}
+                      onLimitChange={(limit) => {
+                        setSentLimit(limit);
+                        setSentPage(1);
+                      }}
+                      className="rounded-[10px] border border-[var(--tactical-border)] bg-black/5 px-4 dark:bg-white/[0.01]"
                     />
                   )}
                 </TabsContent>

@@ -144,6 +144,11 @@ export class FieldCoordinatorPersonnelController {
 export class RegionalCommanderPersonnelController {
   constructor(private readonly service: ExecutivePersonnelService) {}
 
+  @Get(':assignmentId')
+  @ApiContract({
+    operationId: 'apiRegionalCommanderPersonnel001',
+    contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-001',
+    summary: 'Detail personel dalam hierarki Regional Commander',
   @Get()
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel001',
@@ -208,10 +213,7 @@ export class RegionalCommanderPersonnelController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(
-      await this.service.detailRegionalCommanderPersonnel(
-        assignmentId,
-        context,
-      ),
+      await this.service.detailRegionalPersonnel(assignmentId, context),
     );
   }
 }

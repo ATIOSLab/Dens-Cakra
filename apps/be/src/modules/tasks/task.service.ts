@@ -23,6 +23,7 @@ import type {
   TaskQuery,
   UpdateTaskDto,
 } from './task.dto.js';
+import { TaskSortField } from './task.dto.js';
 
 const OPEN_ASSIGNMENT_STATUSES = [
   TaskAssignmentStatus.SENT,
@@ -582,55 +583,94 @@ export class TaskService {
         : {}),
     });
 
-    return this.prisma.task.findMany({
-      where,
-      skip: (query.page - 1) * query.limit,
-      take: query.limit,
-      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
-      include: {
-        ownerUnit: true,
-        directiveVersion: {
-          include: {
-            directive: true,
-          },
+    const include = {
+      ownerUnit: true,
+      directiveVersion: {
+        include: {
+          directive: true,
         },
-        uukStrVersion: {
-          include: {
-            uukStr: {
-              include: {
-                ownerUnit: true,
-                directiveVersion: {
-                  include: {
-                    directive: true,
-                  },
+      },
+      uukStrVersion: {
+        include: {
+          uukStr: {
+            include: {
+              ownerUnit: true,
+              directiveVersion: {
+                include: {
+                  directive: true,
                 },
               },
             },
           },
         },
-        targetAreas: { include: { area: true } },
-        assignments: {
-          where:
-            Object.keys(assignmentWhere).length > 0
-              ? assignmentWhere
-              : undefined,
-          include: {
-            assigner: {
-              include: {
-                position: true,
-                userProfile: true,
-              },
+      },
+      targetAreas: { include: { area: true } },
+      assignments: {
+        where:
+          Object.keys(assignmentWhere).length > 0 ? assignmentWhere : undefined,
+        include: {
+          assigner: {
+            include: {
+              position: true,
+              userProfile: true,
             },
-            assignee: {
-              include: {
-                position: true,
-                userProfile: true,
-              },
+          },
+          assignee: {
+            include: {
+              position: true,
+              userProfile: true,
             },
           },
         },
-        _count: { select: { assignments: true, childTasks: true } },
       },
+      _count: { select: { assignments: true, childTasks: true } },
+    } satisfies Prisma.TaskInclude;
+    const sortOrder = query.sortOrder ?? 'asc';
+
+    if (query.sortBy === TaskSortField.EFFECTIVE_DUE_DATE) {
+      const tasks = await this.prisma.task.findMany({
+        where,
+        orderBy: { id: 'asc' },
+        include,
+      });
+      const timestamp = (task: (typeof tasks)[number]) => {
+        const value = task.assignments[0]?.dueDate ?? task.dueDate;
+        return value ? value.getTime() : null;
+      };
+
+      tasks.sort((left, right) => {
+        const leftTime = timestamp(left);
+        const rightTime = timestamp(right);
+
+        if (leftTime === null && rightTime === null)
+          return left.id.localeCompare(right.id);
+        if (leftTime === null) return 1;
+        if (rightTime === null) return -1;
+
+        const compared =
+          sortOrder === 'asc' ? leftTime - rightTime : rightTime - leftTime;
+        return compared || left.id.localeCompare(right.id);
+      });
+
+      const start = (query.page - 1) * query.limit;
+      return tasks.slice(start, start + query.limit);
+    }
+
+    const orderBy: Prisma.TaskOrderByWithRelationInput[] = query.sortBy
+      ? [
+          query.sortBy === TaskSortField.UPDATED_AT
+            ? { updatedAt: sortOrder }
+            : { dueDate: { sort: sortOrder, nulls: 'last' } },
+          { id: 'asc' },
+        ]
+      : [{ dueDate: 'asc' }, { createdAt: 'desc' }];
+
+    return this.prisma.task.findMany({
+      where,
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+      orderBy,
+      include,
     });
   }
 
@@ -1251,10 +1291,15 @@ export class TaskService {
       }),
     ]);
 
-    await this.audit(context, 'TASK_ASSIGNMENT.FORWARD_JARING_INSTRUCTION', assignment.id, {
-      outboxEventId: event.id,
-      recipientCount: jaring.length,
-    });
+    await this.audit(
+      context,
+      'TASK_ASSIGNMENT.FORWARD_JARING_INSTRUCTION',
+      assignment.id,
+      {
+        outboxEventId: event.id,
+        recipientCount: jaring.length,
+      },
+    );
 
     return {
       id: event.id,

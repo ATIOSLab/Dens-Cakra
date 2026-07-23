@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -167,6 +169,8 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
   const [classificationFilter, setClassificationFilter] = useState("__all__");
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [deadlineSortOrder, setDeadlineSortOrder] = useState<"asc" | "desc">("asc");
 
   const uukByDirectiveVersionId = useMemo(
     () => new Map(uuks.map((uuk) => [uuk.directiveVersion?.id ?? "", uuk])),
@@ -178,7 +182,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
     const fromTime = periodFrom ? new Date(`${periodFrom}T00:00:00.000Z`).getTime() : null;
     const toTime = periodTo ? new Date(`${periodTo}T23:59:59.999Z`).getTime() : null;
 
-    return directives.filter((directive) => {
+    const filtered = directives.filter((directive) => {
       const currentVersion =
         directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
         directive.versions[0];
@@ -213,7 +217,18 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
 
       return true;
     });
-  }, [directives, search, periodFrom, periodTo, classificationFilter]);
+
+    return [...filtered].sort((a, b) => {
+      const aVersion = a.versions.find((item) => item.versionNumber === a.currentVersionNumber) ?? a.versions[0];
+      const bVersion = b.versions.find((item) => item.versionNumber === b.currentVersionNumber) ?? b.versions[0];
+      const aDate = aVersion?.dueDate ?? aVersion?.commandDate;
+      const bDate = bVersion?.dueDate ?? bVersion?.commandDate;
+      const aTime = aDate ? new Date(aDate).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTime = bDate ? new Date(bDate).getTime() : Number.MAX_SAFE_INTEGER;
+
+      return deadlineSortOrder === "asc" ? aTime - bTime : bTime - aTime;
+    });
+  }, [directives, search, periodFrom, periodTo, classificationFilter, deadlineSortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDirectives.length / rowsPerPage));
   const safePage = Math.min(page, totalPages);
@@ -316,50 +331,137 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
 
       <Card className="overflow-hidden border border-border/70">
         <CardHeader className="border-[var(--dc-border-subtle)]/70 border-b bg-muted/10 pb-4">
-          <CardTitle>STR Diterima dari Eksekutif</CardTitle>
-          <CardDescription>
-            Pilih STR yang sudah masuk untuk dibaca, lalu lanjutkan sebagai penerusan regional tanpa membuat STR akar
-            baru.
-          </CardDescription>
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <CardTitle>STR Diterima dari Eksekutif</CardTitle>
+              <CardDescription>
+                Pilih STR yang sudah masuk untuk dibaca, lalu lanjutkan sebagai penerusan regional tanpa membuat STR akar
+                baru.
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-bold font-mono text-[10px] text-muted-foreground uppercase tracking-[0.28em]">
+                Tampilan
+              </span>
+              <ViewModeToggle
+                value={viewMode}
+                onValueChange={setViewMode}
+                className="rounded-[6px] border-border bg-secondary/70"
+                buttonClassName="size-8 rounded-[4px]"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-5">Nomor STR</TableHead>
-                <TableHead>Judul UUK/STR</TableHead>
-                <TableHead>Klasifikasi</TableHead>
-                <TableHead>Pemberi</TableHead>
-                <TableHead>Batas Waktu</TableHead>
-                <TableHead>Status Penerusan</TableHead>
-                <TableHead className="pr-5 text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedDirectives.length ? (
-                paginatedDirectives.map((directive) => {
-                  const currentVersion =
-                    directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
-                    directive.versions[0];
-                  const relatedUuk = uukByDirectiveVersionId.get(currentVersion?.id ?? "");
-                  const parsedTitle = parseDirectiveCommandDescription(currentVersion?.commandDescription);
+          {viewMode === "table" ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-5">Nomor STR</TableHead>
+                  <TableHead>Judul UUK/STR</TableHead>
+                  <TableHead>Klasifikasi</TableHead>
+                  <TableHead>Pemberi</TableHead>
+                  <SortableTableHeader
+                    column="effectiveDeadline"
+                    sortDirection={deadlineSortOrder}
+                    onSortChange={(direction) => {
+                      setDeadlineSortOrder(direction);
+                      setPage(1);
+                    }}
+                  >
+                    Deadline
+                  </SortableTableHeader>
+                  <TableHead>Status Penerusan</TableHead>
+                  <TableHead className="pr-5 text-right">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedDirectives.length ? (
+                  paginatedDirectives.map((directive) => {
+                    const currentVersion =
+                      directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
+                      directive.versions[0];
+                    const relatedUuk = uukByDirectiveVersionId.get(currentVersion?.id ?? "");
+                    const parsedTitle = parseDirectiveCommandDescription(currentVersion?.commandDescription);
 
-                  return (
-                    <TableRow key={directive.id}>
-                      <TableCell className="pl-5 font-medium">{directive.commandNumber}</TableCell>
-                      <TableCell className="max-w-[34rem]">
-                        <div className="truncate" title={parsedTitle.uukTitle || "STR Eksekutif"}>
-                          {parsedTitle.uukTitle || "STR Eksekutif"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
+                    return (
+                      <TableRow key={directive.id}>
+                        <TableCell className="pl-5 font-medium">{directive.commandNumber}</TableCell>
+                        <TableCell className="max-w-[34rem]">
+                          <div className="truncate" title={parsedTitle.uukTitle || "STR Eksekutif"}>
+                            {parsedTitle.uukTitle || "STR Eksekutif"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={classificationBadgeClass(currentVersion?.classification)}>
+                            {currentVersion?.classification || "RAHASIA"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{currentVersion?.commandIssuer ?? directive.ownerUnit?.name ?? "-"}</TableCell>
+                        <TableCell>{formatDate(currentVersion?.dueDate || currentVersion?.commandDate)}</TableCell>
+                        <TableCell>
+                          {relatedUuk ? (
+                            <Badge
+                              variant={badgeVariant(relatedUuk.status)}
+                              className={
+                                relatedUuk.status === "PUBLISHED"
+                                  ? "border-[var(--dc-success)]/40 bg-[var(--dc-success-soft)]/10 text-[var(--dc-success)]"
+                                  : ""
+                              }
+                            >
+                              {statusLabel(relatedUuk.status)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">Belum diteruskan</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="pr-5">
+                          <div className="flex justify-end gap-2">
+                            {relatedUuk ? (
+                              <Button asChild size="sm">
+                                <Link href={`/dashboard/regional-commander/direktif-penjabaran-uuk-str/${relatedUuk.id}`}>
+                                  Lihat Penerusan
+                                </Link>
+                              </Button>
+                            ) : (
+                              <Button asChild size="sm">
+                                <Link
+                                  href={`/dashboard/regional-commander/direktif-penjabaran-uuk-str/baru?directiveVersionId=${currentVersion?.id ?? directive.id}`}
+                                >
+                                  Baca & Lanjutkan
+                                </Link>
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-8 pr-5 pl-5 text-center text-muted-foreground">
+                      Belum ada STR yang masuk atau cocok dengan filter.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          ) : paginatedDirectives.length ? (
+            <div className="grid gap-3 border-border/60 border-t p-4 lg:grid-cols-2">
+              {paginatedDirectives.map((directive) => {
+                const currentVersion =
+                  directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
+                  directive.versions[0];
+                const relatedUuk = uukByDirectiveVersionId.get(currentVersion?.id ?? "");
+                const parsedTitle = parseDirectiveCommandDescription(currentVersion?.commandDescription);
+
+                return (
+                  <Card key={directive.id} className="border-border/70 bg-card/70">
+                    <CardContent className="space-y-4 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className={classificationBadgeClass(currentVersion?.classification)}>
                           {currentVersion?.classification || "RAHASIA"}
                         </Badge>
-                      </TableCell>
-                      <TableCell>{currentVersion?.commandIssuer ?? directive.ownerUnit?.name ?? "-"}</TableCell>
-                      <TableCell>{formatDate(currentVersion?.dueDate || currentVersion?.commandDate)}</TableCell>
-                      <TableCell>
                         {relatedUuk ? (
                           <Badge
                             variant={badgeVariant(relatedUuk.status)}
@@ -374,38 +476,46 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                         ) : (
                           <Badge variant="outline">Belum diteruskan</Badge>
                         )}
-                      </TableCell>
-                      <TableCell className="pr-5">
-                        <div className="flex justify-end gap-2">
-                          {relatedUuk ? (
-                            <Button asChild size="sm">
-                              <Link href={`/dashboard/regional-commander/direktif-penjabaran-uuk-str/${relatedUuk.id}`}>
-                                Lihat Penerusan
-                              </Link>
-                            </Button>
-                          ) : (
-                            <Button asChild size="sm">
-                              <Link
-                                href={`/dashboard/regional-commander/direktif-penjabaran-uuk-str/baru?directiveVersionId=${currentVersion?.id ?? directive.id}`}
-                              >
-                                Baca & Lanjutkan
-                              </Link>
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-8 pr-5 pl-5 text-center text-muted-foreground">
-                    Belum ada STR yang masuk atau cocok dengan filter.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-mono text-muted-foreground text-[10px] uppercase tracking-[0.18em]">
+                          {directive.commandNumber}
+                        </p>
+                        <h3 className="font-semibold text-[var(--dc-text-primary)] leading-snug">
+                          {parsedTitle.uukTitle || "STR Eksekutif"}
+                        </h3>
+                      </div>
+                      <div className="grid gap-2 border-border/50 border-t pt-3 text-muted-foreground text-xs sm:grid-cols-2">
+                        <span>Pemberi: {currentVersion?.commandIssuer ?? directive.ownerUnit?.name ?? "-"}</span>
+                        <span>Deadline: {formatDate(currentVersion?.dueDate || currentVersion?.commandDate)}</span>
+                      </div>
+                      <div className="flex justify-end">
+                        {relatedUuk ? (
+                          <Button asChild size="sm">
+                            <Link href={`/dashboard/regional-commander/direktif-penjabaran-uuk-str/${relatedUuk.id}`}>
+                              Lihat Penerusan
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button asChild size="sm">
+                            <Link
+                              href={`/dashboard/regional-commander/direktif-penjabaran-uuk-str/baru?directiveVersionId=${currentVersion?.id ?? directive.id}`}
+                            >
+                              Baca & Lanjutkan
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="border-border/60 border-t py-8 text-center text-muted-foreground">
+              Belum ada STR yang masuk atau cocok dengan filter.
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-[var(--dc-border-subtle)]/70 border-t bg-muted/5 p-3">
             <div className="pl-5 text-muted-foreground text-xs">

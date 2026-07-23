@@ -17,6 +17,12 @@ import {
   UukStrSectionType,
   UukStrStatus,
 } from '../../generated/prisma/client.js';
+import { SortOrder } from '../../common/dto/sort-order.dto.js';
+
+export enum UukSortField {
+  UPDATED_AT = 'updatedAt',
+  DUE_DATE = 'dueDate',
+}
 
 export class UukQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
@@ -24,6 +30,8 @@ export class UukQuery {
   @IsOptional() @IsUUID() ownerUnitId?: string;
   @IsOptional() @IsUUID() directiveId?: string;
   @IsOptional() @IsString() search?: string;
+  @IsOptional() @IsEnum(UukSortField) sortBy?: UukSortField;
+  @IsOptional() @IsEnum(SortOrder) sortOrder?: SortOrder;
 }
 
 export class SectionItemDto {

@@ -133,12 +133,14 @@ async function loadDirectiveBuilderOptions() {
   };
 }
 
-export async function DirectiveListPage() {
+export async function DirectiveListPage({ sortBy, sortOrder }: { sortBy?: string; sortOrder?: string }) {
   await requireRole(SYSTEM_ROLES.EXECUTIVE);
   const access = await apiServerGet<AccessContextResource>("/access/me");
   const directives = await apiServerGet<DirectiveSummary[]>("/directives", {
     ownerUnitId: access.authorizationContext.organizationUnitId,
     limit: 50,
+    sortBy,
+    sortOrder,
   });
 
   return <DirectiveListClient directives={directives} />;

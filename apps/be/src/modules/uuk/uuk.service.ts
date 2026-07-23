@@ -20,6 +20,7 @@ import type {
   UukQuery,
   UpdateUukVersionDto,
 } from './uuk.dto.js';
+import { UukSortField } from './uuk.dto.js';
 
 const REQUIRED_UUK_SECTION_TYPES = new Set<UukStrSectionType>([
   UukStrSectionType.BASIS_BACKGROUND,
@@ -444,6 +445,19 @@ export class UukService {
   }
 
   async list(query: UukQuery, context: AuthorizationContext) {
+    const sortOrder = query.sortOrder ?? 'desc';
+    const orderBy: Prisma.UukStrOrderByWithRelationInput[] =
+      query.sortBy === UukSortField.DUE_DATE
+        ? [
+            {
+              directiveVersion: {
+                dueDate: { sort: sortOrder, nulls: 'last' },
+              },
+            },
+            { id: 'asc' },
+          ]
+        : [{ updatedAt: sortOrder }, { id: 'asc' }];
+
     return this.prisma.uukStr.findMany({
       where: this.uukAccessWhere(context, {
         ...(query.status ? { status: query.status } : {}),
@@ -480,7 +494,7 @@ export class UukService {
           : {}),
       }),
       take: query.limit,
-      orderBy: { updatedAt: 'desc' },
+      orderBy,
       include: {
         ownerUnit: true,
         directiveVersion: {

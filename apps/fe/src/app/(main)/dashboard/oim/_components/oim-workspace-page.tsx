@@ -27,6 +27,8 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
   const areaId = typeof searchParams.areaId === "string" ? searchParams.areaId : undefined;
   const requestedStatus = typeof searchParams.status === "string" ? searchParams.status : undefined;
   const requestedStatuses = typeof searchParams.statuses === "string" ? searchParams.statuses : undefined;
+  const sortBy = typeof searchParams.sortBy === "string" ? searchParams.sortBy : undefined;
+  const sortOrder = typeof searchParams.sortOrder === "string" ? searchParams.sortOrder : undefined;
   const commonQuery = {
     page,
     limit: 25,
@@ -39,6 +41,8 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
     jaringClusterId: typeof searchParams.jaringClusterId === "string" ? searchParams.jaringClusterId : undefined,
     from: typeof searchParams.periodStart === "string" ? searchParams.periodStart : undefined,
     to: typeof searchParams.periodEnd === "string" ? searchParams.periodEnd : undefined,
+    sortBy,
+    sortOrder,
   };
   const data: OimPageData = {
     errors,
@@ -86,6 +90,8 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
           limit: 25,
           search: commonQuery.search,
           status: commonQuery.status,
+          sortBy,
+          sortOrder,
         }),
         errors,
       ).then((value) => {
@@ -105,6 +111,8 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
           periodFrom: commonQuery.from,
           periodTo: commonQuery.to,
           classification: typeof searchParams.classification === "string" ? searchParams.classification : undefined,
+          sortBy,
+          sortOrder,
         }),
         errors,
       ).then((value) => {

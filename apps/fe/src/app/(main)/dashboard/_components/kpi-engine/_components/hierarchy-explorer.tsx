@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ChevronRight } from "lucide-react";
 
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +35,118 @@ const checkStatusFilter = (score: number | null, filter: string) => {
   return true;
 };
 
+const text = (value: unknown, fallback = "Belum tersedia") => {
+  return typeof value === "string" && value.trim() ? value : fallback;
+};
+
+const extractKabupaten = (name: string) => {
+  const bindaIndex = name.indexOf("Binda ");
+  if (bindaIndex !== -1) return name.slice(bindaIndex + 6);
+
+  const dirIndex = name.indexOf("Direktorat ");
+  if (dirIndex !== -1) return name.slice(dirIndex + 11);
+
+  const unitIndex = name.indexOf("Unit ");
+  if (unitIndex !== -1) return name.slice(unitIndex + 5);
+
+  return name;
+};
+
+const getGradeVariant = (val: string) => {
+  if (val === "A" || val === "B") return "default";
+  if (val === "D") return "destructive";
+  return val === "N/A" ? "outline" : "secondary";
+};
+
+function KpiRecordCardGrid({
+  type,
+  data,
+  onSelectRow,
+}: {
+  readonly type: "unit" | "personnel";
+  readonly data: readonly DataRecord[];
+  readonly onSelectRow: (item: DataRecord) => void;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {data.map((item, idx) => {
+        const itemId = String(item.id ?? idx);
+        const score = numeric(item.score);
+        const grade = text(item.grade, "N/A");
+        const title = text(item.name);
+        const unitObj = (item.unit as DataRecord) || {};
+        const areas = Array.isArray(item.areas) ? item.areas : [];
+        const areaLabel =
+          type === "unit"
+            ? extractKabupaten(title)
+            : areas
+                .map((area: any) => text(area?.name, ""))
+                .filter(Boolean)
+                .join(", ") || "Belum ditentukan";
+        const subtitle =
+          type === "unit"
+            ? text(item.code, text(item.type, "Unit"))
+            : `${text(item.position)} · ${text(unitObj.name, "Unit belum tersedia")}`;
+
+        return (
+          <Card
+            key={itemId}
+            className="min-w-0 border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] transition hover:border-[var(--dc-primary-soft)]"
+          >
+            <CardContent className="space-y-4 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 space-y-1">
+                  <h3 className="truncate font-semibold text-[var(--dc-text-primary)] text-sm" title={title}>
+                    {title}
+                  </h3>
+                  <p className="line-clamp-2 text-[var(--dc-text-muted)] text-xs">{subtitle}</p>
+                </div>
+                <Badge variant={getGradeVariant(grade)} className="shrink-0 font-mono text-[10px]">
+                  {grade}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-muted)] p-3 text-xs">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--dc-text-muted)]">Skor</p>
+                  <p className="mt-1 font-bold font-mono text-[var(--dc-text-primary)]">
+                    {score === null ? "-" : score.toLocaleString("id-ID", { maximumFractionDigits: 1 })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--dc-text-muted)]">
+                    {type === "unit" ? "Personel" : "Wilayah"}
+                  </p>
+                  <p className="mt-1 truncate font-medium text-[var(--dc-text-secondary)]" title={areaLabel}>
+                    {type === "unit" ? Number(item.personnelCount ?? 0).toLocaleString("id-ID") : areaLabel}
+                  </p>
+                </div>
+              </div>
+
+              {type === "unit" ? (
+                <p className="truncate text-[var(--dc-text-secondary)] text-xs" title={areaLabel}>
+                  Kabupaten: {areaLabel}
+                </p>
+              ) : null}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectRow(item)}
+                className="w-full justify-center border-[var(--dc-border-subtle)] text-[var(--dc-primary)]"
+              >
+                Detail
+                <ChevronRight className="ml-1 size-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 interface HierarchyExplorerProps {
   readonly units: readonly DataRecord[];
   readonly personnel: readonly DataRecord[];
@@ -55,6 +170,7 @@ export function HierarchyExplorer({
 }: HierarchyExplorerProps) {
   // Tabs State
   const [activeTab, setActiveTab] = useState<"units" | "personnel" | "method">("units");
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
 
   // Advanced Filters State
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -276,25 +392,43 @@ export function HierarchyExplorer({
               onRefresh={onRefresh}
             />
 
-            <DataTable
-              type="unit"
-              data={paginatedUnits}
-              sortField={sortOrder.startsWith("NAME") ? "name" : sortOrder.startsWith("GRADE") ? "grade" : "score"}
-              sortDirection={sortOrder.endsWith("ASC") ? "asc" : "desc"}
-              onSortChange={(field) => {
-                if (field === "name") setSortOrder(sortOrder === "NAME_ASC" ? "NAME_DESC" : "NAME_ASC");
-                else if (field === "score") setSortOrder(sortOrder === "SCORE_DESC" ? "SCORE_ASC" : "SCORE_DESC");
-              }}
-              onSelectRow={(item) => onSelectRow("unit", item)}
-            />
+            {filteredSortedUnits.length > 0 ? (
+              <div className="flex items-center justify-end gap-3">
+                <span className="font-semibold text-[10px] text-[var(--dc-text-muted)] uppercase tracking-[0.28em]">
+                  Tampilan
+                </span>
+                <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
+              </div>
+            ) : null}
 
             {filteredSortedUnits.length > 0 ? (
-              <Pagination
-                currentPage={currentPage}
-                totalItems={filteredSortedUnits.length}
-                pageSize={pageSize}
-                onPageChange={setCurrentPage}
-              />
+              <>
+                {viewMode === "table" ? (
+                  <DataTable
+                    type="unit"
+                    data={paginatedUnits}
+                    sortField={
+                      sortOrder.startsWith("NAME") ? "name" : sortOrder.startsWith("GRADE") ? "grade" : "score"
+                    }
+                    sortDirection={sortOrder.endsWith("ASC") ? "asc" : "desc"}
+                    onSortChange={(field) => {
+                      if (field === "name") setSortOrder(sortOrder === "NAME_ASC" ? "NAME_DESC" : "NAME_ASC");
+                      else if (field === "score")
+                        setSortOrder(sortOrder === "SCORE_DESC" ? "SCORE_ASC" : "SCORE_DESC");
+                    }}
+                    onSelectRow={(item) => onSelectRow("unit", item)}
+                  />
+                ) : (
+                  <KpiRecordCardGrid type="unit" data={paginatedUnits} onSelectRow={(item) => onSelectRow("unit", item)} />
+                )}
+
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filteredSortedUnits.length}
+                  pageSize={pageSize}
+                  onPageChange={setCurrentPage}
+                />
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10">
                 <p className="font-semibold text-[var(--dc-text-secondary)] text-sm">Belum ada data.</p>
@@ -325,25 +459,47 @@ export function HierarchyExplorer({
               onRefresh={onRefresh}
             />
 
-            <DataTable
-              type="personnel"
-              data={paginatedPersonnel}
-              sortField={sortOrder.startsWith("NAME") ? "name" : sortOrder.startsWith("GRADE") ? "grade" : "score"}
-              sortDirection={sortOrder.endsWith("ASC") ? "asc" : "desc"}
-              onSortChange={(field) => {
-                if (field === "name") setSortOrder(sortOrder === "NAME_ASC" ? "NAME_DESC" : "NAME_ASC");
-                else if (field === "score") setSortOrder(sortOrder === "SCORE_DESC" ? "SCORE_ASC" : "SCORE_DESC");
-              }}
-              onSelectRow={(item) => onSelectRow("personnel", item)}
-            />
+            {filteredSortedPersonnel.length > 0 ? (
+              <div className="flex items-center justify-end gap-3">
+                <span className="font-semibold text-[10px] text-[var(--dc-text-muted)] uppercase tracking-[0.28em]">
+                  Tampilan
+                </span>
+                <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
+              </div>
+            ) : null}
 
             {filteredSortedPersonnel.length > 0 ? (
-              <Pagination
-                currentPage={currentPage}
-                totalItems={filteredSortedPersonnel.length}
-                pageSize={pageSize}
-                onPageChange={setCurrentPage}
-              />
+              <>
+                {viewMode === "table" ? (
+                  <DataTable
+                    type="personnel"
+                    data={paginatedPersonnel}
+                    sortField={
+                      sortOrder.startsWith("NAME") ? "name" : sortOrder.startsWith("GRADE") ? "grade" : "score"
+                    }
+                    sortDirection={sortOrder.endsWith("ASC") ? "asc" : "desc"}
+                    onSortChange={(field) => {
+                      if (field === "name") setSortOrder(sortOrder === "NAME_ASC" ? "NAME_DESC" : "NAME_ASC");
+                      else if (field === "score")
+                        setSortOrder(sortOrder === "SCORE_DESC" ? "SCORE_ASC" : "SCORE_DESC");
+                    }}
+                    onSelectRow={(item) => onSelectRow("personnel", item)}
+                  />
+                ) : (
+                  <KpiRecordCardGrid
+                    type="personnel"
+                    data={paginatedPersonnel}
+                    onSelectRow={(item) => onSelectRow("personnel", item)}
+                  />
+                )}
+
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filteredSortedPersonnel.length}
+                  pageSize={pageSize}
+                  onPageChange={setCurrentPage}
+                />
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10">
                 <p className="font-semibold text-[var(--dc-text-secondary)] text-sm">Belum ada data.</p>
