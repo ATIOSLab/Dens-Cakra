@@ -213,11 +213,26 @@ export class JaringService {
       return;
     }
 
+    const ownershipWhere = context.userProfileId
+      ? {
+          OR: [
+            { createdByAssignmentId: context.primaryAssignmentId },
+            {
+              createdByAssignment: {
+                is: {
+                  userProfileId: context.userProfileId,
+                  isActive: true,
+                },
+              },
+            },
+          ],
+        }
+      : { createdByAssignmentId: context.primaryAssignmentId };
+
     const file = await this.prisma.fileAsset.findFirst({
       where: {
         id: fileId,
         deletedAt: null,
-        createdByAssignmentId: context.primaryAssignmentId,
         fileType: 'PHOTO',
         lifecycleStatus: {
           in: [
@@ -226,6 +241,7 @@ export class JaringService {
             FileLifecycleStatus.CLEAN,
           ],
         },
+        ...ownershipWhere,
       },
       select: { id: true, mimeType: true },
     });
