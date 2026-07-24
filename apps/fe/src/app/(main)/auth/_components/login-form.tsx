@@ -201,16 +201,15 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
                 Email Address
               </FieldLabel>
               <div className="relative">
-                <Mail className="absolute left-3 top-3.5 size-4 text-muted-foreground/50" />
+                <Mail className="absolute left-3 top-4 size-4 text-muted-foreground/50" />
                 <Input
                   {...field}
                   id="login-email"
                   type="email"
-                  placeholder="name@organization.gov"
                   autoComplete="email"
                   aria-invalid={fieldState.invalid}
                   disabled={isFormDisabled}
-                  className="pl-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-11"
+                  className="pl-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-12"
                 />
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -231,7 +230,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
                 Password
               </FieldLabel>
               <div className="relative">
-                <Lock className="absolute left-3 top-3.5 size-4 text-muted-foreground/50" />
+                <Lock className="absolute left-3 top-4 size-4 text-muted-foreground/50" />
                 <Input
                   {...field}
                   id="login-password"
@@ -240,12 +239,12 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
                   autoComplete="current-password"
                   aria-invalid={fieldState.invalid}
                   disabled={isFormDisabled}
-                  className="pl-9 pr-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-11"
+                  className="pl-9 pr-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-3 top-3.5 text-muted-foreground/60 hover:text-foreground cursor-pointer focus:outline-none"
+                  className="absolute right-3 top-4 text-muted-foreground/60 hover:text-foreground cursor-pointer focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
@@ -295,7 +294,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
 
       {/* Primary Submit Button */}
       <Button
-        className="w-full h-11 sm:h-12 bg-cyan-600 text-white dark:bg-[#14B8FF] dark:text-slate-950 hover:bg-cyan-500 dark:hover:bg-cyan-400 font-bold font-sans rounded-[8px] cursor-pointer shadow-sm mt-2 transition-colors flex items-center justify-center gap-2"
+        className="w-full h-12 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white dark:from-[#14B8FF] dark:to-cyan-400 dark:text-slate-950 font-bold font-sans rounded-[8px] cursor-pointer shadow-[0_0_20px_rgba(20,184,255,0.25)] hover:brightness-110 hover:shadow-[0_0_25px_rgba(20,184,255,0.4)] active:scale-[0.98] mt-2 transition-all duration-200 flex items-center justify-center gap-2"
         type="submit"
         disabled={isFormDisabled}
       >
@@ -315,17 +314,17 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
       </Button>
 
       {/* SECURITY METADATA FOOTER BLOCK */}
-      <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-border/40 text-[9px] font-mono text-muted-foreground/50 text-center select-none uppercase">
+      <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border/40 text-xs font-mono text-muted-foreground/60 text-center select-none">
         <div>
-          <span className="block text-[8px] opacity-75">Environment</span>
+          <span className="block text-[10px] opacity-75 uppercase">Environment</span>
           <span className="text-foreground font-semibold">Production</span>
         </div>
         <div>
-          <span className="block text-[8px] opacity-75">TLS Encryption</span>
+          <span className="block text-[10px] opacity-75 uppercase">TLS Encryption</span>
           <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Enabled</span>
         </div>
         <div>
-          <span className="block text-[8px] opacity-75">Version</span>
+          <span className="block text-[10px] opacity-75 uppercase">Version</span>
           <span className="text-foreground font-semibold">v2.4.0</span>
         </div>
       </div>
