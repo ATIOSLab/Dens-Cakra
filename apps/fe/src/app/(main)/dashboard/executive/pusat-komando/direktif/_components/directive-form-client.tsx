@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -688,11 +689,7 @@ export function DirectiveFormClient({
     <div className="space-y-6">
       <PageHeader
         title={mode === "create" ? "Buat Draft STR Baru" : "Edit Draft STR"}
-        description={
-          mode === "create"
-            ? "Masukkan data instruksi strategis dan bagian UUK/KIQ/PIR baru."
-            : "Perbarui detail instruksi strategis dan UUK/KIQ/PIR."
-        }
+        description={mode === "create" ? "Masukkan data instruksi strategis dan bagian UUK/KIQ/PIR baru." : "Perbarui detail instruksi strategis dan UUK/KIQ/PIR."}
         backButton={true}
       />
       <GenerateLoading

@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -305,6 +306,8 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
           </div>
         }
       />
+
+      <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
 
       <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="grid gap-5 p-5 text-xs sm:grid-cols-2 lg:grid-cols-6">

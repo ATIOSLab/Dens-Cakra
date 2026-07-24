@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -700,7 +701,6 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   const [_systemClock, setSystemClock] = useState("SYNCING...");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(20);
-  const [viewMode, setViewMode] = useState<"card" | "table">("table");
 
   const totalPersonnel = items.length;
   const onlineCount = (map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0);
@@ -711,6 +711,10 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   const paginatedItems = useMemo(() => {
     return items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
   }, [items, safePage, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [items]);
 
   const applyFilter = (overrides: Partial<PersonnelListQueryState>) => {
     setPage(1);
@@ -937,35 +941,8 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
               <KpiCard label="Tanpa Sinyal" value={noSignalCount} progress={offlinePercentage} variant="amber" />
             </section>
 
-            <div className="flex items-center justify-end gap-3">
-              <span className="font-bold font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-[0.28em]">
-                Tampilan
-              </span>
-              <ViewModeToggle
-                value={viewMode}
-                onValueChange={setViewMode}
-                className="rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80"
-                buttonClassName="size-8 rounded-none"
-              />
-            </div>
-
-            {viewMode === "table" ? (
-              <PersonnelTable
-                items={paginatedItems}
-                isPending={isPending}
-                onReset={resetFilters}
-                config={config}
-                freshness={map.meta.freshness}
-              />
-            ) : (
-              <PersonnelCardGrid
-                items={paginatedItems}
-                isPending={isPending}
-                onReset={resetFilters}
-                config={config}
-                freshness={map.meta.freshness}
-              />
-            )}
+            {/* Personnel Database Table */}
+            <PersonnelTable items={paginatedItems} isPending={isPending} onReset={resetFilters} />
 
             {/* Pagination Controls bar */}
             <TablePagination
@@ -977,7 +954,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 setRowsPerPage(limit);
                 setPage(1);
               }}
-              className="rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 px-6 py-3.5 dark:border-slate-800 dark:bg-[#080d14]/80"
+              className="rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 dark:border-slate-800 dark:bg-[#080d14]/80 px-6 py-3.5"
             />
           </TabsContent>
 

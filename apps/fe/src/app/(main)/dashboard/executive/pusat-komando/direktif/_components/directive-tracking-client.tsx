@@ -1,6 +1,7 @@
 "use client";
 
 import { GitBranch } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 import { PageHeader } from "@/components/ui/page-header";
 import type { DirectiveDetail, DirectiveTracking } from "@/features/directives/types";

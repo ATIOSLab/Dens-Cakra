@@ -52,6 +52,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/ui/page-header";
+import { TableToolbar } from "@/components/ui/table-toolbar";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -206,28 +209,19 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
   const topLevel = rows(root.children);
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
   const provinceName = provinces[0]?.name || "REGIONAL";
-
-  const hasBackButton = [
-    "report-detail",
-    "analysis-detail",
-    "analysis-new",
-    "analysis-edit",
-    "product-new",
-    "product-edit",
-    "product-detail",
-  ].includes(view);
+  
+  const hasBackButton = ["report-detail", "analysis-detail", "analysis-new", "analysis-edit", "product-new", "product-edit", "product-detail"].includes(view);
 
   const backButtonSettings = hasBackButton
     ? {
-      href:
-        view === "report-detail"
+        href: view === "report-detail"
           ? "/dashboard/oim/laporan-masuk"
           : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
-            ? "/dashboard/oim/analisis-intelijen"
-            : ["product-new", "product-edit", "product-detail"].includes(view)
-              ? "/dashboard/oim/produk-intelijen/daftar-produk"
-              : undefined,
-    }
+          ? "/dashboard/oim/analisis-intelijen"
+          : ["product-new", "product-edit", "product-detail"].includes(view)
+          ? "/dashboard/oim/produk-intelijen/daftar-produk"
+          : undefined
+      }
     : undefined;
 
   return (
@@ -238,11 +232,11 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
         backButton={backButtonSettings}
         badge={
           <div className="flex items-center gap-2">
-            <div
+            <div 
               className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-card"
               style={{ color: "#06B6D4" }}
             >
-              <div
+              <div 
                 className="size-full flex items-center justify-center rounded-lg"
                 style={{ backgroundColor: "#06B6D41c" }}
               >
@@ -253,8 +247,8 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
         }
         actions={
           <div className="flex items-center gap-3 shrink-0 print:hidden">
-            <Button
-              variant="ghost"
+            <Button 
+              variant="ghost" 
               asChild
               className="border border-border bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-[150ms] ease-out rounded-lg h-10 px-4"
             >
@@ -263,7 +257,7 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
                 <span>PETA</span>
               </Link>
             </Button>
-            <Button
+            <Button 
               asChild
               className="bg-[#3B82F6] hover:bg-[#2563EB] text-white transition-all duration-[150ms] ease-out rounded-lg h-10 px-4 shadow-[0_4px_12px_rgba(59,130,246,0.2)] border-none"
             >
@@ -280,7 +274,7 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
           MANAJER OPERASIONAL INTELIJEN
         </p>
-
+        
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
           <span className="flex items-center gap-1.5 text-[#16C784]">
             <span className="size-1.5 rounded-full bg-[#16C784] animate-pulse" />
@@ -888,7 +882,6 @@ function BaketList({ data }: { data: OimPageData }) {
         setRowsPerPage(limit);
         setPage(1);
       }}
-      loading={isSorting}
     />
   );
 
@@ -2126,7 +2119,6 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
         setRowsPerPage(limit);
         setPage(1);
       }}
-      loading={isSorting}
     />
   );
 

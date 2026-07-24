@@ -76,7 +76,11 @@ async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
   };
 }
 
-export async function ExecutivePersonnelPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
+export async function ExecutivePersonnelPage({
+  searchParams,
+}: {
+  searchParams?: Promise<RouteSearchParams>;
+}) {
   await requireRole(SYSTEM_ROLES.EXECUTIVE);
 
   const queryState = buildQueryState(await searchParams);
@@ -86,7 +90,14 @@ export async function ExecutivePersonnelPage({ searchParams }: { searchParams?: 
     ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
     ...(queryState.districtId ? { districtId: queryState.districtId } : {}),
   };
-  const [listResult, map, provinceResult, regenciesFromRegency, regenciesFromCity, districts] = await Promise.all([
+  const [
+    listResult,
+    map,
+    provinceResult,
+    regenciesFromRegency,
+    regenciesFromCity,
+    districts,
+  ] = await Promise.all([
     fetchAllPages<PersonnelListItem>("/executive/personnel", commonQuery),
     apiServerGet<PersonnelMapPayload>("/executive/personnel/map", commonQuery),
     fetchAllPages<PersonnelAreaOption>("/administrative-areas", {

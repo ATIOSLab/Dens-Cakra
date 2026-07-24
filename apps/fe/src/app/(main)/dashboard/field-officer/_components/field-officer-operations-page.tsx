@@ -39,6 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -56,6 +57,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { TablePagination } from "@/components/ui/table-pagination";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import type {
   FieldOfficerIncoming,
@@ -309,6 +311,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     setJaringPage(1);
   }, [jaringSearch, jaringClusterFilter, jaringAreaFilter, jaringStatusFilter]);
 
+  const [tasksPage, setTasksPage] = useState(1);
+  const [tasksLimit, setTasksLimit] = useState(10);
+  const [incomingPage, setIncomingPage] = useState(1);
+  const [incomingLimit, setIncomingLimit] = useState(10);
+
   const filteredTasks = useMemo(() => {
     if (!workspace?.tasks) return [];
     const filtered = workspace.tasks.filter((task) => {
@@ -347,6 +354,27 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     taskPeriodEnd,
     taskDeadlineSortOrder,
   ]);
+
+  useEffect(() => {
+    setTasksPage(1);
+  }, [filteredTasks]);
+
+  const safeTasksPage = Math.min(tasksPage, Math.max(1, Math.ceil(filteredTasks.length / tasksLimit)));
+  const paginatedTasks = useMemo(() => {
+    return filteredTasks.slice((safeTasksPage - 1) * tasksLimit, safeTasksPage * tasksLimit);
+  }, [filteredTasks, safeTasksPage, tasksLimit]);
+
+  const totalIncoming = workspace?.incoming?.length ?? 0;
+  const totalIncomingPages = Math.max(1, Math.ceil(totalIncoming / incomingLimit));
+  const safeIncomingPage = Math.min(incomingPage, totalIncomingPages);
+  const paginatedIncoming = useMemo(() => {
+    if (!workspace?.incoming) return [];
+    return workspace.incoming.slice((safeIncomingPage - 1) * incomingLimit, safeIncomingPage * incomingLimit);
+  }, [workspace?.incoming, safeIncomingPage, incomingLimit]);
+
+  useEffect(() => {
+    setIncomingPage(1);
+  }, [workspace?.incoming]);
 
   useEffect(() => {
     setTasksPage(1);
@@ -527,17 +555,33 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(createdJaring.pin);
-      toast.success("PIN Jaring berhasil disalin.");
-    } catch {
-      toast.error("PIN tidak dapat disalin otomatis. Silakan salin secara manual.");
+    if (!jaringForm.code.trim()) {
+      toast.error("Kode Jaring harus diisi.");
+      return;
     }
-  };
+    if (!jaringForm.aliasName.trim()) {
+      toast.error("Alias / Nama Sandi harus diisi.");
+      return;
+    }
+    if (!jaringForm.whatsappNumber.trim()) {
+      toast.error("Nomor WhatsApp harus diisi.");
+      return;
+    }
+    if (!jaringForm.clusterId.trim()) {
+      toast.error("Silakan pilih Cluster Jaring.");
+      return;
+    }
+    if (!jaringForm.areaId.trim()) {
+      toast.error("Silakan pilih Area Utama.");
+      return;
+    }
+    if (!jaringForm.notes.trim()) {
+      toast.error("Catatan Pembinaan harus diisi.");
+      return;
+    }
 
-  const regenerateJaringPin = async (jaring: FieldOfficerJaring) => {
-    await runAction(`jaring:${jaring.id}:regenerate-pin`, async () => {
-      const response = await fetch(`/api/field-officer/jaring/${jaring.id}/regenerate-pin`, {
+    await runAction("jaring:create", async () => {
+      const response = await fetch("/api/field-officer/jaring", {
         method: "POST",
       });
       const body = (await response.json().catch(() => null)) as {
@@ -1241,42 +1285,61 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               { label: "AKTIF", value: metrics.activeJaring },
             ]}
           >
-            <div className="mb-4 flex justify-end">
-              <Button asChild variant="success" size="lg" className="font-mono uppercase tracking-wider">
-                <Link href="/dashboard/field-officer/jaring-binaan/baru">
-                  <Plus className="size-4" />
-                  Tambah Jaring
-                </Link>
-              </Button>
-            </div>
-
-            <div>
-              <Dialog
-                open={createdJaring !== null}
-                onOpenChange={(open) => {
-                  if (!open) {
-                    setCreatedJaring(null);
-                  }
-                }}
-              >
-                <DialogContent className="border-emerald-500/30 bg-[var(--tactical-card-bg)] font-mono sm:max-w-md">
-                  <DialogHeader className="items-center text-center">
-                    <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="size-8" />
-                    </div>
-                    <DialogTitle>Jaring Berhasil Ditambahkan</DialogTitle>
-                    <DialogDescription>
-                      Kirimkan PIN berikut kepada {createdJaring?.aliasName || "Jaring"} untuk proses verifikasi bot.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] px-6 py-5 text-center">
-                    <p className="mb-2 text-[11px] text-[var(--tactical-text-muted)] uppercase tracking-[0.22em]">
-                      PIN Jaring
-                    </p>
-                    <p className="select-all font-bold text-4xl text-[var(--tactical-text-primary)] tracking-[0.3em]">
-                      {createdJaring?.pin}
-                    </p>
+            <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+              {/* Registrasi Jaring Baru Form */}
+              <div className="tactical-card space-y-4">
+                <h3 className="border-[var(--tactical-border)] border-b pb-2 font-semibold text-[var(--tactical-text-primary)] text-lg tracking-tight">
+                  Registrasi Jaring Baru
+                </h3>
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="block font-mono font-semibold text-[11px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
+                      Kode Jaring
+                    </label>
+                    <Input
+                      className="tactical-input w-full"
+                      placeholder="Contoh: J-01"
+                      value={jaringForm.code}
+                      onChange={(event) =>
+                        setJaringForm((current) => ({
+                          ...current,
+                          code: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block font-mono font-semibold text-[11px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
+                      Alias / Nama Sandi
+                    </label>
+                    <Input
+                      className="tactical-input w-full"
+                      placeholder="Contoh: Elang Malam"
+                      value={jaringForm.aliasName}
+                      onChange={(event) =>
+                        setJaringForm((current) => ({
+                          ...current,
+                          aliasName: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block font-mono font-semibold text-[11px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
+                      Nomor WhatsApp
+                    </label>
+                    <Input
+                      className="tactical-input w-full"
+                      placeholder="Contoh: 628123456789"
+                      value={jaringForm.whatsappNumber}
+                      onChange={(event) => {
+                        const val = event.target.value.replace(/\D/g, "");
+                        setJaringForm((current) => ({
+                          ...current,
+                          whatsappNumber: val,
+                        }));
+                      }}
+                    />
                   </div>
 
                   <DialogFooter className="mx-0 mb-0 px-0">
@@ -1292,12 +1355,92 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       onClick={() => void copyCreatedJaringPin()}
                       className="inline-flex h-10 items-center justify-center gap-2 rounded-[4px] bg-[#16A34A] px-4 font-semibold text-white text-xs uppercase hover:bg-[#15803D]"
                     >
-                      <Copy className="size-4" />
-                      Salin PIN
-                    </button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                      <option value="">PILIH AREA UTAMA</option>
+                      {workspace.context.areaScopes.map((area) => (
+                        <option key={area.areaId} value={area.areaId}>
+                          {area.name.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block font-mono font-semibold text-[11px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
+                      Catatan Pembinaan
+                    </label>
+                    <Textarea
+                      className="tactical-input w-full"
+                      placeholder="Catatan intelijen/pembinaan..."
+                      value={jaringForm.notes}
+                      onChange={(event) =>
+                        setJaringForm((current) => ({
+                          ...current,
+                          notes: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <button
+                    disabled={isBusy === "jaring:create"}
+                    onClick={() => {
+                      if (!jaringForm.code.trim()) {
+                        toast.error("Kode Jaring harus diisi.");
+                        return;
+                      }
+                      if (!jaringForm.aliasName.trim()) {
+                        toast.error("Alias / Nama Sandi harus diisi.");
+                        return;
+                      }
+                      if (!jaringForm.whatsappNumber.trim()) {
+                        toast.error("Nomor WhatsApp harus diisi.");
+                        return;
+                      }
+                      if (!jaringForm.clusterId.trim()) {
+                        toast.error("Silakan pilih Cluster Jaring.");
+                        return;
+                      }
+                      if (!jaringForm.areaId.trim()) {
+                        toast.error("Silakan pilih Area Utama.");
+                        return;
+                      }
+                      if (!jaringForm.notes.trim()) {
+                        toast.error("Catatan Pembinaan harus diisi.");
+                        return;
+                      }
+                      setShowSaveJaringConfirm(true);
+                    }}
+                    className="h-[40px] w-full cursor-pointer rounded-[4px] bg-[#16A34A] px-[18px] font-mono font-semibold text-sm text-white uppercase tracking-[0.04em] shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#15803D] hover:brightness-105 active:scale-[0.98] active:bg-[#166534] disabled:opacity-50"
+                  >
+                    {isBusy === "jaring:create" ? "MENYIMPAN..." : "SIMPAN JARING"}
+                  </button>
+
+                  <AlertDialog open={showSaveJaringConfirm} onOpenChange={setShowSaveJaringConfirm}>
+                    <AlertDialogContent className="rounded-[6px] border border-[var(--tactical-border)] bg-[var(--tactical-card-bg)] font-mono text-[var(--tactical-text-primary)]">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="font-semibold text-sm uppercase tracking-wider">
+                          KONFIRMASI REGISTRASI
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-[var(--tactical-text-secondary)] text-xs">
+                          Apakah Anda yakin ingin menyimpan dan meregistrasikan Jaring Binaan baru ini?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="mt-4 flex flex-wrap justify-end gap-2">
+                        <AlertDialogCancel className="h-9 cursor-pointer rounded-[4px] border border-[#475569] bg-transparent px-4 font-semibold text-[#CBD5E1] text-xs uppercase tracking-wider hover:bg-[#334155]">
+                          BATAL
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            setShowSaveJaringConfirm(false);
+                            void createJaring();
+                          }}
+                          className="h-9 cursor-pointer rounded-[4px] bg-[#16A34A] px-4 font-semibold text-white text-xs uppercase tracking-wider hover:bg-[#15803D]"
+                        >
+                          YA, SIMPAN
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
 
               {/* Jaring Binaan List */}
               <div className="space-y-4">
@@ -1581,31 +1724,31 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
             ) : (
               <>
                 <div className="grid gap-4">
-                  {paginatedIncoming.map((message) => (
-                    <div key={message.id} className="tactical-card space-y-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(message.status)}`}
-                            >
-                              {message.status}
-                            </span>
-                            <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                              VAL: {message.validationSummary}
-                            </span>
-                            <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                              JARING: {message.jaringCode}
-                            </span>
-                          </div>
-                          <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg hover:underline hover:text-[var(--tactical-blue)] cursor-pointer">
-                            <Link href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}>
-                              {message.title || message.jaringAlias}
-                            </Link>
-                          </h3>
-                          <p className="text-[var(--tactical-text-secondary)] text-sm leading-relaxed">
-                            {message.content || "Pesan belum memiliki isi teks."}
-                          </p>
+                {paginatedIncoming.map((message) => (
+                  <div key={message.id} className="tactical-card space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(message.status)}`}
+                          >
+                            {message.status}
+                          </span>
+                          <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
+                            VAL: {message.validationSummary}
+                          </span>
+                          <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
+                            JARING: {message.jaringCode}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg hover:underline hover:text-[var(--tactical-blue)] cursor-pointer">
+                          <Link href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}>
+                            {message.title || message.jaringAlias}
+                          </Link>
+                        </h3>
+                        <p className="text-[var(--tactical-text-secondary)] text-sm leading-relaxed">
+                          {message.content || "Pesan belum memiliki isi teks."}
+                        </p>
 
                           <div className="grid gap-2 border-[var(--tactical-border)] border-t pt-3 font-mono text-[11px] text-[var(--tactical-text-muted)] sm:grid-cols-2 md:grid-cols-3">
                             <span>RECEIVED: {formatDateTime(message.receivedAt)}</span>
@@ -1643,6 +1786,17 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                 <span>WA ID: {message.photoMessageId || "-"}</span>
                                 {message.photoCaption && <span>CAPTION: {message.photoCaption}</span>}
                               </div>
+                            ) : (
+                              <p className="text-[var(--tactical-text-secondary)] text-xs opacity-80">
+                                Foto diterima oleh bot, tetapi file visual belum tersedia di storage. Kiriman lama
+                                sebelum patch hanya punya metadata WA.
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-[var(--tactical-text-muted)]">
+                                <span>MEDIA DB: {message.mediaCount}</span>
+                                <span>FILE ID: {message.photoFileId || "-"}</span>
+                                <span>WA ID: {message.photoMessageId || "-"}</span>
+                                {message.photoCaption && <span>CAPTION: {message.photoCaption}</span>}
                             </div>
                           )}
 
@@ -1683,68 +1837,68 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                           )}
                         </div>
 
-                        <div className="flex shrink-0 flex-col gap-2 font-mono">
-                          <button
-                            disabled={isBusy === `validate:${message.id}`}
-                            onClick={() =>
-                              requestConfirmation({
-                                title: "KONFIRMASI VALIDASI",
-                                description: "Jalankan validasi ulang untuk laporan masuk ini sekarang?",
-                                confirmLabel: "YA, VALIDASI",
-                                onConfirm: () => {
-                                  void validateIncoming(message.id);
-                                },
-                              })
-                            }
-                            className={`h-[40px] cursor-pointer rounded-[4px] border px-[18px] font-mono font-semibold text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 ${
-                              message.validationSummary === "VALID"
-                                ? "border-[#16A34A] bg-[#16A34A] text-white hover:bg-[#15803D]"
-                                : "border-[#475569] bg-transparent text-[#CBD5E1] hover:border-[#64748B] hover:bg-[#334155]"
-                            }`}
-                          >
-                            {isBusy === `validate:${message.id}`
-                              ? "MEMVALIDASI..."
-                              : message.validationSummary === "VALID"
-                                ? "VERIFIKASI"
-                                : "VALIDASI"}
-                          </button>
-                          <button
-                            disabled={isBusy === `delete:${message.id}`}
-                            onClick={() =>
-                              requestConfirmation({
-                                title: "KONFIRMASI TOLAK LAPORAN",
-                                description: "Tolak dan keluarkan laporan ini dari antrean kotak masuk jaring?",
-                                confirmLabel: "YA, TOLAK",
-                                onConfirm: () => {
-                                  void deleteIncoming(message.id);
-                                },
-                              })
-                            }
-                            className="h-[40px] cursor-pointer rounded-[4px] bg-[#991B1B] px-[18px] font-mono font-semibold text-white text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#DC2626] hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
-                          >
-                            TOLAK
-                          </button>
-                        </div>
+                      <div className="flex shrink-0 flex-col gap-2 font-mono">
+                        <button
+                          disabled={isBusy === `validate:${message.id}`}
+                          onClick={() =>
+                            requestConfirmation({
+                              title: "KONFIRMASI VALIDASI",
+                              description: "Jalankan validasi ulang untuk laporan masuk ini sekarang?",
+                              confirmLabel: "YA, VALIDASI",
+                              onConfirm: () => {
+                                void validateIncoming(message.id);
+                              },
+                            })
+                          }
+                          className={`h-[40px] cursor-pointer rounded-[4px] border px-[18px] font-mono font-semibold text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 ${
+                            message.validationSummary === "VALID"
+                              ? "border-[#16A34A] bg-[#16A34A] text-white hover:bg-[#15803D]"
+                              : "border-[#475569] bg-transparent text-[#CBD5E1] hover:border-[#64748B] hover:bg-[#334155]"
+                          }`}
+                        >
+                          {isBusy === `validate:${message.id}`
+                            ? "MEMVALIDASI..."
+                            : message.validationSummary === "VALID"
+                              ? "VERIFIKASI"
+                              : "VALIDASI"}
+                        </button>
+                        <button
+                          disabled={isBusy === `delete:${message.id}`}
+                          onClick={() =>
+                            requestConfirmation({
+                              title: "KONFIRMASI TOLAK LAPORAN",
+                              description: "Tolak dan keluarkan laporan ini dari antrean kotak masuk jaring?",
+                              confirmLabel: "YA, TOLAK",
+                              onConfirm: () => {
+                                void deleteIncoming(message.id);
+                              },
+                            })
+                          }
+                          className="h-[40px] cursor-pointer rounded-[4px] bg-[#991B1B] px-[18px] font-mono font-semibold text-white text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#DC2626] hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
+                        >
+                          TOLAK
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
 
-                {totalIncoming > 0 && (
-                  <TablePagination
-                    page={safeIncomingPage}
-                    limit={incomingLimit}
-                    total={totalIncoming}
-                    onPageChange={setIncomingPage}
-                    onLimitChange={(limit) => {
-                      setIncomingLimit(limit);
-                      setIncomingPage(1);
-                    }}
-                    className="mt-4 border border-slate-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#131A26] px-6"
-                  />
-                )}
-              </>
-            )}
+              {totalIncoming > 0 && (
+                <TablePagination
+                  page={safeIncomingPage}
+                  limit={incomingLimit}
+                  total={totalIncoming}
+                  onPageChange={setIncomingPage}
+                  onLimitChange={(limit) => {
+                    setIncomingLimit(limit);
+                    setIncomingPage(1);
+                  }}
+                  className="mt-4 border border-slate-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#131A26] px-6"
+                />
+              )}
+            </>
+          )}
           </TacticalSection>
           {view === "overview" && <hr className="border-[var(--tactical-border)] opacity-60" />}
         </>

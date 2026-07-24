@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -917,7 +918,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
         }
       />
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 border-white/[0.08] border-b pb-3 font-mono text-muted-foreground text-xs">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-muted-foreground text-xs border-b border-white/[0.08] pb-3">
         <div className="flex items-center gap-1">
           <BookOpenText className="size-3 text-muted-foreground/60" />
           <span>
@@ -936,7 +937,10 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
         <div className="flex items-center gap-1">
           <Calendar className="size-3 text-muted-foreground/60" />
           <span>
-            TANGGAL: <span className="text-[var(--dc-text-primary)]">{formatDate(currentVersionCreatedAt)}</span>
+            TANGGAL:{" "}
+            <span className="text-[var(--dc-text-primary)]">
+              {(currentVersion as any)?.createdAt ? formatDate((currentVersion as any).createdAt) : "-"}
+            </span>
           </span>
         </div>
       </div>

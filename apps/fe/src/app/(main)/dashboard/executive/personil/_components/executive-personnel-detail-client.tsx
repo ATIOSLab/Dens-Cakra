@@ -16,10 +16,6 @@ import {
 } from "lucide-react";
 
 import { BackButton } from "@/components/ui/back-button";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
@@ -217,10 +213,10 @@ export function ExecutivePersonnelDetailClient({
           <div className="absolute top-0 left-0 w-[4px] h-full bg-[var(--dc-primary)]" />
 
           <div className="mb-4">
-            <BackButton href={backHref} />
+            <BackButton href="/dashboard/executive/personil" />
           </div>
 
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1">
               <h1 className="text-2xl font-mono font-bold tracking-tight text-foreground uppercase mt-2">
                 {profile.fullName ?? profile.username ?? profile.email}
