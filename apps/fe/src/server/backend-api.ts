@@ -56,7 +56,7 @@ export async function backendApi<T>(
     requestHeaders.set("content-type", "application/json");
   }
 
-  if (idempotent) {
+  if (idempotent && !requestHeaders.has("idempotency-key")) {
     requestHeaders.set("idempotency-key", randomUUID());
   }
 

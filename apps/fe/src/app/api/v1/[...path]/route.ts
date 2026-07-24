@@ -18,12 +18,18 @@ const hopByHopHeaders = [
   "upgrade",
 ];
 
+const idempotentMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
 async function forwardApiRequest(request: NextRequest) {
   const targetUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, getBackendInternalUrl());
   const forwardedHeaders = new Headers(request.headers);
 
   for (const header of hopByHopHeaders) {
     forwardedHeaders.delete(header);
+  }
+
+  if (idempotentMethods.has(request.method) && !forwardedHeaders.has("idempotency-key")) {
+    forwardedHeaders.set("idempotency-key", `dc_proxy_${crypto.randomUUID()}`);
   }
 
   let response: Response;
