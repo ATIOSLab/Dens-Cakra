@@ -24,6 +24,8 @@ export type SpatialAreaResolution = {
 };
 
 const REPORT_AREA_LEVELS = [
+  AdministrativeLevel.VILLAGE,
+  AdministrativeLevel.URBAN_VILLAGE,
   AdministrativeLevel.DISTRICT,
   AdministrativeLevel.REGENCY,
   AdministrativeLevel.CITY,

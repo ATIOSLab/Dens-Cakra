@@ -235,6 +235,36 @@ const jaringClusterSeeds = [
   ],
 ] as const;
 
+const jaringOccupationSeeds = [
+  ['ASN_PNS', 'ASN / PNS', 'Aparatur Sipil Negara atau Pegawai Negeri Sipil.'],
+  ['PPPK', 'PPPK', 'Pegawai Pemerintah dengan Perjanjian Kerja.'],
+  ['TNI', 'TNI', 'Personel Tentara Nasional Indonesia.'],
+  ['POLRI', 'Polri', 'Personel Kepolisian Negara Republik Indonesia.'],
+  ['PEGAWAI_BUMN', 'Pegawai BUMN', 'Pegawai Badan Usaha Milik Negara.'],
+  ['PEGAWAI_BUMD', 'Pegawai BUMD', 'Pegawai Badan Usaha Milik Daerah.'],
+  ['PEGAWAI_SWASTA', 'Pegawai Swasta', 'Pekerja pada perusahaan atau lembaga swasta.'],
+  ['WIRASWASTA', 'Wiraswasta', 'Pemilik atau pengelola usaha mandiri.'],
+  ['PEDAGANG', 'Pedagang', 'Pelaku usaha perdagangan barang atau jasa.'],
+  ['UMKM', 'Pelaku UMKM', 'Pelaku usaha mikro, kecil, dan menengah.'],
+  ['GURU_DOSEN', 'Guru / Dosen', 'Tenaga pendidik formal maupun nonformal.'],
+  ['TENAGA_KESEHATAN', 'Tenaga Kesehatan', 'Dokter, perawat, bidan, apoteker, atau tenaga kesehatan lain.'],
+  ['MAHASISWA_PELAJAR', 'Mahasiswa / Pelajar', 'Peserta pendidikan tinggi atau sekolah.'],
+  ['BURUH_KARYAWAN', 'Buruh / Karyawan', 'Pekerja operasional, produksi, lapangan, atau harian.'],
+  ['PETANI', 'Petani', 'Pelaku usaha atau pekerja sektor pertanian.'],
+  ['NELAYAN', 'Nelayan', 'Pelaku usaha atau pekerja sektor perikanan tangkap.'],
+  ['SOPIR_TRANSPORTASI', 'Sopir / Transportasi', 'Pengemudi angkutan umum, logistik, atau kendaraan operasional.'],
+  ['OJEK_ONLINE_KURIR', 'Ojek Online / Kurir', 'Pengemudi ojek online, kurir, atau pekerja layanan antar.'],
+  ['SATPAM_SECURITY', 'Satpam / Security', 'Petugas keamanan lingkungan, gedung, atau perusahaan.'],
+  ['JURNALIS_MEDIA', 'Jurnalis / Media', 'Pekerja media, wartawan, atau pengelola kanal informasi.'],
+  ['TOKOH_AGAMA', 'Tokoh Agama', 'Pemuka agama atau pengurus kegiatan keagamaan.'],
+  ['TOKOH_MASYARAKAT', 'Tokoh Masyarakat', 'Tokoh lokal, pengurus komunitas, atau figur masyarakat.'],
+  ['PENGURUS_RT_RW', 'Pengurus RT/RW', 'Ketua atau pengurus lingkungan RT/RW.'],
+  ['IBU_RUMAH_TANGGA', 'Ibu Rumah Tangga', 'Pengelola rumah tangga.'],
+  ['PENSIUNAN', 'Pensiunan', 'Purna tugas dari pekerjaan formal atau informal.'],
+  ['TIDAK_BEKERJA', 'Tidak Bekerja', 'Belum atau tidak memiliki pekerjaan aktif.'],
+  ['LAINNYA', 'Lainnya', 'Pekerjaan lain yang belum tersedia pada master data.'],
+] as const;
+
 const reportCategorySeeds = [
   [
     'POLITIK',
@@ -596,6 +626,14 @@ async function seedProductTypesAndTemplates() {
 async function seedBaketMasterData() {
   for (const [code, name, description] of jaringClusterSeeds) {
     await prisma.jaringCluster.upsert({
+      where: { code },
+      update: { name, description, isActive: true },
+      create: { code, name, description, isActive: true },
+    });
+  }
+
+  for (const [code, name, description] of jaringOccupationSeeds) {
+    await prisma.jaringOccupation.upsert({
       where: { code },
       update: { name, description, isActive: true },
       create: { code, name, description, isActive: true },

@@ -996,6 +996,7 @@ model FileAsset {
   productAttachments   ProductAttachment[]
   emergencyAttachments EmergencyAttachment[]
   uploadReservation    FileUploadReservation?
+  jaringProfilePhotos  Jaring[]                  @relation("JaringProfilePhoto")
 
   @@index([createdAt])
 }
@@ -1275,6 +1276,7 @@ model Jaring {
   birthDate             DateTime?     @db.Date
   gender                JaringGender?
   occupationId          String?       @db.Uuid
+  profilePhotoFileId    String?       @db.Uuid
   workplace             String?       @db.VarChar(180)
   jobTitle              String?       @db.VarChar(150)
   joinedAt              DateTime?     @db.Date
@@ -1292,6 +1294,7 @@ model Jaring {
   createdByAssignment UserSeatAssignment @relation("JaringCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
   cluster             JaringCluster?     @relation(fields: [clusterId], references: [id], onDelete: SetNull)
   occupation          JaringOccupation?  @relation(fields: [occupationId], references: [id], onDelete: SetNull)
+  profilePhotoFile    FileAsset?         @relation("JaringProfilePhoto", fields: [profilePhotoFileId], references: [id], onDelete: SetNull)
 
   caretakerAssignments JaringCaretakerAssignment[]
   areaCoverages        JaringAreaCoverage[]
@@ -1302,6 +1305,7 @@ model Jaring {
   @@index([code])
   @@index([clusterId, status])
   @@index([occupationId])
+  @@index([profilePhotoFileId])
 }
 
 model JaringCluster {

@@ -53,6 +53,8 @@ export type FieldOfficerJaring = {
   birthDate: string | null;
   gender: string | null;
   occupationName: string | null;
+  profilePhotoFileId: string | null;
+  profilePhotoUrl: string | null;
   workplace: string | null;
   jobTitle: string | null;
   joinedAt: string | null;
@@ -173,8 +175,20 @@ export type FieldOfficerWorkspace = {
   districtAreas: Array<{
     areaId: string;
     code: string;
+    officialCode?: string | null;
     name: string;
     level: string;
+    parentAreaId?: string | null;
+    parentOfficialCode?: string | null;
+  }>;
+  villageAreas: Array<{
+    areaId: string;
+    code: string;
+    officialCode?: string | null;
+    name: string;
+    level: string;
+    parentAreaId?: string | null;
+    parentOfficialCode?: string | null;
   }>;
   reportCategories: ReportCategory[];
   jaringReports: FieldOfficerIncoming[];

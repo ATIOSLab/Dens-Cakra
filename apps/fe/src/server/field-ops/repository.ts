@@ -64,11 +64,25 @@ type JaringRecord = {
     id: string;
     name: string;
   } | null;
+  profilePhotoFileId?: string | null;
+  profilePhotoFile?: {
+    id: string;
+  } | null;
   workplace?: string | null;
   jobTitle?: string | null;
   joinedAt?: string | Date | null;
   organizationName?: string | null;
   politicalAffiliation?: string | null;
+};
+
+type AreaScopeRecord = {
+  areaId: string;
+  code: string;
+  officialCode?: string | null;
+  name: string;
+  level: string;
+  parentAreaId?: string | null;
+  parentOfficialCode?: string | null;
 };
 
 type MessageRecord = {
@@ -374,7 +388,7 @@ export async function getFieldOfficerWorkspace(
     messages,
     tasks,
     baketResponse,
-    districtAreas,
+    scopedAreas,
     latestLocation,
   ] =
     await Promise.all([
@@ -418,9 +432,9 @@ export async function getFieldOfficerWorkspace(
           limit: 50,
         },
       }),
-      backendApi<Array<{ areaId: string; code: string; name: string; level: string }>>("/me/area-scopes", {
+      backendApi<AreaScopeRecord[]>("/me/area-scopes", {
         cookie,
-        query: { includeDescendants: true, level: "DISTRICT" },
+        query: { includeDescendants: true },
       }),
       backendApi<LocationRecord>("/personnel-location-pings/me/latest", {
         cookie,
@@ -428,6 +442,8 @@ export async function getFieldOfficerWorkspace(
     ]);
 
   const ownBakets = Array.isArray(baketResponse) ? baketResponse : (baketResponse.items ?? []);
+  const districtAreas = scopedAreas.filter((area) => area.level === "DISTRICT");
+  const villageAreas = scopedAreas.filter((area) => area.level === "VILLAGE" || area.level === "URBAN_VILLAGE");
 
   const jaring = allJaring
     .filter((item) =>
@@ -452,6 +468,11 @@ export async function getFieldOfficerWorkspace(
       birthDate: item.birthDate ? (typeof item.birthDate === "string" ? item.birthDate : item.birthDate.toISOString()) : null,
       gender: item.gender ?? null,
       occupationName: item.occupation?.name ?? null,
+      profilePhotoFileId: item.profilePhotoFileId ?? item.profilePhotoFile?.id ?? null,
+      profilePhotoUrl:
+        item.profilePhotoFileId || item.profilePhotoFile?.id
+          ? `/api/field-officer/files/${item.profilePhotoFileId ?? item.profilePhotoFile?.id}`
+          : null,
       workplace: item.workplace ?? null,
       jobTitle: item.jobTitle ?? null,
       joinedAt: item.joinedAt ? (typeof item.joinedAt === "string" ? item.joinedAt : item.joinedAt.toISOString()) : null,
@@ -489,6 +510,7 @@ export async function getFieldOfficerWorkspace(
       jaringCount: occupation._count?.jaring ?? occupation.jaringCount,
     })),
     districtAreas,
+    villageAreas,
     reportCategories: reportCategories.map((category) => ({
       id: category.id,
       code: category.code,
@@ -538,9 +560,10 @@ export async function getFieldOfficerWorkspace(
 export async function createFieldOfficerJaring(
   cookie: string,
   body: {
-    aliasName: string;
+    aliasName?: string;
     whatsappNumber: string;
     clusterId?: string;
+    profilePhotoFileId?: string;
     notes?: string;
     areaIds: string[];
     fieldOfficerAssignmentId: string;

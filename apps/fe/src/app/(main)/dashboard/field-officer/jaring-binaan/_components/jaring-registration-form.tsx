@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BriefcaseBusiness, LoaderCircle, Network, UserRound } from "lucide-react";
+import { BriefcaseBusiness, ImagePlus, LoaderCircle, Network, UserRound, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -32,6 +32,15 @@ import { Textarea } from "@/components/ui/textarea";
 import type { FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 const LIST_ROUTE = "/dashboard/field-officer/jaring-binaan";
+
+const JAKARTA_CITY_ALIAS_CODES: Record<string, string> = {
+  "31.74": "Z", // Jakarta Selatan
+  "31.73": "Y", // Jakarta Barat
+  "31.75": "X", // Jakarta Timur
+  "31.71": "W", // Jakarta Pusat
+  "31.72": "V", // Jakarta Utara
+  "31.01": "V", // Kepulauan Seribu
+};
 
 const registrationSchema = z
   .object({
@@ -43,6 +52,7 @@ const registrationSchema = z
       .max(30, "Maksimal 30 digit."),
     clusterId: z.string().min(1, "Cluster Jaring wajib dipilih."),
     areaId: z.string().min(1, "Kecamatan wajib dipilih."),
+    villageIds: z.array(z.string()).min(1, "Pilih minimal 1 Kelurahan/Desa."),
     joinedAt: z
       .string()
       .min(1, "Tanggal Bergabung wajib diisi.")
@@ -52,7 +62,7 @@ const registrationSchema = z
       }, "Tanggal Bergabung harus valid dan tidak boleh di masa depan."),
     organizationName: z.string().max(180, "Maksimal 180 karakter."),
     politicalAffiliation: z.string().max(180, "Maksimal 180 karakter."),
-    notes: z.string().max(3000, "Maksimal 3.000 karakter."),
+    notes: z.string().trim().min(1, "Kebermanfaatan wajib diisi.").max(3000, "Maksimal 3.000 karakter."),
     fullName: z.string().trim().min(1, "Nama Lengkap wajib diisi.").max(180, "Maksimal 180 karakter."),
     nationalIdNumber: z.string().regex(/^\d{16}$/, "NIK harus terdiri dari tepat 16 digit angka."),
     birthPlace: z.string().trim().min(1, "Tempat Lahir wajib diisi.").max(120, "Maksimal 120 karakter."),
@@ -83,6 +93,90 @@ const registrationSchema = z
   });
 
 type RegistrationFormValues = z.infer<typeof registrationSchema>;
+type WorkspaceDistrictArea = FieldOfficerWorkspace["districtAreas"][number];
+type WorkspaceJaring = FieldOfficerWorkspace["jaring"][number];
+
+type ApiEnvelope<T> = {
+  success?: boolean;
+  data?: T;
+  error?: {
+    message?: string;
+  };
+  message?: string;
+};
+
+type PresignResponse = {
+  uploadToken: string;
+  storageKey: string;
+  uploadUrl: string;
+  method: string;
+  headers: Record<string, string>;
+};
+
+type CompleteUploadResponse = {
+  id: string;
+};
+
+function envelopeData<T>(payload: ApiEnvelope<T> | T): T {
+  if (payload && typeof payload === "object" && "success" in payload && "data" in payload) {
+    return (payload as ApiEnvelope<T>).data as T;
+  }
+
+  return payload as T;
+}
+
+async function sha256Hex(file: File) {
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function administrativeCode(area: Pick<WorkspaceDistrictArea, "code" | "officialCode">) {
+  return area.officialCode?.trim() || area.code.trim();
+}
+
+function cityAliasCode(area: WorkspaceDistrictArea) {
+  const cityCode = area.parentOfficialCode?.trim() || administrativeCode(area).split(".").slice(0, -1).join(".");
+  return cityCode ? (JAKARTA_CITY_ALIAS_CODES[cityCode] ?? null) : null;
+}
+
+function districtAliasNumber(area: WorkspaceDistrictArea) {
+  const lastSegment = administrativeCode(area).split(".").at(-1) ?? "";
+  const digits = lastSegment.replace(/\D/g, "");
+  return digits.padStart(2, "0");
+}
+
+function nextAliasSequence(prefix: string, jaring: WorkspaceJaring[]) {
+  const maxSequence = jaring.reduce((max, item) => {
+    if (!item.aliasName.startsWith(prefix)) {
+      return max;
+    }
+
+    const sequence = item.aliasName.slice(prefix.length);
+    if (!/^\d{3}$/.test(sequence)) {
+      return max;
+    }
+
+    return Math.max(max, Number(sequence));
+  }, 0);
+  const nextSequence = maxSequence + 1;
+
+  return nextSequence > 999 ? null : String(nextSequence).padStart(3, "0");
+}
+
+function generateAliasPreview(area: WorkspaceDistrictArea | null, jaring: WorkspaceJaring[]) {
+  if (!area) {
+    return "";
+  }
+
+  const cityCode = cityAliasCode(area);
+  if (!cityCode) {
+    return "";
+  }
+
+  const prefix = `${cityCode}${districtAliasNumber(area)}`;
+  const sequence = nextAliasSequence(prefix, jaring);
+  return sequence ? `${prefix}${sequence}` : "";
+}
 
 function calculateAge(birthDate: string) {
   if (!birthDate) return "";
@@ -106,12 +200,6 @@ function todayInputValue() {
   ].join("-");
 }
 
-function occupationSelectPlaceholder(isLoading: boolean, occupationCount: number) {
-  if (isLoading) return "Memuat pekerjaan...";
-  if (occupationCount > 0) return "Pilih Pekerjaan";
-  return "Belum ada master pekerjaan aktif";
-}
-
 function RequiredLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
   return (
     <FieldLabel htmlFor={htmlFor}>
@@ -130,6 +218,10 @@ export function JaringRegistrationForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [occupationSearch, setOccupationSearch] = useState("");
   const [maxBirthDate] = useState(todayInputValue);
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
@@ -139,6 +231,7 @@ export function JaringRegistrationForm() {
       whatsappNumber: "",
       clusterId: "",
       areaId: "",
+      villageIds: [],
       joinedAt: todayInputValue(),
       organizationName: "",
       politicalAffiliation: "",
@@ -156,6 +249,77 @@ export function JaringRegistrationForm() {
   const nikField = form.register("nationalIdNumber");
   const birthDate = form.watch("birthDate");
   const gender = form.watch("gender");
+  const selectedOccupationId = form.watch("occupationId");
+  const selectedDistrictId = form.watch("areaId");
+  const selectedVillageIds = form.watch("villageIds");
+  const selectedDistrict = workspace?.districtAreas.find((area) => area.areaId === selectedDistrictId) ?? null;
+  const selectedOccupation =
+    workspace?.occupations.find((occupation) => occupation.id === selectedOccupationId) ?? null;
+  const filteredOccupations = useMemo(() => {
+    const search = occupationSearch.trim().toLowerCase();
+    const occupations = workspace?.occupations ?? [];
+
+    if (!search) {
+      return occupations;
+    }
+
+    return occupations.filter((occupation) =>
+      `${occupation.name} ${occupation.code}`.toLowerCase().includes(search),
+    );
+  }, [occupationSearch, workspace?.occupations]);
+  const generatedAliasName = useMemo(
+    () => generateAliasPreview(selectedDistrict, workspace?.jaring ?? []),
+    [selectedDistrict, workspace?.jaring],
+  );
+  const villageOptions = useMemo(() => {
+    if (!workspace || !selectedDistrict) return [];
+    const selectedDistrictCode = selectedDistrict.officialCode ?? selectedDistrict.code;
+
+    return workspace.villageAreas.filter((area) => {
+      const areaCode = area.officialCode ?? area.code;
+      if (area.parentAreaId && area.parentAreaId === selectedDistrict.areaId) return true;
+      if (area.parentOfficialCode && selectedDistrictCode) {
+        return area.parentOfficialCode === selectedDistrictCode;
+      }
+      if (areaCode && selectedDistrictCode) {
+        return areaCode.startsWith(`${selectedDistrictCode}.`);
+      }
+      return false;
+    });
+  }, [selectedDistrict, workspace]);
+
+  useEffect(() => {
+    if (!selectedDistrictId) {
+      form.setValue("villageIds", [], { shouldDirty: true, shouldValidate: true });
+      return;
+    }
+
+    const allowedVillageIds = new Set(villageOptions.map((area) => area.areaId));
+    const currentVillageIds = form.getValues("villageIds");
+    const nextVillageIds = currentVillageIds.filter((areaId) => allowedVillageIds.has(areaId));
+    if (nextVillageIds.length !== currentVillageIds.length) {
+      form.setValue("villageIds", nextVillageIds, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [form, selectedDistrictId, villageOptions]);
+
+  useEffect(() => {
+    form.setValue("aliasName", generatedAliasName, {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
+  }, [form, generatedAliasName]);
+
+  useEffect(() => {
+    if (!selectedPhotoFile) {
+      setPhotoPreviewUrl(null);
+      return;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(selectedPhotoFile);
+    setPhotoPreviewUrl(nextPreviewUrl);
+
+    return () => URL.revokeObjectURL(nextPreviewUrl);
+  }, [selectedPhotoFile]);
 
   useEffect(() => {
     let cancelled = false;
@@ -185,6 +349,95 @@ export function JaringRegistrationForm() {
     };
   }, []);
 
+  function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setPhotoError(null);
+
+    if (!file) {
+      setSelectedPhotoFile(null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setSelectedPhotoFile(null);
+      setPhotoError("File foto harus berupa gambar.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setSelectedPhotoFile(null);
+      setPhotoError("Ukuran foto maksimal 5 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedPhotoFile(file);
+  }
+
+  function clearPhoto() {
+    setSelectedPhotoFile(null);
+    setPhotoError(null);
+  }
+
+  function toggleVillage(areaId: string, checked: boolean) {
+    const current = form.getValues("villageIds");
+    const next = checked ? [...new Set([...current, areaId])] : current.filter((id) => id !== areaId);
+
+    form.setValue("villageIds", next, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+  }
+
+  async function uploadProfilePhoto(file: File) {
+    const checksumSha256 = await sha256Hex(file);
+    const presignResponse = await fetch("/api/v1/files/presign", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        originalName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        fileType: "PHOTO",
+        sizeBytes: file.size,
+        checksumSha256,
+        context: "jaring-profile-photo",
+      }),
+    });
+    const presignPayload = (await presignResponse.json().catch(() => null)) as ApiEnvelope<PresignResponse> | null;
+    if (!presignResponse.ok || !presignPayload) {
+      throw new Error(presignPayload?.error?.message ?? presignPayload?.message ?? "Gagal menyiapkan upload foto.");
+    }
+
+    const presign = envelopeData(presignPayload);
+    const uploadResponse = await fetch(presign.uploadUrl, {
+      method: presign.method,
+      headers: presign.headers,
+      body: file,
+    });
+    if (!uploadResponse.ok) {
+      throw new Error("Gagal mengunggah foto Jaring.");
+    }
+
+    const completeResponse = await fetch("/api/v1/files/complete", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        uploadToken: presign.uploadToken,
+        storageKey: presign.storageKey,
+      }),
+    });
+    const completePayload = (await completeResponse.json().catch(() => null)) as
+      | ApiEnvelope<CompleteUploadResponse>
+      | null;
+    if (!completeResponse.ok || !completePayload) {
+      throw new Error(completePayload?.error?.message ?? completePayload?.message ?? "Gagal menyelesaikan upload foto.");
+    }
+
+    return envelopeData(completePayload).id;
+  }
+
   async function saveJaring() {
     const valid = await form.trigger();
     if (!valid || !workspace) {
@@ -195,6 +448,7 @@ export function JaringRegistrationForm() {
     const values = form.getValues();
     setIsSubmitting(true);
     try {
+      const profilePhotoFileId = selectedPhotoFile ? await uploadProfilePhoto(selectedPhotoFile) : undefined;
       const response = await fetch("/api/field-officer/jaring", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -208,13 +462,14 @@ export function JaringRegistrationForm() {
           birthDate: values.birthDate,
           gender: values.gender,
           occupationId: values.occupationId,
+          profilePhotoFileId,
           workplace: values.workplace.trim() || undefined,
           jobTitle: values.jobTitle.trim() || undefined,
           joinedAt: values.joinedAt,
           organizationName: values.organizationName.trim() || undefined,
           politicalAffiliation: values.politicalAffiliation.trim() || undefined,
-          notes: values.notes.trim() || undefined,
-          areaIds: [values.areaId],
+          notes: values.notes.trim(),
+          areaIds: values.villageIds,
           fieldOfficerAssignmentId: workspace.context.primaryAssignmentId,
         }),
       });
@@ -248,11 +503,11 @@ export function JaringRegistrationForm() {
       ) : null}
 
       <form
-        className="mx-auto max-w-6xl space-y-5"
+        className="mx-auto flex max-w-6xl flex-col gap-5"
         onSubmit={form.handleSubmit(() => setShowConfirmation(true))}
         noValidate
       >
-        <Card>
+        <Card className="order-2">
           <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
               <Network className="size-4 text-primary" /> Informasi Jaring
@@ -265,7 +520,18 @@ export function JaringRegistrationForm() {
                 <Field data-invalid={Boolean(form.formState.errors.aliasName)}>
                   <RequiredLabel htmlFor="alias-name">Alias / Nama Sandi</RequiredLabel>
                   <FieldContent>
-                    <Input id="alias-name" placeholder="Contoh: Merpati" {...form.register("aliasName")} />
+                    <Input
+                      id="alias-name"
+                      className="font-mono uppercase tracking-wide"
+                      placeholder="Pilih Kecamatan untuk membuat alias otomatis"
+                      readOnly
+                      aria-readonly="true"
+                      {...form.register("aliasName")}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Otomatis dari kode kota + nomor kecamatan + urutan input, contoh Z01001. Sistem menghitung ulang
+                      saat disimpan.
+                    </p>
                     <FieldError errors={[form.formState.errors.aliasName]} />
                   </FieldContent>
                 </Field>
@@ -329,6 +595,45 @@ export function JaringRegistrationForm() {
                     <FieldError errors={[form.formState.errors.areaId]} />
                   </FieldContent>
                 </Field>
+                <Field className="md:col-span-2" data-invalid={Boolean(form.formState.errors.villageIds)}>
+                  <RequiredLabel>Kelurahan/Desa Cakupan</RequiredLabel>
+                  <FieldContent>
+                    <div className="rounded-md border bg-background">
+                      <div className="border-b px-3 py-2 text-xs text-muted-foreground">
+                        {selectedDistrictId
+                          ? villageOptions.length > 0
+                            ? `${selectedVillageIds.length} dari ${villageOptions.length} kelurahan/desa dipilih`
+                            : "Kelurahan/Desa belum tersedia untuk kecamatan ini"
+                          : "Pilih Kecamatan dulu untuk menampilkan kelurahan/desa"}
+                      </div>
+                      <div className="grid max-h-48 gap-1 overflow-y-auto p-2 sm:grid-cols-2">
+                        {villageOptions.map((area) => {
+                          const inputId = `village-${area.areaId}`;
+                          const checked = selectedVillageIds.includes(area.areaId);
+
+                          return (
+                            <label
+                              key={area.areaId}
+                              htmlFor={inputId}
+                              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                            >
+                              <input
+                                id={inputId}
+                                type="checkbox"
+                                className="size-4 accent-primary"
+                                checked={checked}
+                                onChange={(event) => toggleVillage(area.areaId, event.target.checked)}
+                                disabled={!selectedDistrictId || isSubmitting}
+                              />
+                              <span>{area.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <FieldError errors={[form.formState.errors.villageIds]} />
+                  </FieldContent>
+                </Field>
                 <Field data-invalid={Boolean(form.formState.errors.joinedAt)}>
                   <RequiredLabel htmlFor="joined-at">Tanggal Bergabung</RequiredLabel>
                   <FieldContent>
@@ -359,12 +664,12 @@ export function JaringRegistrationForm() {
                   </FieldContent>
                 </Field>
                 <Field className="md:col-span-2" data-invalid={Boolean(form.formState.errors.notes)}>
-                  <FieldLabel htmlFor="notes">Catatan Pembinaan (Opsional)</FieldLabel>
+                  <RequiredLabel htmlFor="notes">Kebermanfaatan</RequiredLabel>
                   <FieldContent>
                     <Textarea
                       id="notes"
                       rows={4}
-                      placeholder="Tambahkan catatan pembinaan bila diperlukan..."
+                      placeholder="Jelaskan kebermanfaatan Jaring untuk pembinaan atau kebutuhan lapangan..."
                       {...form.register("notes")}
                     />
                     <FieldError errors={[form.formState.errors.notes]} />
@@ -375,7 +680,7 @@ export function JaringRegistrationForm() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="order-1">
           <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
               <UserRound className="size-4 text-primary" /> Data Pribadi
@@ -385,6 +690,43 @@ export function JaringRegistrationForm() {
           <CardContent>
             <FieldGroup>
               <div className="grid gap-4 md:grid-cols-2">
+                <Field className="md:col-span-2" data-invalid={Boolean(photoError)}>
+                  <FieldLabel htmlFor="profile-photo">Foto Jaring (Opsional)</FieldLabel>
+                  <FieldContent>
+                    <div className="flex flex-col gap-3 rounded-md border border-dashed p-3 sm:flex-row sm:items-center">
+                      <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                        {photoPreviewUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={photoPreviewUrl} alt="Preview foto Jaring" className="size-full object-cover" />
+                        ) : (
+                          <ImagePlus className="size-8 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <Input
+                          id="profile-photo"
+                          type="file"
+                          accept="image/*"
+                          disabled={isSubmitting}
+                          onChange={handlePhotoChange}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Gunakan foto JPG/PNG/WebP, maksimal 5 MB. Foto akan diunggah saat Jaring disimpan.
+                        </p>
+                        {selectedPhotoFile ? (
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <span className="truncate">{selectedPhotoFile.name}</span>
+                            <Button type="button" variant="ghost" size="sm" onClick={clearPhoto}>
+                              <X className="size-3.5" />
+                              Hapus foto
+                            </Button>
+                          </div>
+                        ) : null}
+                        {photoError ? <p className="text-xs text-destructive">{photoError}</p> : null}
+                      </div>
+                    </div>
+                  </FieldContent>
+                </Field>
                 <Field data-invalid={Boolean(form.formState.errors.fullName)}>
                   <RequiredLabel htmlFor="full-name">Nama Lengkap</RequiredLabel>
                   <FieldContent>
@@ -463,39 +805,70 @@ export function JaringRegistrationForm() {
                     <FieldError errors={[form.formState.errors.gender]} />
                   </FieldContent>
                 </Field>
-              </div>
-            </FieldGroup>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="border-b">
-            <CardTitle className="flex items-center gap-2">
-              <BriefcaseBusiness className="size-4 text-primary" /> Informasi Pekerjaan
-            </CardTitle>
-            <CardDescription>Pilih pekerjaan dari master data dan lengkapi detail kerja bila tersedia.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FieldGroup>
-              <div className="grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-2 border-t pt-4">
+                  <div className="flex items-center gap-2 text-base font-semibold">
+                    <BriefcaseBusiness className="size-4 text-primary" /> Informasi Pekerjaan
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Pilih pekerjaan dari master data dan lengkapi detail kerja bila tersedia.
+                  </p>
+                </div>
                 <Field data-invalid={Boolean(form.formState.errors.occupationId)} className="md:col-span-2">
-                  <RequiredLabel htmlFor="occupation-id">Pekerjaan</RequiredLabel>
+                  <RequiredLabel htmlFor="occupation-search">Pekerjaan</RequiredLabel>
                   <FieldContent>
-                    <NativeSelect
-                      id="occupation-id"
-                      className="w-full"
+                    <input type="hidden" {...form.register("occupationId")} />
+                    <Input
+                      id="occupation-search"
+                      type="search"
+                      placeholder={isLoading ? "Memuat pekerjaan..." : "Cari pekerjaan..."}
+                      value={occupationSearch}
                       disabled={isLoading || !workspace?.occupations.length}
-                      {...form.register("occupationId")}
+                      onChange={(event) => setOccupationSearch(event.target.value)}
+                    />
+                    <div
+                      role="listbox"
+                      aria-label="Daftar pekerjaan"
+                      className="max-h-44 overflow-y-auto rounded-md border bg-background p-1"
                     >
-                      <NativeSelectOption value="">
-                        {occupationSelectPlaceholder(isLoading, workspace?.occupations.length ?? 0)}
-                      </NativeSelectOption>
-                      {workspace?.occupations.map((occupation) => (
-                        <NativeSelectOption key={occupation.id} value={occupation.id}>
-                          {occupation.name}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
+                      {filteredOccupations.length > 0 ? (
+                        filteredOccupations.map((occupation) => {
+                          const selected = occupation.id === selectedOccupationId;
+
+                          return (
+                            <button
+                              key={occupation.id}
+                              type="button"
+                              role="option"
+                              aria-selected={selected}
+                              className={[
+                                "flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm transition-colors",
+                                selected ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                              ].join(" ")}
+                              onClick={() => {
+                                form.setValue("occupationId", occupation.id, {
+                                  shouldDirty: true,
+                                  shouldTouch: true,
+                                  shouldValidate: true,
+                                });
+                                setOccupationSearch(occupation.name);
+                              }}
+                            >
+                              <span>{occupation.name}</span>
+                              {selected ? <span className="text-xs font-medium">Dipilih</span> : null}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                          {workspace?.occupations.length
+                            ? "Pekerjaan tidak ditemukan."
+                            : "Belum ada master pekerjaan aktif."}
+                        </div>
+                      )}
+                    </div>
+                    {selectedOccupation ? (
+                      <p className="text-xs text-muted-foreground">Dipilih: {selectedOccupation.name}</p>
+                    ) : null}
                     <FieldError errors={[form.formState.errors.occupationId]} />
                   </FieldContent>
                 </Field>
@@ -520,19 +893,20 @@ export function JaringRegistrationForm() {
               </div>
             </FieldGroup>
           </CardContent>
-          <CardFooter className="justify-end">
-            <Button
-              type="submit"
-              variant="success"
-              size="lg"
-              className="w-full font-semibold uppercase tracking-wide sm:w-auto sm:min-w-52"
-              disabled={isLoading || Boolean(loadError) || isSubmitting}
-            >
-              {isLoading ? <LoaderCircle className="animate-spin" /> : null}
-              Simpan Jaring
-            </Button>
-          </CardFooter>
         </Card>
+
+        <div className="order-3 flex justify-end">
+          <Button
+            type="submit"
+            variant="success"
+            size="lg"
+            className="w-full font-semibold uppercase tracking-wide sm:w-auto sm:min-w-52"
+            disabled={isLoading || Boolean(loadError) || isSubmitting}
+          >
+            {isLoading ? <LoaderCircle className="animate-spin" /> : null}
+            Simpan Jaring
+          </Button>
+        </div>
       </form>
 
       <AlertDialog
@@ -543,8 +917,11 @@ export function JaringRegistrationForm() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Simpan Jaring?</AlertDialogTitle>
-            <AlertDialogDescription>Pastikan seluruh data sudah benar sebelum disimpan.</AlertDialogDescription>
+            <AlertDialogTitle>Pastikan data Jaring sudah sesuai?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Periksa kembali data pribadi, pekerjaan, cakupan wilayah, dan kebermanfaatan. Jika semuanya sudah benar,
+              klik Simpan untuk menyimpan Jaring.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>

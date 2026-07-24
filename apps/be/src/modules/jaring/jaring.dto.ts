@@ -26,7 +26,7 @@ export class JaringQuery {
 }
 
 export class CreateJaringDto {
-  @IsString() @IsNotEmpty() @MaxLength(150) aliasName!: string;
+  @IsOptional() @IsString() @MaxLength(150) aliasName?: string;
   @IsString()
   @Matches(/^\d+$/, { message: 'Nomor WhatsApp hanya boleh berisi angka.' })
   @MaxLength(30)
@@ -41,6 +41,7 @@ export class CreateJaringDto {
   birthDate!: string;
   @IsEnum(JaringGender) gender!: JaringGender;
   @IsUUID() occupationId!: string;
+  @IsOptional() @IsUUID() profilePhotoFileId?: string;
   @IsOptional() @IsString() @MaxLength(180) workplace?: string;
   @IsOptional() @IsString() @MaxLength(150) jobTitle?: string;
   @IsDateString({}, { message: 'Tanggal bergabung harus berupa tanggal yang valid.' })
@@ -52,7 +53,7 @@ export class CreateJaringDto {
   @ArrayMinSize(1)
   @IsUUID(undefined, { each: true })
   areaIds!: string[];
-  @IsOptional() @IsString() @MaxLength(3000) notes?: string;
+  @IsString() @IsNotEmpty() @MaxLength(3000) notes!: string;
 }
 
 export class UpdateJaringDto {

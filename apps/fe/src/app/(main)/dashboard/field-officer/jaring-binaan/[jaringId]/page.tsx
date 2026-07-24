@@ -196,6 +196,22 @@ export default function JaringDetailPage({ params }: PageProps) {
             </CardHeader>
             <CardContent className="px-5 pb-4 pt-1 divide-y dark:divide-blue-400/8 divide-slate-100">
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Foto</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex size-20 items-center justify-center overflow-hidden rounded-lg border dark:border-blue-400/12 border-slate-200 bg-slate-100 dark:bg-slate-900/50">
+                    {jaring.profilePhotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={jaring.profilePhotoUrl} alt={`Foto ${jaring.aliasName}`} className="size-full object-cover" />
+                    ) : (
+                      <UserRound className="size-8 text-muted-foreground" />
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {jaring.profilePhotoUrl ? "Foto profil Jaring tersimpan." : "Belum ada foto profil."}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                 <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Nama Sandi / Alias</span>
                 <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] break-words">{jaring.aliasName}</span>
               </div>
@@ -223,7 +239,7 @@ export default function JaringDetailPage({ params }: PageProps) {
                 <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.clusterName || "-"}</span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Kecamatan</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Kelurahan/Desa Cakupan</span>
                 <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.areaNames?.join(", ") || "-"}</span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
@@ -325,9 +341,11 @@ export default function JaringDetailPage({ params }: PageProps) {
                 <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{formatDateOnly(jaring.joinedAt)}</span>
               </div>
               <div className="flex flex-col pt-3.5 pb-2">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide mb-2">Catatan Pembinaan</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide mb-2">Kebermanfaatan</span>
                 <p className="p-3 border border-border rounded bg-slate-50 dark:bg-slate-950/40 text-xs leading-relaxed max-h-[120px] overflow-y-auto whitespace-pre-wrap dark:text-slate-300 text-slate-700 dark:border-blue-400/8">
-                  {jaring.notes || <span className="italic dark:text-slate-500 text-slate-400">Tidak ada catatan</span>}
+                  {jaring.notes || (
+                    <span className="italic dark:text-slate-500 text-slate-400">Belum ada kebermanfaatan</span>
+                  )}
                 </p>
               </div>
             </CardContent>

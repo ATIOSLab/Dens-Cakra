@@ -14,6 +14,7 @@ describe('JaringService registration security', () => {
     gender: 'MALE',
     occupationId: '36ac29d1-9cab-4dd0-a86f-218be20d3b44',
     joinedAt: '2020-01-01',
+    notes: 'Bermanfaat untuk pemetaan dan pembinaan wilayah.',
     fieldOfficerAssignmentId: '8ba6a135-9aef-43d3-a7c9-086eb4575f79',
     areaIds: ['247c7732-44df-4f4a-bf50-f80c81245205'],
   };
@@ -140,11 +141,14 @@ describe('JaringService registration security', () => {
   it('membuat PIN enam digit otomatis tanpa pemeriksaan duplikasi kode', async () => {
     const createdJaring = { id: 'new-jaring-id' };
     type JaringCreateInput = {
-      data: { code: string };
+      data: { code: string; aliasName: string };
     };
     const prisma = {
       jaring: {
         findFirst: jest.fn(() => Promise.resolve(null)),
+        findMany: jest.fn(() =>
+          Promise.resolve([{ aliasName: 'Z01004' }, { aliasName: 'Z01999X' }]),
+        ),
         create: jest.fn((input: JaringCreateInput) =>
           Promise.resolve(createdJaring),
         ),
@@ -156,7 +160,27 @@ describe('JaringService registration security', () => {
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
-      administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
+      administrativeArea: {
+        count: jest.fn(() => Promise.resolve(1)),
+        findMany: jest.fn(() =>
+          Promise.resolve([
+            {
+              id: newJaring.areaIds[0],
+              code: '31.74.01',
+              officialCode: '31.74.01',
+              name: 'Tebet',
+              level: 'DISTRICT',
+              parent: {
+                id: 'city-id',
+                code: '31.74',
+                officialCode: '31.74',
+                name: 'Kota Administrasi Jakarta Selatan',
+                level: 'CITY',
+              },
+            },
+          ]),
+        ),
+      },
       userSeatAssignment: {
         findUniqueOrThrow: jest.fn(() =>
           Promise.resolve({
@@ -181,6 +205,7 @@ describe('JaringService registration security', () => {
 
     const createInput = prisma.jaring.create.mock.calls[0]?.[0];
     expect(createInput.data.code).toMatch(/^\d{6}$/);
+    expect(createInput.data.aliasName).toBe('Z01005');
     expect(prisma.jaring.findFirst).toHaveBeenCalledTimes(1);
   });
 

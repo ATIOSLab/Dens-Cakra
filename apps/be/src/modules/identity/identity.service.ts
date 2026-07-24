@@ -194,10 +194,14 @@ export class IdentityService {
       SELECT DISTINCT
         area."id" AS "areaId",
         area."code",
+        area."officialCode",
         area."name",
-        area."level"
+        area."level",
+        parent."id" AS "parentAreaId",
+        parent."officialCode" AS "parentOfficialCode"
       FROM "AdministrativeAreaClosure" closure
       JOIN "AdministrativeArea" area ON area."id" = closure."descendantId"
+      LEFT JOIN "AdministrativeArea" parent ON parent."id" = area."parentId"
       WHERE closure."ancestorId" IN (${Prisma.join(scopeIds)})
         AND area."isActive" = true
         ${levelFilter}

@@ -5,7 +5,7 @@ import { createFieldOfficerJaring } from "@/server/field-ops/repository";
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
-      aliasName: string;
+      aliasName?: string;
       whatsappNumber: string;
       clusterId: string;
       fullName: string;
@@ -14,12 +14,13 @@ export async function POST(request: NextRequest) {
       birthDate: string;
       gender: "MALE" | "FEMALE";
       occupationId: string;
+      profilePhotoFileId?: string;
       workplace?: string;
       jobTitle?: string;
       joinedAt: string;
       organizationName?: string;
       politicalAffiliation?: string;
-      notes?: string;
+      notes: string;
       areaIds: string[];
       fieldOfficerAssignmentId: string;
     };

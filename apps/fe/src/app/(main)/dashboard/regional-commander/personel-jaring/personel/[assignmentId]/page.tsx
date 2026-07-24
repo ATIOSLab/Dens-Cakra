@@ -19,7 +19,5 @@ export default async function Page({ params }: PageProps) {
   return (
     <ExecutivePersonnelDetailClient backHref="/dashboard/regional-commander/personel-jaring" detail={detail} />
   );
-  const { assignmentId } = await params;
-
   redirect(`/dashboard/regional-commander/personel-lapangan/${assignmentId}`);
 }
