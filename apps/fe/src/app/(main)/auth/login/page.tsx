@@ -11,39 +11,45 @@ export default async function LoginV2({ searchParams }: LoginPageProps) {
   const showResetSuccess = resolvedSearchParams?.reset === "success";
 
   return (
-    <div className="w-full max-w-[480px] sm:max-w-[500px] flex flex-col gap-5 items-center">
-      {/* 1. SECURE COMMAND LOGIN CARD */}
-      <div className="w-full bg-card/60 backdrop-blur-md border border-border/80 p-6 sm:p-8 rounded-[20px] shadow-sm flex flex-col gap-5 transition-all duration-200">
-        {/* Card Header (Logo, title) */}
-        <div className="flex flex-col items-center text-center gap-2">
-          {/* Custom SVG Secure Command Logo */}
-          <div className="size-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-1">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="size-6 text-cyan-600 dark:text-[#14B8FF]"
-            >
-              <title>Secure command login</title>
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </div>
-
-          <h1 className="font-sans font-extrabold text-2xl tracking-tight text-foreground">DENS CAKRA</h1>
-          <p className="max-w-sm text-balance font-mono text-[10px] font-medium uppercase leading-4 tracking-[0.12em] text-muted-foreground">
-            Dashboard Evaluasi Nasional dan Situational Awareness
-          </p>
+    <div className="w-[90%] max-w-[420px] sm:w-full flex flex-col gap-3.5 items-center justify-center animate-fade-in duration-300">
+      {/* Brand Section */}
+      <div className="flex flex-col items-center text-center gap-1 select-none">
+        {/* Top Gold Bordered Label */}
+        <div className="border border-amber-600/40 dark:border-amber-400/30 px-3 py-0.5 rounded bg-amber-500/10 text-[9px] sm:text-[10px] font-mono font-bold tracking-widest text-amber-700 dark:text-amber-400 uppercase select-none">
+          SISTEM MANAJEMEN KINERJA & EVALUASI NASIONAL
         </div>
 
+        {/* Main Title */}
+        <h1 className="font-sans font-black text-3xl sm:text-4xl tracking-wider text-foreground uppercase mt-1">
+          DENS CAKRA
+        </h1>
+
+        {/* Subtitle */}
+        <p className="max-w-xs text-balance font-mono text-[10px] sm:text-[11px] font-semibold uppercase leading-tight tracking-wider text-muted-foreground">
+          DASHBOARD EVALUASI NASIONAL DAN SITUATIONAL AWARENESS
+        </p>
+
+        {/* Capability Text */}
+        <p className="font-mono text-[9px] font-bold tracking-wider text-amber-700 dark:text-amber-400/90 uppercase mt-0.5">
+          COMMAND, ANALYTIC, KNOWLEDGE, RESPONSE & AWARENESS
+        </p>
+
+        {/* Motto */}
+        <div className="flex items-center justify-center gap-2 w-full max-w-[220px] mt-1">
+          <div className="flex-1 h-[1px] bg-slate-300 dark:bg-slate-700/60" />
+          <span className="text-[9px] font-mono font-bold tracking-[0.25em] text-slate-600 dark:text-slate-300 uppercase">
+            VELOX ET EXACTUS
+          </span>
+          <div className="flex-1 h-[1px] bg-slate-300 dark:bg-slate-700/60" />
+        </div>
+      </div>
+
+      {/* 1. SECURE COMMAND LOGIN CARD */}
+      <div className="w-full bg-card/95 dark:bg-[#071426]/85 backdrop-blur-md border border-border/80 dark:border-[#14B8FF]/20 shadow-md dark:shadow-[0_0_30px_rgba(20,184,255,0.08)] p-6 rounded-2xl flex flex-col gap-4 transition-all duration-200">
         {/* Input Form Fields */}
         <div className="space-y-4">
           {showResetSuccess ? (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-600 dark:text-emerald-400 font-sans">
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-2.5 text-xs text-emerald-600 dark:text-emerald-400 font-sans">
               Password berhasil diperbarui. Silakan login dengan password baru Anda.
             </div>
           ) : null}
