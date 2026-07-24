@@ -275,6 +275,22 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   const [jaringPage, setJaringPage] = useState(1);
   const [jaringLimit, setJaringLimit] = useState(10);
 
+  const villageParentDistrictIdsByAreaId = useMemo(() => {
+    const map = new globalThis.Map<string, Set<string>>();
+
+    for (const village of workspace?.villageAreas ?? []) {
+      if (!village.parentAreaId) {
+        continue;
+      }
+
+      const districtIds = map.get(village.areaId) ?? new Set<string>();
+      districtIds.add(village.parentAreaId);
+      map.set(village.areaId, districtIds);
+    }
+
+    return map;
+  }, [workspace?.villageAreas]);
+
   const filteredJaring = useMemo(() => {
     if (!workspace?.jaring) return [];
     return workspace.jaring.filter((item) => {
@@ -291,14 +307,29 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         if (item.clusterName !== jaringClusterFilter) return false;
       }
       if (jaringAreaFilter !== "all") {
-        if (!item.areaNames.includes(jaringAreaFilter)) return false;
+        const matchesDistrict = item.areaIds.some((areaId) => {
+          if (areaId === jaringAreaFilter) {
+            return true;
+          }
+
+          return villageParentDistrictIdsByAreaId.get(areaId)?.has(jaringAreaFilter) ?? false;
+        });
+
+        if (!matchesDistrict) return false;
       }
       if (jaringStatusFilter !== "all") {
         if (item.status !== jaringStatusFilter) return false;
       }
       return true;
     });
-  }, [workspace?.jaring, jaringSearch, jaringClusterFilter, jaringAreaFilter, jaringStatusFilter]);
+  }, [
+    workspace?.jaring,
+    jaringSearch,
+    jaringClusterFilter,
+    jaringAreaFilter,
+    jaringStatusFilter,
+    villageParentDistrictIdsByAreaId,
+  ]);
 
   const safeJaringPage = Math.min(jaringPage, Math.max(1, Math.ceil(filteredJaring.length / jaringLimit)));
   const paginatedJaring = useMemo(() => {
@@ -1348,7 +1379,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                             <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
                               <SelectItem value="all">Semua Kecamatan</SelectItem>
                               {workspace.districtAreas.map((area) => (
-                                <SelectItem key={area.areaId} value={area.name}>
+                                <SelectItem key={area.areaId} value={area.areaId}>
                                   {area.name}
                                 </SelectItem>
                               ))}

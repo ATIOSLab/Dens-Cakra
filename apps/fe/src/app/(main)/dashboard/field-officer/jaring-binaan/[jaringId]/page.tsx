@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FieldOfficerJaring, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 function formatDateOnly(value?: string | null) {
@@ -51,6 +52,7 @@ export default function JaringDetailPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [visiblePin, setVisiblePin] = React.useState(false);
+  const [photoPreviewOpen, setPhotoPreviewOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"operational" | "personal" | "career" | "affiliation">("operational");
 
   React.useEffect(() => {
@@ -200,8 +202,22 @@ export default function JaringDetailPage({ params }: PageProps) {
                 <div className="flex items-center gap-3">
                   <div className="flex size-20 items-center justify-center overflow-hidden rounded-lg border dark:border-blue-400/12 border-slate-200 bg-slate-100 dark:bg-slate-900/50">
                     {jaring.profilePhotoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={jaring.profilePhotoUrl} alt={`Foto ${jaring.aliasName}`} className="size-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setPhotoPreviewOpen(true)}
+                        className="group relative size-full cursor-zoom-in overflow-hidden"
+                        aria-label={`Buka popup foto ${jaring.aliasName}`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={jaring.profilePhotoUrl}
+                          alt={`Foto ${jaring.aliasName}`}
+                          className="size-full object-cover transition-transform duration-150 group-hover:scale-105"
+                        />
+                        <span className="absolute inset-0 grid place-items-center bg-black/0 text-[10px] font-semibold uppercase tracking-[0.14em] text-white opacity-0 transition-all duration-150 group-hover:bg-black/35 group-hover:opacity-100">
+                          Lihat
+                        </span>
+                      </button>
                     ) : (
                       <UserRound className="size-8 text-muted-foreground" />
                     )}
@@ -352,6 +368,27 @@ export default function JaringDetailPage({ params }: PageProps) {
           </Card>
         )}
       </div>
+
+      {jaring.profilePhotoUrl ? (
+        <Dialog open={photoPreviewOpen} onOpenChange={setPhotoPreviewOpen}>
+          <DialogContent className="grid h-[88vh] w-[94vw] max-w-[94vw] grid-rows-[auto_1fr] overflow-hidden bg-[#080b11] p-3 text-white sm:max-w-[920px]">
+            <DialogHeader className="pr-10">
+              <DialogTitle>Foto Profil Jaring</DialogTitle>
+              <DialogDescription className="text-white/60">
+                {jaring.aliasName} {jaring.fullName ? `- ${jaring.fullName}` : ""}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid min-h-0 place-items-center overflow-auto rounded-md border border-white/10 bg-black">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={jaring.profilePhotoUrl}
+                alt={`Foto profil Jaring ${jaring.aliasName}`}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </div>
   );
 }
