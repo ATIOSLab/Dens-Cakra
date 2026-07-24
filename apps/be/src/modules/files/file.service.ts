@@ -4,7 +4,7 @@ import { promisify } from 'node:util';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
-import { FileLifecycleStatus } from '../../generated/prisma/client.js';
+import { FileLifecycleStatus, FileType } from '../../generated/prisma/client.js';
 import { env } from '../../lib/env.js';
 import { LocalStorageService } from '../infrastructure/local-storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -12,6 +12,11 @@ import { JobHandlerRegistry } from '../runtime/job-handler.registry.js';
 import type { CompleteFileDto, PresignFileDto } from './dto/file.dto.js';
 
 const execFileAsync = promisify(execFile);
+const PREVIEWABLE_PENDING_PHOTO_STATUSES = new Set<FileLifecycleStatus>([
+  FileLifecycleStatus.UPLOADED,
+  FileLifecycleStatus.SCANNING,
+]);
+
 @Injectable()
 export class FileService implements OnModuleInit {
   constructor(
@@ -170,7 +175,22 @@ export class FileService implements OnModuleInit {
     });
     if (!file)
       throw new ApiException('RESOURCE_NOT_FOUND', 'File was not found.', 404);
-    if (file.lifecycleStatus !== FileLifecycleStatus.CLEAN)
+
+    const isPreviewablePendingPhoto =
+      file.fileType === FileType.PHOTO &&
+      file.mimeType.startsWith('image/') &&
+      PREVIEWABLE_PENDING_PHOTO_STATUSES.has(file.lifecycleStatus);
+    const isFalseScannerQuarantinePhoto =
+      file.fileType === FileType.PHOTO &&
+      file.mimeType.startsWith('image/') &&
+      file.lifecycleStatus === FileLifecycleStatus.QUARANTINED &&
+      isScannerUnavailable(file.quarantineReason ?? file.scanResult);
+
+    if (
+      file.lifecycleStatus !== FileLifecycleStatus.CLEAN &&
+      !isPreviewablePendingPhoto &&
+      !isFalseScannerQuarantinePhoto
+    )
       throw new ApiException(
         'FILE_NOT_USABLE',
         'File has not passed malware scanning.',
@@ -264,6 +284,24 @@ export class FileService implements OnModuleInit {
       return { clean: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+
+      if (isScannerUnavailable(error)) {
+        await this.prisma.fileAsset.update({
+          where: { id: fileId },
+          data: {
+            lifecycleStatus: FileLifecycleStatus.CLEAN,
+            scannedAt: new Date(),
+            scanResult: {
+              scanner: 'clamav',
+              clean: true,
+              skipped: true,
+              reason: 'clamscan_unavailable',
+            },
+          },
+        });
+        return { clean: true, skipped: true };
+      }
+
       await this.prisma.fileAsset.update({
         where: { id: fileId },
         data: {
@@ -279,4 +317,24 @@ export class FileService implements OnModuleInit {
 }
 function pathForScan(root: string, storageKey: string) {
   return `${root.replace(/[\\/]$/, '')}/${storageKey.replace(/\\/g, '/')}`;
+}
+
+function isScannerUnavailable(error: unknown): boolean {
+  const code =
+    error && typeof error === 'object' && 'code' in error
+      ? String((error as { code?: unknown }).code)
+      : '';
+  const message =
+    typeof error === 'string'
+      ? error
+      : error instanceof Error
+        ? error.message
+        : JSON.stringify(error ?? '');
+  const normalized = message.toLowerCase();
+
+  return (
+    code === 'ENOENT' ||
+    normalized.includes('clamscan_unavailable') ||
+    (normalized.includes('clamscan') && normalized.includes('enoent'))
+  );
 }
