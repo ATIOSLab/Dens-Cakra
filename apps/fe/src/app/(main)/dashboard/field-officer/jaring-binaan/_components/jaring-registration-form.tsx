@@ -29,6 +29,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { PageHeader } from "@/components/ui/page-header";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { createIdempotencyKey } from "@/lib/api/idempotency";
 import type { FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 const LIST_ROUTE = "/dashboard/field-officer/jaring-binaan";
@@ -198,6 +199,13 @@ function todayInputValue() {
     String(today.getMonth() + 1).padStart(2, "0"),
     String(today.getDate()).padStart(2, "0"),
   ].join("-");
+}
+
+function idempotentJsonHeaders(operation: string) {
+  return {
+    "content-type": "application/json",
+    "idempotency-key": createIdempotencyKey(`dc_jaring_${operation}`),
+  };
 }
 
 function RequiredLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
@@ -395,7 +403,7 @@ export function JaringRegistrationForm() {
     const checksumSha256 = await sha256Hex(file);
     const presignResponse = await fetch("/api/v1/files/presign", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: idempotentJsonHeaders("photo_presign"),
       body: JSON.stringify({
         originalName: file.name,
         mimeType: file.type || "application/octet-stream",
@@ -422,7 +430,7 @@ export function JaringRegistrationForm() {
 
     const completeResponse = await fetch("/api/v1/files/complete", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: idempotentJsonHeaders("photo_complete"),
       body: JSON.stringify({
         uploadToken: presign.uploadToken,
         storageKey: presign.storageKey,
@@ -451,7 +459,7 @@ export function JaringRegistrationForm() {
       const profilePhotoFileId = selectedPhotoFile ? await uploadProfilePhoto(selectedPhotoFile) : undefined;
       const response = await fetch("/api/field-officer/jaring", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: idempotentJsonHeaders("create"),
         body: JSON.stringify({
           aliasName: values.aliasName.trim(),
           whatsappNumber: values.whatsappNumber,
