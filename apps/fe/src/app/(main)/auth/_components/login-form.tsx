@@ -68,7 +68,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
 
   const requestLoginLocation = async () => {
     if (!("geolocation" in navigator)) {
-      setLocationMessage("Browser ini tidak mendukung GPS. Gunakan browser modern dan akses aplikasi melalui HTTPS.");
+      setLocationMessage("Browser ini tidak mendukung GPS. Anda tetap dapat login tanpa lokasi.");
       setLocationGate("unsupported");
       return null;
     }
@@ -86,8 +86,8 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
       const denied = geolocationError.code === geolocationError.PERMISSION_DENIED;
       setLocationMessage(
         denied
-          ? "Izin lokasi ditolak. Ubah izin Location situs ini menjadi Allow, lalu muat ulang halaman."
-          : "Lokasi belum dapat diperoleh. Pastikan GPS perangkat aktif dan sinyal lokasi tersedia, lalu coba lagi.",
+          ? "Izin lokasi ditolak. Anda tetap dapat login tanpa lokasi."
+          : "Lokasi belum dapat diperoleh. Anda tetap dapat login tanpa lokasi.",
       );
       setLocationGate("blocked");
       return null;
@@ -105,12 +105,6 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setFormError(null);
-
-    if (officerOnly && !loginPosition) {
-      setLocationMessage("Izinkan akses lokasi terlebih dahulu agar form login dapat digunakan.");
-      setLocationGate("blocked");
-      return;
-    }
 
     startTransition(async () => {
       const callbackUrl = searchParams.get("callbackUrl")?.trim();
@@ -166,10 +160,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
     });
   };
 
-  const isLocating = locationGate === "requesting";
-  const isLocationReady = !officerOnly || loginPosition !== null;
-  const isBusy = isPending || isLocating;
-  const isFormDisabled = isBusy || !isLocationReady;
+  const isFormDisabled = isPending;
 
   return (
     <form noValidate onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-4">
@@ -298,12 +289,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
         type="submit"
         disabled={isFormDisabled}
       >
-        {isLocating ? (
-          <>
-            <RefreshCw className="size-4 animate-spin" />
-            <span>MENUNGGU IZIN LOKASI...</span>
-          </>
-        ) : isPending ? (
+        {isPending ? (
           <>
             <RefreshCw className="size-4 animate-spin" />
             <span>CONNECTING...</span>
