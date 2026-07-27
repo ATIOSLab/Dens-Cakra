@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import {
   AdministrativeLevel,
   FileLifecycleStatus,
+  JaringRegistrationStatus,
   JaringStatus,
   PositionCode,
   Prisma,
@@ -23,6 +24,7 @@ import type {
   JaringQuery,
   ReportCategoryQuery,
   ReasonDto,
+  RejectJaringDto,
   TransferDto,
   UpdateJaringClusterDto,
   UpdateJaringOccupationDto,
@@ -210,7 +212,11 @@ export class JaringService {
     context: AuthorizationContext,
   ) {
     if (!fileId) {
-      return;
+      throw new ApiException(
+        'JARING_PROFILE_PHOTO_REQUIRED',
+        'Foto Jaring wajib diunggah.',
+        422,
+      );
     }
 
     const ownershipWhere = context.userProfileId
@@ -297,6 +303,30 @@ export class JaringService {
     });
   }
 
+  private scopedJaringAreaWhere(scope: { areaRootIds: string[] }) {
+    if (scope.areaRootIds.length === 0) {
+      return {};
+    }
+
+    return {
+      areaCoverages: {
+        some: {
+          validUntil: null,
+          area: {
+            OR: [
+              { id: { in: scope.areaRootIds } },
+              {
+                descendantLinks: {
+                  some: { ancestorId: { in: scope.areaRootIds } },
+                },
+              },
+            ],
+          },
+        },
+      },
+    } satisfies Prisma.JaringWhereInput;
+  }
+
   private async status(
     id: string,
     status: JaringStatus,
@@ -304,6 +334,20 @@ export class JaringService {
     context: AuthorizationContext,
     auditAction = `JARING.${status}`,
   ) {
+    const existing = await this.prisma.jaring.findUniqueOrThrow({
+      where: { id },
+      select: { registrationStatus: true },
+    });
+    if (
+      status === JaringStatus.ACTIVE &&
+      existing.registrationStatus === JaringRegistrationStatus.REJECTED
+    ) {
+      throw new ApiException(
+        'JARING_REGISTRATION_REJECTED',
+        'Jaring yang ditolak/revisi tidak dapat diaktifkan sebelum diajukan ulang dan disetujui.',
+        409,
+      );
+    }
     const data: Prisma.JaringUpdateInput = {
       status,
       ...(status === JaringStatus.INACTIVE
@@ -321,17 +365,36 @@ export class JaringService {
 
   async list(query: JaringQuery, context: AuthorizationContext) {
     const scope = await this.domainScope.resolve(context);
+    const isFieldOfficer = context.authRole === 'field_officer';
+    const isFieldCoordinator = context.authRole === 'field_coordinator';
     return this.prisma.jaring.findMany({
       where: {
         deletedAt: null,
+        ...(isFieldCoordinator && scope.areaRootIds.length === 0
+          ? { id: { in: [] } }
+          : {}),
         caretakerAssignments: {
           some: {
-            fieldOfficerAssignmentId: { in: scope.assignmentIds },
+            ...(isFieldCoordinator
+              ? {
+                  fieldOfficerAssignment: {
+                    seat: { branch: scope.commandRouteType },
+                  },
+                }
+              : {
+                  fieldOfficerAssignmentId: { in: scope.assignmentIds },
+                }),
             isActive: true,
             OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
           },
         },
+        ...this.scopedJaringAreaWhere(scope),
         ...(query.status ? { status: query.status } : {}),
+        ...(query.registrationStatus
+          ? { registrationStatus: query.registrationStatus }
+          : isFieldOfficer
+            ? {}
+            : { registrationStatus: JaringRegistrationStatus.APPROVED }),
         ...(query.search
           ? {
               OR: [
@@ -365,7 +428,6 @@ export class JaringService {
   async create(body: CreateJaringDto, context: AuthorizationContext) {
     await this.ensureActiveCluster(body.clusterId);
     await this.ensureActiveOccupation(body.occupationId);
-    await this.ensureProfilePhoto(body.profilePhotoFileId, context);
 
     const birthDate = new Date(body.birthDate);
     if (Number.isNaN(birthDate.getTime()) || birthDate > new Date()) {
@@ -398,6 +460,13 @@ export class JaringService {
     }
 
     const areaIds = [...new Set(body.areaIds)];
+    if (areaIds.length !== 1) {
+      throw new ApiException(
+        'JARING_AREA_MUST_BE_SINGLE_VILLAGE',
+        'Satu Jaring hanya boleh memiliki satu Kelurahan/Desa cakupan.',
+        422,
+      );
+    }
     await Promise.all(
       areaIds.map((areaId) => this.domainScope.assertArea(context, areaId)),
     );
@@ -406,7 +475,6 @@ export class JaringService {
         id: { in: areaIds },
         level: {
           in: [
-            AdministrativeLevel.DISTRICT,
             AdministrativeLevel.VILLAGE,
             AdministrativeLevel.URBAN_VILLAGE,
           ],
@@ -417,8 +485,8 @@ export class JaringService {
     });
     if (coverageCount !== areaIds.length) {
       throw new ApiException(
-        'JARING_AREA_MUST_BE_DISTRICT_OR_VILLAGE',
-        'Wilayah Jaring harus berupa kecamatan atau kelurahan/desa aktif di bawah cakupan Field Officer.',
+        'JARING_AREA_MUST_BE_VILLAGE',
+        'Wilayah Jaring harus berupa satu kelurahan/desa aktif di bawah cakupan Field Officer.',
         422,
       );
     }
@@ -476,6 +544,7 @@ export class JaringService {
         422,
       );
     }
+    await this.ensureProfilePhoto(body.profilePhotoFileId, context);
     const aliasName = await this.generateAliasName(areaIds);
     const jaring = await this.prisma.jaring.create({
       data: {
@@ -484,7 +553,7 @@ export class JaringService {
         whatsappNumber,
         clusterId: body.clusterId,
         fullName: body.fullName.trim(),
-        nationalIdNumber: body.nationalIdNumber,
+        nationalIdNumber: body.nationalIdNumber?.trim() || undefined,
         birthPlace: body.birthPlace.trim(),
         birthDate,
         gender: body.gender,
@@ -495,6 +564,12 @@ export class JaringService {
         joinedAt,
         organizationName: body.organizationName?.trim() || undefined,
         politicalAffiliation: body.politicalAffiliation?.trim() || undefined,
+        status: JaringStatus.INACTIVE,
+        deactivatedAt: new Date(),
+        registrationStatus: JaringRegistrationStatus.PENDING,
+        rejectionReason: null,
+        reviewedAt: null,
+        reviewedByAssignmentId: null,
         createdByAssignmentId: context.primaryAssignmentId,
         notes: body.notes.trim(),
         caretakerAssignments: {
@@ -512,6 +587,65 @@ export class JaringService {
     return this.detail(jaring.id);
   }
 
+  async approveRegistration(id: string, context: AuthorizationContext) {
+    await this.domainScope.assertJaring(context, id);
+    const existing = await this.prisma.jaring.findUniqueOrThrow({
+      where: { id },
+      select: { registrationStatus: true },
+    });
+    if (existing.registrationStatus === JaringRegistrationStatus.APPROVED) {
+      return this.detail(id);
+    }
+    await this.prisma.jaring.update({
+      where: { id },
+      data: {
+        registrationStatus: JaringRegistrationStatus.APPROVED,
+        status: JaringStatus.ACTIVE,
+        deactivatedAt: null,
+        rejectionReason: null,
+        reviewedAt: new Date(),
+        reviewedByAssignmentId: context.primaryAssignmentId,
+      },
+    });
+    await this.audit(context, 'JARING.REGISTRATION.APPROVE', id);
+    return this.detail(id);
+  }
+
+  async rejectRegistration(
+    id: string,
+    body: RejectJaringDto,
+    context: AuthorizationContext,
+  ) {
+    await this.domainScope.assertJaring(context, id);
+    const existing = await this.prisma.jaring.findUniqueOrThrow({
+      where: { id },
+      select: { registrationStatus: true },
+    });
+    if (existing.registrationStatus === JaringRegistrationStatus.APPROVED) {
+      throw new ApiException(
+        'JARING_REGISTRATION_ALREADY_APPROVED',
+        'Jaring yang sudah disetujui tidak dapat ditolak.',
+        409,
+      );
+    }
+    const reason = body.reason?.trim() || null;
+    await this.prisma.jaring.update({
+      where: { id },
+      data: {
+        registrationStatus: JaringRegistrationStatus.REJECTED,
+        status: JaringStatus.INACTIVE,
+        deactivatedAt: new Date(),
+        rejectionReason: reason,
+        reviewedAt: new Date(),
+        reviewedByAssignmentId: context.primaryAssignmentId,
+      },
+    });
+    await this.audit(context, 'JARING.REGISTRATION.REJECT', id, {
+      reason,
+    });
+    return this.detail(id);
+  }
+
   async get(id: string, context: AuthorizationContext) {
     await this.domainScope.assertJaring(context, id);
     return this.detail(id);
@@ -523,7 +657,94 @@ export class JaringService {
     context: AuthorizationContext,
   ) {
     await this.ensureActiveCluster(body.clusterId);
-    await this.prisma.jaring.update({ where: { id }, data: body });
+    if (body.occupationId) {
+      await this.ensureActiveOccupation(body.occupationId);
+    }
+    if (body.profilePhotoFileId) {
+      await this.ensureProfilePhoto(body.profilePhotoFileId, context);
+    }
+    const existing = await this.prisma.jaring.findUniqueOrThrow({
+      where: { id },
+      select: { registrationStatus: true },
+    });
+    const areaIds = body.areaIds ? [...new Set(body.areaIds)] : null;
+    if (areaIds) {
+      if (areaIds.length !== 1) {
+        throw new ApiException(
+          'JARING_AREA_MUST_BE_SINGLE_VILLAGE',
+          'Satu Jaring hanya boleh memiliki satu Kelurahan/Desa cakupan.',
+          422,
+        );
+      }
+      await Promise.all(
+        areaIds.map((areaId) => this.domainScope.assertArea(context, areaId)),
+      );
+      const coverageCount = await this.prisma.administrativeArea.count({
+        where: {
+          id: { in: areaIds },
+          level: {
+            in: [
+              AdministrativeLevel.VILLAGE,
+              AdministrativeLevel.URBAN_VILLAGE,
+            ],
+          },
+          isActive: true,
+          deletedAt: null,
+        },
+      });
+      if (coverageCount !== areaIds.length) {
+        throw new ApiException(
+          'JARING_AREA_MUST_BE_VILLAGE',
+          'Wilayah Jaring harus berupa satu kelurahan/desa aktif di bawah cakupan Field Officer.',
+          422,
+        );
+      }
+    }
+    const { areaIds: _areaIds, ...patch } = body;
+    await this.prisma.jaring.update({
+      where: { id },
+      data: {
+        ...patch,
+        ...(body.whatsappNumber
+          ? { whatsappNumber: normalizeIndonesianPhoneNumber(body.whatsappNumber) }
+          : {}),
+        ...(body.fullName ? { fullName: body.fullName.trim() } : {}),
+        ...(body.nationalIdNumber !== undefined
+          ? { nationalIdNumber: body.nationalIdNumber?.trim() || null }
+          : {}),
+        ...(body.birthPlace ? { birthPlace: body.birthPlace.trim() } : {}),
+        ...(body.birthDate ? { birthDate: new Date(body.birthDate) } : {}),
+        ...(body.joinedAt ? { joinedAt: new Date(body.joinedAt) } : {}),
+        ...(body.workplace !== undefined
+          ? { workplace: body.workplace?.trim() || null }
+          : {}),
+        ...(body.jobTitle !== undefined
+          ? { jobTitle: body.jobTitle?.trim() || null }
+          : {}),
+        ...(body.organizationName !== undefined
+          ? { organizationName: body.organizationName?.trim() || null }
+          : {}),
+        ...(body.politicalAffiliation !== undefined
+          ? { politicalAffiliation: body.politicalAffiliation?.trim() || null }
+          : {}),
+        ...(existing.registrationStatus === JaringRegistrationStatus.REJECTED
+          ? {
+              registrationStatus: JaringRegistrationStatus.PENDING,
+              status: JaringStatus.INACTIVE,
+              deactivatedAt: new Date(),
+              rejectionReason: null,
+              reviewedAt: null,
+              reviewedByAssignmentId: null,
+            }
+          : {}),
+      },
+    });
+    if (areaIds) {
+      await this.prisma.jaringAreaCoverage.deleteMany({ where: { jaringId: id } });
+      await this.prisma.jaringAreaCoverage.create({
+        data: { jaringId: id, areaId: areaIds[0], isPrimary: true },
+      });
+    }
     await this.audit(context, 'JARING.UPDATE', id);
     return this.detail(id);
   }

@@ -38,6 +38,9 @@ type JaringRecord = {
     name: string;
   } | null;
   status: string;
+  registrationStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionReason?: string | null;
+  reviewedAt?: string | Date | null;
   notes?: string | null;
   areaCoverages?: Array<{
     areaId: string;
@@ -381,7 +384,9 @@ export async function getFieldOfficerWorkspace(
   const assignmentId = access.context.primaryAssignmentId;
 
   const [
-    allJaring,
+    pendingJaring,
+    approvedJaring,
+    rejectedJaring,
     jaringClusters,
     occupations,
     reportCategories,
@@ -394,7 +399,15 @@ export async function getFieldOfficerWorkspace(
     await Promise.all([
       backendApi<JaringRecord[]>("/jaring", {
         cookie,
-        query: { limit: 100 },
+        query: { limit: 100, registrationStatus: "PENDING" },
+      }),
+      backendApi<JaringRecord[]>("/jaring", {
+        cookie,
+        query: { limit: 100, registrationStatus: "APPROVED" },
+      }),
+      backendApi<JaringRecord[]>("/jaring", {
+        cookie,
+        query: { limit: 100, registrationStatus: "REJECTED" },
       }),
       backendApi<Array<JaringCluster & { _count?: { jaring?: number } }>>("/jaring/clusters", {
         cookie,
@@ -441,6 +454,14 @@ export async function getFieldOfficerWorkspace(
       }).catch(() => null),
     ]);
 
+  const allJaring = Array.from(
+    new Map(
+      [...pendingJaring, ...approvedJaring, ...rejectedJaring].map((item) => [
+        item.id,
+        item,
+      ]),
+    ).values(),
+  );
   const ownBakets = Array.isArray(baketResponse) ? baketResponse : (baketResponse.items ?? []);
   const districtAreas = scopedAreas.filter((area) => area.level === "DISTRICT");
   const villageAreas = scopedAreas.filter((area) => area.level === "VILLAGE" || area.level === "URBAN_VILLAGE");
@@ -456,7 +477,14 @@ export async function getFieldOfficerWorkspace(
       whatsappNumber: item.whatsappNumber,
       clusterId: item.clusterId ?? item.cluster?.id ?? null,
       clusterName: item.cluster?.name ?? null,
-      status: item.status,
+      status: item.registrationStatus === "APPROVED" ? item.status : "INACTIVE",
+      registrationStatus: item.registrationStatus ?? "APPROVED",
+      rejectionReason: item.rejectionReason ?? null,
+      reviewedAt: item.reviewedAt
+        ? typeof item.reviewedAt === "string"
+          ? item.reviewedAt
+          : item.reviewedAt.toISOString()
+        : null,
       notes: item.notes ?? null,
       areaNames: (item.areaCoverages ?? []).map((coverage) => coverage.area?.name).filter(Boolean) as string[],
       areaIds: (item.areaCoverages ?? []).map((coverage) => coverage.areaId),
@@ -562,8 +590,8 @@ export async function createFieldOfficerJaring(
   body: {
     aliasName?: string;
     whatsappNumber: string;
-    clusterId?: string;
-    profilePhotoFileId?: string;
+    occupationId: string;
+    profilePhotoFileId: string;
     notes?: string;
     areaIds: string[];
     fieldOfficerAssignmentId: string;
@@ -583,6 +611,19 @@ export async function updateFieldOfficerJaring(
   body: {
     aliasName?: string;
     whatsappNumber?: string;
+    fullName?: string;
+    nationalIdNumber?: string;
+    birthPlace?: string;
+    birthDate?: string;
+    gender?: string;
+    occupationId?: string;
+    profilePhotoFileId?: string;
+    workplace?: string;
+    jobTitle?: string;
+    joinedAt?: string;
+    organizationName?: string;
+    politicalAffiliation?: string;
+    areaIds?: string[];
     notes?: string;
   },
 ) {

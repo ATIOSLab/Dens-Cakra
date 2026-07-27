@@ -28,6 +28,7 @@ import {
   JaringQuery,
   ReportCategoryQuery,
   ReasonDto,
+  RejectJaringDto,
   TransferDto,
   UpdateJaringClusterDto,
   UpdateJaringOccupationDto,
@@ -228,6 +229,37 @@ export class JaringController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.jaringService.get(id, context));
+  }
+
+  @Post(':jaringId/approve-registration')
+  @ApiContract({
+    operationId: 'apiJarApproval001',
+    contractId: 'API-JAR-APPROVAL-001',
+    summary: 'Setujui registrasi Jaring',
+    roles: ['field_coordinator'],
+    idempotent: true,
+  })
+  async approveRegistration(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.approveRegistration(id, context));
+  }
+
+  @Post(':jaringId/reject-registration')
+  @ApiContract({
+    operationId: 'apiJarApproval002',
+    contractId: 'API-JAR-APPROVAL-002',
+    summary: 'Tolak registrasi Jaring',
+    roles: ['field_coordinator'],
+    idempotent: true,
+  })
+  async rejectRegistration(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @Body() body: RejectJaringDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.rejectRegistration(id, body, context));
   }
 
   @Patch(':jaringId')

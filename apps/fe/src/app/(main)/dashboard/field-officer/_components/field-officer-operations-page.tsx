@@ -138,6 +138,15 @@ function urgencyTone(urgency?: string | null) {
 function statusTone(status: string) {
   const value = status.toUpperCase();
 
+  if (
+    value.includes("INACTIVE") ||
+    value.includes("ARCHIVED") ||
+    value.includes("ERROR") ||
+    value.includes("REJECTED")
+  ) {
+    return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
+  }
+
   if (value.includes("COMPLETED") || value.includes("ACTIVE") || value.includes("VALID")) {
     return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
   }
@@ -156,18 +165,11 @@ function statusTone(status: string) {
     value.includes("DRAFT") ||
     value.includes("RECEIVED") ||
     value.includes("ASSIGNED") ||
-    value.includes("NEEDS_DEVELOPMENT")
+    value.includes("NEEDS_DEVELOPMENT") ||
+    value.includes("PENDING") ||
+    value.includes("MENUNGGU VERIFIKASI")
   ) {
     return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
-  }
-
-  if (
-    value.includes("INACTIVE") ||
-    value.includes("ARCHIVED") ||
-    value.includes("ERROR") ||
-    value.includes("REJECTED")
-  ) {
-    return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
   }
 
   return "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20";
@@ -269,7 +271,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   const [incomingLimit, setIncomingLimit] = useState(10);
 
   const [jaringSearch, setJaringSearch] = useState("");
-  const [jaringClusterFilter, setJaringClusterFilter] = useState("all");
+  const [jaringOccupationFilter, setJaringOccupationFilter] = useState("all");
   const [jaringAreaFilter, setJaringAreaFilter] = useState("all");
   const [jaringStatusFilter, setJaringStatusFilter] = useState("all");
   const [jaringPage, setJaringPage] = useState(1);
@@ -303,8 +305,8 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
           (item.fullName || "").toLowerCase().includes(q);
         if (!matchesSearch) return false;
       }
-      if (jaringClusterFilter !== "all") {
-        if (item.clusterName !== jaringClusterFilter) return false;
+      if (jaringOccupationFilter !== "all") {
+        if (item.occupationName !== jaringOccupationFilter) return false;
       }
       if (jaringAreaFilter !== "all") {
         const matchesDistrict = item.areaIds.some((areaId) => {
@@ -325,7 +327,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   }, [
     workspace?.jaring,
     jaringSearch,
-    jaringClusterFilter,
+    jaringOccupationFilter,
     jaringAreaFilter,
     jaringStatusFilter,
     villageParentDistrictIdsByAreaId,
@@ -338,7 +340,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   useEffect(() => {
     setJaringPage(1);
-  }, [jaringSearch, jaringClusterFilter, jaringAreaFilter, jaringStatusFilter]);
+  }, [jaringSearch, jaringOccupationFilter, jaringAreaFilter, jaringStatusFilter]);
 
   const filteredTasks = useMemo(() => {
     if (!workspace?.tasks) return [];
@@ -1354,16 +1356,16 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         </div>
 
                         <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--tactical-text-secondary)]">
-                          <span>Kluster:</span>
-                          <Select value={jaringClusterFilter} onValueChange={setJaringClusterFilter}>
+                          <span>Pekerjaan:</span>
+                          <Select value={jaringOccupationFilter} onValueChange={setJaringOccupationFilter}>
                             <SelectTrigger className="w-[150px] h-8 border-[var(--tactical-border)] bg-background dark:bg-slate-900/40 text-xs">
-                              <SelectValue placeholder="Pilih Kluster" />
+                              <SelectValue placeholder="Pilih Pekerjaan" />
                             </SelectTrigger>
                             <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
-                              <SelectItem value="all">Semua Kluster</SelectItem>
-                              {workspace.jaringClusters.map((cluster) => (
-                                <SelectItem key={cluster.id} value={cluster.name}>
-                                  {cluster.name}
+                              <SelectItem value="all">Semua Pekerjaan</SelectItem>
+                              {workspace.occupations.map((occupation) => (
+                                <SelectItem key={occupation.id} value={occupation.name}>
+                                  {occupation.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -1403,7 +1405,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       </div>
 
                       {(jaringSearch ||
-                        jaringClusterFilter !== "all" ||
+                        jaringOccupationFilter !== "all" ||
                         jaringAreaFilter !== "all" ||
                         jaringStatusFilter !== "all") && (
                         <Button
@@ -1411,7 +1413,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                           size="sm"
                           onClick={() => {
                             setJaringSearch("");
-                            setJaringClusterFilter("all");
+                            setJaringOccupationFilter("all");
                             setJaringAreaFilter("all");
                             setJaringStatusFilter("all");
                           }}
@@ -1436,7 +1438,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                               <TableHead>PIN</TableHead>
                               <TableHead>Alias / Nama Sandi</TableHead>
                               <TableHead>WhatsApp</TableHead>
-                              <TableHead>Kluster</TableHead>
+                              <TableHead>Pekerjaan</TableHead>
                               <TableHead>Kecamatan</TableHead>
                               <TableHead>Status</TableHead>
                               <TableHead className="text-right">Aksi</TableHead>
@@ -1491,13 +1493,23 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                   )}
                                 </TableCell>
                                 <TableCell className="font-mono">{jaring.whatsappNumber}</TableCell>
-                                <TableCell>{jaring.clusterName || "-"}</TableCell>
+                                <TableCell>{jaring.occupationName || "-"}</TableCell>
                                 <TableCell>{jaring.areaNames.join(", ") || "-"}</TableCell>
                                 <TableCell>
                                   <span
-                                    className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(jaring.status)}`}
+                                    className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(
+                                      jaring.registrationStatus === "APPROVED" ? jaring.status : jaring.registrationStatus,
+                                    )}`}
                                   >
-                                    {jaring.status}
+                                    {jaring.registrationStatus === "PENDING"
+                                      ? "MENUNGGU VERIFIKASI"
+                                      : jaring.registrationStatus === "REJECTED"
+                                        ? "DITOLAK / REVISI"
+                                        : jaring.status === "ACTIVE"
+                                          ? "AKTIF"
+                                          : jaring.status === "INACTIVE"
+                                            ? "NONAKTIF"
+                                            : jaring.status}
                                   </span>
                                 </TableCell>
                                 <TableCell>
@@ -1513,7 +1525,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                       disabled={isBusy === `jaring:${jaring.id}:regenerate-pin`}
                                       onClick={() =>
                                         requestConfirmation({
-                                          title: "KONFIRMASI REGENERATE PIN",
+                                          title: "KONFIRMASI PERBARUI PIN",
                                           description: `Buat PIN baru untuk ${jaring.aliasName}? PIN lama langsung tidak dapat digunakan lagi.`,
                                           confirmLabel: "YA, BUAT PIN BARU",
                                           onConfirm: () => void regenerateJaringPin(jaring),
@@ -1522,29 +1534,38 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                       className="inline-flex h-8 items-center gap-1.5 rounded-[4px] border border-sky-600 px-3 font-mono font-semibold text-[11px] text-sky-700 uppercase hover:bg-sky-500/10 disabled:opacity-50 dark:text-sky-400"
                                     >
                                       <RefreshCw className="size-3.5" />
-                                      Regenerate PIN
+                                      Perbarui PIN
                                     </button>
-                                    <button
-                                      disabled={
-                                        isBusy ===
-                                        `jaring:${jaring.id}:${jaring.status === "ACTIVE" ? "deactivate" : "activate"}`
-                                      }
-                                      onClick={() => {
-                                        const action = jaring.status === "ACTIVE" ? "deactivate" : "activate";
-                                        requestConfirmation({
-                                          title:
-                                            action === "activate"
-                                              ? "KONFIRMASI AKTIVASI JARING"
-                                              : "KONFIRFINASI NONAKTIFKAN JARING",
-                                          description: `${action === "activate" ? "Aktifkan kembali" : "Nonaktifkan sementara"} jaring ${jaring.aliasName}?`,
-                                          confirmLabel: action === "activate" ? "YA, AKTIFKAN" : "YA, NONAKTIFKAN",
-                                          onConfirm: () => void changeJaringStatus(jaring.id, action),
-                                        });
-                                      }}
-                                      className="h-8 rounded-[4px] border border-amber-600 px-3 font-mono font-semibold text-amber-700 text-[11px] uppercase hover:bg-amber-500/10 disabled:opacity-50 dark:text-amber-400"
-                                    >
-                                      {jaring.status === "ACTIVE" ? "Nonaktifkan" : "Aktifkan"}
-                                    </button>
+                                    {jaring.registrationStatus === "REJECTED" ? (
+                                      <Link
+                                        href={`/dashboard/field-officer/jaring-binaan/${jaring.id}/edit`}
+                                        className="inline-flex h-8 items-center rounded-[4px] border border-amber-600 px-3 font-mono font-semibold text-amber-700 text-[11px] uppercase hover:bg-amber-500/10 dark:text-amber-400"
+                                      >
+                                        Revisi Data
+                                      </Link>
+                                    ) : (
+                                      <button
+                                        disabled={
+                                          isBusy ===
+                                          `jaring:${jaring.id}:${jaring.status === "ACTIVE" ? "deactivate" : "activate"}`
+                                        }
+                                        onClick={() => {
+                                          const action = jaring.status === "ACTIVE" ? "deactivate" : "activate";
+                                          requestConfirmation({
+                                            title:
+                                              action === "activate"
+                                                ? "KONFIRMASI AKTIVASI JARING"
+                                                : "KONFIRMASI NONAKTIFKAN JARING",
+                                            description: `${action === "activate" ? "Aktifkan kembali" : "Nonaktifkan sementara"} jaring ${jaring.aliasName}?`,
+                                            confirmLabel: action === "activate" ? "YA, AKTIFKAN" : "YA, NONAKTIFKAN",
+                                            onConfirm: () => void changeJaringStatus(jaring.id, action),
+                                          });
+                                        }}
+                                        className="h-8 rounded-[4px] border border-amber-600 px-3 font-mono font-semibold text-amber-700 text-[11px] uppercase hover:bg-amber-500/10 disabled:opacity-50 dark:text-amber-400"
+                                      >
+                                        {jaring.status === "ACTIVE" ? "Nonaktifkan" : "Aktifkan"}
+                                      </button>
+                                    )}
                                     <button
                                       disabled={isBusy === `jaring:${jaring.id}:delete`}
                                       onClick={() =>

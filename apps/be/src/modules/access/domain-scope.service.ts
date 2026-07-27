@@ -185,17 +185,49 @@ export class DomainScopeService {
 
   async assertJaring(context: AuthorizationContext, jaringId: string) {
     const scope = await this.resolve(context);
+    const isFieldCoordinator =
+      context.authRole === SYSTEM_ROLES.FIELD_COORDINATOR;
     const found = await this.prisma.jaring.findFirst({
       where: {
         id: jaringId,
         deletedAt: null,
+        ...(isFieldCoordinator && scope.areaRootIds.length === 0
+          ? { id: { in: [] } }
+          : {}),
         caretakerAssignments: {
           some: {
-            fieldOfficerAssignmentId: { in: scope.assignmentIds },
+            ...(isFieldCoordinator
+              ? {
+                  fieldOfficerAssignment: {
+                    seat: { branch: scope.commandRouteType },
+                  },
+                }
+              : {
+                  fieldOfficerAssignmentId: { in: scope.assignmentIds },
+                }),
             isActive: true,
             OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
           },
         },
+        ...(scope.areaRootIds.length
+          ? {
+              areaCoverages: {
+                some: {
+                  validUntil: null,
+                  area: {
+                    OR: [
+                      { id: { in: scope.areaRootIds } },
+                      {
+                        descendantLinks: {
+                          some: { ancestorId: { in: scope.areaRootIds } },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            }
+          : {}),
       },
       select: { id: true },
     });

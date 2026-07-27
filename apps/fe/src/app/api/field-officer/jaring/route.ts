@@ -7,14 +7,13 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as {
       aliasName?: string;
       whatsappNumber: string;
-      clusterId: string;
       fullName: string;
-      nationalIdNumber: string;
+      nationalIdNumber?: string;
       birthPlace: string;
       birthDate: string;
       gender: "MALE" | "FEMALE";
       occupationId: string;
-      profilePhotoFileId?: string;
+      profilePhotoFileId: string;
       workplace?: string;
       jobTitle?: string;
       joinedAt: string;
