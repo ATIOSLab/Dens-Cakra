@@ -278,8 +278,8 @@ export default function JaringDetailPage({ params }: PageProps) {
                 <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">{jaring.whatsappNumber}</span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Kluster</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.clusterName || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Pekerjaan</span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.occupationName || "-"}</span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                 <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Kelurahan/Desa Cakupan</span>
