@@ -1063,7 +1063,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
                 <div className="space-y-1.5">
                   <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
-                    Tanggal Mulai
+                    Periode Mulai
                   </label>
                   <Input
                     type="date"
@@ -1075,7 +1075,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
                 <div className="space-y-1.5">
                   <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
-                    Tanggal Selesai
+                    Periode Selesai
                   </label>
                   <Input
                     type="date"

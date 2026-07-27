@@ -764,22 +764,34 @@ function Filters({
         </Select>
       ) : null}
 
-      <Input
-        type="date"
-        name="periodStart"
-        aria-label="Tanggal mulai"
-        value={periodStart}
-        onChange={(e) => setPeriodStart(e.target.value)}
-        className="h-9 text-sm bg-background border-border text-foreground"
-      />
-      <Input
-        type="date"
-        name="periodEnd"
-        aria-label="Tanggal selesai"
-        value={periodEnd}
-        onChange={(e) => setPeriodEnd(e.target.value)}
-        className="h-9 text-sm bg-background border-border text-foreground"
-      />
+      <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
+        <label className="space-y-1">
+          <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+            Periode Mulai
+          </span>
+          <Input
+            type="date"
+            name="periodStart"
+            aria-label="Periode mulai"
+            value={periodStart}
+            onChange={(e) => setPeriodStart(e.target.value)}
+            className="h-9 text-sm bg-background border-border text-foreground"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+            Periode Selesai
+          </span>
+          <Input
+            type="date"
+            name="periodEnd"
+            aria-label="Periode selesai"
+            value={periodEnd}
+            onChange={(e) => setPeriodEnd(e.target.value)}
+            className="h-9 text-sm bg-background border-border text-foreground"
+          />
+        </label>
+      </div>
       {!!(
         search ||
         regencyId ||
