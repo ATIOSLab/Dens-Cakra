@@ -181,6 +181,21 @@ function generateAliasPreview(area: WorkspaceDistrictArea | null, jaring: Worksp
   return sequence ? `${prefix}${sequence}` : "";
 }
 
+function resolveAgentDistrict(workspace: FieldOfficerWorkspace | null) {
+  if (!workspace) return null;
+
+  const districtById = new Map(workspace.districtAreas.map((area) => [area.areaId, area]));
+  const districtScopes = workspace.context.areaScopes.filter(
+    (scope) => scope.level.toUpperCase() === "DISTRICT" && districtById.has(scope.areaId),
+  );
+  const scopedDistrict = districtScopes.find((scope) => scope.isPrimary) ?? districtScopes[0] ?? null;
+  if (scopedDistrict) {
+    return districtById.get(scopedDistrict.areaId) ?? null;
+  }
+
+  return workspace.districtAreas.length === 1 ? workspace.districtAreas[0] : null;
+}
+
 function calculateAge(birthDate: string) {
   if (!birthDate) return "";
 
@@ -259,6 +274,8 @@ export function JaringRegistrationForm() {
   const gender = form.watch("gender");
   const selectedDistrictId = form.watch("areaId");
   const selectedVillageId = form.watch("villageId");
+  const agentDistrict = useMemo(() => resolveAgentDistrict(workspace), [workspace]);
+  const districtPlaceholder = isLoading ? "Memuat kecamatan..." : (agentDistrict?.name ?? "Pilih Kecamatan");
   const selectedDistrict = workspace?.districtAreas.find((area) => area.areaId === selectedDistrictId) ?? null;
   const generatedAliasName = useMemo(
     () => generateAliasPreview(selectedDistrict, workspace?.jaring ?? []),
@@ -280,6 +297,19 @@ export function JaringRegistrationForm() {
       return false;
     });
   }, [selectedDistrict, workspace]);
+
+  useEffect(() => {
+    if (!agentDistrict) return;
+
+    const currentDistrictId = form.getValues("areaId");
+    if (currentDistrictId === agentDistrict.areaId) return;
+
+    form.setValue("areaId", agentDistrict.areaId, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: true,
+    });
+  }, [agentDistrict, form]);
 
   useEffect(() => {
     if (!selectedDistrictId) {
@@ -563,12 +593,10 @@ export function JaringRegistrationForm() {
                     <NativeSelect
                       id="area-id"
                       className="w-full"
-                      disabled={isLoading || !workspace?.districtAreas.length}
+                      disabled={isLoading || !workspace?.districtAreas.length || Boolean(agentDistrict)}
                       {...form.register("areaId")}
                     >
-                      <NativeSelectOption value="">
-                        {isLoading ? "Memuat kecamatan..." : "Pilih Kecamatan"}
-                      </NativeSelectOption>
+                      <NativeSelectOption value="">{districtPlaceholder}</NativeSelectOption>
                       {workspace?.districtAreas.map((area) => (
                         <NativeSelectOption key={area.areaId} value={area.areaId}>
                           {area.name}
