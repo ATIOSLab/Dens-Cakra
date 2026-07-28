@@ -312,6 +312,13 @@ export const sidebarItems: NavGroup[] = [
         roles: FIELD_COORDINATOR_ROLE,
       },
       {
+        id: "field-coordinator-jaring-verification",
+        title: "Verifikasi Jaring",
+        url: "/dashboard/field-coordinator/verifikasi-jaring",
+        icon: ShieldCheck,
+        roles: FIELD_COORDINATOR_ROLE,
+      },
+      {
         id: "field-coordinator-emergency",
         title: "Laporan Darurat",
         url: "/dashboard/field-coordinator/laporan-darurat",

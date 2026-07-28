@@ -13,11 +13,60 @@ describe('JaringService registration security', () => {
     birthDate: '1990-01-01',
     gender: 'MALE',
     occupationId: '36ac29d1-9cab-4dd0-a86f-218be20d3b44',
+    profilePhotoFileId: 'cbfa99dc-533f-441e-aa7a-ac2a9648dc54',
     joinedAt: '2020-01-01',
     notes: 'Bermanfaat untuk pemetaan dan pembinaan wilayah.',
     fieldOfficerAssignmentId: '8ba6a135-9aef-43d3-a7c9-086eb4575f79',
     areaIds: ['247c7732-44df-4f4a-bf50-f80c81245205'],
   };
+
+  it('memfilter Jaring berdasarkan kelurahan turunan dari cakupan wilayah', async () => {
+    const findMany = jest.fn(() => Promise.resolve([]));
+    const service = new JaringService(
+      { jaring: { findMany } } as never,
+      {
+        resolve: jest.fn(() =>
+          Promise.resolve({
+            organizationUnitId: 'unit-id',
+            commandRouteType: 'BINDA',
+            positionIds: ['position-id'],
+            assignmentIds: ['assignment-id'],
+            areaRootIds: ['district-id'],
+          }),
+        ),
+      } as never,
+    );
+
+    await service.list(
+      { limit: 100 },
+      {
+        authRole: 'field_officer',
+        primaryAssignmentId: 'assignment-id',
+      } as never,
+    );
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          areaCoverages: {
+            some: {
+              validUntil: null,
+              area: {
+                OR: [
+                  { id: { in: ['district-id'] } },
+                  {
+                    descendantLinks: {
+                      some: { ancestorId: { in: ['district-id'] } },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        }),
+      }),
+    );
+  });
 
   it('menolak tanggal bergabung sebelum tanggal lahir', async () => {
     const service = new JaringService(
@@ -160,22 +209,30 @@ describe('JaringService registration security', () => {
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
+      fileAsset: {
+        findFirst: jest.fn(() =>
+          Promise.resolve({
+            id: newJaring.profilePhotoFileId,
+            mimeType: 'image/jpeg',
+          }),
+        ),
+      },
       administrativeArea: {
         count: jest.fn(() => Promise.resolve(1)),
         findMany: jest.fn(() =>
           Promise.resolve([
             {
               id: newJaring.areaIds[0],
-              code: '31.74.01',
-              officialCode: '31.74.01',
-              name: 'Tebet',
-              level: 'DISTRICT',
+              code: '31.74.01.1001',
+              officialCode: '31.74.01.1001',
+              name: 'Tebet Timur',
+              level: 'URBAN_VILLAGE',
               parent: {
-                id: 'city-id',
-                code: '31.74',
-                officialCode: '31.74',
-                name: 'Kota Administrasi Jakarta Selatan',
-                level: 'CITY',
+                id: 'district-id',
+                code: '31.74.01',
+                officialCode: '31.74.01',
+                name: 'Tebet',
+                level: 'DISTRICT',
               },
             },
           ]),
@@ -211,6 +268,9 @@ describe('JaringService registration security', () => {
 
   it('melakukan soft delete dan menyimpan audit delete', async () => {
     const update = jest.fn(() => Promise.resolve({}));
+    const findUniqueOrThrow = jest.fn(() =>
+      Promise.resolve({ registrationStatus: 'APPROVED' }),
+    );
     const findFirstOrThrow = jest.fn(() =>
       Promise.resolve({
         id: 'jaring-id',
@@ -221,7 +281,7 @@ describe('JaringService registration security', () => {
     const auditCreate = jest.fn(() => Promise.resolve({}));
     const service = new JaringService(
       {
-        jaring: { update, findFirstOrThrow },
+        jaring: { update, findUniqueOrThrow, findFirstOrThrow },
         auditLog: { create: auditCreate },
       } as never,
       {} as never,

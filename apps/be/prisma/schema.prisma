@@ -174,6 +174,12 @@ enum JaringStatus {
   ARCHIVED
 }
 
+enum JaringRegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum JaringGender {
   MALE
   FEMALE
@@ -736,6 +742,7 @@ model UserSeatAssignment {
   taskAssignmentsReceived    TaskAssignment[]            @relation("TaskAssignedTo")
   taskProgressCreated        TaskProgressLog[]
   jaringCreated              Jaring[]                    @relation("JaringCreatedBy")
+  jaringReviewed             Jaring[]                    @relation("JaringReviewedBy")
   jaringCaretakerAssignments JaringCaretakerAssignment[]
   routedWhatsAppMessages     WhatsAppMessage[]           @relation("WhatsAppRoutedTo")
   whatsappRoutingLogs        WhatsAppRoutingLog[]
@@ -1283,6 +1290,10 @@ model Jaring {
   organizationName      String?       @db.VarChar(180)
   politicalAffiliation  String?       @db.VarChar(180)
   status                JaringStatus  @default(ACTIVE)
+  registrationStatus    JaringRegistrationStatus @default(APPROVED)
+  rejectionReason       String?       @db.Text
+  reviewedAt            DateTime?
+  reviewedByAssignmentId String?      @db.Uuid
   createdByAssignmentId String        @db.Uuid
   notes                 String?       @db.Text
   registeredAt          DateTime      @default(now())
@@ -1292,6 +1303,7 @@ model Jaring {
   updatedAt             DateTime      @updatedAt
 
   createdByAssignment UserSeatAssignment @relation("JaringCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  reviewedByAssignment UserSeatAssignment? @relation("JaringReviewedBy", fields: [reviewedByAssignmentId], references: [id], onDelete: SetNull)
   cluster             JaringCluster?     @relation(fields: [clusterId], references: [id], onDelete: SetNull)
   occupation          JaringOccupation?  @relation(fields: [occupationId], references: [id], onDelete: SetNull)
   profilePhotoFile    FileAsset?         @relation("JaringProfilePhoto", fields: [profilePhotoFileId], references: [id], onDelete: SetNull)
@@ -1302,6 +1314,8 @@ model Jaring {
   primaryBakets        Baket[]                     @relation("BaketPrimaryJaring")
 
   @@index([status, deletedAt])
+  @@index([registrationStatus, createdAt])
+  @@index([reviewedByAssignmentId])
   @@index([code])
   @@index([clusterId, status])
   @@index([occupationId])

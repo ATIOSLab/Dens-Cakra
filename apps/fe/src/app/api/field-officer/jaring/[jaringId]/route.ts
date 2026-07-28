@@ -14,6 +14,19 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const body = (await request.json()) as {
       aliasName?: string;
       whatsappNumber?: string;
+      fullName?: string;
+      nationalIdNumber?: string;
+      birthPlace?: string;
+      birthDate?: string;
+      gender?: string;
+      occupationId?: string;
+      profilePhotoFileId?: string;
+      workplace?: string;
+      jobTitle?: string;
+      joinedAt?: string;
+      organizationName?: string;
+      politicalAffiliation?: string;
+      areaIds?: string[];
       notes?: string;
     };
 

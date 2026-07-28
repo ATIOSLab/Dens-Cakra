@@ -241,12 +241,19 @@ export async function OimTaskAssignmentPage({ taskId }: { taskId: string }) {
   const candidates = await loadSubordinateCandidates(access, "FIELD_COORDINATOR");
 
   return (
-    <AssignmentBoardClient
-      task={task}
-      candidates={candidates}
-      submitLabel="Distribusikan ke Field Coordinator"
-      mode="assign"
-    />
+    <div className="space-y-6">
+      <TaskDetailClient
+        task={task}
+        hideTargetAreas
+        assignmentTitle="Daftar Field Coordinator"
+      />
+      <AssignmentBoardClient
+        task={task}
+        candidates={candidates}
+        submitLabel="Distribusikan ke Field Coordinator"
+        mode="assign"
+      />
+    </div>
   );
 }
 

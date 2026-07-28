@@ -51,9 +51,8 @@ const registrationSchema = z
       .min(1, "Nomor WhatsApp wajib diisi.")
       .regex(/^\d+$/, "Nomor WhatsApp hanya boleh berisi angka.")
       .max(30, "Maksimal 30 digit."),
-    clusterId: z.string().min(1, "Cluster Jaring wajib dipilih."),
     areaId: z.string().min(1, "Kecamatan wajib dipilih."),
-    villageIds: z.array(z.string()).min(1, "Pilih minimal 1 Kelurahan/Desa."),
+    villageId: z.string().min(1, "Pilih 1 Kelurahan/Desa."),
     joinedAt: z
       .string()
       .min(1, "Tanggal Bergabung wajib diisi.")
@@ -65,7 +64,10 @@ const registrationSchema = z
     politicalAffiliation: z.string().max(180, "Maksimal 180 karakter."),
     notes: z.string().trim().min(1, "Kebermanfaatan wajib diisi.").max(3000, "Maksimal 3.000 karakter."),
     fullName: z.string().trim().min(1, "Nama Lengkap wajib diisi.").max(180, "Maksimal 180 karakter."),
-    nationalIdNumber: z.string().regex(/^\d{16}$/, "NIK harus terdiri dari tepat 16 digit angka."),
+    nationalIdNumber: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || /^\d{16}$/.test(value), "NIK harus kosong atau terdiri dari tepat 16 digit angka."),
     birthPlace: z.string().trim().min(1, "Tempat Lahir wajib diisi.").max(120, "Maksimal 120 karakter."),
     birthDate: z
       .string()
@@ -229,7 +231,6 @@ export function JaringRegistrationForm() {
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const [occupationSearch, setOccupationSearch] = useState("");
   const [maxBirthDate] = useState(todayInputValue);
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
@@ -237,9 +238,8 @@ export function JaringRegistrationForm() {
     defaultValues: {
       aliasName: "",
       whatsappNumber: "",
-      clusterId: "",
       areaId: "",
-      villageIds: [],
+      villageId: "",
       joinedAt: todayInputValue(),
       organizationName: "",
       politicalAffiliation: "",
@@ -257,24 +257,9 @@ export function JaringRegistrationForm() {
   const nikField = form.register("nationalIdNumber");
   const birthDate = form.watch("birthDate");
   const gender = form.watch("gender");
-  const selectedOccupationId = form.watch("occupationId");
   const selectedDistrictId = form.watch("areaId");
-  const selectedVillageIds = form.watch("villageIds");
+  const selectedVillageId = form.watch("villageId");
   const selectedDistrict = workspace?.districtAreas.find((area) => area.areaId === selectedDistrictId) ?? null;
-  const selectedOccupation =
-    workspace?.occupations.find((occupation) => occupation.id === selectedOccupationId) ?? null;
-  const filteredOccupations = useMemo(() => {
-    const search = occupationSearch.trim().toLowerCase();
-    const occupations = workspace?.occupations ?? [];
-
-    if (!search) {
-      return occupations;
-    }
-
-    return occupations.filter((occupation) =>
-      `${occupation.name} ${occupation.code}`.toLowerCase().includes(search),
-    );
-  }, [occupationSearch, workspace?.occupations]);
   const generatedAliasName = useMemo(
     () => generateAliasPreview(selectedDistrict, workspace?.jaring ?? []),
     [selectedDistrict, workspace?.jaring],
@@ -298,15 +283,14 @@ export function JaringRegistrationForm() {
 
   useEffect(() => {
     if (!selectedDistrictId) {
-      form.setValue("villageIds", [], { shouldDirty: true, shouldValidate: true });
+      form.setValue("villageId", "", { shouldDirty: true, shouldValidate: true });
       return;
     }
 
     const allowedVillageIds = new Set(villageOptions.map((area) => area.areaId));
-    const currentVillageIds = form.getValues("villageIds");
-    const nextVillageIds = currentVillageIds.filter((areaId) => allowedVillageIds.has(areaId));
-    if (nextVillageIds.length !== currentVillageIds.length) {
-      form.setValue("villageIds", nextVillageIds, { shouldDirty: true, shouldValidate: true });
+    const currentVillageId = form.getValues("villageId");
+    if (currentVillageId && !allowedVillageIds.has(currentVillageId)) {
+      form.setValue("villageId", "", { shouldDirty: true, shouldValidate: true });
     }
   }, [form, selectedDistrictId, villageOptions]);
 
@@ -388,17 +372,6 @@ export function JaringRegistrationForm() {
     setPhotoError(null);
   }
 
-  function toggleVillage(areaId: string, checked: boolean) {
-    const current = form.getValues("villageIds");
-    const next = checked ? [...new Set([...current, areaId])] : current.filter((id) => id !== areaId);
-
-    form.setValue("villageIds", next, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    });
-  }
-
   async function uploadProfilePhoto(file: File) {
     const checksumSha256 = await sha256Hex(file);
     const presignResponse = await fetch("/api/v1/files/presign", {
@@ -448,7 +421,10 @@ export function JaringRegistrationForm() {
 
   async function saveJaring() {
     const valid = await form.trigger();
-    if (!valid || !workspace) {
+    if (!selectedPhotoFile) {
+      setPhotoError("Foto Jaring wajib diunggah.");
+    }
+    if (!valid || !workspace || !selectedPhotoFile) {
       setShowConfirmation(false);
       return;
     }
@@ -456,16 +432,15 @@ export function JaringRegistrationForm() {
     const values = form.getValues();
     setIsSubmitting(true);
     try {
-      const profilePhotoFileId = selectedPhotoFile ? await uploadProfilePhoto(selectedPhotoFile) : undefined;
+      const profilePhotoFileId = await uploadProfilePhoto(selectedPhotoFile);
       const response = await fetch("/api/field-officer/jaring", {
         method: "POST",
         headers: idempotentJsonHeaders("create"),
         body: JSON.stringify({
           aliasName: values.aliasName.trim(),
           whatsappNumber: values.whatsappNumber,
-          clusterId: values.clusterId,
           fullName: values.fullName.trim(),
-          nationalIdNumber: values.nationalIdNumber,
+          nationalIdNumber: values.nationalIdNumber.trim() || undefined,
           birthPlace: values.birthPlace.trim(),
           birthDate: values.birthDate,
           gender: values.gender,
@@ -477,14 +452,14 @@ export function JaringRegistrationForm() {
           organizationName: values.organizationName.trim() || undefined,
           politicalAffiliation: values.politicalAffiliation.trim() || undefined,
           notes: values.notes.trim(),
-          areaIds: values.villageIds,
+          areaIds: [values.villageId],
           fieldOfficerAssignmentId: workspace.context.primaryAssignmentId,
         }),
       });
       const body = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) throw new Error(body?.message ?? "Gagal menyimpan Jaring.");
 
-      toast.success("Jaring berhasil ditambahkan.");
+      toast.success("Pengajuan Jaring tersimpan dan menunggu persetujuan Regional Commander.");
       router.push(LIST_ROUTE);
       router.refresh();
     } catch (error) {
@@ -561,25 +536,25 @@ export function JaringRegistrationForm() {
                     <FieldError errors={[form.formState.errors.whatsappNumber]} />
                   </FieldContent>
                 </Field>
-                <Field data-invalid={Boolean(form.formState.errors.clusterId)}>
-                  <RequiredLabel htmlFor="cluster-id">Cluster Jaring</RequiredLabel>
+                <Field data-invalid={Boolean(form.formState.errors.occupationId)}>
+                  <RequiredLabel htmlFor="occupation-id">Pekerjaan</RequiredLabel>
                   <FieldContent>
                     <NativeSelect
-                      id="cluster-id"
+                      id="occupation-id"
                       className="w-full"
-                      disabled={isLoading || !workspace?.jaringClusters.length}
-                      {...form.register("clusterId")}
+                      disabled={isLoading || !workspace?.occupations.length}
+                      {...form.register("occupationId")}
                     >
                       <NativeSelectOption value="">
-                        {isLoading ? "Memuat cluster..." : "Pilih Cluster Jaring"}
+                        {isLoading ? "Memuat pekerjaan..." : "Pilih Pekerjaan"}
                       </NativeSelectOption>
-                      {workspace?.jaringClusters.map((cluster) => (
-                        <NativeSelectOption key={cluster.id} value={cluster.id}>
-                          {cluster.name}
+                      {workspace?.occupations.map((occupation) => (
+                        <NativeSelectOption key={occupation.id} value={occupation.id}>
+                          {occupation.name}
                         </NativeSelectOption>
                       ))}
                     </NativeSelect>
-                    <FieldError errors={[form.formState.errors.clusterId]} />
+                    <FieldError errors={[form.formState.errors.occupationId]} />
                   </FieldContent>
                 </Field>
                 <Field data-invalid={Boolean(form.formState.errors.areaId)}>
@@ -603,21 +578,32 @@ export function JaringRegistrationForm() {
                     <FieldError errors={[form.formState.errors.areaId]} />
                   </FieldContent>
                 </Field>
-                <Field className="md:col-span-2" data-invalid={Boolean(form.formState.errors.villageIds)}>
+                <Field className="md:col-span-2" data-invalid={Boolean(form.formState.errors.villageId)}>
                   <RequiredLabel>Kelurahan/Desa Cakupan</RequiredLabel>
                   <FieldContent>
                     <div className="rounded-md border bg-background">
                       <div className="border-b px-3 py-2 text-xs text-muted-foreground">
                         {selectedDistrictId
                           ? villageOptions.length > 0
-                            ? `${selectedVillageIds.length} dari ${villageOptions.length} kelurahan/desa dipilih`
+                            ? selectedVillageId
+                              ? "1 kelurahan/desa dipilih"
+                              : `Pilih 1 dari ${villageOptions.length} kelurahan/desa`
                             : "Kelurahan/Desa belum tersedia untuk kecamatan ini"
                           : "Pilih Kecamatan dulu untuk menampilkan kelurahan/desa"}
                       </div>
-                      <div className="grid max-h-48 gap-1 overflow-y-auto p-2 sm:grid-cols-2">
+                      <RadioGroup
+                        className="grid max-h-48 gap-1 overflow-y-auto p-2 sm:grid-cols-2"
+                        value={selectedVillageId}
+                        onValueChange={(areaId) => {
+                          form.setValue("villageId", areaId, {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true,
+                          });
+                        }}
+                      >
                         {villageOptions.map((area) => {
                           const inputId = `village-${area.areaId}`;
-                          const checked = selectedVillageIds.includes(area.areaId);
 
                           return (
                             <label
@@ -625,21 +611,14 @@ export function JaringRegistrationForm() {
                               htmlFor={inputId}
                               className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                             >
-                              <input
-                                id={inputId}
-                                type="checkbox"
-                                className="size-4 accent-primary"
-                                checked={checked}
-                                onChange={(event) => toggleVillage(area.areaId, event.target.checked)}
-                                disabled={!selectedDistrictId || isSubmitting}
-                              />
+                              <RadioGroupItem id={inputId} value={area.areaId} disabled={!selectedDistrictId || isSubmitting} />
                               <span>{area.name}</span>
                             </label>
                           );
                         })}
-                      </div>
+                      </RadioGroup>
                     </div>
-                    <FieldError errors={[form.formState.errors.villageIds]} />
+                    <FieldError errors={[form.formState.errors.villageId]} />
                   </FieldContent>
                 </Field>
                 <Field data-invalid={Boolean(form.formState.errors.joinedAt)}>
@@ -699,7 +678,7 @@ export function JaringRegistrationForm() {
             <FieldGroup>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field className="md:col-span-2" data-invalid={Boolean(photoError)}>
-                  <FieldLabel htmlFor="profile-photo">Foto Jaring (Opsional)</FieldLabel>
+                  <RequiredLabel htmlFor="profile-photo">Foto Jaring</RequiredLabel>
                   <FieldContent>
                     <div className="flex flex-col gap-3 rounded-md border border-dashed p-3 sm:flex-row sm:items-center">
                       <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
@@ -748,7 +727,7 @@ export function JaringRegistrationForm() {
                   </FieldContent>
                 </Field>
                 <Field data-invalid={Boolean(form.formState.errors.nationalIdNumber)}>
-                  <RequiredLabel htmlFor="national-id-number">NIK / Nomor KTP</RequiredLabel>
+                  <FieldLabel htmlFor="national-id-number">NIK / Nomor KTP (Opsional)</FieldLabel>
                   <FieldContent>
                     <Input
                       id="national-id-number"
@@ -821,65 +800,6 @@ export function JaringRegistrationForm() {
                     Pilih pekerjaan dari master data dan lengkapi detail kerja bila tersedia.
                   </p>
                 </div>
-                <Field data-invalid={Boolean(form.formState.errors.occupationId)} className="md:col-span-2">
-                  <RequiredLabel htmlFor="occupation-search">Pekerjaan</RequiredLabel>
-                  <FieldContent>
-                    <input type="hidden" {...form.register("occupationId")} />
-                    <Input
-                      id="occupation-search"
-                      type="search"
-                      placeholder={isLoading ? "Memuat pekerjaan..." : "Cari pekerjaan..."}
-                      value={occupationSearch}
-                      disabled={isLoading || !workspace?.occupations.length}
-                      onChange={(event) => setOccupationSearch(event.target.value)}
-                    />
-                    <div
-                      role="listbox"
-                      aria-label="Daftar pekerjaan"
-                      className="max-h-44 overflow-y-auto rounded-md border bg-background p-1"
-                    >
-                      {filteredOccupations.length > 0 ? (
-                        filteredOccupations.map((occupation) => {
-                          const selected = occupation.id === selectedOccupationId;
-
-                          return (
-                            <button
-                              key={occupation.id}
-                              type="button"
-                              role="option"
-                              aria-selected={selected}
-                              className={[
-                                "flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm transition-colors",
-                                selected ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-                              ].join(" ")}
-                              onClick={() => {
-                                form.setValue("occupationId", occupation.id, {
-                                  shouldDirty: true,
-                                  shouldTouch: true,
-                                  shouldValidate: true,
-                                });
-                                setOccupationSearch(occupation.name);
-                              }}
-                            >
-                              <span>{occupation.name}</span>
-                              {selected ? <span className="text-xs font-medium">Dipilih</span> : null}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                          {workspace?.occupations.length
-                            ? "Pekerjaan tidak ditemukan."
-                            : "Belum ada master pekerjaan aktif."}
-                        </div>
-                      )}
-                    </div>
-                    {selectedOccupation ? (
-                      <p className="text-xs text-muted-foreground">Dipilih: {selectedOccupation.name}</p>
-                    ) : null}
-                    <FieldError errors={[form.formState.errors.occupationId]} />
-                  </FieldContent>
-                </Field>
                 <Field data-invalid={Boolean(form.formState.errors.workplace)}>
                   <FieldLabel htmlFor="workplace">Instansi / Tempat Kerja</FieldLabel>
                   <FieldContent>
@@ -912,7 +832,7 @@ export function JaringRegistrationForm() {
             disabled={isLoading || Boolean(loadError) || isSubmitting}
           >
             {isLoading ? <LoaderCircle className="animate-spin" /> : null}
-            Simpan Jaring
+            Ajukan Jaring
           </Button>
         </div>
       </form>

@@ -69,7 +69,7 @@ export const getSessionPrincipal = cache(async (): Promise<SessionPrincipal | nu
     return null;
   }
 
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401 || response.status === 403 || response.status === 429) {
     return null;
   }
 
