@@ -60,6 +60,7 @@ type JaringRecord = {
   };
   fullName?: string | null;
   nationalIdNumber?: string | null;
+  address?: string | null;
   birthPlace?: string | null;
   birthDate?: string | Date | null;
   gender?: string | null;
@@ -492,6 +493,7 @@ export async function getFieldOfficerWorkspace(
       baketCount: item._count?.primaryBakets ?? 0,
       fullName: item.fullName ?? null,
       nationalIdNumber: item.nationalIdNumber ?? null,
+      address: item.address ?? null,
       birthPlace: item.birthPlace ?? null,
       birthDate: item.birthDate ? (typeof item.birthDate === "string" ? item.birthDate : item.birthDate.toISOString()) : null,
       gender: item.gender ?? null,
@@ -590,6 +592,7 @@ export async function createFieldOfficerJaring(
   body: {
     aliasName?: string;
     whatsappNumber: string;
+    address: string;
     occupationId: string;
     profilePhotoFileId: string;
     notes?: string;
@@ -613,6 +616,7 @@ export async function updateFieldOfficerJaring(
     whatsappNumber?: string;
     fullName?: string;
     nationalIdNumber?: string;
+    address?: string;
     birthPlace?: string;
     birthDate?: string;
     gender?: string;

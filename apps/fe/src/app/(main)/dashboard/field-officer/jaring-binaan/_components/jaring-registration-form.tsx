@@ -68,6 +68,7 @@ const registrationSchema = z
       .string()
       .trim()
       .refine((value) => value === "" || /^\d{16}$/.test(value), "NIK harus kosong atau terdiri dari tepat 16 digit angka."),
+    address: z.string().trim().min(1, "Alamat wajib diisi.").max(1000, "Maksimal 1.000 karakter."),
     birthPlace: z.string().trim().min(1, "Tempat Lahir wajib diisi.").max(120, "Maksimal 120 karakter."),
     birthDate: z
       .string()
@@ -246,6 +247,7 @@ export function JaringRegistrationForm() {
       notes: "",
       fullName: "",
       nationalIdNumber: "",
+      address: "",
       birthPlace: "",
       birthDate: "",
       occupationId: "",
@@ -441,6 +443,7 @@ export function JaringRegistrationForm() {
           whatsappNumber: values.whatsappNumber,
           fullName: values.fullName.trim(),
           nationalIdNumber: values.nationalIdNumber.trim() || undefined,
+          address: values.address.trim(),
           birthPlace: values.birthPlace.trim(),
           birthDate: values.birthDate,
           gender: values.gender,
@@ -741,6 +744,20 @@ export function JaringRegistrationForm() {
                       }}
                     />
                     <FieldError errors={[form.formState.errors.nationalIdNumber]} />
+                  </FieldContent>
+                </Field>
+                <Field className="md:col-span-2" data-invalid={Boolean(form.formState.errors.address)}>
+                  <RequiredLabel htmlFor="address">Alamat</RequiredLabel>
+                  <FieldContent>
+                    <Textarea
+                      id="address"
+                      rows={3}
+                      maxLength={1000}
+                      autoComplete="street-address"
+                      placeholder="Alamat lengkap tempat tinggal Jaring"
+                      {...form.register("address")}
+                    />
+                    <FieldError errors={[form.formState.errors.address]} />
                   </FieldContent>
                 </Field>
                 <Field data-invalid={Boolean(form.formState.errors.birthPlace)}>

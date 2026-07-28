@@ -52,6 +52,7 @@ export type FieldOfficerJaring = {
   baketCount: number;
   fullName: string | null;
   nationalIdNumber: string | null;
+  address: string | null;
   birthPlace: string | null;
   birthDate: string | null;
   gender: string | null;

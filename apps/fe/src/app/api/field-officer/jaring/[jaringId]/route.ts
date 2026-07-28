@@ -16,6 +16,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       whatsappNumber?: string;
       fullName?: string;
       nationalIdNumber?: string;
+      address?: string;
       birthPlace?: string;
       birthDate?: string;
       gender?: string;

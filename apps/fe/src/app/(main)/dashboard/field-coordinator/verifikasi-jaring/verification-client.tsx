@@ -59,6 +59,7 @@ export type RegistrationJaring = {
   aliasName: string | null;
   fullName: string | null;
   nationalIdNumber: string | null;
+  address: string | null;
   birthPlace: string | null;
   birthDate: string | null;
   gender: string | null;
@@ -224,6 +225,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
         const alias = (item.aliasName ?? "").toLowerCase();
         const code = item.code.toLowerCase();
         const name = (item.fullName ?? "").toLowerCase();
+        const address = (item.address ?? "").toLowerCase();
         const occ = (item.occupation?.name ?? "").toLowerCase();
         const workplace = (item.workplace ?? "").toLowerCase();
         const area = areaNames(item).toLowerCase();
@@ -232,6 +234,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
           alias.includes(q) ||
           code.includes(q) ||
           name.includes(q) ||
+          address.includes(q) ||
           occ.includes(q) ||
           workplace.includes(q) ||
           area.includes(q) ||
@@ -549,6 +552,9 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                   <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground w-[220px]">
                     Nama
                   </TableHead>
+                  <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[220px]">
+                    Alamat
+                  </TableHead>
                   <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">
                     Pekerjaan
                   </TableHead>
@@ -606,6 +612,13 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                         <div className="flex flex-col min-w-0">
                           <span className="font-medium text-sm text-foreground truncate">{item.fullName ?? "-"}</span>
                           <span className="text-xs text-muted-foreground">{formatGender(item.gender)}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Alamat */}
+                      <TableCell className="py-3">
+                        <div className="max-w-[260px] truncate text-sm text-foreground" title={item.address ?? undefined}>
+                          {item.address ?? "-"}
                         </div>
                       </TableCell>
 
@@ -776,6 +789,10 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                     <div>
                       <span className="text-muted-foreground">Wilayah:</span>{" "}
                       <span className="font-medium text-foreground">{areas}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Alamat:</span>{" "}
+                      <span className="font-medium text-foreground">{item.address ?? "-"}</span>
                     </div>
                     <div className="col-span-2">
                       <span className="text-muted-foreground">Field Officer:</span>{" "}
@@ -1104,6 +1121,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               <DetailItem label="Alias" value={item.aliasName ?? item.code} />
               <DetailItem label="Nama Lengkap" value={item.fullName ?? "-"} />
               <DetailItem label="WhatsApp" value={item.whatsappNumber} />
+              <DetailItem label="Alamat" value={item.address ?? "-"} />
               <DetailItem label="Pekerjaan" value={item.occupation ? item.occupation.name : "-"} />
               <DetailItem label="Field Officer" value={officerName(item)} />
               <DetailItem label="Wilayah" value={areaNames(item)} />

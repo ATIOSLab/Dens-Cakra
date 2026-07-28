@@ -401,6 +401,7 @@ export class JaringService {
                 { code: { contains: query.search, mode: 'insensitive' } },
                 { aliasName: { contains: query.search, mode: 'insensitive' } },
                 { whatsappNumber: { contains: query.search } },
+                { address: { contains: query.search, mode: 'insensitive' } },
               ],
             }
           : {}),
@@ -554,6 +555,7 @@ export class JaringService {
         clusterId: body.clusterId,
         fullName: body.fullName.trim(),
         nationalIdNumber: body.nationalIdNumber?.trim() || undefined,
+        address: body.address.trim(),
         birthPlace: body.birthPlace.trim(),
         birthDate,
         gender: body.gender,
@@ -712,6 +714,7 @@ export class JaringService {
         ...(body.nationalIdNumber !== undefined
           ? { nationalIdNumber: body.nationalIdNumber?.trim() || null }
           : {}),
+        ...(body.address !== undefined ? { address: body.address.trim() } : {}),
         ...(body.birthPlace ? { birthPlace: body.birthPlace.trim() } : {}),
         ...(body.birthDate ? { birthDate: new Date(body.birthDate) } : {}),
         ...(body.joinedAt ? { joinedAt: new Date(body.joinedAt) } : {}),

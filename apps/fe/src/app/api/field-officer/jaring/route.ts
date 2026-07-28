@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
       whatsappNumber: string;
       fullName: string;
       nationalIdNumber?: string;
+      address: string;
       birthPlace: string;
       birthDate: string;
       gender: "MALE" | "FEMALE";

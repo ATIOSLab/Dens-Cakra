@@ -45,6 +45,7 @@ export class CreateJaringDto {
   @IsString()
   @Matches(/^\d{16}$/, { message: 'NIK harus terdiri dari tepat 16 digit angka.' })
   nationalIdNumber?: string;
+  @IsString() @IsNotEmpty() @MaxLength(1000) address!: string;
   @IsString() @IsNotEmpty() @MaxLength(120) birthPlace!: string;
   @IsDateString({}, { message: 'Tanggal lahir harus berupa tanggal yang valid.' })
   birthDate!: string;
@@ -80,6 +81,7 @@ export class UpdateJaringDto {
   @IsString()
   @Matches(/^\d{16}$/, { message: 'NIK harus terdiri dari tepat 16 digit angka.' })
   nationalIdNumber?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(1000) address?: string;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) birthPlace?: string;
   @IsOptional()
   @IsDateString({}, { message: 'Tanggal lahir harus berupa tanggal yang valid.' })

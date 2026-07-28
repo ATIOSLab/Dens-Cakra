@@ -44,6 +44,7 @@ export default function Page({ params }: PageProps) {
     whatsappNumber: "",
     fullName: "",
     nationalIdNumber: "",
+    address: "",
     birthPlace: "",
     birthDate: "",
     gender: "",
@@ -88,6 +89,7 @@ export default function Page({ params }: PageProps) {
             whatsappNumber: item.whatsappNumber.replace(/\D/g, ""),
             fullName: item.fullName ?? "",
             nationalIdNumber: item.nationalIdNumber ?? "",
+            address: item.address ?? "",
             birthPlace: item.birthPlace ?? "",
             birthDate: dateInput(item.birthDate),
             gender: item.gender ?? "",
@@ -137,6 +139,7 @@ export default function Page({ params }: PageProps) {
     if (
       !form.whatsappNumber ||
       !form.fullName.trim() ||
+      !form.address.trim() ||
       !form.birthPlace.trim() ||
       !form.birthDate ||
       !form.gender ||
@@ -166,6 +169,7 @@ export default function Page({ params }: PageProps) {
           whatsappNumber: form.whatsappNumber,
           fullName: form.fullName.trim(),
           nationalIdNumber: form.nationalIdNumber || undefined,
+          address: form.address.trim(),
           birthPlace: form.birthPlace.trim(),
           birthDate: form.birthDate,
           gender: form.gender,
@@ -221,6 +225,7 @@ export default function Page({ params }: PageProps) {
                 <Field><FieldLabel>WhatsApp *</FieldLabel><FieldContent><Input value={form.whatsappNumber} onChange={(e) => setValue("whatsappNumber", e.target.value.replace(/\D/g, ""))} /></FieldContent></Field>
                 <Field><FieldLabel>Nama Lengkap *</FieldLabel><FieldContent><Input value={form.fullName} onChange={(e) => setValue("fullName", e.target.value)} /></FieldContent></Field>
                 <Field><FieldLabel>NIK / KTP (Opsional)</FieldLabel><FieldContent><Input maxLength={16} value={form.nationalIdNumber} onChange={(e) => setValue("nationalIdNumber", e.target.value.replace(/\D/g, "").slice(0, 16))} /><FieldError /></FieldContent></Field>
+                <Field className="md:col-span-2"><FieldLabel>Alamat *</FieldLabel><FieldContent><Textarea rows={3} maxLength={1000} value={form.address} onChange={(e) => setValue("address", e.target.value)} /></FieldContent></Field>
                 <Field><FieldLabel>Tempat Lahir *</FieldLabel><FieldContent><Input value={form.birthPlace} onChange={(e) => setValue("birthPlace", e.target.value)} /></FieldContent></Field>
                 <Field><FieldLabel>Tanggal Lahir *</FieldLabel><FieldContent><Input type="date" value={form.birthDate} onChange={(e) => setValue("birthDate", e.target.value)} /></FieldContent></Field>
                 <Field><FieldLabel>Jenis Kelamin *</FieldLabel><FieldContent><NativeSelect value={form.gender} onChange={(e) => setValue("gender", e.target.value)}><NativeSelectOption value="">Pilih</NativeSelectOption><NativeSelectOption value="MALE">Laki-laki</NativeSelectOption><NativeSelectOption value="FEMALE">Perempuan</NativeSelectOption></NativeSelect></FieldContent></Field>

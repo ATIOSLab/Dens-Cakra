@@ -1279,6 +1279,7 @@ model Jaring {
   clusterId             String?       @db.Uuid
   fullName              String?       @db.VarChar(180)
   nationalIdNumber      String?       @db.Char(16)
+  address               String?       @db.Text
   birthPlace            String?       @db.VarChar(120)
   birthDate             DateTime?     @db.Date
   gender                JaringGender?

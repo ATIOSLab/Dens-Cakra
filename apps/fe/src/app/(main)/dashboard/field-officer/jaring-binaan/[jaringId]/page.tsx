@@ -329,6 +329,10 @@ export default function JaringDetailPage({ params }: PageProps) {
                 <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">NIK / KTP</span>
                 <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">{jaring.nationalIdNumber || "-"}</span>
               </div>
+              <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-start">
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Alamat</span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] whitespace-pre-wrap">{jaring.address || "-"}</span>
+              </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                 <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Tempat Lahir</span>
                 <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.birthPlace || "-"}</span>

@@ -302,7 +302,8 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
           item.aliasName.toLowerCase().includes(q) ||
           item.whatsappNumber.includes(q) ||
           item.code.toLowerCase().includes(q) ||
-          (item.fullName || "").toLowerCase().includes(q);
+          (item.fullName || "").toLowerCase().includes(q) ||
+          (item.address || "").toLowerCase().includes(q);
         if (!matchesSearch) return false;
       }
       if (jaringOccupationFilter !== "all") {
@@ -1438,6 +1439,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                               <TableHead>PIN</TableHead>
                               <TableHead>Alias / Nama Sandi</TableHead>
                               <TableHead>WhatsApp</TableHead>
+                              <TableHead>Alamat</TableHead>
                               <TableHead>Pekerjaan</TableHead>
                               <TableHead>Kecamatan</TableHead>
                               <TableHead>Status</TableHead>
@@ -1493,6 +1495,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                   )}
                                 </TableCell>
                                 <TableCell className="font-mono">{jaring.whatsappNumber}</TableCell>
+                                <TableCell>
+                                  <div className="max-w-64 truncate" title={jaring.address ?? undefined}>
+                                    {jaring.address || "-"}
+                                  </div>
+                                </TableCell>
                                 <TableCell>{jaring.occupationName || "-"}</TableCell>
                                 <TableCell>{jaring.areaNames.join(", ") || "-"}</TableCell>
                                 <TableCell>

@@ -9,6 +9,7 @@ describe('JaringService registration security', () => {
     clusterId: 'a6b197bd-6b8f-4fae-a567-8e417218961a',
     fullName: 'Nama Jaring',
     nationalIdNumber: '3171000000000001',
+    address: 'Jl. Tebet Timur Dalam No. 10, Jakarta Selatan',
     birthPlace: 'Jakarta',
     birthDate: '1990-01-01',
     gender: 'MALE',
@@ -263,6 +264,9 @@ describe('JaringService registration security', () => {
     const createInput = prisma.jaring.create.mock.calls[0]?.[0];
     expect(createInput.data.code).toMatch(/^\d{6}$/);
     expect(createInput.data.aliasName).toBe('Z01005');
+    expect(createInput.data.address).toBe(
+      'Jl. Tebet Timur Dalam No. 10, Jakarta Selatan',
+    );
     expect(prisma.jaring.findFirst).toHaveBeenCalledTimes(1);
   });
 
