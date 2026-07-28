@@ -30,13 +30,40 @@ function formatDateOnly(value?: string | null) {
 
 function statusTone(status: string) {
   const value = status.toUpperCase();
-  if (value.includes("ACTIVE") || value.includes("COMPLETED") || value.includes("VALID")) {
-    return "dark:bg-emerald-950/40 bg-emerald-50 dark:text-[#22C55E] text-emerald-700 dark:border-emerald-500/20 border-emerald-200";
+  if (value.includes("BELUM AKTIF") || value.includes("PENDING")) {
+    return "dark:bg-amber-950/40 bg-amber-50 dark:text-amber-300 text-amber-700 dark:border-amber-500/20 border-amber-200";
   }
-  if (value.includes("INACTIVE") || value.includes("REJECTED")) {
+  if (value.includes("INACTIVE") || value.includes("REJECTED") || value.includes("NONAKTIF")) {
     return "dark:bg-red-950/40 bg-red-50 dark:text-red-400 text-red-700 dark:border-red-500/20 border-red-200";
   }
+  if (value.includes("ACTIVE") || value.includes("COMPLETED") || value.includes("VALID") || value.includes("AKTIF")) {
+    return "dark:bg-emerald-950/40 bg-emerald-50 dark:text-[#22C55E] text-emerald-700 dark:border-emerald-500/20 border-emerald-200";
+  }
   return "dark:bg-slate-800/40 bg-slate-50 dark:text-slate-400 text-slate-700 dark:border-slate-500/20 border-slate-200";
+}
+
+function operationalStatusLabel(jaring: FieldOfficerJaring) {
+  if (jaring.registrationStatus === "REJECTED") return "NONAKTIF";
+  if (jaring.registrationStatus === "PENDING") return "BELUM AKTIF";
+  if (jaring.status === "ACTIVE") return "AKTIF";
+  if (jaring.status === "INACTIVE") return "NONAKTIF";
+  return jaring.status;
+}
+
+function registrationStatusLabel(status: FieldOfficerJaring["registrationStatus"]) {
+  if (status === "PENDING") return "MENUNGGU VERIFIKASI";
+  if (status === "REJECTED") return "DITOLAK / REVISI";
+  return "DISETUJUI";
+}
+
+function registrationStatusTone(status: FieldOfficerJaring["registrationStatus"]) {
+  if (status === "PENDING") {
+    return "dark:bg-amber-950/40 bg-amber-50 dark:text-amber-300 text-amber-700 dark:border-amber-500/20 border-amber-200";
+  }
+  if (status === "REJECTED") {
+    return "dark:bg-red-950/40 bg-red-50 dark:text-red-400 text-red-700 dark:border-red-500/20 border-red-200";
+  }
+  return "dark:bg-emerald-950/40 bg-emerald-50 dark:text-[#22C55E] text-emerald-700 dark:border-emerald-500/20 border-emerald-200";
 }
 
 type PageProps = {
@@ -251,8 +278,8 @@ export default function JaringDetailPage({ params }: PageProps) {
                 <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">{jaring.whatsappNumber}</span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Kluster</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.clusterName || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Pekerjaan</span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.occupationName || "-"}</span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                 <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Kelurahan/Desa Cakupan</span>
@@ -260,10 +287,24 @@ export default function JaringDetailPage({ params }: PageProps) {
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                 <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Status</span>
-                <span className={`w-fit border rounded-[4px] px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${statusTone(jaring.status)}`}>
-                  {jaring.status}
+                <span className={`w-fit border rounded-[4px] px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${statusTone(operationalStatusLabel(jaring))}`}>
+                  {operationalStatusLabel(jaring)}
                 </span>
               </div>
+              <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Status Verifikasi</span>
+                <span className={`w-fit border rounded-[4px] px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${registrationStatusTone(jaring.registrationStatus)}`}>
+                  {registrationStatusLabel(jaring.registrationStatus)}
+                </span>
+              </div>
+              {jaring.registrationStatus === "REJECTED" && jaring.rejectionReason ? (
+                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-start">
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Alasan Penolakan</span>
+                  <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-300">
+                    {jaring.rejectionReason}
+                  </p>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         )}

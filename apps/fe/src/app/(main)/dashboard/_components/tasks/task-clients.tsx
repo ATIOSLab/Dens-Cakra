@@ -102,6 +102,34 @@ function formatDate(value?: string | null) {
   }).format(new Date(value));
 }
 
+function splitNumberedDescription(value?: string | null) {
+  const text = value?.trim();
+  if (!text) {
+    return [];
+  }
+
+  const matches = Array.from(text.matchAll(/(?:^|\s)(\d+\.\d+)\s+([^:]+):\s*/g));
+  if (matches.length === 0) {
+    return [{ number: null, title: null, body: text }];
+  }
+
+  return matches.map((match, index) => {
+    const next = matches[index + 1];
+    const bodyStart = (match.index ?? 0) + match[0].length;
+    const bodyEnd = next?.index ?? text.length;
+
+    return {
+      number: match[1],
+      title: match[2].trim(),
+      body: text.slice(bodyStart, bodyEnd).trim(),
+    };
+  });
+}
+
+function sectionDisplayNumber(value?: string | null) {
+  return value?.split(".")[0] ?? null;
+}
+
 function badgeVariant(status: string) {
   if (["CANCELLED", "FAILED"].includes(status)) {
     return "destructive";
@@ -112,6 +140,45 @@ function badgeVariant(status: string) {
   }
 
   return "outline";
+}
+
+function assignmentStatusLabel(status?: string | null) {
+  switch (status) {
+    case "READ":
+      return "Dibaca";
+    case "ACKNOWLEDGED":
+      return "Diakui";
+    case "IN_PROGRESS":
+      return "Dalam Proses";
+    case "COMPLETED":
+      return "Selesai";
+    case "ASSIGNED":
+      return "Ditugaskan";
+    case "CANCELLED":
+      return "Dibatalkan";
+    case "FAILED":
+      return "Gagal";
+    default:
+      return status ?? "-";
+  }
+}
+
+function progressNoteLabel(note?: string | null, status?: string | null) {
+  const text = note?.trim();
+  if (!text) {
+    return "-";
+  }
+
+  const seedMatch = text.match(/^\[SEED_STR_HIERARCHY\]\s+([A-Z_]+)$/);
+  if (seedMatch) {
+    return `Status penugasan diperbarui menjadi ${assignmentStatusLabel(seedMatch[1]).toLowerCase()}.`;
+  }
+
+  if (status && text.toUpperCase() === status.toUpperCase()) {
+    return `Status penugasan diperbarui menjadi ${assignmentStatusLabel(status).toLowerCase()}.`;
+  }
+
+  return text;
 }
 
 function taskStatusLabel(status: string) {
@@ -688,31 +755,41 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
             <div className="flex w-full flex-wrap items-center gap-2 border-[var(--dc-border-subtle)] border-t pt-2">
               <div className="flex items-center gap-1.5 font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">
                 <Calendar className="size-3" />
-                <span>PERIODE DEADLINE STR</span>
+                <span>PERIODE STR</span>
               </div>
-              <Input
-                aria-label="Periode deadline STR mulai"
-                type="date"
-                value={periodFrom}
-                max={periodTo || undefined}
-                onChange={(event) => {
-                  setPeriodFrom(event.target.value);
-                  setCurrentPage(1);
-                }}
-                className="h-8 w-[145px] rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 font-mono text-[10px]"
-              />
+              <label className="flex items-center gap-1.5">
+                <span className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">
+                  Mulai
+                </span>
+                <Input
+                  aria-label="Periode STR mulai"
+                  type="date"
+                  value={periodFrom}
+                  max={periodTo || undefined}
+                  onChange={(event) => {
+                    setPeriodFrom(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 w-[145px] rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 font-mono text-[10px]"
+                />
+              </label>
               <span className="font-mono text-[9px] text-muted-foreground/50">S.D.</span>
-              <Input
-                aria-label="Periode deadline STR sampai"
-                type="date"
-                value={periodTo}
-                min={periodFrom || undefined}
-                onChange={(event) => {
-                  setPeriodTo(event.target.value);
-                  setCurrentPage(1);
-                }}
-                className="h-8 w-[145px] rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 font-mono text-[10px]"
-              />
+              <label className="flex items-center gap-1.5">
+                <span className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">
+                  Selesai
+                </span>
+                <Input
+                  aria-label="Periode STR selesai"
+                  type="date"
+                  value={periodTo}
+                  min={periodFrom || undefined}
+                  onChange={(event) => {
+                    setPeriodTo(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 w-[145px] rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 font-mono text-[10px]"
+                />
+              </label>
               {(periodFrom || periodTo) && (
                 <Button
                   type="button"
@@ -3106,7 +3183,7 @@ function ForwardingCollapsibleSection({
               >
                 {item.itemCode && (
                   <span className="mt-0.5 shrink-0 font-mono text-[var(--dc-primary)] text-xs uppercase">
-                    [{item.itemCode}]
+                    [{sectionDisplayNumber(item.itemCode)}]
                   </span>
                 )}
                 <span className="whitespace-pre-wrap">{normalizeDisplayText(item.content)}</span>
@@ -4154,7 +4231,7 @@ function TaskCollapsibleSection({
                 >
                   {item.itemCode && (
                     <span className="mt-0.5 shrink-0 font-mono text-[var(--dc-primary)] text-xs uppercase">
-                      [{item.itemCode}]
+                      [{sectionDisplayNumber(item.itemCode)}]
                     </span>
                   )}
                   <span className="whitespace-pre-wrap">{normalizeDisplayText(item.content)}</span>
@@ -4564,55 +4641,76 @@ export function AssignmentBoardClient({
           {rows.map((row, index) => (
             <div
               key={index}
-              className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-[minmax(0,1fr)_180px_minmax(0,1.2fr)_auto]"
+              className="grid gap-4 rounded-xl border border-border/70 p-4 md:grid-cols-[minmax(220px,1fr)_minmax(180px,260px)_minmax(280px,1.2fr)_auto] md:items-start"
             >
-              <Select
-                value={row.assigneeAssignmentId}
-                onValueChange={(value) =>
-                  setRows((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, assigneeAssignmentId: value } : item,
-                    ),
-                  )
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pilih assignee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {candidates.map((candidate) => (
-                    <SelectItem key={candidate.id} value={candidate.id}>
-                      {candidate.userProfile?.fullName ?? candidate.position?.title ?? candidate.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                value={row.dueDate}
-                onChange={(event) =>
-                  setRows((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, dueDate: event.target.value } : item,
-                    ),
-                  )
-                }
-              />
-              <Textarea
-                value={row.assignmentNote}
-                onChange={(event) =>
-                  setRows((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, assignmentNote: event.target.value } : item,
-                    ),
-                  )
-                }
-                placeholder="Instruksi operasional untuk Field Officer"
-                className="min-h-20 resize-y"
-              />
+              <label className="space-y-1">
+                <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Petugas
+                </span>
+                <Select
+                  value={row.assigneeAssignmentId}
+                  onValueChange={(value) =>
+                    setRows((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, assigneeAssignmentId: value } : item,
+                      ),
+                    )
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih petugas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {candidates.map((candidate) => (
+                      <SelectItem key={candidate.id} value={candidate.id}>
+                        {candidate.userProfile?.fullName ?? candidate.position?.title ?? candidate.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className="space-y-1">
+                <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Periode Selesai
+                </span>
+                <Input
+                  type="date"
+                  aria-label="Periode selesai penugasan"
+                  value={row.dueDate}
+                  onChange={(event) =>
+                    setRows((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, dueDate: event.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Instruksi Operasional
+                </span>
+                <Textarea
+                  value={row.assignmentNote}
+                  onChange={(event) =>
+                    setRows((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, assignmentNote: event.target.value } : item,
+                      ),
+                    )
+                  }
+                  placeholder="Instruksi operasional untuk petugas"
+                  className="min-h-20 resize-y"
+                />
+              </label>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button type="button" variant="destructive" disabled={rows.length === 1 || mode === "reassign"}>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={rows.length === 1 || mode === "reassign"}
+                    className="md:mt-6"
+                  >
                     Hapus
                   </Button>
                 </AlertDialogTrigger>
@@ -4648,7 +4746,7 @@ export function AssignmentBoardClient({
                 ])
               }
             >
-              Tambah Assignee
+              Tambah Petugas
             </Button>
           ) : null}
         </CardContent>
@@ -4698,7 +4796,7 @@ export function FieldOfficerAssignmentsClient({ assignments }: FieldOfficerAssig
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span>{assignment.task?.title ?? "Task"}</span>
-                <Badge variant={badgeVariant(assignment.status)}>{assignment.status}</Badge>
+                <Badge variant={badgeVariant(assignment.status)}>{assignmentStatusLabel(assignment.status)}</Badge>
               </CardTitle>
               <CardDescription>{assignment.assignee?.position?.title ?? "Field Officer"}</CardDescription>
               <CardAction>
@@ -4717,7 +4815,7 @@ export function FieldOfficerAssignmentsClient({ assignments }: FieldOfficerAssig
                   <div className="mt-1 font-medium">{formatDate(assignment.dueDate)}</div>
                 </div>
                 <div className="rounded-xl border border-border/70 p-3 text-sm">
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide">Progress Log</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide">Riwayat Progres</div>
                   <div className="mt-1 font-medium">{assignment.progressLogs?.length ?? 0}</div>
                 </div>
               </div>
@@ -4738,6 +4836,7 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
   const [note, setNote] = useState("");
   const [progressPercent, setProgressPercent] = useState(50);
   const [action, setAction] = useState<string | null>(null);
+  const descriptionSections = splitNumberedDescription(assignment.task?.description);
 
   async function runAction(nextAction: "mark-read" | "acknowledge" | "start" | "progress" | "complete") {
     setAction(nextAction);
@@ -4780,9 +4879,33 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
       <div>
         <div className="flex items-center gap-2">
           <h1 className="font-semibold text-2xl tracking-tight">{assignment.task?.title ?? "Assignment"}</h1>
-          <Badge variant={badgeVariant(assignment.status)}>{assignment.status}</Badge>
+          <Badge variant={badgeVariant(assignment.status)}>{assignmentStatusLabel(assignment.status)}</Badge>
         </div>
-        <p className="text-muted-foreground text-sm">{assignment.task?.description ?? "Belum ada deskripsi task."}</p>
+        {descriptionSections.length > 0 ? (
+          <div className="mt-4 space-y-3">
+            {descriptionSections.map((section, index) => (
+              <div key={`${section.number ?? "description"}-${index}`} className="rounded-md border border-border/70 bg-card/60 p-4">
+                <div className="flex items-start gap-3">
+                  {section.number ? (
+                    <span className="mt-0.5 shrink-0 rounded-[4px] border border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-[11px] font-semibold text-primary">
+                      {sectionDisplayNumber(section.number)}
+                    </span>
+                  ) : null}
+                  <div className="min-w-0 space-y-1">
+                    {section.title ? (
+                      <h2 className="font-semibold text-sm uppercase tracking-wide text-foreground">
+                        {section.title}
+                      </h2>
+                    ) : null}
+                    <p className="whitespace-pre-line text-muted-foreground text-sm leading-6">{section.body}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-sm">Belum ada deskripsi task.</p>
+        )}
       </div>
 
       <Card>
@@ -4796,7 +4919,7 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
               <div className="mt-1 font-medium">{formatDate(assignment.dueDate)}</div>
             </div>
             <div className="rounded-xl border border-border/70 p-3 text-sm">
-              <div className="text-muted-foreground text-xs uppercase tracking-wide">Directive</div>
+              <div className="text-muted-foreground text-xs uppercase tracking-wide">Direktif</div>
               <div className="mt-1 font-medium">
                 {assignment.task?.directiveVersion?.directive?.commandNumber ?? "-"}
               </div>
@@ -4813,7 +4936,7 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
           </label>
 
           <label className="space-y-2 text-sm">
-            <span>Progress (%)</span>
+            <span>Progres (%)</span>
             <Input
               type="number"
               min={0}
@@ -4825,41 +4948,41 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
         </CardContent>
         <CardFooter className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => runAction("mark-read")} disabled={action !== null}>
-            {action === "mark-read" ? "Memproses..." : "Mark Read"}
+            {action === "mark-read" ? "Memproses..." : "Tandai Dibaca"}
           </Button>
           <Button variant="outline" onClick={() => runAction("acknowledge")} disabled={action !== null}>
-            {action === "acknowledge" ? "Memproses..." : "Acknowledge"}
+            {action === "acknowledge" ? "Memproses..." : "Akui Tugas"}
           </Button>
           <Button variant="outline" onClick={() => runAction("start")} disabled={action !== null}>
-            {action === "start" ? "Memproses..." : "Start"}
+            {action === "start" ? "Memproses..." : "Mulai"}
           </Button>
           <Button onClick={() => runAction("progress")} disabled={action !== null}>
-            {action === "progress" ? "Memproses..." : "Update Progress"}
+            {action === "progress" ? "Memproses..." : "Perbarui Progres"}
           </Button>
           <Button variant="success" onClick={() => runAction("complete")} disabled={action !== null}>
-            {action === "complete" ? "Memproses..." : "Complete"}
+            {action === "complete" ? "Memproses..." : "Selesaikan"}
           </Button>
         </CardFooter>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Riwayat Progress</CardTitle>
+          <CardTitle>Riwayat Progres</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {assignment.progressLogs?.length ? (
             assignment.progressLogs.map((log) => (
               <div key={log.id} className="rounded-xl border border-border/70 p-4 text-sm">
                 <div className="flex items-center justify-between gap-2">
-                  <Badge variant={badgeVariant(log.status)}>{log.status}</Badge>
+                  <Badge variant={badgeVariant(log.status)}>{assignmentStatusLabel(log.status)}</Badge>
                   <span className="text-muted-foreground text-xs">{formatDate(log.createdAt)}</span>
                 </div>
                 <div className="mt-2">{log.progressPercent ?? "-"}%</div>
-                <p className="mt-2 text-muted-foreground">{log.note ?? "-"}</p>
+                <p className="mt-2 text-muted-foreground">{progressNoteLabel(log.note, log.status)}</p>
               </div>
             ))
           ) : (
-            <div className="text-muted-foreground text-sm">Belum ada progress log.</div>
+            <div className="text-muted-foreground text-sm">Belum ada riwayat progres.</div>
           )}
         </CardContent>
       </Card>

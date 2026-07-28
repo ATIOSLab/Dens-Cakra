@@ -42,6 +42,9 @@ export type FieldOfficerJaring = {
   clusterId: string | null;
   clusterName: string | null;
   status: string;
+  registrationStatus: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionReason: string | null;
+  reviewedAt: string | null;
   notes: string | null;
   areaNames: string[];
   areaIds: string[];

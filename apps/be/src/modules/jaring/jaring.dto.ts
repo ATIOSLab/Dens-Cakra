@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -17,12 +18,19 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { JaringGender, JaringStatus } from '../../generated/prisma/client.js';
+import {
+  JaringGender,
+  JaringRegistrationStatus,
+  JaringStatus,
+} from '../../generated/prisma/client.js';
 
 export class JaringQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsString() status?: JaringStatus;
+  @IsOptional()
+  @IsEnum(JaringRegistrationStatus)
+  registrationStatus?: JaringRegistrationStatus;
 }
 
 export class CreateJaringDto {
@@ -31,17 +39,19 @@ export class CreateJaringDto {
   @Matches(/^\d+$/, { message: 'Nomor WhatsApp hanya boleh berisi angka.' })
   @MaxLength(30)
   whatsappNumber!: string;
-  @IsUUID() clusterId!: string;
+  @IsOptional() @IsUUID() clusterId?: string;
   @IsString() @IsNotEmpty() @MaxLength(180) fullName!: string;
+  @IsOptional()
   @IsString()
   @Matches(/^\d{16}$/, { message: 'NIK harus terdiri dari tepat 16 digit angka.' })
-  nationalIdNumber!: string;
+  nationalIdNumber?: string;
   @IsString() @IsNotEmpty() @MaxLength(120) birthPlace!: string;
   @IsDateString({}, { message: 'Tanggal lahir harus berupa tanggal yang valid.' })
   birthDate!: string;
   @IsEnum(JaringGender) gender!: JaringGender;
   @IsUUID() occupationId!: string;
-  @IsOptional() @IsUUID() profilePhotoFileId?: string;
+  @IsUUID(undefined, { message: 'Foto Jaring wajib diunggah.' })
+  profilePhotoFileId!: string;
   @IsOptional() @IsString() @MaxLength(180) workplace?: string;
   @IsOptional() @IsString() @MaxLength(150) jobTitle?: string;
   @IsDateString({}, { message: 'Tanggal bergabung harus berupa tanggal yang valid.' })
@@ -51,6 +61,7 @@ export class CreateJaringDto {
   @IsUUID() fieldOfficerAssignmentId!: string;
   @IsArray()
   @ArrayMinSize(1)
+  @ArrayMaxSize(1, { message: 'Satu Jaring hanya boleh memiliki satu Kelurahan/Desa cakupan.' })
   @IsUUID(undefined, { each: true })
   areaIds!: string[];
   @IsString() @IsNotEmpty() @MaxLength(3000) notes!: string;
@@ -58,7 +69,37 @@ export class CreateJaringDto {
 
 export class UpdateJaringDto {
   @IsOptional() @IsString() @MaxLength(150) aliasName?: string;
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d+$/, { message: 'Nomor WhatsApp hanya boleh berisi angka.' })
+  @MaxLength(30)
+  whatsappNumber?: string;
   @IsOptional() @IsUUID() clusterId?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(180) fullName?: string;
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{16}$/, { message: 'NIK harus terdiri dari tepat 16 digit angka.' })
+  nationalIdNumber?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) birthPlace?: string;
+  @IsOptional()
+  @IsDateString({}, { message: 'Tanggal lahir harus berupa tanggal yang valid.' })
+  birthDate?: string;
+  @IsOptional() @IsEnum(JaringGender) gender?: JaringGender;
+  @IsOptional() @IsUUID() occupationId?: string;
+  @IsOptional() @IsUUID() profilePhotoFileId?: string;
+  @IsOptional() @IsString() @MaxLength(180) workplace?: string;
+  @IsOptional() @IsString() @MaxLength(150) jobTitle?: string;
+  @IsOptional()
+  @IsDateString({}, { message: 'Tanggal bergabung harus berupa tanggal yang valid.' })
+  joinedAt?: string;
+  @IsOptional() @IsString() @MaxLength(180) organizationName?: string;
+  @IsOptional() @IsString() @MaxLength(180) politicalAffiliation?: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(1, { message: 'Satu Jaring hanya boleh memiliki satu Kelurahan/Desa cakupan.' })
+  @IsUUID(undefined, { each: true })
+  areaIds?: string[];
   @IsOptional() @IsString() @MaxLength(3000) notes?: string;
 }
 
@@ -121,6 +162,10 @@ export class UpdateReportCategoryDto {
 
 export class ReasonDto {
   @IsString() @MinLength(2) @MaxLength(1000) reason!: string;
+}
+
+export class RejectJaringDto {
+  @IsOptional() @IsString() @MaxLength(1000) reason?: string;
 }
 
 export class TransferDto extends ReasonDto {
