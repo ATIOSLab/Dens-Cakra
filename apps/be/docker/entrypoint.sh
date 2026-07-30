@@ -48,16 +48,29 @@ else
   log "Skipping full baseline seed."
 fi
 
-if is_enabled "${RUN_JAKARTA_SEED_ON_STARTUP:-false}" "RUN_JAKARTA_SEED_ON_STARTUP"; then
+prepare_seed_storage() {
   if [ -d /app/seed-storage ]; then
-    log "Preparing Jakarta demo photo assets..."
+    log "Preparing bundled seed assets..."
     cp -R /app/seed-storage/. "${LOCAL_STORAGE_ROOT:-/app/storage}/"
   fi
+}
+
+if is_enabled "${RUN_JAKARTA_SEED_ON_STARTUP:-false}" "RUN_JAKARTA_SEED_ON_STARTUP"; then
+  prepare_seed_storage
 
   log "Running Jakarta presentation seed..."
   node dist/src/scripts/seed-jakarta-demo.js
 else
   log "Skipping Jakarta presentation seed."
+fi
+
+if is_enabled "${RUN_JAKARTA_JARING_IMPORT_ON_STARTUP:-false}" "RUN_JAKARTA_JARING_IMPORT_ON_STARTUP"; then
+  prepare_seed_storage
+
+  log "Importing Jakarta Selatan Jaring source data..."
+  node dist/src/scripts/seed-jakarta-jaring.js
+else
+  log "Skipping Jakarta Selatan Jaring import."
 fi
 
 log "Starting NestJS backend on port ${PORT:-3001}..."

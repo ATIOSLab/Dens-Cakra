@@ -30,7 +30,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { createIdempotencyKey } from "@/lib/api/idempotency";
-import type { FieldOfficerWorkspace } from "@/server/field-ops/types";
+import type { FieldOfficerJaring, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 const LIST_ROUTE = "/dashboard/field-officer/jaring-binaan";
 
@@ -99,6 +99,10 @@ const registrationSchema = z
 type RegistrationFormValues = z.infer<typeof registrationSchema>;
 type WorkspaceDistrictArea = FieldOfficerWorkspace["districtAreas"][number];
 type WorkspaceJaring = FieldOfficerWorkspace["jaring"][number];
+
+type JaringRegistrationFormProps = {
+  jaringId?: string;
+};
 
 type ApiEnvelope<T> = {
   success?: boolean;
@@ -182,6 +186,45 @@ function generateAliasPreview(area: WorkspaceDistrictArea | null, jaring: Worksp
   return sequence ? `${prefix}${sequence}` : "";
 }
 
+function dateInput(value?: string | null) {
+  return value ? value.slice(0, 10) : "";
+}
+
+function resolveAgentDistrict(workspace: FieldOfficerWorkspace) {
+  const districtScopes = workspace.context.areaScopes.filter((scope) => scope.level === "DISTRICT");
+  const primaryDistrictScope = districtScopes.find((scope) => scope.isPrimary);
+  const scopedDistrict =
+    (primaryDistrictScope
+      ? workspace.districtAreas.find((area) => area.areaId === primaryDistrictScope.areaId)
+      : null) ??
+    (districtScopes.length === 1
+      ? workspace.districtAreas.find((area) => area.areaId === districtScopes[0]?.areaId)
+      : null);
+
+  return scopedDistrict ?? (workspace.districtAreas.length === 1 ? workspace.districtAreas[0] : null);
+}
+
+function resolveJaringDistrict(workspace: FieldOfficerWorkspace, jaring: FieldOfficerJaring) {
+  const villageId = jaring.areaIds[0];
+  const village = workspace.villageAreas.find((area) => area.areaId === villageId);
+
+  if (village?.parentAreaId) {
+    const parent = workspace.districtAreas.find((area) => area.areaId === village.parentAreaId);
+    if (parent) return parent;
+  }
+
+  const villageCode = village?.officialCode ?? village?.code ?? "";
+  return (
+    workspace.districtAreas.find((district) => {
+      const districtCode = district.officialCode ?? district.code;
+      return (
+        village?.parentOfficialCode === districtCode ||
+        (Boolean(districtCode) && villageCode.startsWith(`${districtCode}.`))
+      );
+    }) ?? null
+  );
+}
+
 function calculateAge(birthDate: string) {
   if (!birthDate) return "";
 
@@ -222,9 +265,11 @@ function RequiredLabel({ htmlFor, children }: { htmlFor?: string; children: Reac
   );
 }
 
-export function JaringRegistrationForm() {
+export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps = {}) {
   const router = useRouter();
+  const isEditMode = Boolean(jaringId);
   const [workspace, setWorkspace] = useState<FieldOfficerWorkspace | null>(null);
+  const [editingJaring, setEditingJaring] = useState<FieldOfficerJaring | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -261,11 +306,18 @@ export function JaringRegistrationForm() {
   const gender = form.watch("gender");
   const selectedDistrictId = form.watch("areaId");
   const selectedVillageId = form.watch("villageId");
+  const agentDistrict = useMemo(() => (workspace ? resolveAgentDistrict(workspace) : null), [workspace]);
+  const editingDistrict = useMemo(
+    () => (workspace && editingJaring ? resolveJaringDistrict(workspace, editingJaring) : null),
+    [editingJaring, workspace],
+  );
+  const lockedDistrict = isEditMode ? (editingDistrict ?? agentDistrict) : agentDistrict;
   const selectedDistrict = workspace?.districtAreas.find((area) => area.areaId === selectedDistrictId) ?? null;
   const generatedAliasName = useMemo(
     () => generateAliasPreview(selectedDistrict, workspace?.jaring ?? []),
     [selectedDistrict, workspace?.jaring],
   );
+  const displayedPhotoUrl = photoPreviewUrl ?? editingJaring?.profilePhotoUrl ?? null;
   const villageOptions = useMemo(() => {
     if (!workspace || !selectedDistrict) return [];
     const selectedDistrictCode = selectedDistrict.officialCode ?? selectedDistrict.code;
@@ -297,11 +349,15 @@ export function JaringRegistrationForm() {
   }, [form, selectedDistrictId, villageOptions]);
 
   useEffect(() => {
+    if (isEditMode) {
+      return;
+    }
+
     form.setValue("aliasName", generatedAliasName, {
       shouldDirty: false,
       shouldValidate: true,
     });
-  }, [form, generatedAliasName]);
+  }, [form, generatedAliasName, isEditMode]);
 
   useEffect(() => {
     if (!selectedPhotoFile) {
@@ -322,15 +378,67 @@ export function JaringRegistrationForm() {
       try {
         const response = await fetch("/api/field-officer/workspace", { cache: "no-store" });
         const body = (await response.json()) as FieldOfficerWorkspace | { message?: string };
-        if (!response.ok) throw new Error("message" in body ? body.message : "Gagal memuat data registrasi Jaring.");
+        if (!response.ok) throw new Error("message" in body ? body.message : "Gagal memuat data Jaring.");
+
+        const data = body as FieldOfficerWorkspace;
+        const defaultDistrict = resolveAgentDistrict(data);
+        const item = jaringId ? (data.jaring.find((jaring) => jaring.id === jaringId) ?? null) : null;
+        if (jaringId && !item) {
+          throw new Error("Jaring tidak ditemukan atau berada di luar cakupan pembinaan Anda.");
+        }
+
+        const itemDistrict = item ? resolveJaringDistrict(data, item) : null;
 
         if (!cancelled) {
-          setWorkspace(body as FieldOfficerWorkspace);
+          setWorkspace(data);
+          setEditingJaring(item);
+          form.reset(
+            item
+              ? {
+                  aliasName: item.aliasName,
+                  whatsappNumber: item.whatsappNumber.replace(/\D/g, ""),
+                  areaId: itemDistrict?.areaId ?? defaultDistrict?.areaId ?? "",
+                  villageId: item.areaIds[0] ?? "",
+                  joinedAt: dateInput(item.joinedAt),
+                  organizationName: item.organizationName ?? "",
+                  politicalAffiliation: item.politicalAffiliation ?? "",
+                  notes: item.notes ?? "",
+                  fullName: item.fullName ?? "",
+                  nationalIdNumber: item.nationalIdNumber ?? "",
+                  address: item.address ?? "",
+                  birthPlace: item.birthPlace ?? "",
+                  birthDate: dateInput(item.birthDate),
+                  gender: item.gender === "MALE" || item.gender === "FEMALE" ? item.gender : undefined,
+                  occupationId:
+                    data.occupations.find((occupation) => occupation.name === item.occupationName)?.id ?? "",
+                  workplace: item.workplace ?? "",
+                  jobTitle: item.jobTitle ?? "",
+                }
+              : {
+                  aliasName: "",
+                  whatsappNumber: "",
+                  areaId: defaultDistrict?.areaId ?? "",
+                  villageId: "",
+                  joinedAt: todayInputValue(),
+                  organizationName: "",
+                  politicalAffiliation: "",
+                  notes: "",
+                  fullName: "",
+                  nationalIdNumber: "",
+                  address: "",
+                  birthPlace: "",
+                  birthDate: "",
+                  gender: undefined,
+                  occupationId: "",
+                  workplace: "",
+                  jobTitle: "",
+                },
+          );
           setLoadError(null);
         }
       } catch (error) {
         if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : "Gagal memuat data registrasi Jaring.");
+          setLoadError(error instanceof Error ? error.message : "Gagal memuat data Jaring.");
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -341,7 +449,7 @@ export function JaringRegistrationForm() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [form, jaringId]);
 
   function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
@@ -423,10 +531,11 @@ export function JaringRegistrationForm() {
 
   async function saveJaring() {
     const valid = await form.trigger();
-    if (!selectedPhotoFile) {
+    const hasExistingPhoto = Boolean(editingJaring?.profilePhotoFileId);
+    if (!selectedPhotoFile && !hasExistingPhoto) {
       setPhotoError("Foto Jaring wajib diunggah.");
     }
-    if (!valid || !workspace || !selectedPhotoFile) {
+    if (!valid || !workspace || (!selectedPhotoFile && !hasExistingPhoto)) {
       setShowConfirmation(false);
       return;
     }
@@ -434,39 +543,57 @@ export function JaringRegistrationForm() {
     const values = form.getValues();
     setIsSubmitting(true);
     try {
-      const profilePhotoFileId = await uploadProfilePhoto(selectedPhotoFile);
-      const response = await fetch("/api/field-officer/jaring", {
-        method: "POST",
-        headers: idempotentJsonHeaders("create"),
-        body: JSON.stringify({
-          aliasName: values.aliasName.trim(),
-          whatsappNumber: values.whatsappNumber,
-          fullName: values.fullName.trim(),
-          nationalIdNumber: values.nationalIdNumber.trim() || undefined,
-          address: values.address.trim(),
-          birthPlace: values.birthPlace.trim(),
-          birthDate: values.birthDate,
-          gender: values.gender,
-          occupationId: values.occupationId,
-          profilePhotoFileId,
-          workplace: values.workplace.trim() || undefined,
-          jobTitle: values.jobTitle.trim() || undefined,
-          joinedAt: values.joinedAt,
-          organizationName: values.organizationName.trim() || undefined,
-          politicalAffiliation: values.politicalAffiliation.trim() || undefined,
-          notes: values.notes.trim(),
-          areaIds: [values.villageId],
-          fieldOfficerAssignmentId: workspace.context.primaryAssignmentId,
-        }),
-      });
+      const profilePhotoFileId = selectedPhotoFile ? await uploadProfilePhoto(selectedPhotoFile) : undefined;
+      const payload = {
+        aliasName: values.aliasName.trim(),
+        whatsappNumber: values.whatsappNumber,
+        fullName: values.fullName.trim(),
+        nationalIdNumber: values.nationalIdNumber.trim() || undefined,
+        address: values.address.trim(),
+        birthPlace: values.birthPlace.trim(),
+        birthDate: values.birthDate,
+        gender: values.gender,
+        occupationId: values.occupationId,
+        profilePhotoFileId,
+        workplace: values.workplace.trim() || undefined,
+        jobTitle: values.jobTitle.trim() || undefined,
+        joinedAt: values.joinedAt,
+        organizationName: values.organizationName.trim() || undefined,
+        politicalAffiliation: values.politicalAffiliation.trim() || undefined,
+        notes: values.notes.trim(),
+        areaIds: [values.villageId],
+      };
+      const response = await fetch(
+        isEditMode && jaringId ? `/api/field-officer/jaring/${jaringId}` : "/api/field-officer/jaring",
+        {
+          method: isEditMode ? "PATCH" : "POST",
+          headers: isEditMode ? { "content-type": "application/json" } : idempotentJsonHeaders("create"),
+          body: JSON.stringify(
+            isEditMode
+              ? payload
+              : {
+                  ...payload,
+                  fieldOfficerAssignmentId: workspace.context.primaryAssignmentId,
+                },
+          ),
+        },
+      );
       const body = (await response.json().catch(() => null)) as { message?: string } | null;
-      if (!response.ok) throw new Error(body?.message ?? "Gagal menyimpan Jaring.");
+      if (!response.ok) {
+        throw new Error(body?.message ?? `Gagal ${isEditMode ? "memperbarui" : "menyimpan"} Jaring.`);
+      }
 
-      toast.success("Pengajuan Jaring tersimpan dan menunggu persetujuan Regional Commander.");
-      router.push(LIST_ROUTE);
+      toast.success(
+        isEditMode
+          ? editingJaring?.registrationStatus === "REJECTED"
+            ? "Revisi Jaring tersimpan dan kembali menunggu verifikasi."
+            : "Data Jaring berhasil diperbarui."
+          : "Pengajuan Jaring tersimpan dan menunggu persetujuan Regional Commander.",
+      );
+      router.push(isEditMode && jaringId ? `${LIST_ROUTE}/${jaringId}` : LIST_ROUTE);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Gagal menyimpan Jaring.");
+      toast.error(error instanceof Error ? error.message : `Gagal ${isEditMode ? "memperbarui" : "menyimpan"} Jaring.`);
       setShowConfirmation(false);
     } finally {
       setIsSubmitting(false);
@@ -476,14 +603,25 @@ export function JaringRegistrationForm() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
-        title="Registrasi Jaring Baru"
-        description="Lengkapi identitas, data pribadi, dan informasi pekerjaan Jaring dalam cakupan pembinaan Anda."
-        backButton={{ href: LIST_ROUTE, label: "Kembali ke daftar Jaring" }}
+        title={
+          isEditMode
+            ? `Edit Data Jaring${editingJaring ? ` ${editingJaring.aliasName}` : ""}`
+            : "Registrasi Jaring Baru"
+        }
+        description={
+          isEditMode
+            ? "Perbarui identitas, data pribadi, dan informasi pekerjaan Jaring dalam cakupan pembinaan Anda."
+            : "Lengkapi identitas, data pribadi, dan informasi pekerjaan Jaring dalam cakupan pembinaan Anda."
+        }
+        backButton={{
+          href: isEditMode && jaringId ? `${LIST_ROUTE}/${jaringId}` : LIST_ROUTE,
+          label: isEditMode ? "Kembali ke detail Jaring" : "Kembali ke daftar Jaring",
+        }}
       />
 
       {loadError ? (
         <Alert variant="destructive">
-          <AlertTitle>Data registrasi tidak tersedia</AlertTitle>
+          <AlertTitle>Data Jaring tidak tersedia</AlertTitle>
           <AlertDescription>{loadError}</AlertDescription>
         </Alert>
       ) : null}
@@ -509,14 +647,16 @@ export function JaringRegistrationForm() {
                     <Input
                       id="alias-name"
                       className="font-mono uppercase tracking-wide"
-                      placeholder="Pilih Kecamatan untuk membuat alias otomatis"
+                      placeholder={isEditMode ? "Alias / Nama Sandi Jaring" : "Kecamatan menentukan alias otomatis"}
                       readOnly
                       aria-readonly="true"
                       {...form.register("aliasName")}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Otomatis dari kode kota + nomor kecamatan + urutan input, contoh Z01001. Sistem menghitung ulang
-                      saat disimpan.
+                      {isEditMode
+                        ? "Alias / Nama Sandi tetap mengikuti identitas Jaring yang sudah terdaftar."
+                        : "Otomatis dari kode kota + nomor kecamatan + urutan input, contoh Z01001. " +
+                          "Sistem menghitung ulang saat disimpan."}
                     </p>
                     <FieldError errors={[form.formState.errors.aliasName]} />
                   </FieldContent>
@@ -566,7 +706,7 @@ export function JaringRegistrationForm() {
                     <NativeSelect
                       id="area-id"
                       className="w-full"
-                      disabled={isLoading || !workspace?.districtAreas.length}
+                      disabled={isLoading || !workspace?.districtAreas.length || Boolean(lockedDistrict)}
                       {...form.register("areaId")}
                     >
                       <NativeSelectOption value="">
@@ -578,6 +718,11 @@ export function JaringRegistrationForm() {
                         </NativeSelectOption>
                       ))}
                     </NativeSelect>
+                    {lockedDistrict ? (
+                      <p className="text-xs text-muted-foreground">
+                        Kecamatan otomatis dari wilayah assignment agent: {lockedDistrict.name}.
+                      </p>
+                    ) : null}
                     <FieldError errors={[form.formState.errors.areaId]} />
                   </FieldContent>
                 </Field>
@@ -685,9 +830,9 @@ export function JaringRegistrationForm() {
                   <FieldContent>
                     <div className="flex flex-col gap-3 rounded-md border border-dashed p-3 sm:flex-row sm:items-center">
                       <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                        {photoPreviewUrl ? (
+                        {displayedPhotoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={photoPreviewUrl} alt="Preview foto Jaring" className="size-full object-cover" />
+                          <img src={displayedPhotoUrl} alt="Preview foto Jaring" className="size-full object-cover" />
                         ) : (
                           <ImagePlus className="size-8 text-muted-foreground" />
                         )}
@@ -701,7 +846,9 @@ export function JaringRegistrationForm() {
                           onChange={handlePhotoChange}
                         />
                         <p className="text-xs text-muted-foreground">
-                          Gunakan foto JPG/PNG/WebP, maksimal 5 MB. Foto akan diunggah saat Jaring disimpan.
+                          {isEditMode && editingJaring?.profilePhotoFileId
+                            ? "Foto saat ini tetap digunakan. Pilih JPG/PNG/WebP maksimal 5 MB untuk menggantinya."
+                            : "Gunakan foto JPG/PNG/WebP, maksimal 5 MB. Foto akan diunggah saat Jaring disimpan."}
                         </p>
                         {selectedPhotoFile ? (
                           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -849,7 +996,7 @@ export function JaringRegistrationForm() {
             disabled={isLoading || Boolean(loadError) || isSubmitting}
           >
             {isLoading ? <LoaderCircle className="animate-spin" /> : null}
-            Ajukan Jaring
+            {isEditMode ? "Simpan Perubahan" : "Ajukan Jaring"}
           </Button>
         </div>
       </form>
@@ -862,10 +1009,12 @@ export function JaringRegistrationForm() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Pastikan data Jaring sudah sesuai?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isEditMode ? "Simpan perubahan data Jaring?" : "Pastikan data Jaring sudah sesuai?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Periksa kembali data pribadi, pekerjaan, cakupan wilayah, dan kebermanfaatan. Jika semuanya sudah benar,
-              klik Simpan untuk menyimpan Jaring.
+              klik Simpan untuk {isEditMode ? "memperbarui" : "menyimpan"} Jaring.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

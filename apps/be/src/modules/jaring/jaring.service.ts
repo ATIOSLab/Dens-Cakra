@@ -61,7 +61,7 @@ type AdministrativeCodeArea = Pick<
   'code' | 'officialCode'
 >;
 
-type ActiveJaringWhatsappConflict = {
+type JaringIdentityConflict = {
   id: string;
   aliasName: string | null;
   fullName: string | null;
@@ -216,7 +216,7 @@ export class JaringService {
     return `${aliasPrefix}${String(nextSequence).padStart(3, '0')}`;
   }
 
-  private formatActiveWhatsappConflict(jaring: ActiveJaringWhatsappConflict) {
+  private formatJaringIdentityConflict(jaring: JaringIdentityConflict) {
     const label =
       jaring.fullName?.trim() || jaring.aliasName?.trim() || 'Jaring lain';
     const alias = jaring.aliasName?.trim();
@@ -243,14 +243,36 @@ export class JaringService {
     });
   }
 
+  private async findNationalIdConflict(
+    nationalIdNumber: string | null | undefined,
+    exceptJaringId?: string,
+  ) {
+    if (!nationalIdNumber) {
+      return null;
+    }
+
+    return this.prisma.jaring.findFirst({
+      where: {
+        nationalIdNumber,
+        deletedAt: null,
+        ...(exceptJaringId ? { id: { not: exceptJaringId } } : {}),
+      },
+      select: {
+        id: true,
+        aliasName: true,
+        fullName: true,
+      },
+    });
+  }
+
   private assertNoActiveWhatsappConflict(
-    conflict: ActiveJaringWhatsappConflict | null,
+    conflict: JaringIdentityConflict | null,
   ) {
     if (!conflict) {
       return;
     }
 
-    const existingLabel = this.formatActiveWhatsappConflict(conflict);
+    const existingLabel = this.formatJaringIdentityConflict(conflict);
     throw new ApiException(
       'JARING_WHATSAPP_ACTIVE_DUPLICATE',
       `Nomor WhatsApp sama dengan Jaring aktif ${existingLabel}. Gunakan nomor berbeda atau tolak pengajuan jika data ini duplikat.`,
@@ -260,6 +282,32 @@ export class JaringService {
           field: 'whatsappNumber',
           code: 'DUPLICATE_ACTIVE_JARING',
           message: `Nomor WhatsApp sudah dipakai oleh ${existingLabel}.`,
+        },
+      ],
+      {
+        duplicateJaringId: conflict.id,
+        duplicateJaringLabel: existingLabel,
+      },
+    );
+  }
+
+  private assertNoNationalIdConflict(
+    conflict: JaringIdentityConflict | null,
+  ) {
+    if (!conflict) {
+      return;
+    }
+
+    const existingLabel = this.formatJaringIdentityConflict(conflict);
+    throw new ApiException(
+      'JARING_NIK_DUPLICATE',
+      `NIK sama dengan Jaring ${existingLabel}. Gunakan NIK berbeda atau tolak pengajuan jika data ini duplikat.`,
+      409,
+      [
+        {
+          field: 'nationalIdNumber',
+          code: 'DUPLICATE_JARING_NIK',
+          message: `NIK sudah dipakai oleh ${existingLabel}.`,
         },
       ],
       {
@@ -576,7 +624,7 @@ export class JaringService {
     });
 
     if (duplicateNumber) {
-      const existingLabel = this.formatActiveWhatsappConflict(duplicateNumber);
+      const existingLabel = this.formatJaringIdentityConflict(duplicateNumber);
       const registeredFieldOfficerId =
         duplicateNumber.caretakerAssignments[0]?.fieldOfficerAssignmentId;
 
@@ -597,6 +645,11 @@ export class JaringService {
         409,
       );
     }
+
+    const nationalIdNumber = body.nationalIdNumber?.trim() || null;
+    this.assertNoNationalIdConflict(
+      await this.findNationalIdConflict(nationalIdNumber),
+    );
 
     const officer = await this.prisma.userSeatAssignment.findUniqueOrThrow({
       where: { id: body.fieldOfficerAssignmentId },
@@ -621,7 +674,7 @@ export class JaringService {
         whatsappNumber,
         clusterId: body.clusterId,
         fullName: body.fullName.trim(),
-        nationalIdNumber: body.nationalIdNumber?.trim() || undefined,
+        nationalIdNumber: nationalIdNumber ?? undefined,
         address: body.address.trim(),
         birthPlace: body.birthPlace.trim(),
         birthDate,
@@ -660,13 +713,20 @@ export class JaringService {
     await this.domainScope.assertJaring(context, id);
     const existing = await this.prisma.jaring.findUniqueOrThrow({
       where: { id },
-      select: { registrationStatus: true, whatsappNumber: true },
+      select: {
+        registrationStatus: true,
+        whatsappNumber: true,
+        nationalIdNumber: true,
+      },
     });
     if (existing.registrationStatus === JaringRegistrationStatus.APPROVED) {
       return this.detail(id);
     }
     this.assertNoActiveWhatsappConflict(
       await this.findActiveWhatsappConflict(existing.whatsappNumber, id),
+    );
+    this.assertNoNationalIdConflict(
+      await this.findNationalIdConflict(existing.nationalIdNumber, id),
     );
     await this.prisma.jaring.update({
       where: { id },
@@ -728,6 +788,7 @@ export class JaringService {
     body: UpdateJaringDto,
     context: AuthorizationContext,
   ) {
+    await this.domainScope.assertJaring(context, id);
     await this.ensureActiveCluster(body.clusterId);
     if (body.occupationId) {
       await this.ensureActiveOccupation(body.occupationId);
@@ -739,6 +800,23 @@ export class JaringService {
       where: { id },
       select: { registrationStatus: true },
     });
+    const whatsappNumber = body.whatsappNumber
+      ? normalizeIndonesianPhoneNumber(body.whatsappNumber)
+      : null;
+    if (whatsappNumber) {
+      this.assertNoActiveWhatsappConflict(
+        await this.findActiveWhatsappConflict(whatsappNumber, id),
+      );
+    }
+    const nationalIdNumber =
+      body.nationalIdNumber !== undefined
+        ? body.nationalIdNumber?.trim() || null
+        : undefined;
+    if (nationalIdNumber) {
+      this.assertNoNationalIdConflict(
+        await this.findNationalIdConflict(nationalIdNumber, id),
+      );
+    }
     const areaIds = body.areaIds ? [...new Set(body.areaIds)] : null;
     if (areaIds) {
       if (areaIds.length !== 1) {
@@ -777,12 +855,10 @@ export class JaringService {
       where: { id },
       data: {
         ...patch,
-        ...(body.whatsappNumber
-          ? { whatsappNumber: normalizeIndonesianPhoneNumber(body.whatsappNumber) }
-          : {}),
+        ...(whatsappNumber ? { whatsappNumber } : {}),
         ...(body.fullName ? { fullName: body.fullName.trim() } : {}),
         ...(body.nationalIdNumber !== undefined
-          ? { nationalIdNumber: body.nationalIdNumber?.trim() || null }
+          ? { nationalIdNumber }
           : {}),
         ...(body.address !== undefined ? { address: body.address.trim() } : {}),
         ...(body.birthPlace ? { birthPlace: body.birthPlace.trim() } : {}),

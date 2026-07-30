@@ -1,6 +1,9 @@
 .agents/
 @.agents/
 skills
+.codex-logs/
+folder/
+apps/worldmonitor/
 
 # Dependencies
 node_modules/
@@ -19,3 +22,6 @@ apps/be/src/generated/prisma/
 .env.local
 .env.*
 !.env.example
+
+# Local/runtime import assets
+apps/be/storage/jaring/

@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { CreateJaringDto } from './jaring.dto.js';
+import type { CreateJaringDto, UpdateJaringDto } from './jaring.dto.js';
 import { JaringService } from './jaring.service.js';
 
 describe('JaringService registration security', () => {
@@ -124,6 +124,27 @@ describe('JaringService registration security', () => {
       code: 'JARING_JOIN_DATE_INVALID',
       message: 'Tanggal bergabung harus valid, tidak boleh sebelum tanggal lahir, dan tidak boleh di masa depan.',
     });
+  });
+
+  it('memastikan Jaring yang diedit berada di cakupan Field Officer', async () => {
+    const accessError = new Error('Jaring berada di luar cakupan Field Officer.');
+    const assertJaring = jest.fn(() => Promise.reject(accessError));
+    const findUniqueOrThrow = jest.fn();
+    const service = new JaringService(
+      { jaring: { findUniqueOrThrow } } as never,
+      { assertJaring } as never,
+    );
+    const context = {
+      authRole: 'field_officer',
+      primaryAssignmentId: 'assignment-id',
+    } as never;
+
+    await expect(
+      service.update('jaring-id', {} as UpdateJaringDto, context),
+    ).rejects.toBe(accessError);
+
+    expect(assertJaring).toHaveBeenCalledWith(context, 'jaring-id');
+    expect(findUniqueOrThrow).not.toHaveBeenCalled();
   });
 
   it('menolak nomor Jaring yang terdaftar di bawah Field Officer lain', async () => {
@@ -286,6 +307,112 @@ describe('JaringService registration security', () => {
     expect(auditCreate).not.toHaveBeenCalled();
   });
 
+  it('menolak pembuatan Jaring jika NIK sudah dipakai Jaring lain', async () => {
+    const prisma = {
+      jaring: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({
+            id: 'existing-jaring-id',
+            aliasName: 'V02068',
+            fullName: 'Jaring Dengan NIK Sama',
+          }),
+        create: jest.fn(),
+      },
+      jaringCluster: {
+        findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
+      },
+      jaringOccupation: {
+        findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
+      },
+      userSeatAssignment: { findUniqueOrThrow: jest.fn() },
+      administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
+    };
+    const service = new JaringService(
+      prisma as never,
+      {
+        assertArea: jest.fn(() => Promise.resolve()),
+      } as never,
+    );
+
+    await expect(
+      service.create(newJaring, {
+        primaryAssignmentId: newJaring.fieldOfficerAssignmentId,
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'JARING_NIK_DUPLICATE',
+      message:
+        'NIK sama dengan Jaring Jaring Dengan NIK Sama (alias V02068). Gunakan NIK berbeda atau tolak pengajuan jika data ini duplikat.',
+    });
+
+    expect(prisma.jaring.findFirst).toHaveBeenLastCalledWith({
+      where: {
+        nationalIdNumber: newJaring.nationalIdNumber,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        aliasName: true,
+        fullName: true,
+      },
+    });
+    expect(prisma.jaring.create).not.toHaveBeenCalled();
+  });
+
+  it('menolak persetujuan Jaring jika NIK sudah dipakai Jaring lain', async () => {
+    const update = jest.fn();
+    const findUniqueOrThrow = jest.fn(() =>
+      Promise.resolve({
+        registrationStatus: 'PENDING',
+        whatsappNumber: '6281234567890',
+        nationalIdNumber: '3171000000000001',
+      }),
+    );
+    const findFirst = jest
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'existing-jaring-id',
+        aliasName: 'V02068',
+        fullName: 'Jaring Dengan NIK Sama',
+      });
+    const auditCreate = jest.fn();
+    const assertJaring = jest.fn(() => Promise.resolve());
+    const service = new JaringService(
+      {
+        jaring: { findUniqueOrThrow, findFirst, update },
+        auditLog: { create: auditCreate },
+      } as never,
+      { assertJaring } as never,
+    );
+
+    await expect(
+      service.approveRegistration('pending-jaring-id', {
+        primaryAssignmentId: 'reviewer-assignment-id',
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'JARING_NIK_DUPLICATE',
+      message:
+        'NIK sama dengan Jaring Jaring Dengan NIK Sama (alias V02068). Gunakan NIK berbeda atau tolak pengajuan jika data ini duplikat.',
+    });
+
+    expect(findFirst).toHaveBeenLastCalledWith({
+      where: {
+        nationalIdNumber: '3171000000000001',
+        deletedAt: null,
+        id: { not: 'pending-jaring-id' },
+      },
+      select: {
+        id: true,
+        aliasName: true,
+        fullName: true,
+      },
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
+  });
+
   it('membuat PIN enam digit otomatis tanpa pemeriksaan duplikasi kode', async () => {
     const createdJaring = { id: 'new-jaring-id' };
     type JaringCreateInput = {
@@ -365,7 +492,7 @@ describe('JaringService registration security', () => {
     expect(createInput.data.address).toBe(
       'Jl. Tebet Timur Dalam No. 10, Jakarta Selatan',
     );
-    expect(prisma.jaring.findFirst).toHaveBeenCalledTimes(1);
+    expect(prisma.jaring.findFirst).toHaveBeenCalledTimes(2);
   });
 
   it('melakukan soft delete dan menyimpan audit delete', async () => {

@@ -5,6 +5,8 @@ dist
 npm-debug.log
 storage/*
 !storage/whatsapp-evidence/
+!storage/jaring/
+!storage/jaring/**
 wa_auth
 .git
 .gitignore

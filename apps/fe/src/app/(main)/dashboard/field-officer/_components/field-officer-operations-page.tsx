@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   BriefcaseBusiness,
   CheckCircle2,
+  Columns3,
   Copy,
   Crosshair,
   Eye,
@@ -15,6 +16,7 @@ import {
   Inbox,
   MapPin,
   Network,
+  Pencil,
   Plus,
   Radio,
   RefreshCw,
@@ -49,6 +51,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Map, MapControls, MapMarker, MarkerContent, MarkerPopup } from "@/components/ui/map";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -70,12 +79,25 @@ import { LeafletLocationPreview } from "./leaflet-location-preview";
 type FieldOfficerView = "overview" | "tasks" | "jaring" | "incoming" | "baket" | "reports" | "map" | "alert";
 
 const FORWARDED_STORAGE_KEY = "dens-cakra-forwarded-assignments";
+const JARING_COLUMNS_STORAGE_KEY = "dens-cakra-field-officer-jaring-columns";
 const EMPTY_BAKET_FILTERS = {
   categoryId: "",
   jaringClusterId: "",
   from: "",
   to: "",
 };
+
+type JaringColumnKey = "pin" | "alias" | "whatsapp" | "address" | "occupation" | "village" | "status";
+
+const JARING_COLUMN_OPTIONS: Array<{ key: JaringColumnKey; label: string }> = [
+  { key: "pin", label: "PIN" },
+  { key: "alias", label: "Alias / Nama Sandi" },
+  { key: "whatsapp", label: "WhatsApp" },
+  { key: "address", label: "Alamat" },
+  { key: "occupation", label: "Pekerjaan" },
+  { key: "village", label: "Kelurahan" },
+  { key: "status", label: "Status" },
+];
 
 type PendingFieldOfficerAction = {
   title: string;
@@ -272,26 +294,21 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   const [jaringSearch, setJaringSearch] = useState("");
   const [jaringOccupationFilter, setJaringOccupationFilter] = useState("all");
-  const [jaringAreaFilter, setJaringAreaFilter] = useState("all");
+  const [jaringVillageFilter, setJaringVillageFilter] = useState("all");
   const [jaringStatusFilter, setJaringStatusFilter] = useState("all");
   const [jaringPage, setJaringPage] = useState(1);
   const [jaringLimit, setJaringLimit] = useState(10);
+  const [visibleJaringColumns, setVisibleJaringColumns] = useState<Set<JaringColumnKey>>(
+    () => new Set(JARING_COLUMN_OPTIONS.map((column) => column.key)),
+  );
 
-  const villageParentDistrictIdsByAreaId = useMemo(() => {
-    const map = new globalThis.Map<string, Set<string>>();
+  const jaringVillageOptions = useMemo(() => {
+    const coveredAreaIds = new Set((workspace?.jaring ?? []).flatMap((item) => item.areaIds));
 
-    for (const village of workspace?.villageAreas ?? []) {
-      if (!village.parentAreaId) {
-        continue;
-      }
-
-      const districtIds = map.get(village.areaId) ?? new Set<string>();
-      districtIds.add(village.parentAreaId);
-      map.set(village.areaId, districtIds);
-    }
-
-    return map;
-  }, [workspace?.villageAreas]);
+    return (workspace?.villageAreas ?? [])
+      .filter((area) => coveredAreaIds.has(area.areaId))
+      .sort((left, right) => left.name.localeCompare(right.name, "id"));
+  }, [workspace?.jaring, workspace?.villageAreas]);
 
   const filteredJaring = useMemo(() => {
     if (!workspace?.jaring) return [];
@@ -309,16 +326,8 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       if (jaringOccupationFilter !== "all") {
         if (item.occupationName !== jaringOccupationFilter) return false;
       }
-      if (jaringAreaFilter !== "all") {
-        const matchesDistrict = item.areaIds.some((areaId) => {
-          if (areaId === jaringAreaFilter) {
-            return true;
-          }
-
-          return villageParentDistrictIdsByAreaId.get(areaId)?.has(jaringAreaFilter) ?? false;
-        });
-
-        if (!matchesDistrict) return false;
+      if (jaringVillageFilter !== "all") {
+        if (!item.areaIds.includes(jaringVillageFilter)) return false;
       }
       if (jaringStatusFilter !== "all") {
         if (item.status !== jaringStatusFilter) return false;
@@ -329,9 +338,8 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     workspace?.jaring,
     jaringSearch,
     jaringOccupationFilter,
-    jaringAreaFilter,
+    jaringVillageFilter,
     jaringStatusFilter,
-    villageParentDistrictIdsByAreaId,
   ]);
 
   const safeJaringPage = Math.min(jaringPage, Math.max(1, Math.ceil(filteredJaring.length / jaringLimit)));
@@ -341,7 +349,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
   useEffect(() => {
     setJaringPage(1);
-  }, [jaringSearch, jaringOccupationFilter, jaringAreaFilter, jaringStatusFilter]);
+  }, [jaringSearch, jaringOccupationFilter, jaringVillageFilter, jaringStatusFilter]);
 
   const filteredTasks = useMemo(() => {
     if (!workspace?.tasks) return [];
@@ -414,6 +422,29 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       setForwardedAssignments(JSON.parse(raw) as string[]);
     } catch {
       window.sessionStorage.removeItem(FORWARDED_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(JARING_COLUMNS_STORAGE_KEY);
+
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const savedColumns = JSON.parse(raw) as unknown;
+      if (!Array.isArray(savedColumns)) {
+        throw new Error("Invalid Jaring column preference.");
+      }
+
+      const validColumns = savedColumns.filter(
+        (value): value is JaringColumnKey =>
+          typeof value === "string" && JARING_COLUMN_OPTIONS.some((column) => column.key === value),
+      );
+      setVisibleJaringColumns(new Set(validColumns));
+    } catch {
+      window.localStorage.removeItem(JARING_COLUMNS_STORAGE_KEY);
     }
   }, []);
 
@@ -533,6 +564,17 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
     setForwardedAssignments(next);
     window.sessionStorage.setItem(FORWARDED_STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const setJaringColumnVisibility = (column: JaringColumnKey, visible: boolean) => {
+    const next = new Set(visibleJaringColumns);
+    if (visible) {
+      next.add(column);
+    } else {
+      next.delete(column);
+    }
+    setVisibleJaringColumns(next);
+    window.localStorage.setItem(JARING_COLUMNS_STORAGE_KEY, JSON.stringify([...next]));
   };
 
   const forwardInstructionToJaring = async (assignmentId: string, instruction: string, jaringIds: string[]) => {
@@ -1374,14 +1416,14 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         </div>
 
                         <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--tactical-text-secondary)]">
-                          <span>Kecamatan:</span>
-                          <Select value={jaringAreaFilter} onValueChange={setJaringAreaFilter}>
+                          <span>Kelurahan:</span>
+                          <Select value={jaringVillageFilter} onValueChange={setJaringVillageFilter}>
                             <SelectTrigger className="w-[150px] h-8 border-[var(--tactical-border)] bg-background dark:bg-slate-900/40 text-xs">
-                              <SelectValue placeholder="Pilih Kecamatan" />
+                              <SelectValue placeholder="Pilih Kelurahan" />
                             </SelectTrigger>
                             <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
-                              <SelectItem value="all">Semua Kecamatan</SelectItem>
-                              {workspace.districtAreas.map((area) => (
+                              <SelectItem value="all">Semua Kelurahan</SelectItem>
+                              {jaringVillageOptions.map((area) => (
                                 <SelectItem key={area.areaId} value={area.areaId}>
                                   {area.name}
                                 </SelectItem>
@@ -1405,24 +1447,47 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         </div>
                       </div>
 
-                      {(jaringSearch ||
-                        jaringOccupationFilter !== "all" ||
-                        jaringAreaFilter !== "all" ||
-                        jaringStatusFilter !== "all") && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setJaringSearch("");
-                            setJaringOccupationFilter("all");
-                            setJaringAreaFilter("all");
-                            setJaringStatusFilter("all");
-                          }}
-                          className="h-8 text-xs font-mono hover:bg-secondary/40"
-                        >
-                          Reset Filter
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {(jaringSearch ||
+                          jaringOccupationFilter !== "all" ||
+                          jaringVillageFilter !== "all" ||
+                          jaringStatusFilter !== "all") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setJaringSearch("");
+                              setJaringOccupationFilter("all");
+                              setJaringVillageFilter("all");
+                              setJaringStatusFilter("all");
+                            }}
+                            className="h-8 text-xs font-mono hover:bg-secondary/40"
+                          >
+                            Reset Filter
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 font-mono text-xs">
+                              <Columns3 className="size-3.5" />
+                              Kolom
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuLabel>Kolom ditampilkan</DropdownMenuLabel>
+                            {JARING_COLUMN_OPTIONS.map((column) => (
+                              <DropdownMenuCheckboxItem
+                                key={column.key}
+                                checked={visibleJaringColumns.has(column.key)}
+                                onCheckedChange={(checked) => setJaringColumnVisibility(column.key, checked === true)}
+                                onSelect={(event) => event.preventDefault()}
+                              >
+                                {column.label}
+                              </DropdownMenuCheckboxItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
 
                     {filteredJaring.length === 0 ? (
@@ -1436,89 +1501,105 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>PIN</TableHead>
-                              <TableHead>Alias / Nama Sandi</TableHead>
-                              <TableHead>WhatsApp</TableHead>
-                              <TableHead>Alamat</TableHead>
-                              <TableHead>Pekerjaan</TableHead>
-                              <TableHead>Kecamatan</TableHead>
-                              <TableHead>Status</TableHead>
+                              {visibleJaringColumns.has("pin") && <TableHead>PIN</TableHead>}
+                              {visibleJaringColumns.has("alias") && <TableHead>Alias / Nama Sandi</TableHead>}
+                              {visibleJaringColumns.has("whatsapp") && <TableHead>WhatsApp</TableHead>}
+                              {visibleJaringColumns.has("address") && <TableHead>Alamat</TableHead>}
+                              {visibleJaringColumns.has("occupation") && <TableHead>Pekerjaan</TableHead>}
+                              {visibleJaringColumns.has("village") && <TableHead>Kelurahan</TableHead>}
+                              {visibleJaringColumns.has("status") && <TableHead>Status</TableHead>}
                               <TableHead className="text-right">Aksi</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {paginatedJaring.map((jaring) => (
                               <TableRow key={jaring.id}>
-                                <TableCell>
-                                  <div className="flex items-center gap-2 font-mono font-semibold">
-                                    <span className="min-w-16 tracking-[0.12em]">
-                                      {visibleJaringPins.has(jaring.id) ? jaring.code : "******"}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      title={visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"}
-                                      aria-label={
-                                        visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"
-                                      }
-                                      onClick={() =>
-                                        setVisibleJaringPins((current) => {
-                                          const next = new Set(current);
-                                          if (next.has(jaring.id)) {
-                                            next.delete(jaring.id);
-                                          } else {
-                                            next.add(jaring.id);
-                                          }
-                                          return next;
-                                        })
-                                      }
-                                      className="rounded p-1 text-[var(--tactical-text-muted)] hover:bg-black/5 hover:text-[var(--tactical-text-primary)] dark:hover:bg-white/5"
-                                    >
-                                      {visibleJaringPins.has(jaring.id) ? (
-                                        <EyeOff className="size-4" />
-                                      ) : (
-                                        <Eye className="size-4" />
-                                      )}
-                                    </button>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="font-semibold text-[var(--tactical-text-primary)]">
-                                    {jaring.aliasName}
-                                  </div>
-                                  {jaring.notes && (
-                                    <div
-                                      className="max-w-48 truncate text-[11px] text-[var(--tactical-text-muted)]"
-                                      title={jaring.notes}
-                                    >
-                                      {jaring.notes}
+                                {visibleJaringColumns.has("pin") && (
+                                  <TableCell>
+                                    <div className="flex items-center gap-2 font-mono font-semibold">
+                                      <span className="min-w-16 tracking-[0.12em]">
+                                        {visibleJaringPins.has(jaring.id) ? jaring.code : "******"}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        title={visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"}
+                                        aria-label={
+                                          visibleJaringPins.has(jaring.id) ? "Sembunyikan PIN" : "Tampilkan PIN"
+                                        }
+                                        onClick={() =>
+                                          setVisibleJaringPins((current) => {
+                                            const next = new Set(current);
+                                            if (next.has(jaring.id)) {
+                                              next.delete(jaring.id);
+                                            } else {
+                                              next.add(jaring.id);
+                                            }
+                                            return next;
+                                          })
+                                        }
+                                        className="rounded p-1 text-[var(--tactical-text-muted)] hover:bg-black/5 hover:text-[var(--tactical-text-primary)] dark:hover:bg-white/5"
+                                      >
+                                        {visibleJaringPins.has(jaring.id) ? (
+                                          <EyeOff className="size-4" />
+                                        ) : (
+                                          <Eye className="size-4" />
+                                        )}
+                                      </button>
                                     </div>
-                                  )}
-                                </TableCell>
-                                <TableCell className="font-mono">{jaring.whatsappNumber}</TableCell>
-                                <TableCell>
-                                  <div className="max-w-64 truncate" title={jaring.address ?? undefined}>
-                                    {jaring.address || "-"}
-                                  </div>
-                                </TableCell>
-                                <TableCell>{jaring.occupationName || "-"}</TableCell>
-                                <TableCell>{jaring.areaNames.join(", ") || "-"}</TableCell>
-                                <TableCell>
-                                  <span
-                                    className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(
-                                      jaring.registrationStatus === "APPROVED" ? jaring.status : jaring.registrationStatus,
-                                    )}`}
-                                  >
-                                    {jaring.registrationStatus === "PENDING"
-                                      ? "MENUNGGU VERIFIKASI"
-                                      : jaring.registrationStatus === "REJECTED"
-                                        ? "DITOLAK / REVISI"
-                                        : jaring.status === "ACTIVE"
-                                          ? "AKTIF"
-                                          : jaring.status === "INACTIVE"
-                                            ? "NONAKTIF"
-                                            : jaring.status}
-                                  </span>
-                                </TableCell>
+                                  </TableCell>
+                                )}
+                                {visibleJaringColumns.has("alias") && (
+                                  <TableCell>
+                                    <div className="font-semibold text-[var(--tactical-text-primary)]">
+                                      {jaring.aliasName}
+                                    </div>
+                                    {jaring.notes && (
+                                      <div
+                                        className="max-w-48 truncate text-[11px] text-[var(--tactical-text-muted)]"
+                                        title={jaring.notes}
+                                      >
+                                        {jaring.notes}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                )}
+                                {visibleJaringColumns.has("whatsapp") && (
+                                  <TableCell className="font-mono">{jaring.whatsappNumber}</TableCell>
+                                )}
+                                {visibleJaringColumns.has("address") && (
+                                  <TableCell>
+                                    <div className="max-w-64 truncate" title={jaring.address ?? undefined}>
+                                      {jaring.address || "-"}
+                                    </div>
+                                  </TableCell>
+                                )}
+                                {visibleJaringColumns.has("occupation") && (
+                                  <TableCell>{jaring.occupationName || "-"}</TableCell>
+                                )}
+                                {visibleJaringColumns.has("village") && (
+                                  <TableCell>{jaring.areaNames.join(", ") || "-"}</TableCell>
+                                )}
+                                {visibleJaringColumns.has("status") && (
+                                  <TableCell>
+                                    <span
+                                      className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(
+                                        jaring.registrationStatus === "APPROVED"
+                                          ? jaring.status
+                                          : jaring.registrationStatus,
+                                      )}`}
+                                    >
+                                      {jaring.registrationStatus === "PENDING"
+                                        ? "MENUNGGU VERIFIKASI"
+                                        : jaring.registrationStatus === "REJECTED"
+                                          ? "DITOLAK / REVISI"
+                                          : jaring.status === "ACTIVE"
+                                            ? "AKTIF"
+                                            : jaring.status === "INACTIVE"
+                                              ? "NONAKTIF"
+                                              : jaring.status}
+                                    </span>
+                                  </TableCell>
+                                )}
                                 <TableCell>
                                   <div className="flex justify-end gap-2">
                                     <Link
@@ -1527,6 +1608,13 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                     >
                                       <Eye className="size-3.5" />
                                       Detail
+                                    </Link>
+                                    <Link
+                                      href={`/dashboard/field-officer/jaring-binaan/${jaring.id}/edit`}
+                                      className="inline-flex h-8 items-center gap-1.5 rounded-[4px] border border-amber-600 px-3 font-mono font-semibold text-amber-700 text-[11px] uppercase hover:bg-amber-500/10 dark:text-amber-400"
+                                    >
+                                      <Pencil className="size-3.5" />
+                                      {jaring.registrationStatus === "REJECTED" ? "Revisi Data" : "Edit"}
                                     </Link>
                                     <button
                                       disabled={isBusy === `jaring:${jaring.id}:regenerate-pin`}
@@ -1543,14 +1631,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                       <RefreshCw className="size-3.5" />
                                       Perbarui PIN
                                     </button>
-                                    {jaring.registrationStatus === "REJECTED" ? (
-                                      <Link
-                                        href={`/dashboard/field-officer/jaring-binaan/${jaring.id}/edit`}
-                                        className="inline-flex h-8 items-center rounded-[4px] border border-amber-600 px-3 font-mono font-semibold text-amber-700 text-[11px] uppercase hover:bg-amber-500/10 dark:text-amber-400"
-                                      >
-                                        Revisi Data
-                                      </Link>
-                                    ) : (
+                                    {jaring.registrationStatus !== "REJECTED" && (
                                       <button
                                         disabled={
                                           isBusy ===

@@ -114,11 +114,14 @@ pakai `npm run migrate:dev`, `npm run prisma:migrate:dev`, atau langsung
   - `RUN_MIGRATIONS_ON_STARTUP=true`
   - `RUN_SEED_ON_STARTUP=false`
   - `RUN_JAKARTA_SEED_ON_STARTUP=false`
+  - `RUN_JAKARTA_JARING_IMPORT_ON_STARTUP=false`
 - `RUN_SEED_ON_STARTUP=true` runs the full baseline seed (`master -> wilayah -> accounts -> STR hierarchy -> Baket`).
 - `RUN_JAKARTA_SEED_ON_STARTUP=true` runs only the DKI Jakarta presentation dataset. It requires the baseline data to exist first.
-- For a fresh presentation database, set all three flags to `true` for one deployment. The baseline runs before the Jakarta seed.
+- `RUN_JAKARTA_JARING_IMPORT_ON_STARTUP=true` imports the normalized Jakarta Selatan Jaring manifest and profile photos. It requires the baseline wilayah, occupation, and Field Officer data.
+- For a fresh presentation database, set the migration and required seed flags to `true` for one deployment. The baseline runs before both Jakarta import paths.
 - For an existing initialized database, use `RUN_SEED_ON_STARTUP=false` and `RUN_JAKARTA_SEED_ON_STARTUP=true` to add only Jakarta data.
-- After the initial seed deployment, switch both seed flags back to `false` to avoid unnecessary startup work.
+- After the initial seed deployment, switch all seed/import flags back to `false` to avoid unnecessary startup work.
+- The Jakarta Selatan source index, validation report, and server path contract are documented in `scripts/README-jakarta-jaring.md`.
 - The container persists upload data and WhatsApp auth state through Docker named volumes.
 
 ## Main Endpoints

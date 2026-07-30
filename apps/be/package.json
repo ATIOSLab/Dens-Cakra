@@ -37,6 +37,8 @@
     "seed:str-hierarchy": "npm run build && node dist/src/scripts/seed-str-hierarchy.js",
     "seed:baket": "npm run build && node dist/src/scripts/seed-baket.js",
     "seed:demo:jakarta": "npm run build && node dist/src/scripts/seed-jakarta-demo.js",
+    "seed:jaring:jakarta-selatan": "npm run build && node dist/src/scripts/seed-jakarta-jaring.js",
+    "seed:jaring:jakarta-selatan:check": "npm run build && node dist/src/scripts/seed-jakarta-jaring.js --dry-run",
     "seed:geo:jakarta-districts": "npm run build && node dist/src/scripts/seed-jakarta-district-boundaries.js",
     "seed:all": "npm run build && node dist/src/scripts/seed-all.js",
     "repair:baket-intake": "npm run build && node dist/src/scripts/repair-baket-intake-duplicates.js",
