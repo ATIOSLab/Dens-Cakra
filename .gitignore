@@ -25,3 +25,20 @@ apps/be/src/generated/prisma/
 
 # Local/runtime import assets
 apps/be/storage/jaring/
+
+# Local migration drafts / generated docs
+apps/be/prisma/migrations/20260715170500_enforce_single_device_sessions/
+apps/be/prisma/migrations/20260715232000_normalize_local_session_ips/
+apps/be/prisma/migrations/20260716001500_allow_multiple_sessions_per_user/
+docs/DESIGN.md
+docs/alur-produk-intelijen.md
+docs/baket-detail-location-plan.md
+docs/daftar-akun-jakarta-field-ops.md
+docs/daftar-akun-production-2026-07-30.md
+docs/executive-national-risk-map.md
+docs/map-markers-endpoint.md
+docs/real-client-ip.md
+docs/regional-commander-command-intelligence.md
+docs/seed-baket-approved.md
+docs/wilayah-baket-jurnal.md
+docs/wilayah-desa-spasial.md
