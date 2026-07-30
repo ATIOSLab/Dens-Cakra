@@ -367,6 +367,7 @@ export class JaringService {
     const scope = await this.domainScope.resolve(context);
     const isFieldOfficer = context.authRole === 'field_officer';
     const isFieldCoordinator = context.authRole === 'field_coordinator';
+    const page = query.page ?? 1;
     return this.prisma.jaring.findMany({
       where: {
         deletedAt: null,
@@ -406,8 +407,9 @@ export class JaringService {
             }
           : {}),
       },
+      ...(page > 1 ? { skip: (page - 1) * query.limit } : {}),
       take: query.limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
         cluster: true,
         occupation: true,

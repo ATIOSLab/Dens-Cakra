@@ -69,6 +69,40 @@ describe('JaringService registration security', () => {
     );
   });
 
+  it('mengambil halaman Jaring berikutnya dengan offset yang sesuai', async () => {
+    const findMany = jest.fn(() => Promise.resolve([]));
+    const service = new JaringService(
+      { jaring: { findMany } } as never,
+      {
+        resolve: jest.fn(() =>
+          Promise.resolve({
+            organizationUnitId: 'unit-id',
+            commandRouteType: 'BINDA',
+            positionIds: ['position-id'],
+            assignmentIds: ['assignment-id'],
+            areaRootIds: ['district-id'],
+          }),
+        ),
+      } as never,
+    );
+
+    await service.list(
+      { page: 3, limit: 100 },
+      {
+        authRole: 'field_coordinator',
+        primaryAssignmentId: 'assignment-id',
+      } as never,
+    );
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 200,
+        take: 100,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
+    );
+  });
+
   it('menolak tanggal bergabung sebelum tanggal lahir', async () => {
     const service = new JaringService(
       {
