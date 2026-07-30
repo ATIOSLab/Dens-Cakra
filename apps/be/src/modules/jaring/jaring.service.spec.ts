@@ -132,6 +132,8 @@ describe('JaringService registration security', () => {
         findFirst: jest.fn(() =>
           Promise.resolve({
             id: 'existing-jaring-id',
+            aliasName: 'Z01001',
+            fullName: 'Jaring Terdaftar',
             caretakerAssignments: [
               { fieldOfficerAssignmentId: 'other-field-officer-id' },
             ],
@@ -160,7 +162,8 @@ describe('JaringService registration security', () => {
 
     await expect(create).rejects.toMatchObject({
       code: 'JARING_WHATSAPP_OWNED_BY_OTHER_OFFICER',
-      message: 'Nomor Jaring telah terdaftar di bawah Field Officer lain.',
+      message:
+        'Nomor WhatsApp sama dengan Jaring aktif Jaring Terdaftar (alias Z01001) di bawah Field Officer lain.',
     });
     expect(prisma.jaring.findFirst).toHaveBeenCalledWith({
       where: {
@@ -170,6 +173,8 @@ describe('JaringService registration security', () => {
       },
       select: {
         id: true,
+        aliasName: true,
+        fullName: true,
         caretakerAssignments: {
           where: { isActive: true, validUntil: null },
           take: 1,
@@ -186,6 +191,8 @@ describe('JaringService registration security', () => {
         findFirst: jest.fn(() =>
           Promise.resolve({
             id: 'existing-jaring-id',
+            aliasName: 'Z01001',
+            fullName: 'Jaring Terdaftar',
             caretakerAssignments: [
               {
                 fieldOfficerAssignmentId: newJaring.fieldOfficerAssignmentId,
@@ -217,9 +224,66 @@ describe('JaringService registration security', () => {
       } as never),
     ).rejects.toMatchObject({
       code: 'JARING_WHATSAPP_DUPLICATE',
-      message: 'Nomor Jaring telah terdaftar di bawah Field Officer ini.',
+      message:
+        'Nomor WhatsApp sama dengan Jaring aktif Jaring Terdaftar (alias Z01001) di bawah Field Officer ini.',
     });
     expect(prisma.jaring.create).not.toHaveBeenCalled();
+  });
+
+  it('menolak persetujuan Jaring jika nomor WhatsApp sudah aktif pada Jaring lain', async () => {
+    const update = jest.fn();
+    const findUniqueOrThrow = jest.fn(() =>
+      Promise.resolve({
+        registrationStatus: 'PENDING',
+        whatsappNumber: '6281234567890',
+      }),
+    );
+    const findFirst = jest.fn(() =>
+      Promise.resolve({
+        id: 'active-jaring-id',
+        aliasName: 'Z01001',
+        fullName: 'Jaring Aktif',
+      }),
+    );
+    const auditCreate = jest.fn();
+    const assertJaring = jest.fn(() => Promise.resolve());
+    const service = new JaringService(
+      {
+        jaring: { findUniqueOrThrow, findFirst, update },
+        auditLog: { create: auditCreate },
+      } as never,
+      { assertJaring } as never,
+    );
+
+    await expect(
+      service.approveRegistration('pending-jaring-id', {
+        primaryAssignmentId: 'reviewer-assignment-id',
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'JARING_WHATSAPP_ACTIVE_DUPLICATE',
+      message:
+        'Nomor WhatsApp sama dengan Jaring aktif Jaring Aktif (alias Z01001). Gunakan nomor berbeda atau tolak pengajuan jika data ini duplikat.',
+    });
+
+    expect(assertJaring).toHaveBeenCalledWith(
+      expect.anything(),
+      'pending-jaring-id',
+    );
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        whatsappNumber: '6281234567890',
+        status: 'ACTIVE',
+        deletedAt: null,
+        id: { not: 'pending-jaring-id' },
+      },
+      select: {
+        id: true,
+        aliasName: true,
+        fullName: true,
+      },
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
   });
 
   it('membuat PIN enam digit otomatis tanpa pemeriksaan duplikasi kode', async () => {

@@ -61,6 +61,15 @@ type AdministrativeCodeArea = Pick<
   'code' | 'officialCode'
 >;
 
+type ActiveJaringWhatsappConflict = {
+  id: string;
+  aliasName: string | null;
+  fullName: string | null;
+  caretakerAssignments?: Array<{
+    fieldOfficerAssignmentId: string;
+  }>;
+};
+
 @Injectable()
 export class JaringService {
   constructor(
@@ -205,6 +214,59 @@ export class JaringService {
     }
 
     return `${aliasPrefix}${String(nextSequence).padStart(3, '0')}`;
+  }
+
+  private formatActiveWhatsappConflict(jaring: ActiveJaringWhatsappConflict) {
+    const label =
+      jaring.fullName?.trim() || jaring.aliasName?.trim() || 'Jaring lain';
+    const alias = jaring.aliasName?.trim();
+
+    return alias && alias !== label ? `${label} (alias ${alias})` : label;
+  }
+
+  private async findActiveWhatsappConflict(
+    whatsappNumber: string,
+    exceptJaringId?: string,
+  ) {
+    return this.prisma.jaring.findFirst({
+      where: {
+        whatsappNumber,
+        status: JaringStatus.ACTIVE,
+        deletedAt: null,
+        ...(exceptJaringId ? { id: { not: exceptJaringId } } : {}),
+      },
+      select: {
+        id: true,
+        aliasName: true,
+        fullName: true,
+      },
+    });
+  }
+
+  private assertNoActiveWhatsappConflict(
+    conflict: ActiveJaringWhatsappConflict | null,
+  ) {
+    if (!conflict) {
+      return;
+    }
+
+    const existingLabel = this.formatActiveWhatsappConflict(conflict);
+    throw new ApiException(
+      'JARING_WHATSAPP_ACTIVE_DUPLICATE',
+      `Nomor WhatsApp sama dengan Jaring aktif ${existingLabel}. Gunakan nomor berbeda atau tolak pengajuan jika data ini duplikat.`,
+      409,
+      [
+        {
+          field: 'whatsappNumber',
+          code: 'DUPLICATE_ACTIVE_JARING',
+          message: `Nomor WhatsApp sudah dipakai oleh ${existingLabel}.`,
+        },
+      ],
+      {
+        duplicateJaringId: conflict.id,
+        duplicateJaringLabel: existingLabel,
+      },
+    );
   }
 
   private async ensureProfilePhoto(
@@ -503,6 +565,8 @@ export class JaringService {
       },
       select: {
         id: true,
+        aliasName: true,
+        fullName: true,
         caretakerAssignments: {
           where: { isActive: true, validUntil: null },
           take: 1,
@@ -512,6 +576,7 @@ export class JaringService {
     });
 
     if (duplicateNumber) {
+      const existingLabel = this.formatActiveWhatsappConflict(duplicateNumber);
       const registeredFieldOfficerId =
         duplicateNumber.caretakerAssignments[0]?.fieldOfficerAssignmentId;
 
@@ -521,14 +586,14 @@ export class JaringService {
       ) {
         throw new ApiException(
           'JARING_WHATSAPP_OWNED_BY_OTHER_OFFICER',
-          'Nomor Jaring telah terdaftar di bawah Field Officer lain.',
+          `Nomor WhatsApp sama dengan Jaring aktif ${existingLabel} di bawah Field Officer lain.`,
           409,
         );
       }
 
       throw new ApiException(
         'JARING_WHATSAPP_DUPLICATE',
-        'Nomor Jaring telah terdaftar di bawah Field Officer ini.',
+        `Nomor WhatsApp sama dengan Jaring aktif ${existingLabel} di bawah Field Officer ini.`,
         409,
       );
     }
@@ -595,11 +660,14 @@ export class JaringService {
     await this.domainScope.assertJaring(context, id);
     const existing = await this.prisma.jaring.findUniqueOrThrow({
       where: { id },
-      select: { registrationStatus: true },
+      select: { registrationStatus: true, whatsappNumber: true },
     });
     if (existing.registrationStatus === JaringRegistrationStatus.APPROVED) {
       return this.detail(id);
     }
+    this.assertNoActiveWhatsappConflict(
+      await this.findActiveWhatsappConflict(existing.whatsappNumber, id),
+    );
     await this.prisma.jaring.update({
       where: { id },
       data: {
