@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { CircleUser, MapPinned } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -59,9 +61,11 @@ export function AccountSwitcher() {
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <CircleUser />
-            Account
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/account" prefetch={false}>
+              <CircleUser />
+              Account
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
