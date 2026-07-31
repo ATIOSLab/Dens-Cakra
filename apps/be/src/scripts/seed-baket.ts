@@ -18,54 +18,6 @@ import { prisma } from '../modules/prisma/prisma.service.js';
 const SEED_TAG = '[SEED_BAKET_VERIFIED]';
 const seedBaseDate = new Date('2026-07-01T01:00:00.000Z');
 
-const clusterSeeds = [
-  {
-    code: 'POLITICAL_SECURITY',
-    name: 'Politik dan Keamanan',
-    description:
-      'Jaring pada isu politik, pemerintahan, dan stabilitas keamanan.',
-  },
-  {
-    code: 'ECONOMY_FINANCE',
-    name: 'Ekonomi dan Keuangan',
-    description: 'Jaring pada aktivitas ekonomi, perdagangan, dan keuangan.',
-  },
-  {
-    code: 'SOCIAL_CULTURE',
-    name: 'Sosial dan Budaya',
-    description:
-      'Jaring pada dinamika sosial, komunitas, pendidikan, dan budaya.',
-  },
-  {
-    code: 'DEFENSE_SECURITY',
-    name: 'Pertahanan dan Keamanan',
-    description: 'Jaring pada objek vital, pertahanan, dan keamanan wilayah.',
-  },
-  {
-    code: 'CYBER_INFORMATION',
-    name: 'Siber dan Informasi',
-    description: 'Jaring pada ruang siber, media, dan ekosistem informasi.',
-  },
-  {
-    code: 'TRANSNATIONAL',
-    name: 'Kejahatan Transnasional',
-    description:
-      'Jaring pada lintas batas, penyelundupan, dan jaringan transnasional.',
-  },
-  {
-    code: 'NATURAL_RESOURCES',
-    name: 'Sumber Daya Alam',
-    description:
-      'Jaring pada energi, pangan, lingkungan, dan sumber daya alam.',
-  },
-  {
-    code: 'STRATEGIC_INFRASTRUCTURE',
-    name: 'Infrastruktur Strategis',
-    description:
-      'Jaring pada transportasi, telekomunikasi, dan infrastruktur vital.',
-  },
-] as const;
-
 const categorySeeds = [
   {
     code: 'POLITIK',
@@ -231,27 +183,7 @@ function compactCode(value: string) {
 }
 
 async function upsertMasterData() {
-  const clusters = [];
   const categories = [];
-
-  for (const seed of clusterSeeds) {
-    clusters.push(
-      await prisma.jaringCluster.upsert({
-        where: { code: seed.code },
-        update: {
-          name: seed.name,
-          description: seed.description,
-          isActive: true,
-        },
-        create: {
-          code: seed.code,
-          name: seed.name,
-          description: seed.description,
-          isActive: true,
-        },
-      }),
-    );
-  }
 
   for (const seed of categorySeeds) {
     categories.push(
@@ -272,7 +204,7 @@ async function upsertMasterData() {
     );
   }
 
-  return { clusters, categories };
+  return { categories };
 }
 
 async function loadSeedChains(): Promise<SeedChain[]> {
@@ -432,7 +364,6 @@ async function upsertVerifiedBaket(params: {
   operationalManager: AssignmentNode;
   fieldCoordinator: AssignmentNode;
   fieldOfficer: AssignmentNode;
-  clusterId: string;
   categoryId: string;
 }) {
   const { sequence, operationalManager, fieldCoordinator, fieldOfficer } =
@@ -471,7 +402,6 @@ async function upsertVerifiedBaket(params: {
         code: jaringCode,
         aliasName: `Jaring ${area.name} ${String(sequence + 1).padStart(2, '0')}`,
         whatsappNumber: `+62870${String(sequence + 1).padStart(8, '0')}`,
-        clusterId: params.clusterId,
         status: JaringStatus.ACTIVE,
         createdByAssignmentId: fieldOfficer.id,
         notes: `${SEED_TAG} Jaring sumber untuk laporan terverifikasi.`,
@@ -483,7 +413,6 @@ async function upsertVerifiedBaket(params: {
         code: jaringCode,
         aliasName: `Jaring ${area.name} ${String(sequence + 1).padStart(2, '0')}`,
         whatsappNumber: `+62870${String(sequence + 1).padStart(8, '0')}`,
-        clusterId: params.clusterId,
         status: JaringStatus.ACTIVE,
         createdByAssignmentId: fieldOfficer.id,
         notes: `${SEED_TAG} Jaring sumber untuk laporan terverifikasi.`,
@@ -533,7 +462,6 @@ async function upsertVerifiedBaket(params: {
         taskAssignmentId,
         primaryJaringId: jaringId,
         reportCategoryId: params.categoryId,
-        jaringClusterId: params.clusterId,
         status: BaketStatus.VERIFIED,
         currentVersionNumber: 1,
         deletedAt: null,
@@ -544,7 +472,6 @@ async function upsertVerifiedBaket(params: {
         taskAssignmentId,
         primaryJaringId: jaringId,
         reportCategoryId: params.categoryId,
-        jaringClusterId: params.clusterId,
         status: BaketStatus.VERIFIED,
         currentVersionNumber: 1,
         createdAt: eventTime,
@@ -714,7 +641,7 @@ async function upsertVerifiedBaket(params: {
 }
 
 async function seedBaket() {
-  const { clusters, categories } = await upsertMasterData();
+  const { categories } = await upsertMasterData();
   const chains = await loadSeedChains();
   if (chains.length === 0) {
     throw new Error(
@@ -732,7 +659,6 @@ async function seedBaket() {
           operationalManager: chain.operationalManager,
           fieldCoordinator: report.fieldCoordinator,
           fieldOfficer: report.fieldOfficer,
-          clusterId: clusters[sequence % clusters.length].id,
           categoryId: categories[sequence % categories.length].id,
         }),
       );
@@ -757,7 +683,6 @@ async function seedBaket() {
   ]);
 
   console.log('Seeded verified Baket baseline.');
-  console.log(`- Jaring clusters: ${clusters.length}`);
   console.log(`- Report categories: ${categories.length}`);
   console.log(`- OIM chains covered: ${chains.length}`);
   console.log(`- Verified Bakets: ${verifiedBakets}`);

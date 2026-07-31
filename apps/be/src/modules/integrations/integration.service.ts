@@ -49,6 +49,20 @@ export class IntegrationService {
     return (config as Record<string, unknown> | null) ?? {};
   }
 
+  private readConfigSafely(config: unknown) {
+    try {
+      return {
+        config: this.readConfig(config),
+        requiresReconfiguration: false,
+      };
+    } catch {
+      return {
+        config: {} as Record<string, unknown>,
+        requiresReconfiguration: true,
+      };
+    }
+  }
+
   private archivedCode(code: string, deletedAt: Date) {
     const suffix = `__deleted_${deletedAt.getTime()}`;
     return `${code.slice(0, 80 - suffix.length)}${suffix}`;
@@ -79,7 +93,12 @@ export class IntegrationService {
       isActive: boolean;
     }>;
   }) {
-    const config = this.readConfig(channel.config);
+    const { config, requiresReconfiguration } = this.readConfigSafely(
+      channel.config,
+    );
+    const configurationError = requiresReconfiguration
+      ? 'Konfigurasi koneksi tidak dapat dibaca. Simpan ulang konfigurasi kanal WhatsApp.'
+      : null;
     const senderNumbers =
       channel.senderNumbers?.map((item) => item.phoneNumber) ??
       (Array.isArray(config.senderNumbers)
@@ -110,11 +129,12 @@ export class IntegrationService {
       sessionJid: channel.botState?.sessionJid ?? null,
       lastConnectedAt: channel.botState?.lastConnectedAt ?? null,
       lastDisconnectedAt: channel.botState?.lastDisconnectedAt ?? null,
-      lastError: channel.botState?.lastError ?? null,
+      lastError: configurationError ?? channel.botState?.lastError ?? null,
       senderNumbers,
       userId: typeof config.userId === 'string' ? config.userId : null,
       coordinatorName: null as string | null,
       coordinatorRegion: null as string | null,
+      requiresReconfiguration,
     };
   }
 
@@ -263,13 +283,15 @@ export class IntegrationService {
     const existing = await this.prisma.integrationChannel.findFirstOrThrow({
       where: { id, deletedAt: null },
     });
-    const currentConfig = this.readConfig(existing.config);
+    const { config: currentConfig, requiresReconfiguration: configRecovered } =
+      this.readConfigSafely(existing.config);
     const senderNumbers = body.senderNumbers
       ?.map((item) => normalizeIndonesianPhoneNumber(item.trim()))
       .filter(Boolean);
 
     const mergedConfig = {
       ...currentConfig,
+      ...(configRecovered ? { userId: context.userProfileId } : {}),
       ...(body.botLabel !== undefined ? { botLabel: body.botLabel } : {}),
       ...(body.provider !== undefined ? { provider: body.provider } : {}),
       ...(body.botPhoneNumber !== undefined
@@ -326,6 +348,7 @@ export class IntegrationService {
 
     await this.audit(context, 'INTEGRATION.WHATSAPP_CONTROL.UPDATE', id, {
       senderCount: senderNumbers?.length ?? null,
+      configRecovered,
     });
     return this.whatsappControlDetail(id);
   }

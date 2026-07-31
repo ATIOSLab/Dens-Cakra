@@ -53,7 +53,7 @@ describe('BaketQueryService detail serialization', () => {
     expect(attachmentFileSelect).not.toHaveProperty('sizeBytes');
   });
 
-  it('applies category, cluster, and Baket creation period filters', async () => {
+  it('applies category and Baket creation period filters', async () => {
     type FindManyInput = {
       where?: Record<string, unknown>;
     };
@@ -69,7 +69,6 @@ describe('BaketQueryService detail serialization', () => {
         page: 1,
         limit: 20,
         categoryId: '11111111-1111-4111-8111-111111111111',
-        jaringClusterId: '22222222-2222-4222-8222-222222222222',
         from: '2026-07-01T00:00:00.000+07:00',
         to: '2026-07-14T23:59:59.999+07:00',
       },
@@ -80,7 +79,6 @@ describe('BaketQueryService detail serialization', () => {
     expect(query.where).toEqual(
       expect.objectContaining({
         reportCategoryId: '11111111-1111-4111-8111-111111111111',
-        jaringClusterId: '22222222-2222-4222-8222-222222222222',
         createdAt: {
           gte: new Date('2026-07-01T00:00:00.000+07:00'),
           lte: new Date('2026-07-14T23:59:59.999+07:00'),

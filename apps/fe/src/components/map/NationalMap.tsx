@@ -74,12 +74,6 @@ type AdministrativeAreaOption = {
   centroidLongitude: string | number | null;
 };
 
-type JaringClusterOption = {
-  id: string;
-  code: string;
-  name: string;
-};
-
 type AreaFocus =
   | { kind: "bounds"; bounds: [[number, number], [number, number]] }
   | { kind: "center"; center: [number, number] };
@@ -298,7 +292,6 @@ function mergeReportDetails(featureProperties: any, detailValue: unknown) {
   const currentVersion =
     versions.find((version) => numberOrNull(version.versionNumber) === currentVersionNumber) ?? versions[0] ?? {};
   const category = record(detail.reportCategory);
-  const cluster = record(detail.jaringCluster);
   const creatorAssignment = record(detail.createdByFieldOfficerAssignment);
   const creatorProfile = record(creatorAssignment.userProfile);
   const creatorPosition = record(creatorAssignment.position);
@@ -325,8 +318,6 @@ function mergeReportDetails(featureProperties: any, detailValue: unknown) {
     gpsAccuracyMeters: numberOrNull(currentVersion.gpsAccuracyMeters),
     reportCategoryId: stringOrNull(category.id) ?? featureProperties.reportCategoryId,
     reportCategoryName: stringOrNull(category.name) ?? featureProperties.reportCategoryName,
-    jaringClusterId: stringOrNull(cluster.id) ?? featureProperties.jaringClusterId,
-    jaringClusterName: stringOrNull(cluster.name) ?? featureProperties.jaringClusterName,
     createdByName: stringOrNull(creatorProfile.fullName),
     createdByPosition: stringOrNull(creatorPosition.title),
     verificationStatus: stringOrNull(verification.status),
@@ -377,7 +368,6 @@ export function NationalMap() {
   const [selectedUnitBranch, setSelectedUnitBranch] = useState<UnitBranchFilter>("ALL");
   const [selectedReportStatus, setSelectedReportStatus] = useState<string>("ALL");
   const [selectedReportUrgency, setSelectedReportUrgency] = useState<string>("ALL");
-  const [selectedReportCluster, setSelectedReportCluster] = useState<string>("ALL");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [mapStyle, setMapStyle] = useState<MapStyleKey>("default");
   const [visibleReportCount, setVisibleReportCount] = useState(10);
@@ -392,7 +382,6 @@ export function NationalMap() {
   const [selectedRegencyId, setSelectedRegencyId] = useState("");
   const [selectedDistrictId, setSelectedDistrictId] = useState("");
   const [areaOptionsLoading, setAreaOptionsLoading] = useState(false);
-  const [jaringClusters, setJaringClusters] = useState<JaringClusterOption[]>([]);
 
   // Inspector Panel State
   const [selection, setSelection] = useState<SelectionType | null>(null);
@@ -490,18 +479,12 @@ export function NationalMap() {
     const loadMasterFilters = async () => {
       setAreaOptionsLoading(true);
       try {
-        const [countryItems, clusterItems] = await Promise.all([
-          apiBrowserFetch<AdministrativeAreaOption[]>("/administrative-areas", {
-            query: { level: "COUNTRY", limit: 1000, isActive: true },
-          }),
-          apiBrowserFetch<JaringClusterOption[]>("/jaring/clusters", {
-            query: { limit: 200 },
-          }).catch(() => []),
-        ]);
+        const countryItems = await apiBrowserFetch<AdministrativeAreaOption[]>("/administrative-areas", {
+          query: { level: "COUNTRY", limit: 1000, isActive: true },
+        });
         if (cancelled) return;
 
         setCountries(countryItems || []);
-        setJaringClusters(clusterItems || []);
 
         const defaultCountry = countryItems?.[0];
         if (!defaultCountry) return;
@@ -528,22 +511,11 @@ export function NationalMap() {
   }, []);
 
   const reportFilterOptions = useMemo(() => {
-    const clusters = new Map<string, string>(jaringClusters.map((cluster) => [cluster.id, cluster.name]));
-
-    reportCatalog.features.forEach((feature) => {
-      const props = feature.properties || {};
-      const clusterKey = props.jaringClusterId || props.jaringClusterCode || props.jaringClusterName;
-      if (clusterKey) {
-        clusters.set(String(clusterKey), String(props.jaringClusterName || props.jaringClusterCode || clusterKey));
-      }
-    });
-
     return {
       statuses: [...REPORT_STATUSES],
       urgencies: [...REPORT_URGENCIES],
-      clusters: Array.from(clusters.entries()).sort((a, b) => a[1].localeCompare(b[1])),
     };
-  }, [jaringClusters, reportCatalog]);
+  }, []);
 
   // Filtered personnel data based on active search and dropdown filters
   const filteredPersonnelData = useMemo(() => {
@@ -592,21 +564,10 @@ export function NationalMap() {
           const matchesCategory = String(props.reportCategoryName || "")
             .toLowerCase()
             .includes(q);
-          const matchesCluster = String(props.jaringClusterName || "")
-            .toLowerCase()
-            .includes(q);
-          if (!matchesTitle && !matchesArea && !matchesCategory && !matchesCluster) return false;
+          if (!matchesTitle && !matchesArea && !matchesCategory) return false;
         }
         if (selectedReportStatus !== "ALL" && props.status !== selectedReportStatus) return false;
         if (selectedReportUrgency !== "ALL" && props.urgency !== selectedReportUrgency) return false;
-        if (
-          selectedReportCluster !== "ALL" &&
-          props.jaringClusterId !== selectedReportCluster &&
-          props.jaringClusterCode !== selectedReportCluster &&
-          props.jaringClusterName !== selectedReportCluster
-        ) {
-          return false;
-        }
         return true;
       });
 
@@ -615,7 +576,7 @@ export function NationalMap() {
         features,
       };
     },
-    [searchQuery, selectedObjectType, selectedReportStatus, selectedReportUrgency, selectedReportCluster],
+    [searchQuery, selectedObjectType, selectedReportStatus, selectedReportUrgency],
   );
 
   const filteredReportsData = useMemo(() => filterReportCollection(reports), [filterReportCollection, reports]);
@@ -1066,7 +1027,6 @@ export function NationalMap() {
     setSelectedUnitBranch("ALL");
     setSelectedReportStatus("ALL");
     setSelectedReportUrgency("ALL");
-    setSelectedReportCluster("ALL");
     setSelectedProvinceId("");
     setSelectedRegencyId("");
     setSelectedDistrictId("");
@@ -1386,23 +1346,6 @@ export function NationalMap() {
                 </select>
               </div>
 
-              <div className="space-y-1 sm:col-span-2">
-                <span className="text-[9px] uppercase font-mono text-muted-foreground/80 font-bold">
-                  Kelompok Baket
-                </span>
-                <select
-                  className="w-full h-8 text-[11px] bg-background border border-border rounded-[4px] px-2 text-foreground font-mono truncate focus:ring-1 focus:ring-primary cursor-pointer"
-                  value={selectedReportCluster}
-                  onChange={(e) => setSelectedReportCluster(e.target.value)}
-                >
-                  <option value="ALL">SEMUA</option>
-                  {reportFilterOptions.clusters.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
           )}
         </Card>

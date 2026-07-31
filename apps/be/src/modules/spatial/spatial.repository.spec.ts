@@ -3,6 +3,7 @@ import {
   AdministrativeLevel,
   AreaResolutionMethod,
   BoundaryQualityStatus,
+  Prisma,
 } from '../../generated/prisma/client.js';
 import { SpatialRepository } from './spatial.repository.js';
 
@@ -39,5 +40,21 @@ describe('SpatialRepository report area resolution', () => {
       confidence: 100,
       resolvedAt: null,
     });
+  });
+
+  it('mengirim toleransi simplifikasi desimal sebagai double precision', async () => {
+    const queryRaw = jest
+      .fn<(query: Prisma.Sql) => Promise<never[]>>()
+      .mockResolvedValue([]);
+    const repository = new SpatialRepository({ $queryRaw: queryRaw } as never);
+
+    const result = await repository.getActiveBoundaryGeoJson(
+      '6490a979-96ad-5c1d-9c86-556a8c940379',
+      18 / 111_320,
+    );
+
+    expect(result).toBeNull();
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(queryRaw.mock.calls[0]?.[0].sql).toContain('::double precision');
   });
 });

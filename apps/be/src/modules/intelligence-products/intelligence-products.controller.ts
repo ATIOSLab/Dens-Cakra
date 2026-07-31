@@ -46,6 +46,7 @@ import {
   DashboardVerificationQualityQuery,
   DecisionNoteDto,
   DistributionQuery,
+  FieldIntelligenceDashboardQuery,
   LocationHistoryQuery,
   MapAreaSummaryQuery,
   MapHeatmapQuery,
@@ -837,6 +838,31 @@ export class IntelligenceProductsController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.service.dashboardOverview(query, context));
+  }
+
+  @Get('dashboard/field-intelligence')
+  @ApiContract({
+    operationId: 'apiDashFieldIntelligence001',
+    contractId: 'API-DASH-FIELD-INTELLIGENCE-001',
+    summary: 'Panel komando BAKET dan aktivitas Jaring sesuai scope role',
+    roles: ['executive', 'regional_commander', 'field_coordinator'],
+  })
+  async dashboardFieldIntelligence(
+    @Query() query: FieldIntelligenceDashboardQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.service.dashboardFieldIntelligence(query, context),
+      undefined,
+      {
+        availableActions: [
+          'dashboard.refresh',
+          'dashboard.filter-jaring',
+          'dashboard.open-jaring-profile',
+        ],
+        appliedScope: query,
+      },
+    );
   }
 
   @Get('dashboard/kpis')

@@ -43,6 +43,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import { WhatsAppChannelScopeService } from '../whatsapp/whatsapp-channel-scope.service.js';
+import { WhatsAppReportFlowService } from './whatsapp-report-flow.service.js';
 
 type RuntimeState = {
   connecting: boolean;
@@ -244,6 +245,7 @@ export class WhatsappBotRuntimeService
     private readonly storage: LocalStorageService,
     private readonly spatial: SpatialRepository,
     private readonly channelScope: WhatsAppChannelScopeService,
+    private readonly reportFlow: WhatsAppReportFlowService,
   ) {}
 
   async onModuleInit() {
@@ -689,7 +691,7 @@ export class WhatsappBotRuntimeService
       },
     });
 
-    if (existing) {
+    if (existing && existing.success !== false) {
       return;
     }
 
@@ -698,34 +700,76 @@ export class WhatsappBotRuntimeService
       senderPhone,
       externalMessageId,
     );
-    const handled = await this.handleBotInteraction(
-      channel,
-      socket,
-      message,
-      payload,
-    ).catch((error: unknown) => {
-      this.logger.error(
-        `Failed to send WhatsApp bot command response for ${remoteJid}: ${this.messageOf(error)}`,
-      );
-      return false;
-    });
-
-    if (handled) {
-      await this.prisma.integrationChannel.update({
-        where: { id: channel.id },
-        data: { lastHealthAt: new Date() },
-      });
+    const event =
+      existing ??
+      (await this.prisma.integrationWebhookEvent
+        .create({
+          data: {
+            channelId: channel.id,
+            externalEventId: externalMessageId,
+            eventType: 'WHATSAPP_BAILEYS_MESSAGE',
+            payload: payload.rawPayload as Prisma.InputJsonValue,
+          },
+        })
+        .catch((error: unknown) => {
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === 'P2002'
+          ) {
+            return null;
+          }
+          throw error;
+        }));
+    if (!event) {
       return;
     }
 
-    const event = await this.prisma.integrationWebhookEvent.create({
-      data: {
-        channelId: channel.id,
-        externalEventId: externalMessageId,
-        eventType: 'WHATSAPP_BAILEYS_MESSAGE',
-        payload: payload.rawPayload as Prisma.InputJsonValue,
-      },
-    });
+    const handled = await this.reportFlow
+      .handle({
+        channel,
+        socket,
+        message,
+        payload,
+        reply: (responses) =>
+          this.sendHumanLikeReplies(
+            socket,
+            remoteJid,
+            [message.key],
+            responses,
+          ),
+      })
+      .catch(async (error: unknown) => {
+        this.logger.error(
+          `Failed to send WhatsApp bot command response for ${remoteJid}: ${this.messageOf(error)}`,
+        );
+        await this.prisma.integrationWebhookEvent.update({
+          where: { id: event.id },
+          data: {
+            processedAt: new Date(),
+            success: false,
+            errorMessage: this.messageOf(error),
+          },
+        });
+        throw error;
+      });
+
+    if (handled) {
+      await this.prisma.$transaction([
+        this.prisma.integrationWebhookEvent.update({
+          where: { id: event.id },
+          data: {
+            processedAt: new Date(),
+            success: true,
+            errorMessage: null,
+          },
+        }),
+        this.prisma.integrationChannel.update({
+          where: { id: channel.id },
+          data: { lastHealthAt: new Date() },
+        }),
+      ]);
+      return;
+    }
 
     await this.jobs.enqueue({
       type: 'WHATSAPP_PROCESS',
@@ -1378,7 +1422,7 @@ export class WhatsappBotRuntimeService
         areaResolutionConfidence: areaResolution?.confidence ?? null,
         areaResolvedAt: areaResolution?.resolvedAt ?? null,
         status: WhatsAppMessageStatus.RECEIVED,
-        validationSummary: WhatsAppValidationSummary.VALID,
+        validationSummary: WhatsAppValidationSummary.NOT_CHECKED,
         rawPayload: {
           source: 'WHATSAPP_BOT_REPORT_FLOW',
           senderPhone: session.senderPhone,
@@ -1518,7 +1562,6 @@ export class WhatsappBotRuntimeService
           where: { validUntil: null },
           include: { area: true },
         },
-        cluster: true,
         caretakerAssignments: {
           where: { isActive: true, validUntil: null },
           take: 1,

@@ -312,11 +312,25 @@ export const sidebarItems: NavGroup[] = [
         roles: FIELD_COORDINATOR_ROLE,
       },
       {
-        id: "field-coordinator-jaring-verification",
-        title: "Verifikasi Jaring",
-        url: "/dashboard/field-coordinator/verifikasi-jaring",
-        icon: ShieldCheck,
+        id: "field-coordinator-jaring",
+        title: "Jaring",
+        icon: Users,
         roles: FIELD_COORDINATOR_ROLE,
+        subItems: [
+          {
+            id: "field-coordinator-jaring-distribution",
+            title: "Sebaran Jaring",
+            url: "/dashboard/field-coordinator/sebaran-jaring",
+            newTab: true,
+            roles: FIELD_COORDINATOR_ROLE,
+          },
+          {
+            id: "field-coordinator-jaring-list",
+            title: "Daftar Jaring",
+            url: "/dashboard/field-coordinator/verifikasi-jaring",
+            roles: FIELD_COORDINATOR_ROLE,
+          },
+        ],
       },
       {
         id: "field-coordinator-emergency",
@@ -418,7 +432,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "field-officer-network-inbox",
-        title: "Kotak Masuk Jaring",
+        title: "Informasi Jaring",
         url: "/dashboard/field-officer/kotak-masuk-jaring",
         icon: Inbox,
         roles: FIELD_OFFICER_ROLE,
@@ -427,7 +441,7 @@ export const sidebarItems: NavGroup[] = [
   },
   {
     id: 4,
-    label: "Report",
+    label: "Laporan",
     roles: FIELD_OFFICER_ROLE,
     items: [
       {

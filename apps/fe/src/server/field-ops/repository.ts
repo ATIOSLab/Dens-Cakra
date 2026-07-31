@@ -12,7 +12,6 @@ import type {
   FieldOfficerTask,
   FieldOfficerWorkspace,
   JaringInstructionDispatch,
-  JaringCluster,
   JaringOccupation,
   ReportCategory,
   WhatsappControlChannel,
@@ -32,11 +31,6 @@ type JaringRecord = {
   code: string;
   aliasName: string;
   whatsappNumber: string;
-  clusterId?: string | null;
-  cluster?: {
-    id: string;
-    name: string;
-  } | null;
   status: string;
   registrationStatus?: "PENDING" | "APPROVED" | "REJECTED";
   rejectionReason?: string | null;
@@ -91,6 +85,7 @@ type AreaScopeRecord = {
 
 type MessageRecord = {
   id: string;
+  referenceNumber?: string | null;
   senderPhone: string;
   title?: string | null;
   content?: string | null;
@@ -114,8 +109,6 @@ type MessageRecord = {
     id: string;
     code: string;
     aliasName?: string | null;
-    clusterId?: string | null;
-    cluster?: { id: string; name: string } | null;
   } | null;
   receivedAt: string;
   locationCapturedAt?: string | null;
@@ -135,6 +128,12 @@ type MessageRecord = {
       mimeType?: string | null;
       originalName?: string | null;
     } | null;
+  }>;
+  reportAmendments?: Array<{
+    id: string;
+    amendmentType: string;
+    content?: string | null;
+    createdAt: string;
   }>;
 };
 
@@ -202,7 +201,6 @@ type BaketRecord = {
   createdAt: string;
   primaryJaringId?: string | null;
   reportCategory?: { name: string } | null;
-  jaringCluster?: { name: string } | null;
   createdByFieldOfficerAssignment?: {
     position?: PositionRecord | null;
   } | null;
@@ -332,36 +330,59 @@ function mapIncoming(record: MessageRecord, jaring: FieldOfficerJaring): FieldOf
   const rawPayload = asRecord(record.rawPayload);
   const photoMessageId = asString(rawPayload?.photoMessageId);
   const photoCaption = asString(rawPayload?.photoCaption);
+  const evidenceFiles = (record.media ?? []).flatMap((item) => {
+    const fileId = item.fileId ?? item.file?.id ?? null;
+    return fileId
+      ? [
+          {
+            fileId,
+            url: `/api/field-officer/files/${fileId}`,
+            caption: item.caption ?? null,
+            mimeType: item.file?.mimeType ?? null,
+            originalName: item.file?.originalName ?? null,
+          },
+        ]
+      : [];
+  });
   const photoFileId =
+    evidenceFiles[0]?.fileId ??
     record.media?.find((item) => item.fileId || item.file?.id)?.fileId ??
     record.media?.find((item) => item.file?.id)?.file?.id ??
     null;
 
   return {
     id: record.id,
+    referenceNumber: record.referenceNumber ?? asString(rawPayload?.referenceNumber),
     jaringId: jaring.id,
     jaringCode: jaring.code,
     jaringAlias: jaring.aliasName,
-    clusterId: jaring.clusterId,
-    clusterName: jaring.clusterName,
     senderPhone: record.senderPhone,
     title: record.title ?? null,
     content: record.content ?? null,
+    contentAmendments: (record.reportAmendments ?? [])
+      .filter((amendment) => amendment.amendmentType === "CONTENT_ADDITION" && Boolean(amendment.content))
+      .map((amendment) => ({
+        id: amendment.id,
+        content: amendment.content as string,
+        createdAt: amendment.createdAt,
+      })),
     status: record.status,
     validationSummary: record.validationSummary,
     categoryId: record.categoryId ?? record.category?.id ?? record.convertedBaket?.reportCategory?.id ?? null,
     categoryName: record.category?.name ?? record.convertedBaket?.reportCategory?.name ?? null,
     urgency: record.convertedBaket?.versions?.[0]?.urgency ?? null,
     receivedAt: record.receivedAt,
-    eventDateTime: asString(rawPayload?.eventDateTime) ?? record.locationCapturedAt ?? null,
-    gpsSharedAt: asString(rawPayload?.gpsSharedAt),
+    eventDateTime:
+      asString(rawPayload?.incidentAt) ?? asString(rawPayload?.eventDateTime) ?? record.locationCapturedAt ?? null,
+    gpsSharedAt: asString(rawPayload?.gpsSharedAt) ?? record.locationCapturedAt ?? null,
     processedAt: record.processedAt ?? null,
     reportTimestamp: asString(rawPayload?.timestamp) ?? record.processedAt ?? record.receivedAt,
     areaName: record.resolvedArea?.name ?? null,
     latitude: asNumber(record.latitude),
     longitude: asNumber(record.longitude),
     gpsAccuracyMeters: asNumber(record.gpsAccuracyMeters),
-    mediaCount: record.media?.length ?? 0,
+    mediaCount: evidenceFiles.length,
+    evidenceFiles,
     hasPhoto: Boolean(record.media?.length || photoMessageId),
     photoCaption,
     photoMessageId,
@@ -374,7 +395,6 @@ export async function getFieldOfficerWorkspace(
   cookie: string,
   baketFilters: {
     categoryId?: string;
-    jaringClusterId?: string;
     from?: string;
     to?: string;
     sortBy?: string;
@@ -388,7 +408,6 @@ export async function getFieldOfficerWorkspace(
     pendingJaring,
     approvedJaring,
     rejectedJaring,
-    jaringClusters,
     occupations,
     reportCategories,
     messages,
@@ -396,72 +415,61 @@ export async function getFieldOfficerWorkspace(
     baketResponse,
     scopedAreas,
     latestLocation,
-  ] =
-    await Promise.all([
-      backendApi<JaringRecord[]>("/jaring", {
-        cookie,
-        query: { limit: 100, registrationStatus: "PENDING" },
-      }),
-      backendApi<JaringRecord[]>("/jaring", {
-        cookie,
-        query: { limit: 100, registrationStatus: "APPROVED" },
-      }),
-      backendApi<JaringRecord[]>("/jaring", {
-        cookie,
-        query: { limit: 100, registrationStatus: "REJECTED" },
-      }),
-      backendApi<Array<JaringCluster & { _count?: { jaring?: number } }>>("/jaring/clusters", {
-        cookie,
-        query: { limit: 200 },
-      }),
-      backendApi<Array<JaringOccupation & { _count?: { jaring?: number } }>>("/jaring/occupations", {
-        cookie,
-        query: { limit: 200 },
-      }),
-      backendApi<Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>>("/jaring/report-categories", {
-        cookie,
-        query: { limit: 200 },
-      }),
-      backendApi<MessageRecord[]>("/whatsapp-messages", {
-        cookie,
-        query: { limit: 100 },
-      }),
-      backendApi<TaskRecord[]>("/tasks", {
-        cookie,
-        query: {
-          assigneeAssignmentId: assignmentId,
-          limit: 50,
-          sortBy: baketFilters.sortBy,
-          sortOrder: baketFilters.sortOrder,
-        },
-      }),
-      backendApi<BaketRecord[] | PagedResponse<BaketRecord>>("/bakets", {
-        cookie,
-        query: {
-          createdByAssignmentId: assignmentId,
-          categoryId: baketFilters.categoryId,
-          jaringClusterId: baketFilters.jaringClusterId,
-          from: baketFilters.from ? `${baketFilters.from}T00:00:00.000+07:00` : undefined,
-          to: baketFilters.to ? `${baketFilters.to}T23:59:59.999+07:00` : undefined,
-          limit: 50,
-        },
-      }),
-      backendApi<AreaScopeRecord[]>("/me/area-scopes", {
-        cookie,
-        query: { includeDescendants: true },
-      }),
-      backendApi<LocationRecord>("/personnel-location-pings/me/latest", {
-        cookie,
-      }).catch(() => null),
-    ]);
+  ] = await Promise.all([
+    backendApi<JaringRecord[]>("/jaring", {
+      cookie,
+      query: { limit: 100, registrationStatus: "PENDING" },
+    }),
+    backendApi<JaringRecord[]>("/jaring", {
+      cookie,
+      query: { limit: 100, registrationStatus: "APPROVED" },
+    }),
+    backendApi<JaringRecord[]>("/jaring", {
+      cookie,
+      query: { limit: 100, registrationStatus: "REJECTED" },
+    }),
+    backendApi<Array<JaringOccupation & { _count?: { jaring?: number } }>>("/jaring/occupations", {
+      cookie,
+      query: { limit: 200 },
+    }),
+    backendApi<Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>>("/jaring/report-categories", {
+      cookie,
+      query: { limit: 200 },
+    }),
+    backendApi<MessageRecord[]>("/whatsapp-messages", {
+      cookie,
+      query: { limit: 100 },
+    }),
+    backendApi<TaskRecord[]>("/tasks", {
+      cookie,
+      query: {
+        assigneeAssignmentId: assignmentId,
+        limit: 50,
+        sortBy: baketFilters.sortBy,
+        sortOrder: baketFilters.sortOrder,
+      },
+    }),
+    backendApi<BaketRecord[] | PagedResponse<BaketRecord>>("/bakets", {
+      cookie,
+      query: {
+        createdByAssignmentId: assignmentId,
+        categoryId: baketFilters.categoryId,
+        from: baketFilters.from ? `${baketFilters.from}T00:00:00.000+07:00` : undefined,
+        to: baketFilters.to ? `${baketFilters.to}T23:59:59.999+07:00` : undefined,
+        limit: 50,
+      },
+    }),
+    backendApi<AreaScopeRecord[]>("/me/area-scopes", {
+      cookie,
+      query: { includeDescendants: true },
+    }),
+    backendApi<LocationRecord>("/personnel-location-pings/me/latest", {
+      cookie,
+    }).catch(() => null),
+  ]);
 
   const allJaring = Array.from(
-    new Map(
-      [...pendingJaring, ...approvedJaring, ...rejectedJaring].map((item) => [
-        item.id,
-        item,
-      ]),
-    ).values(),
+    new Map([...pendingJaring, ...approvedJaring, ...rejectedJaring].map((item) => [item.id, item])).values(),
   );
   const ownBakets = Array.isArray(baketResponse) ? baketResponse : (baketResponse.items ?? []);
   const districtAreas = scopedAreas.filter((area) => area.level === "DISTRICT");
@@ -476,8 +484,6 @@ export async function getFieldOfficerWorkspace(
       code: item.code,
       aliasName: item.aliasName,
       whatsappNumber: item.whatsappNumber,
-      clusterId: item.clusterId ?? item.cluster?.id ?? null,
-      clusterName: item.cluster?.name ?? null,
       status: item.registrationStatus === "APPROVED" ? item.status : "INACTIVE",
       registrationStatus: item.registrationStatus ?? "APPROVED",
       rejectionReason: item.rejectionReason ?? null,
@@ -495,7 +501,11 @@ export async function getFieldOfficerWorkspace(
       nationalIdNumber: item.nationalIdNumber ?? null,
       address: item.address ?? null,
       birthPlace: item.birthPlace ?? null,
-      birthDate: item.birthDate ? (typeof item.birthDate === "string" ? item.birthDate : item.birthDate.toISOString()) : null,
+      birthDate: item.birthDate
+        ? typeof item.birthDate === "string"
+          ? item.birthDate
+          : item.birthDate.toISOString()
+        : null,
       gender: item.gender ?? null,
       occupationName: item.occupation?.name ?? null,
       profilePhotoFileId: item.profilePhotoFileId ?? item.profilePhotoFile?.id ?? null,
@@ -505,7 +515,11 @@ export async function getFieldOfficerWorkspace(
           : null,
       workplace: item.workplace ?? null,
       jobTitle: item.jobTitle ?? null,
-      joinedAt: item.joinedAt ? (typeof item.joinedAt === "string" ? item.joinedAt : item.joinedAt.toISOString()) : null,
+      joinedAt: item.joinedAt
+        ? typeof item.joinedAt === "string"
+          ? item.joinedAt
+          : item.joinedAt.toISOString()
+        : null,
       organizationName: item.organizationName ?? null,
       politicalAffiliation: item.politicalAffiliation ?? null,
     }));
@@ -523,14 +537,6 @@ export async function getFieldOfficerWorkspace(
     context: access.context,
     profile: access.profile,
     jaring,
-    jaringClusters: jaringClusters.map((cluster) => ({
-      id: cluster.id,
-      code: cluster.code,
-      name: cluster.name,
-      description: cluster.description ?? null,
-      isActive: cluster.isActive,
-      jaringCount: cluster._count?.jaring ?? cluster.jaringCount,
-    })),
     occupations: occupations.map((occupation) => ({
       id: occupation.id,
       code: occupation.code,
@@ -570,7 +576,6 @@ export async function getFieldOfficerWorkspace(
       currentVersionTitle: item.versions?.[0]?.title ?? null,
       summary: item.versions?.[0]?.fieldOfficerNote ?? null,
       categoryName: item.reportCategory?.name ?? null,
-      clusterName: item.jaringCluster?.name ?? null,
       urgency: item.versions?.[0]?.urgency ?? null,
       sentToPositionTitle: oimPositionTitleFrom(item.createdByFieldOfficerAssignment?.position) ?? null,
     })),
@@ -701,7 +706,7 @@ export async function deleteIncomingMessage(cookie: string, messageId: string) {
   return backendApi(`/whatsapp-messages/${messageId}/mark-spam`, {
     cookie,
     method: "POST",
-    body: { reason: "Dihapus dari Kotak Masuk Jaring oleh Field Officer." },
+    body: { reason: "Dihapus dari Informasi Jaring oleh Field Officer." },
     idempotent: true,
   });
 }

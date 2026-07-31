@@ -203,6 +203,45 @@ enum WhatsAppValidationSummary {
   INVALID
 }
 
+enum WhatsAppReportSessionState {
+  AWAITING_CODE
+  TITLE
+  TITLE_CONFIRMATION
+  CONTENT
+  CONTENT_CONFIRMATION
+  LOCATION
+  LOCATION_CONFIRMATION
+  TIME
+  TIME_CONFIRMATION
+  MEDIA
+  MEDIA_CONFIRMATION
+  MEDIA_DELETE_CONFIRMATION
+  REVIEW
+  EXISTING_SESSION_CHOICE
+  CANCEL_CONFIRMATION
+  POST_SUBMIT_TEXT_CONFIRMATION
+  POST_SUBMIT_MEDIA_PURPOSE
+  SUBMITTED
+  CLOSED
+}
+
+enum WhatsAppReportSessionStatus {
+  ACTIVE
+  SUBMITTED
+  EXPIRED
+  CANCELLED
+  CLOSED
+}
+
+enum WhatsAppReportAmendmentType {
+  CONTENT_ADDITION
+  MEDIA_ADDITION
+  LOCATION_UPDATE
+  TIME_UPDATE
+  TITLE_UPDATE
+  OTHER
+}
+
 enum CoverageScopeType {
   JARING
   FIELD_OFFICER
@@ -548,38 +587,38 @@ model Verification {
 }
 
 model UserProfile {
-  id                     String            @id @default(uuid()) @db.Uuid
-  authUserId             String            @unique
-  username               String?           @unique @db.VarChar(100)
-  fullName               String?           @db.VarChar(180)
-  phone                  String?           @db.VarChar(30)
-  nationalIdNumber       String?           @db.Char(16)
-  birthPlace             String?           @db.VarChar(120)
-  birthDate              DateTime?         @db.Date
+  id                     String                  @id @default(uuid()) @db.Uuid
+  authUserId             String                  @unique
+  username               String?                 @unique @db.VarChar(100)
+  fullName               String?                 @db.VarChar(180)
+  phone                  String?                 @db.VarChar(30)
+  nationalIdNumber       String?                 @db.Char(16)
+  birthPlace             String?                 @db.VarChar(120)
+  birthDate              DateTime?               @db.Date
   gender                 PersonnelGender?
-  religion               String?           @db.VarChar(80)
+  religion               String?                 @db.VarChar(80)
   maritalStatus          PersonnelMaritalStatus?
-  bloodType              String?           @db.VarChar(5)
-  personnelNumber        String?           @db.VarChar(80)
-  rankGrade              String?           @db.VarChar(120)
+  bloodType              String?                 @db.VarChar(5)
+  personnelNumber        String?                 @db.VarChar(80)
+  rankGrade              String?                 @db.VarChar(120)
   personnelStatus        PersonnelStatus?
-  joinedAt               DateTime?         @db.Date
-  lastEducation          String?           @db.VarChar(120)
-  educationInstitution   String?           @db.VarChar(180)
-  educationMajor         String?           @db.VarChar(150)
+  joinedAt               DateTime?               @db.Date
+  lastEducation          String?                 @db.VarChar(120)
+  educationInstitution   String?                 @db.VarChar(180)
+  educationMajor         String?                 @db.VarChar(150)
   graduationYear         Int?
   positionHistory        Json?
   assignmentHistory      Json?
   competencies           Json?
-  status                 UserProfileStatus @default(PENDING)
-  isActive               Boolean           @default(true)
+  status                 UserProfileStatus       @default(PENDING)
+  isActive               Boolean                 @default(true)
   operationalLockedAt    DateTime?
-  operationalLockReason  String?           @db.Text
+  operationalLockReason  String?                 @db.Text
   operationalLockedUntil DateTime?
   lastLoginAt            DateTime?
   deletedAt              DateTime?
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
 
   authUser User @relation("AuthUserProfile", fields: [authUserId], references: [id], onDelete: Restrict)
 
@@ -746,6 +785,7 @@ model UserSeatAssignment {
   jaringCaretakerAssignments JaringCaretakerAssignment[]
   routedWhatsAppMessages     WhatsAppMessage[]           @relation("WhatsAppRoutedTo")
   whatsappRoutingLogs        WhatsAppRoutingLog[]
+  whatsappReportSessions     WhatsAppReportSession[]     @relation("WhatsAppReportFieldOfficer")
   baketsCreated              Baket[]                     @relation("BaketCreatedBy")
   baketVersionsCreated       BaketVersion[]              @relation("BaketVersionCreatedBy")
   baketRevisionRequests      BaketRevisionRequest[]
@@ -998,6 +1038,9 @@ model FileAsset {
   createdByAssignment UserSeatAssignment? @relation(fields: [createdByAssignmentId], references: [id], onDelete: SetNull)
 
   whatsAppMedia        WhatsAppMessageMedia[]
+  whatsAppReportMedia  WhatsAppReportMedia[]     @relation("WhatsAppReportMediaFile")
+  whatsappPendingMedia WhatsAppReportSession[]   @relation("WhatsAppReportPendingFile")
+  whatsappAmendments   WhatsAppReportAmendment[] @relation("WhatsAppReportAmendmentFile")
   taskAttachments      TaskAttachment[]
   baketAttachments     BaketVersionAttachment[]
   productAttachments   ProductAttachment[]
@@ -1272,70 +1315,53 @@ model TaskAttachment {
  */
 
 model Jaring {
-  id                    String        @id @default(uuid()) @db.Uuid
-  code                  String        @db.VarChar(80)
-  aliasName             String?       @db.VarChar(150)
-  whatsappNumber        String        @db.VarChar(30)
-  clusterId             String?       @db.Uuid
-  fullName              String?       @db.VarChar(180)
-  nationalIdNumber      String?       @db.Char(16)
-  address               String?       @db.Text
-  birthPlace            String?       @db.VarChar(120)
-  birthDate             DateTime?     @db.Date
-  gender                JaringGender?
-  occupationId          String?       @db.Uuid
-  profilePhotoFileId    String?       @db.Uuid
-  workplace             String?       @db.VarChar(180)
-  jobTitle              String?       @db.VarChar(150)
-  joinedAt              DateTime?     @db.Date
-  organizationName      String?       @db.VarChar(180)
-  politicalAffiliation  String?       @db.VarChar(180)
-  status                JaringStatus  @default(ACTIVE)
-  registrationStatus    JaringRegistrationStatus @default(APPROVED)
-  rejectionReason       String?       @db.Text
-  reviewedAt            DateTime?
-  reviewedByAssignmentId String?      @db.Uuid
-  createdByAssignmentId String        @db.Uuid
-  notes                 String?       @db.Text
-  registeredAt          DateTime      @default(now())
-  deactivatedAt         DateTime?
-  deletedAt             DateTime?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  id                     String                   @id @default(uuid()) @db.Uuid
+  code                   String                   @db.VarChar(80)
+  aliasName              String?                  @db.VarChar(150)
+  whatsappNumber         String                   @db.VarChar(30)
+  fullName               String?                  @db.VarChar(180)
+  nationalIdNumber       String?                  @db.Char(16)
+  address                String?                  @db.Text
+  birthPlace             String?                  @db.VarChar(120)
+  birthDate              DateTime?                @db.Date
+  gender                 JaringGender?
+  occupationId           String?                  @db.Uuid
+  profilePhotoFileId     String?                  @db.Uuid
+  workplace              String?                  @db.VarChar(180)
+  jobTitle               String?                  @db.VarChar(150)
+  joinedAt               DateTime?                @db.Date
+  organizationName       String?                  @db.VarChar(180)
+  politicalAffiliation   String?                  @db.VarChar(180)
+  status                 JaringStatus             @default(ACTIVE)
+  registrationStatus     JaringRegistrationStatus @default(APPROVED)
+  rejectionReason        String?                  @db.Text
+  reviewedAt             DateTime?
+  reviewedByAssignmentId String?                  @db.Uuid
+  createdByAssignmentId  String                   @db.Uuid
+  notes                  String?                  @db.Text
+  registeredAt           DateTime                 @default(now())
+  deactivatedAt          DateTime?
+  deletedAt              DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
 
-  createdByAssignment UserSeatAssignment @relation("JaringCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
+  createdByAssignment  UserSeatAssignment  @relation("JaringCreatedBy", fields: [createdByAssignmentId], references: [id], onDelete: Restrict)
   reviewedByAssignment UserSeatAssignment? @relation("JaringReviewedBy", fields: [reviewedByAssignmentId], references: [id], onDelete: SetNull)
-  cluster             JaringCluster?     @relation(fields: [clusterId], references: [id], onDelete: SetNull)
-  occupation          JaringOccupation?  @relation(fields: [occupationId], references: [id], onDelete: SetNull)
-  profilePhotoFile    FileAsset?         @relation("JaringProfilePhoto", fields: [profilePhotoFileId], references: [id], onDelete: SetNull)
+  occupation           JaringOccupation?   @relation(fields: [occupationId], references: [id], onDelete: SetNull)
+  profilePhotoFile     FileAsset?          @relation("JaringProfilePhoto", fields: [profilePhotoFileId], references: [id], onDelete: SetNull)
 
   caretakerAssignments JaringCaretakerAssignment[]
   areaCoverages        JaringAreaCoverage[]
   messages             WhatsAppMessage[]
+  reportSessions       WhatsAppReportSession[]
   primaryBakets        Baket[]                     @relation("BaketPrimaryJaring")
 
   @@index([status, deletedAt])
   @@index([registrationStatus, createdAt])
   @@index([reviewedByAssignmentId])
   @@index([code])
-  @@index([clusterId, status])
   @@index([occupationId])
   @@index([profilePhotoFileId])
-}
-
-model JaringCluster {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique @db.VarChar(80)
-  name        String   @unique @db.VarChar(120)
-  description String?  @db.Text
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  jaring Jaring[]
-  bakets Baket[]
-
-  @@index([isActive, name])
 }
 
 model JaringOccupation {
@@ -1409,6 +1435,7 @@ model WhatsAppMessage {
   routedToFieldOfficerAssignmentId String?                              @db.Uuid
   title                            String?                              @db.VarChar(300)
   content                          String?                              @db.Text
+  referenceNumber                  String?                              @unique @db.VarChar(24)
   latitude                         Decimal?                             @db.Decimal(10, 7)
   longitude                        Decimal?                             @db.Decimal(10, 7)
   locationPoint                    Unsupported("geometry(Point,4326)")?
@@ -1439,6 +1466,8 @@ model WhatsAppMessage {
   routingLogs      WhatsAppRoutingLog[]
   baketLinks       BaketVersionSourceMessage[]
   validationIssues WhatsAppValidationIssue[]
+  reportSession    WhatsAppReportSession?
+  reportAmendments WhatsAppReportAmendment[]
 
   @@unique([integrationChannelId, externalMessageId])
   @@index([integrationChannelId, receivedAt])
@@ -1488,6 +1517,130 @@ model WhatsAppRoutingLog {
   @@index([messageId, createdAt])
 }
 
+model WhatsAppReportSession {
+  id                       String                      @id @default(uuid()) @db.Uuid
+  integrationChannelId     String                      @db.Uuid
+  senderPhone              String                      @db.VarChar(30)
+  remoteJid                String                      @db.VarChar(160)
+  activeSenderKey          String?                     @unique @db.VarChar(30)
+  jaringId                 String                      @db.Uuid
+  fieldOfficerAssignmentId String                      @db.Uuid
+  currentState             WhatsAppReportSessionState
+  status                   WhatsAppReportSessionStatus @default(ACTIVE)
+  title                    String?                     @db.VarChar(150)
+  content                  String?                     @db.Text
+  latitude                 Decimal?                    @db.Decimal(10, 7)
+  longitude                Decimal?                    @db.Decimal(10, 7)
+  locationAccuracyMeters   Decimal?                    @db.Decimal(10, 2)
+  locationCapturedAt       DateTime?
+  locationMessageId        String?                     @db.VarChar(255)
+  locationType             String?                     @db.VarChar(40)
+  incidentAt               DateTime?
+  timezone                 String                      @default("Asia/Jakarta") @db.VarChar(60)
+  returnToReview           Boolean                     @default(false)
+  resumeState              WhatsAppReportSessionState?
+  pendingAmendmentText     String?                     @db.Text
+  pendingFileId            String?                     @db.Uuid
+  submittedMessageId       String?                     @unique @db.Uuid
+  referenceNumber          String?                     @unique @db.VarChar(24)
+  startedAt                DateTime                    @default(now())
+  lastActivityAt           DateTime                    @default(now())
+  expiresAt                DateTime
+  submittedAt              DateTime?
+  closedAt                 DateTime?
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+
+  integrationChannel     IntegrationChannel          @relation(fields: [integrationChannelId], references: [id], onDelete: Restrict)
+  jaring                 Jaring                      @relation(fields: [jaringId], references: [id], onDelete: Restrict)
+  fieldOfficerAssignment UserSeatAssignment          @relation("WhatsAppReportFieldOfficer", fields: [fieldOfficerAssignmentId], references: [id], onDelete: Restrict)
+  submittedMessage       WhatsAppMessage?            @relation(fields: [submittedMessageId], references: [id], onDelete: SetNull)
+  pendingFile            FileAsset?                  @relation("WhatsAppReportPendingFile", fields: [pendingFileId], references: [id], onDelete: SetNull)
+  contentParts           WhatsAppReportContentPart[]
+  media                  WhatsAppReportMedia[]
+  history                WhatsAppReportHistory[]
+  amendments             WhatsAppReportAmendment[]
+
+  @@index([senderPhone, status, updatedAt])
+  @@index([integrationChannelId, status, updatedAt])
+  @@index([jaringId, status, updatedAt])
+  @@index([expiresAt, status])
+}
+
+model WhatsAppReportContentPart {
+  id                String   @id @default(uuid()) @db.Uuid
+  reportSessionId   String   @db.Uuid
+  externalMessageId String   @db.VarChar(255)
+  content           String   @db.Text
+  orderNo           Int
+  createdAt         DateTime @default(now())
+
+  reportSession WhatsAppReportSession @relation(fields: [reportSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([reportSessionId, externalMessageId])
+  @@unique([reportSessionId, orderNo])
+}
+
+model WhatsAppReportMedia {
+  id                String    @id @default(uuid()) @db.Uuid
+  reportSessionId   String    @db.Uuid
+  fileId            String    @db.Uuid
+  externalMessageId String    @db.VarChar(255)
+  mediaType         FileType
+  caption           String?   @db.Text
+  orderNo           Int
+  createdAt         DateTime  @default(now())
+  deletedAt         DateTime?
+
+  reportSession WhatsAppReportSession @relation(fields: [reportSessionId], references: [id], onDelete: Cascade)
+  file          FileAsset             @relation("WhatsAppReportMediaFile", fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@unique([reportSessionId, externalMessageId])
+  @@unique([reportSessionId, orderNo])
+  @@index([reportSessionId, deletedAt, orderNo])
+}
+
+model WhatsAppReportAmendment {
+  id                String                      @id @default(uuid()) @db.Uuid
+  reportSessionId   String                      @db.Uuid
+  whatsappMessageId String                      @db.Uuid
+  amendmentType     WhatsAppReportAmendmentType
+  content           String?                     @db.Text
+  fileId            String?                     @db.Uuid
+  metadata          Json?
+  senderPhone       String                      @db.VarChar(30)
+  createdAt         DateTime                    @default(now())
+
+  reportSession   WhatsAppReportSession @relation(fields: [reportSessionId], references: [id], onDelete: Restrict)
+  whatsappMessage WhatsAppMessage       @relation(fields: [whatsappMessageId], references: [id], onDelete: Restrict)
+  file            FileAsset?            @relation("WhatsAppReportAmendmentFile", fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@index([whatsappMessageId, createdAt])
+  @@index([reportSessionId, createdAt])
+}
+
+model WhatsAppReportHistory {
+  id                String                      @id @default(uuid()) @db.Uuid
+  reportSessionId   String                      @db.Uuid
+  action            String                      @db.VarChar(120)
+  previousState     WhatsAppReportSessionState?
+  newState          WhatsAppReportSessionState?
+  externalMessageId String?                     @db.VarChar(255)
+  metadata          Json?
+  createdAt         DateTime                    @default(now())
+
+  reportSession WhatsAppReportSession @relation(fields: [reportSessionId], references: [id], onDelete: Restrict)
+
+  @@index([reportSessionId, createdAt])
+  @@index([externalMessageId])
+}
+
+model WhatsAppReportReferenceCounter {
+  dateKey   String   @id @db.Char(8)
+  lastValue Int
+  updatedAt DateTime @updatedAt
+}
+
 /**
  * =========================================================
  * BAKET AND FORMAL VERIFICATION
@@ -1500,7 +1653,6 @@ model Baket {
   taskAssignmentId                  String?     @db.Uuid
   primaryJaringId                   String?     @db.Uuid
   reportCategoryId                  String?     @db.Uuid
-  jaringClusterId                   String?     @db.Uuid
   status                            BaketStatus @default(DRAFT)
   currentVersionNumber              Int         @default(1)
   createdAt                         DateTime    @default(now())
@@ -1511,7 +1663,6 @@ model Baket {
   taskAssignment                  TaskAssignment?    @relation(fields: [taskAssignmentId], references: [id], onDelete: Restrict)
   primaryJaring                   Jaring?            @relation("BaketPrimaryJaring", fields: [primaryJaringId], references: [id], onDelete: SetNull)
   reportCategory                  ReportCategory?    @relation(fields: [reportCategoryId], references: [id], onDelete: SetNull)
-  jaringCluster                   JaringCluster?     @relation(fields: [jaringClusterId], references: [id], onDelete: SetNull)
 
   versions                BaketVersion[]
   revisionRequests        BaketRevisionRequest[]
@@ -1522,7 +1673,6 @@ model Baket {
   @@index([createdByFieldOfficerAssignmentId, status])
   @@index([taskAssignmentId])
   @@index([reportCategoryId, status])
-  @@index([jaringClusterId, status])
 }
 
 model BaketVersion {
@@ -2170,6 +2320,7 @@ model IntegrationChannel {
   webhookEvents    IntegrationWebhookEvent[]
   botState         WhatsAppBotChannelState?
   senderNumbers    WhatsAppSenderNumber[]
+  reportSessions   WhatsAppReportSession[]
 
   @@index([deletedAt])
 }

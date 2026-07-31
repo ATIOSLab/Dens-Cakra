@@ -79,19 +79,19 @@ import { LeafletLocationPreview } from "./leaflet-location-preview";
 type FieldOfficerView = "overview" | "tasks" | "jaring" | "incoming" | "baket" | "reports" | "map" | "alert";
 
 const FORWARDED_STORAGE_KEY = "dens-cakra-forwarded-assignments";
-const JARING_COLUMNS_STORAGE_KEY = "dens-cakra-field-officer-jaring-columns";
+const JARING_COLUMNS_STORAGE_KEY = "dens-cakra-field-officer-jaring-columns-v2";
 const EMPTY_BAKET_FILTERS = {
   categoryId: "",
-  jaringClusterId: "",
   from: "",
   to: "",
 };
 
-type JaringColumnKey = "pin" | "alias" | "whatsapp" | "address" | "occupation" | "village" | "status";
+type JaringColumnKey = "pin" | "alias" | "name" | "whatsapp" | "address" | "occupation" | "village" | "status";
 
 const JARING_COLUMN_OPTIONS: Array<{ key: JaringColumnKey; label: string }> = [
   { key: "pin", label: "PIN" },
   { key: "alias", label: "Alias / Nama Sandi" },
+  { key: "name", label: "Nama" },
   { key: "whatsapp", label: "WhatsApp" },
   { key: "address", label: "Alamat" },
   { key: "occupation", label: "Pekerjaan" },
@@ -126,7 +126,7 @@ function baketStatusLabel(status?: string | null, sentToPositionTitle?: string |
     case "SENT_TO_OIM":
       return sentToPositionTitle ? `Sudah dikirim ke ${sentToPositionTitle}` : "Sudah dikirim";
     case "UNDER_VERIFICATION":
-      return "Sedang diverifikasi";
+      return "Sedang terverifikasi";
     case "NEEDS_DEVELOPMENT":
       return "Perlu pengembangan";
     case "VERIFIED":
@@ -169,7 +169,13 @@ function statusTone(status: string) {
     return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
   }
 
-  if (value.includes("COMPLETED") || value.includes("ACTIVE") || value.includes("VALID")) {
+  if (
+    value.includes("COMPLETED") ||
+    value.includes("ACTIVE") ||
+    value.includes("VALID") ||
+    value.includes("APPROVED") ||
+    value.includes("TERVERIFIKASI")
+  ) {
     return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
   }
 
@@ -195,6 +201,21 @@ function statusTone(status: string) {
   }
 
   return "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20";
+}
+
+function validationLabel(status: string) {
+  return status === "NOT_CHECKED" ? "MENUNGGU VALIDASI" : status;
+}
+
+function jaringRegistrationStatusLabel(status: FieldOfficerJaring["registrationStatus"]) {
+  switch (status) {
+    case "PENDING":
+      return "MENUNGGU VERIFIKASI";
+    case "APPROVED":
+      return "TERVERIFIKASI";
+    case "REJECTED":
+      return "DITOLAK";
+  }
 }
 
 function nextTaskAction(status: string) {
@@ -271,7 +292,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
   const [readyToSendLimit, setReadyToSendLimit] = useState(5);
   const [sentPage, setSentPage] = useState(1);
   const [sentLimit, setSentLimit] = useState(5);
-  const [baketViewMode, setBaketViewMode] = useState<"card" | "table">("card");
+  const baketViewMode = "table";
   const [baketCreatedSortOrder, setBaketCreatedSortOrder] = useState<"asc" | "desc">("desc");
   const [forwardedAssignments, setForwardedAssignments] = useState<string[]>([]);
   const [createdJaring, setCreatedJaring] = useState<{ aliasName: string; pin: string } | null>(null);
@@ -330,17 +351,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         if (!item.areaIds.includes(jaringVillageFilter)) return false;
       }
       if (jaringStatusFilter !== "all") {
-        if (item.status !== jaringStatusFilter) return false;
+        if (item.registrationStatus !== jaringStatusFilter) return false;
       }
       return true;
     });
-  }, [
-    workspace?.jaring,
-    jaringSearch,
-    jaringOccupationFilter,
-    jaringVillageFilter,
-    jaringStatusFilter,
-  ]);
+  }, [workspace?.jaring, jaringSearch, jaringOccupationFilter, jaringVillageFilter, jaringStatusFilter]);
 
   const safeJaringPage = Math.min(jaringPage, Math.max(1, Math.ceil(filteredJaring.length / jaringLimit)));
   const paginatedJaring = useMemo(() => {
@@ -454,7 +469,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         setIsLoading(true);
         const params = new URLSearchParams();
         if (filters.categoryId) params.set("categoryId", filters.categoryId);
-        if (filters.jaringClusterId) params.set("jaringClusterId", filters.jaringClusterId);
         if (filters.from) params.set("from", filters.from);
         if (filters.to) params.set("to", filters.to);
 
@@ -493,34 +507,50 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
     return {
       activeTasks: workspace.tasks.filter((item) => item.assignmentStatus !== "COMPLETED").length,
       activeJaring: workspace.jaring.filter((item) => item.status === "ACTIVE").length,
+      totalJaring: workspace.jaring.length,
+      pendingJaring: workspace.jaring.filter((item) => item.registrationStatus === "PENDING").length,
+      approvedJaring: workspace.jaring.filter((item) => item.registrationStatus === "APPROVED").length,
+      rejectedJaring: workspace.jaring.filter((item) => item.registrationStatus === "REJECTED").length,
       pendingIncoming: workspace.incoming.filter((item) => item.validationSummary !== "VALID").length,
       readyToSendBakets:
         workspace.baketCandidates.length +
         workspace.bakets.filter((item) => item.status === "DRAFT" || item.status === "READY_TO_SEND").length,
     };
   }, [workspace]);
+  const jaringKpiCards = useMemo(
+    () =>
+      metrics
+        ? [
+            { label: "Total", value: metrics.totalJaring, filter: "all", tone: "blue" as const },
+            { label: "Menunggu", value: metrics.pendingJaring, filter: "PENDING", tone: "amber" as const },
+            { label: "Terverifikasi", value: metrics.approvedJaring, filter: "APPROVED", tone: "green" as const },
+            { label: "Ditolak", value: metrics.rejectedJaring, filter: "REJECTED", tone: "red" as const },
+          ]
+        : [],
+    [metrics],
+  );
   const registeredJaring = useMemo(() => workspace?.jaring ?? [], [workspace]);
 
   const readyToSendBakets = useMemo(
     () =>
-      [
-        ...(workspace?.bakets.filter((item) => item.status === "DRAFT" || item.status === "READY_TO_SEND") ?? []),
-      ].sort((a, b) => {
-        const aTime = new Date(a.createdAt).getTime();
-        const bTime = new Date(b.createdAt).getTime();
-        return baketCreatedSortOrder === "asc" ? aTime - bTime : bTime - aTime;
-      }),
+      [...(workspace?.bakets.filter((item) => item.status === "DRAFT" || item.status === "READY_TO_SEND") ?? [])].sort(
+        (a, b) => {
+          const aTime = new Date(a.createdAt).getTime();
+          const bTime = new Date(b.createdAt).getTime();
+          return baketCreatedSortOrder === "asc" ? aTime - bTime : bTime - aTime;
+        },
+      ),
     [workspace, baketCreatedSortOrder],
   );
   const submittedBakets = useMemo(
     () =>
-      [
-        ...(workspace?.bakets.filter((item) => item.status !== "DRAFT" && item.status !== "READY_TO_SEND") ?? []),
-      ].sort((a, b) => {
-        const aTime = new Date(a.createdAt).getTime();
-        const bTime = new Date(b.createdAt).getTime();
-        return baketCreatedSortOrder === "asc" ? aTime - bTime : bTime - aTime;
-      }),
+      [...(workspace?.bakets.filter((item) => item.status !== "DRAFT" && item.status !== "READY_TO_SEND") ?? [])].sort(
+        (a, b) => {
+          const aTime = new Date(a.createdAt).getTime();
+          const bTime = new Date(b.createdAt).getTime();
+          return baketCreatedSortOrder === "asc" ? aTime - bTime : bTime - aTime;
+        },
+      ),
     [workspace, baketCreatedSortOrder],
   );
   const safeReadyToSendPage = Math.min(
@@ -957,7 +987,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
       `}</style>
 
       {/* Tactical Workspace Header */}
-      <section className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+      <section className="grid items-start gap-6 xl:grid-cols-[1.4fr_0.6fr]">
         {/* Left Card: Live Workspace Profiling */}
         <div className="tactical-card space-y-4">
           <div>
@@ -1010,11 +1040,17 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
         {/* Right Card: Statistics and Quick Actions */}
         <div className="tactical-card flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-3">
-              <MetricCard label="Tugas Aktif" value={metrics.activeTasks} />
-              <MetricCard label="Jaring Binaan" value={metrics.activeJaring} />
-            </div>
+          <div className="grid grid-cols-2 gap-2">
+            {jaringKpiCards.map((card) => (
+              <MetricCard
+                key={card.filter}
+                label={card.label}
+                value={card.value}
+                tone={card.tone}
+                active={jaringStatusFilter === card.filter}
+                onClick={() => setJaringStatusFilter(card.filter)}
+              />
+            ))}
           </div>
           <div className="flex items-center justify-between gap-4 border-[var(--tactical-border)] border-t pt-2 font-mono">
             <span className="text-[10px] text-[var(--tactical-text-muted)] uppercase">{workspace.profile.email}</span>
@@ -1312,10 +1348,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
             code="MOD-02"
             title="JARING BINAAN"
             description="Daftar Jaring binaan dalam cakupan kecamatan Anda. Gunakan Tambah Jaring untuk registrasi baru."
-            metadata={[
-              { label: "TOTAL JARING", value: workspace.jaring.length },
-              { label: "AKTIF", value: metrics.activeJaring },
-            ]}
           >
             <div className="mb-4 flex justify-end">
               <Button asChild variant="success" size="lg" className="font-mono uppercase tracking-wider">
@@ -1391,7 +1423,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         <div className="relative w-48">
                           <Input
                             className="h-8 pl-8 text-xs bg-background dark:bg-slate-900/40 border-[var(--tactical-border)] focus-visible:ring-1 focus-visible:ring-cyan-500"
-                            placeholder="Cari nama sandi, nomor..."
+                            placeholder="Cari nama, nama sandi, nomor..."
                             value={jaringSearch}
                             onChange={(e) => setJaringSearch(e.target.value)}
                           />
@@ -1435,13 +1467,14 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                         <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--tactical-text-secondary)]">
                           <span>Status:</span>
                           <Select value={jaringStatusFilter} onValueChange={setJaringStatusFilter}>
-                            <SelectTrigger className="w-[120px] h-8 border-[var(--tactical-border)] bg-background dark:bg-slate-900/40 text-xs">
+                            <SelectTrigger className="w-[180px] h-8 border-[var(--tactical-border)] bg-background dark:bg-slate-900/40 text-xs">
                               <SelectValue placeholder="Pilih Status" />
                             </SelectTrigger>
                             <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
                               <SelectItem value="all">Semua Status</SelectItem>
-                              <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                              <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                              <SelectItem value="PENDING">Menunggu Verifikasi</SelectItem>
+                              <SelectItem value="APPROVED">Terverifikasi</SelectItem>
+                              <SelectItem value="REJECTED">Ditolak</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1503,6 +1536,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                             <TableRow>
                               {visibleJaringColumns.has("pin") && <TableHead>PIN</TableHead>}
                               {visibleJaringColumns.has("alias") && <TableHead>Alias / Nama Sandi</TableHead>}
+                              {visibleJaringColumns.has("name") && <TableHead>Nama</TableHead>}
                               {visibleJaringColumns.has("whatsapp") && <TableHead>WhatsApp</TableHead>}
                               {visibleJaringColumns.has("address") && <TableHead>Alamat</TableHead>}
                               {visibleJaringColumns.has("occupation") && <TableHead>Pekerjaan</TableHead>}
@@ -1563,6 +1597,16 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                     )}
                                   </TableCell>
                                 )}
+                                {visibleJaringColumns.has("name") && (
+                                  <TableCell>
+                                    <div
+                                      className="max-w-48 truncate font-medium text-[var(--tactical-text-primary)]"
+                                      title={jaring.fullName ?? undefined}
+                                    >
+                                      {jaring.fullName || "-"}
+                                    </div>
+                                  </TableCell>
+                                )}
                                 {visibleJaringColumns.has("whatsapp") && (
                                   <TableCell className="font-mono">{jaring.whatsappNumber}</TableCell>
                                 )}
@@ -1582,21 +1626,9 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                 {visibleJaringColumns.has("status") && (
                                   <TableCell>
                                     <span
-                                      className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(
-                                        jaring.registrationStatus === "APPROVED"
-                                          ? jaring.status
-                                          : jaring.registrationStatus,
-                                      )}`}
+                                      className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(jaring.registrationStatus)}`}
                                     >
-                                      {jaring.registrationStatus === "PENDING"
-                                        ? "MENUNGGU VERIFIKASI"
-                                        : jaring.registrationStatus === "REJECTED"
-                                          ? "DITOLAK / REVISI"
-                                          : jaring.status === "ACTIVE"
-                                            ? "AKTIF"
-                                            : jaring.status === "INACTIVE"
-                                              ? "NONAKTIF"
-                                              : jaring.status}
+                                      {jaringRegistrationStatusLabel(jaring.registrationStatus)}
                                     </span>
                                   </TableCell>
                                 )}
@@ -1705,7 +1737,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
         <>
           <TacticalSection
             code="MOD-03"
-            title="KOTAK MASUK JARING"
+            title="INFORMASI JARING"
             description="Validasi judul, isi, bukti foto, koordinat GPS, waktu kejadian, Jaring, dan sumber laporan intelijen."
             metadata={[
               { label: "PENDING VALIDASI", value: metrics.pendingIncoming },
@@ -1720,154 +1752,142 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
               />
             ) : (
               <>
-                <div className="grid gap-4">
-                  {paginatedIncoming.map((message) => (
-                    <div key={message.id} className="tactical-card space-y-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(message.status)}`}
-                            >
-                              {message.status}
-                            </span>
-                            <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                              VAL: {message.validationSummary}
-                            </span>
-                            <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                              JARING: {message.jaringCode}
-                            </span>
-                          </div>
-                          <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg hover:underline hover:text-[var(--tactical-blue)] cursor-pointer">
-                            <Link href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}>
-                              {message.title || message.jaringAlias}
-                            </Link>
-                          </h3>
-                          <p className="text-[var(--tactical-text-secondary)] text-sm leading-relaxed">
-                            {message.content || "Pesan belum memiliki isi teks."}
-                          </p>
-
-                          <div className="grid gap-2 border-[var(--tactical-border)] border-t pt-3 font-mono text-[11px] text-[var(--tactical-text-muted)] sm:grid-cols-2 md:grid-cols-3">
-                            <span>RECEIVED: {formatDateTime(message.receivedAt)}</span>
-                            <span>EVENT TIME: {formatDateTime(message.eventDateTime)}</span>
-                            <span>GPS TIME: {formatDateTime(message.gpsSharedAt)}</span>
-                            <span>TIMESTAMP: {formatDateTime(message.reportTimestamp)}</span>
-                            <span>SENDER: {message.senderPhone}</span>
-                            <span>AREA: {message.areaName || "-"}</span>
-                          </div>
-
-                          {message.hasPhoto && (
-                            <div className="space-y-2 rounded-lg border border-[var(--tactical-green)]/20 bg-[var(--tactical-green)]/[0.02] p-3 text-[var(--tactical-green)] text-sm">
-                              <div className="flex items-center gap-1.5 font-medium">
-                                <CheckCircle2 className="size-4 shrink-0" />
-                                <span>FOTO BUKTI TERVERIFIKASI</span>
-                              </div>
-                              {message.photoUrl ? (
-                                <div className="max-w-56 overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm">
-                                  <EvidenceImageViewer
-                                    src={message.photoUrl}
-                                    alt={`Foto bukti ${message.title || message.jaringAlias}`}
-                                    fileName={message.photoFileId || `${message.id}.jpg`}
-                                    caption={message.photoCaption || `Jaring ${message.jaringCode}`}
-                                  />
-                                </div>
-                              ) : (
-                                <p className="text-[var(--tactical-text-secondary)] text-xs opacity-80">
-                                  Foto diterima oleh bot, tetapi file visual belum tersedia di storage. Kiriman lama
-                                  sebelum patch hanya punya metadata WA.
+                <div className="max-w-full overflow-hidden rounded-[10px] border border-[var(--tactical-border)]">
+                  <div className="w-full overflow-x-auto">
+                    <Table className="w-full min-w-[980px] table-fixed">
+                      <TableHeader>
+                        <TableRow className="border-[var(--tactical-border)] bg-black/5 hover:bg-transparent dark:bg-white/[0.01]">
+                          <TableHead className="w-[25%] pl-4 font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                            Informasi
+                          </TableHead>
+                          <TableHead className="w-[13%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                            Jaring
+                          </TableHead>
+                          <TableHead className="w-[12%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                            Validasi
+                          </TableHead>
+                          <TableHead className="w-[16%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                            Waktu
+                          </TableHead>
+                          <TableHead className="w-[14%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                            Area
+                          </TableHead>
+                          <TableHead className="w-[10%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                            Bukti
+                          </TableHead>
+                          <TableHead className="w-[120px] pr-4 text-right font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                            Aksi
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedIncoming.map((message) => (
+                          <TableRow key={message.id} className="border-[var(--tactical-border)]">
+                            <TableCell className="min-w-0 py-4 pl-4">
+                              <Link
+                                href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}
+                                className="block truncate font-semibold text-[var(--tactical-text-primary)] hover:text-[var(--tactical-blue)] hover:underline"
+                              >
+                                {message.title || message.jaringAlias}
+                              </Link>
+                              <p className="mt-1 line-clamp-2 text-[var(--tactical-text-secondary)] text-xs">
+                                {message.content || "Pesan belum memiliki isi teks."}
+                              </p>
+                              {message.referenceNumber ? (
+                                <p className="mt-1 font-mono text-[10px] text-[var(--tactical-blue)]">
+                                  {message.referenceNumber}
                                 </p>
-                              )}
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-[var(--tactical-text-muted)]">
-                                <span>MEDIA DB: {message.mediaCount}</span>
-                                <span>FILE ID: {message.photoFileId || "-"}</span>
-                                <span>WA ID: {message.photoMessageId || "-"}</span>
-                                {message.photoCaption && <span>CAPTION: {message.photoCaption}</span>}
-                              </div>
-                            </div>
-                          )}
-
-                          {message.latitude !== null && message.longitude !== null && (
-                            <div className="grid gap-3 rounded-lg border border-[var(--tactical-border)] bg-black/10 p-3 md:grid-cols-[1fr_14rem] dark:bg-white/[0.01]">
-                              <div className="space-y-1.5 text-[var(--tactical-text-secondary)] text-sm">
-                                <p className="font-medium text-[var(--tactical-text-primary)]">LOKASI KEJADIAN</p>
-                                <p className="font-mono text-xs">
-                                  {message.latitude.toFixed(7)}, {message.longitude.toFixed(7)}
-                                </p>
-                                <p className="font-mono text-[var(--tactical-text-muted)] text-xs">
-                                  AKURASI: {message.gpsAccuracyMeters !== null ? `${message.gpsAccuracyMeters} M` : "-"}
-                                </p>
+                              ) : null}
+                            </TableCell>
+                            <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                              <span className="block truncate">{message.jaringAlias}</span>
+                              <span className="block text-[10px] text-[var(--tactical-text-muted)]">
+                                {message.jaringCode}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <span
+                                className={`tactical-badge inline-block max-w-full truncate rounded px-2 py-0.5 text-[11px] ${statusTone(message.status)}`}
+                              >
+                                {validationLabel(message.validationSummary)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="py-4 font-mono text-[11px] text-[var(--tactical-text-muted)]">
+                              <span className="block">Terima: {formatDateTime(message.receivedAt)}</span>
+                              <span className="block">Kejadian: {formatDateTime(message.eventDateTime)}</span>
+                            </TableCell>
+                            <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                              <span className="block truncate">{message.areaName || "-"}</span>
+                              {message.latitude !== null && message.longitude !== null ? (
                                 <a
                                   href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
                                   rel="noreferrer"
                                   target="_blank"
-                                  className="mt-2 inline-flex items-center gap-1 rounded border border-[var(--tactical-border)] px-3 py-1.5 font-medium font-mono text-[var(--tactical-text-secondary)] text-xs transition-colors hover:bg-[var(--tactical-text-secondary)]/10"
+                                  className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--tactical-blue)] hover:underline"
                                 >
-                                  <MapPin className="size-3.5" />
-                                  Buka di Google Maps
+                                  <MapPin className="size-3" />
+                                  GPS
                                 </a>
+                              ) : null}
+                            </TableCell>
+                            <TableCell className="py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                              {message.hasPhoto ? (
+                                <span className="inline-flex items-center gap-1 text-[var(--tactical-green)]">
+                                  <CheckCircle2 className="size-3.5" />
+                                  {message.mediaCount} File
+                                </span>
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
+                            <TableCell className="py-4 pr-4">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  asChild
+                                  variant="ghost"
+                                  className="h-8 rounded-[4px] border border-[#475569] px-2 font-mono text-[10px] sm:px-3"
+                                >
+                                  <Link href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}>Detail</Link>
+                                </Button>
+                                <button
+                                  disabled={isBusy === `validate:${message.id}`}
+                                  onClick={() =>
+                                    requestConfirmation({
+                                      title: "KONFIRMASI VALIDASI",
+                                      description: "Jalankan validasi ulang untuk laporan masuk ini sekarang?",
+                                      confirmLabel: "YA, VALIDASI",
+                                      onConfirm: () => {
+                                        void validateIncoming(message.id);
+                                      },
+                                    })
+                                  }
+                                  className="h-8 cursor-pointer rounded-[4px] bg-[#16A34A] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#15803D] disabled:opacity-50 sm:px-3"
+                                >
+                                  Validasi
+                                </button>
+                                <button
+                                  disabled={isBusy === `delete:${message.id}`}
+                                  onClick={() =>
+                                    requestConfirmation({
+                                      title: "KONFIRMASI TOLAK LAPORAN",
+                                      description: "Tolak dan keluarkan laporan ini dari antrean informasi Jaring?",
+                                      confirmLabel: "YA, TOLAK",
+                                      onConfirm: () => {
+                                        void deleteIncoming(message.id);
+                                      },
+                                    })
+                                  }
+                                  className="h-8 cursor-pointer rounded-[4px] bg-[#991B1B] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#DC2626] disabled:opacity-50 sm:px-3"
+                                >
+                                  Tolak
+                                </button>
                               </div>
-                              <a
-                                href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
-                                rel="noreferrer"
-                                target="_blank"
-                                aria-label="Buka koordinat laporan di Google Maps"
-                                className="block overflow-hidden rounded-lg border border-[var(--tactical-border)]"
-                              >
-                                <LeafletLocationPreview
-                                  latitude={message.latitude}
-                                  longitude={message.longitude}
-                                  title={message.title || message.jaringAlias}
-                                />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex shrink-0 flex-col gap-2 font-mono">
-                          <button
-                            disabled={isBusy === `validate:${message.id}`}
-                            onClick={() =>
-                              requestConfirmation({
-                                title: "KONFIRMASI VALIDASI",
-                                description: "Jalankan validasi ulang untuk laporan masuk ini sekarang?",
-                                confirmLabel: "YA, VALIDASI",
-                                onConfirm: () => {
-                                  void validateIncoming(message.id);
-                                },
-                              })
-                            }
-                            className={`h-[40px] cursor-pointer rounded-[4px] border px-[18px] font-mono font-semibold text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] disabled:opacity-50 ${
-                              message.validationSummary === "VALID"
-                                ? "border-[#16A34A] bg-[#16A34A] text-white hover:bg-[#15803D]"
-                                : "border-[#475569] bg-transparent text-[#CBD5E1] hover:border-[#64748B] hover:bg-[#334155]"
-                            }`}
-                          >
-                            {isBusy === `validate:${message.id}`
-                              ? "MEMVALIDASI..."
-                              : message.validationSummary === "VALID"
-                                ? "VERIFIKASI"
-                                : "VALIDASI"}
-                          </button>
-                          <button
-                            disabled={isBusy === `delete:${message.id}`}
-                            onClick={() =>
-                              requestConfirmation({
-                                title: "KONFIRMASI TOLAK LAPORAN",
-                                description: "Tolak dan keluarkan laporan ini dari antrean kotak masuk jaring?",
-                                confirmLabel: "YA, TOLAK",
-                                onConfirm: () => {
-                                  void deleteIncoming(message.id);
-                                },
-                              })
-                            }
-                            className="h-[40px] cursor-pointer rounded-[4px] bg-[#991B1B] px-[18px] font-mono font-semibold text-white text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#DC2626] hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
-                          >
-                            TOLAK
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
 
                 {totalIncoming > 0 && (
@@ -1919,7 +1939,7 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                   </TabsTrigger>
                 </TabsList>
 
-                <div className="grid gap-3 rounded-[6px] border border-[var(--tactical-border)] bg-black/5 p-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_180px_180px_auto_auto] dark:bg-white/[0.01]">
+                <div className="grid gap-3 rounded-[6px] border border-[var(--tactical-border)] bg-black/5 p-3 md:grid-cols-2 xl:grid-cols-[1fr_180px_180px_auto_auto] dark:bg-white/[0.01]">
                   <select
                     value={baketFilterDraft.categoryId}
                     onChange={(event) =>
@@ -1937,27 +1957,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       .map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
-                        </option>
-                      ))}
-                  </select>
-
-                  <select
-                    value={baketFilterDraft.jaringClusterId}
-                    onChange={(event) =>
-                      setBaketFilterDraft((current) => ({
-                        ...current,
-                        jaringClusterId: event.target.value,
-                      }))
-                    }
-                    className="tactical-input h-10 w-full px-3 text-sm"
-                    aria-label="Filter klaster baket"
-                  >
-                    <option value="">Semua klaster</option>
-                    {workspace.jaringClusters
-                      .filter((item) => item.isActive)
-                      .map((cluster) => (
-                        <option key={cluster.id} value={cluster.id}>
-                          {cluster.name}
                         </option>
                       ))}
                   </select>
@@ -2014,18 +2013,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                   </button>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 border-[var(--tactical-border)] border-b pb-2">
-                  <span className="font-bold font-mono text-[11px] text-[var(--tactical-text-muted)] uppercase tracking-[0.24em]">
-                    Tampilan
-                  </span>
-                  <ViewModeToggle
-                    value={baketViewMode}
-                    onValueChange={setBaketViewMode}
-                    className="rounded-[6px] border-[var(--tactical-border)] bg-black/5 dark:bg-white/[0.03]"
-                    buttonClassName="size-8 rounded-[4px]"
-                  />
-                </div>
-
                 <TabsContent value="ready-to-send" className="min-w-0 grid gap-4 pt-2">
                   {pendingOutgoingCount === 0 ? (
                     <TacticalEmptyState
@@ -2072,14 +2059,11 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                 <Table className="w-full table-fixed">
                                   <TableHeader>
                                     <TableRow className="border-[var(--tactical-border)] bg-black/5 hover:bg-transparent dark:bg-white/[0.01]">
-                                      <TableHead className="w-[34%] pl-4 font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                      <TableHead className="w-[38%] pl-4 font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
                                         Judul Baket
                                       </TableHead>
-                                      <TableHead className="w-[17%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                      <TableHead className="w-[22%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
                                         Kategori
-                                      </TableHead>
-                                      <TableHead className="w-[17%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
-                                        Klaster
                                       </TableHead>
                                       <TableHead className="w-[10%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
                                         Urgensi
@@ -2117,9 +2101,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                         <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
                                           <span className="block truncate">{baket.categoryName || "LEGACY"}</span>
                                         </TableCell>
-                                        <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
-                                          <span className="block truncate">{baket.clusterName || "LEGACY"}</span>
-                                        </TableCell>
                                         <TableCell className="py-4">
                                           <span
                                             className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
@@ -2136,7 +2117,8 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                             onClick={() =>
                                               requestConfirmation({
                                                 title: "KONFIRMASI KIRIM KE OIM",
-                                                description: "Apakah Anda yakin ingin mengirim laporan Baket ini ke OIM?",
+                                                description:
+                                                  "Apakah Anda yakin ingin mengirim laporan Baket ini ke OIM?",
                                                 confirmLabel: "YA, KIRIM",
                                                 onConfirm: () => {
                                                   void submitBaket(baket.id);
@@ -2167,9 +2149,6 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                                       </span>
                                       <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
                                         KATEGORI: {baket.categoryName || "LEGACY"}
-                                      </span>
-                                      <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                                        KLASTER: {baket.clusterName || "LEGACY"}
                                       </span>
                                       <span
                                         className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
@@ -2238,124 +2217,122 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
                       description="Belum ada Baket yang telah dikirim ke OIM."
                       icon={Send}
                     />
-                  ) : (
-                    baketViewMode === "table" ? (
-                      <div className="max-w-full overflow-hidden rounded-[10px] border border-[var(--tactical-border)]">
-                        <div className="w-full overflow-x-auto">
-                          <Table className="w-full table-fixed">
-                            <TableHeader>
-                              <TableRow className="border-[var(--tactical-border)] bg-black/5 hover:bg-transparent dark:bg-white/[0.01]">
-                                <TableHead className="w-[34%] pl-4 font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
-                                  Judul Baket
-                                </TableHead>
-                                <TableHead className="w-[20%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
-                                  Status
-                                </TableHead>
-                                <TableHead className="w-[18%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
-                                  Kategori
-                                </TableHead>
-                                <TableHead className="w-[10%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
-                                  Urgensi
-                                </TableHead>
-                                <SortableTableHeader
-                                  column="createdAt"
-                                  sortDirection={baketCreatedSortOrder}
-                                  onSortChange={(direction) => {
-                                    setBaketCreatedSortOrder(direction);
-                                    setReadyToSendPage(1);
-                                    setSentPage(1);
-                                  }}
-                                  className="w-[14%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider"
-                                >
-                                  Dibuat
-                                </SortableTableHeader>
-                                <TableHead className="w-[110px] pr-4 text-right font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
-                                  Aksi
-                                </TableHead>
+                  ) : baketViewMode === "table" ? (
+                    <div className="max-w-full overflow-hidden rounded-[10px] border border-[var(--tactical-border)]">
+                      <div className="w-full overflow-x-auto">
+                        <Table className="w-full table-fixed">
+                          <TableHeader>
+                            <TableRow className="border-[var(--tactical-border)] bg-black/5 hover:bg-transparent dark:bg-white/[0.01]">
+                              <TableHead className="w-[34%] pl-4 font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                Judul Baket
+                              </TableHead>
+                              <TableHead className="w-[20%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                Status
+                              </TableHead>
+                              <TableHead className="w-[18%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                Kategori
+                              </TableHead>
+                              <TableHead className="w-[10%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                Urgensi
+                              </TableHead>
+                              <SortableTableHeader
+                                column="createdAt"
+                                sortDirection={baketCreatedSortOrder}
+                                onSortChange={(direction) => {
+                                  setBaketCreatedSortOrder(direction);
+                                  setReadyToSendPage(1);
+                                  setSentPage(1);
+                                }}
+                                className="w-[14%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider"
+                              >
+                                Dibuat
+                              </SortableTableHeader>
+                              <TableHead className="w-[110px] pr-4 text-right font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
+                                Aksi
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {paginatedSubmittedBakets.map((baket) => (
+                              <TableRow key={baket.id} className="border-[var(--tactical-border)]">
+                                <TableCell className="min-w-0 py-4 pl-4">
+                                  <p className="truncate font-semibold text-[var(--tactical-text-primary)]">
+                                    {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                                  </p>
+                                </TableCell>
+                                <TableCell className="min-w-0 py-4">
+                                  <span
+                                    className={`tactical-badge inline-block max-w-full truncate rounded px-2 py-0.5 text-[11px] ${statusTone(baket.status)}`}
+                                  >
+                                    {baketStatusLabel(baket.status, baket.sentToPositionTitle)}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                                  <span className="block truncate">{baket.categoryName || "LEGACY"}</span>
+                                </TableCell>
+                                <TableCell className="py-4">
+                                  <span
+                                    className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
+                                  >
+                                    {baketUrgencyLabel(baket.urgency)}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="truncate whitespace-nowrap py-4 font-mono text-xs text-[var(--tactical-text-muted)]">
+                                  {formatDateTime(baket.createdAt)}
+                                </TableCell>
+                                <TableCell className="py-4 pr-4 text-right">
+                                  <Button
+                                    asChild
+                                    variant="ghost"
+                                    className="h-8 rounded-[4px] border border-[#475569] px-2 font-mono text-[10px] sm:px-3"
+                                  >
+                                    <Link href={`/dashboard/field-officer/buat-baket/${baket.id}`}>Lihat Baket</Link>
+                                  </Button>
+                                </TableCell>
                               </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {paginatedSubmittedBakets.map((baket) => (
-                                <TableRow key={baket.id} className="border-[var(--tactical-border)]">
-                                  <TableCell className="min-w-0 py-4 pl-4">
-                                    <p className="truncate font-semibold text-[var(--tactical-text-primary)]">
-                                      {baket.currentVersionTitle || "Tanpa judul versi aktif"}
-                                    </p>
-                                  </TableCell>
-                                  <TableCell className="min-w-0 py-4">
-                                    <span
-                                      className={`tactical-badge inline-block max-w-full truncate rounded px-2 py-0.5 text-[11px] ${statusTone(baket.status)}`}
-                                    >
-                                      {baketStatusLabel(baket.status, baket.sentToPositionTitle)}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
-                                    <span className="block truncate">{baket.categoryName || "LEGACY"}</span>
-                                  </TableCell>
-                                  <TableCell className="py-4">
-                                    <span
-                                      className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
-                                    >
-                                      {baketUrgencyLabel(baket.urgency)}
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="truncate whitespace-nowrap py-4 font-mono text-xs text-[var(--tactical-text-muted)]">
-                                    {formatDateTime(baket.createdAt)}
-                                  </TableCell>
-                                  <TableCell className="py-4 pr-4 text-right">
-                                    <Button
-                                      asChild
-                                      variant="ghost"
-                                      className="h-8 rounded-[4px] border border-[#475569] px-2 font-mono text-[10px] sm:px-3"
-                                    >
-                                      <Link href={`/dashboard/field-officer/buat-baket/${baket.id}`}>Lihat Baket</Link>
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  ) : (
+                    paginatedSubmittedBakets.map((baket) => (
+                      <div key={baket.id} className="tactical-card space-y-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex-1 space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(baket.status)}`}
+                              >
+                                {baketStatusLabel(baket.status, baket.sentToPositionTitle)}
+                              </span>
+                              <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
+                                KATEGORI: {baket.categoryName || "LEGACY"}
+                              </span>
+                              <span
+                                className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
+                              >
+                                URGENSI: {baketUrgencyLabel(baket.urgency)}
+                              </span>
+                            </div>
+                            <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
+                              {baket.currentVersionTitle || "Tanpa judul versi aktif"}
+                            </h3>
+                            <p className="text-[var(--tactical-text-secondary)] text-sm">
+                              Dikirim ke OIM &middot; data terkunci dan hanya dapat dilihat.
+                            </p>
+                          </div>
+                          <button className="h-[40px] shrink-0 cursor-pointer rounded-[4px] border border-[#475569] bg-transparent px-[18px] font-mono font-semibold text-[#CBD5E1] text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:border-[#64748B] hover:bg-[#334155] hover:brightness-105 active:scale-[0.98]">
+                            <Link href={`/dashboard/field-officer/buat-baket/${baket.id}`}>LIHAT BAKET</Link>
+                          </button>
+                        </div>
+                        <div className="flex gap-4 border-[var(--tactical-border)] border-t pt-2.5 font-mono text-[11px] text-[var(--tactical-text-muted)]">
+                          <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
+                          <span>&middot;</span>
+                          <span>SUBMITTED: {formatDateTime(baket.createdAt)}</span>
                         </div>
                       </div>
-                    ) : (
-                      paginatedSubmittedBakets.map((baket) => (
-                        <div key={baket.id} className="tactical-card space-y-3">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="flex-1 space-y-1.5">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span
-                                  className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(baket.status)}`}
-                                >
-                                  {baketStatusLabel(baket.status, baket.sentToPositionTitle)}
-                                </span>
-                                <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                                  KATEGORI: {baket.categoryName || "LEGACY"}
-                                </span>
-                                <span
-                                  className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
-                                >
-                                  URGENSI: {baketUrgencyLabel(baket.urgency)}
-                                </span>
-                              </div>
-                              <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
-                                {baket.currentVersionTitle || "Tanpa judul versi aktif"}
-                              </h3>
-                              <p className="text-[var(--tactical-text-secondary)] text-sm">
-                                Dikirim ke OIM &middot; data terkunci dan hanya dapat dilihat.
-                              </p>
-                            </div>
-                            <button className="h-[40px] shrink-0 cursor-pointer rounded-[4px] border border-[#475569] bg-transparent px-[18px] font-mono font-semibold text-[#CBD5E1] text-xs uppercase transition-all duration-180 hover:-translate-y-[1px] hover:border-[#64748B] hover:bg-[#334155] hover:brightness-105 active:scale-[0.98]">
-                              <Link href={`/dashboard/field-officer/buat-baket/${baket.id}`}>LIHAT BAKET</Link>
-                            </button>
-                          </div>
-                          <div className="flex gap-4 border-[var(--tactical-border)] border-t pt-2.5 font-mono text-[11px] text-[var(--tactical-text-muted)]">
-                            <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
-                            <span>&middot;</span>
-                            <span>SUBMITTED: {formatDateTime(baket.createdAt)}</span>
-                          </div>
-                        </div>
-                      ))
-                    )
+                    ))
                   )}
                   {submittedBakets.length > 0 && (
                     <TablePagination
@@ -2634,19 +2611,65 @@ export function FieldOfficerOperationsPage({ view }: { view: FieldOfficerView })
 
 /* HELPER COMPONENTS */
 
-function MetricCard({ label, value }: { label: string; value: number }) {
+function MetricCard({
+  active = false,
+  label,
+  onClick,
+  tone = "blue",
+  value,
+}: {
+  active?: boolean;
+  label: string;
+  onClick?: () => void;
+  tone?: "blue" | "green" | "amber" | "red";
+  value: number;
+}) {
   const isZero = value === 0;
+  const toneClasses = {
+    blue: {
+      accent: "#0EA5E9",
+      bg: "bg-sky-500/[0.06]",
+      text: "text-sky-700 dark:text-sky-300",
+      ring: "ring-sky-500/30",
+    },
+    green: {
+      accent: "#16A34A",
+      bg: "bg-emerald-500/[0.06]",
+      text: "text-emerald-700 dark:text-emerald-300",
+      ring: "ring-emerald-500/30",
+    },
+    amber: {
+      accent: "#F59E0B",
+      bg: "bg-amber-500/[0.07]",
+      text: "text-amber-700 dark:text-amber-300",
+      ring: "ring-amber-500/30",
+    },
+    red: {
+      accent: "#DC2626",
+      bg: "bg-red-500/[0.06]",
+      text: "text-red-700 dark:text-red-300",
+      ring: "ring-red-500/30",
+    },
+  };
+  const colors = toneClasses[tone];
+
   return (
-    <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm dark:border-white/5 dark:bg-white/[0.02]">
-      {/* Decorative vertical stripe */}
-      <div className="absolute top-0 bottom-0 left-0 w-1" style={{ backgroundColor: isZero ? "#7C8798" : "#0EA5E9" }} />
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`group relative min-h-[86px] overflow-hidden rounded-[6px] border border-slate-200 bg-white p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 dark:border-white/10 dark:bg-white/[0.03] ${
+        active ? `${colors.bg} ${colors.ring} border-transparent ring-2` : ""
+      }`}
+    >
+      <div className="absolute top-3 bottom-3 left-0 w-1 rounded-r-full" style={{ backgroundColor: isZero ? "#94A3B8" : colors.accent }} />
       <div className="space-y-1 pl-1">
-        <p className="whitespace-nowrap font-bold font-mono text-[8.5px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
+        <p className={`font-bold font-mono text-[10px] uppercase tracking-wider ${active ? colors.text : "text-slate-500 dark:text-[#7C8798]"}`}>
           {label}
         </p>
-        <p className="font-black font-mono text-3xl text-slate-900 tracking-tight dark:text-white">{value}</p>
+        <p className="font-black font-mono text-3xl text-slate-950 tracking-tight dark:text-white">{value}</p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -2689,6 +2712,8 @@ function TacticalSection({
   metadata?: { label: string; value: string | number }[];
   footer?: React.ReactNode;
 }) {
+  const metadataGridClass = metadata && metadata.length > 2 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2";
+
   return (
     <section className="space-y-4">
       {/* Section Header */}
@@ -2700,9 +2725,11 @@ function TacticalSection({
 
         {/* Section Metadata */}
         {metadata && metadata.length > 0 && (
-          <div className="flex gap-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 font-mono shadow-sm dark:border-white/5 dark:bg-slate-900/40">
-            {metadata.slice(0, 2).map((meta, i) => (
-              <div key={i} className="flex flex-col items-center px-1">
+          <div
+            className={`grid ${metadataGridClass} gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 font-mono shadow-sm dark:border-white/5 dark:bg-slate-900/40`}
+          >
+            {metadata.map((meta) => (
+              <div key={meta.label} className="flex min-w-0 flex-col items-center px-1 text-center">
                 <span className="font-bold text-[9px] text-slate-500 uppercase tracking-widest dark:text-[#7C8798]">
                   {meta.label}
                 </span>
@@ -3063,9 +3090,11 @@ function BaketCandidateForm({
           <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 text-[10px] text-[var(--tactical-text-secondary)]">
             JARING: {message.jaringCode}
           </span>
-          <span className="tactical-badge rounded border border-[var(--tactical-blue)]/20 bg-[var(--tactical-blue)]/10 px-2 py-0.5 font-mono text-[10px] text-[var(--tactical-blue)]">
-            KLASTER: {message.clusterName || "BELUM TERPETAKAN"}
-          </span>
+          {message.referenceNumber ? (
+            <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[10px] text-[var(--tactical-blue)]">
+              {message.referenceNumber}
+            </span>
+          ) : null}
         </div>
         <div className="font-mono text-[10px] text-[var(--tactical-text-muted)]">
           CANDIDATE ID: {message.id.slice(0, 8).toUpperCase()}
@@ -3083,6 +3112,25 @@ function BaketCandidateForm({
               {message.content}
             </div>
           </div>
+
+          {message.contentAmendments.length > 0 ? (
+            <div className="space-y-2">
+              <span className="font-mono font-semibold text-[10px] text-[var(--tactical-blue)] uppercase tracking-wider">
+                INFORMASI TAMBAHAN
+              </span>
+              {message.contentAmendments.map((amendment) => (
+                <div
+                  key={amendment.id}
+                  className="rounded-lg border border-[var(--tactical-border)] bg-black/10 p-3 text-[var(--tactical-text-primary)] text-sm leading-relaxed dark:bg-white/[0.01]"
+                >
+                  <p>{amendment.content}</p>
+                  <p className="mt-2 font-mono text-[10px] text-[var(--tactical-text-muted)]">
+                    {formatDateTime(amendment.createdAt)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           {message.photoUrl && (
             <div className="space-y-1">

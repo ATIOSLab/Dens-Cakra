@@ -66,7 +66,6 @@ export class WhatsAppService {
         integrationChannel: true,
         jaring: {
           include: {
-            cluster: true,
             areaCoverages: { include: { area: true } },
           },
         },
@@ -79,6 +78,13 @@ export class WhatsAppService {
         },
         resolvedArea: true,
         media: {
+          orderBy: { orderNo: 'asc' },
+          include: {
+            file: { select: publicFileSelect },
+          },
+        },
+        reportAmendments: {
+          orderBy: { createdAt: 'asc' },
           include: {
             file: { select: publicFileSelect },
           },
@@ -177,7 +183,6 @@ export class WhatsAppService {
       include: {
         jaring: {
           include: {
-            cluster: true,
             areaCoverages: { include: { area: true } },
           },
         },
@@ -190,7 +195,14 @@ export class WhatsAppService {
         },
         resolvedArea: true,
         validationIssues: true,
-        media: { include: { file: { select: publicFileSelect } } },
+        media: {
+          orderBy: { orderNo: 'asc' },
+          include: { file: { select: publicFileSelect } },
+        },
+        reportAmendments: {
+          orderBy: { createdAt: 'asc' },
+          include: { file: { select: publicFileSelect } },
+        },
       },
     });
   }
@@ -456,7 +468,7 @@ export class WhatsAppService {
           routedToFieldOfficerAssignmentId: context.primaryAssignmentId,
         },
         include: {
-          jaring: { include: { cluster: true } },
+          jaring: true,
           media: {
             include: {
               file: { select: { lifecycleStatus: true } },
@@ -476,7 +488,6 @@ export class WhatsAppService {
           where: { id: message.convertedBaketId },
           include: {
             reportCategory: true,
-            jaringCluster: true,
             primaryJaring: true,
             versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
           },
@@ -489,20 +500,6 @@ export class WhatsAppService {
         throw new ApiException(
           'MESSAGE_NOT_READY_FOR_BAKET',
           'Pesan harus lolos validasi dan berada pada antrean Buat Baket.',
-          422,
-        );
-      }
-      if (!message.jaring || !message.jaring.cluster) {
-        throw new ApiException(
-          'JARING_CLUSTER_REQUIRED',
-          'Jaring sumber harus mempunyai klaster aktif.',
-          422,
-        );
-      }
-      if (!message.jaring.cluster.isActive) {
-        throw new ApiException(
-          'JARING_CLUSTER_INACTIVE',
-          'Klaster Jaring sumber sudah tidak aktif.',
           422,
         );
       }
@@ -557,7 +554,6 @@ export class WhatsAppService {
           taskAssignmentId: body.taskAssignmentId,
           primaryJaringId: message.jaringId,
           reportCategoryId: category.id,
-          jaringClusterId: message.jaring.cluster.id,
           versions: {
             create: {
               versionNumber: 1,
@@ -595,7 +591,6 @@ export class WhatsAppService {
         },
         include: {
           reportCategory: true,
-          jaringCluster: true,
           primaryJaring: true,
           versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
         },
@@ -623,7 +618,6 @@ export class WhatsAppService {
           metadata: {
             messageId: id,
             categoryId: category.id,
-            jaringClusterId: message.jaring.cluster.id,
             urgency: body.urgency,
           },
         },

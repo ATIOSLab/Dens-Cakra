@@ -23,6 +23,7 @@ import {
   Classification,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
+import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -57,6 +58,7 @@ import type {
   DecisionNoteDto,
   DistributionQuery,
   EmergencyQuery,
+  FieldIntelligenceDashboardQuery,
   LocationHistoryQuery,
   MapAreaSummaryQuery,
   MapHeatmapQuery,
@@ -86,6 +88,11 @@ import type {
   ValidateTemplateContentDto,
   VerifyEmergencyIncidentDto,
 } from './intelligence-products.dto.js';
+import {
+  classifyJaringActivity,
+  FieldIntelligencePeriod,
+  resolveFieldIntelligencePeriod,
+} from './field-intelligence.util.js';
 
 type OperationalRouteType = 'DIRECTORATE' | 'BINDA';
 
@@ -3068,6 +3075,671 @@ export class IntelligenceProductsService {
         grouped.map((group) => [group.status, group._count._all]),
       ),
       total: grouped.reduce((sum, group) => sum + group._count._all, 0),
+    };
+  }
+
+  private async fieldIntelligenceJaringScopeWhere(
+    context: AuthorizationContext,
+  ): Promise<Prisma.JaringWhereInput> {
+    if (context.authRole === SYSTEM_ROLES.EXECUTIVE) {
+      return { deletedAt: null };
+    }
+
+    const resolvedScope = await this.scope.resolve(context);
+    const isFieldCoordinator =
+      context.authRole === SYSTEM_ROLES.FIELD_COORDINATOR;
+    if (isFieldCoordinator && resolvedScope.areaRootIds.length === 0) {
+      return { id: { in: [] }, deletedAt: null };
+    }
+
+    return {
+      deletedAt: null,
+      caretakerAssignments: {
+        some: {
+          ...(isFieldCoordinator
+            ? {
+                fieldOfficerAssignment: {
+                  seat: { branch: resolvedScope.commandRouteType },
+                },
+              }
+            : {
+                fieldOfficerAssignmentId: {
+                  in: resolvedScope.assignmentIds,
+                },
+              }),
+          isActive: true,
+          OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+        },
+      },
+      ...(resolvedScope.areaRootIds.length
+        ? {
+            areaCoverages: {
+              some: {
+                validUntil: null,
+                area: {
+                  OR: [
+                    { id: { in: resolvedScope.areaRootIds } },
+                    {
+                      descendantLinks: {
+                        some: {
+                          ancestorId: { in: resolvedScope.areaRootIds },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          }
+        : {}),
+    };
+  }
+
+  async dashboardFieldIntelligence(
+    query: FieldIntelligenceDashboardQuery,
+    context: AuthorizationContext,
+  ) {
+    this.ensureDateOrder(query.from, query.to);
+    const period = resolveFieldIntelligencePeriod(
+      query.period,
+      query.from,
+      query.to,
+    );
+    const periodDateWhere = {
+      createdAt: {
+        ...(period.from ? { gte: period.from } : {}),
+        lte: period.to,
+      },
+    };
+    const scopedJaringWhere =
+      await this.fieldIntelligenceJaringScopeWhere(context);
+    const jaringRecords = await this.prisma.jaring.findMany({
+      where: scopedJaringWhere,
+      orderBy: [{ registeredAt: 'desc' }, { id: 'desc' }],
+      select: {
+        id: true,
+        code: true,
+        aliasName: true,
+        whatsappNumber: true,
+        fullName: true,
+        nationalIdNumber: true,
+        address: true,
+        birthPlace: true,
+        birthDate: true,
+        gender: true,
+        workplace: true,
+        jobTitle: true,
+        joinedAt: true,
+        organizationName: true,
+        politicalAffiliation: true,
+        status: true,
+        registrationStatus: true,
+        rejectionReason: true,
+        notes: true,
+        registeredAt: true,
+        reviewedAt: true,
+        profilePhotoFileId: true,
+        occupation: { select: { id: true, code: true, name: true } },
+        caretakerAssignments: {
+          where: {
+            isActive: true,
+            OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+          },
+          orderBy: { validFrom: 'desc' },
+          take: 1,
+          select: {
+            fieldOfficerAssignmentId: true,
+            fieldOfficerAssignment: {
+              select: {
+                userProfile: {
+                  select: { id: true, fullName: true, username: true },
+                },
+                position: {
+                  select: {
+                    id: true,
+                    title: true,
+                    organizationUnit: {
+                      select: { id: true, name: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        areaCoverages: {
+          where: { validUntil: null },
+          orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+          select: {
+            isPrimary: true,
+            area: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                level: true,
+                centroidLatitude: true,
+                centroidLongitude: true,
+                parent: {
+                  select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    level: true,
+                    parent: {
+                      select: {
+                        id: true,
+                        code: true,
+                        name: true,
+                        level: true,
+                        parent: {
+                          select: {
+                            id: true,
+                            code: true,
+                            name: true,
+                            level: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const jaringIds = jaringRecords.map((jaring) => jaring.id);
+    const [lifetimeGroups, periodGroups, periodReports] = jaringIds.length
+      ? await Promise.all([
+          this.prisma.baket.groupBy({
+            by: ['primaryJaringId', 'status'],
+            where: {
+              primaryJaringId: { in: jaringIds },
+              deletedAt: null,
+            },
+            _count: { _all: true },
+            _max: { createdAt: true },
+          }),
+          this.prisma.baket.groupBy({
+            by: ['primaryJaringId', 'status'],
+            where: {
+              primaryJaringId: { in: jaringIds },
+              deletedAt: null,
+              ...periodDateWhere,
+            },
+            _count: { _all: true },
+          }),
+          this.prisma.baket.findMany({
+            where: {
+              primaryJaringId: { in: jaringIds },
+              deletedAt: null,
+              ...periodDateWhere,
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              primaryJaringId: true,
+              status: true,
+              createdAt: true,
+              currentVersionNumber: true,
+              reportCategory: {
+                select: { id: true, code: true, name: true },
+              },
+              primaryJaring: {
+                select: {
+                  id: true,
+                  code: true,
+                  aliasName: true,
+                  fullName: true,
+                  registrationStatus: true,
+                },
+              },
+              versions: {
+                orderBy: { versionNumber: 'desc' },
+                take: 1,
+                select: {
+                  id: true,
+                  title: true,
+                  eventTime: true,
+                  urgency: true,
+                  latitude: true,
+                  longitude: true,
+                  eventArea: {
+                    select: {
+                      id: true,
+                      code: true,
+                      name: true,
+                      level: true,
+                      centroidLatitude: true,
+                      centroidLongitude: true,
+                    },
+                  },
+                },
+              },
+            },
+          }),
+        ])
+      : [[], [], []];
+
+    type ReportMetrics = {
+      total: number;
+      period: number;
+      lastReportAt: Date | null;
+      statuses: Record<string, number>;
+      periodStatuses: Record<string, number>;
+    };
+    const reportMetrics = new Map<string, ReportMetrics>();
+    for (const jaringId of jaringIds) {
+      reportMetrics.set(jaringId, {
+        total: 0,
+        period: 0,
+        lastReportAt: null,
+        statuses: {},
+        periodStatuses: {},
+      });
+    }
+    for (const group of lifetimeGroups) {
+      if (!group.primaryJaringId) continue;
+      const metrics = reportMetrics.get(group.primaryJaringId);
+      if (!metrics) continue;
+      metrics.total += group._count._all;
+      metrics.statuses[group.status] = group._count._all;
+      if (
+        group._max.createdAt &&
+        (!metrics.lastReportAt || group._max.createdAt > metrics.lastReportAt)
+      ) {
+        metrics.lastReportAt = group._max.createdAt;
+      }
+    }
+    for (const group of periodGroups) {
+      if (!group.primaryJaringId) continue;
+      const metrics = reportMetrics.get(group.primaryJaringId);
+      if (!metrics) continue;
+      metrics.period += group._count._all;
+      metrics.periodStatuses[group.status] = group._count._all;
+    }
+
+    const areaOptions = new Map<
+      string,
+      { id: string; code: string; name: string; level: string }
+    >();
+    const baseItems = jaringRecords.map((jaring) => {
+      const coverage = jaring.areaCoverages[0];
+      const village = coverage?.area;
+      const district = village?.parent;
+      const city = district?.parent;
+      const province = city?.parent;
+      const areaPath = [province, city, district, village].flatMap((area) =>
+        area
+          ? [
+              {
+                id: area.id,
+                code: area.code,
+                name: area.name,
+                level: area.level,
+              },
+            ]
+          : [],
+      );
+      for (const area of areaPath) {
+        areaOptions.set(area.id, area);
+      }
+
+      const caretaker = jaring.caretakerAssignments[0];
+      const assignment = caretaker?.fieldOfficerAssignment;
+      const metrics = reportMetrics.get(jaring.id) ?? {
+        total: 0,
+        period: 0,
+        lastReportAt: null,
+        statuses: {},
+        periodStatuses: {},
+      };
+      const activity = classifyJaringActivity(metrics.period, metrics.total);
+
+      return {
+        ...jaring,
+        occupation: jaring.occupation,
+        handler: assignment
+          ? {
+              assignmentId: caretaker.fieldOfficerAssignmentId,
+              userProfileId: assignment.userProfile.id,
+              name:
+                assignment.userProfile.fullName ??
+                assignment.userProfile.username,
+              positionTitle: assignment.position.title,
+              organizationUnit: assignment.position.organizationUnit,
+            }
+          : null,
+        area: village
+          ? {
+              id: village.id,
+              code: village.code,
+              name: village.name,
+              level: village.level,
+              latitude:
+                village.centroidLatitude === null
+                  ? null
+                  : Number(village.centroidLatitude),
+              longitude:
+                village.centroidLongitude === null
+                  ? null
+                  : Number(village.centroidLongitude),
+              path: areaPath,
+              pathLabel: areaPath.map((area) => area.name).join(' / '),
+            }
+          : null,
+        activity: {
+          level: activity,
+          lifetimeReports: metrics.total,
+          periodReports: metrics.period,
+          verifiedReports: metrics.statuses.VERIFIED ?? 0,
+          unverifiedReports: metrics.total - (metrics.statuses.VERIFIED ?? 0),
+          lastReportAt: metrics.lastReportAt,
+          statusCounts: metrics.statuses,
+        },
+      };
+    });
+
+    const normalizedSearch = query.search?.trim().toLocaleLowerCase('id-ID');
+    const filteredItems = baseItems
+      .filter((item) => {
+        if (
+          query.registrationStatus &&
+          item.registrationStatus !== query.registrationStatus
+        ) {
+          return false;
+        }
+        if (query.jaringStatus && item.status !== query.jaringStatus) {
+          return false;
+        }
+        if (query.activity && item.activity.level !== query.activity) {
+          return false;
+        }
+        if (
+          query.baketStatus &&
+          !item.activity.statusCounts[query.baketStatus]
+        ) {
+          return false;
+        }
+        if (
+          query.areaId &&
+          !item.area?.path.some((area) => area.id === query.areaId)
+        ) {
+          return false;
+        }
+        if (normalizedSearch) {
+          const searchable = [
+            item.code,
+            item.aliasName,
+            item.fullName,
+            item.whatsappNumber,
+            item.address,
+            item.occupation?.name,
+            item.handler?.name,
+            item.area?.pathLabel,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLocaleLowerCase('id-ID');
+          if (!searchable.includes(normalizedSearch)) {
+            return false;
+          }
+        }
+        return true;
+      })
+      .sort((left, right) => {
+        if (right.activity.periodReports !== left.activity.periodReports) {
+          return right.activity.periodReports - left.activity.periodReports;
+        }
+        if (right.activity.lifetimeReports !== left.activity.lifetimeReports) {
+          return right.activity.lifetimeReports - left.activity.lifetimeReports;
+        }
+        return (
+          (right.activity.lastReportAt?.getTime() ?? 0) -
+          (left.activity.lastReportAt?.getTime() ?? 0)
+        );
+      });
+
+    const page = query.page;
+    const start = (page - 1) * query.limit;
+    const pagedItems = filteredItems.slice(start, start + query.limit);
+    const latestReports = pagedItems.length
+      ? await this.prisma.baket.findMany({
+          where: {
+            primaryJaringId: { in: pagedItems.map((item) => item.id) },
+            deletedAt: null,
+          },
+          distinct: ['primaryJaringId'],
+          orderBy: [{ primaryJaringId: 'asc' }, { createdAt: 'desc' }],
+          select: {
+            id: true,
+            primaryJaringId: true,
+            status: true,
+            createdAt: true,
+            reportCategory: {
+              select: { id: true, code: true, name: true },
+            },
+            versions: {
+              orderBy: { versionNumber: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                title: true,
+                eventTime: true,
+                urgency: true,
+                latitude: true,
+                longitude: true,
+              },
+            },
+          },
+        })
+      : [];
+    const latestReportByJaring = new Map(
+      latestReports
+        .filter((report) => report.primaryJaringId)
+        .map((report) => [report.primaryJaringId!, report]),
+    );
+
+    const registrationStatuses = baseItems.reduce<Record<string, number>>(
+      (accumulator, item) => {
+        accumulator[item.registrationStatus] =
+          (accumulator[item.registrationStatus] ?? 0) + 1;
+        return accumulator;
+      },
+      {},
+    );
+    const activityStatuses = baseItems.reduce<Record<string, number>>(
+      (accumulator, item) => {
+        accumulator[item.activity.level] =
+          (accumulator[item.activity.level] ?? 0) + 1;
+        return accumulator;
+      },
+      {},
+    );
+    const periodStatusCounts = periodGroups.reduce<Record<string, number>>(
+      (accumulator, item) => {
+        accumulator[item.status] =
+          (accumulator[item.status] ?? 0) + item._count._all;
+        return accumulator;
+      },
+      {},
+    );
+    const totalReports = baseItems.reduce(
+      (sum, item) => sum + item.activity.lifetimeReports,
+      0,
+    );
+    const reportsInPeriod = baseItems.reduce(
+      (sum, item) => sum + item.activity.periodReports,
+      0,
+    );
+    const reportingJaring = baseItems.filter(
+      (item) => item.activity.periodReports > 0,
+    ).length;
+
+    const interval =
+      query.period === FieldIntelligencePeriod.ALL
+        ? 'month'
+        : query.period === FieldIntelligencePeriod.DAYS_90
+          ? 'week'
+          : 'day';
+    const trendBuckets = new Map<
+      string,
+      { total: number; verified: number; unverified: number }
+    >();
+    for (const report of periodReports) {
+      const bucket = this.bucketKey(report.createdAt, interval);
+      const value = trendBuckets.get(bucket) ?? {
+        total: 0,
+        verified: 0,
+        unverified: 0,
+      };
+      value.total += 1;
+      if (report.status === 'VERIFIED') value.verified += 1;
+      else value.unverified += 1;
+      trendBuckets.set(bucket, value);
+    }
+
+    return {
+      generatedAt: new Date().toISOString(),
+      period: {
+        preset: query.period,
+        from: period.from?.toISOString() ?? null,
+        to: period.to.toISOString(),
+        interval,
+      },
+      scope: {
+        role: context.authRole,
+        positionTitle: context.positionTitle,
+        organizationUnit: {
+          id: context.organizationUnitId,
+          name: context.organizationUnitName,
+        },
+        areas: context.areaScopes,
+        nationalAccess: context.authRole === SYSTEM_ROLES.EXECUTIVE,
+        includesUnverifiedJaring: true,
+      },
+      summary: {
+        totalJaring: baseItems.length,
+        approvedJaring: registrationStatuses.APPROVED ?? 0,
+        pendingJaring: registrationStatuses.PENDING ?? 0,
+        rejectedJaring: registrationStatuses.REJECTED ?? 0,
+        reportingJaring,
+        silentJaring: baseItems.length - reportingJaring,
+        reportingCoverage:
+          baseItems.length === 0
+            ? 0
+            : Math.round((reportingJaring / baseItems.length) * 100),
+        totalReports,
+        reportsInPeriod,
+        verifiedReports: periodStatusCounts.VERIFIED ?? 0,
+        unverifiedReports: reportsInPeriod - (periodStatusCounts.VERIFIED ?? 0),
+        averageReportsPerActiveJaring:
+          reportingJaring === 0
+            ? 0
+            : Math.round((reportsInPeriod / reportingJaring) * 10) / 10,
+      },
+      reportPipeline: periodStatusCounts,
+      registrationStatuses,
+      activityStatuses,
+      trend: [...trendBuckets.entries()]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([bucket, values]) => ({ bucket, ...values })),
+      recentReports: periodReports.slice(0, 10).map((report) => ({
+        id: report.id,
+        status: report.status,
+        createdAt: report.createdAt,
+        currentVersionNumber: report.currentVersionNumber,
+        category: report.reportCategory,
+        jaring: report.primaryJaring,
+        version: report.versions[0] ?? null,
+      })),
+      filters: {
+        areas: [...areaOptions.values()].sort((left, right) => {
+          const order = [
+            'PROVINCE',
+            'REGENCY',
+            'CITY',
+            'DISTRICT',
+            'VILLAGE',
+            'URBAN_VILLAGE',
+          ];
+          const levelOrder =
+            order.indexOf(left.level) - order.indexOf(right.level);
+          return levelOrder || left.name.localeCompare(right.name, 'id-ID');
+        }),
+      },
+      map: {
+        jaring: filteredItems.flatMap((item) =>
+          item.area?.latitude !== null &&
+          item.area?.latitude !== undefined &&
+          item.area.longitude !== null &&
+          item.area.longitude !== undefined
+            ? [
+                {
+                  id: item.id,
+                  code: item.code,
+                  aliasName: item.aliasName,
+                  fullName: item.fullName,
+                  registrationStatus: item.registrationStatus,
+                  operationalStatus: item.status,
+                  activityLevel: item.activity.level,
+                  periodReports: item.activity.periodReports,
+                  lifetimeReports: item.activity.lifetimeReports,
+                  lastReportAt: item.activity.lastReportAt,
+                  areaName: item.area.name,
+                  areaPathLabel: item.area.pathLabel,
+                  latitude: item.area.latitude,
+                  longitude: item.area.longitude,
+                },
+              ]
+            : [],
+        ),
+        baket: periodReports.flatMap((report) => {
+          const version = report.versions[0];
+          const latitude =
+            version?.latitude === null || version?.latitude === undefined
+              ? version?.eventArea?.centroidLatitude
+              : version.latitude;
+          const longitude =
+            version?.longitude === null || version?.longitude === undefined
+              ? version?.eventArea?.centroidLongitude
+              : version.longitude;
+
+          if (
+            latitude === null ||
+            latitude === undefined ||
+            longitude === null ||
+            longitude === undefined
+          ) {
+            return [];
+          }
+
+          return [
+            {
+              id: report.id,
+              status: report.status,
+              createdAt: report.createdAt,
+              title: version?.title ?? null,
+              urgency: version?.urgency ?? null,
+              category: report.reportCategory,
+              jaring: report.primaryJaring,
+              areaName: version?.eventArea?.name ?? null,
+              latitude: Number(latitude),
+              longitude: Number(longitude),
+            },
+          ];
+        }),
+      },
+      jaring: {
+        items: pagedItems.map((item) => ({
+          ...item,
+          latestReport: latestReportByJaring.get(item.id) ?? null,
+        })),
+        pagination: this.paginate(page, query.limit, filteredItems.length),
+      },
     };
   }
 

@@ -26,10 +26,6 @@ function baseMessage(overrides: Record<string, unknown> = {}) {
     jaringId: '22222222-2222-4222-8222-222222222222',
     jaring: {
       id: '22222222-2222-4222-8222-222222222222',
-      cluster: {
-        id: '33333333-3333-4333-8333-333333333333',
-        isActive: true,
-      },
     },
     rawPayload: { photoMessageId: 'wa-photo' },
     media: [],

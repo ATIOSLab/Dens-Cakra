@@ -64,7 +64,7 @@ function baketStatusLabel(status?: string | null, sentToPositionTitle?: string |
     case "SENT_TO_OIM":
       return sentToPositionTitle ? `Sudah dikirim ke ${sentToPositionTitle}` : "Sudah dikirim";
     case "UNDER_VERIFICATION":
-      return "Sedang diverifikasi";
+      return "Sedang terverifikasi";
     case "NEEDS_DEVELOPMENT":
       return "Perlu pengembangan";
     case "VERIFIED":
@@ -162,7 +162,6 @@ export default async function Page({ params }: PageProps) {
               Urgensi: {urgencyLabel(version.urgency)}
             </Badge>
             <Badge variant="outline">{baket.reportCategory?.name ?? "Kategori belum tersedia"}</Badge>
-            <Badge variant="outline">{baket.jaringCluster?.name ?? "Klaster belum tersedia"}</Badge>
           </div>
           <CardTitle>{version.title ?? "Baket"}</CardTitle>
           <CardDescription>

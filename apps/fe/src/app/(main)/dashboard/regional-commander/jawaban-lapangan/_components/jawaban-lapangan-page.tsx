@@ -148,7 +148,7 @@ const initialAnswers: FieldAnswer[] = [
     developmentNote: "Siap masuk kompilasi OIM.",
     lastActivity: [
       "Incoming information divalidasi Field Officer.",
-      "BAKET diverifikasi oleh OIM.",
+      "BAKET terverifikasi oleh OIM.",
       "Siap digunakan sebagai sumber draft report.",
     ],
   },

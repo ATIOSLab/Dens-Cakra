@@ -27,6 +27,13 @@ cd apps/be
 npm run seed:roles
 ```
 
+Kalau hanya butuh akun executive:
+
+```bash
+cd apps/be
+npm run seed:executive
+```
+
 ## Endpoint Login
 
 Gunakan endpoint Better Auth berikut untuk login email/password:

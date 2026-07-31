@@ -15,6 +15,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
       {} as never,
       { isJaringAllowed: jest.fn(() => Promise.resolve(false)) } as never,
       {} as never,
+      {} as never,
     );
 
     return { service, sendMessage };
@@ -76,6 +77,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
 
   it('setelah PIN benar hanya menerima live location sebelum judul', async () => {
     const service = new WhatsappBotRuntimeService(
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -275,7 +277,6 @@ describe('WhatsappBotRuntimeService report intake', () => {
             caretakerAssignments: [
               { fieldOfficerAssignmentId: 'field-officer-id' },
             ],
-            cluster: null,
           }),
         ),
       },
@@ -290,6 +291,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
       {} as never,
       {} as never,
       channelScope as never,
+      {} as never,
     );
     (
       service as unknown as {
@@ -343,6 +345,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
       {} as never,
       {} as never,
       spatial as never,
+      {} as never,
       {} as never,
     );
     const saveCompletedReport = (

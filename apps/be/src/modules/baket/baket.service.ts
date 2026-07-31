@@ -147,7 +147,6 @@ export class BaketService {
       body.primaryJaringId
         ? this.prisma.jaring.findFirst({
             where: { id: body.primaryJaringId, deletedAt: null },
-            include: { cluster: true },
           })
         : Promise.resolve(null),
     ]);
@@ -194,7 +193,6 @@ export class BaketService {
           taskAssignmentId: body.taskAssignmentId,
           primaryJaringId: body.primaryJaringId,
           reportCategoryId: category.id,
-          jaringClusterId: primaryJaring?.clusterId,
           versions: {
             create: {
               versionNumber: 1,

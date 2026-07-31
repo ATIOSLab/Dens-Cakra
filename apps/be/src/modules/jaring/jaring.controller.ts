@@ -18,19 +18,16 @@ import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
-  CreateJaringClusterDto,
   CreateJaringOccupationDto,
   CreateReportCategoryDto,
   CoverageDto,
   CreateJaringDto,
-  JaringClusterQuery,
   JaringOccupationQuery,
   JaringQuery,
   ReportCategoryQuery,
   ReasonDto,
   RejectJaringDto,
   TransferDto,
-  UpdateJaringClusterDto,
   UpdateJaringOccupationDto,
   UpdateReportCategoryDto,
   UpdateJaringDto,
@@ -71,52 +68,6 @@ export class JaringController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.jaringService.create(body, context));
-  }
-
-  @Get('clusters')
-  @ApiContract({
-    operationId: 'apiJarCluster001',
-    contractId: 'API-JAR-CLUSTER-001',
-    summary: 'Daftar Cluster Jaring',
-    roles: [
-      'admin_system',
-      'field_officer',
-      'operational_intelligence_manager',
-    ],
-  })
-  async listClusters(@Query() query: JaringClusterQuery) {
-    return apiResult(await this.jaringService.listClusters(query));
-  }
-
-  @Post('clusters')
-  @ApiContract({
-    operationId: 'apiJarCluster002',
-    contractId: 'API-JAR-CLUSTER-002',
-    summary: 'Buat Cluster Jaring',
-    roles: ['admin_system'],
-    successStatus: 201,
-    idempotent: true,
-  })
-  async createCluster(
-    @Body() body: CreateJaringClusterDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.jaringService.createCluster(body, context));
-  }
-
-  @Patch('clusters/:clusterId')
-  @ApiContract({
-    operationId: 'apiJarCluster003',
-    contractId: 'API-JAR-CLUSTER-003',
-    summary: 'Ubah Cluster Jaring',
-    roles: ['admin_system'],
-  })
-  async updateCluster(
-    @Param('clusterId', ParseUUIDPipe) id: string,
-    @Body() body: UpdateJaringClusterDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.jaringService.updateCluster(id, body, context));
   }
 
   @Get('occupations')

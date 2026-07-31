@@ -399,11 +399,7 @@ async function loadContext() {
     });
   }
 
-  const [clusters, categories, productTypes] = await Promise.all([
-    prisma.jaringCluster.findMany({
-      where: { isActive: true },
-      orderBy: { code: 'asc' },
-    }),
+  const [categories, productTypes] = await Promise.all([
     prisma.reportCategory.findMany({
       where: { isActive: true },
       orderBy: { code: 'asc' },
@@ -427,7 +423,6 @@ async function loadContext() {
     }),
   ]);
   if (
-    clusters.length === 0 ||
     categories.length === 0 ||
     productTypes.length === 0
   ) {
@@ -442,7 +437,6 @@ async function loadContext() {
     operationalManager,
     regionalCommander,
     executive,
-    clusters,
     categories,
     productTypes,
   };
@@ -545,7 +539,7 @@ async function seedAreaTask(area: DemoArea, operationalManager: Assignment) {
   return assignmentId;
 }
 
-async function seedAreaJaring(area: DemoArea, clusterIds: string[]) {
+async function seedAreaJaring(area: DemoArea) {
   const jaringIds: string[] = [];
   for (let index = 0; index < 2; index += 1) {
     const key = `${area.officialCode}:${index + 1}`;
@@ -557,12 +551,6 @@ async function seedAreaJaring(area: DemoArea, clusterIds: string[]) {
         code: `DEMO-JKT-${compactCode(area.officialCode)}-${index + 1}`,
         aliasName: `Jaring ${trimAreaName(area.name)} ${index + 1}`,
         whatsappNumber: `+62888${compactCode(area.officialCode).padEnd(4, '0')}${String(index + 1).padStart(4, '0')}`,
-        clusterId:
-          clusterIds[
-            (area.officialCode.charCodeAt(area.officialCode.length - 1) +
-              index) %
-              clusterIds.length
-          ],
         status: JaringStatus.ACTIVE,
         createdByAssignmentId: area.fieldOfficer.id,
         notes: `${SEED_TAG} Sumber aktif untuk kebutuhan presentasi wilayah DKI Jakarta.`,
@@ -574,12 +562,6 @@ async function seedAreaJaring(area: DemoArea, clusterIds: string[]) {
         code: `DEMO-JKT-${compactCode(area.officialCode)}-${index + 1}`,
         aliasName: `Jaring ${trimAreaName(area.name)} ${index + 1}`,
         whatsappNumber: `+62888${compactCode(area.officialCode).padEnd(4, '0')}${String(index + 1).padStart(4, '0')}`,
-        clusterId:
-          clusterIds[
-            (area.officialCode.charCodeAt(area.officialCode.length - 1) +
-              index) %
-              clusterIds.length
-          ],
         status: JaringStatus.ACTIVE,
         createdByAssignmentId: area.fieldOfficer.id,
         notes: `${SEED_TAG} Sumber aktif untuk kebutuhan presentasi wilayah DKI Jakarta.`,
@@ -632,7 +614,6 @@ async function seedAreaBakets(params: {
   areaIndex: number;
   taskAssignmentId: string;
   jaringIds: string[];
-  clusterIds: string[];
   categoryIds: string[];
   files: DemoFile[];
   operationalManager: Assignment;
@@ -656,8 +637,6 @@ async function seedAreaBakets(params: {
     const title = `${topic.title} - ${trimAreaName(area.name)}`;
     const originalContent = `${SEED_TAG}\nPada ${eventTime.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}, sumber melaporkan bahwa ${topic.fact.toLowerCase()} Lokasi kegiatan berada di ${area.name}. Informasi diperoleh melalui pemantauan langsung dan konfirmasi dengan dua sumber lokal.`;
     const verificationStatus = verificationStatusFor(status);
-    const clusterId =
-      params.clusterIds[(areaIndex + reportIndex) % params.clusterIds.length];
     const categoryId =
       params.categoryIds[
         (areaIndex * 2 + reportIndex) % params.categoryIds.length
@@ -676,7 +655,6 @@ async function seedAreaBakets(params: {
         primaryJaringId:
           params.jaringIds[reportIndex % params.jaringIds.length],
         reportCategoryId: categoryId,
-        jaringClusterId: clusterId,
         status,
         currentVersionNumber: 1,
         deletedAt: null,
@@ -688,7 +666,6 @@ async function seedAreaBakets(params: {
         primaryJaringId:
           params.jaringIds[reportIndex % params.jaringIds.length],
         reportCategoryId: categoryId,
-        jaringClusterId: clusterId,
         status,
         currentVersionNumber: 1,
         createdAt: eventTime,
@@ -1612,7 +1589,6 @@ async function seedProducts(params: {
 async function seedJakartaDemo() {
   const context = await loadContext();
   const files = await registerStoragePhotos(context.operationalManager.id);
-  const clusterIds = context.clusters.map((cluster) => cluster.id);
   const categoryIds = context.categories.map((category) => category.id);
   const bakets: DemoBaket[] = [];
 
@@ -1621,14 +1597,13 @@ async function seedJakartaDemo() {
       area,
       context.operationalManager,
     );
-    const jaringIds = await seedAreaJaring(area, clusterIds);
+    const jaringIds = await seedAreaJaring(area);
     bakets.push(
       ...(await seedAreaBakets({
         area,
         areaIndex,
         taskAssignmentId,
         jaringIds,
-        clusterIds,
         categoryIds,
         files,
         operationalManager: context.operationalManager,

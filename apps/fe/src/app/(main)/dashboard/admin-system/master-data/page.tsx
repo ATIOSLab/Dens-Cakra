@@ -12,7 +12,6 @@ import {
   Edit2,
   FileText,
   FolderTree,
-  Layers3,
   MapPin,
   Plus,
   Power,
@@ -52,13 +51,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { JaringCluster, JaringOccupation, ReportCategory } from "@/server/field-ops/types";
-
-type ClusterResponse = JaringCluster & {
-  _count?: {
-    jaring?: number;
-  };
-};
+import type { JaringOccupation, ReportCategory } from "@/server/field-ops/types";
 
 type CategoryResponse = ReportCategory & {
   _count?: {
@@ -72,28 +65,25 @@ type OccupationResponse = JaringOccupation & {
   };
 };
 
-type MasterEntity = "cluster" | "category" | "occupation";
-type MasterItem = JaringCluster | ReportCategory | JaringOccupation;
+type MasterEntity = "category" | "occupation";
+type MasterItem = ReportCategory | JaringOccupation;
 
 function entityApiPath(entity: MasterEntity) {
-  if (entity === "cluster") return "/api/admin-system/master-data/jaring-clusters";
   if (entity === "occupation") return "/api/admin-system/master-data/occupations";
   return "/api/admin-system/master-data/report-categories";
 }
 
 function entityLabel(entity: MasterEntity, detailed = false) {
-  if (entity === "cluster") return detailed ? "Cluster Jaring" : "Cluster";
   if (entity === "occupation") return "Pekerjaan";
   return detailed ? "Kategori Laporan" : "Kategori";
 }
 
 function usageCount(item: MasterItem, entity: MasterEntity) {
   if (entity === "category") return (item as ReportCategory).messageCount ?? 0;
-  return (item as JaringCluster | JaringOccupation).jaringCount ?? 0;
+  return (item as JaringOccupation).jaringCount ?? 0;
 }
 
 function entityPlaceholder(entity: MasterEntity) {
-  if (entity === "cluster") return "Contoh: Mahasiswa, Tokoh Adat";
   if (entity === "occupation") return "Contoh: Analis Keuangan";
   return "Contoh: Keamanan, Politik";
 }
@@ -122,10 +112,9 @@ type ConfirmDialogState = {
 } | null;
 
 export default function AdminMasterDataPage() {
-  const [clusters, setClusters] = useState<JaringCluster[]>([]);
   const [categories, setCategories] = useState<ReportCategory[]>([]);
   const [occupations, setOccupations] = useState<JaringOccupation[]>([]);
-  const [activeEntity, setActiveEntity] = useState<MasterEntity>("cluster");
+  const [activeEntity, setActiveEntity] = useState<MasterEntity>("category");
 
   // Drawer form state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -155,45 +144,14 @@ export default function AdminMasterDataPage() {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
   // Scalable entities listing (inspired by Palantir Foundry / Azure Admin)
-  const entities: Array<{ id: MasterEntity; label: string; icon: typeof Layers3 }> = [
-    { id: "cluster", label: "Cluster Jaring", icon: Layers3 },
+  const entities: Array<{ id: MasterEntity; label: string; icon: typeof Tags }> = [
     { id: "category", label: "Kategori Laporan", icon: Tags },
     { id: "occupation", label: "Pekerjaan", icon: BriefcaseBusiness },
   ];
 
   // Summary Metrics
   const totalEntities = entities.length;
-  const totalDataCount = clusters.length + categories.length + occupations.length;
-
-  const loadClusters = async () => {
-    try {
-      setBusyKey("load");
-      const response = await fetch("/api/admin-system/master-data/jaring-clusters", { cache: "no-store" });
-      const body = (await response.json()) as ClusterResponse[] | { message?: string };
-
-      if (!response.ok) {
-        throw new Error("message" in body ? body.message : "Gagal memuat cluster Jaring.");
-      }
-
-      setClusters(
-        (body as ClusterResponse[]).map((cluster) => ({
-          id: cluster.id,
-          code: cluster.code,
-          name: cluster.name,
-          description: cluster.description ?? null,
-          isActive: cluster.isActive,
-          jaringCount: cluster._count?.jaring ?? cluster.jaringCount ?? 0,
-        })),
-      );
-      setError(null);
-      const now = new Date();
-      setLastUpdate(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Gagal memuat cluster Jaring.");
-    } finally {
-      setBusyKey(null);
-    }
-  };
+  const totalDataCount = categories.length + occupations.length;
 
   const loadCategories = async () => {
     try {
@@ -256,13 +214,11 @@ export default function AdminMasterDataPage() {
   };
 
   useEffect(() => {
-    void loadClusters();
     void loadCategories();
     void loadOccupations();
   }, []);
 
   const loadActiveEntity = async () => {
-    if (activeEntity === "cluster") return loadClusters();
     if (activeEntity === "occupation") return loadOccupations();
     return loadCategories();
   };
@@ -544,7 +500,6 @@ export default function AdminMasterDataPage() {
   // Filter & Sort Logic
   const filteredAndSortedItems = useMemo(() => {
     let rawList: MasterItem[] = categories;
-    if (activeEntity === "cluster") rawList = clusters;
     if (activeEntity === "occupation") rawList = occupations;
     let list = [...rawList];
 
@@ -584,7 +539,7 @@ export default function AdminMasterDataPage() {
     });
 
     return list;
-  }, [activeEntity, clusters, categories, occupations, searchQuery, statusFilter, sortField, sortDirection]);
+  }, [activeEntity, categories, occupations, searchQuery, statusFilter, sortField, sortDirection]);
 
   // Pagination calculations
   const totalItems = filteredAndSortedItems.length;
@@ -684,11 +639,6 @@ export default function AdminMasterDataPage() {
             >
               <Icon className="size-3.5" />
               <span>{ent.label}</span>
-              {ent.id === "cluster" && (
-                <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-secondary text-foreground font-mono">
-                  {clusters.length}
-                </span>
-              )}
               {ent.id === "category" && (
                 <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-secondary text-foreground font-mono">
                   {categories.length}
@@ -802,7 +752,6 @@ export default function AdminMasterDataPage() {
             <div className="p-8">
               <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed border-border rounded-[12px] bg-secondary/10 dark:bg-slate-900/5">
                 <div className="size-12 rounded-full bg-secondary border border-border flex items-center justify-center mb-4">
-                  {activeEntity === "cluster" && <Layers3 className="size-6 text-muted-foreground/50" />}
                   {activeEntity === "category" && <Tags className="size-6 text-muted-foreground/50" />}
                   {activeEntity === "occupation" && <BriefcaseBusiness className="size-6 text-muted-foreground/50" />}
                 </div>

@@ -243,7 +243,6 @@ function ReportInspector({ selection }: { selection: Extract<SelectionType, { ki
 
       <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
         <DataField label="Kategori" value={properties.reportCategoryName || "-"} breakWords />
-        <DataField label="Kelompok" value={properties.jaringClusterName || "-"} breakWords />
       </div>
 
       <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">

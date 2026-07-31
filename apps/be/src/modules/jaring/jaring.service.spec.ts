@@ -6,7 +6,6 @@ describe('JaringService registration security', () => {
   const newJaring: CreateJaringDto = {
     aliasName: 'Merpati',
     whatsappNumber: '081234567890',
-    clusterId: 'a6b197bd-6b8f-4fae-a567-8e417218961a',
     fullName: 'Nama Jaring',
     nationalIdNumber: '3171000000000001',
     address: 'Jl. Tebet Timur Dalam No. 10, Jakarta Selatan',
@@ -106,9 +105,6 @@ describe('JaringService registration security', () => {
   it('menolak tanggal bergabung sebelum tanggal lahir', async () => {
     const service = new JaringService(
       {
-        jaringCluster: {
-          findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
-        },
         jaringOccupation: {
           findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
         },
@@ -161,9 +157,6 @@ describe('JaringService registration security', () => {
           }),
         ),
         create: jest.fn(),
-      },
-      jaringCluster: {
-        findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
@@ -222,9 +215,6 @@ describe('JaringService registration security', () => {
           }),
         ),
         create: jest.fn(),
-      },
-      jaringCluster: {
-        findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
@@ -319,9 +309,6 @@ describe('JaringService registration security', () => {
             fullName: 'Jaring Dengan NIK Sama',
           }),
         create: jest.fn(),
-      },
-      jaringCluster: {
-        findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
@@ -428,9 +415,6 @@ describe('JaringService registration security', () => {
           Promise.resolve(createdJaring),
         ),
         findFirstOrThrow: jest.fn(() => Promise.resolve(createdJaring)),
-      },
-      jaringCluster: {
-        findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),

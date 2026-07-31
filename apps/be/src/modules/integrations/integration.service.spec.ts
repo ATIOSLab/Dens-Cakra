@@ -35,6 +35,166 @@ type AuditCreateArgs = {
 };
 
 describe('IntegrationService', () => {
+  describe('whatsappControl', () => {
+    it('keeps the control page available when one encrypted config cannot be decrypted', async () => {
+      const decrypt = jest.fn(() => {
+        throw new Error('Unsupported state or unable to authenticate data');
+      });
+      const prisma = {
+        integrationChannel: {
+          findMany: jest.fn(() =>
+            Promise.resolve([
+              {
+                id: 'broken-channel-id',
+                code: 'WA_LEGACY',
+                name: 'WA Legacy',
+                channelType: 'WHATSAPP',
+                status: IntegrationStatus.ERROR,
+                config: {
+                  algorithm: 'aes-256-gcm',
+                  keyVersion: 1,
+                  iv: 'legacy-iv',
+                  authTag: 'legacy-tag',
+                  ciphertext: 'legacy-ciphertext',
+                },
+                lastHealthAt: null,
+                updatedAt: new Date('2026-07-31T00:00:00.000Z'),
+                botState: null,
+                senderNumbers: [],
+              },
+            ]),
+          ),
+        },
+        userProfile: {
+          findMany: jest.fn(() => Promise.resolve([])),
+        },
+      };
+      const service = new IntegrationService(
+        prisma as never,
+        { decrypt } as never,
+        {} as never,
+        {} as never,
+      );
+
+      const result = await service.whatsappControl();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        id: 'broken-channel-id',
+        lastError:
+          'Konfigurasi koneksi tidak dapat dibaca. Simpan ulang konfigurasi kanal WhatsApp.',
+        requiresReconfiguration: true,
+        userId: null,
+      });
+      expect(decrypt).toHaveBeenCalledTimes(1);
+      expect(prisma.userProfile.findMany).not.toHaveBeenCalled();
+    });
+
+    it('re-encrypts an unreadable config when the WhatsApp channel is saved again', async () => {
+      const encryptedConfig = {
+        algorithm: 'aes-256-gcm',
+        keyVersion: 1,
+        iv: 'new-iv',
+        authTag: 'new-tag',
+        ciphertext: 'new-ciphertext',
+      };
+      const decrypt = jest
+        .fn<() => Record<string, unknown>>()
+        .mockImplementationOnce(() => {
+          throw new Error('Unsupported state or unable to authenticate data');
+        })
+        .mockReturnValue({
+          provider: 'baileys',
+          userId: 'operator-id',
+        });
+      const encrypt = jest.fn(() => encryptedConfig);
+      const update = jest.fn(() => Promise.resolve({ id: 'channel-id' }));
+      const auditCreate = jest.fn(() => Promise.resolve({ id: 'audit-id' }));
+      const findFirstOrThrow = jest
+        .fn()
+        .mockResolvedValueOnce({
+          id: 'channel-id',
+          code: 'WA_LEGACY',
+          name: 'WA Legacy',
+          channelType: 'WHATSAPP',
+          status: IntegrationStatus.ERROR,
+          config: {
+            algorithm: 'aes-256-gcm',
+            keyVersion: 1,
+            iv: 'legacy-iv',
+            authTag: 'legacy-tag',
+            ciphertext: 'legacy-ciphertext',
+          },
+          lastHealthAt: null,
+          updatedAt: new Date('2026-07-31T00:00:00.000Z'),
+        })
+        .mockResolvedValueOnce({
+          id: 'channel-id',
+          code: 'WA_LEGACY',
+          name: 'WA Legacy',
+          channelType: 'WHATSAPP',
+          status: IntegrationStatus.ERROR,
+          config: encryptedConfig,
+          lastHealthAt: null,
+          updatedAt: new Date('2026-07-31T00:00:00.000Z'),
+          botState: null,
+          senderNumbers: [],
+        });
+      const prisma = {
+        integrationChannel: {
+          findFirstOrThrow,
+        },
+        auditLog: {
+          create: auditCreate,
+        },
+        $transaction: (callback: (tx: unknown) => Promise<unknown>) =>
+          callback({
+            integrationChannel: { update },
+            whatsAppSenderNumber: {
+              updateMany: jest.fn(),
+              upsert: jest.fn(),
+            },
+          }),
+      };
+      const service = new IntegrationService(
+        prisma as never,
+        { decrypt, encrypt } as never,
+        {} as never,
+        {} as never,
+      );
+
+      const result = await service.updateWhatsappControl(
+        'channel-id',
+        { provider: 'baileys' },
+        {
+          userProfileId: 'operator-id',
+          primaryAssignmentId: 'assignment-id',
+        } as never,
+      );
+
+      expect(encrypt).toHaveBeenCalledWith({
+        provider: 'baileys',
+        userId: 'operator-id',
+      });
+      expect(update).toHaveBeenCalledWith({
+        where: { id: 'channel-id' },
+        data: { config: encryptedConfig },
+      });
+      expect(auditCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            metadata: expect.objectContaining({ configRecovered: true }),
+          }),
+        }),
+      );
+      expect(result).toMatchObject({
+        id: 'channel-id',
+        provider: 'baileys',
+        requiresReconfiguration: false,
+      });
+    });
+  });
+
   describe('remove', () => {
     it('soft deletes WhatsApp channels so append-only webhook events stay intact', async () => {
       const channel: ChannelRecord = {

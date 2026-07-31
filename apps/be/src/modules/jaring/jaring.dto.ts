@@ -40,7 +40,6 @@ export class CreateJaringDto {
   @Matches(/^\d+$/, { message: 'Nomor WhatsApp hanya boleh berisi angka.' })
   @MaxLength(30)
   whatsappNumber!: string;
-  @IsOptional() @IsUUID() clusterId?: string;
   @IsString() @IsNotEmpty() @MaxLength(180) fullName!: string;
   @IsOptional()
   @IsString()
@@ -76,7 +75,6 @@ export class UpdateJaringDto {
   @Matches(/^\d+$/, { message: 'Nomor WhatsApp hanya boleh berisi angka.' })
   @MaxLength(30)
   whatsappNumber?: string;
-  @IsOptional() @IsUUID() clusterId?: string;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(180) fullName?: string;
   @IsOptional()
   @IsString()
@@ -104,25 +102,6 @@ export class UpdateJaringDto {
   @IsUUID(undefined, { each: true })
   areaIds?: string[];
   @IsOptional() @IsString() @MaxLength(3000) notes?: string;
-}
-
-export class JaringClusterQuery {
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limit = 100;
-  @IsOptional() @IsString() search?: string;
-  @IsOptional() @IsBoolean() @Type(() => Boolean) includeInactive = false;
-}
-
-export class CreateJaringClusterDto {
-  @IsOptional() @IsString() @MaxLength(80) code?: string;
-  @IsString() @MinLength(2) @MaxLength(120) name!: string;
-  @IsOptional() @IsString() @MaxLength(1000) description?: string;
-}
-
-export class UpdateJaringClusterDto {
-  @IsOptional() @IsString() @MaxLength(80) code?: string;
-  @IsOptional() @IsString() @MinLength(2) @MaxLength(120) name?: string;
-  @IsOptional() @IsString() @MaxLength(1000) description?: string;
-  @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 export class JaringOccupationQuery {

@@ -53,7 +53,7 @@ function operationalStatusLabel(jaring: FieldOfficerJaring) {
 function registrationStatusLabel(status: FieldOfficerJaring["registrationStatus"]) {
   if (status === "PENDING") return "MENUNGGU VERIFIKASI";
   if (status === "REJECTED") return "DITOLAK / REVISI";
-  return "DISETUJUI";
+  return "TERVERIFIKASI";
 }
 
 function registrationStatusTone(status: FieldOfficerJaring["registrationStatus"]) {
@@ -64,6 +64,44 @@ function registrationStatusTone(status: FieldOfficerJaring["registrationStatus"]
     return "dark:bg-red-950/40 bg-red-50 dark:text-red-400 text-red-700 dark:border-red-500/20 border-red-200";
   }
   return "dark:bg-emerald-950/40 bg-emerald-50 dark:text-[#22C55E] text-emerald-700 dark:border-emerald-500/20 border-emerald-200";
+}
+
+function resolveJaringDistrictNames(jaring: FieldOfficerJaring, workspace: FieldOfficerWorkspace | null) {
+  if (!workspace) {
+    return "-";
+  }
+
+  const districtNames = new Set<string>();
+
+  for (const areaId of jaring.areaIds ?? []) {
+    const directDistrict = workspace.districtAreas.find((area) => area.areaId === areaId);
+    if (directDistrict?.name) {
+      districtNames.add(directDistrict.name);
+      continue;
+    }
+
+    const village = workspace.villageAreas.find((area) => area.areaId === areaId);
+    if (!village) {
+      continue;
+    }
+
+    const district =
+      workspace.districtAreas.find((area) => area.areaId === village.parentAreaId) ??
+      workspace.districtAreas.find(
+        (area) => Boolean(village.parentOfficialCode) && area.officialCode === village.parentOfficialCode,
+      ) ??
+      workspace.districtAreas.find(
+        (area) =>
+          village.code.startsWith(`${area.code}.`) ||
+          Boolean(area.officialCode && village.officialCode?.startsWith(`${area.officialCode}.`)),
+      );
+
+    if (district?.name) {
+      districtNames.add(district.name);
+    }
+  }
+
+  return Array.from(districtNames).join(", ") || "-";
 }
 
 type PageProps = {
@@ -80,7 +118,9 @@ export default function JaringDetailPage({ params }: PageProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [visiblePin, setVisiblePin] = React.useState(false);
   const [photoPreviewOpen, setPhotoPreviewOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<"operational" | "personal" | "career" | "affiliation">("operational");
+  const [activeTab, setActiveTab] = React.useState<"operational" | "personal" | "career" | "affiliation">(
+    "operational",
+  );
 
   React.useEffect(() => {
     async function loadWorkspace() {
@@ -137,6 +177,9 @@ export default function JaringDetailPage({ params }: PageProps) {
       </div>
     );
   }
+
+  const villageNames = jaring.areaNames?.join(", ") || "-";
+  const districtNames = resolveJaringDistrictNames(jaring, workspace);
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto transition-colors duration-150">
@@ -255,11 +298,17 @@ export default function JaringDetailPage({ params }: PageProps) {
                 </div>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Nama Sandi / Alias</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] break-words">{jaring.aliasName}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Nama Sandi / Alias
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] break-words">
+                  {jaring.aliasName}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">PIN Registrasi</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  PIN Registrasi
+                </span>
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-bold tracking-[0.15em] text-[15px] dark:text-[#F8FAFC] text-slate-900 bg-slate-100 dark:bg-slate-900/50 px-2 py-0.5 rounded border dark:border-blue-400/8 border-slate-200">
                     {visiblePin ? jaring.code : "••••••"}
@@ -274,32 +323,56 @@ export default function JaringDetailPage({ params }: PageProps) {
                 </div>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">WhatsApp</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">{jaring.whatsappNumber}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  WhatsApp
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">
+                  {jaring.whatsappNumber}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Pekerjaan</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.occupationName || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Pekerjaan
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {jaring.occupationName || "-"}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Kelurahan/Desa Cakupan</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.areaNames?.join(", ") || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Kelurahan/Desa
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{villageNames}</span>
+              </div>
+              <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Kecamatan
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{districtNames}</span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                 <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Status</span>
-                <span className={`w-fit border rounded-[4px] px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${statusTone(operationalStatusLabel(jaring))}`}>
+                <span
+                  className={`w-fit border rounded-[4px] px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${statusTone(operationalStatusLabel(jaring))}`}
+                >
                   {operationalStatusLabel(jaring)}
                 </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Status Verifikasi</span>
-                <span className={`w-fit border rounded-[4px] px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${registrationStatusTone(jaring.registrationStatus)}`}>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Status Verifikasi
+                </span>
+                <span
+                  className={`w-fit border rounded-[4px] px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${registrationStatusTone(jaring.registrationStatus)}`}
+                >
                   {registrationStatusLabel(jaring.registrationStatus)}
                 </span>
               </div>
               {jaring.registrationStatus === "REJECTED" && jaring.rejectionReason ? (
                 <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-start">
-                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Alasan Penolakan</span>
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                    Alasan Penolakan
+                  </span>
                   <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-300">
                     {jaring.rejectionReason}
                   </p>
@@ -322,28 +395,50 @@ export default function JaringDetailPage({ params }: PageProps) {
             </CardHeader>
             <CardContent className="px-5 pb-4 pt-1 divide-y dark:divide-blue-400/8 divide-slate-100">
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Nama Lengkap</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.fullName || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Nama Lengkap
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {jaring.fullName || "-"}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">NIK / KTP</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">{jaring.nationalIdNumber || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  NIK / KTP
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">
+                  {jaring.nationalIdNumber || "-"}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-start">
                 <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Alamat</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] whitespace-pre-wrap">{jaring.address || "-"}</span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] whitespace-pre-wrap">
+                  {jaring.address || "-"}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Tempat Lahir</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.birthPlace || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Tempat Lahir
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {jaring.birthPlace || "-"}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Tanggal Lahir</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{formatDateOnly(jaring.birthDate)}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Tanggal Lahir
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {formatDateOnly(jaring.birthDate)}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Jenis Kelamin</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.gender === "MALE" ? "Laki-laki" : jaring.gender === "FEMALE" ? "Perempuan" : "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Jenis Kelamin
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {jaring.gender === "MALE" ? "Laki-laki" : jaring.gender === "FEMALE" ? "Perempuan" : "-"}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -362,16 +457,28 @@ export default function JaringDetailPage({ params }: PageProps) {
             </CardHeader>
             <CardContent className="px-5 pb-4 pt-1 divide-y dark:divide-blue-400/8 divide-slate-100">
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Pekerjaan</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.occupationName || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Pekerjaan
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {jaring.occupationName || "-"}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Tempat Kerja</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.workplace || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Tempat Kerja
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {jaring.workplace || "-"}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Jabatan</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.jobTitle || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Jabatan
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {jaring.jobTitle || "-"}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -390,19 +497,33 @@ export default function JaringDetailPage({ params }: PageProps) {
             </CardHeader>
             <CardContent className="px-5 pb-4 pt-1 divide-y dark:divide-blue-400/8 divide-slate-100">
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Organisasi</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.organizationName || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Organisasi
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {jaring.organizationName || "-"}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Afiliasi Politik</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{jaring.politicalAffiliation || "-"}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Afiliasi Politik
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {jaring.politicalAffiliation || "-"}
+                </span>
               </div>
               <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Tanggal Bergabung</span>
-                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{formatDateOnly(jaring.joinedAt)}</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                  Tanggal Bergabung
+                </span>
+                <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                  {formatDateOnly(jaring.joinedAt)}
+                </span>
               </div>
               <div className="flex flex-col pt-3.5 pb-2">
-                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide mb-2">Kebermanfaatan</span>
+                <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide mb-2">
+                  Kebermanfaatan
+                </span>
                 <p className="p-3 border border-border rounded bg-slate-50 dark:bg-slate-950/40 text-xs leading-relaxed max-h-[120px] overflow-y-auto whitespace-pre-wrap dark:text-slate-300 text-slate-700 dark:border-blue-400/8">
                   {jaring.notes || (
                     <span className="italic dark:text-slate-500 text-slate-400">Belum ada kebermanfaatan</span>

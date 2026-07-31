@@ -39,8 +39,6 @@ export type FieldOfficerJaring = {
   code: string;
   aliasName: string;
   whatsappNumber: string;
-  clusterId: string | null;
-  clusterName: string | null;
   status: string;
   registrationStatus: "PENDING" | "APPROVED" | "REJECTED";
   rejectionReason: string | null;
@@ -66,15 +64,6 @@ export type FieldOfficerJaring = {
   politicalAffiliation: string | null;
 };
 
-export type JaringCluster = {
-  id: string;
-  code: string;
-  name: string;
-  description: string | null;
-  isActive: boolean;
-  jaringCount?: number;
-};
-
 export type JaringOccupation = {
   id: string;
   code: string;
@@ -95,14 +84,18 @@ export type ReportCategory = {
 
 export type FieldOfficerIncoming = {
   id: string;
+  referenceNumber: string | null;
   jaringId: string;
   jaringCode: string;
   jaringAlias: string;
-  clusterId: string | null;
-  clusterName: string | null;
   senderPhone: string;
   title: string | null;
   content: string | null;
+  contentAmendments: Array<{
+    id: string;
+    content: string;
+    createdAt: string;
+  }>;
   status: string;
   validationSummary: string;
   categoryId: string | null;
@@ -118,6 +111,13 @@ export type FieldOfficerIncoming = {
   longitude: number | null;
   gpsAccuracyMeters: number | null;
   mediaCount: number;
+  evidenceFiles: Array<{
+    fileId: string;
+    url: string;
+    caption: string | null;
+    mimeType: string | null;
+    originalName: string | null;
+  }>;
   hasPhoto: boolean;
   photoCaption: string | null;
   photoMessageId: string | null;
@@ -136,7 +136,6 @@ export type FieldOfficerBaket = {
   currentVersionTitle: string | null;
   summary: string | null;
   categoryName: string | null;
-  clusterName: string | null;
   urgency: string | null;
   sentToPositionTitle: string | null;
 };
@@ -174,7 +173,6 @@ export type FieldOfficerWorkspace = {
     role: string;
   };
   jaring: FieldOfficerJaring[];
-  jaringClusters: JaringCluster[];
   occupations: JaringOccupation[];
   districtAreas: Array<{
     areaId: string;

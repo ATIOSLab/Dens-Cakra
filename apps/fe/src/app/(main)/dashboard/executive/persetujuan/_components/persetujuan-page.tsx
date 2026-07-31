@@ -107,7 +107,7 @@ const initialReports: ApprovalReport[] = [
     date: "11 Jul 2026",
     sender: "Deputi II / Dalam Negeri",
     analystNotes:
-      "Laporan telah diverifikasi silang dengan satgas perbatasan TNI dan jaring intelijen Sarawak. Rekomendasi tindakan adalah pengetatan pemeriksaan logistik kontainer kargo dan penempatan satuan khusus.",
+      "Laporan telah terverifikasi silang dengan satgas perbatasan TNI dan jaring intelijen Sarawak. Rekomendasi tindakan adalah pengetatan pemeriksaan logistik kontainer kargo dan penempatan satuan khusus.",
     assessment: {
       sourceReliability: "A",
       infoAccuracy: "1",

@@ -116,7 +116,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
 
       if (error) {
         if (error.status === 403) {
-          setFormError("Email Anda belum diverifikasi. Silakan cek inbox dan verifikasi terlebih dahulu.");
+          setFormError("Email Anda belum terverifikasi. Silakan cek inbox dan verifikasi terlebih dahulu.");
           return;
         }
 

@@ -192,49 +192,6 @@ const verificationCheckCodes = [
   'CROSS_REFERENCE',
 ] as const;
 
-const jaringClusterSeeds = [
-  [
-    'POLITICAL_SECURITY',
-    'Politik dan Keamanan',
-    'Jaring pada isu politik, pemerintahan, dan stabilitas keamanan.',
-  ],
-  [
-    'ECONOMY_FINANCE',
-    'Ekonomi dan Keuangan',
-    'Jaring pada aktivitas ekonomi, perdagangan, dan keuangan.',
-  ],
-  [
-    'SOCIAL_CULTURE',
-    'Sosial dan Budaya',
-    'Jaring pada dinamika sosial, komunitas, pendidikan, dan budaya.',
-  ],
-  [
-    'DEFENSE_SECURITY',
-    'Pertahanan dan Keamanan',
-    'Jaring pada objek vital, pertahanan, dan keamanan wilayah.',
-  ],
-  [
-    'CYBER_INFORMATION',
-    'Siber dan Informasi',
-    'Jaring pada ruang siber, media, dan ekosistem informasi.',
-  ],
-  [
-    'TRANSNATIONAL',
-    'Kejahatan Transnasional',
-    'Jaring pada lintas batas, penyelundupan, dan jaringan transnasional.',
-  ],
-  [
-    'NATURAL_RESOURCES',
-    'Sumber Daya Alam',
-    'Jaring pada energi, pangan, lingkungan, dan sumber daya alam.',
-  ],
-  [
-    'STRATEGIC_INFRASTRUCTURE',
-    'Infrastruktur Strategis',
-    'Jaring pada transportasi, telekomunikasi, dan infrastruktur vital.',
-  ],
-] as const;
-
 const jaringOccupationSeeds = [
   ['ASN_PNS', 'ASN / PNS', 'Aparatur Sipil Negara atau Pegawai Negeri Sipil.'],
   ['PPPK', 'PPPK', 'Pegawai Pemerintah dengan Perjanjian Kerja.'],
@@ -624,14 +581,6 @@ async function seedProductTypesAndTemplates() {
 }
 
 async function seedBaketMasterData() {
-  for (const [code, name, description] of jaringClusterSeeds) {
-    await prisma.jaringCluster.upsert({
-      where: { code },
-      update: { name, description, isActive: true },
-      create: { code, name, description, isActive: true },
-    });
-  }
-
   for (const [code, name, description] of jaringOccupationSeeds) {
     await prisma.jaringOccupation.upsert({
       where: { code },

@@ -109,7 +109,6 @@ export function PetaLaporanMap() {
   const [error, setError] = useState<string | null>(null);
   const [periodFrom, setPeriodFrom] = useState("");
   const [periodTo, setPeriodTo] = useState("");
-  const [clusterId, setClusterId] = useState("all");
   const [categoryId, setCategoryId] = useState("all");
   const [urgency, setUrgency] = useState("all");
 
@@ -121,13 +120,12 @@ export function PetaLaporanMap() {
     return reports.filter((report) => {
       const reportTime = new Date(report.reportTimestamp ?? report.receivedAt).getTime();
       const matchesPeriod = (from === null || reportTime >= from) && (to === null || reportTime <= to);
-      const matchesCluster = clusterId === "all" || report.clusterId === clusterId;
       const matchesCategory = categoryId === "all" || report.categoryId === categoryId;
       const matchesUrgency = urgency === "all" || reportUrgency(report.urgency) === urgency;
 
-      return matchesPeriod && matchesCluster && matchesCategory && matchesUrgency;
+      return matchesPeriod && matchesCategory && matchesUrgency;
     });
-  }, [categoryId, clusterId, periodFrom, periodTo, reports, urgency]);
+  }, [categoryId, periodFrom, periodTo, reports, urgency]);
   const locatedReports = useMemo(
     () => filteredReports.filter((item) => typeof item.latitude === "number" && typeof item.longitude === "number"),
     [filteredReports],
@@ -243,7 +241,6 @@ export function PetaLaporanMap() {
         marker.bindPopup(`
           <strong>${report.title ?? "Laporan Jaring"}</strong><br />
           Jaring: ${report.jaringAlias} (${report.jaringCode})<br />
-          Klaster: ${report.clusterName ?? "-"}<br />
           Area: ${report.areaName ?? "-"}<br />
           Kategori: ${report.categoryName ?? "-"}<br />
           Urgensi: ${report.urgency ?? "-"}<br />
@@ -320,7 +317,7 @@ export function PetaLaporanMap() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[1fr_1fr_1.1fr_1.1fr_1.1fr_auto]">
+            <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[1fr_1fr_1.1fr_1.1fr_auto]">
               <label className="space-y-1.5 text-xs text-white/65">
                 <span>Periode Awal</span>
                 <Input
@@ -344,26 +341,6 @@ export function PetaLaporanMap() {
                   onChange={(event) => {
                     resetMapBounds();
                     setPeriodTo(event.target.value);
-                  }}
-                />
-              </label>
-              <label className="space-y-1.5 text-xs text-white/65">
-                <span>Klaster</span>
-                <SearchableFilter
-                  value={clusterId}
-                  options={[
-                    { value: "all", label: "Semua klaster" },
-                    ...(workspace?.jaringClusters ?? []).map((cluster) => ({
-                      value: cluster.id,
-                      label: cluster.name,
-                    })),
-                  ]}
-                  placeholder="Semua klaster"
-                  searchPlaceholder="Cari klaster..."
-                  emptyMessage="Klaster tidak ditemukan."
-                  onValueChange={(value) => {
-                    resetMapBounds();
-                    setClusterId(value);
                   }}
                 />
               </label>
@@ -417,7 +394,6 @@ export function PetaLaporanMap() {
                   resetMapBounds();
                   setPeriodFrom("");
                   setPeriodTo("");
-                  setClusterId("all");
                   setCategoryId("all");
                   setUrgency("all");
                 }}
@@ -459,7 +435,6 @@ export function PetaLaporanMap() {
                         <p className="text-xs text-white/55">
                           {report.jaringAlias} ({report.jaringCode})
                         </p>
-                        <p className="mt-0.5 text-xs text-cyan-200/70">Klaster: {report.clusterName || "-"}</p>
                       </div>
                       <p className="mt-2 line-clamp-2 text-xs text-white/60">{report.content || "-"}</p>
                       <p className="mt-2 text-xs text-white/55">Area: {report.areaName || "-"}</p>

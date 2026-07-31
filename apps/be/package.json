@@ -28,6 +28,7 @@
     "db:reset:postgis": "scripts\\reset-db-with-postgis.cmd",
     "prisma:studio": "prisma studio",
     "seed:admin": "npm run build && node dist/src/scripts/seed-admin.js",
+    "seed:executive": "npm run build && node dist/src/scripts/seed-executive.js",
     "seed:superadmin": "npm run build && node dist/src/scripts/seed-superadmin.js",
     "seed:roles": "npm run build && node dist/src/scripts/seed-role-accounts.js",
     "seed:accounts": "npm run build && node dist/src/scripts/seed-role-accounts.js",

@@ -103,7 +103,6 @@ export class PositionQueryService {
           aliasName: true,
           status: true,
           createdAt: true,
-          cluster: { select: { id: true, code: true, name: true } },
           caretakerAssignments: {
             where: {
               fieldOfficerAssignmentId: { in: scope.assignmentIds },

@@ -4,7 +4,10 @@ import { promisify } from 'node:util';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
-import { FileLifecycleStatus, FileType } from '../../generated/prisma/client.js';
+import {
+  FileLifecycleStatus,
+  FileType,
+} from '../../generated/prisma/client.js';
 import { env } from '../../lib/env.js';
 import { LocalStorageService } from '../infrastructure/local-storage.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -255,7 +258,7 @@ export class FileService implements OnModuleInit {
       },
     });
   }
-  private async scanFile(fileId: string) {
+  async scanFile(fileId: string) {
     const file = await this.prisma.fileAsset.update({
       where: { id: fileId },
       data: { lifecycleStatus: FileLifecycleStatus.SCANNING },

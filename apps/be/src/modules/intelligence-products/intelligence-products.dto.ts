@@ -20,12 +20,19 @@ import {
   ApprovalStage,
   ApprovalStepStatus,
   AlertSeverity,
+  BaketStatus,
   Classification,
   CommandRouteType,
   DistributionStatus,
+  JaringRegistrationStatus,
+  JaringStatus,
   ProductStatus,
 } from '../../generated/prisma/client.js';
 import { SortOrder } from '../../common/dto/sort-order.dto.js';
+import {
+  FieldIntelligencePeriod,
+  JaringActivityLevel,
+} from './field-intelligence.util.js';
 
 export enum ProductSortField {
   UPDATED_AT = 'updatedAt',
@@ -303,6 +310,21 @@ export class DashboardQuery {
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
   @IsOptional() @IsUUID() ownerUnitId?: string;
+}
+
+export class FieldIntelligenceDashboardQuery extends DashboardQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) limit = 12;
+  @IsOptional() @IsString() @MaxLength(120) search?: string;
+  @IsOptional() @IsEnum(JaringStatus) jaringStatus?: JaringStatus;
+  @IsOptional()
+  @IsEnum(JaringRegistrationStatus)
+  registrationStatus?: JaringRegistrationStatus;
+  @IsOptional() @IsEnum(BaketStatus) baketStatus?: BaketStatus;
+  @IsOptional() @IsEnum(JaringActivityLevel) activity?: JaringActivityLevel;
+  @IsOptional()
+  @IsEnum(FieldIntelligencePeriod)
+  period: FieldIntelligencePeriod = FieldIntelligencePeriod.DAYS_30;
 }
 
 export class DashboardTrendQuery extends DashboardQuery {

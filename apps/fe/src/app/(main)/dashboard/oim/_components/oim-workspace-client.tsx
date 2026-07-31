@@ -175,7 +175,7 @@ function baketStatusLabel(value?: string) {
     case "SENT_TO_OIM":
       return "Sudah dikirim";
     case "UNDER_VERIFICATION":
-      return "Sedang diverifikasi";
+      return "Sedang terverifikasi";
     case "NEEDS_DEVELOPMENT":
       return "Perlu pengembangan";
     case "VERIFIED":
@@ -219,15 +219,15 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
 
   const backButtonSettings = hasBackButton
     ? {
-      href:
-        view === "report-detail"
-          ? "/dashboard/oim/laporan-masuk"
-          : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
-            ? "/dashboard/oim/analisis-intelijen"
-            : ["product-new", "product-edit", "product-detail"].includes(view)
-              ? "/dashboard/oim/produk-intelijen/daftar-produk"
-              : undefined,
-    }
+        href:
+          view === "report-detail"
+            ? "/dashboard/oim/laporan-masuk"
+            : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
+              ? "/dashboard/oim/analisis-intelijen"
+              : ["product-new", "product-edit", "product-detail"].includes(view)
+                ? "/dashboard/oim/produk-intelijen/daftar-produk"
+                : undefined,
+      }
     : undefined;
 
   return (
@@ -497,7 +497,7 @@ function statusLabelIndo(status: string) {
     case "SENT_TO_OIM":
       return "Baru";
     case "UNDER_VERIFICATION":
-      return "Sedang Diverifikasi";
+      return "Sedang Terverifikasi";
     case "NEEDS_DEVELOPMENT":
       return "Perlu Pengembangan";
     case "VERIFIED":
@@ -526,12 +526,10 @@ function statusLabelIndo(status: string) {
 function Filters({
   areas,
   reportCategories,
-  jaringClusters,
   mode = "baket",
 }: {
   areas?: unknown;
   reportCategories?: unknown;
-  jaringClusters?: unknown;
   mode?: "baket" | "verification" | "product";
 }) {
   const router = useRouter();
@@ -539,7 +537,6 @@ function Filters({
 
   const root = (areas ?? {}) as Row;
   const categories = rows(reportCategories);
-  const clusters = rows(jaringClusters);
   const topLevel = rows(root.children);
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
   const provinceId = provinces[0]?.id || "";
@@ -552,7 +549,6 @@ function Filters({
   const [urgency, setUrgency] = useState(searchParams.get("urgency") || "");
   const [classification, setClassification] = useState(searchParams.get("classification") || "");
   const [categoryId, setCategoryId] = useState(searchParams.get("categoryId") || "");
-  const [jaringClusterId, setJaringClusterId] = useState(searchParams.get("jaringClusterId") || "");
   const [periodStart, setPeriodStart] = useState(searchParams.get("periodStart") || "");
   const [periodEnd, setPeriodEnd] = useState(searchParams.get("periodEnd") || "");
 
@@ -575,7 +571,6 @@ function Filters({
     setUrgency(searchParams.get("urgency") || "");
     setClassification(searchParams.get("classification") || "");
     setCategoryId(searchParams.get("categoryId") || "");
-    setJaringClusterId(searchParams.get("jaringClusterId") || "");
     setPeriodStart(searchParams.get("periodStart") || "");
     setPeriodEnd(searchParams.get("periodEnd") || "");
   }, [searchParams]);
@@ -606,7 +601,6 @@ function Filters({
     if (urgency) params.set("urgency", urgency);
     if (classification && mode === "product") params.set("classification", classification);
     if (categoryId && mode === "baket") params.set("categoryId", categoryId);
-    if (jaringClusterId && mode === "baket") params.set("jaringClusterId", jaringClusterId);
     if (periodStart) params.set("periodStart", periodStart);
     if (periodEnd) params.set("periodEnd", periodEnd);
 
@@ -625,7 +619,6 @@ function Filters({
     urgency,
     classification,
     categoryId,
-    jaringClusterId,
     periodStart,
     periodEnd,
     mode,
@@ -747,23 +740,6 @@ function Filters({
         </Select>
       ) : null}
 
-      {/* Klaster Select (for Baket mode) */}
-      {mode === "baket" ? (
-        <Select value={jaringClusterId || "ALL"} onValueChange={(val) => setJaringClusterId(val === "ALL" ? "" : val)}>
-          <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
-            <SelectValue placeholder="Semua klaster" />
-          </SelectTrigger>
-          <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
-            <SelectItem value="ALL">Semua klaster</SelectItem>
-            {clusters.map((cluster) => (
-              <SelectItem key={cluster.id} value={cluster.id}>
-                {cluster.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : null}
-
       <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
         <label className="space-y-1">
           <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
@@ -800,30 +776,28 @@ function Filters({
         urgency ||
         classification ||
         categoryId ||
-        jaringClusterId ||
         periodStart ||
         periodEnd
       ) && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setSearch("");
-              setRegencyId("");
-              setDistrictId("");
-              setStatus("");
-              setUrgency("");
-              setClassification("");
-              setCategoryId("");
-              setJaringClusterId("");
-              setPeriodStart("");
-              setPeriodEnd("");
-            }}
-            className="h-9 font-mono text-xs uppercase border-dashed border-border text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            Reset Filter
-          </Button>
-        )}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setSearch("");
+            setRegencyId("");
+            setDistrictId("");
+            setStatus("");
+            setUrgency("");
+            setClassification("");
+            setCategoryId("");
+            setPeriodStart("");
+            setPeriodEnd("");
+          }}
+          className="h-9 font-mono text-xs uppercase border-dashed border-border text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          Reset Filter
+        </Button>
+      )}
     </form>
   );
 }
@@ -866,7 +840,6 @@ function BaketList({ data }: { data: OimPageData }) {
           search: searchParams.get("search") || undefined,
           urgency: searchParams.get("urgency") || undefined,
           categoryId: searchParams.get("categoryId") || undefined,
-          jaringClusterId: searchParams.get("jaringClusterId") || undefined,
           from: searchParams.get("periodStart") || undefined,
           to: searchParams.get("periodEnd") || undefined,
           sortBy: "updatedAt",
@@ -927,7 +900,7 @@ function BaketList({ data }: { data: OimPageData }) {
                       Judul Laporan
                     </TableHead>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
-                      Kategori & Klaster
+                      Kategori
                     </TableHead>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
                       Pengirim
@@ -1007,9 +980,6 @@ function BaketList({ data }: { data: OimPageData }) {
                           <div className="flex flex-col gap-1 items-start">
                             <span className="text-[10.5px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
                               {item.reportCategory?.name ?? "KATEGORI SECURE"}
-                            </span>
-                            <span className="text-[10.5px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                              {item.jaringCluster?.name ?? "KLASTER OIM"}
                             </span>
                           </div>
                         </TableCell>
@@ -1093,10 +1063,6 @@ function BaketList({ data }: { data: OimPageData }) {
                             KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
                           </span>
 
-                          <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                            {item.jaringCluster?.name ?? "KLASTER OIM"}
-                          </span>
-
                           <span className="text-xs text-muted-foreground/60 font-mono">
                             v{item.currentVersionNumber}
                           </span>
@@ -1167,7 +1133,7 @@ function BaketList({ data }: { data: OimPageData }) {
 function ReportStatusTabs({ activeStatus }: { activeStatus?: string }) {
   const tabs = [
     ["SENT_TO_OIM", "Baru"],
-    ["UNDER_VERIFICATION", "Sedang Diverifikasi"],
+    ["UNDER_VERIFICATION", "Sedang Terverifikasi"],
     ["NEEDS_DEVELOPMENT", "Perlu Pengembangan"],
     ["VERIFIED,REJECTED", "Selesai"],
   ];
@@ -1229,9 +1195,6 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
               <StatusBadge value={baket.status} />
               <StatusBadge value={version.urgency} />
               <Badge variant="outline">KATEGORI: {baket.reportCategory?.name ?? "Kategori legacy"}</Badge>
-              <Badge variant="outline">
-                {baket.jaringCluster?.name ?? baket.primaryJaring?.cluster?.name ?? "Klaster legacy"}
-              </Badge>
             </div>
             <CardTitle>{version.title ?? "Baket"}</CardTitle>
             <CardDescription>
@@ -2551,10 +2514,10 @@ function ProductBuilder({ data }: { data: OimPageData }) {
 
   const canSave = Boolean(
     selectedProductTypeId &&
-    template &&
-    analysisVersion.id &&
-    title.trim() &&
-    templateContentComplete(template, fieldValues, journalRows),
+      template &&
+      analysisVersion.id &&
+      title.trim() &&
+      templateContentComplete(template, fieldValues, journalRows),
   );
 
   return (
@@ -3402,13 +3365,13 @@ export function OimWorkspaceClient({ view, data }: Props) {
                       step.state === "completed"
                         ? "#10B981"
                         : // Emerald green
-                        step.state === "active"
+                          step.state === "active"
                           ? "#3B82F6"
                           : // Tactical blue
-                          step.state === "bottleneck"
+                            step.state === "bottleneck"
                             ? "#F59E0B"
                             : // Amber yellow
-                            "#7C8798"; // Slate gray pending
+                              "#7C8798"; // Slate gray pending
 
                     return (
                       <div key={step.label} className="relative flex items-start justify-between">
@@ -3466,7 +3429,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
         )}
         {view === "reports" && (
           <>
-            <Filters areas={data.areas} reportCategories={data.reportCategories} jaringClusters={data.jaringClusters} />
+            <Filters areas={data.areas} reportCategories={data.reportCategories} />
             <Kpis data={data} />
             <BaketList data={data} />
           </>
@@ -3704,7 +3667,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
         )}
         {view === "map" && (
           <>
-            <Filters areas={data.areas} reportCategories={data.reportCategories} jaringClusters={data.jaringClusters} />
+            <Filters areas={data.areas} reportCategories={data.reportCategories} />
             <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
               <SituationMap reports={data.map} boundaries={data.boundaries} />
               <Card>

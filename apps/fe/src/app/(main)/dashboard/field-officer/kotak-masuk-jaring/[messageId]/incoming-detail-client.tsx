@@ -34,6 +34,10 @@ function statusTone(status: string) {
   }
 }
 
+function validationLabel(status: string) {
+  return status === "NOT_CHECKED" ? "MENUNGGU VALIDASI" : status;
+}
+
 type IncomingDetailClientProps = {
   messageId: string;
 };
@@ -113,7 +117,7 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
                 {message.status}
               </span>
               <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                VAL: {message.validationSummary}
+                VAL: {validationLabel(message.validationSummary)}
               </span>
               <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
                 JARING: {message.jaringCode}
@@ -179,7 +183,23 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
                   <CheckCircle2 className="size-4 shrink-0" />
                   <span>FOTO BUKTI TERVERIFIKASI</span>
                 </div>
-                {message.photoUrl ? (
+                {message.evidenceFiles.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {message.evidenceFiles.map((file, index) => (
+                      <div
+                        key={file.fileId}
+                        className="overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm"
+                      >
+                        <EvidenceImageViewer
+                          src={file.url}
+                          alt={`Dokumentasi ${index + 1} ${message.title || message.jaringAlias}`}
+                          fileName={file.originalName || file.fileId}
+                          caption={file.caption || `Dokumentasi ${index + 1} · Jaring ${message.jaringCode}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : message.photoUrl ? (
                   <div className="max-w-xs overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm">
                     <EvidenceImageViewer
                       src={message.photoUrl}
@@ -194,7 +214,9 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
                   </p>
                 )}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-[var(--tactical-text-muted)] border-t border-[var(--tactical-border)]/20 pt-2 mt-2">
-                  <span>FILE ID: {message.photoFileId || "-"}</span>
+                  <span>
+                    FILE: {message.mediaCount > 0 ? `${message.mediaCount} DOKUMENTASI` : message.photoFileId || "-"}
+                  </span>
                   <span>WA ID: {message.photoMessageId || "-"}</span>
                   {message.photoCaption && <span>CAPTION: {message.photoCaption}</span>}
                 </div>

@@ -1,24 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
   ArrowLeft,
+  BriefcaseBusiness,
   CheckCircle2,
   Clock,
+  Columns3,
   Eye,
+  EyeOff,
   FileText,
   Inbox,
   MapPin,
+  Network,
   RefreshCw,
   Search,
   ShieldCheck,
   UserCheck,
+  UserRound,
   UserX,
+  Users,
   X,
   XCircle,
 } from "lucide-react";
@@ -46,6 +51,15 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -53,35 +67,25 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
 
-export type RegistrationJaring = {
-  id: string;
-  code: string;
-  aliasName: string | null;
-  fullName: string | null;
-  nationalIdNumber: string | null;
-  address: string | null;
-  birthPlace: string | null;
-  birthDate: string | null;
-  gender: string | null;
-  whatsappNumber: string;
-  occupation: { name: string } | null;
-  profilePhotoFileId: string | null;
-  profilePhotoFile: { id: string } | null;
-  workplace: string | null;
-  jobTitle: string | null;
-  joinedAt: string | null;
-  organizationName: string | null;
-  politicalAffiliation: string | null;
-  notes: string | null;
-  registrationStatus: "PENDING" | "APPROVED" | "REJECTED";
-  registeredAt: string;
-  createdAt?: string;
-  rejectionReason?: string | null;
-  caretakerAssignments: Array<{
-    fieldOfficerAssignment: { userProfile: { fullName: string | null } };
-  }>;
-  areaCoverages: Array<{ area: { name: string } }>;
-};
+import { jaringDistrict, jaringVillage, type RegistrationJaring } from "../_components/jaring-types";
+
+export type { RegistrationJaring } from "../_components/jaring-types";
+
+const COLUMN_OPTIONS = [
+  { id: "alias", label: "Alias" },
+  { id: "name", label: "Nama" },
+  { id: "gender", label: "Jenis Kelamin" },
+  { id: "address", label: "Alamat" },
+  { id: "village", label: "Kelurahan" },
+  { id: "district", label: "Kecamatan" },
+  { id: "occupation", label: "Pekerjaan" },
+  { id: "fieldOfficer", label: "Handler" },
+  { id: "status", label: "Status" },
+] as const;
+
+type JaringColumn = (typeof COLUMN_OPTIONS)[number]["id"];
+
+const DEFAULT_COLUMNS: JaringColumn[] = ["alias", "name", "gender", "village", "district"];
 
 function formatDateOnly(value?: string | null) {
   if (!value) return "-";
@@ -94,23 +98,10 @@ function formatDateOnly(value?: string | null) {
   }
 }
 
-function formatTimeOnly(value?: string | null) {
-  if (!value) return "";
-  try {
-    return new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(new Date(value)) + " WIB";
-  } catch {
-    return "";
-  }
-}
-
 function formatGender(value?: string | null) {
   if (value === "MALE") return "Laki-laki";
   if (value === "FEMALE") return "Perempuan";
   return "-";
-}
-
-function filled(value?: string | null) {
-  return value?.trim() ? value.trim() : null;
 }
 
 function profilePhotoUrl(item: RegistrationJaring) {
@@ -135,9 +126,9 @@ function getInitials(name?: string | null) {
 }
 
 function statusLabel(status: RegistrationJaring["registrationStatus"]) {
-  if (status === "APPROVED") return "Disetujui";
+  if (status === "APPROVED") return "Terverifikasi";
   if (status === "REJECTED") return "Ditolak";
-  return "Belum di verifikasi";
+  return "Belum terverifikasi";
 }
 
 function statusBadgeVariant(status: RegistrationJaring["registrationStatus"]) {
@@ -148,10 +139,6 @@ function statusBadgeVariant(status: RegistrationJaring["registrationStatus"]) {
     return "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400";
   }
   return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400";
-}
-
-function presentRows(rows: Array<[string, string | null]>) {
-  return rows.flatMap(([label, value]) => (value ? [[label, value] as const] : []));
 }
 
 export function JaringVerificationListClient({ initialItems }: { initialItems: RegistrationJaring[] }) {
@@ -165,6 +152,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<JaringColumn[]>(DEFAULT_COLUMNS);
 
   // Quick Action Modal State
   const [selectedItemForAction, setSelectedItemForAction] = useState<{
@@ -284,6 +272,16 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     }, 600);
   }
 
+  function isColumnVisible(column: JaringColumn) {
+    return visibleColumns.includes(column);
+  }
+
+  function setColumnVisibility(column: JaringColumn, visible: boolean) {
+    setVisibleColumns((current) =>
+      visible ? [...new Set([...current, column])] : current.filter((item) => item !== column),
+    );
+  }
+
   async function handleQuickDecision(item: RegistrationJaring, action: "approve" | "reject", reason?: string) {
     setIsSubmittingAction(true);
     try {
@@ -301,7 +299,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             ? {
                 ...prev,
                 registrationStatus: action === "approve" ? "APPROVED" : "REJECTED",
-                rejectionReason: action === "reject" ? (reason?.trim() || null) : prev.rejectionReason,
+                rejectionReason: action === "reject" ? reason?.trim() || null : prev.rejectionReason,
               }
             : prev,
         ),
@@ -309,7 +307,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
 
       toast.success(
         action === "approve"
-          ? `Pengajuan ${item.aliasName ?? item.code} disetujui.`
+          ? `Pengajuan ${item.aliasName ?? item.code} terverifikasi.`
           : `Pengajuan ${item.aliasName ?? item.code} ditolak.`,
       );
       router.refresh();
@@ -336,14 +334,14 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage className="font-medium text-foreground">Verifikasi Jaring</BreadcrumbPage>
+                <BreadcrumbPage className="font-medium text-foreground">Daftar Jaring</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <div>
-            <h1 className="font-bold text-3xl tracking-tight text-foreground">Verifikasi Jaring</h1>
+            <h1 className="font-bold text-3xl tracking-tight text-foreground">Daftar Jaring</h1>
             <p className="mt-1.5 text-muted-foreground text-sm max-w-2xl">
-              Melakukan verifikasi calon jaringan sebelum disetujui menjadi anggota operasional.
+              Kelola dan verifikasi data Jaring yang diajukan oleh Handler.
             </p>
           </div>
         </div>
@@ -367,18 +365,20 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               <Clock className="size-5" />
             </div>
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Belum di verifikasi</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Belum terverifikasi
+              </p>
               <p className="text-xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{summary.pending}</p>
             </div>
           </div>
 
-          {/* Disetujui */}
+          {/* Terverifikasi */}
           <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-3.5 shadow-xs min-w-[140px] transition-all hover:border-emerald-500/40">
             <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
               <UserCheck className="size-5" />
             </div>
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Disetujui</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Terverifikasi</p>
               <p className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
                 {summary.approved}
               </p>
@@ -451,12 +451,12 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             className="w-full sm:w-auto min-w-[140px]"
           >
             <option value="ALL">Semua Status</option>
-            <option value="PENDING">Belum di verifikasi</option>
-            <option value="APPROVED">Disetujui</option>
+            <option value="PENDING">Belum terverifikasi</option>
+            <option value="APPROVED">Terverifikasi</option>
             <option value="REJECTED">Ditolak</option>
           </NativeSelect>
 
-          {/* Filter Field Officer */}
+          {/* Filter Handler */}
           <NativeSelect
             value={officerFilter}
             onChange={(e) => {
@@ -465,7 +465,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             }}
             className="w-full sm:w-auto min-w-[160px]"
           >
-            <option value="ALL">Semua Field Officer</option>
+            <option value="ALL">Semua Handler</option>
             {uniqueOfficers.map((fo) => (
               <option key={fo} value={fo}>
                 {fo}
@@ -523,53 +523,93 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 <ShieldCheck className="size-5" />
               </div>
               <div>
-                <CardTitle className="text-lg font-semibold tracking-tight text-foreground">
-                  Daftar Pengajuan Verifikasi
-                </CardTitle>
+                <CardTitle className="text-lg font-semibold tracking-tight text-foreground">Daftar Jaring</CardTitle>
                 <CardDescription className="mt-0.5 text-xs text-muted-foreground">
-                  {summary.pending} pengajuan belum di verifikasi.
+                  {summary.pending} pengajuan belum terverifikasi.
                 </CardDescription>
               </div>
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg">
+                    <Columns3 className="size-3.5" />
+                    Kolom
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel>Tampilkan Kolom</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {COLUMN_OPTIONS.map((column) => (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      checked={isColumnVisible(column.id)}
+                      onCheckedChange={(checked) => setColumnVisibility(column.id, checked === true)}
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      {column.label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Badge variant="outline" className="h-7 px-3 text-xs rounded-full border-border bg-background">
-                {filteredItems.length} Pengajuan
+                {filteredItems.length} Jaring
               </Badge>
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
-          {/* DESKTOP ENTERPRISE TABLE */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-border/80 bg-slate-100/60 dark:bg-zinc-900/60 hover:bg-slate-100/60">
-                  <TableHead className="pl-6 py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground w-[180px]">
-                    Alias
-                  </TableHead>
-                  <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground w-[220px]">
-                    Nama
-                  </TableHead>
-                  <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[220px]">
-                    Alamat
-                  </TableHead>
-                  <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Pekerjaan
-                  </TableHead>
-                  <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Wilayah
-                  </TableHead>
-                  <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Field Officer
-                  </TableHead>
-                  <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground w-[130px]">
-                    Status
-                  </TableHead>
-                  <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground w-[130px]">
-                    Waktu
-                  </TableHead>
+                  {isColumnVisible("alias") ? (
+                    <TableHead className="pl-6 py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[180px]">
+                      Alias
+                    </TableHead>
+                  ) : null}
+                  {isColumnVisible("name") ? (
+                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[210px]">
+                      Nama
+                    </TableHead>
+                  ) : null}
+                  {isColumnVisible("gender") ? (
+                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[130px]">
+                      Jenis Kelamin
+                    </TableHead>
+                  ) : null}
+                  {isColumnVisible("address") ? (
+                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[260px]">
+                      Alamat
+                    </TableHead>
+                  ) : null}
+                  {isColumnVisible("village") ? (
+                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[170px]">
+                      Kelurahan
+                    </TableHead>
+                  ) : null}
+                  {isColumnVisible("district") ? (
+                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[170px]">
+                      Kecamatan
+                    </TableHead>
+                  ) : null}
+                  {isColumnVisible("occupation") ? (
+                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[190px]">
+                      Pekerjaan
+                    </TableHead>
+                  ) : null}
+                  {isColumnVisible("fieldOfficer") ? (
+                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[210px]">
+                      Handler
+                    </TableHead>
+                  ) : null}
+                  {isColumnVisible("status") ? (
+                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[150px]">
+                      Status
+                    </TableHead>
+                  ) : null}
                   <TableHead className="pr-6 py-3.5 text-right font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[180px]">
                     Aksi
                   </TableHead>
@@ -579,115 +619,120 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 {paginatedItems.map((item) => {
                   const photo = profilePhotoUrl(item);
                   const foName = officerName(item);
-                  const areas = areaNames(item);
+                  const village = jaringVillage(item);
+                  const district = jaringDistrict(item);
+                  const villageName = village ? village.name : "-";
+                  const districtName = district ? district.name : "-";
                   const isPending = item.registrationStatus === "PENDING";
                   return (
                     <TableRow
                       key={item.id}
                       className="h-16 transition-colors duration-180 hover:bg-slate-50/80 dark:hover:bg-zinc-800/40 border-b border-border/50"
                     >
-                      {/* Alias */}
-                      <TableCell className="pl-6 py-3">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="size-9 border border-border">
-                            {photo ? (
-                              <AvatarImage src={photo} alt={item.aliasName ?? item.code} />
+                      {isColumnVisible("alias") ? (
+                        <TableCell className="pl-6 py-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="size-9 border border-border">
+                              {photo ? (
+                                <AvatarImage src={photo} alt={item.aliasName ?? item.code} />
+                              ) : (
+                                <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
+                                  {getInitials(item.aliasName ?? item.code)}
+                                </AvatarFallback>
+                              )}
+                            </Avatar>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-sm font-mono text-foreground truncate">
+                                {item.aliasName ?? item.code}
+                              </span>
+                              <span className="text-xs text-muted-foreground font-mono">ID: {item.code}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                      ) : null}
+
+                      {isColumnVisible("name") ? (
+                        <TableCell className="py-3">
+                          <span className="font-medium text-sm text-foreground">{item.fullName ?? "-"}</span>
+                        </TableCell>
+                      ) : null}
+
+                      {isColumnVisible("gender") ? (
+                        <TableCell className="py-3 text-sm text-foreground">{formatGender(item.gender)}</TableCell>
+                      ) : null}
+
+                      {isColumnVisible("address") ? (
+                        <TableCell className="py-3">
+                          <div
+                            className="max-w-[260px] truncate text-sm text-foreground"
+                            title={item.address ?? undefined}
+                          >
+                            {item.address ?? "-"}
+                          </div>
+                        </TableCell>
+                      ) : null}
+
+                      {isColumnVisible("village") ? (
+                        <TableCell className="py-3">
+                          <div className="inline-flex items-center gap-1.5 text-sm text-foreground">
+                            <MapPin className="size-3.5 shrink-0 text-cyan-600" />
+                            {villageName}
+                          </div>
+                        </TableCell>
+                      ) : null}
+
+                      {isColumnVisible("district") ? (
+                        <TableCell className="py-3">
+                          <span className="text-sm font-medium text-foreground">{districtName}</span>
+                        </TableCell>
+                      ) : null}
+
+                      {isColumnVisible("occupation") ? (
+                        <TableCell className="py-3">
+                          <div className="flex flex-col min-w-0 max-w-[200px]">
+                            <span className="font-medium text-sm text-foreground truncate">
+                              {item.occupation?.name ?? "-"}
+                            </span>
+                            {item.workplace || item.jobTitle ? (
+                              <span className="text-xs text-muted-foreground truncate">
+                                {[item.jobTitle, item.workplace].filter(Boolean).join(" • ")}
+                              </span>
                             ) : (
-                              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
-                                {getInitials(item.aliasName ?? item.code)}
-                              </AvatarFallback>
+                              <span className="text-xs text-muted-foreground">-</span>
                             )}
-                          </Avatar>
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-semibold text-sm font-mono text-foreground truncate">
-                              {item.aliasName ?? item.code}
-                            </span>
-                            <span className="text-xs text-muted-foreground font-mono">ID: {item.code}</span>
                           </div>
-                        </div>
-                      </TableCell>
+                        </TableCell>
+                      ) : null}
 
-                      {/* Nama */}
-                      <TableCell className="py-3">
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-medium text-sm text-foreground truncate">{item.fullName ?? "-"}</span>
-                          <span className="text-xs text-muted-foreground">{formatGender(item.gender)}</span>
-                        </div>
-                      </TableCell>
+                      {isColumnVisible("fieldOfficer") ? (
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-2.5 max-w-[220px]">
+                            <div className="flex size-7 items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800 text-muted-foreground text-[10px] font-semibold shrink-0">
+                              {getInitials(foName)}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-medium text-sm text-foreground truncate">{foName}</span>
+                              <span className="text-[11px] text-muted-foreground">Handler</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                      ) : null}
 
-                      {/* Alamat */}
-                      <TableCell className="py-3">
-                        <div className="max-w-[260px] truncate text-sm text-foreground" title={item.address ?? undefined}>
-                          {item.address ?? "-"}
-                        </div>
-                      </TableCell>
-
-                      {/* Pekerjaan */}
-                      <TableCell className="py-3">
-                        <div className="flex flex-col min-w-0 max-w-[200px]">
-                          <span className="font-medium text-sm text-foreground truncate">
-                            {item.occupation?.name ?? "-"}
+                      {isColumnVisible("status") ? (
+                        <TableCell className="py-3">
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
+                              statusBadgeVariant(item.registrationStatus),
+                            )}
+                          >
+                            {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3 shrink-0" />}
+                            {item.registrationStatus === "REJECTED" && <XCircle className="size-3 shrink-0" />}
+                            {item.registrationStatus === "PENDING" && <Clock className="size-3 shrink-0" />}
+                            {statusLabel(item.registrationStatus)}
                           </span>
-                          {item.workplace || item.jobTitle ? (
-                            <span className="text-xs text-muted-foreground truncate">
-                              {[item.jobTitle, item.workplace].filter(Boolean).join(" • ")}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">-</span>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      {/* Wilayah */}
-                      <TableCell className="py-3">
-                        <div className="flex flex-col min-w-0 max-w-[200px]">
-                          <span className="font-medium text-sm text-foreground truncate">{areas}</span>
-                          <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <MapPin className="size-3 text-primary shrink-0" />
-                            <span className="truncate">Cakupan Wilayah</span>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* Field Officer */}
-                      <TableCell className="py-3">
-                        <div className="flex items-center gap-2.5 max-w-[220px]">
-                          <div className="flex size-7 items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800 text-muted-foreground text-[10px] font-semibold shrink-0">
-                            {getInitials(foName)}
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-medium text-sm text-foreground truncate">{foName}</span>
-                            <span className="text-[11px] text-muted-foreground">Field Officer</span>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* Status */}
-                      <TableCell className="py-3">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
-                            statusBadgeVariant(item.registrationStatus),
-                          )}
-                        >
-                          {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3 shrink-0" />}
-                          {item.registrationStatus === "REJECTED" && <XCircle className="size-3 shrink-0" />}
-                          {item.registrationStatus === "PENDING" && <Clock className="size-3 shrink-0" />}
-                          {statusLabel(item.registrationStatus)}
-                        </span>
-                      </TableCell>
-
-                      {/* Waktu */}
-                      <TableCell className="py-3">
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-medium text-xs text-foreground">
-                            {formatDateOnly(item.registeredAt ?? item.createdAt)}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {formatTimeOnly(item.registeredAt ?? item.createdAt)}
-                          </span>
-                        </div>
-                      </TableCell>
+                        </TableCell>
+                      ) : null}
 
                       {/* Aksi (Detail kiri, Tolak tengah, Setujui kanan) */}
                       <TableCell className="pr-6 py-3 text-right">
@@ -738,8 +783,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             </Table>
           </div>
 
-          {/* MOBILE RESPONSIVE CARD VIEW (< md) */}
-          <div className="block md:hidden divide-y divide-border/60">
+          <div className="hidden">
             {paginatedItems.map((item) => {
               const photo = profilePhotoUrl(item);
               const foName = officerName(item);
@@ -795,7 +839,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                       <span className="font-medium text-foreground">{item.address ?? "-"}</span>
                     </div>
                     <div className="col-span-2">
-                      <span className="text-muted-foreground">Field Officer:</span>{" "}
+                      <span className="text-muted-foreground">Handler:</span>{" "}
                       <span className="font-medium text-foreground">{foName}</span>
                     </div>
                   </div>
@@ -849,7 +893,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 <p className="text-xs text-muted-foreground">
                   {hasActiveFilters
                     ? "Tidak ada data pengajuan yang cocok dengan filter pencarian Anda."
-                    : "Pengajuan baru akan muncul setelah Field Officer mengirim data."}
+                    : "Pengajuan baru akan muncul setelah Handler mengirim data."}
                 </p>
               </div>
               {hasActiveFilters ? (
@@ -907,7 +951,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
               {selectedItemForAction?.action === "approve"
-                ? `Status pengajuan untuk "${selectedItemForAction.item.aliasName ?? selectedItemForAction.item.code}" (${selectedItemForAction.item.fullName ?? "-"}) akan diubah menjadi Disetujui.`
+                ? `Status pengajuan untuk "${selectedItemForAction.item.aliasName ?? selectedItemForAction.item.code}" (${selectedItemForAction.item.fullName ?? "-"}) akan diubah menjadi Terverifikasi.`
                 : `Status pengajuan untuk "${selectedItemForAction?.item.aliasName ?? selectedItemForAction?.item.code}" (${selectedItemForAction?.item.fullName ?? "-"}) akan diubah menjadi Ditolak.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -937,11 +981,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               onClick={(e) => {
                 e.preventDefault();
                 if (selectedItemForAction) {
-                  void handleQuickDecision(
-                    selectedItemForAction.item,
-                    selectedItemForAction.action,
-                    rejectionReason,
-                  );
+                  void handleQuickDecision(selectedItemForAction.item, selectedItemForAction.action, rejectionReason);
                 }
               }}
               className={cn(
@@ -969,19 +1009,13 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
+  const [visiblePin, setVisiblePin] = useState(false);
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"operational" | "personal" | "career" | "affiliation">("operational");
   const selectedPhotoUrl = profilePhotoUrl(item);
+  const villageName = jaringVillage(item)?.name ?? "-";
+  const districtName = jaringDistrict(item)?.name ?? "-";
   const canDecide = item.registrationStatus === "PENDING";
-  const optionalRows = presentRows([
-    ["NIK / KTP", filled(item.nationalIdNumber)],
-    ["Tempat lahir", filled(item.birthPlace)],
-    ["Tanggal lahir", item.birthDate ? formatDateOnly(item.birthDate) : null],
-    ["Jenis kelamin", item.gender ? formatGender(item.gender) : null],
-    ["Tempat kerja", filled(item.workplace)],
-    ["Jabatan", filled(item.jobTitle)],
-    ["Tanggal bergabung", item.joinedAt ? formatDateOnly(item.joinedAt) : null],
-    ["Organisasi", filled(item.organizationName)],
-    ["Afiliasi politik", filled(item.politicalAffiliation)],
-  ]);
 
   async function decide(action: "approve" | "reject") {
     setBusy(true);
@@ -994,7 +1028,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
       );
       // biome-ignore lint/nursery/noFloatingPromises: This request is awaited; Biome nursery currently false-positives on this promise.
       await decisionRequest;
-      toast.success(action === "approve" ? "Jaring disetujui." : "Pengajuan Jaring ditolak.");
+      toast.success(action === "approve" ? "Jaring terverifikasi." : "Pengajuan Jaring ditolak.");
       router.push("/dashboard/field-coordinator/verifikasi-jaring");
       router.refresh();
     } catch (error) {
@@ -1012,189 +1046,238 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   }
 
   return (
-    <main className="space-y-8 p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto">
-      {/* BREADCRUMB & HEADER */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-3">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard" className="text-muted-foreground hover:text-foreground">
-                  Dashboard
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink
-                  href="/dashboard/field-coordinator/verifikasi-jaring"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  Verifikasi Jaring
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="font-medium text-foreground">Detail Pengajuan</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div>
-            <h1 className="font-bold text-3xl tracking-tight text-foreground">Detail Pengajuan Jaring</h1>
-            <p className="mt-1.5 text-muted-foreground text-sm">
-              Periksa data pengajuan secara menyeluruh sebelum memberi keputusan verifikasi.
-            </p>
-          </div>
+    <main className="mx-auto max-w-4xl space-y-6 p-4 transition-colors duration-150 md:p-6">
+      <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 dark:border-blue-400/12 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="h-8 w-fit rounded-[6px] border-slate-200 bg-white font-medium text-muted-foreground transition-all duration-150 ease-out hover:bg-slate-100 hover:text-foreground dark:border-blue-400/12 dark:bg-[#111827] dark:hover:bg-blue-400/5"
+          >
+            <Link href="/dashboard/field-coordinator/verifikasi-jaring">
+              <ArrowLeft className="mr-1.5 size-3.5 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />
+              Kembali
+            </Link>
+          </Button>
+          <div className="hidden h-4 w-px bg-slate-200 dark:bg-blue-400/12 sm:block" />
+          <h1 className="flex min-w-0 items-center gap-2 font-heading font-bold text-xl tracking-tight text-slate-900 dark:text-[#F8FAFC]">
+            <Users className="size-5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />
+            <span className="shrink-0">DETAIL JARING:</span>
+            <span className="min-w-0 truncate font-mono tracking-wide">{item.aliasName ?? item.code}</span>
+          </h1>
         </div>
 
-        <Button asChild variant="outline" className="h-9 gap-1.5 rounded-lg border-border self-start sm:self-auto">
-          <Link href="/dashboard/field-coordinator/verifikasi-jaring">
-            <ArrowLeft className="size-4" /> Kembali
-          </Link>
-        </Button>
+        <StatusPill tone={statusBadgeVariant(item.registrationStatus)}>
+          {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3.5" />}
+          {item.registrationStatus === "REJECTED" && <XCircle className="size-3.5" />}
+          {item.registrationStatus === "PENDING" && <Clock className="size-3.5" />}
+          {detailRegistrationStatusLabel(item.registrationStatus)}
+        </StatusPill>
       </div>
 
-      {/* DETAIL CONTAINER */}
-      <Card className="overflow-hidden rounded-[18px] border border-slate-200/80 dark:border-white/10 shadow-xs">
-        <CardHeader className="border-b border-border/80 bg-slate-50/80 dark:bg-white/[0.02] p-5 md:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Avatar className="size-12 border border-border">
-                {selectedPhotoUrl ? (
-                  <AvatarImage src={selectedPhotoUrl} alt={item.aliasName ?? item.code} />
-                ) : (
-                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-                    {getInitials(item.aliasName ?? item.code)}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              <div>
-                <CardTitle className="text-xl font-bold tracking-tight text-foreground">
-                  {item.aliasName ?? item.code}
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground font-mono">
-                  Kode Alias: {item.code} • {item.fullName ?? "Nama belum tersedia"}
-                </CardDescription>
+      <div className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-slate-200 font-mono text-[11px] dark:border-blue-400/12">
+        <DetailTabButton active={activeTab === "operational"} onClick={() => setActiveTab("operational")}>
+          PROFIL OPERASIONAL
+        </DetailTabButton>
+        <DetailTabButton active={activeTab === "personal"} onClick={() => setActiveTab("personal")}>
+          DATA PRIBADI
+        </DetailTabButton>
+        <DetailTabButton active={activeTab === "career"} onClick={() => setActiveTab("career")}>
+          PEKERJAAN & KARIR
+        </DetailTabButton>
+        <DetailTabButton active={activeTab === "affiliation"} onClick={() => setActiveTab("affiliation")}>
+          AFILIASI & CATATAN
+        </DetailTabButton>
+      </div>
+
+      <div className="mx-auto max-w-3xl pt-2">
+        {activeTab === "operational" && (
+          <DetailSection
+            icon={<Network className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+            title="Profil Operasional"
+          >
+            <DetailRow label="Foto">
+              <div className="flex items-center gap-3">
+                <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-blue-400/12 dark:bg-slate-900/50">
+                  {selectedPhotoUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setPhotoPreviewOpen(true)}
+                      className="group relative size-full cursor-zoom-in overflow-hidden"
+                      aria-label={`Buka popup foto ${item.aliasName ?? item.code}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={selectedPhotoUrl}
+                        alt={`Foto ${item.aliasName ?? item.code}`}
+                        className="size-full object-cover transition-transform duration-150 group-hover:scale-105"
+                      />
+                      <span className="absolute inset-0 grid place-items-center bg-black/0 font-semibold text-[10px] text-white uppercase tracking-[0.14em] opacity-0 transition-all duration-150 group-hover:bg-black/35 group-hover:opacity-100">
+                        Lihat
+                      </span>
+                    </button>
+                  ) : (
+                    <UserRound className="size-8 text-muted-foreground" />
+                  )}
+                </div>
+                <span className="text-muted-foreground text-xs">
+                  {selectedPhotoUrl ? "Foto profil Jaring tersimpan." : "Belum ada foto profil."}
+                </span>
               </div>
-            </div>
-
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-semibold text-xs uppercase tracking-[0.08em]",
-                statusBadgeVariant(item.registrationStatus),
-              )}
-            >
-              {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3.5" />}
-              {item.registrationStatus === "REJECTED" && <XCircle className="size-3.5" />}
-              {item.registrationStatus === "PENDING" && <Clock className="size-3.5" />}
-              {statusLabel(item.registrationStatus)}
-            </span>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6 p-6 md:p-8">
-          {/* Foto Profil Info */}
-          {selectedPhotoUrl ? (
-            <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 p-4 dark:bg-white/[0.02]">
-              <div className="size-20 overflow-hidden rounded-xl border border-border bg-muted shrink-0">
-                <Image
-                  src={selectedPhotoUrl}
-                  alt={`Foto profil ${item.aliasName ?? item.code}`}
-                  width={80}
-                  height={80}
-                  unoptimized
-                  className="size-20 object-cover"
-                />
-              </div>
-              <div className="space-y-1">
-                <p className="font-semibold text-sm text-foreground">Foto Profil Tersimpan</p>
-                <p className="text-xs text-muted-foreground">
-                  Foto identitas diri calon Jaring yang diunggah oleh Field Officer.
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Core Info Grid */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Informasi Utama</h3>
-            <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              <DetailItem label="Alias" value={item.aliasName ?? item.code} />
-              <DetailItem label="Nama Lengkap" value={item.fullName ?? "-"} />
-              <DetailItem label="WhatsApp" value={item.whatsappNumber} />
-              <DetailItem label="Alamat" value={item.address ?? "-"} />
-              <DetailItem label="Pekerjaan" value={item.occupation ? item.occupation.name : "-"} />
-              <DetailItem label="Field Officer" value={officerName(item)} />
-              <DetailItem label="Wilayah" value={areaNames(item)} />
-            </dl>
-          </div>
-
-          {/* Optional Info Grid */}
-          {optionalRows.length ? (
-            <div className="space-y-3 border-t border-border/60 pt-6">
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
-                Informasi Tambahan
-              </h3>
-              <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                {optionalRows.map(([label, value]) => (
-                  <DetailItem key={label} label={label} value={value} />
-                ))}
-              </dl>
-            </div>
-          ) : null}
-
-          {/* Notes */}
-          <div className="space-y-2 border-t border-border/60 pt-6">
-            <h3 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
-              Kebermanfaatan / Catatan Field Officer
-            </h3>
-            <div className="rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50/50 p-4 dark:bg-white/[0.02]">
-              <p className="text-sm text-foreground leading-relaxed">{item.notes ?? "-"}</p>
-            </div>
-          </div>
-
-          {/* Rejection Reason if available */}
-          {item.rejectionReason ? (
-            <div className="space-y-2 border-t border-border/60 pt-6">
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-rose-500">Alasan Penolakan</h3>
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-700 dark:text-rose-400">
-                <p className="text-sm leading-relaxed">{item.rejectionReason}</p>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Decision Form */}
-          {canDecide ? (
-            <div className="space-y-4 border-t border-border/60 pt-6">
-              <div className="space-y-2">
-                <label htmlFor="rejection-reason" className="font-medium text-sm text-foreground">
-                  Alasan Penolakan (opsional)
-                </label>
-                <Input
-                  id="rejection-reason"
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                  placeholder="Tuliskan alasan penolakan atau arahan revisi..."
-                  maxLength={1000}
-                  className="rounded-lg bg-background"
-                />
-              </div>
-              <div className="flex flex-wrap justify-end gap-3 pt-2">
-                <Button
-                  variant="destructive"
-                  disabled={busy}
-                  onClick={() => setPendingAction("reject")}
-                  className="h-9 gap-1.5 rounded-lg"
+            </DetailRow>
+            <DetailRow label="Nama Sandi / Alias">{item.aliasName ?? item.code}</DetailRow>
+            <DetailRow label="PIN Registrasi">
+              <div className="flex items-center gap-2">
+                <span className="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 font-mono font-bold text-[15px] tracking-[0.15em] text-slate-900 dark:border-blue-400/8 dark:bg-slate-900/50 dark:text-[#F8FAFC]">
+                  {visiblePin ? item.code : "******"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setVisiblePin((current) => !current)}
+                  className="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:bg-slate-200 hover:text-foreground dark:hover:bg-slate-800"
+                  aria-label={visiblePin ? "Sembunyikan PIN registrasi" : "Tampilkan PIN registrasi"}
                 >
-                  <XCircle className="size-4" /> Tolak Pengajuan
-                </Button>
-                <Button disabled={busy} onClick={() => setPendingAction("approve")} className="h-9 gap-1.5 rounded-lg">
-                  <CheckCircle2 className="size-4" /> Setujui Pengajuan
-                </Button>
+                  {visiblePin ? <EyeOff className="size-4 stroke-[1.5]" /> : <Eye className="size-4 stroke-[1.5]" />}
+                </button>
               </div>
+            </DetailRow>
+            <DetailRow label="WhatsApp">
+              <span className="font-mono">{item.whatsappNumber}</span>
+            </DetailRow>
+            <DetailRow label="Pekerjaan">{item.occupation?.name ?? "-"}</DetailRow>
+            <DetailRow label="Handler">{officerName(item)}</DetailRow>
+            <DetailRow label="Kelurahan/Desa">{villageName}</DetailRow>
+            <DetailRow label="Kecamatan">{districtName}</DetailRow>
+            <DetailRow label="Status">
+              <StatusPill tone={operationalStatusTone(item.registrationStatus)}>
+                {operationalStatusLabel(item.registrationStatus)}
+              </StatusPill>
+            </DetailRow>
+            <DetailRow label="Status Verifikasi">
+              <StatusPill tone={statusBadgeVariant(item.registrationStatus)}>
+                {detailRegistrationStatusLabel(item.registrationStatus)}
+              </StatusPill>
+            </DetailRow>
+            {item.registrationStatus === "REJECTED" && item.rejectionReason ? (
+              <DetailRow label="Alasan Penolakan">
+                <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-300">
+                  {item.rejectionReason}
+                </p>
+              </DetailRow>
+            ) : null}
+          </DetailSection>
+        )}
+
+        {activeTab === "personal" && (
+          <DetailSection
+            icon={<UserRound className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+            title="Data Pribadi"
+          >
+            <DetailRow label="Nama Lengkap">{item.fullName || "-"}</DetailRow>
+            <DetailRow label="NIK / KTP">
+              <span className="font-mono">{item.nationalIdNumber || "-"}</span>
+            </DetailRow>
+            <DetailRow label="Alamat">
+              <span className="whitespace-pre-wrap">{item.address || "-"}</span>
+            </DetailRow>
+            <DetailRow label="Tempat Lahir">{item.birthPlace || "-"}</DetailRow>
+            <DetailRow label="Tanggal Lahir">{item.birthDate ? formatDateOnly(item.birthDate) : "-"}</DetailRow>
+            <DetailRow label="Jenis Kelamin">{item.gender ? formatGender(item.gender) : "-"}</DetailRow>
+          </DetailSection>
+        )}
+
+        {activeTab === "career" && (
+          <DetailSection
+            icon={<BriefcaseBusiness className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+            title="Pekerjaan & Karir"
+          >
+            <DetailRow label="Pekerjaan">{item.occupation?.name ?? "-"}</DetailRow>
+            <DetailRow label="Tempat Kerja">{item.workplace || "-"}</DetailRow>
+            <DetailRow label="Jabatan">{item.jobTitle || "-"}</DetailRow>
+          </DetailSection>
+        )}
+
+        {activeTab === "affiliation" && (
+          <DetailSection
+            icon={<ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+            title="Afiliasi & Catatan"
+          >
+            <DetailRow label="Organisasi">{item.organizationName || "-"}</DetailRow>
+            <DetailRow label="Afiliasi Politik">{item.politicalAffiliation || "-"}</DetailRow>
+            <DetailRow label="Tanggal Bergabung">{item.joinedAt ? formatDateOnly(item.joinedAt) : "-"}</DetailRow>
+            <div className="flex flex-col pt-3.5 pb-2">
+              <span className="mb-2 font-medium text-[13px] text-slate-500 tracking-wide dark:text-[#94A3B8]">
+                Kebermanfaatan
+              </span>
+              <NotesBox>{item.notes || "Belum ada kebermanfaatan"}</NotesBox>
             </div>
-          ) : null}
-        </CardContent>
-      </Card>
+          </DetailSection>
+        )}
+      </div>
+
+      {canDecide ? (
+        <Card className="mx-auto max-w-3xl overflow-hidden rounded-[10px] border border-slate-200 bg-white shadow-sm transition-all duration-150 ease-out dark:border-blue-400/12 dark:bg-[#111827]">
+          <CardHeader className="px-5 pt-4 pb-3">
+            <div className="flex w-full items-center gap-3 border-b border-slate-200 pb-2.5 dark:border-blue-400/12">
+              <ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />
+              <h2 className="shrink-0 font-bold text-[14px] text-slate-800 uppercase tracking-[0.08em] dark:text-[#F8FAFC]">
+                Keputusan Verifikasi
+              </h2>
+              <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent dark:from-blue-400/12 dark:to-transparent" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 px-5 pt-1 pb-4">
+            <div className="space-y-2">
+              <label htmlFor="rejection-reason" className="font-medium text-sm text-foreground">
+                Alasan Penolakan (opsional)
+              </label>
+              <Input
+                id="rejection-reason"
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                placeholder="Tuliskan alasan penolakan atau arahan revisi..."
+                maxLength={1000}
+                className="rounded-[6px] bg-background"
+              />
+            </div>
+            <div className="flex flex-wrap justify-end gap-3 pt-2">
+              <Button
+                variant="destructive"
+                disabled={busy}
+                onClick={() => setPendingAction("reject")}
+                className="h-9 gap-1.5 rounded-[6px]"
+              >
+                <XCircle className="size-4" /> Tolak Pengajuan
+              </Button>
+              <Button disabled={busy} onClick={() => setPendingAction("approve")} className="h-9 gap-1.5 rounded-[6px]">
+                <CheckCircle2 className="size-4" /> Setujui Pengajuan
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {selectedPhotoUrl ? (
+        <Dialog open={photoPreviewOpen} onOpenChange={setPhotoPreviewOpen}>
+          <DialogContent className="grid h-[88vh] w-[94vw] max-w-[94vw] grid-rows-[auto_1fr] overflow-hidden bg-[#080b11] p-3 text-white sm:max-w-[920px]">
+            <DialogHeader className="pr-10">
+              <DialogTitle>Foto Profil Jaring</DialogTitle>
+              <DialogDescription className="text-white/60">
+                {item.aliasName ?? item.code} {item.fullName ? `- ${item.fullName}` : ""}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid min-h-0 place-items-center overflow-auto rounded-md border border-white/10 bg-black">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={selectedPhotoUrl}
+                alt={`Foto profil Jaring ${item.aliasName ?? item.code}`}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
       <AlertDialog
         open={pendingAction !== null}
@@ -1209,7 +1292,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingAction === "approve"
-                ? "Status pengajuan akan berubah menjadi disetujui dan Jaring masuk ke jaringan operasional."
+                ? "Status pengajuan akan berubah menjadi terverifikasi dan Jaring masuk ke jaringan operasional."
                 : "Status pengajuan akan berubah menjadi ditolak. Alasan penolakan akan dicatat."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1239,11 +1322,88 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   );
 }
 
-function DetailItem({ label, value }: { label: string; value: string }) {
+function detailRegistrationStatusLabel(status: RegistrationJaring["registrationStatus"]) {
+  if (status === "PENDING") return "MENUNGGU VERIFIKASI";
+  if (status === "REJECTED") return "DITOLAK / REVISI";
+  return "TERVERIFIKASI";
+}
+
+function operationalStatusLabel(status: RegistrationJaring["registrationStatus"]) {
+  if (status === "REJECTED") return "NONAKTIF";
+  if (status === "PENDING") return "BELUM AKTIF";
+  return "AKTIF";
+}
+
+function operationalStatusTone(status: RegistrationJaring["registrationStatus"]) {
+  if (status === "PENDING") {
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-950/40 dark:text-amber-300";
+  }
+  if (status === "REJECTED") {
+    return "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-950/40 dark:text-red-400";
+  }
+  return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-[#22C55E]";
+}
+
+function DetailTabButton({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
   return (
-    <div className="rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50/50 p-3.5 dark:bg-white/[0.02]">
-      <dt className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider">{label}</dt>
-      <dd className="mt-1 font-semibold text-foreground text-sm">{value}</dd>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "cursor-pointer border-b-2 px-4 py-2 font-semibold text-xs transition-all duration-150",
+        active
+          ? "border-sky-600 bg-sky-50 text-sky-600 dark:border-[#38BDF8] dark:bg-blue-400/5 dark:text-[#38BDF8]"
+          : "border-transparent text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DetailSection({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <Card className="overflow-hidden rounded-[10px] border border-slate-200 border-t-2 border-t-sky-500/40 bg-white shadow-sm transition-all duration-150 ease-out hover:-translate-y-[2px] hover:shadow-md dark:border-blue-400/12 dark:border-t-[#38BDF8]/40 dark:bg-[#111827] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+      <CardHeader className="px-5 pt-4 pb-3">
+        <div className="flex w-full items-center gap-3 border-b border-slate-200 pb-2.5 dark:border-blue-400/12">
+          {icon}
+          <h2 className="shrink-0 font-bold text-[14px] text-slate-800 uppercase tracking-[0.08em] dark:text-[#F8FAFC]">
+            {title}
+          </h2>
+          <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent dark:from-blue-400/12 dark:to-transparent" />
+        </div>
+      </CardHeader>
+      <CardContent className="divide-y divide-slate-100 px-5 pt-1 pb-4 dark:divide-blue-400/8">{children}</CardContent>
+    </Card>
+  );
+}
+
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-2 py-3.5 sm:grid-cols-[160px_1fr] sm:items-center sm:gap-4">
+      <span className="font-medium text-[13px] text-slate-500 tracking-wide dark:text-[#94A3B8]">{label}</span>
+      <span className="break-words font-semibold text-[15px] text-slate-900 dark:text-[#F8FAFC]">{children}</span>
     </div>
+  );
+}
+
+function NotesBox({ children }: { children: ReactNode }) {
+  return (
+    <p className="max-h-[120px] overflow-y-auto whitespace-pre-wrap rounded border border-border bg-slate-50 p-3 text-xs leading-relaxed text-slate-700 dark:border-blue-400/8 dark:bg-slate-950/40 dark:text-slate-300">
+      {children}
+    </p>
+  );
+}
+
+function StatusPill({ children, tone }: { children: ReactNode; tone: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex w-fit items-center gap-1.5 rounded-[4px] border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-wide",
+        tone,
+      )}
+    >
+      {children}
+    </span>
   );
 }

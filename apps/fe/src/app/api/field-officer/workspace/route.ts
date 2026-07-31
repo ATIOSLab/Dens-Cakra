@@ -5,7 +5,6 @@ import { getFieldOfficerWorkspace } from "@/server/field-ops/repository";
 export async function GET(request: NextRequest) {
   try {
     const categoryId = request.nextUrl.searchParams.get("categoryId") || undefined;
-    const jaringClusterId = request.nextUrl.searchParams.get("jaringClusterId") || undefined;
     const from = request.nextUrl.searchParams.get("from") || undefined;
     const to = request.nextUrl.searchParams.get("to") || undefined;
     const sortBy = request.nextUrl.searchParams.get("sortBy") || undefined;
@@ -14,7 +13,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       await getFieldOfficerWorkspace(request.headers.get("cookie") ?? "", {
         categoryId,
-        jaringClusterId,
         from,
         to,
         sortBy,

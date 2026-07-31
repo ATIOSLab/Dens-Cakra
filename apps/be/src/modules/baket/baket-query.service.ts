@@ -92,9 +92,8 @@ export class BaketQueryService {
             assigner: { include: { userProfile: true, position: true } },
           },
         },
-        primaryJaring: { include: { cluster: true } },
+        primaryJaring: true,
         reportCategory: true,
-        jaringCluster: true,
         versions: {
           orderBy: { versionNumber: 'desc' },
           include: {
@@ -106,7 +105,7 @@ export class BaketQueryService {
               include: {
                 message: {
                   include: {
-                    jaring: { include: { cluster: true } },
+                    jaring: true,
                     category: true,
                     media: {
                       include: { file: { select: publicFileSelect } },
@@ -163,7 +162,7 @@ export class BaketQueryService {
           include: {
             message: {
               include: {
-                jaring: { include: { cluster: true } },
+                jaring: true,
                 category: true,
                 media: {
                   include: { file: { select: publicFileSelect } },
@@ -258,9 +257,6 @@ export class BaketQueryService {
         : {}),
       ...(query.jaringId ? { primaryJaringId: query.jaringId } : {}),
       ...(query.categoryId ? { reportCategoryId: query.categoryId } : {}),
-      ...(query.jaringClusterId
-        ? { jaringClusterId: query.jaringClusterId }
-        : {}),
       ...(query.from || query.to
         ? {
             createdAt: {
@@ -329,9 +325,8 @@ export class BaketQueryService {
               position: { include: oimReportingLineInclude },
             },
           },
-          primaryJaring: { include: { cluster: true } },
+          primaryJaring: true,
           reportCategory: true,
-          jaringCluster: true,
           taskAssignment: {
             include: {
               task: true,

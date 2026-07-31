@@ -42,7 +42,6 @@ export class BaketQuery {
   @IsOptional() @IsUUID() taskAssignmentId?: string;
   @IsOptional() @IsUUID() jaringId?: string;
   @IsOptional() @IsUUID() categoryId?: string;
-  @IsOptional() @IsUUID() jaringClusterId?: string;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;

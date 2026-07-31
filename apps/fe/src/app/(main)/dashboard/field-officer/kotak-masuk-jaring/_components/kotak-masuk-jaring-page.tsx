@@ -3,7 +3,7 @@ import { DensModulePage } from "@/app/(main)/dashboard/_components/dens-module-p
 export function KotakMasukJaringPage() {
   return (
     <DensModulePage
-      title="Kotak Masuk Jaring"
+      title="Informasi Jaring"
       role="Petugas Lapangan"
       description="Halaman ini disiapkan untuk menerima laporan Jaring, memeriksa kelengkapan, dan melakukan verifikasi awal sebelum menjadi Baket."
       highlights={[
