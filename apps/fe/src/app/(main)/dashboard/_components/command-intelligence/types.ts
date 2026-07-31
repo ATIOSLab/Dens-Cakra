@@ -15,10 +15,16 @@ export type DashboardArea = {
 export type DashboardReportVersion = {
   id: string;
   title: string;
+  originalContent?: string | null;
+  normalizedContent?: string | null;
   eventTime: string | null;
   urgency: string;
+  fieldOfficerNote?: string | null;
   latitude?: string | number | null;
   longitude?: string | number | null;
+  gpsAccuracyMeters?: string | number | null;
+  locationCapturedAt?: string | null;
+  coordinateSource?: string | null;
   eventArea?: DashboardArea | null;
 };
 
@@ -160,9 +166,25 @@ export type FieldIntelligenceDashboard = {
       createdAt: string;
       title: string | null;
       urgency: string | null;
+      eventTime: string | null;
+      originalContent: string | null;
+      normalizedContent: string | null;
+      fieldOfficerNote: string | null;
+      gpsAccuracyMeters: number | null;
+      locationCapturedAt: string | null;
+      coordinateSource: string | null;
       category: { id: string; code: string; name: string } | null;
       jaring: DashboardReport["jaring"];
       areaName: string | null;
+      areaLevel: string | null;
+      attachments: Array<{
+        fileId: string;
+        fileName: string | null;
+        mimeType: string;
+        fileType: string;
+        sizeBytes: number;
+        caption: string | null;
+      }>;
       latitude: number;
       longitude: number;
     }>;
@@ -183,7 +205,7 @@ export type FieldIntelligenceFilters = {
   period: FieldIntelligencePeriod;
   registrationStatus: "ALL" | JaringRegistrationStatus;
   activity: "ALL" | JaringActivityLevel;
-  baketStatus: string;
+  urgency: string;
   areaId: string;
   page: number;
 };

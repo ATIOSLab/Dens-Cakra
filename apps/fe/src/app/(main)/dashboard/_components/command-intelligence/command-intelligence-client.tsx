@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CircleDot,
   Crosshair,
+  ExternalLink,
   FileSearch,
   Filter,
   Layers3,
@@ -27,17 +28,14 @@ import {
   X,
 } from "lucide-react";
 
+import { REPORT_URGENCY_COLORS, REPORT_URGENCY_LABELS } from "@/components/map/MapLegend";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -53,10 +51,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
-import { ReportPipelineChart, ReportTrendChart } from "./command-intelligence-charts";
+import { ReportTrendChart } from "./command-intelligence-charts";
 import { CommandIntelligenceMap, type CommandMapLayers, type CommandMapMode } from "./command-intelligence-map";
 import type {
   FieldIntelligenceDashboard,
@@ -99,22 +98,14 @@ const REGISTRATION_LABELS: Record<JaringRegistrationStatus, string> = {
   REJECTED: "Ditolak",
 };
 
-const REPORT_STATUS_LABELS: Record<string, string> = {
-  DRAFT: "Draft",
-  READY_TO_SEND: "Siap kirim",
-  SENT_TO_OIM: "Terkirim OIM",
-  UNDER_VERIFICATION: "Dalam verifikasi",
-  NEEDS_DEVELOPMENT: "Perlu pendalaman",
-  VERIFIED: "Terverifikasi",
-  REJECTED: "Ditolak",
-};
+const REPORT_URGENCIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
 
 const DEFAULT_FILTERS: FieldIntelligenceFilters = {
   search: "",
   period: "30d",
   registrationStatus: "ALL",
   activity: "ALL",
-  baketStatus: "ALL",
+  urgency: "ALL",
   areaId: "ALL",
   page: 1,
 };
@@ -131,6 +122,15 @@ function formatDateTime(value?: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function formatBytes(value?: number | null) {
+  if (!value) return "Ukuran tidak tersedia";
+  return (
+    new Intl.NumberFormat("id-ID", {
+      maximumFractionDigits: value >= 1024 * 1024 ? 1 : 0,
+    }).format(value >= 1024 * 1024 ? value / (1024 * 1024) : value / 1024) + (value >= 1024 * 1024 ? " MB" : " KB")
+  );
 }
 
 function initials(value?: string | null) {
@@ -152,13 +152,14 @@ function registrationVariant(status: JaringRegistrationStatus) {
   return "secondary" as const;
 }
 
-function HudSurface({ children, className }: { children: React.ReactNode; className?: string }) {
+function HudSurface({ children, className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
         "border border-border/80 bg-card/88 text-card-foreground shadow-[var(--dc-shadow-overlay)] backdrop-blur-xl",
         className,
       )}
+      {...props}
     >
       {children}
     </div>
@@ -213,12 +214,200 @@ function ActivityBadge({ level }: { level: JaringActivityLevel }) {
   return <Badge variant={level === "NEVER_REPORTED" ? "outline" : "secondary"}>{ACTIVITY_LABELS[level]}</Badge>;
 }
 
+function reportUrgency(value?: string | null) {
+  const normalized = (value ?? "NORMAL").toUpperCase();
+  return REPORT_URGENCIES.includes(normalized as (typeof REPORT_URGENCIES)[number])
+    ? (normalized as (typeof REPORT_URGENCIES)[number])
+    : "NORMAL";
+}
+
+function UrgencyBadge({ urgency }: { urgency?: string | null }) {
+  const normalized = reportUrgency(urgency);
+  return (
+    <Badge variant="outline" className="dc-priority" data-priority={normalized}>
+      Urgensi: {REPORT_URGENCY_LABELS[normalized]}
+    </Badge>
+  );
+}
+
 function ProfileField({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
     <div className="grid gap-1 border-border/60 border-b py-3 last:border-b-0 sm:grid-cols-[150px_1fr]">
       <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.14em]">{label}</span>
       <span className="break-words text-sm">{value ?? "—"}</span>
     </div>
+  );
+}
+
+function ReportInfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
+  return (
+    <div className="grid gap-1 border-border/60 border-b py-2 last:border-b-0 sm:grid-cols-[130px_1fr]">
+      <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.14em]">{label}</span>
+      <span className="break-words text-sm">{value ?? "-"}</span>
+    </div>
+  );
+}
+
+function ReportTextSection({ title, value }: { title: string; value?: string | null }) {
+  return (
+    <section className="rounded-md border bg-muted/30 p-3">
+      <h3 className="font-mono font-semibold text-primary text-xs uppercase tracking-[0.16em]">{title}</h3>
+      <p className="mt-3 whitespace-pre-wrap text-sm leading-7">{value?.trim() || "-"}</p>
+    </section>
+  );
+}
+
+function ReportDetailDialog({
+  item,
+  open,
+  onOpenChange,
+}: {
+  item: MapBaket | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!item) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90dvh] !w-[96vw] !max-w-[1180px] overflow-hidden p-0">
+        <DialogHeader className="border-border/70 border-b bg-gradient-to-br from-background via-background to-muted/30 px-6 pt-6 pb-5">
+          <div className="flex flex-wrap items-center gap-2 pr-8">
+            <UrgencyBadge urgency={item.urgency} />
+            {item.category ? <Badge variant="secondary">{item.category.name}</Badge> : null}
+          </div>
+          <DialogTitle className="pt-2 text-2xl leading-8">{item.title ?? "Laporan tanpa judul"}</DialogTitle>
+          <DialogDescription className="sr-only">Detail laporan lengkap dari titik peta.</DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="max-h-[calc(90dvh-142px)]">
+          <div className="grid gap-5 px-6 py-6 lg:grid-cols-[320px_1fr]">
+            <aside className="h-fit rounded-xl border border-border/70 bg-card/85 p-4 shadow-sm">
+              <h3 className="font-mono font-semibold text-primary text-xs uppercase tracking-[0.16em]">
+                Metadata Laporan
+              </h3>
+              <div className="mt-3">
+                <ReportInfoRow label="Jaring" value={item.jaring?.aliasName ?? item.jaring?.fullName ?? "-"} />
+                <ReportInfoRow label="Kategori" value={item.category?.name} />
+                <ReportInfoRow label="Urgensi" value={REPORT_URGENCY_LABELS[reportUrgency(item.urgency)]} />
+                <ReportInfoRow label="Waktu kejadian" value={formatDateTime(item.eventTime)} />
+                <ReportInfoRow label="Diterima" value={formatDateTime(item.createdAt)} />
+                <ReportInfoRow label="Wilayah" value={item.areaName} />
+                <div className="grid gap-1 border-border/60 border-b py-2 last:border-b-0 sm:grid-cols-[130px_1fr]">
+                  <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.14em]">
+                    Koordinat
+                  </span>
+                  <Button asChild variant="ghost" className="h-auto justify-start px-0 py-0 font-medium text-sm">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-primary hover:text-primary"
+                    >
+                      <LocateFixed className="size-3.5" />
+                      {item.latitude.toFixed(6)}, {item.longitude.toFixed(6)}
+                      <ExternalLink className="size-3.5 text-muted-foreground" />
+                    </a>
+                  </Button>
+                </div>
+                <ReportInfoRow
+                  label="Akurasi"
+                  value={item.gpsAccuracyMeters === null ? undefined : `${item.gpsAccuracyMeters} meter`}
+                />
+                <ReportInfoRow label="Waktu lokasi" value={formatDateTime(item.locationCapturedAt)} />
+              </div>
+            </aside>
+
+            <div className="grid gap-5">
+              <section className="rounded-xl border border-border/70 bg-card/85 p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-mono font-semibold text-primary text-xs uppercase tracking-[0.16em]">
+                    Isi laporan terstruktur
+                  </h3>
+                </div>
+                <p className="mt-3 whitespace-pre-wrap text-foreground/90 text-sm leading-7">
+                  {item.normalizedContent?.trim() || "-"}
+                </p>
+              </section>
+
+              <div className="grid gap-5 xl:grid-cols-2">
+                <ReportTextSection title="Isi laporan asli" value={item.originalContent} />
+                <ReportTextSection title="Catatan petugas" value={item.fieldOfficerNote} />
+              </div>
+
+              <section className="rounded-xl border border-border/70 bg-card/85 p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-mono font-semibold text-primary text-xs uppercase tracking-[0.16em]">Lampiran</h3>
+                  <Badge variant="secondary">{formatNumber(item.attachments.length)}</Badge>
+                </div>
+                {item.attachments.length > 0 ? (
+                  <div className="mt-3 grid gap-2">
+                    {item.attachments.map((attachment) => (
+                      <a
+                        key={attachment.fileId}
+                        href={`/api/files/${attachment.fileId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-xl border border-border/70 bg-background/70 p-3 transition-colors hover:bg-accent/40"
+                      >
+                        <p className="font-medium text-sm">{attachment.fileName ?? attachment.fileId}</p>
+                        <p className="mt-1 text-muted-foreground text-xs">
+                          {attachment.mimeType} · {formatBytes(attachment.sizeBytes)}
+                        </p>
+                        {attachment.caption ? (
+                          <p className="mt-2 text-muted-foreground text-xs">{attachment.caption}</p>
+                        ) : null}
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-muted-foreground text-sm">Tidak ada lampiran pada laporan ini.</p>
+                )}
+              </section>
+            </div>
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ReportHoverCard({ hover }: { hover: { item: MapBaket; x: number; y: number } }) {
+  const urgency = reportUrgency(hover.item.urgency);
+  return (
+    <HudSurface
+      className="pointer-events-none absolute z-40 hidden w-[300px] rounded-lg p-3 md:block"
+      style={{
+        left: hover.x + 24,
+        top: Math.max(92, hover.y - 24),
+        transform: hover.x > 920 ? "translateX(-108%)" : undefined,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-mono text-[9px] text-primary uppercase tracking-[0.18em]">Preview Laporan</p>
+          <p className="mt-1 truncate font-semibold text-sm">{hover.item.title ?? "Laporan tanpa judul"}</p>
+        </div>
+        <span
+          className="mt-1 size-2.5 shrink-0 rounded-full shadow-[0_0_12px_currentColor]"
+          style={{ backgroundColor: REPORT_URGENCY_COLORS[urgency], color: REPORT_URGENCY_COLORS[urgency] }}
+        />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <UrgencyBadge urgency={hover.item.urgency} />
+      </div>
+      <div className="mt-3 grid grid-cols-[86px_1fr] gap-x-3 gap-y-1.5 text-xs">
+        <span className="text-muted-foreground">Jaring</span>
+        <span className="truncate">
+          {hover.item.jaring?.aliasName ?? hover.item.jaring?.fullName ?? "Jaring belum tertaut"}
+        </span>
+        <span className="text-muted-foreground">Wilayah</span>
+        <span className="truncate">{hover.item.areaName ?? "Belum terpetakan"}</span>
+        <span className="text-muted-foreground">Kategori</span>
+        <span className="truncate">{hover.item.category?.name ?? "Tanpa kategori"}</span>
+        <span className="text-muted-foreground">Waktu</span>
+        <span className="truncate">{formatDateTime(hover.item.createdAt)}</span>
+      </div>
+    </HudSurface>
   );
 }
 
@@ -269,12 +458,10 @@ function JaringDossier({
                 <h3 className="font-mono font-semibold text-primary text-xs uppercase tracking-[0.18em]">
                   Aktivitas Laporan
                 </h3>
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   {[
                     ["Periode", item.activity.periodReports],
                     ["Seumur hidup", item.activity.lifetimeReports],
-                    ["Terverifikasi", item.activity.verifiedReports],
-                    ["Belum valid", item.activity.unverifiedReports],
                   ].map(([label, value]) => (
                     <Card key={String(label)}>
                       <CardHeader className="pb-2">
@@ -328,6 +515,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
   const [selectedJaring, setSelectedJaring] = useState<FieldIntelligenceJaring | null>(null);
   const [selectedMapJaring, setSelectedMapJaring] = useState<MapJaring | null>(null);
   const [selectedMapBaket, setSelectedMapBaket] = useState<MapBaket | null>(null);
+  const [hoveredMapBaket, setHoveredMapBaket] = useState<{ item: MapBaket; x: number; y: number } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const skippedInitialRequest = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -350,7 +538,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
     if (filters.search.trim()) params.set("search", filters.search.trim());
     if (filters.registrationStatus !== "ALL") params.set("registrationStatus", filters.registrationStatus);
     if (filters.activity !== "ALL") params.set("activity", filters.activity);
-    if (filters.baketStatus !== "ALL") params.set("baketStatus", filters.baketStatus);
+    if (filters.urgency !== "ALL") params.set("urgency", filters.urgency);
     if (filters.areaId !== "ALL") params.set("areaId", filters.areaId);
 
     try {
@@ -436,13 +624,26 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
     [data],
   );
 
+  const handleBaketMapHover = useCallback(
+    (hover: { id: string; x: number; y: number } | null) => {
+      if (!hover || !data) {
+        setHoveredMapBaket(null);
+        return;
+      }
+
+      const item = data.map.baket.find((report) => report.id === hover.id);
+      setHoveredMapBaket(item ? { item, x: hover.x, y: hover.y } : null);
+    },
+    [data],
+  );
+
   const activeFilterCount = useMemo(
     () =>
       [
         filters.search,
         filters.registrationStatus !== "ALL",
         filters.activity !== "ALL",
-        filters.baketStatus !== "ALL",
+        filters.urgency !== "ALL",
         filters.areaId !== "ALL",
       ].filter(Boolean).length,
     [filters],
@@ -507,6 +708,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
           mode={mapMode}
           onJaringSelect={handleJaringMapSelect}
           onBaketSelect={handleBaketMapSelect}
+          onBaketHover={handleBaketMapHover}
           onViewportChange={setViewport}
           onPointerMove={setPointer}
         />
@@ -614,20 +816,22 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                   className="flex w-full gap-3 border-border/60 border-b px-3 py-3 text-left transition-colors hover:bg-accent"
                   onClick={() => handleBaketMapSelect(report.id)}
                 >
-                  <span className="mt-1 size-2 shrink-0 rounded-full bg-primary shadow-[0_0_10px_var(--dc-primary)]" />
+                  <span
+                    className="mt-1 size-2 shrink-0 rounded-full shadow-[0_0_10px_currentColor]"
+                    style={{
+                      backgroundColor: REPORT_URGENCY_COLORS[reportUrgency(report.version?.urgency)],
+                      color: REPORT_URGENCY_COLORS[reportUrgency(report.version?.urgency)],
+                    }}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-xs">
                       {report.version?.title ?? "Laporan tanpa judul"}
                     </span>
                     <span className="mt-1 block truncate text-[10px] text-muted-foreground">
-                      {report.jaring?.aliasName ??
-                        report.jaring?.fullName ??
-                        report.jaring?.code ??
-                        "Sumber belum tertaut"}
+                      {report.jaring?.aliasName ?? report.jaring?.fullName ?? "Jaring belum tertaut"}
                     </span>
-                    <span className="mt-1 flex items-center justify-between gap-2 font-mono text-[9px] text-muted-foreground">
-                      <span>{REPORT_STATUS_LABELS[report.status] ?? report.status}</span>
-                      <span>{formatDateTime(report.createdAt)}</span>
+                    <span className="mt-1 block font-mono text-[9px] text-muted-foreground">
+                      {formatDateTime(report.createdAt)}
                     </span>
                   </span>
                 </button>
@@ -658,17 +862,13 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
         </div>
       </HudSurface>
 
-      {(selectedMapJaring || selectedMapBaket) && (
+      {selectedMapJaring && (
         <HudSurface className="absolute right-3 bottom-12 left-3 rounded-lg p-3 md:bottom-10 md:left-auto md:w-[360px] xl:right-[356px]">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-mono text-[9px] text-primary uppercase tracking-[0.18em]">
-                {selectedMapJaring ? "Jaring terpilih" : "Laporan terpilih"}
-              </p>
+              <p className="font-mono text-[9px] text-primary uppercase tracking-[0.18em]">Jaring terpilih</p>
               <p className="mt-1 truncate font-semibold text-sm">
-                {selectedMapJaring
-                  ? (selectedMapJaring.aliasName ?? selectedMapJaring.fullName ?? selectedMapJaring.code)
-                  : (selectedMapBaket?.title ?? "Laporan")}
+                {selectedMapJaring.aliasName ?? selectedMapJaring.fullName ?? selectedMapJaring.code}
               </p>
             </div>
             <Button
@@ -683,47 +883,40 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
               <X />
             </Button>
           </div>
-          {selectedMapJaring ? (
-            <>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <span className="text-muted-foreground">Status</span>
-                <span className="text-right">{REGISTRATION_LABELS[selectedMapJaring.registrationStatus]}</span>
-                <span className="text-muted-foreground">Aktivitas</span>
-                <span className="text-right">{ACTIVITY_LABELS[selectedMapJaring.activityLevel]}</span>
-                <span className="text-muted-foreground">Laporan periode</span>
-                <span className="text-right font-mono">{formatNumber(selectedMapJaring.periodReports)}</span>
-                <span className="text-muted-foreground">Wilayah</span>
-                <span className="truncate text-right">{selectedMapJaring.areaName}</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3 w-full"
-                onClick={() => {
-                  updateFilter("search", selectedMapJaring.code);
-                  setRegistryOpen(true);
-                }}
-              >
-                <FileSearch data-icon="inline-start" />
-                Buka di registri
-              </Button>
-            </>
-          ) : (
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <span className="text-muted-foreground">Status</span>
-              <span className="text-right">
-                {REPORT_STATUS_LABELS[selectedMapBaket?.status ?? ""] ?? selectedMapBaket?.status}
-              </span>
-              <span className="text-muted-foreground">Jaring</span>
-              <span className="truncate text-right">
-                {selectedMapBaket?.jaring?.aliasName ?? selectedMapBaket?.jaring?.code ?? "Belum tertaut"}
-              </span>
-              <span className="text-muted-foreground">Wilayah</span>
-              <span className="truncate text-right">{selectedMapBaket?.areaName ?? "Belum terpetakan"}</span>
-            </div>
-          )}
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <span className="text-muted-foreground">Status</span>
+            <span className="text-right">{REGISTRATION_LABELS[selectedMapJaring.registrationStatus]}</span>
+            <span className="text-muted-foreground">Aktivitas</span>
+            <span className="text-right">{ACTIVITY_LABELS[selectedMapJaring.activityLevel]}</span>
+            <span className="text-muted-foreground">Laporan periode</span>
+            <span className="text-right font-mono">{formatNumber(selectedMapJaring.periodReports)}</span>
+            <span className="text-muted-foreground">Wilayah</span>
+            <span className="truncate text-right">{selectedMapJaring.areaName}</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 w-full"
+            onClick={() => {
+              updateFilter("search", selectedMapJaring.code);
+              setRegistryOpen(true);
+            }}
+          >
+            <FileSearch data-icon="inline-start" />
+            Buka di registri
+          </Button>
         </HudSurface>
       )}
+
+      <ReportDetailDialog
+        item={selectedMapBaket}
+        open={Boolean(selectedMapBaket)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedMapBaket(null);
+        }}
+      />
+
+      {hoveredMapBaket ? <ReportHoverCard hover={hoveredMapBaket} /> : null}
 
       <div className="absolute inset-x-0 bottom-0 flex h-7 items-center justify-between gap-3 border-border/80 border-t bg-card/90 px-3 font-mono text-[9px] text-muted-foreground backdrop-blur-lg">
         <div className="flex items-center gap-4">
@@ -845,20 +1038,20 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                   </Select>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="baket-filter" className="font-medium text-sm">
-                    Status Laporan
+                  <label htmlFor="urgency-filter" className="font-medium text-sm">
+                    Urgensi Laporan
                   </label>
-                  <Select value={filters.baketStatus} onValueChange={(value) => updateFilter("baketStatus", value)}>
-                    <SelectTrigger id="baket-filter">
+                  <Select value={filters.urgency} onValueChange={(value) => updateFilter("urgency", value)}>
+                    <SelectTrigger id="urgency-filter">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectLabel>Riwayat Laporan</SelectLabel>
-                        <SelectItem value="ALL">Semua status</SelectItem>
-                        {Object.entries(REPORT_STATUS_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
+                        <SelectLabel>Prioritas laporan</SelectLabel>
+                        <SelectItem value="ALL">Semua urgency</SelectItem>
+                        {REPORT_URGENCIES.map((urgency) => (
+                          <SelectItem key={urgency} value={urgency}>
+                            {REPORT_URGENCY_LABELS[urgency]}
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -960,7 +1153,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
               <Card>
                 <CardHeader>
                   <CardTitle>Ritme Laporan</CardTitle>
-                  <CardDescription>Total, terverifikasi, dan belum terverifikasi pada periode aktif.</CardDescription>
+                  <CardDescription>Total laporan pada periode aktif.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ReportTrendChart trend={data.trend} />
@@ -968,11 +1161,20 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Pipeline Laporan</CardTitle>
-                  <CardDescription>Distribusi status pemrosesan laporan.</CardDescription>
+                  <CardTitle>Distribusi Urgensi</CardTitle>
+                  <CardDescription>Sebaran prioritas laporan pada periode aktif.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ReportPipelineChart pipeline={data.reportPipeline} />
+                <CardContent className="grid gap-3 sm:grid-cols-2">
+                  {REPORT_URGENCIES.map((urgency) => (
+                    <div key={urgency} className="flex items-center justify-between rounded-md border p-3">
+                      <UrgencyBadge urgency={urgency} />
+                      <span className="font-mono text-lg">
+                        {formatNumber(
+                          data.map.baket.filter((report) => reportUrgency(report.urgency) === urgency).length,
+                        )}
+                      </span>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
               <Card>

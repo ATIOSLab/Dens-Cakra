@@ -15,8 +15,52 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: APP_CONFIG.meta.title,
+  applicationName: APP_CONFIG.name,
+  title: {
+    default: APP_CONFIG.meta.title,
+    template: `%s | ${APP_CONFIG.name}`,
+  },
   description: APP_CONFIG.meta.description,
+  keywords: APP_CONFIG.meta.keywords,
+  authors: [{ name: APP_CONFIG.name }],
+  creator: APP_CONFIG.name,
+  publisher: APP_CONFIG.name,
+  category: "national performance management and situational awareness dashboard",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
+  openGraph: {
+    type: "website",
+    locale: "id_ID",
+    siteName: APP_CONFIG.name,
+    title: APP_CONFIG.meta.title,
+    description: APP_CONFIG.meta.description,
+  },
+  twitter: {
+    card: "summary",
+    title: APP_CONFIG.meta.title,
+    description: APP_CONFIG.meta.description,
+  },
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  appleWebApp: {
+    title: APP_CONFIG.name,
+    capable: true,
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -24,7 +68,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     PREFERENCE_DEFAULTS;
   return (
     <html
-      lang="en"
+      lang="id"
       data-theme-mode={theme_mode}
       data-theme-preset={theme_preset}
       data-content-layout={content_layout}

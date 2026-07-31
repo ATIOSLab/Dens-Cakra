@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { GeoJSONSource, MapLayerMouseEvent, Map as MapLibreMap } from "maplibre-gl";
+import type { ExpressionSpecification, GeoJSONSource, MapLayerMouseEvent, Map as MapLibreMap } from "maplibre-gl";
 import { LngLatBounds } from "maplibre-gl";
 
+import { REPORT_URGENCY_COLORS } from "@/components/map/MapLegend";
 import { Map as BaseMap, MapControls, type MapViewport } from "@/components/ui/map";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 
@@ -20,9 +21,11 @@ const JARING_CLUSTER_LAYER = "command-intelligence-jaring-cluster";
 const JARING_CLUSTER_COUNT_LAYER = "command-intelligence-jaring-cluster-count";
 const JARING_POINT_LAYER = "command-intelligence-jaring-point";
 const BAKET_SOURCE = "command-intelligence-baket";
+const BAKET_WAVE_LAYER = "command-intelligence-baket-wave";
 const BAKET_POINT_LAYER = "command-intelligence-baket-point";
 const SATELLITE_SOURCE = "command-intelligence-satellite";
 const SATELLITE_LAYER = "command-intelligence-satellite-layer";
+const BAKET_INTERACTIVE_LAYERS = [BAKET_WAVE_LAYER, BAKET_POINT_LAYER] as const;
 
 export type CommandMapLayers = {
   jaring: boolean;
@@ -37,6 +40,7 @@ type CommandIntelligenceMapProps = {
   mode: CommandMapMode;
   onJaringSelect: (jaringId: string) => void;
   onBaketSelect: (baketId: string) => void;
+  onBaketHover: (hover: { id: string; x: number; y: number } | null) => void;
   onViewportChange: (viewport: MapViewport) => void;
   onPointerMove: (coordinate: { latitude: number; longitude: number }) => void;
 };
@@ -44,6 +48,20 @@ type CommandIntelligenceMapProps = {
 function cssColor(name: string, fallback: string) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
+}
+
+function urgencyColorExpression(): ExpressionSpecification {
+  return [
+    "match",
+    ["coalesce", ["get", "urgency"], "NORMAL"],
+    "LOW",
+    REPORT_URGENCY_COLORS.LOW,
+    "HIGH",
+    REPORT_URGENCY_COLORS.HIGH,
+    "URGENT",
+    REPORT_URGENCY_COLORS.URGENT,
+    REPORT_URGENCY_COLORS.NORMAL,
+  ];
 }
 
 function toJaringGeoJson(data: FieldIntelligenceDashboard): GeoJSON.FeatureCollection<GeoJSON.Point> {
@@ -120,6 +138,7 @@ export function CommandIntelligenceMap({
   mode,
   onJaringSelect,
   onBaketSelect,
+  onBaketHover,
   onViewportChange,
   onPointerMove,
 }: CommandIntelligenceMapProps) {
@@ -234,13 +253,26 @@ export function CommandIntelligenceMap({
         data: baketGeoJson,
       });
       instance.addLayer({
+        id: BAKET_WAVE_LAYER,
+        type: "circle",
+        source: BAKET_SOURCE,
+        paint: {
+          "circle-color": "transparent",
+          "circle-radius": 16,
+          "circle-stroke-color": urgencyColorExpression(),
+          "circle-stroke-opacity": 0.42,
+          "circle-stroke-width": 2,
+          "circle-opacity": 0,
+        },
+      });
+      instance.addLayer({
         id: BAKET_POINT_LAYER,
         type: "circle",
         source: BAKET_SOURCE,
         paint: {
-          "circle-color": warning,
-          "circle-radius": 7,
-          "circle-opacity": 0.9,
+          "circle-color": urgencyColorExpression(),
+          "circle-radius": ["match", ["coalesce", ["get", "urgency"], "NORMAL"], "LOW", 5, "HIGH", 7, "URGENT", 8, 6],
+          "circle-opacity": 0.96,
           "circle-stroke-color": foreground,
           "circle-stroke-width": 2,
         },
@@ -272,7 +304,25 @@ export function CommandIntelligenceMap({
     if (map.getLayer(BAKET_POINT_LAYER)) {
       map.setLayoutProperty(BAKET_POINT_LAYER, "visibility", baketVisibility);
     }
+    if (map.getLayer(BAKET_WAVE_LAYER)) {
+      map.setLayoutProperty(BAKET_WAVE_LAYER, "visibility", baketVisibility);
+    }
   }, [layers.baket, layers.jaring, map]);
+
+  useEffect(() => {
+    if (!map?.getLayer(BAKET_WAVE_LAYER) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let frame = 0;
+    const animate = () => {
+      const phase = (Date.now() % 1800) / 1800;
+      map.setPaintProperty(BAKET_WAVE_LAYER, "circle-radius", 10 + phase * 24);
+      map.setPaintProperty(BAKET_WAVE_LAYER, "circle-stroke-opacity", Math.max(0, 0.5 - phase * 0.5));
+      frame = window.requestAnimationFrame(animate);
+    };
+
+    frame = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frame);
+  }, [map]);
 
   useEffect(() => {
     if (!map?.getLayer(SATELLITE_LAYER)) return;
@@ -300,6 +350,12 @@ export function CommandIntelligenceMap({
       const id = event.features?.[0]?.properties?.id;
       if (typeof id === "string") onBaketSelect(id);
     };
+    const handleBaketHover = (event: MapLayerMouseEvent) => {
+      const id = event.features?.[0]?.properties?.id;
+      if (typeof id !== "string") return;
+      onBaketHover({ id, x: event.point.x, y: event.point.y });
+    };
+    const clearBaketHover = () => onBaketHover(null);
     const handleMouseMove = (event: MapLayerMouseEvent) => {
       onPointerMove({ latitude: event.lngLat.lat, longitude: event.lngLat.lng });
     };
@@ -312,9 +368,14 @@ export function CommandIntelligenceMap({
 
     map.on("click", JARING_CLUSTER_LAYER, handleClusterClick);
     map.on("click", JARING_POINT_LAYER, handleJaringClick);
-    map.on("click", BAKET_POINT_LAYER, handleBaketClick);
+    for (const layerId of BAKET_INTERACTIVE_LAYERS) {
+      map.on("click", layerId, handleBaketClick);
+      map.on("mouseenter", layerId, handleBaketHover);
+      map.on("mousemove", layerId, handleBaketHover);
+      map.on("mouseleave", layerId, clearBaketHover);
+    }
     map.on("mousemove", handleMouseMove);
-    for (const layerId of [JARING_CLUSTER_LAYER, JARING_POINT_LAYER, BAKET_POINT_LAYER]) {
+    for (const layerId of [JARING_CLUSTER_LAYER, JARING_POINT_LAYER, ...BAKET_INTERACTIVE_LAYERS]) {
       map.on("mouseenter", layerId, setPointer);
       map.on("mouseleave", layerId, clearPointer);
     }
@@ -322,14 +383,19 @@ export function CommandIntelligenceMap({
     return () => {
       map.off("click", JARING_CLUSTER_LAYER, handleClusterClick);
       map.off("click", JARING_POINT_LAYER, handleJaringClick);
-      map.off("click", BAKET_POINT_LAYER, handleBaketClick);
+      for (const layerId of BAKET_INTERACTIVE_LAYERS) {
+        map.off("click", layerId, handleBaketClick);
+        map.off("mouseenter", layerId, handleBaketHover);
+        map.off("mousemove", layerId, handleBaketHover);
+        map.off("mouseleave", layerId, clearBaketHover);
+      }
       map.off("mousemove", handleMouseMove);
-      for (const layerId of [JARING_CLUSTER_LAYER, JARING_POINT_LAYER, BAKET_POINT_LAYER]) {
+      for (const layerId of [JARING_CLUSTER_LAYER, JARING_POINT_LAYER, ...BAKET_INTERACTIVE_LAYERS]) {
         map.off("mouseenter", layerId, setPointer);
         map.off("mouseleave", layerId, clearPointer);
       }
     };
-  }, [map, onBaketSelect, onJaringSelect, onPointerMove]);
+  }, [map, onBaketHover, onBaketSelect, onJaringSelect, onPointerMove]);
 
   return (
     <BaseMap

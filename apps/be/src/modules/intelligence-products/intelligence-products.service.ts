@@ -3303,10 +3303,16 @@ export class IntelligenceProductsService {
                 select: {
                   id: true,
                   title: true,
+                  originalContent: true,
+                  normalizedContent: true,
                   eventTime: true,
                   urgency: true,
+                  fieldOfficerNote: true,
                   latitude: true,
                   longitude: true,
+                  gpsAccuracyMeters: true,
+                  locationCapturedAt: true,
+                  coordinateSource: true,
                   eventArea: {
                     select: {
                       id: true,
@@ -3317,12 +3323,58 @@ export class IntelligenceProductsService {
                       centroidLongitude: true,
                     },
                   },
+                  attachments: {
+                    select: {
+                      caption: true,
+                      file: {
+                        select: {
+                          id: true,
+                          originalName: true,
+                          mimeType: true,
+                          fileType: true,
+                          sizeBytes: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
           }),
         ])
       : [[], [], []];
+
+    const effectivePeriodReports = query.urgency
+      ? periodReports.filter(
+          (report) => report.versions[0]?.urgency === query.urgency,
+        )
+      : periodReports;
+    const effectivePeriodGroups = query.urgency
+      ? [
+          ...effectivePeriodReports
+            .reduce<
+              Map<
+                string,
+                {
+                  primaryJaringId: string | null;
+                  status: string;
+                  _count: { _all: number };
+                }
+              >
+            >((accumulator, report) => {
+              const key = `${report.primaryJaringId ?? 'UNLINKED'}:${report.status}`;
+              const current = accumulator.get(key) ?? {
+                primaryJaringId: report.primaryJaringId,
+                status: report.status,
+                _count: { _all: 0 },
+              };
+              current._count._all += 1;
+              accumulator.set(key, current);
+              return accumulator;
+            }, new Map())
+            .values(),
+        ]
+      : periodGroups;
 
     type ReportMetrics = {
       total: number;
@@ -3354,7 +3406,7 @@ export class IntelligenceProductsService {
         metrics.lastReportAt = group._max.createdAt;
       }
     }
-    for (const group of periodGroups) {
+    for (const group of effectivePeriodGroups) {
       if (!group.primaryJaringId) continue;
       const metrics = reportMetrics.get(group.primaryJaringId);
       if (!metrics) continue;
@@ -3511,6 +3563,9 @@ export class IntelligenceProductsService {
           where: {
             primaryJaringId: { in: pagedItems.map((item) => item.id) },
             deletedAt: null,
+            ...(query.urgency
+              ? { versions: { some: { urgency: query.urgency } } }
+              : {}),
           },
           distinct: ['primaryJaringId'],
           orderBy: [{ primaryJaringId: 'asc' }, { createdAt: 'desc' }],
@@ -3528,10 +3583,16 @@ export class IntelligenceProductsService {
               select: {
                 id: true,
                 title: true,
+                originalContent: true,
+                normalizedContent: true,
                 eventTime: true,
                 urgency: true,
+                fieldOfficerNote: true,
                 latitude: true,
                 longitude: true,
+                gpsAccuracyMeters: true,
+                locationCapturedAt: true,
+                coordinateSource: true,
               },
             },
           },
@@ -3559,7 +3620,7 @@ export class IntelligenceProductsService {
       },
       {},
     );
-    const periodStatusCounts = periodGroups.reduce<Record<string, number>>(
+    const periodStatusCounts = effectivePeriodGroups.reduce<Record<string, number>>(
       (accumulator, item) => {
         accumulator[item.status] =
           (accumulator[item.status] ?? 0) + item._count._all;
@@ -3589,7 +3650,7 @@ export class IntelligenceProductsService {
       string,
       { total: number; verified: number; unverified: number }
     >();
-    for (const report of periodReports) {
+    for (const report of effectivePeriodReports) {
       const bucket = this.bucketKey(report.createdAt, interval);
       const value = trendBuckets.get(bucket) ?? {
         total: 0,
@@ -3647,7 +3708,7 @@ export class IntelligenceProductsService {
       trend: [...trendBuckets.entries()]
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([bucket, values]) => ({ bucket, ...values })),
-      recentReports: periodReports.slice(0, 10).map((report) => ({
+      recentReports: effectivePeriodReports.slice(0, 10).map((report) => ({
         id: report.id,
         status: report.status,
         createdAt: report.createdAt,
@@ -3697,7 +3758,7 @@ export class IntelligenceProductsService {
               ]
             : [],
         ),
-        baket: periodReports.flatMap((report) => {
+        baket: effectivePeriodReports.flatMap((report) => {
           const version = report.versions[0];
           const latitude =
             version?.latitude === null || version?.latitude === undefined
@@ -3724,9 +3785,30 @@ export class IntelligenceProductsService {
               createdAt: report.createdAt,
               title: version?.title ?? null,
               urgency: version?.urgency ?? null,
+              eventTime: version?.eventTime ?? null,
+              originalContent: version?.originalContent ?? null,
+              normalizedContent: version?.normalizedContent ?? null,
+              fieldOfficerNote: version?.fieldOfficerNote ?? null,
+              gpsAccuracyMeters:
+                version?.gpsAccuracyMeters === null ||
+                version?.gpsAccuracyMeters === undefined
+                  ? null
+                  : Number(version.gpsAccuracyMeters),
+              locationCapturedAt: version?.locationCapturedAt ?? null,
+              coordinateSource: version?.coordinateSource ?? null,
               category: report.reportCategory,
               jaring: report.primaryJaring,
               areaName: version?.eventArea?.name ?? null,
+              areaLevel: version?.eventArea?.level ?? null,
+              attachments:
+                version?.attachments.map((attachment) => ({
+                  fileId: attachment.file.id,
+                  fileName: attachment.file.originalName,
+                  mimeType: attachment.file.mimeType,
+                  fileType: attachment.file.fileType,
+                  sizeBytes: Number(attachment.file.sizeBytes),
+                  caption: attachment.caption,
+                })) ?? [],
               latitude: Number(latitude),
               longitude: Number(longitude),
             },

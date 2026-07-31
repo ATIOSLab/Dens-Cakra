@@ -26,6 +26,7 @@ import {
   DistributionStatus,
   JaringRegistrationStatus,
   JaringStatus,
+  PriorityLevel,
   ProductStatus,
 } from '../../generated/prisma/client.js';
 import { SortOrder } from '../../common/dto/sort-order.dto.js';
@@ -321,6 +322,7 @@ export class FieldIntelligenceDashboardQuery extends DashboardQuery {
   @IsEnum(JaringRegistrationStatus)
   registrationStatus?: JaringRegistrationStatus;
   @IsOptional() @IsEnum(BaketStatus) baketStatus?: BaketStatus;
+  @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
   @IsOptional() @IsEnum(JaringActivityLevel) activity?: JaringActivityLevel;
   @IsOptional()
   @IsEnum(FieldIntelligencePeriod)

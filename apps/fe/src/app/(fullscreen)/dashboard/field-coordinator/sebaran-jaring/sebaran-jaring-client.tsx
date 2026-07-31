@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import Link from "next/link";
-
 import {
   Building2,
   ChevronRight,
@@ -279,6 +277,19 @@ function genderDisplayName(gender: string | null) {
   return null;
 }
 
+function formatJaringDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function JaringDistributionClient({ cities }: { cities: JaringDistributionCity[] }) {
   const firstCity = cities.at(0);
   const [selectedCityId, setSelectedCityId] = useState(firstCity ? firstCity.id : "");
@@ -287,10 +298,12 @@ export function JaringDistributionClient({ cities }: { cities: JaringDistributio
   const [isJaringPanelOpen, setIsJaringPanelOpen] = useState(false);
   const [jaringSearch, setJaringSearch] = useState("");
   const [filterSelectedDistrict, setFilterSelectedDistrict] = useState(true);
+  const [selectedJaringId, setSelectedJaringId] = useState<string | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const selectedCity = cities.find((city) => city.id === selectedCityId) ?? firstCity ?? null;
   const selectedDistrict = selectedCity?.districts.find((district) => district.id === selectedDistrictId) ?? null;
+  const selectedJaring = selectedCity?.jaring.find((item) => item.id === selectedJaringId) ?? null;
   const selectedDistrictIndex =
     selectedCity?.districts.findIndex((district) => district.id === selectedDistrictId) ?? -1;
   const selectedDistrictColor =
@@ -541,6 +554,7 @@ export function JaringDistributionClient({ cities }: { cities: JaringDistributio
                 onChange={(event) => {
                   setSelectedCityId(event.target.value);
                   setSelectedDistrictId(null);
+                  setSelectedJaringId(null);
                   setJaringSearch("");
                   setFilterSelectedDistrict(false);
                 }}
@@ -599,13 +613,15 @@ export function JaringDistributionClient({ cities }: { cities: JaringDistributio
           </Button>
         ) : null}
 
-        <div className="pointer-events-none absolute top-[117px] right-0 bottom-0 z-40 flex w-full max-w-[432px] flex-col gap-3 p-3 md:top-[69px]">
-          {selectedDistrict ? (
-            <div className="pointer-events-auto ml-auto w-full max-w-[360px] shrink-0">
+        {selectedDistrict ? (
+          <div className="pointer-events-none absolute top-[117px] left-0 z-40 w-full max-w-[420px] p-3 md:top-[69px]">
+            <div className="pointer-events-auto w-full">
               <SelectedDistrictCard district={selectedDistrict} color={selectedDistrictColor} onClose={resetCityView} />
             </div>
-          ) : null}
+          </div>
+        ) : null}
 
+        <div className="pointer-events-none absolute top-[117px] right-0 bottom-0 z-40 flex w-full max-w-[432px] p-3 md:top-[69px]">
           <JaringListPanel
             city={selectedCity}
             district={selectedDistrict}
@@ -615,10 +631,13 @@ export function JaringDistributionClient({ cities }: { cities: JaringDistributio
             open={isJaringPanelOpen}
             search={jaringSearch}
             onClose={() => setIsJaringPanelOpen(false)}
+            onItemSelect={(item) => setSelectedJaringId(item.id)}
             onSearchChange={setJaringSearch}
             onScopeChange={setFilterSelectedDistrict}
           />
         </div>
+
+        {selectedJaring ? <JaringDetailModal item={selectedJaring} onClose={() => setSelectedJaringId(null)} /> : null}
       </section>
     </main>
   );
@@ -662,6 +681,7 @@ function JaringListPanel({
   open,
   search,
   onClose,
+  onItemSelect,
   onSearchChange,
   onScopeChange,
 }: {
@@ -673,6 +693,7 @@ function JaringListPanel({
   open: boolean;
   search: string;
   onClose: () => void;
+  onItemSelect: (item: JaringDistributionEntry) => void;
   onSearchChange: (value: string) => void;
   onScopeChange: (selectedDistrictOnly: boolean) => void;
 }) {
@@ -783,10 +804,11 @@ function JaringListPanel({
               const genderLabel = genderDisplayName(item.gender);
 
               return (
-                <Link
+                <button
                   key={item.id}
-                  href={`/dashboard/field-coordinator/verifikasi-jaring/${item.id}`}
-                  className="group flex min-h-[84px] items-center gap-3 px-4 py-3 transition-colors hover:bg-sky-50 focus-visible:bg-sky-50 focus-visible:outline-none"
+                  type="button"
+                  onClick={() => onItemSelect(item)}
+                  className="group flex min-h-[84px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-sky-50 focus-visible:bg-sky-50 focus-visible:outline-none"
                 >
                   <Avatar className="size-10 shrink-0 border border-slate-200 bg-slate-100">
                     {item.profilePhotoFileId ? (
@@ -820,7 +842,7 @@ function JaringListPanel({
                   </div>
 
                   <ChevronRight className="size-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-700" />
-                </Link>
+                </button>
               );
             })}
           </div>
@@ -850,6 +872,101 @@ function JaringListPanel({
         )}
       </div>
     </aside>
+  );
+}
+
+function JaringDetailModal({ item, onClose }: { item: JaringDistributionEntry; onClose: () => void }) {
+  const displayName = item.aliasName ?? item.code;
+  const genderLabel = genderDisplayName(item.gender) ?? "-";
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="pointer-events-auto absolute inset-0 z-[70] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+        aria-label="Tutup detail Jaring"
+      />
+      <article
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Detail Jaring ${displayName}`}
+        className="relative max-h-[calc(100dvh-2rem)] w-full max-w-[560px] overflow-hidden rounded-lg border border-white/80 bg-white text-slate-950 shadow-[0_24px_80px_rgba(15,23,42,0.38)]"
+      >
+        <div className="border-slate-200 border-b px-5 pt-5 pb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-4">
+              <Avatar className="size-16 shrink-0 border border-slate-200 bg-slate-100">
+                {item.profilePhotoFileId ? (
+                  <AvatarImage src={`/api/files/${item.profilePhotoFileId}`} alt={displayName} />
+                ) : null}
+                <AvatarFallback className="bg-slate-100 font-bold text-slate-600">
+                  {getInitials(displayName)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 font-semibold text-[10px] text-emerald-700 uppercase">
+                  <ShieldCheck className="size-3.5" />
+                  Jaring terverifikasi
+                </p>
+                <h2 className="mt-1 truncate font-bold text-xl leading-tight">{displayName}</h2>
+                <p className="mt-1 font-semibold text-[11px] text-slate-500">{item.code}</p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={onClose}
+              aria-label="Tutup detail Jaring"
+              title="Tutup detail"
+              className="-mt-1 -mr-1 shrink-0 text-slate-500 hover:bg-slate-100"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="max-h-[calc(100dvh-12rem)] overflow-y-auto px-5 py-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <JaringDetailField label="Nama lengkap" value={item.fullName ?? "Nama belum dilengkapi"} />
+            <JaringDetailField label="Jenis kelamin" value={genderLabel} />
+            <JaringDetailField label="Kelurahan/Desa" value={item.villageName} />
+            <JaringDetailField label="Kecamatan" value={item.districtName} />
+            <JaringDetailField label="Petugas" value={item.fieldOfficerName ?? "Belum ditugaskan"} />
+            <JaringDetailField label="Registrasi" value={formatJaringDateTime(item.registeredAt)} />
+          </div>
+
+          <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center gap-2 text-slate-500">
+              <MapPin className="size-4 shrink-0 text-sky-700" />
+              <p className="font-semibold text-[10px] uppercase">Alamat</p>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed">{item.address ?? "Alamat belum dilengkapi"}</p>
+          </div>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function JaringDetailField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-md border border-slate-200 bg-white p-3">
+      <p className="font-semibold text-[10px] text-slate-500 uppercase">{label}</p>
+      <p className="mt-1 truncate font-semibold text-slate-900 text-sm" title={value}>
+        {value}
+      </p>
+    </div>
   );
 }
 

@@ -3,12 +3,24 @@ import packageJson from "../../package.json";
 const currentYear = new Date().getFullYear();
 
 export const APP_CONFIG = {
-  name: "Studio Admin",
+  name: "DENS CAKRA",
   version: packageJson.version,
-  copyright: `© ${currentYear}, Studio Admin.`,
+  copyright: `(c) ${currentYear}, DENS CAKRA.`,
   meta: {
-    title: "Studio Admin - Modern Next.js Dashboard Starter Template",
+    title: "DENS CAKRA - Dashboard Evaluasi Nasional dan Situational Awareness",
     description:
-      "Studio Admin is a modern, open-source dashboard starter template built with Next.js 16, Tailwind CSS v4, and shadcn/ui. Perfect for SaaS apps, admin panels, and internal tools—fully customizable and production-ready.",
+      "DENS CAKRA adalah Sistem Manajemen Kinerja dan Evaluasi Nasional untuk command, analytic, knowledge, response, awareness, dan situational awareness operasional.",
+    keywords: [
+      "DENS CAKRA",
+      "Sistem Manajemen Kinerja",
+      "Evaluasi Nasional",
+      "Situational Awareness",
+      "Command",
+      "Analytic",
+      "Knowledge",
+      "Response",
+      "Awareness",
+      "Velox et Exactus",
+    ],
   },
 };
