@@ -78,7 +78,7 @@ export class UpdateJaringDto {
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(180) fullName?: string;
   @IsOptional()
   @IsString()
-  @Matches(/^\d{16}$/, { message: 'NIK harus terdiri dari tepat 16 digit angka.' })
+  @Matches(/^$|^\d{16}$/, { message: 'NIK harus kosong atau terdiri dari tepat 16 digit angka.' })
   nationalIdNumber?: string;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(1000) address?: string;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) birthPlace?: string;

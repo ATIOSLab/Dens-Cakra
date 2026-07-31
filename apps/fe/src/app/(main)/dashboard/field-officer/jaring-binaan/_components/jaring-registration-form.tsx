@@ -548,7 +548,7 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
         aliasName: values.aliasName.trim(),
         whatsappNumber: values.whatsappNumber,
         fullName: values.fullName.trim(),
-        nationalIdNumber: values.nationalIdNumber.trim() || undefined,
+        nationalIdNumber: isEditMode ? values.nationalIdNumber.trim() : values.nationalIdNumber.trim() || undefined,
         address: values.address.trim(),
         birthPlace: values.birthPlace.trim(),
         birthDate: values.birthDate,

@@ -143,6 +143,46 @@ describe('JaringService registration security', () => {
     expect(findUniqueOrThrow).not.toHaveBeenCalled();
   });
 
+  it('mengizinkan pengosongan NIK saat memperbarui Jaring', async () => {
+    const update = jest.fn(() => Promise.resolve({}));
+    const findUniqueOrThrow = jest.fn(() =>
+      Promise.resolve({
+        registrationStatus: 'PENDING',
+        whatsappNumber: '6281234567890',
+        nationalIdNumber: '3171000000000001',
+      }),
+    );
+    const service = new JaringService(
+      {
+        jaring: {
+          findUniqueOrThrow,
+          findFirstOrThrow: jest.fn(() => Promise.resolve({ id: 'jaring-id' })),
+          update,
+        },
+        auditLog: { create: jest.fn(() => Promise.resolve({})) },
+      } as never,
+      {
+        assertJaring: jest.fn(() => Promise.resolve()),
+      } as never,
+    );
+
+    await service.update(
+      'jaring-id',
+      { nationalIdNumber: '' } as UpdateJaringDto,
+      {
+        authRole: 'field_officer',
+        primaryAssignmentId: 'assignment-id',
+      } as never,
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'jaring-id' },
+      data: expect.objectContaining({
+        nationalIdNumber: null,
+      }),
+    });
+  });
+
   it('menolak nomor Jaring yang terdaftar di bawah Field Officer lain', async () => {
     const prisma = {
       jaring: {
