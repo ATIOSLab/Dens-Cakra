@@ -22,6 +22,8 @@ import {
   JaringGender,
   JaringRegistrationStatus,
   JaringStatus,
+  PriorityLevel,
+  WhatsAppReportSessionStatus,
 } from '../../generated/prisma/client.js';
 
 export class JaringQuery {
@@ -43,11 +45,16 @@ export class CreateJaringDto {
   @IsString() @IsNotEmpty() @MaxLength(180) fullName!: string;
   @IsOptional()
   @IsString()
-  @Matches(/^\d{16}$/, { message: 'NIK harus terdiri dari tepat 16 digit angka.' })
+  @Matches(/^\d{16}$/, {
+    message: 'NIK harus terdiri dari tepat 16 digit angka.',
+  })
   nationalIdNumber?: string;
   @IsString() @IsNotEmpty() @MaxLength(1000) address!: string;
   @IsString() @IsNotEmpty() @MaxLength(120) birthPlace!: string;
-  @IsDateString({}, { message: 'Tanggal lahir harus berupa tanggal yang valid.' })
+  @IsDateString(
+    {},
+    { message: 'Tanggal lahir harus berupa tanggal yang valid.' },
+  )
   birthDate!: string;
   @IsEnum(JaringGender) gender!: JaringGender;
   @IsUUID() occupationId!: string;
@@ -55,14 +62,19 @@ export class CreateJaringDto {
   profilePhotoFileId!: string;
   @IsOptional() @IsString() @MaxLength(180) workplace?: string;
   @IsOptional() @IsString() @MaxLength(150) jobTitle?: string;
-  @IsDateString({}, { message: 'Tanggal bergabung harus berupa tanggal yang valid.' })
+  @IsDateString(
+    {},
+    { message: 'Tanggal bergabung harus berupa tanggal yang valid.' },
+  )
   joinedAt!: string;
   @IsOptional() @IsString() @MaxLength(180) organizationName?: string;
   @IsOptional() @IsString() @MaxLength(180) politicalAffiliation?: string;
   @IsUUID() fieldOfficerAssignmentId!: string;
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(1, { message: 'Satu Jaring hanya boleh memiliki satu Kelurahan/Desa cakupan.' })
+  @ArrayMaxSize(1, {
+    message: 'Satu Jaring hanya boleh memiliki satu Kelurahan/Desa cakupan.',
+  })
   @IsUUID(undefined, { each: true })
   areaIds!: string[];
   @IsString() @IsNotEmpty() @MaxLength(3000) notes!: string;
@@ -78,12 +90,17 @@ export class UpdateJaringDto {
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(180) fullName?: string;
   @IsOptional()
   @IsString()
-  @Matches(/^$|^\d{16}$/, { message: 'NIK harus kosong atau terdiri dari tepat 16 digit angka.' })
+  @Matches(/^$|^\d{16}$/, {
+    message: 'NIK harus kosong atau terdiri dari tepat 16 digit angka.',
+  })
   nationalIdNumber?: string;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(1000) address?: string;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) birthPlace?: string;
   @IsOptional()
-  @IsDateString({}, { message: 'Tanggal lahir harus berupa tanggal yang valid.' })
+  @IsDateString(
+    {},
+    { message: 'Tanggal lahir harus berupa tanggal yang valid.' },
+  )
   birthDate?: string;
   @IsOptional() @IsEnum(JaringGender) gender?: JaringGender;
   @IsOptional() @IsUUID() occupationId?: string;
@@ -91,14 +108,19 @@ export class UpdateJaringDto {
   @IsOptional() @IsString() @MaxLength(180) workplace?: string;
   @IsOptional() @IsString() @MaxLength(150) jobTitle?: string;
   @IsOptional()
-  @IsDateString({}, { message: 'Tanggal bergabung harus berupa tanggal yang valid.' })
+  @IsDateString(
+    {},
+    { message: 'Tanggal bergabung harus berupa tanggal yang valid.' },
+  )
   joinedAt?: string;
   @IsOptional() @IsString() @MaxLength(180) organizationName?: string;
   @IsOptional() @IsString() @MaxLength(180) politicalAffiliation?: string;
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(1, { message: 'Satu Jaring hanya boleh memiliki satu Kelurahan/Desa cakupan.' })
+  @ArrayMaxSize(1, {
+    message: 'Satu Jaring hanya boleh memiliki satu Kelurahan/Desa cakupan.',
+  })
   @IsUUID(undefined, { each: true })
   areaIds?: string[];
   @IsOptional() @IsString() @MaxLength(3000) notes?: string;
@@ -127,6 +149,44 @@ export class ReportCategoryQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) limit = 100;
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsBoolean() @Type(() => Boolean) includeInactive = false;
+}
+
+export class JaringReportQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
+  @IsOptional()
+  @IsEnum(WhatsAppReportSessionStatus)
+  status?: WhatsAppReportSessionStatus;
+}
+
+export class JaringCoachingReportQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
+}
+
+export class CreateJaringCoachingReportDto {
+  @IsString() @IsNotEmpty() @MaxLength(300) title!: string;
+  @IsString() @IsNotEmpty() @MaxLength(10000) content!: string;
+  @IsDateString(
+    {},
+    { message: 'Tanggal dan waktu laporan pembinaan harus valid.' },
+  )
+  reportedAt!: string;
+}
+
+export class VerifyJaringReportDto {
+  @IsOptional() @IsString() @MaxLength(1000) note?: string;
+}
+
+export class UpdateJaringReportMetadataDto {
+  @IsOptional() @IsUUID() categoryId?: string;
+  @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
+  @IsOptional() @IsString() @MaxLength(300) title?: string;
+  @IsOptional() @IsString() content?: string;
+  @IsOptional() @IsString() normalizedContent?: string;
+  @IsOptional() @IsString() @MaxLength(3000) fieldOfficerNote?: string;
+  @IsOptional() @IsUUID() taskAssignmentId?: string;
+  @IsOptional() @IsDateString() eventTime?: string;
 }
 
 export class CreateReportCategoryDto {

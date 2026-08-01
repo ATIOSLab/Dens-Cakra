@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
+import {
+  Injectable } from '@nestjs/common';
 import {
   AlertSeverity,
   AlertStatus,
@@ -15,7 +17,6 @@ import {
   EmergencyStatus,
   FileLifecycleStatus,
   NotificationType,
-  PositionCode,
   Prisma,
   ProductStatus,
   RoleCode,
@@ -121,7 +122,7 @@ const USABLE_FILE_STATUSES: FileLifecycleStatus[] = [
 export class IntelligenceProductsService {
   private readonly locationPingSelect = {
     id: true,
-    positionAssignmentId: true,
+    operationalAssignmentId: true,
     areaId: true,
     latitude: true,
     longitude: true,
@@ -132,14 +133,14 @@ export class IntelligenceProductsService {
     receivedAt: true,
     isStealth: true,
     area: true,
-    positionAssignment: {
-      include: { position: true, userProfile: true },
+    operationalAssignment: {
+      include: { role: true, userProfile: true },
     },
   } satisfies Prisma.PersonnelLocationPingSelect;
 
   private readonly ownLocationPingSelect = {
     id: true,
-    positionAssignmentId: true,
+    operationalAssignmentId: true,
     areaId: true,
     latitude: true,
     longitude: true,
@@ -273,30 +274,13 @@ export class IntelligenceProductsService {
   }
 
   private async notifyPosition(
-    positionId: string | null | undefined,
+    assignmentId: string | null | undefined,
     type: NotificationType,
     title: string,
     message: string,
     link?: string,
   ) {
-    if (!positionId) {
-      return;
-    }
-    const assignments = await this.prisma.userSeatAssignment.findMany({
-      where: {
-        positionId,
-        isActive: true,
-        validUntil: null,
-      },
-      select: { userProfileId: true },
-    });
-    await this.notifyUsers(
-      assignments.map((assignment) => assignment.userProfileId),
-      type,
-      title,
-      message,
-      link,
-    );
+    await this.notifyAssignment(assignmentId, type, title, message, link);
   }
 
   private async notifyAssignment(
@@ -309,7 +293,7 @@ export class IntelligenceProductsService {
     if (!assignmentId) {
       return;
     }
-    const assignment = await this.prisma.userSeatAssignment.findUnique({
+    const assignment = await this.prisma.userOperationalAssignment.findUnique({
       where: { id: assignmentId },
       select: { userProfileId: true },
     });
@@ -562,9 +546,9 @@ export class IntelligenceProductsService {
       where: { id: productId, deletedAt: null },
       include: {
         productType: true,
-        ownerUnit: true,
+        ownerAssignment: true,
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         versions: {
           orderBy: { versionNumber: 'desc' },
@@ -582,7 +566,7 @@ export class IntelligenceProductsService {
               },
             },
             createdByAssignment: {
-              include: { userProfile: true, position: true },
+              include: { userProfile: true, role: true },
             },
             sourceVerifications: {
               include: {
@@ -604,7 +588,7 @@ export class IntelligenceProductsService {
                             createdByFieldOfficerAssignment: {
                               include: {
                                 userProfile: { include: { authUser: true } },
-                                position: true,
+                                role: true,
                               },
                             },
                           },
@@ -645,7 +629,7 @@ export class IntelligenceProductsService {
                                             userProfile: {
                                               include: { authUser: true },
                                             },
-                                            position: true,
+                                            role: true,
                                           },
                                         },
                                       },
@@ -670,9 +654,9 @@ export class IntelligenceProductsService {
                 steps: {
                   orderBy: { stepNumber: 'asc' },
                   include: {
-                    targetPosition: true,
+                    targetAssignment: true,
                     decidedByAssignment: {
-                      include: { userProfile: true, position: true },
+                      include: { userProfile: true, role: true },
                     },
                   },
                 },
@@ -683,8 +667,7 @@ export class IntelligenceProductsService {
             },
             distributions: {
               include: {
-                targetUnit: true,
-                targetPosition: true,
+                targetAssignment: true,
                 targetUser: true,
               },
             },
@@ -701,7 +684,7 @@ export class IntelligenceProductsService {
         product: {
           include: {
             productType: true,
-            ownerUnit: true,
+            ownerAssignment: true,
           },
         },
         template: {
@@ -717,7 +700,7 @@ export class IntelligenceProductsService {
           },
         },
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         sourceVerifications: {
           include: {
@@ -739,7 +722,7 @@ export class IntelligenceProductsService {
                         createdByFieldOfficerAssignment: {
                           include: {
                             userProfile: { include: { authUser: true } },
-                            position: true,
+                            role: true,
                           },
                         },
                       },
@@ -780,7 +763,7 @@ export class IntelligenceProductsService {
                                         userProfile: {
                                           include: { authUser: true },
                                         },
-                                        position: true,
+                                        role: true,
                                       },
                                     },
                                   },
@@ -805,9 +788,9 @@ export class IntelligenceProductsService {
             steps: {
               orderBy: { stepNumber: 'asc' },
               include: {
-                targetPosition: true,
+                targetAssignment: true,
                 decidedByAssignment: {
-                  include: { userProfile: true, position: true },
+                  include: { userProfile: true, role: true },
                 },
               },
             },
@@ -818,8 +801,7 @@ export class IntelligenceProductsService {
         },
         distributions: {
           include: {
-            targetUnit: true,
-            targetPosition: true,
+            targetAssignment: true,
             targetUser: true,
           },
         },
@@ -827,7 +809,7 @@ export class IntelligenceProductsService {
     });
   }
 
-  private async approvalWorkflowDetail(workflowId: string) {
+  private async approvalWorkflowDetail(workflowId: string): Promise<any> {
     return this.prisma.productApprovalWorkflow.findUniqueOrThrow({
       where: { id: workflowId },
       include: {
@@ -840,11 +822,18 @@ export class IntelligenceProductsService {
         steps: {
           orderBy: { stepNumber: 'asc' },
           include: {
-            targetPosition: {
-              include: { organizationUnit: true },
+            targetAssignment: {
+              include: {
+                role: true,
+                userProfile: true,
+                areaScopes: {
+                  where: { validUntil: null },
+                  include: { area: true },
+                },
+              },
             },
             decidedByAssignment: {
-              include: { userProfile: true, position: true },
+              include: { userProfile: true, role: true },
             },
           },
         },
@@ -855,7 +844,7 @@ export class IntelligenceProductsService {
     });
   }
 
-  private async distributionDetail(distributionId: string) {
+  private async distributionDetail(distributionId: string): Promise<any> {
     return this.prisma.productDistribution.findUniqueOrThrow({
       where: { id: distributionId },
       include: {
@@ -865,10 +854,9 @@ export class IntelligenceProductsService {
           },
         },
         sentByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
-        targetUnit: true,
-        targetPosition: true,
+        targetAssignment: true,
         targetUser: true,
       },
     });
@@ -1126,69 +1114,58 @@ export class IntelligenceProductsService {
   }
 
   private async buildWorkflowTargets(assignmentId: string) {
-    const creator = await this.prisma.userSeatAssignment.findUniqueOrThrow({
+    const creator = await this.prisma.userOperationalAssignment.findUniqueOrThrow({
       where: { id: assignmentId },
       include: {
-        position: true,
+        role: true,
+        areaScopes: {
+          where: { validUntil: null },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        },
       },
     });
 
-    if (!creator.position.reportsToPositionId) {
+    const areaIds = creator.areaScopes.map((scope) => scope.areaId);
+    if (!areaIds.length) {
       throw new ApiException(
         'APPROVAL_ROUTE_UNRESOLVED',
-        'Regional approver could not be resolved from reporting line.',
+        'Regional approver could not be resolved from assignment scope.',
         422,
       );
     }
 
-    const regional = await this.prisma.position.findUniqueOrThrow({
-      where: { id: creator.position.reportsToPositionId },
-    });
-
-    return {
-      regionalTargetPositionId: regional.id,
-    };
-  }
-
-  private async resolveSeatIdForPosition(
-    client: Prisma.TransactionClient | PrismaService,
-    positionId: string,
-  ) {
-    const position = await client.position.findUniqueOrThrow({
-      where: { id: positionId },
-      select: {
-        id: true,
-        roleId: true,
-        organizationUnitId: true,
-        branch: true,
-      },
-    });
-
-    const existingSeat = await client.organizationRoleSeat.findFirst({
+    const regional = await this.prisma.userOperationalAssignment.findFirst({
       where: {
-        organizationUnitId: position.organizationUnitId,
-        roleId: position.roleId,
-        ...(position.branch ? { branch: position.branch } : { branch: null }),
+        isActive: true,
+        validUntil: null,
+        branch: creator.branch,
+        role: { code: RoleCode.REGIONAL_COMMANDER },
+        areaScopes: {
+          some: {
+            validUntil: null,
+            area: {
+              OR: [
+                { id: { in: areaIds } },
+                { ancestorLinks: { some: { descendantId: { in: areaIds } } } },
+                { descendantLinks: { some: { ancestorId: { in: areaIds } } } },
+              ],
+            },
+          },
+        },
       },
-      select: { id: true },
+      orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
     });
-
-    if (existingSeat) {
-      return existingSeat.id;
+    if (!regional) {
+      throw new ApiException(
+        'APPROVAL_ROUTE_UNRESOLVED',
+        'Regional approver could not be resolved from assignment scope.',
+        422,
+      );
     }
 
-    const seat = await client.organizationRoleSeat.create({
-      data: {
-        organizationUnitId: position.organizationUnitId,
-        roleId: position.roleId,
-        ...(position.branch ? { branch: position.branch } : {}),
-        positionId: position.id,
-        isActive: true,
-      },
-      select: { id: true },
-    });
-
-    return seat.id;
+    return {
+      regionalTargetAssignmentId: regional.id,
+    };
   }
 
   private resolveOperationalRoute(
@@ -1214,7 +1191,7 @@ export class IntelligenceProductsService {
     tx: Prisma.TransactionClient,
     versionId: string,
     routeType: OperationalRouteType,
-    regionalTargetPositionId: string,
+    regionalTargetAssignmentId: string,
     actorAssignmentId: string,
   ) {
     const existing = await tx.productApprovalWorkflow.findUnique({
@@ -1224,10 +1201,6 @@ export class IntelligenceProductsService {
       return existing.id;
     }
 
-    const regionalTargetSeatId = await this.resolveSeatIdForPosition(
-      tx,
-      regionalTargetPositionId,
-    );
     const workflow = await tx.productApprovalWorkflow.create({
       data: {
         productVersionId: versionId,
@@ -1238,8 +1211,7 @@ export class IntelligenceProductsService {
           create: {
             stepNumber: 1,
             stage: ApprovalStage.REGIONAL,
-            targetSeatId: regionalTargetSeatId,
-            targetPositionId: regionalTargetPositionId,
+            targetAssignmentId: regionalTargetAssignmentId,
             status: ApprovalStepStatus.ACTIVE,
             activatedAt: new Date(),
           },
@@ -1267,25 +1239,13 @@ export class IntelligenceProductsService {
       return;
     }
 
-    const target = await this.prisma.userSeatAssignment.findUniqueOrThrow({
-      where: { id: assignmentId },
-      include: {
-        position: true,
-      },
-    });
+    if (assignmentId === context.primaryAssignmentId) {
+      return;
+    }
 
-    let currentPositionId: string | null | undefined =
-      target.position.reportsToPositionId;
-    while (currentPositionId) {
-      if (currentPositionId === context.positionId) {
-        return;
-      }
-      const current: { reportsToPositionId: string | null } | null =
-        await this.prisma.position.findUnique({
-          where: { id: currentPositionId },
-          select: { reportsToPositionId: true },
-        });
-      currentPositionId = current?.reportsToPositionId;
+    const scope = await this.scope.resolve(context);
+    if (scope.assignmentIds.includes(assignmentId)) {
+      return;
     }
 
     throw new ApiException(
@@ -1500,7 +1460,7 @@ export class IntelligenceProductsService {
       ...(query.status ? { status: query.status } : {}),
       ...(query.classification ? { classification: query.classification } : {}),
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
-      ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
+      ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
       ...(query.createdByAssignmentId
         ? { createdByAssignmentId: query.createdByAssignmentId }
         : {}),
@@ -1570,7 +1530,7 @@ export class IntelligenceProductsService {
             : [{ updatedAt: query.sortOrder ?? 'desc' }, { id: 'asc' }],
         include: {
           productType: true,
-          ownerUnit: true,
+          ownerAssignment: true,
           versions: {
             orderBy: { versionNumber: 'desc' },
             take: 1,
@@ -1645,7 +1605,7 @@ export class IntelligenceProductsService {
     const product = await this.prisma.intelligenceProduct.create({
       data: {
         productTypeId: body.productTypeId,
-        ownerUnitId: context.organizationUnitId,
+        ownerAssignmentId: context.primaryAssignmentId,
         createdByAssignmentId: context.primaryAssignmentId,
         productNumber,
         classification: body.classification,
@@ -2109,7 +2069,7 @@ export class IntelligenceProductsService {
         tx,
         body.versionId,
         this.resolveOperationalRoute(context.commandRouteType),
-        derivedTargets.regionalTargetPositionId,
+        derivedTargets.regionalTargetAssignmentId,
         context.primaryAssignmentId,
       );
       await tx.intelligenceProduct.update({
@@ -2120,7 +2080,7 @@ export class IntelligenceProductsService {
     });
 
     await this.notifyPosition(
-      derivedTargets.regionalTargetPositionId,
+      derivedTargets.regionalTargetAssignmentId,
       NotificationType.APPROVAL,
       'Approval produk baru',
       `Produk ${product.title} menunggu approval regional.`,
@@ -2248,7 +2208,7 @@ export class IntelligenceProductsService {
     context: AuthorizationContext,
   ) {
     const where: Prisma.ProductApprovalStepWhereInput = {
-      targetPositionId: context.positionId,
+      targetAssignmentId: context.primaryAssignmentId,
       status: query.status
         ? query.status
         : { in: [ApprovalStepStatus.ACTIVE, ApprovalStepStatus.WAITING] },
@@ -2285,9 +2245,9 @@ export class IntelligenceProductsService {
               },
             },
           },
-          targetPosition: true,
+          targetAssignment: true,
           decidedByAssignment: {
-            include: { userProfile: true, position: true },
+            include: { userProfile: true, role: true },
           },
         },
       }),
@@ -2326,7 +2286,7 @@ export class IntelligenceProductsService {
         tx,
         versionId,
         this.resolveOperationalRoute(body.routeType),
-        body.regionalTargetPositionId,
+        body.regionalTargetAssignmentId ?? body.regionalTargetPositionId,
         context.primaryAssignmentId,
       );
     });
@@ -2354,9 +2314,9 @@ export class IntelligenceProductsService {
             },
           },
         },
-        targetPosition: true,
+        targetAssignment: true,
         decidedByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         events: {
           orderBy: { createdAt: 'asc' },
@@ -2382,7 +2342,7 @@ export class IntelligenceProductsService {
         },
       },
     });
-    if (step.targetPositionId !== context.positionId) {
+    if (step.targetAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'APPROVAL_FORBIDDEN',
         'Caller is not the target approver.',
@@ -2475,7 +2435,7 @@ export class IntelligenceProductsService {
         },
       },
     });
-    if (step.targetPositionId !== context.positionId) {
+    if (step.targetAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'APPROVAL_FORBIDDEN',
         'Caller is not the target approver.',
@@ -2564,7 +2524,7 @@ export class IntelligenceProductsService {
         },
       },
     });
-    if (step.targetPositionId !== context.positionId) {
+    if (step.targetAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'APPROVAL_FORBIDDEN',
         'Caller is not the target approver.',
@@ -2646,7 +2606,7 @@ export class IntelligenceProductsService {
         },
       },
     });
-    if (step.targetPositionId !== context.positionId) {
+    if (step.targetAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'APPROVAL_FORBIDDEN',
         'Caller is not the target approver.',
@@ -2752,8 +2712,8 @@ export class IntelligenceProductsService {
           at: event.createdAt,
           payload: event,
         })),
-        ...workflow.steps.flatMap((step) => {
-          const items = [];
+        ...workflow.steps.flatMap((step: any) => {
+          const items: any[] = [];
           if (step.activatedAt) {
             items.push({
               type: 'STEP_ACTIVATED',
@@ -2777,10 +2737,7 @@ export class IntelligenceProductsService {
   async listDistributions(query: DistributionQuery) {
     const where: Prisma.ProductDistributionWhereInput = {
       ...(query.status ? { status: query.status } : {}),
-      ...(query.targetUnitId ? { targetUnitId: query.targetUnitId } : {}),
-      ...(query.targetPositionId
-        ? { targetPositionId: query.targetPositionId }
-        : {}),
+      ...(query.targetAssignmentId ? { targetAssignmentId: query.targetAssignmentId } : {}),
       ...(query.targetUserProfileId
         ? { targetUserProfileId: query.targetUserProfileId }
         : {}),
@@ -2807,10 +2764,9 @@ export class IntelligenceProductsService {
         include: {
           productVersion: { include: { product: true } },
           sentByAssignment: {
-            include: { userProfile: true, position: true },
+            include: { userProfile: true, role: true },
           },
-          targetUnit: true,
-          targetPosition: true,
+          targetAssignment: true,
           targetUser: true,
         },
       }),
@@ -2845,11 +2801,10 @@ export class IntelligenceProductsService {
     }
 
     const distributions = await this.prisma.$transaction(async (tx) => {
-      const created = [];
+      const created: any[] = [];
       for (const target of body.targets) {
         const setCount =
-          Number(Boolean(target.targetUnitId)) +
-          Number(Boolean(target.targetPositionId)) +
+          Number(Boolean(target.targetAssignmentId)) +
           Number(Boolean(target.targetUserProfileId));
         if (setCount !== 1) {
           throw new ApiException(
@@ -2862,8 +2817,7 @@ export class IntelligenceProductsService {
           data: {
             productVersionId: versionId,
             sentByAssignmentId: context.primaryAssignmentId,
-            targetUnitId: target.targetUnitId,
-            targetPositionId: target.targetPositionId,
+            targetAssignmentId: target.targetAssignmentId,
             targetUserProfileId: target.targetUserProfileId,
             status: DistributionStatus.SENT,
             sentAt: new Date(),
@@ -2887,9 +2841,9 @@ export class IntelligenceProductsService {
           `Sebuah produk intelijen baru telah dikirimkan kepada Anda.${body.message ? ` ${body.message}` : ''}`,
           `/distributions/${distribution.id}`,
         );
-      } else if (distribution.targetPositionId) {
+      } else if (distribution.targetAssignmentId) {
         await this.notifyPosition(
-          distribution.targetPositionId,
+          distribution.targetAssignmentId,
           NotificationType.PRODUCT,
           'Produk terdistribusi',
           `Sebuah produk intelijen baru telah dikirimkan ke posisi Anda.${body.message ? ` ${body.message}` : ''}`,
@@ -2974,8 +2928,8 @@ export class IntelligenceProductsService {
       });
     const allowed =
       distribution.targetUserProfileId === context.userProfileId ||
-      distribution.targetPositionId === context.positionId ||
-      distribution.targetUnitId === context.organizationUnitId;
+      distribution.targetAssignmentId === context.primaryAssignmentId ||
+      distribution.targetAssignmentId === context.primaryAssignmentId;
     if (!allowed) {
       throw new ApiException(
         'DISTRIBUTION_FORBIDDEN',
@@ -3099,7 +3053,7 @@ export class IntelligenceProductsService {
           ...(isFieldCoordinator
             ? {
                 fieldOfficerAssignment: {
-                  seat: { branch: resolvedScope.commandRouteType },
+                  branch: resolvedScope.commandRouteType,
                 },
               }
             : {
@@ -3194,12 +3148,24 @@ export class IntelligenceProductsService {
                 userProfile: {
                   select: { id: true, fullName: true, username: true },
                 },
-                position: {
+                role: {
                   select: {
                     id: true,
-                    title: true,
-                    organizationUnit: {
-                      select: { id: true, name: true },
+                    code: true,
+                    name: true,
+                  },
+                },
+                areaScopes: {
+                  where: { validUntil: null },
+                  orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+                  select: {
+                    isPrimary: true,
+                    area: {
+                      select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                      },
                     },
                   },
                 },
@@ -3352,16 +3318,7 @@ export class IntelligenceProductsService {
     const effectivePeriodGroups = query.urgency
       ? [
           ...effectivePeriodReports
-            .reduce<
-              Map<
-                string,
-                {
-                  primaryJaringId: string | null;
-                  status: string;
-                  _count: { _all: number };
-                }
-              >
-            >((accumulator, report) => {
+            .reduce((accumulator: Map<string, any>, report: any) => {
               const key = `${report.primaryJaringId ?? 'UNLINKED'}:${report.status}`;
               const current = accumulator.get(key) ?? {
                 primaryJaringId: report.primaryJaringId,
@@ -3461,8 +3418,11 @@ export class IntelligenceProductsService {
               name:
                 assignment.userProfile.fullName ??
                 assignment.userProfile.username,
-              positionTitle: assignment.position.title,
-              organizationUnit: assignment.position.organizationUnit,
+              positionTitle: assignment.role.name,
+              organizationUnit:
+                assignment.areaScopes.find((scope: any) => scope.isPrimary)?.area ??
+                assignment.areaScopes[0]?.area ??
+                null,
             }
           : null,
         area: village
@@ -3604,24 +3564,24 @@ export class IntelligenceProductsService {
         .map((report) => [report.primaryJaringId!, report]),
     );
 
-    const registrationStatuses = baseItems.reduce<Record<string, number>>(
-      (accumulator, item) => {
+    const registrationStatuses = baseItems.reduce(
+      (accumulator: Record<string, number>, item: any) => {
         accumulator[item.registrationStatus] =
           (accumulator[item.registrationStatus] ?? 0) + 1;
         return accumulator;
       },
       {},
     );
-    const activityStatuses = baseItems.reduce<Record<string, number>>(
-      (accumulator, item) => {
+    const activityStatuses = baseItems.reduce(
+      (accumulator: Record<string, number>, item: any) => {
         accumulator[item.activity.level] =
           (accumulator[item.activity.level] ?? 0) + 1;
         return accumulator;
       },
       {},
     );
-    const periodStatusCounts = effectivePeriodGroups.reduce<Record<string, number>>(
-      (accumulator, item) => {
+    const periodStatusCounts = effectivePeriodGroups.reduce(
+      (accumulator: Record<string, number>, item: any) => {
         accumulator[item.status] =
           (accumulator[item.status] ?? 0) + item._count._all;
         return accumulator;
@@ -3675,7 +3635,7 @@ export class IntelligenceProductsService {
         role: context.authRole,
         positionTitle: context.positionTitle,
         organizationUnit: {
-          id: context.organizationUnitId,
+          id: context.primaryAssignmentId,
           name: context.organizationUnitName,
         },
         areas: context.areaScopes,
@@ -3875,9 +3835,9 @@ export class IntelligenceProductsService {
         }),
         this.prisma.task.count({
           where: {
-            ownerUnit: {
+            ownerAssignment: {
               ancestorLinks: {
-                some: { ancestorId: context.organizationUnitId },
+                some: { ancestorId: context.primaryAssignmentId },
               },
             },
             deletedAt: null,
@@ -3886,14 +3846,14 @@ export class IntelligenceProductsService {
         }),
         this.prisma.directive.count({
           where: {
-            ownerUnitId: context.organizationUnitId,
+            ownerAssignmentId: context.primaryAssignmentId,
             ...this.buildCommonDateWhere('createdAt', query.from, query.to),
           },
         }),
         this.prisma.intelligenceProduct.count({
           where: {
             deletedAt: null,
-            ownerUnitId: context.organizationUnitId,
+            ownerAssignmentId: context.primaryAssignmentId,
             ...this.buildCommonDateWhere('createdAt', query.from, query.to),
           },
         }),
@@ -3923,9 +3883,9 @@ export class IntelligenceProductsService {
         this.prisma.task.groupBy({
           by: ['status'],
           where: {
-            ownerUnit: {
+            ownerAssignment: {
               ancestorLinks: {
-                some: { ancestorId: context.organizationUnitId },
+                some: { ancestorId: context.primaryAssignmentId },
               },
             },
             deletedAt: null,
@@ -3946,7 +3906,7 @@ export class IntelligenceProductsService {
             status: ApprovalStepStatus.ACTIVE,
             workflow: {
               productVersion: {
-                product: { ownerUnitId: context.organizationUnitId },
+                product: { ownerAssignmentId: context.primaryAssignmentId },
               },
             },
           },
@@ -3983,7 +3943,7 @@ export class IntelligenceProductsService {
     const scope = await this.scope.resolve(context);
     const dateWhere = { gte: from, lte: to };
     const [assignments, taskAssignments, bakets] = await Promise.all([
-      this.prisma.userSeatAssignment.findMany({
+      this.prisma.userOperationalAssignment.findMany({
         where: { id: { in: scope.assignmentIds }, isActive: true },
         orderBy: [{ position: { organizationUnit: { name: 'asc' } } }],
         select: {
@@ -4514,14 +4474,14 @@ export class IntelligenceProductsService {
       where: {
         task: {
           deletedAt: null,
-          ...(query.unitId ? { ownerUnitId: query.unitId } : {}),
+          ...(query.unitId ? { ownerAssignmentId: query.unitId } : {}),
           ...this.buildCommonDateWhere('createdAt', query.from, query.to),
         },
       },
       include: {
         task: {
           include: {
-            ownerUnit: true,
+            ownerAssignment: true,
             targetAreas: { include: { area: true } },
           },
         },
@@ -4682,7 +4642,7 @@ export class IntelligenceProductsService {
       by: ['status'],
       where: {
         deletedAt: null,
-        ownerUnitId: context.organizationUnitId,
+        ownerAssignmentId: context.primaryAssignmentId,
         ...this.buildCommonDateWhere('createdAt', query.from, query.to),
       },
       _count: { _all: true },
@@ -4692,7 +4652,7 @@ export class IntelligenceProductsService {
         status: ApprovalStepStatus.ACTIVE,
         workflow: {
           productVersion: {
-            product: { ownerUnitId: context.organizationUnitId },
+            product: { ownerAssignmentId: context.primaryAssignmentId },
           },
         },
       },
@@ -5052,16 +5012,13 @@ export class IntelligenceProductsService {
             },
           },
         }),
-        this.prisma.userSeatAssignment.findMany({
+        this.prisma.userOperationalAssignment.findMany({
           where: {
             id: { in: scope.assignmentIds },
             isActive: true,
             OR: [{ validUntil: null }, { validUntil: { gt: now } }],
             userProfile: { isActive: true, deletedAt: null },
-            position: {
-              code: PositionCode.PETUGAS_ORGANIK,
-              isActive: true,
-            },
+            role: { code: RoleCode.FIELD_OFFICER, isActive: true },
             areaScopes: {
               some: {
                 validUntil: null,
@@ -5079,14 +5036,14 @@ export class IntelligenceProductsService {
             },
           },
           select: {
-            position: { select: { organizationUnitId: true } },
+            branch: true,
           },
         }),
         this.spatial.getActiveBoundaryGeoJson(query.areaId),
       ]);
     const units = new Set(
       personnelAssignments.map(
-        (assignment) => assignment.position.organizationUnitId,
+        (assignment) => assignment.branch,
       ),
     ).size;
 
@@ -5109,11 +5066,11 @@ export class IntelligenceProductsService {
       where: {
         deletedAt: null,
         ...(query.status ? { status: query.status as TaskStatus } : {}),
-        ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
+        ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
         ...this.buildCommonDateWhere('createdAt', query.from, query.to),
       },
       include: {
-        ownerUnit: true,
+        ownerAssignment: true,
         targetAreas: {
           include: { area: true },
           orderBy: { isPrimary: 'desc' },
@@ -5162,8 +5119,8 @@ export class IntelligenceProductsService {
           title: item.task.title,
           status: item.task.status,
           priority: item.task.priority,
-          ownerUnitId: item.task.ownerUnitId,
-          ownerUnitName: item.task.ownerUnit.name,
+          ownerAssignmentId: item.task.ownerAssignmentId,
+          ownerAssignmentName: item.task.ownerAssignment.name,
           areaId: item.area!.id,
           areaName: item.area!.name,
         },
@@ -5209,7 +5166,7 @@ export class IntelligenceProductsService {
           status: alert.status,
           areaId: alert.areaId,
           areaName: alert.area?.name ?? null,
-          assignedPositionId: alert.assignedPositionId,
+          assignedAssignmentId: alert.assignedAssignmentId,
         },
       })),
     };
@@ -5262,7 +5219,7 @@ export class IntelligenceProductsService {
   async listEmergencyIncidents(
     query: EmergencyQuery,
     context: AuthorizationContext,
-  ) {
+  ): Promise<any> {
     const scope = await this.scope.resolve(context);
     if (query.areaId) await this.scope.assertArea(context, query.areaId);
     const items = await this.prisma.emergencyIncident.findMany({
@@ -5307,7 +5264,7 @@ export class IntelligenceProductsService {
       include: {
         area: true,
         reportedByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
       },
     });
@@ -5359,7 +5316,7 @@ export class IntelligenceProductsService {
           latitude: body.latitude,
           longitude: body.longitude,
           sourceIncidentId: incident.id,
-          assignedPositionId: context.positionId,
+          assignedAssignmentId: context.primaryAssignmentId,
         },
       });
     }
@@ -5379,7 +5336,7 @@ export class IntelligenceProductsService {
       include: {
         area: true,
         reportedByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         ...(withRelations.includes('attachments')
           ? { attachments: { include: { file: true } } }
@@ -5596,7 +5553,7 @@ export class IntelligenceProductsService {
     );
   }
 
-  async listAlerts(query: AlertQuery, context: AuthorizationContext) {
+  async listAlerts(query: AlertQuery, context: AuthorizationContext): Promise<any> {
     const scope = await this.scope.resolve(context);
     if (query.areaId) await this.scope.assertArea(context, query.areaId);
     const items = await this.prisma.alert.findMany({
@@ -5618,7 +5575,7 @@ export class IntelligenceProductsService {
                     },
                   ]
                 : []),
-              { assignedPositionId: { in: scope.positionIds } },
+              { assignedAssignmentId: { in: scope.positionIds } },
               {
                 sourceBaket: {
                   createdByFieldOfficerAssignmentId: {
@@ -5632,8 +5589,8 @@ export class IntelligenceProductsService {
         ...(query.status ? { status: query.status as AlertStatus } : {}),
         ...(query.severity ? { severity: query.severity } : {}),
         ...(query.areaId ? { areaId: query.areaId } : {}),
-        ...(query.assignedPositionId
-          ? { assignedPositionId: query.assignedPositionId }
+        ...(query.assignedAssignmentId
+          ? { assignedAssignmentId: query.assignedAssignmentId }
           : {}),
         ...(query.sourceBaketId ? { sourceBaketId: query.sourceBaketId } : {}),
         ...(query.sourceIncidentId
@@ -5648,7 +5605,7 @@ export class IntelligenceProductsService {
         area: true,
         sourceBaket: true,
         sourceIncident: true,
-        assignedPosition: true,
+        assignedAssignment: true,
       },
     });
     return this.toCursorPage(items, query.limit);
@@ -5669,12 +5626,12 @@ export class IntelligenceProductsService {
         longitude: body.longitude,
         sourceBaketId: body.sourceBaketId,
         sourceIncidentId: body.sourceIncidentId,
-        assignedPositionId: body.assignedPositionId,
+        assignedAssignmentId: body.assignedAssignmentId,
       },
     });
-    if (body.assignedPositionId) {
+    if (body.assignedAssignmentId) {
       await this.notifyPosition(
-        body.assignedPositionId,
+        body.assignedAssignmentId,
         NotificationType.ALERT,
         'Alert baru ditugaskan',
         body.title,
@@ -5692,7 +5649,7 @@ export class IntelligenceProductsService {
         area: true,
         sourceBaket: true,
         sourceIncident: true,
-        assignedPosition: true,
+        assignedAssignment: true,
       },
     });
   }
@@ -5776,7 +5733,7 @@ export class IntelligenceProductsService {
     await this.prisma.alert.update({
       where: { id: alertId },
       data: {
-        assignedPositionId: body.positionId,
+        assignedAssignmentId: body.positionId,
         status: AlertStatus.ASSIGNED,
       },
     });
@@ -5859,8 +5816,8 @@ export class IntelligenceProductsService {
     context: AuthorizationContext,
   ) {
     this.ensureCoordinatePair(body.latitude, body.longitude);
-    const assignment = await this.prisma.userSeatAssignment.findUniqueOrThrow({
-      where: { id: body.positionAssignmentId },
+    const assignment = await this.prisma.userOperationalAssignment.findUniqueOrThrow({
+      where: { id: body.operationalAssignmentId },
     });
     if (
       assignment.userProfileId !== context.userProfileId ||
@@ -5876,7 +5833,7 @@ export class IntelligenceProductsService {
     const rows = await this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       INSERT INTO "PersonnelLocationPing"(
         "id",
-        "positionAssignmentId",
+        "operationalAssignmentId",
         "areaId",
         "latitude",
         "longitude",
@@ -5890,7 +5847,7 @@ export class IntelligenceProductsService {
       )
       VALUES(
         gen_random_uuid(),
-        ${body.positionAssignmentId}::uuid,
+        ${body.operationalAssignmentId}::uuid,
         ${resolved.areaId}::uuid,
         ${body.latitude},
         ${body.longitude},
@@ -5919,7 +5876,7 @@ export class IntelligenceProductsService {
 
   async myLatestLocation(context: AuthorizationContext) {
     return this.prisma.personnelLocationPing.findFirst({
-      where: { positionAssignmentId: context.primaryAssignmentId },
+      where: { operationalAssignmentId: context.primaryAssignmentId },
       orderBy: { capturedAt: 'desc' },
       select: this.ownLocationPingSelect,
     });
@@ -5928,7 +5885,7 @@ export class IntelligenceProductsService {
   async latestLocation(assignmentId: string, context: AuthorizationContext) {
     await this.ensureLocationAccess(assignmentId, context);
     const ping = await this.prisma.personnelLocationPing.findFirst({
-      where: { positionAssignmentId: assignmentId },
+      where: { operationalAssignmentId: assignmentId },
       orderBy: { capturedAt: 'desc' },
       select: this.locationPingSelect,
     });
@@ -5950,7 +5907,7 @@ export class IntelligenceProductsService {
     await this.ensureLocationAccess(assignmentId, context);
     const items = await this.prisma.personnelLocationPing.findMany({
       where: {
-        positionAssignmentId: assignmentId,
+        operationalAssignmentId: assignmentId,
         ...this.buildCommonDateWhere('capturedAt', query.from, query.to),
       },
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
@@ -5969,13 +5926,13 @@ export class IntelligenceProductsService {
     if (query.areaId) {
       await this.scope.assertArea(context, query.areaId);
     }
-    const assignments = await this.prisma.userSeatAssignment.findMany({
+    const assignments = await this.prisma.userOperationalAssignment.findMany({
       where: {
         id: { in: scope.assignmentIds },
         isActive: true,
         OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
         position: {
-          code: PositionCode.PETUGAS_ORGANIK,
+          code: RoleCode.FIELD_OFFICER,
           isActive: true,
           ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
         },
@@ -6017,7 +5974,7 @@ export class IntelligenceProductsService {
     const pings = assignmentIds.length
       ? await this.prisma.personnelLocationPing.findMany({
           where: {
-            positionAssignmentId: { in: assignmentIds },
+            operationalAssignmentId: { in: assignmentIds },
             isStealth: false,
             ...(query.capturedAfter
               ? { capturedAt: { gte: new Date(query.capturedAfter) } }
@@ -6032,8 +5989,8 @@ export class IntelligenceProductsService {
 
     const latest = new Map<string, (typeof pings)[number]>();
     for (const ping of pings) {
-      if (!latest.has(ping.positionAssignmentId)) {
-        latest.set(ping.positionAssignmentId, ping);
+      if (!latest.has(ping.operationalAssignmentId)) {
+        latest.set(ping.operationalAssignmentId, ping);
       }
     }
 
@@ -6108,7 +6065,7 @@ export class IntelligenceProductsService {
         ...(query.includeStealth ? {} : { isStealth: false }),
         ...(query.unitId
           ? {
-              positionAssignment: {
+              operationalAssignment: {
                 position: { organizationUnitId: query.unitId },
               },
             }
@@ -6117,7 +6074,7 @@ export class IntelligenceProductsService {
       orderBy: [{ capturedAt: 'desc' }, { id: 'desc' }],
       include: {
         area: true,
-        positionAssignment: {
+        operationalAssignment: {
           include: {
             userProfile: true,
             position: {
@@ -6130,8 +6087,8 @@ export class IntelligenceProductsService {
 
     const latest = new Map<string, (typeof pings)[number]>();
     for (const ping of pings) {
-      if (!latest.has(ping.positionAssignmentId)) {
-        latest.set(ping.positionAssignmentId, ping);
+      if (!latest.has(ping.operationalAssignmentId)) {
+        latest.set(ping.operationalAssignmentId, ping);
       }
     }
 
@@ -6143,15 +6100,15 @@ export class IntelligenceProductsService {
         coordinates: [Number(ping.longitude), Number(ping.latitude)],
       },
       properties: {
-        assignmentId: ping.positionAssignmentId,
+        assignmentId: ping.operationalAssignmentId,
         capturedAt: ping.capturedAt,
         isStealth: ping.isStealth,
         areaId: ping.areaId,
         areaName: ping.area?.name ?? null,
-        userProfileId: ping.positionAssignment.userProfile.id,
-        userName: ping.positionAssignment.userProfile.fullName,
-        positionTitle: ping.positionAssignment.position.title,
-        unitName: ping.positionAssignment.position.organizationUnit.name,
+        userProfileId: ping.operationalAssignment.userProfile.id,
+        userName: ping.operationalAssignment.userProfile.fullName,
+        positionTitle: ping.operationalAssignment.position.title,
+        unitName: ping.operationalAssignment.position.organizationUnit.name,
         canSeeStealth:
           query.includeStealth && context.roleCode !== RoleCode.FIELD_OFFICER,
       },

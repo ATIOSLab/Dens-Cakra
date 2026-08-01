@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException } from '@nestjs/common';
 import {
   AdministrativeLevel,
-  PositionCode,
   Prisma,
   RoleCode,
   UserProfileStatus,
@@ -15,17 +16,12 @@ import {
   FieldCoordinatorPersonnelAreaFilterQuery,
 } from './executive-personnel.dto.js';
 
-type ActiveAssignment = Awaited<
-  ReturnType<ExecutivePersonnelService['findActiveAssignmentsForProfiles']>
->[number];
-
-type LatestPing = Awaited<
-  ReturnType<ExecutivePersonnelService['latestLocationPings']>
->[number];
+type ActiveAssignment = any;
+type LatestPing = any;
 
 type PersonnelScopeOptions = {
   assignmentIds?: string[];
-  requiredPositionCode?: PositionCode;
+  requiredRoleCode?: RoleCode;
 };
 
 const LOCATION_LEGEND = [
@@ -79,7 +75,7 @@ export class ExecutivePersonnelService {
 
     return this.listPersonnel(query, {
       assignmentIds: scope.assignmentIds,
-      requiredPositionCode: PositionCode.PETUGAS_ORGANIK,
+      requiredRoleCode: RoleCode.FIELD_OFFICER,
     });
   }
 
@@ -126,17 +122,20 @@ export class ExecutivePersonnelService {
       profileIds,
       query,
       scopeOptions,
-    );
+    ) as any[];
     const assignmentByProfile = new Map(
-      assignments.map((assignment) => [assignment.userProfileId, assignment]),
+      assignments.map((assignment: any) => [assignment.userProfileId, assignment]),
     );
     const assignmentIds = assignments.map((assignment) => assignment.id);
     const [latestPings, reportCounts] = await Promise.all([
       this.latestLocationPings(assignmentIds),
       this.reportCountsByAssignment(assignmentIds),
     ]);
-    const pingByAssignment = new Map(
-      latestPings.map((ping) => [ping.positionAssignmentId, ping]),
+    const pingByAssignment = new Map<string, any>(
+      (latestPings as any[]).map((ping: any) => [
+        ping.operationalAssignmentId,
+        ping,
+      ]),
     );
 
     return {
@@ -189,7 +188,7 @@ export class ExecutivePersonnelService {
 
     return this.mapPersonnel(query, {
       assignmentIds: scope.assignmentIds,
-      requiredPositionCode: PositionCode.PETUGAS_ORGANIK,
+      requiredRoleCode: RoleCode.FIELD_OFFICER,
     });
   }
 
@@ -273,14 +272,12 @@ export class ExecutivePersonnelService {
       throw new NotFoundException('Personel tidak ditemukan.');
     }
 
-    const assignment = await this.prisma.userSeatAssignment.findFirst({
+    const assignment = await this.prisma.userOperationalAssignment.findFirst({
       where: {
         id: assignmentId,
         isActive: true,
         validUntil: null,
-        position: {
-          code: PositionCode.PETUGAS_ORGANIK,
-        },
+        role: { code: RoleCode.FIELD_OFFICER },
         userProfile: {
           deletedAt: null,
           isActive: true,
@@ -308,7 +305,7 @@ export class ExecutivePersonnelService {
       throw new NotFoundException('Personel tidak ditemukan.');
     }
 
-    const assignment = await this.prisma.userSeatAssignment.findFirst({
+    const assignment = await this.prisma.userOperationalAssignment.findFirst({
       where: {
         id: assignmentId,
         isActive: true,
@@ -335,7 +332,7 @@ export class ExecutivePersonnelService {
     scopeOptions: PersonnelScopeOptions = {},
   ) {
     const selectedAreaId = this.selectedAreaId(query);
-    const assignments = await this.prisma.userSeatAssignment.findMany({
+    const assignments = await this.prisma.userOperationalAssignment.findMany({
       where: {
         isActive: true,
         validUntil: null,
@@ -345,11 +342,12 @@ export class ExecutivePersonnelService {
         ...(selectedAreaId
           ? { areaScopes: { some: this.areaScopeWhere(selectedAreaId) } }
           : {}),
-        position: {
-          code:
-            scopeOptions.requiredPositionCode ?? PositionCode.PETUGAS_ORGANIK,
-          ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
+        role: {
+          code: scopeOptions.requiredRoleCode ?? RoleCode.FIELD_OFFICER,
         },
+        ...(query.unitId
+          ? { areaScopes: { some: this.areaScopeWhere(query.unitId) } }
+          : {}),
         userProfile: { deletedAt: null, isActive: true },
       },
       include: {
@@ -358,12 +356,7 @@ export class ExecutivePersonnelService {
             authUser: { select: { email: true, name: true } },
           },
         },
-        position: {
-          include: {
-            role: true,
-            organizationUnit: true,
-          },
-        },
+        role: true,
         areaScopes: {
           where: { validUntil: null },
           include: { area: true },
@@ -375,12 +368,12 @@ export class ExecutivePersonnelService {
     const pings = await this.latestLocationPings(
       assignments.map((item) => item.id),
     );
-    const pingByAssignment = new Map(
-      pings.map((ping) => [ping.positionAssignmentId, ping]),
+    const pingByAssignment = new Map<string, any>(
+      (pings as any[]).map((ping: any) => [ping.operationalAssignmentId, ping]),
     );
     const now = new Date();
     let unlocatedCount = 0;
-    const features = assignments.flatMap((assignment) => {
+    const features: any[] = assignments.flatMap((assignment: any) => {
       const ping = pingByAssignment.get(assignment.id) ?? null;
       const primaryArea =
         assignment.areaScopes.find((scope) => scope.isPrimary)?.area ??
@@ -423,10 +416,10 @@ export class ExecutivePersonnelService {
               assignment.userProfile.authUser.name ??
               assignment.userProfile.username,
             email: assignment.userProfile.authUser.email,
-            positionTitle: assignment.position.title,
-            seatCode: assignment.position.seatCode,
-            unitName: assignment.position.organizationUnit.name,
-            roleCode: assignment.position.role.code,
+            positionTitle: assignment.role.name,
+            seatCode: assignment.id,
+            unitName: primaryArea?.name ?? assignment.branch,
+            roleCode: assignment.role.code,
             status,
             markerCode: legend.code,
             markerColor: legend.color,
@@ -453,7 +446,7 @@ export class ExecutivePersonnelService {
           totalFieldOfficers: assignments.length,
           located: features.length,
           unlocated: unlocatedCount,
-          byStatus: this.countBy(features, (feature) =>
+          byStatus: this.countBy(features, (feature: any) =>
             String(feature.properties.status),
           ),
         },
@@ -483,20 +476,9 @@ export class ExecutivePersonnelService {
             banExpires: true,
           },
         },
-        positionAssignments: {
+        operationalAssignments: {
           include: {
-            position: {
-              include: {
-                role: true,
-                organizationUnit: true,
-              },
-            },
-            seat: {
-              include: {
-                role: true,
-                organizationUnit: true,
-              },
-            },
+            role: true,
             areaScopes: {
               include: { area: true },
               orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
@@ -515,7 +497,7 @@ export class ExecutivePersonnelService {
       throw new NotFoundException('Personel tidak ditemukan.');
     }
 
-    const assignmentIds = profile.positionAssignments.map((item) => item.id);
+    const assignmentIds = profile.operationalAssignments.map((item) => item.id);
     const [latestPings, reports] = await Promise.all([
       this.latestLocationPings(assignmentIds),
       this.prisma.baket.findMany({
@@ -540,10 +522,10 @@ export class ExecutivePersonnelService {
       }),
     ]);
     const pingByAssignment = new Map(
-      latestPings.map((ping) => [ping.positionAssignmentId, ping]),
+      latestPings.map((ping) => [ping.operationalAssignmentId, ping]),
     );
     const currentAssignment =
-      profile.positionAssignments.find(
+      profile.operationalAssignments.find(
         (assignment) => assignment.isActive && !assignment.validUntil,
       ) ?? null;
 
@@ -572,7 +554,7 @@ export class ExecutivePersonnelService {
             pingByAssignment.get(currentAssignment.id) ?? null,
           )
         : null,
-      assignments: profile.positionAssignments.map((assignment) =>
+      assignments: profile.operationalAssignments.map((assignment) =>
         this.assignmentDetail(
           assignment,
           pingByAssignment.get(assignment.id) ?? null,
@@ -627,10 +609,10 @@ export class ExecutivePersonnelService {
       query.unitId ||
       selectedAreaId ||
       scopeOptions.assignmentIds ||
-      scopeOptions.requiredPositionCode
+      scopeOptions.requiredRoleCode
     ) {
       and.push({
-        positionAssignments: {
+        operationalAssignments: {
           some: this.activeAssignmentWhere(query, scopeOptions),
         },
       });
@@ -645,24 +627,42 @@ export class ExecutivePersonnelService {
           { authUser: { email: { contains: search, mode: 'insensitive' } } },
           { authUser: { name: { contains: search, mode: 'insensitive' } } },
           {
-            positionAssignments: {
+            operationalAssignments: {
               some: {
-                position: {
-                  OR: [
-                    { title: { contains: search, mode: 'insensitive' } },
-                    { seatCode: { contains: search, mode: 'insensitive' } },
-                    {
-                      organizationUnit: {
-                        name: { contains: search, mode: 'insensitive' },
+                OR: [
+                  {
+                    role: {
+                      name: { contains: search, mode: 'insensitive' },
+                    },
+                  },
+                  {
+                    role: {
+                      code: { equals: search as RoleCode },
+                    },
+                  },
+                  {
+                    areaScopes: {
+                      some: {
+                        area: {
+                          OR: [
+                            {
+                              name: {
+                                contains: search,
+                                mode: 'insensitive',
+                              },
+                            },
+                            {
+                              code: {
+                                contains: search,
+                                mode: 'insensitive',
+                              },
+                            },
+                          ],
+                        },
                       },
                     },
-                    {
-                      organizationUnit: {
-                        code: { contains: search, mode: 'insensitive' },
-                      },
-                    },
-                  ],
-                },
+                  },
+                ],
               },
             },
           },
@@ -689,18 +689,13 @@ export class ExecutivePersonnelService {
       return [];
     }
 
-    return this.prisma.userSeatAssignment.findMany({
+    return this.prisma.userOperationalAssignment.findMany({
       where: {
         ...this.activeAssignmentWhere(query, scopeOptions),
         userProfileId: { in: profileIds },
       },
       include: {
-        position: {
-          include: {
-            role: true,
-            organizationUnit: true,
-          },
-        },
+        role: true,
         areaScopes: {
           where: { validUntil: null },
           include: { area: true },
@@ -726,7 +721,7 @@ export class ExecutivePersonnelService {
       'roleCode' | 'unitId' | 'provinceId' | 'regencyId' | 'districtId'
     >,
     scopeOptions: PersonnelScopeOptions = {},
-  ): Prisma.UserSeatAssignmentWhereInput {
+  ): Prisma.UserOperationalAssignmentWhereInput {
     const selectedAreaId = this.selectedAreaId(query);
 
     return {
@@ -738,17 +733,19 @@ export class ExecutivePersonnelService {
       ...(selectedAreaId
         ? { areaScopes: { some: this.areaScopeWhere(selectedAreaId) } }
         : {}),
-      position: {
-        ...(query.roleCode ? { role: { code: query.roleCode } } : {}),
-        ...(query.unitId ? { organizationUnitId: query.unitId } : {}),
-        ...(scopeOptions.requiredPositionCode
-          ? { code: scopeOptions.requiredPositionCode }
+      ...(query.unitId
+        ? { areaScopes: { some: this.areaScopeWhere(query.unitId) } }
+        : {}),
+      role: {
+        ...(query.roleCode ? { code: query.roleCode } : {}),
+        ...(scopeOptions.requiredRoleCode
+          ? { code: scopeOptions.requiredRoleCode }
           : {}),
       },
     };
   }
 
-  private areaScopeWhere(areaId: string): Prisma.PositionAreaScopeWhereInput {
+  private areaScopeWhere(areaId: string): Prisma.UserAreaScopeWhereInput {
     return {
       area: {
         OR: [
@@ -824,11 +821,11 @@ export class ExecutivePersonnelService {
 
     const rows = await this.prisma.personnelLocationPing.findMany({
       where: {
-        positionAssignmentId: { in: assignmentIds },
+        operationalAssignmentId: { in: assignmentIds },
         isStealth: false,
       },
-      orderBy: [{ positionAssignmentId: 'asc' }, { capturedAt: 'desc' }],
-      distinct: ['positionAssignmentId'],
+      orderBy: [{ operationalAssignmentId: 'asc' }, { capturedAt: 'desc' }],
+      distinct: ['operationalAssignmentId'],
       include: {
         area: { select: { id: true, code: true, name: true, level: true } },
       },
@@ -871,20 +868,20 @@ export class ExecutivePersonnelService {
 
     return {
       id: assignment.id,
-      positionId: assignment.positionId,
-      title: assignment.position.title,
-      seatCode: assignment.position.seatCode,
-      roleCode: assignment.position.role.code,
-      roleName: assignment.position.role.name,
-      positionCode: assignment.position.code,
+      positionId: assignment.id,
+      title: assignment.role.name,
+      seatCode: assignment.id,
+      roleCode: assignment.role.code,
+      roleName: assignment.role.name,
+      positionCode: assignment.role.code,
       unit: {
-        id: assignment.position.organizationUnit.id,
-        code: assignment.position.organizationUnit.code,
-        name: assignment.position.organizationUnit.name,
-        type: assignment.position.organizationUnit.type,
-        branch: assignment.position.organizationUnit.branch,
+        id: areas[0]?.id ?? assignment.id,
+        code: areas[0]?.code ?? assignment.branch,
+        name: areas[0]?.name ?? assignment.branch,
+        type: assignment.branch,
+        branch: assignment.branch,
       },
-      branch: assignment.position.branch,
+      branch: assignment.branch,
       validFrom: assignment.validFrom,
       areas,
     };

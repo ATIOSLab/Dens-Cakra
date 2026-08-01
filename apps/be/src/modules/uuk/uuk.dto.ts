@@ -27,7 +27,7 @@ export enum UukSortField {
 export class UukQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(UukStrStatus) status?: UukStrStatus;
-  @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsOptional() @IsUUID() directiveId?: string;
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsEnum(UukSortField) sortBy?: UukSortField;
@@ -53,7 +53,7 @@ export class SectionDto {
 
 export class CreateUukDto {
   @IsUUID() directiveVersionId!: string;
-  @IsUUID() ownerUnitId!: string;
+  @IsUUID() ownerAssignmentId!: string;
   @IsString() @MaxLength(300) title!: string;
   @IsArray()
   @ArrayMinSize(1)

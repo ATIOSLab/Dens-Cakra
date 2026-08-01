@@ -1,13 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
+import {
+  Injectable } from '@nestjs/common';
 import {
   AreaResolutionMethod,
   BaketStatus,
   CoordinateSource,
   FileLifecycleStatus,
-  PositionCode,
   Prisma,
   PriorityLevel,
   RevisionRequestStatus,
+  RoleCode,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
@@ -107,7 +109,7 @@ export class BaketService {
       );
     }
     if (
-      context.positionCode === PositionCode.PETUGAS_ORGANIK &&
+      context.positionCode === RoleCode.FIELD_OFFICER &&
       version.baket.createdByFieldOfficerAssignmentId !==
         context.primaryAssignmentId
     ) {
@@ -121,7 +123,7 @@ export class BaketService {
   }
 
   async create(body: CreateBaketDto, context: AuthorizationContext) {
-    if (context.positionCode !== PositionCode.PETUGAS_ORGANIK) {
+    if (context.positionCode !== RoleCode.FIELD_OFFICER) {
       throw new ApiException(
         'BAKET_CREATOR_MUST_BE_FIELD_OFFICER',
         'Only Field Officer can create Baket directly.',

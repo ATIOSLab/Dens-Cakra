@@ -1,11 +1,13 @@
-import { jest } from '@jest/globals';
+import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
+import {
+  jest } from '@jest/globals';
 import {
   AdministrativeLevel,
   AreaResolutionMethod,
   BaketStatus,
   CoordinateSource,
-  PositionCode,
   PriorityLevel,
+  RoleCode,
 } from '../../generated/prisma/client.js';
 import {
   AgentLocationState,
@@ -92,7 +94,7 @@ describe('MapMarkersService', () => {
           userProfileId: 'agent',
           userName: 'Agen Bandung',
           positionTitle: 'Petugas Organik',
-          positionCode: PositionCode.PETUGAS_ORGANIK,
+          positionCode: RoleCode.FIELD_OFFICER,
           unitId: 'unit',
           unitName: 'Unit Bandung',
           latitude: -6.92,

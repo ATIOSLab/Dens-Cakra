@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
-import type { RegionalMasterOverview } from "../../organisasi-wilayah/_components/organisasi-wilayah-types";
+import type { RegionalMasterOverview } from "@/features/directives/types";
 import {
   type AreaSearchResult,
   type AreaSummary,

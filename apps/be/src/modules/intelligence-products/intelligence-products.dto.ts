@@ -109,7 +109,7 @@ export class ProductQuery {
   @IsOptional() @IsEnum(ProductStatus) status?: ProductStatus;
   @IsOptional() @IsEnum(Classification) classification?: Classification;
   @IsOptional() @IsUUID() productTypeId?: string;
-  @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() periodFrom?: string;
   @IsOptional() @IsDateString() periodTo?: string;
@@ -148,7 +148,7 @@ export class ProductVersionPayloadDto {
 
 export class CreateProductDto {
   @IsUUID() productTypeId!: string;
-  @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsOptional() @IsString() @MaxLength(150) productNumber?: string;
   @IsEnum(Classification) classification!: Classification;
   @IsString() @MaxLength(300) title!: string;
@@ -232,8 +232,9 @@ export class ApprovalInboxQuery {
 
 export class CreateApprovalWorkflowDto {
   @IsEnum(CommandRouteType) routeType!: CommandRouteType;
-  @IsUUID() regionalTargetPositionId!: string;
-  @IsOptional() @IsUUID() executiveTargetPositionId?: string;
+  @IsUUID() regionalTargetAssignmentId!: string;
+  @IsOptional() @IsUUID() regionalTargetPositionId?: string;
+  @IsOptional() @IsUUID() executiveTargetAssignmentId?: string;
 }
 
 export class ApprovalWorkflowQuery {
@@ -271,16 +272,14 @@ export class DistributionQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsUUID() productId?: string;
   @IsOptional() @IsEnum(DistributionStatus) status?: DistributionStatus;
-  @IsOptional() @IsUUID() targetUnitId?: string;
-  @IsOptional() @IsUUID() targetPositionId?: string;
+  @IsOptional() @IsUUID() targetAssignmentId?: string;
   @IsOptional() @IsUUID() targetUserProfileId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
 }
 
 export class DistributionTargetDto {
-  @IsOptional() @IsUUID() targetUnitId?: string;
-  @IsOptional() @IsUUID() targetPositionId?: string;
+  @IsOptional() @IsUUID() targetAssignmentId?: string;
   @IsOptional() @IsUUID() targetUserProfileId?: string;
 }
 
@@ -310,7 +309,7 @@ export class DashboardQuery {
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
-  @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsUUID() ownerAssignmentId?: string;
 }
 
 export class FieldIntelligenceDashboardQuery extends DashboardQuery {
@@ -434,7 +433,7 @@ export class AlertQuery {
   @IsOptional() @IsString() status?: string;
   @IsOptional() @IsEnum(AlertSeverity) severity?: AlertSeverity;
   @IsOptional() @IsUUID() areaId?: string;
-  @IsOptional() @IsUUID() assignedPositionId?: string;
+  @IsOptional() @IsUUID() assignedAssignmentId?: string;
   @IsOptional() @IsUUID() sourceBaketId?: string;
   @IsOptional() @IsUUID() sourceIncidentId?: string;
   @IsOptional() @IsDateString() from?: string;
@@ -450,7 +449,7 @@ export class CreateAlertDto {
   @IsOptional() @Type(() => Number) longitude?: number;
   @IsOptional() @IsUUID() sourceBaketId?: string;
   @IsOptional() @IsUUID() sourceIncidentId?: string;
-  @IsOptional() @IsUUID() assignedPositionId?: string;
+  @IsOptional() @IsUUID() assignedAssignmentId?: string;
 }
 
 export class UpdateAlertDto {
@@ -479,7 +478,7 @@ export class AlertSummaryQuery {
 }
 
 export class CreateLocationPingDto {
-  @IsUUID() positionAssignmentId!: string;
+  @IsUUID() operationalAssignmentId!: string;
   @Type(() => Number) @IsNumber() latitude!: number;
   @Type(() => Number) @IsNumber() longitude!: number;
   @IsOptional() @Type(() => Number) @IsNumber() gpsAccuracyMeters?: number;

@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
+import {
+  Injectable } from '@nestjs/common';
 import {
   CommandRouteType,
   DirectiveStatus,
-  PositionCode,
   Prisma,
   RecipientStatus,
   RoleCode,
@@ -102,8 +103,8 @@ export class DirectiveService {
   ): Prisma.DirectiveRecipientWhereInput {
     return {
       OR: [
-        { targetPositionId: context.positionId },
-        { targetUnitId: context.organizationUnitId },
+        { targetAssignmentId: context.primaryAssignmentId },
+        { targetAssignmentId: context.primaryAssignmentId },
       ],
     };
   }
@@ -154,7 +155,7 @@ export class DirectiveService {
   ): Prisma.DirectiveWhereInput {
     const areaScope = this.areaScopeWhere(context);
     const visibilityBranches: Prisma.DirectiveWhereInput[] = [
-      { ownerUnitId: context.organizationUnitId },
+      { ownerAssignmentId: context.primaryAssignmentId },
       { createdByAssignmentId: context.primaryAssignmentId },
       {
         versions: {
@@ -170,7 +171,7 @@ export class DirectiveService {
           some: {
             uukStrs: {
               some: {
-                ownerUnitId: context.organizationUnitId,
+                ownerAssignmentId: context.primaryAssignmentId,
               },
             },
           },
@@ -182,7 +183,7 @@ export class DirectiveService {
             tasks: {
               some: {
                 OR: [
-                  { ownerUnitId: context.organizationUnitId },
+                  { ownerAssignmentId: context.primaryAssignmentId },
                   {
                     assignments: {
                       some: {
@@ -229,8 +230,8 @@ export class DirectiveService {
 
     for (const recipient of recipients) {
       const count =
-        Number(Boolean(recipient.targetUnitId)) +
-        Number(Boolean(recipient.targetPositionId));
+        Number(Boolean(recipient.targetAssignmentId)) +
+        Number(Boolean(recipient.targetAssignmentId));
 
       if (count !== 1) {
         throw new ApiException(
@@ -240,9 +241,9 @@ export class DirectiveService {
         );
       }
 
-      const key = recipient.targetUnitId
-        ? `unit:${recipient.targetUnitId}`
-        : `position:${recipient.targetPositionId}`;
+      const key = recipient.targetAssignmentId
+        ? `unit:${recipient.targetAssignmentId}`
+        : `position:${recipient.targetAssignmentId}`;
 
       if (seen.has(key)) {
         throw new ApiException(
@@ -306,33 +307,32 @@ export class DirectiveService {
     return this.prisma.directive.findFirstOrThrow({
       where: this.detailWhere(id, context),
       include: {
-        ownerUnit: true,
+        ownerAssignment: true,
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         versions: {
           orderBy: { versionNumber: 'desc' },
           include: {
             createdByAssignment: {
-              include: { userProfile: true, position: true },
+              include: { userProfile: true, role: true },
             },
             targetAreas: { include: { area: true } },
             recipients: {
               include: {
-                targetUnit: true,
-                targetPosition: true,
+                targetAssignment: true,
               },
             },
             tasks: {
               include: {
-                ownerUnit: true,
+                ownerAssignment: true,
                 assignments: {
                   include: {
                     assigner: {
-                      include: { position: true, userProfile: true },
+                      include: { role: true, userProfile: true },
                     },
                     assignee: {
-                      include: { position: true, userProfile: true },
+                      include: { role: true, userProfile: true },
                     },
                   },
                 },
@@ -347,7 +347,7 @@ export class DirectiveService {
             },
             uukStrs: {
               include: {
-                ownerUnit: true,
+                ownerAssignment: true,
                 versions: {
                   orderBy: { versionNumber: 'desc' },
                   take: 1,
@@ -366,22 +366,21 @@ export class DirectiveService {
       include: {
         directive: true,
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         targetAreas: { include: { area: true } },
         recipients: {
           include: {
-            targetUnit: true,
-            targetPosition: true,
+            targetAssignment: true,
           },
         },
         tasks: {
           include: {
-            ownerUnit: true,
+            ownerAssignment: true,
             assignments: {
               include: {
-                assigner: { include: { position: true, userProfile: true } },
-                assignee: { include: { position: true, userProfile: true } },
+                assigner: { include: { role: true, userProfile: true } },
+                assignee: { include: { role: true, userProfile: true } },
               },
             },
             targetAreas: {
@@ -395,7 +394,7 @@ export class DirectiveService {
         },
         uukStrs: {
           include: {
-            ownerUnit: true,
+            ownerAssignment: true,
             versions: {
               orderBy: { versionNumber: 'desc' },
               take: 1,
@@ -429,7 +428,7 @@ export class DirectiveService {
     }
 
     if (
-      version.directive.ownerUnitId !== context.organizationUnitId &&
+      version.directive.ownerAssignmentId !== context.primaryAssignmentId &&
       version.directive.createdByAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(
@@ -448,7 +447,7 @@ export class DirectiveService {
   ): Prisma.DirectiveWhereInput {
     return this.directiveAccessWhere(context, {
       ...(query.status ? { status: query.status } : {}),
-      ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
+      ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
       ...(query.search
         ? {
             OR: [
@@ -539,7 +538,7 @@ export class DirectiveService {
 
   async list(query: DirectiveQuery, context: AuthorizationContext) {
     const include = {
-      ownerUnit: true,
+      ownerAssignment: true,
       versions: {
         orderBy: { versionNumber: 'desc' as const },
         take: 1,
@@ -547,8 +546,7 @@ export class DirectiveService {
           targetAreas: { include: { area: true } },
           recipients: {
             include: {
-              targetUnit: true,
-              targetPosition: true,
+              targetAssignment: true,
             },
           },
         },
@@ -611,7 +609,7 @@ export class DirectiveService {
       'Only Executive can create strategic directives.',
     );
 
-    if (body.ownerUnitId !== context.organizationUnitId) {
+    if (body.ownerAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'DIRECTIVE_OWNER_UNIT_OUT_OF_SCOPE',
         'Directives can only be created for the current organization unit.',
@@ -634,7 +632,7 @@ export class DirectiveService {
         const root = await tx.directive.create({
           data: {
             commandNumber: body.version.commandNumber,
-            ownerUnitId: body.ownerUnitId,
+            ownerAssignmentId: body.ownerAssignmentId,
             createdByAssignmentId: context.primaryAssignmentId,
             status: DirectiveStatus.DRAFT,
           },
@@ -661,8 +659,7 @@ export class DirectiveService {
             },
             recipients: {
               create: body.version.recipients.map((recipient) => ({
-                targetUnitId: recipient.targetUnitId,
-                targetPositionId: recipient.targetPositionId,
+                targetAssignmentId: recipient.targetAssignmentId,
               })),
             },
           },
@@ -690,13 +687,12 @@ export class DirectiveService {
       orderBy: { versionNumber: 'desc' },
       include: {
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         targetAreas: { include: { area: true } },
         recipients: {
           include: {
-            targetUnit: true,
-            targetPosition: true,
+            targetAssignment: true,
           },
         },
       },
@@ -721,7 +717,7 @@ export class DirectiveService {
     const directive = await this.detail(directiveId, context);
 
     if (
-      directive.ownerUnitId !== context.organizationUnitId &&
+      directive.ownerAssignmentId !== context.primaryAssignmentId &&
       directive.createdByAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(
@@ -786,8 +782,7 @@ export class DirectiveService {
           recipients: {
             create: (body.patch.recipients ?? baseVersion.recipients).map(
               (recipient) => ({
-                targetUnitId: recipient.targetUnitId,
-                targetPositionId: recipient.targetPositionId,
+                targetAssignmentId: recipient.targetAssignmentId,
               }),
             ),
           },
@@ -896,8 +891,7 @@ export class DirectiveService {
       await tx.directiveRecipient.createMany({
         data: body.recipients.map((recipient) => ({
           directiveVersionId: versionId,
-          targetUnitId: recipient.targetUnitId,
-          targetPositionId: recipient.targetPositionId,
+          targetAssignmentId: recipient.targetAssignmentId,
         })),
       });
     });
@@ -971,7 +965,7 @@ export class DirectiveService {
     });
 
     if (
-      version.directive.ownerUnitId !== context.organizationUnitId &&
+      version.directive.ownerAssignmentId !== context.primaryAssignmentId &&
       version.directive.createdByAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(
@@ -1005,17 +999,17 @@ export class DirectiveService {
         const notifiedProfiles = new Set<string>();
 
         for (const recipient of version.recipients) {
-          const profiles = await tx.userSeatAssignment.findMany({
+          const profiles = await tx.userOperationalAssignment.findMany({
             where: {
               isActive: true,
               validUntil: null,
-              ...(recipient.targetPositionId
-                ? { positionId: recipient.targetPositionId }
+              ...(recipient.targetAssignmentId
+                ? { positionId: recipient.targetAssignmentId }
                 : {}),
-              ...(recipient.targetUnitId
+              ...(recipient.targetAssignmentId
                 ? {
                     position: {
-                      organizationUnitId: recipient.targetUnitId,
+                      organizationUnitId: recipient.targetAssignmentId,
                     },
                   }
                 : {}),
@@ -1076,8 +1070,8 @@ export class DirectiveService {
     });
 
     if (
-      recipient.targetPositionId &&
-      recipient.targetPositionId !== context.positionId
+      recipient.targetAssignmentId &&
+      recipient.targetAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(
         'DIRECTIVE_RECIPIENT_NOT_OWNER',
@@ -1087,8 +1081,8 @@ export class DirectiveService {
     }
 
     if (
-      recipient.targetUnitId &&
-      recipient.targetUnitId !== context.organizationUnitId
+      recipient.targetAssignmentId &&
+      recipient.targetAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(
         'DIRECTIVE_RECIPIENT_NOT_OWNER',
@@ -1121,8 +1115,7 @@ export class DirectiveService {
     return this.prisma.directiveRecipient.findUniqueOrThrow({
       where: { id: recipientId },
       include: {
-        targetUnit: true,
-        targetPosition: true,
+        targetAssignment: true,
       },
     });
   }
@@ -1132,11 +1125,11 @@ export class DirectiveService {
       where: {
         directiveVersionId: versionId,
         OR: [
-          { targetPositionId: context.positionId },
-          { targetUnitId: context.organizationUnitId },
+          { targetAssignmentId: context.primaryAssignmentId },
+          { targetAssignmentId: context.primaryAssignmentId },
         ],
       },
-      orderBy: [{ targetPositionId: 'desc' }, { sentAt: 'desc' }],
+      orderBy: [{ targetAssignmentId: 'desc' }, { sentAt: 'desc' }],
     });
 
     if (!recipient) {
@@ -1170,8 +1163,7 @@ export class DirectiveService {
     return this.prisma.directiveRecipient.findUniqueOrThrow({
       where: { id: recipient.id },
       include: {
-        targetUnit: true,
-        targetPosition: true,
+        targetAssignment: true,
       },
     });
   }
@@ -1205,25 +1197,13 @@ export class DirectiveService {
       include: {
         recipients: {
           include: {
-            targetUnit: true,
-            targetPosition: {
+            targetAssignment: {
               include: {
-                organizationUnit: true,
                 role: true,
-                assignments: {
-                  where: {
-                    isActive: true,
-                    validUntil: null,
-                    userProfile: {
-                      deletedAt: null,
-                      isActive: true,
-                    },
-                  },
-                  orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
-                  take: 1,
-                  include: {
-                    userProfile: true,
-                  },
+                userProfile: true,
+                areaScopes: {
+                  where: { validUntil: null },
+                  include: { area: true },
                 },
               },
             },
@@ -1237,7 +1217,7 @@ export class DirectiveService {
         uukStrs: {
           where: { deletedAt: null },
           include: {
-            ownerUnit: true,
+            ownerAssignment: true,
             createdByAssignment: {
               include: {
                 userProfile: true,
@@ -1294,13 +1274,13 @@ export class DirectiveService {
               isActive: true,
               code: {
                 in: [
-                  PositionCode.DIREKTUR_WILAYAH,
-                  PositionCode.KABINDA,
-                  PositionCode.KASUBDIT,
-                  PositionCode.KABAGOPS,
+                  RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+                  RoleCode.REGIONAL_COMMANDER,
+                  RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+                  RoleCode.FIELD_COORDINATOR,
                   PositionCode.STAF_SUBDIT,
-                  PositionCode.KORWIL,
-                  PositionCode.PETUGAS_ORGANIK,
+                  RoleCode.FIELD_COORDINATOR,
+                  RoleCode.FIELD_OFFICER,
                 ],
               },
               branch: {
@@ -1359,7 +1339,7 @@ export class DirectiveService {
       },
       orderBy: [{ createdAt: 'asc' }],
       include: {
-        ownerUnit: true,
+        ownerAssignment: true,
         createdByAssignment: {
           include: {
             userProfile: true,
@@ -1375,7 +1355,7 @@ export class DirectiveService {
           include: {
             uukStr: {
               include: {
-                ownerUnit: true,
+                ownerAssignment: true,
               },
             },
           },
@@ -1483,7 +1463,7 @@ export class DirectiveService {
 
     const filteredTasks = relatedTasks.filter((task) => {
       const areaMatch = taskMatchesArea(task);
-      const unitMatch = unitId ? task.ownerUnitId === unitId : true;
+      const unitMatch = unitId ? task.ownerAssignmentId === unitId : true;
       return areaMatch && unitMatch;
     });
 
@@ -1602,8 +1582,8 @@ export class DirectiveService {
         priority: task.priority,
         createdAt: task.createdAt,
         dueDate: task.dueDate,
-        ownerUnitId: task.ownerUnitId,
-        ownerUnit: task.ownerUnit,
+        ownerAssignmentId: task.ownerAssignmentId,
+        ownerAssignment: task.ownerAssignment,
         createdBy: {
           assignmentId: task.createdByAssignment?.id ?? null,
           fullName: task.createdByAssignment?.userProfile?.fullName ?? null,
@@ -1652,8 +1632,8 @@ export class DirectiveService {
         uukStr: task.uukStrVersion?.uukStr
           ? {
               id: task.uukStrVersion.uukStr.id,
-              ownerUnitId: task.uukStrVersion.uukStr.ownerUnitId,
-              ownerUnit: task.uukStrVersion.uukStr.ownerUnit,
+              ownerAssignmentId: task.uukStrVersion.uukStr.ownerAssignmentId,
+              ownerAssignment: task.uukStrVersion.uukStr.ownerAssignment,
               versionId: task.uukStrVersion.id,
               versionNumber: task.uukStrVersion.versionNumber,
               title: task.uukStrVersion.title,
@@ -1683,12 +1663,12 @@ export class DirectiveService {
 
     const regionalChains = version.recipients.map((recipient: any) => {
       const recipientUnitId =
-        recipient.targetUnitId ??
-        recipient.targetPosition?.organizationUnit?.id ??
+        recipient.targetAssignmentId ??
+        recipient.targetAssignment?.organizationUnit?.id ??
         null;
       const forwarding =
         orderedForwardings.find(
-          (item) => item.ownerUnitId === recipientUnitId,
+          (item) => item.ownerAssignmentId === recipientUnitId,
         ) ?? null;
       const relatedTaskItems = forwarding
         ? (tasksByUukId.get(forwarding.id) ?? [])
@@ -1710,26 +1690,22 @@ export class DirectiveService {
           readAt: recipient.readAt,
           acknowledgedAt: recipient.acknowledgedAt,
           failureReason: recipient.failureReason,
-          targetUnit: recipient.targetUnit,
-          targetPosition: recipient.targetPosition
+          targetAssignment: recipient.targetAssignment
             ? {
-                id: recipient.targetPosition.id,
-                code: recipient.targetPosition.code,
-                title: recipient.targetPosition.title,
-                seatCode: recipient.targetPosition.seatCode,
-                branch: recipient.targetPosition.branch,
+                id: recipient.targetAssignment.id,
+                code: recipient.targetAssignment.role?.code ?? null,
+                title: recipient.targetAssignment.role?.name ?? null,
+                seatCode: null,
+                branch: recipient.targetAssignment.branch,
                 role: {
-                  code: recipient.targetPosition.role?.code ?? null,
-                  name: recipient.targetPosition.role?.name ?? null,
+                  code: recipient.targetAssignment.role?.code ?? null,
+                  name: recipient.targetAssignment.role?.name ?? null,
                 },
-                organizationUnit:
-                  recipient.targetPosition.organizationUnit ?? null,
+                organizationUnit: null,
                 assigneeName:
-                  recipient.targetPosition.assignments[0]?.userProfile
-                    ?.fullName ?? null,
+                  recipient.targetAssignment.userProfile?.fullName ?? null,
                 assigneeUsername:
-                  recipient.targetPosition.assignments[0]?.userProfile
-                    ?.username ?? null,
+                  recipient.targetAssignment.userProfile?.username ?? null,
               }
             : null,
         },
@@ -1739,8 +1715,8 @@ export class DirectiveService {
               status: forwarding.status,
               createdAt: forwarding.createdAt,
               updatedAt: forwarding.updatedAt,
-              ownerUnitId: forwarding.ownerUnitId,
-              ownerUnit: forwarding.ownerUnit,
+              ownerAssignmentId: forwarding.ownerAssignmentId,
+              ownerAssignment: forwarding.ownerAssignment,
               createdBy: {
                 assignmentId: forwarding.createdByAssignment?.id ?? null,
                 fullName:
@@ -1957,7 +1933,7 @@ export class DirectiveService {
     const directive = await this.detail(directiveId, context);
 
     if (
-      directive.ownerUnitId !== context.organizationUnitId &&
+      directive.ownerAssignmentId !== context.primaryAssignmentId &&
       directive.createdByAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(

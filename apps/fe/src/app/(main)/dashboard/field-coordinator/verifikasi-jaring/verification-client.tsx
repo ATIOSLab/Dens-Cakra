@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -64,7 +64,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
 
 import { jaringDistrict, jaringVillage, type RegistrationJaring } from "../_components/jaring-types";
@@ -79,7 +79,7 @@ const COLUMN_OPTIONS = [
   { id: "village", label: "Kelurahan" },
   { id: "district", label: "Kecamatan" },
   { id: "occupation", label: "Pekerjaan" },
-  { id: "fieldOfficer", label: "Handler" },
+  { id: "fieldOfficer", label: "Gaswil" },
   { id: "status", label: "Status" },
 ] as const;
 
@@ -93,6 +93,21 @@ function formatDateOnly(value?: string | null) {
     return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(
       new Date(value),
     );
+  } catch {
+    return "-";
+  }
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+  try {
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
   } catch {
     return "-";
   }
@@ -112,6 +127,29 @@ function profilePhotoUrl(item: RegistrationJaring) {
 function officerName(item: RegistrationJaring) {
   const [caretaker] = item.caretakerAssignments;
   return caretaker ? (caretaker.fieldOfficerAssignment.userProfile.fullName ?? "-") : "-";
+}
+
+function parseTime(value?: string | null) {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? null : time;
+}
+
+function jaringAddedTime(item: RegistrationJaring) {
+  return parseTime(item.createdAt) ?? parseTime(item.registeredAt) ?? 0;
+}
+
+function jaringFullNameSortKey(item: RegistrationJaring) {
+  return item.fullName?.trim() || "";
+}
+
+function compareJaringFullName(left: RegistrationJaring, right: RegistrationJaring) {
+  const leftName = jaringFullNameSortKey(left);
+  const rightName = jaringFullNameSortKey(right);
+  const result = leftName.localeCompare(rightName, "id", { sensitivity: "base" });
+  return (
+    result || (left.aliasName ?? left.code).localeCompare(right.aliasName ?? right.code, "id", { sensitivity: "base" })
+  );
 }
 
 function areaNames(item: RegistrationJaring) {
@@ -236,13 +274,13 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((left, right) => {
       if (sortBy === "name_asc") {
-        return (left.aliasName ?? left.code).localeCompare(right.aliasName ?? right.code);
+        return compareJaringFullName(left, right);
       }
       if (sortBy === "name_desc") {
-        return (right.aliasName ?? right.code).localeCompare(left.aliasName ?? left.code);
+        return compareJaringFullName(right, left);
       }
-      const leftTime = new Date(left.registeredAt ?? left.createdAt ?? 0).getTime();
-      const rightTime = new Date(right.registeredAt ?? right.createdAt ?? 0).getTime();
+      const leftTime = jaringAddedTime(left);
+      const rightTime = jaringAddedTime(right);
       return sortBy === "oldest" ? leftTime - rightTime : rightTime - leftTime;
     });
   }, [filteredItems, sortBy]);
@@ -341,7 +379,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
           <div>
             <h1 className="font-bold text-3xl tracking-tight text-foreground">Daftar Jaring</h1>
             <p className="mt-1.5 text-muted-foreground text-sm max-w-2xl">
-              Kelola dan verifikasi data Jaring yang diajukan oleh Handler.
+              Kelola dan verifikasi data Jaring yang diajukan oleh Gaswil.
             </p>
           </div>
         </div>
@@ -349,18 +387,42 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
         {/* SUMMARY CARDS (HORIZONTAL RIGHT SECTION) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
           {/* Total Pengajuan */}
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-3.5 shadow-xs min-w-[140px] transition-all hover:border-primary/40">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("ALL");
+              setPage(1);
+            }}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs min-w-[140px] text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
+              statusFilter === "ALL"
+                ? "border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
+                : "border-slate-200/80 dark:border-white/10 hover:border-sky-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
+            )}
+          >
+            <div className="flex size-10 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-[#38BDF8] shrink-0">
               <FileText className="size-5" />
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total</p>
               <p className="text-xl font-bold tracking-tight text-foreground">{summary.total}</p>
             </div>
-          </div>
+          </button>
 
           {/* Menunggu */}
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-3.5 shadow-xs min-w-[140px] transition-all hover:border-amber-500/40">
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("PENDING");
+              setPage(1);
+            }}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs min-w-[140px] text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
+              statusFilter === "PENDING"
+                ? "border-amber-500 ring-2 ring-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10"
+                : "border-slate-200/80 dark:border-white/10 hover:border-amber-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
+            )}
+          >
             <div className="flex size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
               <Clock className="size-5" />
             </div>
@@ -370,10 +432,22 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               </p>
               <p className="text-xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{summary.pending}</p>
             </div>
-          </div>
+          </button>
 
           {/* Terverifikasi */}
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-3.5 shadow-xs min-w-[140px] transition-all hover:border-emerald-500/40">
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("APPROVED");
+              setPage(1);
+            }}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs min-w-[140px] text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
+              statusFilter === "APPROVED"
+                ? "border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
+                : "border-slate-200/80 dark:border-white/10 hover:border-emerald-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
+            )}
+          >
             <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
               <UserCheck className="size-5" />
             </div>
@@ -383,10 +457,22 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 {summary.approved}
               </p>
             </div>
-          </div>
+          </button>
 
           {/* Ditolak */}
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-3.5 shadow-xs min-w-[140px] transition-all hover:border-rose-500/40">
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("REJECTED");
+              setPage(1);
+            }}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs min-w-[140px] text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
+              statusFilter === "REJECTED"
+                ? "border-rose-500 ring-2 ring-rose-500/30 bg-rose-500/5 dark:bg-rose-500/10"
+                : "border-slate-200/80 dark:border-white/10 hover:border-rose-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
+            )}
+          >
             <div className="flex size-10 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
               <UserX className="size-5" />
             </div>
@@ -394,7 +480,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Ditolak</p>
               <p className="text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400">{summary.rejected}</p>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -410,7 +496,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Cari alias, nama, ID, pekerjaan, FO, wilayah..."
+              placeholder="Cari alias, nama, ID, pekerjaan, Gaswil, wilayah..."
               className="pl-9 pr-8 h-9 text-sm rounded-lg bg-background"
             />
             {search ? (
@@ -456,7 +542,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             <option value="REJECTED">Ditolak</option>
           </NativeSelect>
 
-          {/* Filter Handler */}
+          {/* Filter Gaswil */}
           <NativeSelect
             value={officerFilter}
             onChange={(e) => {
@@ -465,7 +551,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             }}
             className="w-full sm:w-auto min-w-[160px]"
           >
-            <option value="ALL">Semua Handler</option>
+            <option value="ALL">Semua Gaswil</option>
             {uniqueOfficers.map((fo) => (
               <option key={fo} value={fo}>
                 {fo}
@@ -602,7 +688,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                   ) : null}
                   {isColumnVisible("fieldOfficer") ? (
                     <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[210px]">
-                      Handler
+                      Gaswil
                     </TableHead>
                   ) : null}
                   {isColumnVisible("status") ? (
@@ -712,7 +798,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                             </div>
                             <div className="flex flex-col min-w-0">
                               <span className="font-medium text-sm text-foreground truncate">{foName}</span>
-                              <span className="text-[11px] text-muted-foreground">Handler</span>
+                              <span className="text-[11px] text-muted-foreground">Gaswil</span>
                             </div>
                           </div>
                         </TableCell>
@@ -839,7 +925,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                       <span className="font-medium text-foreground">{item.address ?? "-"}</span>
                     </div>
                     <div className="col-span-2">
-                      <span className="text-muted-foreground">Handler:</span>{" "}
+                      <span className="text-muted-foreground">Gaswil:</span>{" "}
                       <span className="font-medium text-foreground">{foName}</span>
                     </div>
                   </div>
@@ -893,7 +979,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 <p className="text-xs text-muted-foreground">
                   {hasActiveFilters
                     ? "Tidak ada data pengajuan yang cocok dengan filter pencarian Anda."
-                    : "Pengajuan baru akan muncul setelah Handler mengirim data."}
+                    : "Pengajuan baru akan muncul setelah Gaswil mengirim data."}
                 </p>
               </div>
               {hasActiveFilters ? (
@@ -1004,6 +1090,29 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   );
 }
 
+type JaringReportItem = {
+  id: string;
+  referenceNumber?: string | null;
+  title?: string | null;
+  content?: string | null;
+  status: string;
+  currentState?: string | null;
+  incidentAt?: string | null;
+  submittedAt?: string | null;
+  createdAt: string;
+  submittedMessage?: {
+    referenceNumber?: string | null;
+    title?: string | null;
+    content?: string | null;
+    status?: string | null;
+    receivedAt?: string | null;
+    category?: { name?: string } | null;
+  } | null;
+  convertedBaket?: {
+    reportCategory?: { name?: string } | null;
+  } | null;
+};
+
 export function JaringVerificationDetailClient({ item }: { item: RegistrationJaring }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
@@ -1011,7 +1120,39 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
   const [visiblePin, setVisiblePin] = useState(false);
   const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"operational" | "personal" | "career" | "affiliation">("operational");
+  const [activeTab, setActiveTab] = useState<"information" | "reports" | "coaching">("information");
+
+  const [reports, setReports] = useState<JaringReportItem[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsLoaded, setReportsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "reports" && !reportsLoaded) {
+      let cancelled = false;
+      async function loadReports() {
+        setReportsLoading(true);
+        try {
+          const res = await apiBrowserFetch<{ items?: JaringReportItem[] } | JaringReportItem[]>(
+            `/jaring/${item.id}/reports`,
+          );
+          if (!cancelled) {
+            const itemsList = Array.isArray(res) ? res : res?.items || [];
+            setReports(itemsList);
+            setReportsLoaded(true);
+          }
+        } catch (err) {
+          console.error("Gagal memuat laporan jaring:", err);
+        } finally {
+          if (!cancelled) setReportsLoading(false);
+        }
+      }
+      void loadReports();
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [activeTab, item.id, reportsLoaded]);
+
   const selectedPhotoUrl = profilePhotoUrl(item);
   const villageName = jaringVillage(item)?.name ?? "-";
   const districtName = jaringDistrict(item)?.name ?? "-";
@@ -1077,142 +1218,206 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
       </div>
 
       <div className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-slate-200 font-mono text-[11px] dark:border-blue-400/12">
-        <DetailTabButton active={activeTab === "operational"} onClick={() => setActiveTab("operational")}>
-          PROFIL OPERASIONAL
+        <DetailTabButton active={activeTab === "information"} onClick={() => setActiveTab("information")}>
+          INFORMASI JARING
         </DetailTabButton>
-        <DetailTabButton active={activeTab === "personal"} onClick={() => setActiveTab("personal")}>
-          DATA PRIBADI
+        <DetailTabButton active={activeTab === "reports"} onClick={() => setActiveTab("reports")}>
+          LAPORAN JARING
         </DetailTabButton>
-        <DetailTabButton active={activeTab === "career"} onClick={() => setActiveTab("career")}>
-          PEKERJAAN & KARIR
-        </DetailTabButton>
-        <DetailTabButton active={activeTab === "affiliation"} onClick={() => setActiveTab("affiliation")}>
-          AFILIASI & CATATAN
+        <DetailTabButton active={activeTab === "coaching"} onClick={() => setActiveTab("coaching")}>
+          LAPORAN PEMBINAAN
         </DetailTabButton>
       </div>
 
       <div className="mx-auto max-w-3xl pt-2">
-        {activeTab === "operational" && (
-          <DetailSection
-            icon={<Network className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
-            title="Profil Operasional"
-          >
-            <DetailRow label="Foto">
-              <div className="flex items-center gap-3">
-                <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-blue-400/12 dark:bg-slate-900/50">
-                  {selectedPhotoUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => setPhotoPreviewOpen(true)}
-                      className="group relative size-full cursor-zoom-in overflow-hidden"
-                      aria-label={`Buka popup foto ${item.aliasName ?? item.code}`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={selectedPhotoUrl}
-                        alt={`Foto ${item.aliasName ?? item.code}`}
-                        className="size-full object-cover transition-transform duration-150 group-hover:scale-105"
-                      />
-                      <span className="absolute inset-0 grid place-items-center bg-black/0 font-semibold text-[10px] text-white uppercase tracking-[0.14em] opacity-0 transition-all duration-150 group-hover:bg-black/35 group-hover:opacity-100">
-                        Lihat
-                      </span>
-                    </button>
-                  ) : (
-                    <UserRound className="size-8 text-muted-foreground" />
-                  )}
+        {activeTab === "information" && (
+          <div className="space-y-6">
+            <DetailSection
+              icon={<Network className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+              title="Profil Operasional"
+            >
+              <DetailRow label="Foto">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-blue-400/12 dark:bg-slate-900/50">
+                    {selectedPhotoUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => setPhotoPreviewOpen(true)}
+                        className="group relative size-full cursor-zoom-in overflow-hidden"
+                        aria-label={`Buka popup foto ${item.aliasName ?? item.code}`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={selectedPhotoUrl}
+                          alt={`Foto ${item.aliasName ?? item.code}`}
+                          className="size-full object-cover transition-transform duration-150 group-hover:scale-105"
+                        />
+                        <span className="absolute inset-0 grid place-items-center bg-black/0 font-semibold text-[10px] text-white uppercase tracking-[0.14em] opacity-0 transition-all duration-150 group-hover:bg-black/35 group-hover:opacity-100">
+                          Lihat
+                        </span>
+                      </button>
+                    ) : (
+                      <UserRound className="size-8 text-muted-foreground" />
+                    )}
+                  </div>
+                  <span className="text-muted-foreground text-xs">
+                    {selectedPhotoUrl ? "Foto profil Jaring tersimpan." : "Belum ada foto profil."}
+                  </span>
                 </div>
-                <span className="text-muted-foreground text-xs">
-                  {selectedPhotoUrl ? "Foto profil Jaring tersimpan." : "Belum ada foto profil."}
-                </span>
-              </div>
-            </DetailRow>
-            <DetailRow label="Nama Sandi / Alias">{item.aliasName ?? item.code}</DetailRow>
-            <DetailRow label="PIN Registrasi">
-              <div className="flex items-center gap-2">
-                <span className="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 font-mono font-bold text-[15px] tracking-[0.15em] text-slate-900 dark:border-blue-400/8 dark:bg-slate-900/50 dark:text-[#F8FAFC]">
-                  {visiblePin ? item.code : "******"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setVisiblePin((current) => !current)}
-                  className="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:bg-slate-200 hover:text-foreground dark:hover:bg-slate-800"
-                  aria-label={visiblePin ? "Sembunyikan PIN registrasi" : "Tampilkan PIN registrasi"}
-                >
-                  {visiblePin ? <EyeOff className="size-4 stroke-[1.5]" /> : <Eye className="size-4 stroke-[1.5]" />}
-                </button>
-              </div>
-            </DetailRow>
-            <DetailRow label="WhatsApp">
-              <span className="font-mono">{item.whatsappNumber}</span>
-            </DetailRow>
-            <DetailRow label="Pekerjaan">{item.occupation?.name ?? "-"}</DetailRow>
-            <DetailRow label="Handler">{officerName(item)}</DetailRow>
-            <DetailRow label="Kelurahan/Desa">{villageName}</DetailRow>
-            <DetailRow label="Kecamatan">{districtName}</DetailRow>
-            <DetailRow label="Status">
-              <StatusPill tone={operationalStatusTone(item.registrationStatus)}>
-                {operationalStatusLabel(item.registrationStatus)}
-              </StatusPill>
-            </DetailRow>
-            <DetailRow label="Status Verifikasi">
-              <StatusPill tone={statusBadgeVariant(item.registrationStatus)}>
-                {detailRegistrationStatusLabel(item.registrationStatus)}
-              </StatusPill>
-            </DetailRow>
-            {item.registrationStatus === "REJECTED" && item.rejectionReason ? (
-              <DetailRow label="Alasan Penolakan">
-                <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-300">
-                  {item.rejectionReason}
-                </p>
               </DetailRow>
-            ) : null}
-          </DetailSection>
+              <DetailRow label="Nama Sandi / Alias">{item.aliasName ?? item.code}</DetailRow>
+              <DetailRow label="PIN Registrasi">
+                <div className="flex items-center gap-2">
+                  <span className="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 font-mono font-bold text-[15px] tracking-[0.15em] text-slate-900 dark:border-blue-400/8 dark:bg-slate-900/50 dark:text-[#F8FAFC]">
+                    {visiblePin ? item.code : "******"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setVisiblePin((current) => !current)}
+                    className="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:bg-slate-200 hover:text-foreground dark:hover:bg-slate-800"
+                    aria-label={visiblePin ? "Sembunyikan PIN registrasi" : "Tampilkan PIN registrasi"}
+                  >
+                    {visiblePin ? <EyeOff className="size-4 stroke-[1.5]" /> : <Eye className="size-4 stroke-[1.5]" />}
+                  </button>
+                </div>
+              </DetailRow>
+              <DetailRow label="WhatsApp">
+                <span className="font-mono">{item.whatsappNumber}</span>
+              </DetailRow>
+              <DetailRow label="Pekerjaan">{item.occupation?.name ?? "-"}</DetailRow>
+              <DetailRow label="Gaswil">{officerName(item)}</DetailRow>
+              <DetailRow label="Kelurahan/Desa">{villageName}</DetailRow>
+              <DetailRow label="Kecamatan">{districtName}</DetailRow>
+              <DetailRow label="Status">
+                <StatusPill tone={operationalStatusTone(item.registrationStatus)}>
+                  {operationalStatusLabel(item.registrationStatus)}
+                </StatusPill>
+              </DetailRow>
+              <DetailRow label="Status Verifikasi">
+                <StatusPill tone={statusBadgeVariant(item.registrationStatus)}>
+                  {detailRegistrationStatusLabel(item.registrationStatus)}
+                </StatusPill>
+              </DetailRow>
+              {item.registrationStatus === "REJECTED" && item.rejectionReason ? (
+                <DetailRow label="Alasan Penolakan">
+                  <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-300">
+                    {item.rejectionReason}
+                  </p>
+                </DetailRow>
+              ) : null}
+            </DetailSection>
+
+            <DetailSection
+              icon={<UserRound className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+              title="Data Pribadi"
+            >
+              <DetailRow label="Nama Lengkap">{item.fullName || "-"}</DetailRow>
+              <DetailRow label="NIK / KTP">
+                <span className="font-mono">{item.nationalIdNumber || "-"}</span>
+              </DetailRow>
+              <DetailRow label="Alamat">
+                <span className="whitespace-pre-wrap">{item.address || "-"}</span>
+              </DetailRow>
+              <DetailRow label="Tempat Lahir">{item.birthPlace || "-"}</DetailRow>
+              <DetailRow label="Tanggal Lahir">{item.birthDate ? formatDateOnly(item.birthDate) : "-"}</DetailRow>
+              <DetailRow label="Jenis Kelamin">{item.gender ? formatGender(item.gender) : "-"}</DetailRow>
+            </DetailSection>
+
+            <DetailSection
+              icon={<BriefcaseBusiness className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+              title="Pekerjaan & Karir"
+            >
+              <DetailRow label="Pekerjaan">{item.occupation?.name ?? "-"}</DetailRow>
+              <DetailRow label="Tempat Kerja">{item.workplace || "-"}</DetailRow>
+              <DetailRow label="Jabatan">{item.jobTitle || "-"}</DetailRow>
+            </DetailSection>
+
+            <DetailSection
+              icon={<ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+              title="Afiliasi & Catatan"
+            >
+              <DetailRow label="Organisasi">{item.organizationName || "-"}</DetailRow>
+              <DetailRow label="Afiliasi Politik">{item.politicalAffiliation || "-"}</DetailRow>
+              <DetailRow label="Tanggal Bergabung">{item.joinedAt ? formatDateOnly(item.joinedAt) : "-"}</DetailRow>
+              <div className="flex flex-col pt-3.5 pb-2">
+                <span className="mb-2 font-medium text-[13px] text-slate-500 tracking-wide dark:text-[#94A3B8]">
+                  Kebermanfaatan
+                </span>
+                <NotesBox>{item.notes || "Belum ada kebermanfaatan"}</NotesBox>
+              </div>
+            </DetailSection>
+          </div>
         )}
 
-        {activeTab === "personal" && (
-          <DetailSection
-            icon={<UserRound className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
-            title="Data Pribadi"
-          >
-            <DetailRow label="Nama Lengkap">{item.fullName || "-"}</DetailRow>
-            <DetailRow label="NIK / KTP">
-              <span className="font-mono">{item.nationalIdNumber || "-"}</span>
-            </DetailRow>
-            <DetailRow label="Alamat">
-              <span className="whitespace-pre-wrap">{item.address || "-"}</span>
-            </DetailRow>
-            <DetailRow label="Tempat Lahir">{item.birthPlace || "-"}</DetailRow>
-            <DetailRow label="Tanggal Lahir">{item.birthDate ? formatDateOnly(item.birthDate) : "-"}</DetailRow>
-            <DetailRow label="Jenis Kelamin">{item.gender ? formatGender(item.gender) : "-"}</DetailRow>
-          </DetailSection>
-        )}
-
-        {activeTab === "career" && (
-          <DetailSection
-            icon={<BriefcaseBusiness className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
-            title="Pekerjaan & Karir"
-          >
-            <DetailRow label="Pekerjaan">{item.occupation?.name ?? "-"}</DetailRow>
-            <DetailRow label="Tempat Kerja">{item.workplace || "-"}</DetailRow>
-            <DetailRow label="Jabatan">{item.jobTitle || "-"}</DetailRow>
-          </DetailSection>
-        )}
-
-        {activeTab === "affiliation" && (
-          <DetailSection
-            icon={<ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
-            title="Afiliasi & Catatan"
-          >
-            <DetailRow label="Organisasi">{item.organizationName || "-"}</DetailRow>
-            <DetailRow label="Afiliasi Politik">{item.politicalAffiliation || "-"}</DetailRow>
-            <DetailRow label="Tanggal Bergabung">{item.joinedAt ? formatDateOnly(item.joinedAt) : "-"}</DetailRow>
-            <div className="flex flex-col pt-3.5 pb-2">
-              <span className="mb-2 font-medium text-[13px] text-slate-500 tracking-wide dark:text-[#94A3B8]">
-                Kebermanfaatan
-              </span>
-              <NotesBox>{item.notes || "Belum ada kebermanfaatan"}</NotesBox>
+        {activeTab === "reports" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                <FileText className="size-4 text-sky-600 dark:text-[#38BDF8]" />
+                Daftar Laporan Jaring ({reports.length})
+              </h3>
             </div>
-          </DetailSection>
+
+            {reportsLoading ? (
+              <div className="flex py-12 justify-center items-center gap-2 text-xs text-muted-foreground font-mono">
+                <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-[#38BDF8]" />
+                Memuat laporan jaring...
+              </div>
+            ) : reports.length > 0 ? (
+              <div className="space-y-3">
+                {reports.map((rep) => (
+                  <div
+                    key={rep.id}
+                    className="rounded-lg border border-slate-200 bg-white p-4 space-y-2 dark:border-blue-400/12 dark:bg-[#111827]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-mono text-xs text-sky-600 dark:text-[#38BDF8] font-bold">
+                          {rep.referenceNumber || rep.submittedMessage?.referenceNumber || rep.id.slice(0, 8)}
+                        </div>
+                        <h4 className="font-semibold text-sm text-foreground mt-0.5">
+                          {rep.title || rep.submittedMessage?.title || "Laporan Jaring"}
+                        </h4>
+                      </div>
+                      <Badge variant="outline" className="text-[11px] font-mono">
+                        {rep.status || rep.currentState || "SUBMITTED"}
+                      </Badge>
+                    </div>
+                    {(rep.content || rep.submittedMessage?.content) && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {rep.content || rep.submittedMessage?.content}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-3 pt-2 text-[11px] text-muted-foreground border-t border-slate-100 dark:border-blue-400/8">
+                      {rep.submittedMessage?.category?.name && (
+                        <span>
+                          Kategori: <strong className="text-foreground">{rep.submittedMessage.category.name}</strong>
+                        </span>
+                      )}
+                      {rep.incidentAt && <span>Waktu Kejadian: {formatDateTime(rep.incidentAt)}</span>}
+                      {rep.submittedAt && <span>Dikirim: {formatDateTime(rep.submittedAt)}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
+                <FileText className="size-8 text-muted-foreground mx-auto" />
+                <div className="font-semibold text-sm text-foreground">Belum Ada Laporan</div>
+                <p className="text-xs text-muted-foreground">Jaring ini belum membuat laporan di sistem.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "coaching" && (
+          <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
+            <Users className="size-8 text-muted-foreground mx-auto" />
+            <div className="font-semibold text-sm text-foreground">Belum Ada Laporan Pembinaan</div>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              Histori laporan pembinaan Jaring belum tersedia. Data akan muncul setelah fitur pembinaan dihubungkan dengan backend.
+            </p>
+          </div>
         )}
       </div>
 

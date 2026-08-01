@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PencilLine, ShieldCheck } from "lucide-react";
+import { ChevronLeft, PencilLine, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -17,7 +17,7 @@ import { apiBrowserMutation } from "@/lib/api/browser-client";
 
 import { type EditUserFormValues, editUserSchema } from "./pengguna-schemas";
 import type { UserDetail } from "./pengguna-types";
-import { formatDateTime, getPrimaryAssignment, getRoleLabel, isUserLocked } from "./pengguna-types";
+import { formatDateTime, getAssignmentUnitSummary, getPrimaryAssignment, getRoleLabel, isUserLocked } from "./pengguna-types";
 
 type PenggunaEditClientProps = {
   user: UserDetail;
@@ -34,6 +34,7 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
     },
   });
   const primaryAssignment = getPrimaryAssignment(user);
+  const primaryUnit = getAssignmentUnitSummary(primaryAssignment);
 
   function sanitizePhoneInput(value: string) {
     return value.replace(/\D/g, "");
@@ -56,56 +57,76 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">Edit Metadata</Badge>
-          <Badge variant="outline">{getRoleLabel(user.authUser.role)}</Badge>
+    <div className="mx-auto max-w-5xl space-y-6">
+      {/* Top Header */}
+      <div className="space-y-1.5">
+        <Link
+          href={`/dashboard/admin-system/pengguna/${user.id}`}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-3.5" />
+          Detail Pengguna
+        </Link>
+        <div className="flex items-center gap-3">
+          <h1 className="font-heading text-2xl font-bold tracking-tight">Edit Metadata Pengguna</h1>
+          <Badge variant="outline" className="text-xs font-normal">
+            {getRoleLabel(user.authUser.role)}
+          </Badge>
         </div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Edit Pengguna</h1>
-        <p className="max-w-3xl text-muted-foreground text-sm">
-          Halaman ini hanya mengubah metadata profil domain. Role auth, status, assignment, dan area scope tetap
-          dikendalikan lewat halaman detail serta aksi khusus.
+        <p className="text-sm text-muted-foreground">
+          Perbarui metadata profil domain seperti username, nama lengkap, dan nomor telepon operasional.
         </p>
       </div>
 
+      {/* Main Form Grid */}
       <form
         onSubmit={form.handleSubmit(handleSubmit)}
-        className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"
+        className="grid gap-6 lg:grid-cols-[1fr_340px]"
       >
-        <Card className="border border-border/70">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PencilLine className="size-4" />
-              Metadata profil
+        {/* Left Form Panel */}
+        <Card className="border border-border/60 shadow-sm">
+          <CardHeader className="pb-4 border-b border-border/40">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <PencilLine className="size-4 text-primary" />
+              Metadata Profil Domain
             </CardTitle>
-            <CardDescription>
-              Pastikan username dan nama lengkap tetap selaras dengan identitas yang dipakai di operasional.
+            <CardDescription className="text-xs">
+              Ubah data identitas profil domain tanpa memutus alokasi role auth atau assignment aktif.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <FieldGroup>
+          <CardContent className="space-y-4 pt-5">
+            <FieldGroup className="space-y-4">
               <Field>
-                <FieldLabel htmlFor="edit-username">Username</FieldLabel>
+                <FieldLabel htmlFor="edit-username" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Username
+                </FieldLabel>
                 <FieldContent>
-                  <Input id="edit-username" {...form.register("username")} />
+                  <Input id="edit-username" {...form.register("username")} className="h-9 text-sm" />
                   <FieldError errors={[form.formState.errors.username]} />
                 </FieldContent>
               </Field>
+
               <Field>
-                <FieldLabel htmlFor="edit-fullname">Nama lengkap</FieldLabel>
+                <FieldLabel htmlFor="edit-fullname" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Nama Lengkap
+                </FieldLabel>
                 <FieldContent>
-                  <Input id="edit-fullname" {...form.register("fullName")} />
+                  <Input id="edit-fullname" {...form.register("fullName")} className="h-9 text-sm" />
                   <FieldError errors={[form.formState.errors.fullName]} />
                 </FieldContent>
               </Field>
+
               <Field>
-                <FieldLabel htmlFor="edit-phone">Nomor telepon</FieldLabel>
+                <FieldLabel htmlFor="edit-phone" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Nomor Telepon Operasional
+                </FieldLabel>
                 <FieldContent>
                   <Input
                     id="edit-phone"
                     inputMode="numeric"
                     pattern="[0-9]*"
+                    placeholder="08123456789"
+                    className="h-9 text-sm"
                     {...form.register("phone", {
                       onChange: (event) => {
                         const sanitizedValue = sanitizePhoneInput(event.target.value);
@@ -116,66 +137,62 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
                       },
                     })}
                   />
-                  <FieldDescription>
-                    Biarkan kosong jika profil domain memang belum memiliki nomor aktif.
+                  <FieldDescription className="text-[11px]">
+                    Biarkan kosong jika profil belum memiliki nomor telepon aktif.
                   </FieldDescription>
                   <FieldError errors={[form.formState.errors.phone]} />
                 </FieldContent>
               </Field>
             </FieldGroup>
           </CardContent>
-          <CardFooter className="flex flex-wrap items-center justify-between gap-3">
-            <Button asChild type="button" variant="ghost">
+          <CardFooter className="flex items-center justify-between gap-3 border-t border-border/40 bg-muted/20 px-6 py-4">
+            <Button asChild type="button" variant="ghost" size="sm">
               <Link href={`/dashboard/admin-system/pengguna/${user.id}`}>Batal</Link>
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Menyimpan..." : "Simpan perubahan"}
+            <Button type="submit" size="sm" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
             </Button>
           </CardFooter>
         </Card>
 
-        <Card className="border border-border/70">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="size-4" />
-              Ringkasan read-only
-            </CardTitle>
-            <CardDescription>
-              Konteks ini tetap terlihat agar perubahan metadata tidak memutus hubungan dengan role dan assignment
-              aktif.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-xl border border-border/70 p-4">
-              <div className="font-heading text-xl font-semibold">
-                {user.fullName || user.authUser.name || user.authUser.email}
+        {/* Right Summary Sidebar */}
+        <div className="space-y-4">
+          <Card className="border border-border/60 shadow-sm sticky top-6">
+            <CardHeader className="pb-3 border-b border-border/40">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <ShieldCheck className="size-4 text-muted-foreground" />
+                Ringkasan Profil (Read-Only)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4 text-xs">
+              <div className="space-y-1">
+                <div className="font-semibold text-sm text-foreground">
+                  {user.fullName || user.authUser.name || user.authUser.email}
+                </div>
+                <div className="text-xs text-muted-foreground">{user.authUser.email}</div>
+                <div className="flex flex-wrap gap-1 pt-1">
+                  <Badge variant="outline" className="text-[10px]">{getRoleLabel(user.authUser.role)}</Badge>
+                  <Badge variant="secondary" className="text-[10px]">{user.status}</Badge>
+                  {isUserLocked(user) && <Badge variant="destructive" className="text-[10px]">Locked</Badge>}
+                </div>
               </div>
-              <div className="mt-1 text-sm text-muted-foreground">{user.authUser.email}</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Badge variant="outline">{getRoleLabel(user.authUser.role)}</Badge>
-                <Badge>{user.status}</Badge>
-                {isUserLocked(user) ? <Badge variant="destructive">Locked</Badge> : null}
-              </div>
-            </div>
 
-            <div className="rounded-xl border border-border/70 p-4">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Assignment utama</div>
-              <div className="mt-2 font-medium">{primaryAssignment?.position.title || "-"}</div>
-              <div className="text-sm text-muted-foreground">
-                {primaryAssignment?.position.organizationUnit?.name || "-"}
+              <div className="space-y-1 pt-2 border-t border-border/40">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Unit Utama</span>
+                <div className="font-medium text-foreground">{primaryUnit?.name || primaryAssignment?.branch || "-"}</div>
               </div>
-            </div>
 
-            <div className="rounded-xl border border-border/70 p-4">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Audit minimum</div>
-              <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                <div>Dibuat: {formatDateTime(user.createdAt)}</div>
-                <div>Update terakhir: {formatDateTime(user.updatedAt)}</div>
-                <div>Login terakhir: {formatDateTime(user.lastLoginAt)}</div>
+              <div className="space-y-1 pt-2 border-t border-border/40 text-muted-foreground">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Audit Informasi</span>
+                <div className="space-y-0.5 text-[11px] pt-0.5">
+                  <div>Dibuat: {formatDateTime(user.createdAt)}</div>
+                  <div>Update terakhir: {formatDateTime(user.updatedAt)}</div>
+                  <div>Login terakhir: {formatDateTime(user.lastLoginAt)}</div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </form>
     </div>
   );

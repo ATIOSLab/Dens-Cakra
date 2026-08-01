@@ -108,6 +108,8 @@ export type UserAreaScope = {
 
 export type UserPositionAssignment = {
   id: string;
+  roleId?: string;
+  branch?: CommandRouteType | null;
   userProfile?: {
     id?: string;
     username?: string | null;
@@ -123,7 +125,8 @@ export type UserPositionAssignment = {
     organizationUnit?: OrganizationUnitSummary | null;
     role?: RoleSummary | null;
   } | null;
-  position: PositionSummary;
+  role?: RoleSummary | null;
+  position?: PositionSummary | null;
   areaScopes: UserAreaScope[];
 };
 
@@ -150,7 +153,8 @@ export type UserListItem = {
   createdAt: string;
   updatedAt: string;
   authUser: UserAuthSummary;
-  positionAssignments: UserPositionAssignment[];
+  operationalAssignments?: UserPositionAssignment[];
+  positionAssignments?: UserPositionAssignment[];
 };
 
 export type UserDetail = UserListItem;
@@ -172,7 +176,6 @@ export type UserListQueryState = {
   q: string;
   status: string;
   roleCode: string;
-  positionCode: string;
   unitId: string;
   areaId: string;
   page: number;
@@ -235,15 +238,46 @@ export const ROLE_CODE_TO_AUTH_ROLE: Record<RoleCode, SystemRole> = {
   FIELD_OFFICER: SYSTEM_ROLES.FIELD_OFFICER,
 };
 
+export function getUserAssignments(user: UserListItem | UserDetail) {
+  return user.operationalAssignments ?? user.positionAssignments ?? [];
+}
+
 export function getPrimaryAssignment(user: UserListItem | UserDetail) {
+  const assignments = getUserAssignments(user);
   return (
-    user.positionAssignments.find(
+    assignments.find(
       (assignment) => assignment.isPrimary !== false && assignment.isActive !== false && !assignment.validUntil,
     ) ??
-    user.positionAssignments.find((assignment) => assignment.isPrimary !== false) ??
-    user.positionAssignments[0] ??
+    assignments.find((assignment) => assignment.isPrimary !== false) ??
+    assignments[0] ??
     null
   );
+}
+
+export function getAssignmentRoleSummary(assignment?: UserPositionAssignment | null) {
+  return assignment?.role ?? assignment?.position?.role ?? assignment?.seat?.role ?? null;
+}
+
+export function getAssignmentUnitSummary(assignment?: UserPositionAssignment | null) {
+  const primaryArea =
+    assignment?.areaScopes?.find((scope) => scope.isPrimary)?.area ?? assignment?.areaScopes?.[0]?.area ?? null;
+  const legacyUnit = assignment?.position?.organizationUnit ?? assignment?.seat?.organizationUnit ?? null;
+
+  if (legacyUnit) {
+    return legacyUnit;
+  }
+
+  if (primaryArea) {
+    return {
+      id: primaryArea.id,
+      code: primaryArea.code,
+      name: primaryArea.name,
+      type: primaryArea.level,
+      branch: assignment?.branch ?? null,
+    } satisfies OrganizationUnitSummary;
+  }
+
+  return null;
 }
 
 export function isUserLocked(user: UserListItem | UserDetail) {

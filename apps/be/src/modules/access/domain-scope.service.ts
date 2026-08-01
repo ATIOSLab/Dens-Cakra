@@ -12,37 +12,47 @@ export type DomainScope = {
   areaRootIds: string[];
 };
 
+export type AreaScopeTreeNode = {
+  id: string;
+  parentId: string | null;
+  code: string;
+  name: string;
+  level: string;
+  children: AreaScopeTreeNode[];
+};
+
 @Injectable()
 export class DomainScopeService {
   constructor(private readonly prisma: PrismaService) {}
 
   async resolve(context: AuthorizationContext): Promise<DomainScope> {
-    const positions = await this.prisma.position.findMany({
-      where: { isActive: true },
-      select: { id: true, reportsToPositionId: true },
-    });
+    const areaRootIds = [
+      ...new Set(context.areaScopes.map((scope) => scope.areaId)),
+    ];
 
-    const positionIds = new Set([context.positionId]);
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const position of positions) {
-        if (
-          position.reportsToPositionId &&
-          positionIds.has(position.reportsToPositionId) &&
-          !positionIds.has(position.id)
-        ) {
-          positionIds.add(position.id);
-          changed = true;
-        }
-      }
-    }
-
-    const assignments = await this.prisma.userSeatAssignment.findMany({
+    const assignments = await this.prisma.userOperationalAssignment.findMany({
       where: {
-        positionId: { in: [...positionIds] },
         isActive: true,
         OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+        ...(areaRootIds.length
+          ? {
+              areaScopes: {
+                some: {
+                  validUntil: null,
+                  area: {
+                    OR: [
+                      { id: { in: areaRootIds } },
+                      {
+                        descendantLinks: {
+                          some: { ancestorId: { in: areaRootIds } },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            }
+          : {}),
       },
       select: { id: true },
     });
@@ -50,11 +60,9 @@ export class DomainScopeService {
     return {
       organizationUnitId: context.organizationUnitId,
       commandRouteType: context.commandRouteType,
-      positionIds: [...positionIds],
-      assignmentIds: assignments.map((assignment) => assignment.id),
-      areaRootIds: [
-        ...new Set(context.areaScopes.map((scope) => scope.areaId)),
-      ],
+      positionIds: assignments.map((assignment: any) => assignment.id),
+      assignmentIds: assignments.map((assignment: any) => assignment.id),
+      areaRootIds,
     };
   }
 
@@ -68,7 +76,7 @@ export class DomainScopeService {
   }
 
   analysisWhere(context: AuthorizationContext): Prisma.AnalysisCaseWhereInput {
-    return { ownerUnitId: context.organizationUnitId };
+    return { ownerAssignmentId: context.primaryAssignmentId };
   }
 
   async productWhere(
@@ -92,7 +100,7 @@ export class DomainScopeService {
       const scope = await this.resolve(context);
       return { createdByAssignmentId: { in: scope.assignmentIds } };
     }
-    return { ownerUnitId: context.organizationUnitId };
+    return { ownerAssignmentId: context.primaryAssignmentId };
   }
 
   async areaTree(context: AuthorizationContext) {
@@ -118,10 +126,13 @@ export class DomainScopeService {
       orderBy: [{ level: 'asc' }, { name: 'asc' }],
       select: { id: true, parentId: true, code: true, name: true, level: true },
     });
-    const nodes = new Map(
-      areas.map((area) => [area.id, { ...area, children: [] as unknown[] }]),
+    const nodes = new Map<string, AreaScopeTreeNode>(
+      areas.map((area: Omit<AreaScopeTreeNode, 'children'>) => [
+        area.id,
+        { ...area, children: [] },
+      ]),
     );
-    const roots: unknown[] = [];
+    const roots: AreaScopeTreeNode[] = [];
     for (const node of nodes.values()) {
       const parent = node.parentId ? nodes.get(node.parentId) : undefined;
       if (parent) parent.children.push(node);
@@ -183,51 +194,57 @@ export class DomainScopeService {
     if (!found) throw new NotFoundException('Resource not found.');
   }
 
-  async assertJaring(context: AuthorizationContext, jaringId: string) {
+  async jaringWhere(
+    context: AuthorizationContext,
+  ): Promise<Prisma.JaringWhereInput> {
     const scope = await this.resolve(context);
     const isFieldCoordinator =
       context.authRole === SYSTEM_ROLES.FIELD_COORDINATOR;
+    return {
+      deletedAt: null,
+      ...(isFieldCoordinator && scope.areaRootIds.length === 0
+        ? { id: { in: [] } }
+        : {}),
+      caretakerAssignments: {
+        some: {
+          ...(isFieldCoordinator
+            ? {
+                fieldOfficerAssignment: { branch: scope.commandRouteType },
+              }
+            : {
+                fieldOfficerAssignmentId: { in: scope.assignmentIds },
+              }),
+          isActive: true,
+          OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+        },
+      },
+      ...(scope.areaRootIds.length
+        ? {
+            areaCoverages: {
+              some: {
+                validUntil: null,
+                area: {
+                  OR: [
+                    { id: { in: scope.areaRootIds } },
+                    {
+                      descendantLinks: {
+                        some: { ancestorId: { in: scope.areaRootIds } },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          }
+        : {}),
+    };
+  }
+
+  async assertJaring(context: AuthorizationContext, jaringId: string) {
     const found = await this.prisma.jaring.findFirst({
       where: {
         id: jaringId,
-        deletedAt: null,
-        ...(isFieldCoordinator && scope.areaRootIds.length === 0
-          ? { id: { in: [] } }
-          : {}),
-        caretakerAssignments: {
-          some: {
-            ...(isFieldCoordinator
-              ? {
-                  fieldOfficerAssignment: {
-                    seat: { branch: scope.commandRouteType },
-                  },
-                }
-              : {
-                  fieldOfficerAssignmentId: { in: scope.assignmentIds },
-                }),
-            isActive: true,
-            OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-          },
-        },
-        ...(scope.areaRootIds.length
-          ? {
-              areaCoverages: {
-                some: {
-                  validUntil: null,
-                  area: {
-                    OR: [
-                      { id: { in: scope.areaRootIds } },
-                      {
-                        descendantLinks: {
-                          some: { ancestorId: { in: scope.areaRootIds } },
-                        },
-                      },
-                    ],
-                  },
-                },
-              },
-            }
-          : {}),
+        ...(await this.jaringWhere(context)),
       },
       select: { id: true },
     });

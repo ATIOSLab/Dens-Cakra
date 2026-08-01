@@ -19,18 +19,23 @@ import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   CreateJaringOccupationDto,
+  CreateJaringCoachingReportDto,
   CreateReportCategoryDto,
   CoverageDto,
   CreateJaringDto,
+  JaringCoachingReportQuery,
   JaringOccupationQuery,
   JaringQuery,
+  JaringReportQuery,
   ReportCategoryQuery,
   ReasonDto,
   RejectJaringDto,
   TransferDto,
   UpdateJaringOccupationDto,
+  UpdateJaringReportMetadataDto,
   UpdateReportCategoryDto,
   UpdateJaringDto,
+  VerifyJaringReportDto,
 } from './jaring.dto.js';
 import { JaringService } from './jaring.service.js';
 
@@ -168,6 +173,26 @@ export class JaringController {
     );
   }
 
+  @Get('reports')
+  @ApiContract({
+    operationId: 'apiJar015All',
+    contractId: 'API-JAR-015-ALL',
+    summary: 'Daftar semua laporan Jaring',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
+  })
+  async allReports(
+    @Query() query: JaringReportQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.allReports(query, context));
+  }
+
   @Get(':jaringId')
   @ApiContract({
     operationId: 'apiJar003',
@@ -210,7 +235,9 @@ export class JaringController {
     @Body() body: RejectJaringDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
-    return apiResult(await this.jaringService.rejectRegistration(id, body, context));
+    return apiResult(
+      await this.jaringService.rejectRegistration(id, body, context),
+    );
   }
 
   @Patch(':jaringId')
@@ -361,6 +388,153 @@ export class JaringController {
   })
   async messages(@Param('jaringId', ParseUUIDPipe) id: string) {
     return apiResult(await this.jaringService.messages(id));
+  }
+
+  @Get(':jaringId/coaching-reports')
+  @ApiContract({
+    operationId: 'apiJarCoachingReport001',
+    contractId: 'API-JAR-COACHING-REPORT-001',
+    summary: 'Daftar laporan pembinaan Jaring',
+    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+  })
+  async coachingReports(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @Query() query: JaringCoachingReportQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.jaringService.coachingReports(id, query, context),
+    );
+  }
+
+  @Post(':jaringId/coaching-reports')
+  @ApiContract({
+    operationId: 'apiJarCoachingReport002',
+    contractId: 'API-JAR-COACHING-REPORT-002',
+    summary: 'Buat laporan pembinaan Jaring',
+    roles: ['field_officer'],
+    successStatus: 201,
+    idempotent: true,
+  })
+  async createCoachingReport(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @Body() body: CreateJaringCoachingReportDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.jaringService.createCoachingReport(id, body, context),
+    );
+  }
+
+  @Get(':jaringId/coaching-reports/:reportId')
+  @ApiContract({
+    operationId: 'apiJarCoachingReport003',
+    contractId: 'API-JAR-COACHING-REPORT-003',
+    summary: 'Detail laporan pembinaan Jaring',
+    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+  })
+  async coachingReportDetail(
+    @Param('jaringId', ParseUUIDPipe) jaringId: string,
+    @Param('reportId', ParseUUIDPipe) reportId: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.jaringService.coachingReport(jaringId, reportId, context),
+    );
+  }
+
+  @Get(':jaringId/reports')
+  @ApiContract({
+    operationId: 'apiJar015',
+    contractId: 'API-JAR-015',
+    summary: 'Daftar laporan yang dibuat Jaring',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
+  })
+  async reports(
+    @Param('jaringId', ParseUUIDPipe) id: string,
+    @Query() query: JaringReportQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.reports(id, query, context));
+  }
+
+  @Get('reports/:reportSessionId')
+  @ApiContract({
+    operationId: 'apiJar016',
+    contractId: 'API-JAR-016',
+    summary: 'Detail laporan Jaring',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
+  })
+  async reportDetail(
+    @Param('reportSessionId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.report(id, context));
+  }
+
+  @Post('reports/:reportSessionId/verify')
+  @ApiContract({
+    operationId: 'apiJar017',
+    contractId: 'API-JAR-017',
+    summary: 'Verifikasi laporan Jaring oleh Field Officer',
+    roles: ['field_officer'],
+    idempotent: true,
+  })
+  async verifyReport(
+    @Param('reportSessionId', ParseUUIDPipe) id: string,
+    @Body() body: VerifyJaringReportDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.verifyReport(id, body, context));
+  }
+
+  @Patch('reports/:reportSessionId/metadata')
+  @ApiContract({
+    operationId: 'apiJar018',
+    contractId: 'API-JAR-018',
+    summary: 'Ubah kategori, urgency, dan isian laporan Jaring',
+    roles: ['field_officer'],
+  })
+  async updateReportMetadata(
+    @Param('reportSessionId', ParseUUIDPipe) id: string,
+    @Body() body: UpdateJaringReportMetadataDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.jaringService.updateReportMetadata(id, body, context),
+    );
+  }
+
+  @Get('reports/:reportSessionId/history')
+  @ApiContract({
+    operationId: 'apiJar019',
+    contractId: 'API-JAR-019',
+    summary: 'Riwayat perubahan laporan Jaring',
+    roles: [
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+      'field_coordinator',
+      'field_officer',
+    ],
+  })
+  async reportHistory(
+    @Param('reportSessionId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.reportHistory(id, context));
   }
 
   @Get(':jaringId/bakets')

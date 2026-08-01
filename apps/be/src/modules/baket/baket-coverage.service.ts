@@ -117,17 +117,6 @@ export class BaketCoverageService {
                 areaScopes: {
                   where: { validUntil: null },
                 },
-                position: {
-                  include: {
-                    organizationUnit: {
-                      include: {
-                        areaCoverages: {
-                          where: { validUntil: null },
-                        },
-                      },
-                    },
-                  },
-                },
               },
             },
             taskAssignment: {
@@ -158,7 +147,7 @@ export class BaketCoverageService {
     const checks = await Promise.all(
       scopeTypes.map(async (scopeType) => {
         let areaIds: string[] = [];
-        let positionAssignmentId: string | undefined;
+        let operationalAssignmentId: string | undefined;
 
         if (scopeType === CoverageScopeType.JARING) {
           areaIds =
@@ -172,21 +161,23 @@ export class BaketCoverageService {
             version.baket.createdByFieldOfficerAssignment.areaScopes.map(
               (scope) => scope.areaId,
             );
-          positionAssignmentId =
+          operationalAssignmentId =
             version.baket.createdByFieldOfficerAssignmentId;
         }
 
         if (scopeType === CoverageScopeType.FIELD_COORDINATOR) {
           const assigner = version.baket.taskAssignment?.assigner;
           areaIds = assigner?.areaScopes.map((scope) => scope.areaId) ?? [];
-          positionAssignmentId = assigner?.id;
+          operationalAssignmentId = assigner?.id;
         }
 
         if (scopeType === CoverageScopeType.ORGANIZATION_UNIT) {
           areaIds =
-            version.baket.createdByFieldOfficerAssignment.position.organizationUnit.areaCoverages.map(
-              (coverage) => coverage.areaId,
+            version.baket.createdByFieldOfficerAssignment.areaScopes.map(
+              (scope) => scope.areaId,
             );
+          operationalAssignmentId =
+            version.baket.createdByFieldOfficerAssignmentId;
         }
 
         const isWithinScope =
@@ -198,7 +189,7 @@ export class BaketCoverageService {
           baketVersionId: versionId,
           scopeType,
           areaId: eventAreaId,
-          positionAssignmentId,
+          operationalAssignmentId,
           isWithinScope,
           note: isWithinScope
             ? 'Area is inside active coverage.'

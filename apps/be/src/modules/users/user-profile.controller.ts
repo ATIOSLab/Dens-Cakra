@@ -54,7 +54,7 @@ export class UserProfileController {
   @ApiContract({
     operationId: 'apiUsr002',
     contractId: 'API-USR-002',
-    summary: 'Provision akun, profile, jabatan dan scope',
+    summary: 'Provision akun, profile, role dan scope wilayah',
     roles: ['admin_system'],
     successStatus: 201,
     idempotent: true,
@@ -179,7 +179,7 @@ export class UserProfileController {
   @ApiContract({
     operationId: 'apiUsr010',
     contractId: 'API-USR-010',
-    summary: 'Mutasi jabatan utama',
+    summary: 'Mutasi assignment utama',
     roles: ['admin_system'],
     successStatus: 201,
     idempotent: true,
@@ -198,7 +198,7 @@ export class UserProfileController {
   @ApiContract({
     operationId: 'apiUsr011',
     contractId: 'API-USR-011',
-    summary: 'Riwayat penugasan jabatan',
+    summary: 'Riwayat assignment pengguna',
     roles: [
       'admin_system',
       'executive',

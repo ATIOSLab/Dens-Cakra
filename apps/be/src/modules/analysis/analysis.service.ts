@@ -62,9 +62,9 @@ export class AnalysisService {
     return this.prisma.analysisCase.findUniqueOrThrow({
       where: { id: caseId },
       include: {
-        ownerUnit: true,
+        ownerAssignment: true,
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         sources: {
           include: {
@@ -86,7 +86,7 @@ export class AnalysisService {
                         createdByFieldOfficerAssignment: {
                           include: {
                             userProfile: { include: { authUser: true } },
-                            position: true,
+                            role: true,
                           },
                         },
                       },
@@ -101,10 +101,10 @@ export class AnalysisService {
           orderBy: { versionNumber: 'desc' },
           include: {
             createdByAssignment: {
-              include: { userProfile: true, position: true },
+              include: { userProfile: true, role: true },
             },
             validatedByAssignment: {
-              include: { userProfile: true, position: true },
+              include: { userProfile: true, role: true },
             },
             entities: true,
             relationships: true,
@@ -120,10 +120,10 @@ export class AnalysisService {
       include: {
         analysisCase: true,
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         validatedByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         entities: true,
         relationships: {
@@ -171,7 +171,7 @@ export class AnalysisService {
     const where: Prisma.AnalysisCaseWhereInput = {
       ...this.scope.analysisWhere(context),
       ...(query.status ? { status: query.status } : {}),
-      ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
+      ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
       ...(query.search
         ? {
             OR: [
@@ -207,7 +207,7 @@ export class AnalysisService {
         take: query.limit,
         orderBy: [{ updatedAt: query.sortOrder ?? 'desc' }, { id: 'asc' }],
         include: {
-          ownerUnit: true,
+          ownerAssignment: true,
           versions: {
             orderBy: { versionNumber: 'desc' },
             take: 1,
@@ -257,7 +257,7 @@ export class AnalysisService {
 
       return tx.analysisCase.create({
         data: {
-          ownerUnitId: context.organizationUnitId,
+          ownerAssignmentId: context.primaryAssignmentId,
           createdByAssignmentId: context.primaryAssignmentId,
           title: body.title,
           periodStart: body.periodStart ? new Date(body.periodStart) : null,
@@ -436,10 +436,10 @@ export class AnalysisService {
       orderBy: { versionNumber: 'desc' },
       include: {
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         validatedByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         entities: true,
         relationships: true,

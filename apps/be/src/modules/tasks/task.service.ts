@@ -98,8 +98,8 @@ export class TaskService {
   ): Prisma.DirectiveRecipientWhereInput {
     return {
       OR: [
-        { targetPositionId: context.positionId },
-        { targetUnitId: context.organizationUnitId },
+        { targetAssignmentId: context.primaryAssignmentId },
+        { targetAssignmentId: context.primaryAssignmentId },
       ],
     };
   }
@@ -112,7 +112,7 @@ export class TaskService {
 
     const visibilityBranches: Prisma.TaskWhereInput[] = [
       { createdByAssignmentId: context.primaryAssignmentId },
-      { ownerUnitId: context.organizationUnitId },
+      { ownerAssignmentId: context.primaryAssignmentId },
       {
         assignments: {
           some: {
@@ -133,7 +133,7 @@ export class TaskService {
       {
         uukStrVersion: {
           uukStr: {
-            ownerUnitId: context.organizationUnitId,
+            ownerAssignmentId: context.primaryAssignmentId,
           },
         },
       },
@@ -150,9 +150,9 @@ export class TaskService {
 
   private taskDetailInclude(): Prisma.TaskInclude {
     return {
-      ownerUnit: true,
+      ownerAssignment: true,
       createdByAssignment: {
-        include: { userProfile: true, position: true },
+        include: { userProfile: true, role: true },
       },
       parentTask: {
         select: {
@@ -168,8 +168,7 @@ export class TaskService {
           targetAreas: { include: { area: true } },
           recipients: {
             include: {
-              targetUnit: true,
-              targetPosition: true,
+              targetAssignment: true,
             },
           },
         },
@@ -178,7 +177,7 @@ export class TaskService {
         include: {
           uukStr: {
             include: {
-              ownerUnit: true,
+              ownerAssignment: true,
               directiveVersion: {
                 include: {
                   directive: true,
@@ -203,7 +202,7 @@ export class TaskService {
           assigner: {
             include: {
               userProfile: true,
-              position: true,
+              role: true,
               areaScopes: {
                 where: { validUntil: null },
                 include: { area: true },
@@ -213,7 +212,7 @@ export class TaskService {
           assignee: {
             include: {
               userProfile: true,
-              position: true,
+              role: true,
               areaScopes: {
                 where: { validUntil: null },
                 include: { area: true },
@@ -229,7 +228,7 @@ export class TaskService {
       },
       childTasks: {
         include: {
-          ownerUnit: true,
+          ownerAssignment: true,
           _count: {
             select: {
               assignments: true,
@@ -251,14 +250,22 @@ export class TaskService {
       },
       assigner: {
         include: {
-          position: { include: { role: true, organizationUnit: true } },
+          role: true,
           userProfile: true,
+          areaScopes: {
+            where: { validUntil: null },
+            include: { area: true },
+          },
         },
       },
       assignee: {
         include: {
-          position: { include: { role: true, organizationUnit: true } },
+          role: true,
           userProfile: true,
+          areaScopes: {
+            where: { validUntil: null },
+            include: { area: true },
+          },
         },
       },
       reassignedFrom: true,
@@ -287,7 +294,7 @@ export class TaskService {
   }
 
   private async loadAssignmentTarget(assignmentId: string) {
-    return this.prisma.userSeatAssignment.findFirstOrThrow({
+    return this.prisma.userOperationalAssignment.findFirstOrThrow({
       where: {
         id: assignmentId,
         isActive: true,
@@ -368,10 +375,10 @@ export class TaskService {
 
     const isDescendant = await this.isPositionDescendantOf(
       assignee.positionId,
-      context.positionId,
+      context.primaryAssignmentId,
     );
 
-    if (!isDescendant || assignee.positionId === context.positionId) {
+    if (!isDescendant || assignee.positionId === context.primaryAssignmentId) {
       throw new ApiException(
         'TASK_ASSIGNEE_NOT_SUBORDINATE',
         'Assignment target must be in the current command chain.',
@@ -519,7 +526,7 @@ export class TaskService {
     const where = this.taskAccessWhere(context, {
       ...(query.status ? { status: query.status } : {}),
       ...(query.priority ? { priority: query.priority } : {}),
-      ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
+      ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
       ...(query.parentTaskId ? { parentTaskId: query.parentTaskId } : {}),
       ...(query.directiveId
         ? {
@@ -584,7 +591,7 @@ export class TaskService {
     });
 
     const include = {
-      ownerUnit: true,
+      ownerAssignment: true,
       directiveVersion: {
         include: {
           directive: true,
@@ -594,7 +601,7 @@ export class TaskService {
         include: {
           uukStr: {
             include: {
-              ownerUnit: true,
+              ownerAssignment: true,
               directiveVersion: {
                 include: {
                   directive: true,
@@ -611,13 +618,13 @@ export class TaskService {
         include: {
           assigner: {
             include: {
-              position: true,
+              role: true,
               userProfile: true,
             },
           },
           assignee: {
             include: {
-              position: true,
+              role: true,
               userProfile: true,
             },
           },
@@ -681,7 +688,7 @@ export class TaskService {
       'Only OIM can create operational tasks.',
     );
 
-    if (body.ownerUnitId !== context.organizationUnitId) {
+    if (body.ownerAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'TASK_OWNER_UNIT_OUT_OF_SCOPE',
         'Tasks can only be created for the current organization unit.',
@@ -701,7 +708,7 @@ export class TaskService {
               directive: {
                 deletedAt: null,
                 status: { not: DirectiveStatus.CANCELLED },
-                ownerUnitId: context.organizationUnitId,
+                ownerAssignmentId: context.primaryAssignmentId,
               },
             },
             {
@@ -745,7 +752,7 @@ export class TaskService {
             deletedAt: null,
             status: { not: UukStrStatus.CANCELLED },
             OR: [
-              { ownerUnitId: context.organizationUnitId },
+              { ownerAssignmentId: context.primaryAssignmentId },
               {
                 directiveVersion: {
                   recipients: {
@@ -792,7 +799,7 @@ export class TaskService {
         parentTaskId: body.parentTaskId,
         directiveVersionId: body.directiveVersionId,
         uukStrVersionId: body.uukStrVersionId,
-        ownerUnitId: body.ownerUnitId,
+        ownerAssignmentId: body.ownerAssignmentId,
         createdByAssignmentId: context.primaryAssignmentId,
         title: body.title,
         description: body.description,
@@ -844,7 +851,7 @@ export class TaskService {
           body.directiveVersionId ?? parent.directiveVersionId ?? undefined,
         uukStrVersionId:
           body.uukStrVersionId ?? parent.uukStrVersionId ?? undefined,
-        ownerUnitId: parent.ownerUnitId,
+        ownerAssignmentId: parent.ownerAssignmentId,
       },
       context,
     );
@@ -868,7 +875,7 @@ export class TaskService {
     const task = await this.taskDetail(taskId, context);
 
     if (
-      task.ownerUnitId !== context.organizationUnitId &&
+      task.ownerAssignmentId !== context.primaryAssignmentId &&
       task.createdByAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(
@@ -912,7 +919,7 @@ export class TaskService {
     const task = await this.taskDetail(taskId, context);
 
     if (
-      task.ownerUnitId !== context.organizationUnitId &&
+      task.ownerAssignmentId !== context.primaryAssignmentId &&
       task.createdByAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(
@@ -969,7 +976,7 @@ export class TaskService {
 
     if (context.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER) {
       if (
-        task.ownerUnitId !== context.organizationUnitId &&
+        task.ownerAssignmentId !== context.primaryAssignmentId &&
         task.createdByAssignmentId !== context.primaryAssignmentId
       ) {
         throw new ApiException(
@@ -1068,13 +1075,13 @@ export class TaskService {
       include: {
         assigner: {
           include: {
-            position: { include: { role: true, organizationUnit: true } },
+            role: true,
             userProfile: true,
           },
         },
         assignee: {
           include: {
-            position: { include: { role: true, organizationUnit: true } },
+            role: true,
             userProfile: true,
           },
         },
@@ -1191,7 +1198,7 @@ export class TaskService {
           select: {
             id: true,
             userProfile: { select: { fullName: true } },
-            position: { select: { title: true } },
+            role: { select: { name: true } },
           },
         },
       },
@@ -1336,7 +1343,7 @@ export class TaskService {
 
     if (context.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER) {
       if (
-        old.task.ownerUnitId !== context.organizationUnitId &&
+        old.task.ownerAssignmentId !== context.primaryAssignmentId &&
         old.task.createdByAssignmentId !== context.primaryAssignmentId
       ) {
         throw new ApiException(
@@ -1417,7 +1424,7 @@ export class TaskService {
     const task = await this.taskDetail(taskId, context);
 
     if (
-      task.ownerUnitId !== context.organizationUnitId &&
+      task.ownerAssignmentId !== context.primaryAssignmentId &&
       task.createdByAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(

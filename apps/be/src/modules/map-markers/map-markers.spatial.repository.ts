@@ -4,7 +4,7 @@ import {
   type AdministrativeLevel,
   type AreaResolutionMethod,
   type CoordinateSource,
-  type PositionCode,
+  type RoleCode,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -28,7 +28,7 @@ export type LatestPersonnelLocation = {
   userProfileId: string;
   userName: string;
   positionTitle: string;
-  positionCode: PositionCode;
+  positionCode: RoleCode;
   unitId: string;
   unitName: string;
   latitude: number;
@@ -110,19 +110,19 @@ export class MapMarkersSpatialRepository {
   }): Promise<LatestPersonnelLocation[]> {
     if (input.assignmentIds.length === 0) return [];
     const unitFilter = input.unitIds?.length
-      ? Prisma.sql`AND unit."id" IN (${Prisma.join(input.unitIds)})`
+      ? Prisma.sql`AND primary_scope."areaId" IN (${Prisma.join(input.unitIds)})`
       : Prisma.empty;
 
     return this.prisma.$queryRaw<LatestPersonnelLocation[]>(Prisma.sql`
-      SELECT DISTINCT ON (ping."positionAssignmentId")
+      SELECT DISTINCT ON (ping."operationalAssignmentId")
         ping."id" AS "pingId",
         assignment."id" AS "assignmentId",
         profile."id" AS "userProfileId",
         profile."fullName" AS "userName",
-        position."title" AS "positionTitle",
-        position."code" AS "positionCode",
-        unit."id" AS "unitId",
-        unit."name" AS "unitName",
+        role."name" AS "positionTitle",
+        role."code" AS "positionCode",
+        primary_scope."areaId" AS "unitId",
+        COALESCE(area."name", assignment."branch"::text) AS "unitName",
         ping."latitude"::double precision AS latitude,
         ping."longitude"::double precision AS longitude,
         ping."gpsAccuracyMeters"::double precision AS "gpsAccuracyMeters",
@@ -130,17 +130,25 @@ export class MapMarkersSpatialRepository {
         ping."areaResolutionMethod",
         ping."capturedAt"
       FROM "PersonnelLocationPing" ping
-      JOIN "UserSeatAssignment" assignment
-        ON assignment."id" = ping."positionAssignmentId"
+      JOIN "UserOperationalAssignment" assignment
+        ON assignment."id" = ping."operationalAssignmentId"
       JOIN "user_profile" profile ON profile."id" = assignment."userProfileId"
-      JOIN "Position" position ON position."id" = assignment."positionId"
-      JOIN "OrganizationUnit" unit ON unit."id" = position."organizationUnitId"
-      WHERE ping."positionAssignmentId" IN (${Prisma.join(input.assignmentIds)})
+      JOIN "Role" role ON role."id" = assignment."roleId"
+      LEFT JOIN LATERAL (
+        SELECT scope."areaId"
+        FROM "UserAreaScope" scope
+        WHERE scope."operationalAssignmentId" = assignment."id"
+          AND scope."validUntil" IS NULL
+        ORDER BY scope."isPrimary" DESC, scope."createdAt" ASC
+        LIMIT 1
+      ) primary_scope ON true
+      LEFT JOIN "AdministrativeArea" area ON area."id" = primary_scope."areaId"
+      WHERE ping."operationalAssignmentId" IN (${Prisma.join(input.assignmentIds)})
         AND ping."isStealth" = false
         AND ping."capturedAt" >= ${input.capturedAfter}
         ${unitFilter}
       ORDER BY
-        ping."positionAssignmentId",
+        ping."operationalAssignmentId",
         ping."capturedAt" DESC,
         ping."id" DESC
     `);

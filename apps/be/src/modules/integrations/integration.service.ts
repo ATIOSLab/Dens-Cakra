@@ -195,31 +195,31 @@ export class IntegrationService {
       const users = await this.prisma.userProfile.findMany({
         where: { id: { in: userIds } },
         include: {
-          positionAssignments: {
+          operationalAssignments: {
             where: { isActive: true },
             include: {
-              seat: {
-                include: {
-                  organizationUnit: true,
-                },
+              areaScopes: {
+                where: { validUntil: null },
+                include: { area: true },
+                orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
               },
             },
           },
         },
       });
 
-      const userMap = new Map(users.map((u) => [u.id, u]));
+      const userMap = new Map((users as any[]).map((u) => [u.id, u]));
 
       for (const view of views) {
         if (view.userId && userMap.has(view.userId)) {
           const user = userMap.get(view.userId);
           if (user) {
             view['coordinatorName'] = user.fullName;
-            const activeSeat = user.positionAssignments?.find(
+            const activeAssignment = user.operationalAssignments?.find(
               (pa) => pa.isActive,
-            )?.seat;
+            );
             view['coordinatorRegion'] =
-              activeSeat?.organizationUnit?.name || null;
+              activeAssignment?.areaScopes?.[0]?.area?.name || null;
           }
         }
       }

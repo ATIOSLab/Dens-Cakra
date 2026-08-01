@@ -1,9 +1,9 @@
-import { jest } from '@jest/globals';
+import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
+import {
+  jest } from '@jest/globals';
 import {
   AdministrativeLevel,
   CommandRouteType,
-  OrganizationType,
-  PositionCode,
   RoleCode,
   UserProfileStatus,
 } from '../../generated/prisma/client.js';
@@ -30,7 +30,7 @@ describe('DomainScopeService', () => {
             { descendantId: 'district' },
           ] as never),
       },
-      userSeatAssignment: {
+      userOperationalAssignment: {
         findMany: jest
           .fn()
           .mockResolvedValue([
@@ -48,7 +48,7 @@ describe('DomainScopeService', () => {
       userProfileStatus: UserProfileStatus.ACTIVE,
       primaryAssignmentId: 'oim-a',
       positionId: 'oim',
-      positionCode: PositionCode.KASUBDIT,
+      positionCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
       positionTitle: 'Kasubdit',
       roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
       organizationUnitId: 'subdit',
@@ -89,7 +89,7 @@ describe('DomainScopeService', () => {
           .fn()
           .mockResolvedValue([{ descendantId: 'regency' }] as never),
       },
-      userSeatAssignment: {
+      userOperationalAssignment: {
         findMany: jest.fn().mockResolvedValue([{ id: 'fo-a' }] as never),
       },
     };
@@ -117,7 +117,7 @@ describe('DomainScopeService', () => {
       administrativeAreaClosure: {
         findMany: jest.fn().mockResolvedValue([] as never),
       },
-      userSeatAssignment: {
+      userOperationalAssignment: {
         findMany: jest
           .fn()
           .mockResolvedValue([{ id: 'regional-a' }, { id: 'oim-a' }] as never),

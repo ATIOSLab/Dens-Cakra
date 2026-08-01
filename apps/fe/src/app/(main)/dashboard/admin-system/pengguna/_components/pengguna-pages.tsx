@@ -11,7 +11,6 @@ import { PenggunaListClient } from "./pengguna-list-client";
 import type {
   AccessMeResource,
   AreaSearchResult,
-  OrganizationUnitSummary,
   UserDetail,
   UserListFacets,
   UserListItem,
@@ -50,8 +49,7 @@ function buildListQueryState(searchParams?: RouteSearchParams): UserListQuerySta
     q: readFirst(searchParams?.q),
     status: readFirst(searchParams?.status),
     roleCode: readFirst(searchParams?.roleCode),
-    positionCode: readFirst(searchParams?.positionCode),
-    unitId: readFirst(searchParams?.unitId),
+    unitId: readFirst(searchParams?.branch) || readFirst(searchParams?.unitId),
     areaId: readFirst(searchParams?.areaId),
     page: readPositiveInt(readFirst(searchParams?.page), 1),
     limit: readPositiveInt(readFirst(searchParams?.limit), 20),
@@ -70,19 +68,15 @@ export async function PenggunaListPage({ searchParams }: { searchParams?: Promis
       ...(queryState.q ? { search: queryState.q } : {}),
       ...(queryState.status ? { status: queryState.status } : {}),
       ...(queryState.roleCode ? { roleCode: queryState.roleCode } : {}),
-      ...(queryState.positionCode ? { positionCode: queryState.positionCode } : {}),
-      ...(queryState.unitId ? { unitId: queryState.unitId } : {}),
+      ...(queryState.unitId ? { branch: queryState.unitId } : {}),
       ...(queryState.areaId ? { areaId: queryState.areaId } : {}),
     },
   });
 
   const items = listEnvelope.data;
   const selectedUserId = queryState.selected || items[0]?.id || "";
-  const [selectedUser, selectedUnit, selectedArea] = await Promise.all([
+  const [selectedUser, selectedArea] = await Promise.all([
     selectedUserId ? safeOptionalServerGet<UserDetail>(`/user-profiles/${selectedUserId}`) : Promise.resolve(null),
-    queryState.unitId
-      ? safeOptionalServerGet<OrganizationUnitSummary>(`/organization-units/${queryState.unitId}`)
-      : Promise.resolve(null),
     queryState.areaId
       ? safeOptionalServerGet<AreaSearchResult>(`/administrative-areas/${queryState.areaId}`)
       : Promise.resolve(null),
@@ -95,7 +89,6 @@ export async function PenggunaListPage({ searchParams }: { searchParams?: Promis
       facets={listEnvelope.meta?.facets as UserListFacets | undefined}
       selectedUser={selectedUser}
       queryState={queryState}
-      selectedUnit={selectedUnit}
       selectedArea={selectedArea}
     />
   );

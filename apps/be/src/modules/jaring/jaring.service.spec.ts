@@ -37,13 +37,10 @@ describe('JaringService registration security', () => {
       } as never,
     );
 
-    await service.list(
-      { limit: 100 },
-      {
-        authRole: 'field_officer',
-        primaryAssignmentId: 'assignment-id',
-      } as never,
-    );
+    await service.list({ limit: 100 }, {
+      authRole: 'field_officer',
+      primaryAssignmentId: 'assignment-id',
+    } as never);
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -85,13 +82,10 @@ describe('JaringService registration security', () => {
       } as never,
     );
 
-    await service.list(
-      { page: 3, limit: 100 },
-      {
-        authRole: 'field_coordinator',
-        primaryAssignmentId: 'assignment-id',
-      } as never,
-    );
+    await service.list({ page: 3, limit: 100 }, {
+      authRole: 'field_coordinator',
+      primaryAssignmentId: 'assignment-id',
+    } as never);
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -118,12 +112,15 @@ describe('JaringService registration security', () => {
       } as never),
     ).rejects.toMatchObject({
       code: 'JARING_JOIN_DATE_INVALID',
-      message: 'Tanggal bergabung harus valid, tidak boleh sebelum tanggal lahir, dan tidak boleh di masa depan.',
+      message:
+        'Tanggal bergabung harus valid, tidak boleh sebelum tanggal lahir, dan tidak boleh di masa depan.',
     });
   });
 
   it('memastikan Jaring yang diedit berada di cakupan Field Officer', async () => {
-    const accessError = new Error('Jaring berada di luar cakupan Field Officer.');
+    const accessError = new Error(
+      'Jaring berada di luar cakupan Field Officer.',
+    );
     const assertJaring = jest.fn(() => Promise.reject(accessError));
     const findUniqueOrThrow = jest.fn();
     const service = new JaringService(
@@ -201,7 +198,7 @@ describe('JaringService registration security', () => {
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
-      userSeatAssignment: { findUniqueOrThrow: jest.fn() },
+      userOperationalAssignment: { findUniqueOrThrow: jest.fn() },
       administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
     const service = new JaringService(
@@ -259,7 +256,7 @@ describe('JaringService registration security', () => {
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
-      userSeatAssignment: { findUniqueOrThrow: jest.fn() },
+      userOperationalAssignment: { findUniqueOrThrow: jest.fn() },
       administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
     const service = new JaringService(
@@ -340,20 +337,17 @@ describe('JaringService registration security', () => {
   it('menolak pembuatan Jaring jika NIK sudah dipakai Jaring lain', async () => {
     const prisma = {
       jaring: {
-        findFirst: jest
-          .fn()
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce({
-            id: 'existing-jaring-id',
-            aliasName: 'V02068',
-            fullName: 'Jaring Dengan NIK Sama',
-          }),
+        findFirst: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce({
+          id: 'existing-jaring-id',
+          aliasName: 'V02068',
+          fullName: 'Jaring Dengan NIK Sama',
+        }),
         create: jest.fn(),
       },
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
-      userSeatAssignment: { findUniqueOrThrow: jest.fn() },
+      userOperationalAssignment: { findUniqueOrThrow: jest.fn() },
       administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
     const service = new JaringService(
@@ -488,11 +482,11 @@ describe('JaringService registration security', () => {
           ]),
         ),
       },
-      userSeatAssignment: {
+      userOperationalAssignment: {
         findUniqueOrThrow: jest.fn(() =>
           Promise.resolve({
             isActive: true,
-            position: { code: 'PETUGAS_ORGANIK' },
+            role: { code: 'FIELD_OFFICER' },
           }),
         ),
       },
@@ -593,6 +587,299 @@ describe('JaringService registration security', () => {
         action: 'JARING.PIN_REGENERATE',
         entityId: 'jaring-id',
       }),
+    });
+  });
+
+  it('menampilkan laporan yang pernah dibuat oleh Jaring dengan pagination', async () => {
+    const assertJaring = jest.fn(() => Promise.resolve());
+    const findMany = jest.fn(() =>
+      Promise.resolve([
+        {
+          id: 'report-session-id',
+          jaringId: 'jaring-id',
+          currentState: 'SUBMITTED',
+          status: 'SUBMITTED',
+          title: 'Laporan Situasi Pasar',
+          content: 'Aktivitas meningkat pada pagi hari.',
+          latitude: '1.2345678',
+          longitude: '104.1234567',
+          locationAccuracyMeters: '8.5',
+          locationCapturedAt: new Date('2026-07-31T01:00:00.000Z'),
+          locationType: 'live',
+          incidentAt: new Date('2026-07-31T00:30:00.000Z'),
+          timezone: 'Asia/Jakarta',
+          referenceNumber: 'DC-20260731-0001',
+          startedAt: new Date('2026-07-31T00:00:00.000Z'),
+          lastActivityAt: new Date('2026-07-31T01:10:00.000Z'),
+          expiresAt: new Date('2026-08-01T01:10:00.000Z'),
+          submittedAt: new Date('2026-07-31T01:10:00.000Z'),
+          closedAt: null,
+          createdAt: new Date('2026-07-31T00:00:00.000Z'),
+          updatedAt: new Date('2026-07-31T01:10:00.000Z'),
+          submittedMessage: {
+            id: 'message-id',
+            referenceNumber: 'DC-20260731-0001',
+            title: 'Laporan Situasi Pasar',
+            content: 'Aktivitas meningkat pada pagi hari.',
+            status: 'RECEIVED',
+            validationSummary: 'NOT_CHECKED',
+            receivedAt: new Date('2026-07-31T01:10:00.000Z'),
+            category: {
+              id: 'category-id',
+              code: 'SITUASI',
+              name: 'Situasi',
+            },
+            resolvedArea: null,
+            convertedBaketId: 'baket-id',
+            convertedBaket: {
+              id: 'baket-id',
+              status: 'DRAFT',
+              currentVersionNumber: 1,
+              reportCategory: {
+                id: 'category-id',
+                code: 'SITUASI',
+                name: 'Situasi',
+              },
+              versions: [
+                {
+                  id: 'version-id',
+                  versionNumber: 1,
+                  title: 'Laporan Situasi Pasar',
+                  urgency: 'MEDIUM',
+                  eventTime: new Date('2026-07-31T00:30:00.000Z'),
+                  coverageValidationStatus: 'PENDING',
+                  eventArea: null,
+                },
+              ],
+            },
+            _count: { media: 2, reportAmendments: 1 },
+          },
+          _count: { contentParts: 1, media: 2, amendments: 1 },
+        },
+      ]),
+    );
+    const count = jest.fn(() => Promise.resolve(1));
+    const groupBy = jest.fn(() =>
+      Promise.resolve([{ status: 'SUBMITTED', _count: { _all: 1 } }]),
+    );
+    const service = new JaringService(
+      {
+        whatsAppReportSession: { findMany, count, groupBy },
+      } as never,
+      { assertJaring } as never,
+    );
+    const context = {
+      authRole: 'field_officer',
+      primaryAssignmentId: 'assignment-id',
+    } as never;
+
+    const result = await service.reports(
+      'jaring-id',
+      { page: 2, limit: 10, status: 'SUBMITTED' } as never,
+      context,
+    );
+
+    expect(assertJaring).toHaveBeenCalledWith(context, 'jaring-id');
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { jaringId: 'jaring-id', status: 'SUBMITTED' },
+        skip: 10,
+        take: 10,
+      }),
+    );
+    expect(count).toHaveBeenCalledWith({
+      where: { jaringId: 'jaring-id', status: 'SUBMITTED' },
+    });
+    expect(result.pagination.total).toBe(1);
+    expect(result.facets.status.SUBMITTED).toBe(1);
+    expect(result.items[0]).toMatchObject({
+      id: 'report-session-id',
+      referenceNumber: 'DC-20260731-0001',
+      reportCategory: { id: 'category-id', name: 'Situasi' },
+      baket: { id: 'baket-id', currentVersionNumber: 1 },
+      counts: { contentParts: 1, media: 2, amendments: 1 },
+    });
+    expect(result.items[0].location).toMatchObject({
+      latitude: 1.2345678,
+      longitude: 104.1234567,
+      accuracyMeters: 8.5,
+    });
+  });
+
+  it('memverifikasi laporan Jaring dan mengubah status tampilan menjadi verified', async () => {
+    const assertJaring = jest.fn(() => Promise.resolve());
+    const reportSession = {
+      id: 'report-session-id',
+      jaringId: 'jaring-id',
+      currentState: 'SUBMITTED',
+      status: 'SUBMITTED',
+      title: 'Laporan Situasi Pasar',
+      content: 'Aktivitas meningkat pada pagi hari.',
+      latitude: null,
+      longitude: null,
+      locationAccuracyMeters: null,
+      locationCapturedAt: null,
+      locationType: null,
+      incidentAt: null,
+      timezone: 'Asia/Jakarta',
+      referenceNumber: 'DC-20260731-0001',
+      startedAt: new Date('2026-07-31T00:00:00.000Z'),
+      lastActivityAt: new Date('2026-07-31T01:10:00.000Z'),
+      expiresAt: new Date('2026-08-01T01:10:00.000Z'),
+      submittedAt: new Date('2026-07-31T01:10:00.000Z'),
+      closedAt: null,
+      createdAt: new Date('2026-07-31T00:00:00.000Z'),
+      updatedAt: new Date('2026-07-31T01:10:00.000Z'),
+      submittedMessage: {
+        id: 'message-id',
+        referenceNumber: 'DC-20260731-0001',
+        title: 'Laporan Situasi Pasar',
+        content: 'Aktivitas meningkat pada pagi hari.',
+        status: 'READY_FOR_BAKET',
+        validationSummary: 'VALID',
+        receivedAt: new Date('2026-07-31T01:10:00.000Z'),
+        category: null,
+        resolvedArea: null,
+        convertedBaketId: null,
+        convertedBaket: null,
+        _count: { media: 1, reportAmendments: 0 },
+      },
+      _count: { contentParts: 1, media: 1, amendments: 0 },
+    };
+    const sourceSession = {
+      id: 'report-session-id',
+      jaringId: 'jaring-id',
+      currentState: 'SUBMITTED',
+      submittedMessage: {
+        id: 'message-id',
+        title: 'Laporan Situasi Pasar',
+        content: 'Aktivitas meningkat pada pagi hari.',
+        senderPhone: '6281234567890',
+        jaringId: 'jaring-id',
+        receivedAt: new Date('2026-07-31T01:10:00.000Z'),
+        latitude: '1.2345678',
+        longitude: '104.1234567',
+        resolvedAreaId: 'area-id',
+        rawPayload: { photoMessageId: 'photo-id' },
+        media: [{ messageId: 'message-id', fileId: 'file-id' }],
+        validationIssues: [],
+        convertedBaketId: null,
+        categoryId: null,
+        status: 'RECEIVED',
+        validationSummary: 'NOT_CHECKED',
+      },
+    };
+    const tx = {
+      whatsAppValidationIssue: {
+        deleteMany: jest.fn(() => Promise.resolve({ count: 0 })),
+        createMany: jest.fn(() => Promise.resolve({ count: 0 })),
+      },
+      whatsAppMessage: { update: jest.fn(() => Promise.resolve({})) },
+      whatsAppReportHistory: {
+        create: jest.fn(() => Promise.resolve({})),
+      },
+      auditLog: { create: jest.fn(() => Promise.resolve({})) },
+    };
+    const transaction = jest.fn((callback: (client: typeof tx) => unknown) =>
+      Promise.resolve(callback(tx)),
+    );
+    const findUnique = jest
+      .fn()
+      .mockResolvedValueOnce(sourceSession)
+      .mockResolvedValueOnce(reportSession);
+    const service = new JaringService(
+      {
+        $transaction: transaction,
+        whatsAppReportSession: { findUnique },
+      } as never,
+      { assertJaring } as never,
+    );
+
+    const result = await service.verifyReport(
+      'report-session-id',
+      { note: 'Valid' },
+      {
+        userProfileId: 'profile-id',
+        primaryAssignmentId: 'assignment-id',
+      } as never,
+    );
+
+    expect(assertJaring).toHaveBeenCalledWith(expect.anything(), 'jaring-id');
+    expect(tx.whatsAppMessage.update).toHaveBeenCalledWith({
+      where: { id: 'message-id' },
+      data: { validationSummary: 'VALID', status: 'READY_FOR_BAKET' },
+    });
+    expect(tx.whatsAppReportHistory.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'FIELD_OFFICER_VERIFIED',
+        }),
+      }),
+    );
+    expect(result.verificationStatus).toBe('VERIFIED_BY_FIELD_OFFICER');
+    expect(result.canFillMetadata).toBe(true);
+  });
+
+  it('menggabungkan history laporan dan audit log untuk pembanding perubahan', async () => {
+    const assertJaring = jest.fn(() => Promise.resolve());
+    const reportCreatedAt = new Date('2026-07-31T02:00:00.000Z');
+    const auditCreatedAt = new Date('2026-07-31T03:00:00.000Z');
+    const service = new JaringService(
+      {
+        whatsAppReportSession: {
+          findUnique: jest.fn(() =>
+            Promise.resolve({ id: 'report-session-id', jaringId: 'jaring-id' }),
+          ),
+        },
+        whatsAppReportHistory: {
+          findMany: jest.fn(() =>
+            Promise.resolve([
+              {
+                id: 'history-id',
+                action: 'FIELD_OFFICER_METADATA_UPDATED',
+                previousState: 'SUBMITTED',
+                newState: 'SUBMITTED',
+                externalMessageId: null,
+                metadata: { before: { urgency: 'NORMAL' } },
+                createdAt: reportCreatedAt,
+              },
+            ]),
+          ),
+        },
+        auditLog: {
+          findMany: jest.fn(() =>
+            Promise.resolve([
+              {
+                id: 'audit-id',
+                action: 'JARING_REPORT.METADATA.UPDATE',
+                actorUserProfileId: 'profile-id',
+                actorAssignmentId: 'assignment-id',
+                beforeData: { urgency: 'NORMAL' },
+                afterData: { urgency: 'HIGH' },
+                metadata: { versionChanged: true },
+                createdAt: auditCreatedAt,
+              },
+            ]),
+          ),
+        },
+      } as never,
+      { assertJaring } as never,
+    );
+
+    const result = await service.reportHistory('report-session-id', {
+      primaryAssignmentId: 'assignment-id',
+    } as never);
+
+    expect(assertJaring).toHaveBeenCalledWith(expect.anything(), 'jaring-id');
+    expect(result.events).toHaveLength(2);
+    expect(result.events[0]).toMatchObject({
+      id: 'audit-id',
+      source: 'audit_log',
+      afterData: { urgency: 'HIGH' },
+    });
+    expect(result.events[1]).toMatchObject({
+      id: 'history-id',
+      source: 'report_history',
     });
   });
 });

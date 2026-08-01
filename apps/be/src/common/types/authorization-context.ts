@@ -1,8 +1,6 @@
 import type {
   AdministrativeLevel,
   CommandRouteType,
-  OrganizationType,
-  PositionCode,
   RoleCode,
   UserProfileStatus,
 } from '../../generated/prisma/client.js';
@@ -22,13 +20,14 @@ export type AuthorizationContext = {
   userProfileId: string;
   userProfileStatus: UserProfileStatus;
   primaryAssignmentId: string;
+  operationalAssignmentId: string;
   positionId: string;
-  positionCode: PositionCode;
+  positionCode: RoleCode;
   positionTitle: string;
   roleCode: RoleCode;
   organizationUnitId: string;
   organizationUnitName: string;
-  organizationUnitType: OrganizationType;
-  commandRouteType: CommandRouteType | null;
+  organizationUnitType: CommandRouteType;
+  commandRouteType: CommandRouteType;
   areaScopes: AuthorizationAreaScope[];
 };

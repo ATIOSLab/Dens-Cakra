@@ -25,7 +25,7 @@ export class WhatsAppChannelScopeService {
     const channelUser = await this.prisma.userProfile.findUnique({
       where: { id: userId },
       include: {
-        positionAssignments: {
+        operationalAssignments: {
           where: { isActive: true, validUntil: null },
           include: {
             areaScopes: {
@@ -37,7 +37,7 @@ export class WhatsAppChannelScopeService {
       },
     });
     const channelAreaIds =
-      channelUser?.positionAssignments.flatMap((assignment) =>
+      channelUser?.operationalAssignments.flatMap((assignment) =>
         assignment.areaScopes.map((scope) => scope.areaId),
       ) ?? [];
 

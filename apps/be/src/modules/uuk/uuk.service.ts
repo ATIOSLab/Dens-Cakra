@@ -47,8 +47,8 @@ export class UukService {
   ): Prisma.DirectiveRecipientWhereInput {
     return {
       OR: [
-        { targetPositionId: context.positionId },
-        { targetUnitId: context.organizationUnitId },
+        { targetAssignmentId: context.primaryAssignmentId },
+        { targetAssignmentId: context.primaryAssignmentId },
       ],
     };
   }
@@ -134,7 +134,7 @@ export class UukService {
   ): Prisma.UukStrWhereInput {
     const areaScope = this.areaScopeWhere(context);
     const visibilityBranches: Prisma.UukStrWhereInput[] = [
-      { ownerUnitId: context.organizationUnitId },
+      { ownerAssignmentId: context.primaryAssignmentId },
       { createdByAssignmentId: context.primaryAssignmentId },
       {
         directiveVersion: {
@@ -149,7 +149,7 @@ export class UukService {
             tasks: {
               some: {
                 OR: [
-                  { ownerUnitId: context.organizationUnitId },
+                  { ownerAssignmentId: context.primaryAssignmentId },
                   {
                     assignments: {
                       some: {
@@ -271,27 +271,26 @@ export class UukService {
         ? this.uukAccessWhere(context, { id })
         : { id, deletedAt: null },
       include: {
-        ownerUnit: true,
+        ownerAssignment: true,
         directiveVersion: {
           include: {
             directive: true,
             targetAreas: { include: { area: true } },
             recipients: {
               include: {
-                targetUnit: true,
-                targetPosition: true,
+                targetAssignment: true,
               },
             },
           },
         },
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         versions: {
           orderBy: { versionNumber: 'desc' },
           include: {
             createdByAssignment: {
-              include: { userProfile: true, position: true },
+              include: { userProfile: true, role: true },
             },
             sections: {
               orderBy: { orderNumber: 'asc' },
@@ -301,14 +300,14 @@ export class UukService {
             },
             tasks: {
               include: {
-                ownerUnit: true,
+                ownerAssignment: true,
                 assignments: {
                   include: {
                     assigner: {
-                      include: { position: true, userProfile: true },
+                      include: { role: true, userProfile: true },
                     },
                     assignee: {
-                      include: { position: true, userProfile: true },
+                      include: { role: true, userProfile: true },
                     },
                   },
                 },
@@ -332,14 +331,13 @@ export class UukService {
       include: {
         uukStr: {
           include: {
-            ownerUnit: true,
+            ownerAssignment: true,
             directiveVersion: {
               include: {
                 directive: true,
                 recipients: {
                   include: {
-                    targetUnit: true,
-                    targetPosition: true,
+                    targetAssignment: true,
                   },
                 },
               },
@@ -347,7 +345,7 @@ export class UukService {
           },
         },
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         sections: {
           orderBy: { orderNumber: 'asc' },
@@ -357,11 +355,11 @@ export class UukService {
         },
         tasks: {
           include: {
-            ownerUnit: true,
+            ownerAssignment: true,
             assignments: {
               include: {
-                assigner: { include: { position: true, userProfile: true } },
-                assignee: { include: { position: true, userProfile: true } },
+                assigner: { include: { role: true, userProfile: true } },
+                assignee: { include: { role: true, userProfile: true } },
               },
             },
             targetAreas: { include: { area: true } },
@@ -393,7 +391,7 @@ export class UukService {
     }
 
     if (
-      version.uukStr.ownerUnitId !== context.organizationUnitId &&
+      version.uukStr.ownerAssignmentId !== context.primaryAssignmentId &&
       version.uukStr.createdByAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(
@@ -461,7 +459,7 @@ export class UukService {
     return this.prisma.uukStr.findMany({
       where: this.uukAccessWhere(context, {
         ...(query.status ? { status: query.status } : {}),
-        ...(query.ownerUnitId ? { ownerUnitId: query.ownerUnitId } : {}),
+        ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
         ...(query.directiveId
           ? {
               directiveVersion: {
@@ -496,14 +494,13 @@ export class UukService {
       take: query.limit,
       orderBy,
       include: {
-        ownerUnit: true,
+        ownerAssignment: true,
         directiveVersion: {
           include: {
             directive: true,
             recipients: {
               include: {
-                targetUnit: true,
-                targetPosition: true,
+                targetAssignment: true,
               },
             },
           },
@@ -529,7 +526,7 @@ export class UukService {
       'Only Regional Commander can create UUK/STR elaboration.',
     );
 
-    if (body.ownerUnitId !== context.organizationUnitId) {
+    if (body.ownerAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'UUK_OWNER_UNIT_OUT_OF_SCOPE',
         'UUK/STR can only be created for the current organization unit.',
@@ -547,7 +544,7 @@ export class UukService {
             {
               directive: {
                 deletedAt: null,
-                ownerUnitId: context.organizationUnitId,
+                ownerAssignmentId: context.primaryAssignmentId,
               },
             },
             {
@@ -578,11 +575,11 @@ export class UukService {
     }
 
     const hasRecipient =
-      directiveVersion.directive.ownerUnitId === context.organizationUnitId ||
+      directiveVersion.directive.ownerAssignmentId === context.primaryAssignmentId ||
       directiveVersion.recipients.some(
         (recipient) =>
-          recipient.targetPositionId === context.positionId ||
-          recipient.targetUnitId === context.organizationUnitId,
+          recipient.targetAssignmentId === context.primaryAssignmentId ||
+          recipient.targetAssignmentId === context.primaryAssignmentId,
       );
 
     if (!hasRecipient) {
@@ -605,7 +602,7 @@ export class UukService {
       const root = await tx.uukStr.create({
         data: {
           directiveVersionId: body.directiveVersionId,
-          ownerUnitId: body.ownerUnitId,
+          ownerAssignmentId: body.ownerAssignmentId,
           createdByAssignmentId: context.primaryAssignmentId,
           status: UukStrStatus.PUBLISHED,
         },
@@ -640,7 +637,7 @@ export class UukService {
       orderBy: { versionNumber: 'desc' },
       include: {
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         sections: {
           orderBy: { orderNumber: 'asc' },
@@ -774,7 +771,7 @@ export class UukService {
     const uuk = await this.detail(uukStrId, context);
 
     if (
-      uuk.ownerUnitId !== context.organizationUnitId &&
+      uuk.ownerAssignmentId !== context.primaryAssignmentId &&
       uuk.createdByAssignmentId !== context.primaryAssignmentId
     ) {
       throw new ApiException(

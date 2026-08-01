@@ -16,8 +16,6 @@ import { InfrastructureModule } from './modules/infrastructure/infrastructure.mo
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { UserProfileModule } from './modules/users/user-profile.module.js';
 import { RbacModule } from './modules/rbac/rbac.module.js';
-import { OrganizationModule } from './modules/organization/organization.module.js';
-import { PositionModule } from './modules/positions/position.module.js';
 import { AreaModule } from './modules/areas/area.module.js';
 import { FileModule } from './modules/files/file.module.js';
 import { NotificationModule } from './modules/notifications/notification.module.js';
@@ -55,8 +53,6 @@ import { ExecutivePersonnelModule } from './modules/executive-personnel/executiv
     IdentityModule,
     UserProfileModule,
     RbacModule,
-    OrganizationModule,
-    PositionModule,
     AreaModule,
     FileModule,
     NotificationModule,

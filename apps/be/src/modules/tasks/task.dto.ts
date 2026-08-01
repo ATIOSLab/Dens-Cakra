@@ -29,7 +29,7 @@ export class TaskQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(TaskStatus) status?: TaskStatus;
   @IsOptional() @IsEnum(PriorityLevel) priority?: PriorityLevel;
-  @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsOptional() @IsUUID() assigneeAssignmentId?: string;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() dueBefore?: string;
@@ -46,7 +46,7 @@ export class CreateTaskDto {
   @IsOptional() @IsUUID() parentTaskId?: string;
   @IsOptional() @IsUUID() directiveVersionId?: string;
   @IsOptional() @IsUUID() uukStrVersionId?: string;
-  @IsUUID() ownerUnitId!: string;
+  @IsUUID() ownerAssignmentId!: string;
   @IsString() @MaxLength(300) title!: string;
   @IsString() @MaxLength(10000) description!: string;
   @IsEnum(PriorityLevel) priority!: PriorityLevel;

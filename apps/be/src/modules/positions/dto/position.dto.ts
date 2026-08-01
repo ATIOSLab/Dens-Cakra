@@ -1,4 +1,7 @@
-import { Transform, Type } from 'class-transformer';
+import { OrganizationType, PositionCode } from '../../../common/constants/legacy-operational-code.js';
+import {
+  Transform,
+  Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
@@ -14,10 +17,9 @@ import {
   Min,
   MinLength,
   ValidateNested,
-} from 'class-validator';
+  } from 'class-validator';
 import {
   CommandRouteType,
-  PositionCode,
   RoleCode,
 } from '../../../generated/prisma/client.js';
 

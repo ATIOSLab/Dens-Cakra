@@ -32,7 +32,7 @@ export enum DirectiveSortField {
 export class DirectiveQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(DirectiveStatus) status?: DirectiveStatus;
-  @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
@@ -60,8 +60,7 @@ export class GenerateDirectiveAiDto {
 }
 
 export class VersionRecipientDto {
-  @IsOptional() @IsUUID() targetUnitId?: string;
-  @IsOptional() @IsUUID() targetPositionId?: string;
+  @IsOptional() @IsUUID() targetAssignmentId?: string;
 }
 
 export class DirectiveVersionCreateDto {
@@ -86,7 +85,7 @@ export class DirectiveVersionCreateDto {
 }
 
 export class CreateDirectiveDto {
-  @IsUUID() ownerUnitId!: string;
+  @IsUUID() ownerAssignmentId!: string;
   @ValidateNested()
   @Type(() => DirectiveVersionCreateDto)
   version!: DirectiveVersionCreateDto;

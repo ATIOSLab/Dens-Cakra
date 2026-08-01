@@ -89,7 +89,21 @@ export class AuditController {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         include: {
           actorUser: { select: { id: true, username: true, fullName: true } },
-          actorAssignment: { select: { id: true, positionId: true } },
+          actorAssignment: {
+            select: {
+              id: true,
+              branch: true,
+              role: { select: { id: true, code: true, name: true } },
+              areaScopes: {
+                where: { validUntil: null },
+                orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+                select: {
+                  isPrimary: true,
+                  area: { select: { id: true, code: true, name: true, level: true } },
+                },
+              },
+            },
+          },
         },
       }),
     );
@@ -107,7 +121,7 @@ export class AuditController {
         where: { id },
         include: {
           actorUser: true,
-          actorAssignment: { include: { position: true } },
+          actorAssignment: { include: { role: true } },
         },
       }),
     );

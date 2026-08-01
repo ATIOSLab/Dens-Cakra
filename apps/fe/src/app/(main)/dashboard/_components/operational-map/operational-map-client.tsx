@@ -350,7 +350,7 @@ function MapInspector({
   }
   if (highRisk > 0) {
     recommendation =
-      "Prioritaskan verifikasi silang pada titik bereskalasi tinggi, pastikan handler cadangan tersedia, lalu susun opsi respons sebelum eskalasi ke pimpinan.";
+      "Prioritaskan verifikasi silang pada titik bereskalasi tinggi, pastikan gaswil cadangan tersedia, lalu susun opsi respons sebelum eskalasi ke pimpinan.";
   }
   return (
     <div className="space-y-4">

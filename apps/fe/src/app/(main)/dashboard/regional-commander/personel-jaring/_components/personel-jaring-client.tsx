@@ -1306,11 +1306,11 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                           </CardHeader>
 
                           <CardContent className="p-4 space-y-4 text-xs font-mono">
-                            {/* 1. Handler & HUMINT proofs */}
+                            {/* 1. Gaswil & HUMINT proofs */}
                             <div className="grid gap-3 sm:grid-cols-2 border-b border-border/20 pb-3">
                               <div className="space-y-1">
                                 <span className="text-muted-foreground/60 block text-[9px] uppercase flex items-center gap-1">
-                                  <UserRoundCheck className="size-3" /> Handler Aktif
+                                  <UserRoundCheck className="size-3" /> Gaswil Aktif
                                 </span>
                                 <span className="text-foreground font-sans font-bold text-xs mt-0.5 block leading-tight">
                                   {text(officer.fullName, "Belum ditetapkan")}
@@ -1351,7 +1351,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                             {/* 3. Caretaker assignment logs */}
                             <div className="space-y-2">
                               <span className="text-muted-foreground/60 block text-[9px] uppercase">
-                                Daftar Caretaker / Handler History
+                                Daftar Caretaker / Riwayat Gaswil
                               </span>
                               <div className="space-y-1.5">
                                 {caretakers.length > 0 ? (
@@ -1363,7 +1363,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                                         className="flex justify-between items-center bg-secondary/15 border border-border/30 rounded px-2.5 py-1.5"
                                       >
                                         <span className="font-sans font-medium text-[11px] text-foreground truncate max-w-[200px]">
-                                          {text(off.fullName, "Handler")}
+                                          {text(off.fullName, "Gaswil")}
                                         </span>
                                         <Badge
                                           variant="outline"

@@ -1,8 +1,10 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
+import {
+  ForbiddenException,
+  Injectable } from '@nestjs/common';
 import {
   CommandRouteType,
-  OrganizationType,
-  PositionCode,
+  RoleCode,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -65,7 +67,7 @@ export class OrganizationService {
     );
 
     if (
-      position.code !== PositionCode.KORWIL &&
+      position.code !== RoleCode.FIELD_COORDINATOR &&
       position.code !== PositionCode.STAF_SUBDIT
     ) {
       return routeType;
@@ -86,7 +88,7 @@ export class OrganizationService {
     if (
       routeType === CommandRouteType.DIRECTORATE &&
       (position.code !== PositionCode.STAF_SUBDIT ||
-        position.reportsTo.code !== PositionCode.KASUBDIT)
+        position.reportsTo.code !== RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER)
     ) {
       throw new ForbiddenException(
         'Field Coordinator on the Directorate route must use STAF_SUBDIT and report to KASUBDIT.',
@@ -95,8 +97,8 @@ export class OrganizationService {
 
     if (
       routeType === CommandRouteType.BINDA &&
-      (position.code !== PositionCode.KORWIL ||
-        position.reportsTo.code !== PositionCode.KABAGOPS)
+      (position.code !== RoleCode.FIELD_COORDINATOR ||
+        position.reportsTo.code !== RoleCode.FIELD_COORDINATOR)
     ) {
       throw new ForbiddenException(
         'Field Coordinator on the Binda route must use KORWIL and report to KABAGOPS.',

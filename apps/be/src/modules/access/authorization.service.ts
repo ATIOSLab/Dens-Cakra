@@ -4,7 +4,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
-  PositionCode,
   RoleCode,
   UserProfileStatus,
 } from '../../generated/prisma/client.js';
@@ -16,7 +15,6 @@ import {
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { OrganizationService } from './organization.service.js';
 
 type AuthorizationInput = {
   authUserId: string;
@@ -26,30 +24,9 @@ type AuthorizationInput = {
 
 const SYSTEM_ROLE_SET = new Set<SystemRole>(Object.values(SYSTEM_ROLES));
 
-const ALLOWED_POSITION_CODES_BY_ROLE: Record<
-  RoleCode,
-  readonly PositionCode[]
-> = {
-  [RoleCode.ADMIN_SYSTEM]: [PositionCode.ADMIN],
-  [RoleCode.EXECUTIVE]: [PositionCode.DEPUTI_II],
-  [RoleCode.REGIONAL_COMMANDER]: [
-    PositionCode.DIREKTUR_WILAYAH,
-    PositionCode.KABINDA,
-  ],
-  [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER]: [
-    PositionCode.KASUBDIT,
-    PositionCode.KABAGOPS,
-  ],
-  [RoleCode.FIELD_COORDINATOR]: [PositionCode.KORWIL, PositionCode.STAF_SUBDIT],
-  [RoleCode.FIELD_OFFICER]: [PositionCode.PETUGAS_ORGANIK],
-};
-
 @Injectable()
 export class AuthorizationService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly organizationService: OrganizationService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async authorize(input: AuthorizationInput): Promise<AuthorizationContext> {
     const authUser = await this.prisma.user.findUnique({
@@ -69,7 +46,7 @@ export class AuthorizationService {
             operationalLockedAt: true,
             operationalLockReason: true,
             operationalLockedUntil: true,
-            positionAssignments: {
+            operationalAssignments: {
               where: {
                 isPrimary: true,
                 isActive: true,
@@ -81,33 +58,12 @@ export class AuthorizationService {
               take: 1,
               select: {
                 id: true,
-                positionId: true,
-                position: {
+                branch: true,
+                role: {
                   select: {
-                    id: true,
                     code: true,
-                    title: true,
+                    name: true,
                     isActive: true,
-                    organizationUnitId: true,
-                    reportsToPositionId: true,
-                    role: {
-                      select: {
-                        code: true,
-                      },
-                    },
-                    organizationUnit: {
-                      select: {
-                        id: true,
-                        name: true,
-                        type: true,
-                        isActive: true,
-                      },
-                    },
-                    reportsTo: {
-                      select: {
-                        code: true,
-                      },
-                    },
                   },
                 },
                 areaScopes: {
@@ -209,34 +165,28 @@ export class AuthorizationService {
       );
     }
 
-    const primaryAssignment = profile.positionAssignments[0];
+    const primaryAssignment = profile.operationalAssignments[0];
 
     if (!primaryAssignment) {
       throw new ForbiddenException(
-        'Authenticated user does not have an active primary position assignment.',
+        'Authenticated user does not have an active primary operational assignment.',
       );
     }
 
-    if (!primaryAssignment.position.isActive) {
+    if (!primaryAssignment.role.isActive) {
       throw new ForbiddenException(
-        'Primary position assignment points to an inactive position.',
-      );
-    }
-
-    if (!primaryAssignment.position.organizationUnit.isActive) {
-      throw new ForbiddenException(
-        'Primary position assignment points to an inactive organization unit.',
+        'Primary operational assignment points to an inactive role.',
       );
     }
 
     if (primaryAssignment.areaScopes.length === 0) {
       throw new ForbiddenException(
-        'Primary position assignment does not have any active area scope.',
+        'Primary operational assignment does not have any active area scope.',
       );
     }
 
     const expectedRoleCode = AUTH_ROLE_TO_DOMAIN_ROLE[coarseRole];
-    const actualRoleCode = primaryAssignment.position.role.code;
+    const actualRoleCode = primaryAssignment.role.code;
 
     if (actualRoleCode !== expectedRoleCode) {
       throw new ForbiddenException(
@@ -244,20 +194,10 @@ export class AuthorizationService {
       );
     }
 
-    const allowedPositionCodes = ALLOWED_POSITION_CODES_BY_ROLE[actualRoleCode];
-
-    if (!allowedPositionCodes.includes(primaryAssignment.position.code)) {
-      throw new ForbiddenException(
-        `${actualRoleCode} is not allowed to occupy position ${primaryAssignment.position.code}.`,
-      );
-    }
-
-    const commandRouteType =
-      await this.organizationService.validateCommandRouteForPosition({
-        code: primaryAssignment.position.code,
-        organizationUnitId: primaryAssignment.position.organizationUnitId,
-        reportsTo: primaryAssignment.position.reportsTo,
-      });
+    const primaryArea = primaryAssignment.areaScopes[0]?.area;
+    const unitName = primaryArea
+      ? `${primaryAssignment.branch} ${primaryArea.name}`
+      : primaryAssignment.branch;
 
     return {
       authUserId: authUser.id,
@@ -265,15 +205,16 @@ export class AuthorizationService {
       userProfileId: profile.id,
       userProfileStatus: profile.status,
       primaryAssignmentId: primaryAssignment.id,
-      positionId: primaryAssignment.position.id,
-      positionCode: primaryAssignment.position.code,
-      positionTitle: primaryAssignment.position.title,
+      operationalAssignmentId: primaryAssignment.id,
+      positionId: primaryAssignment.id,
+      positionCode: actualRoleCode,
+      positionTitle: primaryAssignment.role.name,
       roleCode: actualRoleCode,
-      organizationUnitId: primaryAssignment.position.organizationUnit.id,
-      organizationUnitName: primaryAssignment.position.organizationUnit.name,
-      organizationUnitType: primaryAssignment.position.organizationUnit.type,
-      commandRouteType,
-      areaScopes: primaryAssignment.areaScopes.map((scope) => ({
+      organizationUnitId: primaryArea?.id ?? primaryAssignment.id,
+      organizationUnitName: unitName,
+      organizationUnitType: primaryAssignment.branch,
+      commandRouteType: primaryAssignment.branch,
+      areaScopes: primaryAssignment.areaScopes.map((scope: any) => ({
         areaId: scope.area.id,
         code: scope.area.code,
         name: scope.area.name,

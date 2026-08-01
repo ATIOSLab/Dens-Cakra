@@ -37,7 +37,12 @@ import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
 import type { WhatsappControlChannel } from "@/server/field-ops/types";
 
-import type { AreaSearchResult, CommandRouteType, UserListItem } from "../../pengguna/_components/pengguna-types";
+import {
+  getUserAssignments,
+  type AreaSearchResult,
+  type CommandRouteType,
+  type UserListItem,
+} from "../../pengguna/_components/pengguna-types";
 
 type CoordinatorAreaOption = AreaSearchResult & {
   branch: CommandRouteType | null;
@@ -190,9 +195,11 @@ export function AdminWaCenterPage() {
       let selectedUser = null;
       if (selectedArea.branch) {
         selectedUser = users.find((u) =>
-          u.positionAssignments.some(
+          getUserAssignments(u).some(
             (pa) =>
-              (pa.seat?.branch === selectedArea.branch || pa.position?.branch === selectedArea.branch) &&
+              (pa.branch === selectedArea.branch ||
+                pa.seat?.branch === selectedArea.branch ||
+                pa.position?.branch === selectedArea.branch) &&
               pa.areaScopes.some((s) => s.area?.id === selectedArea.id),
           ),
         );

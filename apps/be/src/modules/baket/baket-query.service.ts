@@ -49,25 +49,6 @@ const administrativeAreaInclude = {
   },
 } satisfies Prisma.AdministrativeAreaInclude;
 
-const oimReportingLineInclude = {
-  role: true,
-  reportsTo: {
-    include: {
-      role: true,
-      reportsTo: {
-        include: {
-          role: true,
-          reportsTo: {
-            include: {
-              role: true,
-            },
-          },
-        },
-      },
-    },
-  },
-} satisfies Prisma.PositionInclude;
-
 @Injectable()
 export class BaketQueryService {
   constructor(
@@ -82,14 +63,18 @@ export class BaketQueryService {
         createdByFieldOfficerAssignment: {
           include: {
             userProfile: true,
-            position: { include: oimReportingLineInclude },
+            role: true,
+            areaScopes: {
+              where: { validUntil: null },
+              include: { area: true },
+            },
           },
         },
         taskAssignment: {
           include: {
             task: true,
-            assignee: { include: { userProfile: true, position: true } },
-            assigner: { include: { userProfile: true, position: true } },
+            assignee: { include: { userProfile: true, role: true } },
+            assigner: { include: { userProfile: true, role: true } },
           },
         },
         primaryJaring: true,
@@ -99,7 +84,7 @@ export class BaketQueryService {
           include: {
             eventArea: { include: administrativeAreaInclude },
             createdByAssignment: {
-              include: { userProfile: true, position: true },
+              include: { userProfile: true, role: true },
             },
             sourceMessages: {
               include: {
@@ -127,8 +112,8 @@ export class BaketQueryService {
             coverageChecks: {
               include: {
                 area: true,
-                positionAssignment: {
-                  include: { position: true, userProfile: true },
+                operationalAssignment: {
+                  include: { role: true, userProfile: true },
                 },
               },
             },
@@ -140,7 +125,7 @@ export class BaketQueryService {
             requestedAgainstVersion: true,
             resolvedByVersion: true,
             requestedByAssignment: {
-              include: { userProfile: true, position: true },
+              include: { userProfile: true, role: true },
             },
           },
         },
@@ -156,7 +141,7 @@ export class BaketQueryService {
         baket: true,
         eventArea: { include: administrativeAreaInclude },
         createdByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         sourceMessages: {
           include: {
@@ -186,8 +171,8 @@ export class BaketQueryService {
         coverageChecks: {
           include: {
             area: true,
-            positionAssignment: {
-              include: { position: true, userProfile: true },
+            operationalAssignment: {
+              include: { role: true, userProfile: true },
             },
           },
         },
@@ -209,7 +194,7 @@ export class BaketQueryService {
           },
         },
         verifiedByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
         crossReferences: {
           include: { relatedBaket: true },
@@ -322,7 +307,11 @@ export class BaketQueryService {
           createdByFieldOfficerAssignment: {
             include: {
               userProfile: true,
-              position: { include: oimReportingLineInclude },
+              role: true,
+              areaScopes: {
+                where: { validUntil: null },
+                include: { area: true },
+              },
             },
           },
           primaryJaring: true,
@@ -330,7 +319,7 @@ export class BaketQueryService {
           taskAssignment: {
             include: {
               task: true,
-              assigner: { include: { position: true } },
+              assigner: { include: { role: true } },
             },
           },
           versions: {
@@ -470,7 +459,7 @@ export class BaketQueryService {
         requestedAgainstVersion: true,
         resolvedByVersion: true,
         requestedByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
       },
     });
@@ -483,7 +472,7 @@ export class BaketQueryService {
         requestedAgainstVersion: true,
         resolvedByVersion: true,
         requestedByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
       },
     });
@@ -539,7 +528,7 @@ export class BaketQueryService {
           },
         },
         verifiedByAssignment: {
-          include: { userProfile: true, position: true },
+          include: { userProfile: true, role: true },
         },
       },
     });

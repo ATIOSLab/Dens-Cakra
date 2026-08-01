@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,18 +8,18 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertTriangle,
-  BriefcaseBusiness,
+  Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronsUpDown,
   Copy,
-  GraduationCap,
-  History,
+  Globe,
   KeyRound,
-  Plus,
   ShieldCheck,
-  Trash2,
   UserPlus,
+  X,
 } from "lucide-react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -36,339 +36,239 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { cn } from "@/lib/utils";
 
+import {
+  type AreaSearchResult,
+  formatDateTime,
+  getAssignmentRoleSummary,
+  getPrimaryAssignment,
+  ROLE_CODE_OPTIONS,
+  ROLE_CODE_TO_AUTH_ROLE,
+  type RoleCode,
+  toDateTimeLocalValue,
+  toIsoFromLocalValue,
+  type UserProvisionResponse,
+} from "./pengguna-types";
 import { type CreateUserFormValues, createUserSchema } from "./pengguna-schemas";
-import type { AreaSearchResult, PositionSummary, UserProvisionResponse } from "./pengguna-types";
-import { formatDateTime, ROLE_CODE_TO_AUTH_ROLE, toDateTimeLocalValue, toIsoFromLocalValue } from "./pengguna-types";
 
-const MARITAL_STATUS_OPTIONS = [
-  { value: "SINGLE", label: "Belum Menikah" },
-  { value: "MARRIED", label: "Menikah" },
-  { value: "DIVORCED", label: "Cerai Hidup" },
-  { value: "WIDOWED", label: "Cerai Mati" },
-] as const;
+type ProvisionRoleCode = Extract<
+  RoleCode,
+  "REGIONAL_COMMANDER" | "OPERATIONAL_INTELLIGENCE_MANAGER" | "FIELD_COORDINATOR" | "FIELD_OFFICER"
+>;
+type BranchValue = "BINDA" | "DIRECTORATE";
+type AreaLevel = "PROVINCE" | "REGENCY" | "CITY" | "DISTRICT";
 
-const PERSONNEL_STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "Aktif" },
-  { value: "INACTIVE", label: "Nonaktif" },
-  { value: "RETIRED", label: "Pensiun" },
-  { value: "CONTRACT", label: "Kontrak" },
-] as const;
+const ROLE_AREA_CONFIG: Record<
+  ProvisionRoleCode,
+  { label: string; levels: AreaLevel[]; scopeLabel: string }
+> = {
+  REGIONAL_COMMANDER: {
+    label: "Komandan Regional",
+    levels: ["PROVINCE"],
+    scopeLabel: "Provinsi",
+  },
+  OPERATIONAL_INTELLIGENCE_MANAGER: {
+    label: "Manajer Intelijen Operasional",
+    levels: ["PROVINCE"],
+    scopeLabel: "Provinsi",
+  },
+  FIELD_COORDINATOR: {
+    label: "Koordinator Lapangan",
+    levels: ["REGENCY", "CITY"],
+    scopeLabel: "Kabupaten/Kota",
+  },
+  FIELD_OFFICER: {
+    label: "Petugas Lapangan",
+    levels: ["DISTRICT"],
+    scopeLabel: "Kecamatan",
+  },
+};
 
-const BLOOD_TYPE_OPTIONS = ["A", "B", "AB", "O"] as const;
+const BRANCH_OPTIONS: Array<{ value: BranchValue; label: string }> = [
+  { value: "BINDA", label: "Binda" },
+  { value: "DIRECTORATE", label: "Direktorat" },
+];
 
-function sanitizeNumericInput(value: string) {
-  return value.replace(/\D/g, "");
-}
+const AREA_LEVEL_LABELS: Record<AreaLevel, string> = {
+  PROVINCE: "Provinsi",
+  REGENCY: "Kabupaten",
+  CITY: "Kota",
+  DISTRICT: "Kecamatan",
+};
 
-function calculateCompletedYears(value?: string) {
-  if (!value) {
-    return "";
+function dedupeAreas(items: AreaSearchResult[]) {
+  const areas = new Map<string, AreaSearchResult>();
+  for (const item of items) {
+    if (!areas.has(item.id)) {
+      areas.set(item.id, item);
+    }
   }
-
-  const sourceDate = new Date(value);
-  if (Number.isNaN(sourceDate.getTime())) {
-    return "";
-  }
-
-  const now = new Date();
-  let years = now.getFullYear() - sourceDate.getFullYear();
-  const monthDelta = now.getMonth() - sourceDate.getMonth();
-
-  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < sourceDate.getDate())) {
-    years -= 1;
-  }
-
-  return String(Math.max(years, 0));
-}
-
-function emptyToUndefined(value?: string) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-function toIsoDateValue(value?: string) {
-  return value ? new Date(value).toISOString() : undefined;
-}
-
-function createDefaultValues(): CreateUserFormValues {
-  return {
-    name: "",
-    email: "",
-    username: "",
-    fullName: "",
-    phone: "",
-    nationalIdNumber: "",
-    birthPlace: "",
-    birthDate: "",
-    gender: undefined,
-    religion: "",
-    maritalStatus: undefined,
-    bloodType: "",
-    personnelNumber: "",
-    rankGrade: "",
-    personnelStatus: undefined,
-    joinedAt: "",
-    lastEducation: "",
-    educationInstitution: "",
-    educationMajor: "",
-    graduationYear: "",
-    positionHistory: [],
-    assignmentHistory: [],
-    competencies: [],
-    positionId: "",
-    validFrom: toDateTimeLocalValue(new Date().toISOString()),
-    areaScopeIds: [],
-  };
-}
-
-function SectionHeader({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex items-start gap-3 border-b border-border/70 pb-4">
-      <div className="mt-1 text-primary">{icon}</div>
-      <div>
-        <h2 className="font-heading text-lg font-semibold tracking-tight">{title}</h2>
-        <p className="text-muted-foreground text-sm">{description}</p>
-      </div>
-    </div>
-  );
+  return [...areas.values()].sort((left, right) => {
+    const levelDiff = left.level.localeCompare(right.level);
+    return levelDiff !== 0 ? levelDiff : left.name.localeCompare(right.name);
+  });
 }
 
 export function PenggunaCreateClient() {
   const router = useRouter();
+  const [branch, setBranch] = useState<BranchValue>("BINDA");
+  const [roleCode, setRoleCode] = useState<ProvisionRoleCode>("FIELD_COORDINATOR");
+  const [areaQuery, setAreaQuery] = useState("");
+  const [areaOptions, setAreaOptions] = useState<AreaSearchResult[]>([]);
+  const [areasLoading, setAreasLoading] = useState(false);
+  const [areasError, setAreasError] = useState("");
+  const [selectedAreas, setSelectedAreas] = useState<AreaSearchResult[]>([]);
+  const [areaPopoverOpen, setAreaPopoverOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successState, setSuccessState] = useState<UserProvisionResponse | null>(null);
+  const [pendingValues, setPendingValues] = useState<CreateUserFormValues | null>(null);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
+
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
-    defaultValues: createDefaultValues(),
+    defaultValues: {
+      branch,
+      roleCode,
+      username: "",
+      email: "",
+      password: "",
+      validFrom: toDateTimeLocalValue(new Date().toISOString()),
+      areaScopeIds: [],
+    },
   });
 
-  const positionHistoryFields = useFieldArray({
-    control: form.control,
-    name: "positionHistory",
-  });
-  const assignmentHistoryFields = useFieldArray({
-    control: form.control,
-    name: "assignmentHistory",
-  });
-
-  const birthDate = form.watch("birthDate");
-  const joinedAt = form.watch("joinedAt");
-  const competencies = form.watch("competencies") ?? [];
-  const [competencyDraft, setCompetencyDraft] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [positionOptions, setPositionOptions] = useState<PositionSummary[]>([]);
-  const [positionsLoading, setPositionsLoading] = useState(true);
-  const [positionsError, setPositionsError] = useState("");
-  const [selectedPosition, setSelectedPosition] = useState<PositionSummary | null>(null);
-  const [selectedAreas, setSelectedAreas] = useState<AreaSearchResult[]>([]);
-  const [successState, setSuccessState] = useState<UserProvisionResponse | null>(null);
-  const [pendingProvisionValues, setPendingProvisionValues] = useState<CreateUserFormValues | null>(null);
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-
-  const calculatedAge = useMemo(() => calculateCompletedYears(birthDate), [birthDate]);
-  const calculatedTenure = useMemo(() => calculateCompletedYears(joinedAt), [joinedAt]);
+  const roleConfig = ROLE_AREA_CONFIG[roleCode];
+  const selectedAreaIds = form.watch("areaScopeIds") ?? [];
+  const branchLabel = BRANCH_OPTIONS.find((option) => option.value === branch)?.label ?? branch;
 
   useEffect(() => {
-    form.setValue(
-      "areaScopeIds",
-      selectedAreas.map((area) => area.id),
-      { shouldValidate: Boolean(form.formState.errors.areaScopeIds) },
-    );
-  }, [form, selectedAreas]);
-
-  useEffect(() => {
-    form.setValue("positionId", selectedPosition?.id ?? "", {
-      shouldValidate: Boolean(form.formState.errors.positionId),
-    });
-    setSelectedAreas(
-      selectedPosition?.areaCoverages?.map((coverage) => ({
-        id: coverage.area.id,
-        code: coverage.area.code,
-        name: coverage.area.name,
-        level: coverage.area.level,
-      })) ?? [],
-    );
-  }, [form, selectedPosition]);
+    form.setValue("branch", branch, { shouldDirty: true, shouldValidate: Boolean(form.formState.errors.branch) });
+    form.setValue("roleCode", roleCode, { shouldDirty: true, shouldValidate: Boolean(form.formState.errors.roleCode) });
+    setAreaQuery("");
+    setAreaOptions([]);
+    setAreasError("");
+    setSelectedAreas([]);
+    form.setValue("areaScopeIds", [], { shouldDirty: true, shouldValidate: false });
+  }, [branch, form, roleCode]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadPositionOptions() {
-      setPositionsLoading(true);
-      setPositionsError("");
-      const results = await apiBrowserFetch<PositionSummary[]>("/positions", {
-        query: {
-          isActive: true,
-          availableOnly: true,
-          page: 1,
-          limit: 100,
-        },
-      });
+    async function loadAreas() {
+      const keyword = areaQuery.trim();
+      if (keyword.length < 2) {
+        setAreaOptions([]);
+        setAreasError("");
+        return;
+      }
 
-      if (!cancelled) {
-        setPositionOptions(results);
+      setAreasLoading(true);
+      setAreasError("");
+
+      try {
+        const responses = await Promise.all(
+          roleConfig.levels.map((level) =>
+            apiBrowserFetch<AreaSearchResult[]>("/administrative-areas", {
+              query: {
+                search: keyword,
+                level,
+                isActive: true,
+                page: 1,
+                limit: 1000,
+              },
+            }),
+          ),
+        );
+
+        if (!cancelled) {
+          const merged = dedupeAreas(responses.flat());
+          setAreaOptions(merged);
+          setAreasError(merged.length ? "" : `Tidak ada ${roleConfig.scopeLabel.toLowerCase()} yang cocok.`);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAreaOptions([]);
+          setAreasError(error instanceof Error ? error.message : "Pencarian wilayah gagal.");
+        }
+      } finally {
+        if (!cancelled) {
+          setAreasLoading(false);
+        }
       }
     }
 
-    loadPositionOptions()
-      .catch((error) => {
-        if (!cancelled) {
-          setPositionOptions([]);
-          setPositionsError(error instanceof Error ? error.message : "Daftar jabatan gagal dimuat.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setPositionsLoading(false);
-        }
-      });
+    loadAreas();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [areaQuery, roleConfig.levels, roleConfig.scopeLabel]);
 
-  const derivedAuthRole = selectedPosition?.role?.code ? ROLE_CODE_TO_AUTH_ROLE[selectedPosition.role.code] : null;
+  function toggleArea(area: AreaSearchResult) {
+    const nextAreas =
+      branch === "BINDA"
+        ? selectedAreaIds[0] === area.id
+          ? []
+          : [area]
+        : selectedAreaIds.includes(area.id)
+          ? selectedAreas.filter((item) => item.id !== area.id)
+          : [...selectedAreas, area];
 
-  async function handleCopyPassword() {
-    if (!successState?.generatedTempPassword) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(successState.generatedTempPassword);
-      toast.success("Password sementara berhasil disalin.");
-    } catch {
-      toast.error("Clipboard tidak bisa diakses. Salin password secara manual.");
-    }
-  }
-
-  function addCompetency() {
-    const nextCompetency = competencyDraft.trim();
-    if (nextCompetency.length < 2) {
-      toast.error("Kompetensi minimal 2 karakter.");
-      return;
-    }
-
-    if (competencies.some((item) => item.toLowerCase() === nextCompetency.toLowerCase())) {
-      toast.error("Kompetensi sudah ada.");
-      return;
-    }
-
-    form.setValue("competencies", [...competencies, nextCompetency], {
+    setSelectedAreas(nextAreas);
+    form.setValue("areaScopeIds", nextAreas.map((item) => item.id), {
       shouldDirty: true,
-      shouldValidate: Boolean(form.formState.errors.competencies),
+      shouldValidate: Boolean(form.formState.errors.areaScopeIds),
     });
-    setCompetencyDraft("");
-  }
-
-  function removeCompetency(removedIndex: number) {
-    form.setValue(
-      "competencies",
-      competencies.filter((_, index) => index !== removedIndex),
-      { shouldDirty: true, shouldValidate: Boolean(form.formState.errors.competencies) },
-    );
+    if (branch === "BINDA" && nextAreas.length) {
+      setAreaPopoverOpen(false);
+    }
   }
 
   function requestProvisionConfirmation(values: CreateUserFormValues) {
-    if (!selectedPosition?.id || !selectedPosition.organizationUnit?.id || !selectedPosition.role?.code) {
-      toast.error("Pilih jabatan aktif yang akan ditempati user.");
+    if (!values.areaScopeIds.length) {
+      toast.error(`Pilih satu ${roleConfig.scopeLabel.toLowerCase()}.`);
+      return;
+    }
+    if (values.branch === "BINDA" && values.areaScopeIds.length !== 1) {
+      toast.error("Binda hanya boleh memilih satu wilayah cakupan.");
       return;
     }
 
-    if (!derivedAuthRole) {
-      toast.error("Data jabatan terpilih belum lengkap untuk provisioning.");
-      return;
-    }
-
-    setPendingProvisionValues(values);
+    setPendingValues(values);
   }
 
   async function executeProvision(values: CreateUserFormValues) {
-    if (!selectedPosition?.id || !selectedPosition.organizationUnit?.id || !selectedPosition.role?.code) {
-      toast.error("Pilih jabatan aktif yang akan ditempati user.");
-      return;
-    }
-
-    if (!derivedAuthRole) {
-      toast.error("Data jabatan terpilih belum lengkap untuk provisioning.");
-      return;
-    }
-
     setIsSubmitting(true);
 
-    const positionHistory = values.positionHistory?.map((item) => ({
-      title: item.title.trim(),
-      organizationUnit: emptyToUndefined(item.organizationUnit),
-      area: emptyToUndefined(item.area),
-      startedAt: toIsoDateValue(item.startedAt),
-      endedAt: item.status === "ACTIVE" ? undefined : toIsoDateValue(item.endedAt),
-      status: item.status,
-    }));
-
-    const assignmentHistory = values.assignmentHistory?.map((item) => ({
-      name: item.name.trim(),
-      unit: emptyToUndefined(item.unit),
-      location: emptyToUndefined(item.location),
-      period: emptyToUndefined(item.period),
-      description: emptyToUndefined(item.description),
-    }));
-
     try {
+      const email = values.email?.trim();
       const response = await apiBrowserMutation<UserProvisionResponse>("POST", "/user-profiles/provision", {
         auth: {
-          name: values.name.trim(),
-          email: values.email.trim(),
-          role: derivedAuthRole,
+          name: values.username.trim(),
+          ...(email ? { email } : {}),
+          password: values.password,
+          role: ROLE_CODE_TO_AUTH_ROLE[values.roleCode],
         },
         profile: {
           username: values.username.trim(),
-          fullName: values.fullName.trim(),
-          ...(values.phone?.trim() ? { phone: values.phone.trim() } : {}),
-          nationalIdNumber: values.nationalIdNumber.trim(),
-          birthPlace: values.birthPlace.trim(),
-          birthDate: toIsoDateValue(values.birthDate),
-          gender: values.gender,
-          ...(emptyToUndefined(values.religion) ? { religion: values.religion?.trim() } : {}),
-          ...(values.maritalStatus ? { maritalStatus: values.maritalStatus } : {}),
-          ...(emptyToUndefined(values.bloodType) ? { bloodType: values.bloodType?.trim() } : {}),
-          ...(emptyToUndefined(values.personnelNumber) ? { personnelNumber: values.personnelNumber?.trim() } : {}),
-          ...(emptyToUndefined(values.rankGrade) ? { rankGrade: values.rankGrade?.trim() } : {}),
-          personnelStatus: values.personnelStatus,
-          joinedAt: toIsoDateValue(values.joinedAt),
-          ...(emptyToUndefined(values.lastEducation) ? { lastEducation: values.lastEducation?.trim() } : {}),
-          ...(emptyToUndefined(values.educationInstitution)
-            ? { educationInstitution: values.educationInstitution?.trim() }
-            : {}),
-          ...(emptyToUndefined(values.educationMajor) ? { educationMajor: values.educationMajor?.trim() } : {}),
-          ...(values.graduationYear ? { graduationYear: Number(values.graduationYear) } : {}),
-          ...(positionHistory?.length ? { positionHistory } : {}),
-          ...(assignmentHistory?.length ? { assignmentHistory } : {}),
-          ...(values.competencies?.length ? { competencies: values.competencies } : {}),
         },
         assignment: {
-          organizationUnitId: selectedPosition.organizationUnit.id,
-          ...(selectedPosition.branch ? { branch: selectedPosition.branch } : {}),
-          positionId: selectedPosition.id,
+          branch: values.branch,
           validFrom: toIsoFromLocalValue(values.validFrom),
         },
+        areaScopeIds: values.areaScopeIds,
       });
 
       setSuccessState(response);
-      setPendingProvisionValues(null);
+      setPendingValues(null);
       toast.success("User baru berhasil diprovision.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Provisioning user gagal.");
@@ -377,101 +277,117 @@ export function PenggunaCreateClient() {
     }
   }
 
+  const copyPasswordToClipboard = (password: string) => {
+    navigator.clipboard.writeText(password);
+    setCopiedPassword(true);
+    toast.success("Password tersalin ke clipboard.");
+    setTimeout(() => setCopiedPassword(false), 2000);
+  };
+
   if (successState) {
+    const createdUser = successState.userProfile;
+    const primaryAssignment = getPrimaryAssignment(createdUser);
+    const assignmentRole = getAssignmentRoleSummary(primaryAssignment);
+    const assignedAreas = primaryAssignment?.areaScopes.map((scope) => scope.area) ?? [];
+    const passwordToShow = successState.generatedTempPassword ?? form.getValues("password") ?? "-";
+
     return (
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">Provisioning Selesai</Badge>
-          </div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">Password sementara siap diserahkan</h1>
-          <p className="max-w-3xl text-muted-foreground text-sm">
-            Secret ini hanya ditampilkan sekali setelah provisioning berhasil. Simpan atau serahkan ke operator yang
-            berwenang sebelum meninggalkan halaman.
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+            Provisioning Selesai
+          </Badge>
+        </div>
+        <div className="space-y-1">
+          <h1 className="font-heading text-2xl font-bold tracking-tight">Akun pengguna berhasil dibuat</h1>
+          <p className="text-sm text-muted-foreground">
+            Pengguna baru telah terdaftar di sistem. Catat password awal di bawah ini sebelum menutup halaman.
           </p>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-          <Card className="border border-emerald-200/70 bg-emerald-50/40">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-emerald-900">
-                <CheckCircle2 className="size-4" />
-                Provisioning sukses
+        <div className="grid gap-6 md:grid-cols-5">
+          <Card className="md:col-span-3 border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-950/20 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base text-emerald-800 dark:text-emerald-300">
+                <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
+                Detail Kredensial Provisioning
               </CardTitle>
-              <CardDescription className="text-emerald-800/80">
-                Akun Better Auth, profil domain, assignment utama, scope area, dan master data personel sudah dibentuk
-                secara atomik.
+              <CardDescription className="text-xs text-emerald-700/80 dark:text-emerald-400/80">
+                Informasi login dan kredensial sementara akun pengguna.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-xl border border-emerald-300/60 bg-white p-4">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-emerald-700">Password sementara</div>
-                <div className="mt-2 break-all rounded-lg bg-slate-950 px-4 py-3 font-mono text-sm text-slate-50">
-                  {successState.generatedTempPassword ?? "Password tidak digenerate."}
+              <div className="rounded-xl border border-emerald-500/20 bg-background/90 p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-muted-foreground">PASSWORD AKUN</span>
+                  <span className="text-[11px] text-muted-foreground">Diterbitkan: {formatDateTime(new Date().toISOString())}</span>
                 </div>
-                <div className="mt-2 text-sm text-emerald-900/80">
-                  Diterbitkan pada {formatDateTime(new Date().toISOString())}
+
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/60 p-3 font-mono text-sm">
+                  <span className="font-semibold text-foreground break-all">{passwordToShow}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => copyPasswordToClipboard(passwordToShow)}
+                    className="shrink-0 text-muted-foreground hover:text-foreground"
+                    title="Salin password"
+                  >
+                    {copiedPassword ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
+                  </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Gunakan password ini saat pertama kali melakukan login akun.
+                </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" onClick={handleCopyPassword} disabled={!successState.generatedTempPassword}>
-                  <Copy className="size-4" />
-                  Salin password
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button asChild type="button" size="sm">
+                  <Link href={`/dashboard/admin-system/pengguna/${createdUser.id}`}>Buka detail pengguna</Link>
                 </Button>
-                <Button asChild type="button" variant="outline">
-                  <Link href={`/dashboard/admin-system/pengguna/${successState.userProfile.id}`}>
-                    Buka detail pengguna
-                  </Link>
-                </Button>
-                <Button asChild type="button" variant="ghost">
+                <Button asChild type="button" variant="outline" size="sm">
                   <Link href="/dashboard/admin-system/pengguna">Kembali ke daftar</Link>
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-border/70">
-            <CardHeader>
-              <CardTitle>Ringkasan user baru</CardTitle>
-              <CardDescription>Gunakan detail ini untuk verifikasi cepat sebelum berpindah halaman.</CardDescription>
+          <Card className="md:col-span-2 border border-border/60 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">Ringkasan Pengguna</CardTitle>
+              <CardDescription className="text-xs">Profil yang baru dibuat</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-xl border border-border/70 p-4">
-                <div className="font-heading text-xl font-semibold">
-                  {successState.userProfile.fullName || successState.userProfile.authUser.name}
+            <CardContent className="space-y-3 text-sm">
+              <div className="space-y-1">
+                <div className="font-semibold text-foreground">
+                  {createdUser.fullName || createdUser.authUser.name || createdUser.username}
                 </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  @{successState.userProfile.username || "-"} - {successState.userProfile.authUser.email}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge>{successState.userProfile.status}</Badge>
+                <div className="text-xs text-muted-foreground">
+                  @{createdUser.username || "-"} {createdUser.authUser.email ? `• ${createdUser.authUser.email}` : ""}
                 </div>
               </div>
 
-              <Alert>
-                <KeyRound className="size-4" />
-                <AlertTitle>Langkah setelah ini</AlertTitle>
-                <AlertDescription>
-                  Sampaikan password sementara lewat kanal yang aman, lalu minta user mengganti kredensialnya melalui
-                  flow reset password saat diperlukan.
-                </AlertDescription>
-              </Alert>
+              <div className="pt-2 border-t border-border/40 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Status:</span>
+                  <Badge variant="default" className="text-[11px]">{createdUser.status}</Badge>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Role:</span>
+                  <span className="font-medium text-foreground">{assignmentRole?.name || "-"}</span>
+                </div>
+                <div className="flex items-start justify-between text-xs gap-2">
+                  <span className="text-muted-foreground shrink-0">Wilayah:</span>
+                  <div className="flex flex-wrap justify-end gap-1">
+                    {assignedAreas.map((area) => (
+                      <Badge key={area.id} variant="secondary" className="text-[10px]">
+                        {area.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </CardContent>
-            <CardFooter className="justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  form.reset(createDefaultValues());
-                  setSelectedPosition(null);
-                  setSelectedAreas([]);
-                  setSuccessState(null);
-                }}
-              >
-                Provision user lain
-              </Button>
-            </CardFooter>
           </Card>
         </div>
       </div>
@@ -479,731 +395,335 @@ export function PenggunaCreateClient() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">User Provisioning</Badge>
+    <div className="mx-auto max-w-6xl space-y-6">
+      {/* Top Header */}
+      <div className="space-y-1.5">
+        <Link
+          href="/dashboard/admin-system/pengguna"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="size-3.5" />
+          Daftar Pengguna
+        </Link>
+        <div className="flex items-center gap-3">
+          <h1 className="font-heading text-2xl font-bold tracking-tight">Tambah Pengguna</h1>
+          <Badge variant="outline" className="text-xs font-normal">
+            Provisioning
+          </Badge>
         </div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Tambah Pengguna</h1>
-        <p className="max-w-4xl text-muted-foreground text-sm">
-          Isi identitas akun dan master data personel, lalu pilih jabatan aktif sebagai sumber penempatan utama.
+        <p className="text-sm text-muted-foreground">
+          Isi tipe unit, role penempatan, wilayah cakupan operasional, serta kredensial akun pengguna baru.
         </p>
       </div>
 
+      {/* Main Grid */}
       <form
         onSubmit={form.handleSubmit(requestProvisionConfirmation)}
-        className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]"
+        className="grid gap-6 lg:grid-cols-[1fr_340px]"
       >
-        <Card className="border border-border/70">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="size-4" />
-              Form Provisioning
-            </CardTitle>
-            <CardDescription>
-              Password awal akan dibuat otomatis oleh backend setelah data profil, personel, jabatan, dan scope lolos
-              validasi.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <FieldGroup className="space-y-4">
-              <SectionHeader
-                icon={<UserPlus className="size-4" />}
-                title="Informasi Akun"
-                description="Data dasar akun auth dan kontak personel."
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="auth-name">Nama akun auth</FieldLabel>
-                  <FieldContent>
-                    <Input id="auth-name" {...form.register("name")} placeholder="Nama untuk Better Auth" />
-                    <FieldError errors={[form.formState.errors.name]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="auth-email">Email</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="auth-email"
-                      type="email"
-                      {...form.register("email")}
-                      placeholder="operator@denscakra.local"
-                    />
-                    <FieldError errors={[form.formState.errors.email]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="profile-username">Username</FieldLabel>
-                  <FieldContent>
-                    <Input id="profile-username" {...form.register("username")} placeholder="operator-lapangan" />
-                    <FieldError errors={[form.formState.errors.username]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="profile-phone">Nomor telepon</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="profile-phone"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      placeholder="08xxxxxxxxxx"
-                      {...form.register("phone", {
-                        onChange: (event) => {
-                          const sanitizedValue = sanitizeNumericInput(event.target.value);
-                          form.setValue("phone", sanitizedValue, {
-                            shouldDirty: true,
-                            shouldValidate: Boolean(form.formState.errors.phone),
-                          });
-                        },
-                      })}
-                    />
-                    <FieldDescription>
-                      Nomor akan dinormalisasi backend ke format Indonesia yang dipakai sistem.
-                    </FieldDescription>
-                    <FieldError errors={[form.formState.errors.phone]} />
-                  </FieldContent>
-                </Field>
-              </div>
-            </FieldGroup>
-
-            <FieldGroup className="space-y-4">
-              <SectionHeader
-                icon={<ShieldCheck className="size-4" />}
-                title="Data Pribadi"
-                description="Identitas personel untuk kebutuhan master data internal."
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="profile-fullname">Nama lengkap</FieldLabel>
-                  <FieldContent>
-                    <Input id="profile-fullname" {...form.register("fullName")} placeholder="Nama lengkap personel" />
-                    <FieldError errors={[form.formState.errors.fullName]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="profile-nik">NIK / Nomor KTP</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="profile-nik"
-                      inputMode="numeric"
-                      maxLength={16}
-                      pattern="[0-9]*"
-                      placeholder="16 digit NIK"
-                      {...form.register("nationalIdNumber", {
-                        onChange: (event) => {
-                          const sanitizedValue = sanitizeNumericInput(event.target.value).slice(0, 16);
-                          form.setValue("nationalIdNumber", sanitizedValue, {
-                            shouldDirty: true,
-                            shouldValidate: Boolean(form.formState.errors.nationalIdNumber),
-                          });
-                        },
-                      })}
-                    />
-                    <FieldError errors={[form.formState.errors.nationalIdNumber]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="birth-place">Tempat lahir</FieldLabel>
-                  <FieldContent>
-                    <Input id="birth-place" {...form.register("birthPlace")} placeholder="Contoh: Jakarta" />
-                    <FieldError errors={[form.formState.errors.birthPlace]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="birth-date">Tanggal lahir</FieldLabel>
-                  <FieldContent>
-                    <Input id="birth-date" type="date" {...form.register("birthDate")} />
-                    <FieldError errors={[form.formState.errors.birthDate]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="calculated-age">Umur</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="calculated-age"
-                      value={calculatedAge ? `${calculatedAge} tahun` : ""}
-                      placeholder="Dihitung otomatis"
-                      readOnly
-                    />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel>Jenis kelamin</FieldLabel>
-                  <FieldContent>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/70 px-4 py-3">
-                        <Input type="radio" className="size-4" value="MALE" {...form.register("gender")} />
-                        Laki-laki
-                      </Label>
-                      <Label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/70 px-4 py-3">
-                        <Input type="radio" className="size-4" value="FEMALE" {...form.register("gender")} />
-                        Perempuan
-                      </Label>
-                    </div>
-                    <FieldError errors={[form.formState.errors.gender]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="religion">Agama</FieldLabel>
-                  <FieldContent>
-                    <Input id="religion" {...form.register("religion")} placeholder="Contoh: Islam" />
-                    <FieldError errors={[form.formState.errors.religion]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="marital-status">Status perkawinan</FieldLabel>
-                  <FieldContent>
-                    <NativeSelect id="marital-status" {...form.register("maritalStatus")}>
-                      <NativeSelectOption value="">Pilih status perkawinan</NativeSelectOption>
-                      {MARITAL_STATUS_OPTIONS.map((option) => (
-                        <NativeSelectOption key={option.value} value={option.value}>
-                          {option.label}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                    <FieldError errors={[form.formState.errors.maritalStatus]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="blood-type">Golongan darah</FieldLabel>
-                  <FieldContent>
-                    <NativeSelect id="blood-type" {...form.register("bloodType")}>
-                      <NativeSelectOption value="">Pilih golongan darah</NativeSelectOption>
-                      {BLOOD_TYPE_OPTIONS.map((option) => (
-                        <NativeSelectOption key={option} value={option}>
-                          {option}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                    <FieldError errors={[form.formState.errors.bloodType]} />
-                  </FieldContent>
-                </Field>
-              </div>
-            </FieldGroup>
-
-            <FieldGroup className="space-y-4">
-              <SectionHeader
-                icon={<BriefcaseBusiness className="size-4" />}
-                title="Informasi Personel"
-                description="Status administrasi personel dan masa kerja otomatis."
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="personnel-number">NRP / NIP</FieldLabel>
-                  <FieldContent>
-                    <Input id="personnel-number" {...form.register("personnelNumber")} placeholder="Opsional" />
-                    <FieldError errors={[form.formState.errors.personnelNumber]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="rank-grade">Pangkat / Golongan</FieldLabel>
-                  <FieldContent>
-                    <Input id="rank-grade" {...form.register("rankGrade")} placeholder="Contoh: III/a" />
-                    <FieldError errors={[form.formState.errors.rankGrade]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="personnel-status">Status personel</FieldLabel>
-                  <FieldContent>
-                    <NativeSelect id="personnel-status" {...form.register("personnelStatus")}>
-                      <NativeSelectOption value="">Pilih status personel</NativeSelectOption>
-                      {PERSONNEL_STATUS_OPTIONS.map((option) => (
-                        <NativeSelectOption key={option.value} value={option.value}>
-                          {option.label}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                    <FieldError errors={[form.formState.errors.personnelStatus]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="joined-at">Tanggal bergabung</FieldLabel>
-                  <FieldContent>
-                    <Input id="joined-at" type="date" {...form.register("joinedAt")} />
-                    <FieldError errors={[form.formState.errors.joinedAt]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="tenure">Masa kerja</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="tenure"
-                      value={calculatedTenure ? `${calculatedTenure} tahun` : ""}
-                      placeholder="Dihitung otomatis"
-                      readOnly
-                    />
-                  </FieldContent>
-                </Field>
-              </div>
-            </FieldGroup>
-
-            <FieldGroup className="space-y-4">
-              <SectionHeader
-                icon={<GraduationCap className="size-4" />}
-                title="Pendidikan"
-                description="Riwayat pendidikan terakhir personel."
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="last-education">Pendidikan terakhir</FieldLabel>
-                  <FieldContent>
-                    <Input id="last-education" {...form.register("lastEducation")} placeholder="Contoh: S1" />
-                    <FieldError errors={[form.formState.errors.lastEducation]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="education-institution">Nama institusi</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="education-institution"
-                      {...form.register("educationInstitution")}
-                      placeholder="Nama sekolah/kampus"
-                    />
-                    <FieldError errors={[form.formState.errors.educationInstitution]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="education-major">Jurusan</FieldLabel>
-                  <FieldContent>
-                    <Input id="education-major" {...form.register("educationMajor")} placeholder="Jurusan/program" />
-                    <FieldError errors={[form.formState.errors.educationMajor]} />
-                  </FieldContent>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="graduation-year">Tahun lulus</FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="graduation-year"
-                      inputMode="numeric"
-                      maxLength={4}
-                      pattern="[0-9]*"
-                      placeholder="Contoh: 2020"
-                      {...form.register("graduationYear", {
-                        onChange: (event) => {
-                          const sanitizedValue = sanitizeNumericInput(event.target.value).slice(0, 4);
-                          form.setValue("graduationYear", sanitizedValue, {
-                            shouldDirty: true,
-                            shouldValidate: Boolean(form.formState.errors.graduationYear),
-                          });
-                        },
-                      })}
-                    />
-                    <FieldError errors={[form.formState.errors.graduationYear]} />
-                  </FieldContent>
-                </Field>
-              </div>
-            </FieldGroup>
-
-            <FieldGroup className="space-y-4">
-              <SectionHeader
-                icon={<History className="size-4" />}
-                title="Riwayat Jabatan"
-                description="Tambahkan jabatan terdahulu jika diperlukan. Tanggal selesai hanya wajib saat status selesai."
-              />
-              <div className="space-y-3">
-                {positionHistoryFields.fields.map((field, index) => {
-                  const fieldError = form.formState.errors.positionHistory?.[index];
-                  const status = form.watch(`positionHistory.${index}.status`);
-
-                  return (
-                    <div key={field.id} className="space-y-4 rounded-xl border border-border/70 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="font-medium">Riwayat Jabatan #{index + 1}</div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => positionHistoryFields.remove(index)}
-                        >
-                          <Trash2 className="size-4" />
-                          Hapus
-                        </Button>
-                      </div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <Field>
-                          <FieldLabel>Nama jabatan</FieldLabel>
-                          <FieldContent>
-                            <Input {...form.register(`positionHistory.${index}.title`)} placeholder="Nama jabatan" />
-                            <FieldError errors={[fieldError?.title]} />
-                          </FieldContent>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Unit / Organisasi</FieldLabel>
-                          <FieldContent>
-                            <Input
-                              {...form.register(`positionHistory.${index}.organizationUnit`)}
-                              placeholder="Unit atau organisasi"
-                            />
-                            <FieldError errors={[fieldError?.organizationUnit]} />
-                          </FieldContent>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Wilayah</FieldLabel>
-                          <FieldContent>
-                            <Input {...form.register(`positionHistory.${index}.area`)} placeholder="Wilayah tugas" />
-                            <FieldError errors={[fieldError?.area]} />
-                          </FieldContent>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Status</FieldLabel>
-                          <FieldContent>
-                            <NativeSelect {...form.register(`positionHistory.${index}.status`)}>
-                              <NativeSelectOption value="ACTIVE">Aktif</NativeSelectOption>
-                              <NativeSelectOption value="COMPLETED">Selesai</NativeSelectOption>
-                            </NativeSelect>
-                            <FieldError errors={[fieldError?.status]} />
-                          </FieldContent>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Tanggal mulai</FieldLabel>
-                          <FieldContent>
-                            <Input type="date" {...form.register(`positionHistory.${index}.startedAt`)} />
-                            <FieldError errors={[fieldError?.startedAt]} />
-                          </FieldContent>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Tanggal selesai</FieldLabel>
-                          <FieldContent>
-                            <Input
-                              type="date"
-                              disabled={status === "ACTIVE"}
-                              {...form.register(`positionHistory.${index}.endedAt`)}
-                            />
-                            <FieldDescription>
-                              Tidak wajib untuk jabatan yang masih berstatus aktif.
-                            </FieldDescription>
-                            <FieldError errors={[fieldError?.endedAt]} />
-                          </FieldContent>
-                        </Field>
-                      </div>
-                    </div>
-                  );
-                })}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    positionHistoryFields.append({
-                      title: "",
-                      organizationUnit: "",
-                      area: "",
-                      startedAt: "",
-                      endedAt: "",
-                      status: "ACTIVE",
-                    })
-                  }
-                >
-                  <Plus className="size-4" />
-                  Tambah riwayat jabatan
-                </Button>
-              </div>
-            </FieldGroup>
-
-            <FieldGroup className="space-y-4">
-              <SectionHeader
-                icon={<History className="size-4" />}
-                title="Riwayat Penugasan"
-                description="Catat penugasan sebelumnya tanpa mengubah assignment utama aktif."
-              />
-              <div className="space-y-3">
-                {assignmentHistoryFields.fields.map((field, index) => {
-                  const fieldError = form.formState.errors.assignmentHistory?.[index];
-
-                  return (
-                    <div key={field.id} className="space-y-4 rounded-xl border border-border/70 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="font-medium">Riwayat Penugasan #{index + 1}</div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => assignmentHistoryFields.remove(index)}
-                        >
-                          <Trash2 className="size-4" />
-                          Hapus
-                        </Button>
-                      </div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <Field>
-                          <FieldLabel>Nama penugasan</FieldLabel>
-                          <FieldContent>
-                            <Input {...form.register(`assignmentHistory.${index}.name`)} placeholder="Nama penugasan" />
-                            <FieldError errors={[fieldError?.name]} />
-                          </FieldContent>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Unit</FieldLabel>
-                          <FieldContent>
-                            <Input {...form.register(`assignmentHistory.${index}.unit`)} placeholder="Unit" />
-                            <FieldError errors={[fieldError?.unit]} />
-                          </FieldContent>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Lokasi</FieldLabel>
-                          <FieldContent>
-                            <Input {...form.register(`assignmentHistory.${index}.location`)} placeholder="Lokasi" />
-                            <FieldError errors={[fieldError?.location]} />
-                          </FieldContent>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Periode</FieldLabel>
-                          <FieldContent>
-                            <Input {...form.register(`assignmentHistory.${index}.period`)} placeholder="Contoh: 2022 - 2024" />
-                            <FieldError errors={[fieldError?.period]} />
-                          </FieldContent>
-                        </Field>
-                        <Field className="md:col-span-2">
-                          <FieldLabel>Keterangan</FieldLabel>
-                          <FieldContent>
-                            <Textarea
-                              {...form.register(`assignmentHistory.${index}.description`)}
-                              placeholder="Keterangan singkat penugasan"
-                            />
-                            <FieldError errors={[fieldError?.description]} />
-                          </FieldContent>
-                        </Field>
-                      </div>
-                    </div>
-                  );
-                })}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    assignmentHistoryFields.append({
-                      name: "",
-                      unit: "",
-                      location: "",
-                      period: "",
-                      description: "",
-                    })
-                  }
-                >
-                  <Plus className="size-4" />
-                  Tambah riwayat penugasan
-                </Button>
-              </div>
-            </FieldGroup>
-
-            <FieldGroup className="space-y-4">
-              <SectionHeader
-                icon={<ShieldCheck className="size-4" />}
-                title="Kompetensi Personel"
-                description="Tambahkan kompetensi sebagai tag agar mudah dipakai modul lain."
-              />
-              <div className="space-y-3 rounded-xl border border-border/70 p-4">
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    value={competencyDraft}
-                    onChange={(event) => setCompetencyDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addCompetency();
-                      }
-                    }}
-                    placeholder="Contoh: Analisis wilayah"
-                  />
-                  <Button type="button" variant="outline" onClick={addCompetency}>
-                    <Plus className="size-4" />
-                    Tambah
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {competencies.length ? (
-                    competencies.map((competency, index) => (
-                      <Badge key={`${competency}-${index}`} variant="outline" className="gap-2">
-                        {competency}
-                        <button type="button" onClick={() => removeCompetency(index)} aria-label={`Hapus ${competency}`}>
-                          ×
-                        </button>
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Belum ada kompetensi yang ditambahkan.</p>
-                  )}
-                </div>
-                <FieldError errors={[form.formState.errors.competencies]} />
-              </div>
-            </FieldGroup>
-
-            <FieldGroup className="space-y-4">
-              <SectionHeader
-                icon={<BriefcaseBusiness className="size-4" />}
-                title="Assignment Utama"
-                description="Bagian existing tetap menjadi sumber jabatan aktif dan wilayah assignment."
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="valid-from">Mulai assignment utama</FieldLabel>
-                  <FieldContent>
-                    <Input id="valid-from" type="datetime-local" {...form.register("validFrom")} />
-                    <FieldError errors={[form.formState.errors.validFrom]} />
-                  </FieldContent>
-                </Field>
-              </div>
-
-              <div className="space-y-3 rounded-xl border border-border/70 p-4">
-                <Label htmlFor="position-id">Pilih jabatan aktif</Label>
-                <NativeSelect
-                  id="position-id"
-                  className="w-full"
-                  value={selectedPosition?.id ?? ""}
-                  disabled={positionsLoading || !positionOptions.length}
-                  onChange={(event) => {
-                    const nextPosition = positionOptions.find((position) => position.id === event.target.value) ?? null;
-                    setSelectedPosition(nextPosition);
-                  }}
-                >
-                  <NativeSelectOption value="">
-                    {positionsLoading
-                      ? "Memuat daftar jabatan..."
-                      : positionOptions.length
-                        ? "Pilih jabatan dari master jabatan"
-                        : positionsError
-                          ? "Daftar jabatan gagal dimuat"
-                          : "Belum ada jabatan aktif kosong"}
-                  </NativeSelectOption>
-                  {positionOptions.map((position) => (
-                    <NativeSelectOption key={position.id} value={position.id}>
-                      {position.title} - {position.seatCode} - {position.organizationUnit?.name ?? "Tanpa penempatan"}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-                {selectedPosition ? (
-                  <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-                    <div className="font-medium">{selectedPosition.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {selectedPosition.seatCode} - {selectedPosition.organizationUnit?.name}
-                    </div>
-                    <div className="mt-2">
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedPosition(null)}>
-                        Ganti jabatan
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-                {!positionsLoading && !positionOptions.length ? (
-                  <div className="text-sm text-muted-foreground">
-                    {positionsError || "Belum ada jabatan aktif kosong yang bisa dipilih untuk user."}
-                  </div>
-                ) : null}
-                <FieldError errors={[form.formState.errors.positionId]} />
-              </div>
-
-              <div className="space-y-3 rounded-xl border border-border/70 p-4">
-                <Label>Wilayah dari jabatan</Label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedAreas.length ? (
-                    selectedAreas.map((area, index) => (
-                      <Badge key={area.id} variant={index === 0 ? "default" : "outline"}>
-                        {area.name}
-                        {index === 0 ? " (utama)" : ""}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Pilih jabatan aktif untuk melihat wilayah penugasan.
-                    </p>
-                  )}
-                </div>
-                <FieldError errors={[form.formState.errors.areaScopeIds]} />
-              </div>
-            </FieldGroup>
-          </CardContent>
-          <CardFooter className="flex flex-wrap items-center justify-between gap-3">
-            <Button type="button" variant="ghost" onClick={() => setIsCancelDialogOpen(true)}>
-              Batal
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Memproses..." : "Provision user"}
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <div className="space-y-4">
-          <Card className="border border-border/70">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShieldCheck className="size-4" />
-                Derivasi Kontrak
+        {/* Left Form Panel */}
+        <div className="space-y-6">
+          <Card className="border border-border/60 shadow-sm">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <ShieldCheck className="size-4 text-primary" />
+                Penempatan & Scope Wilayah
               </CardTitle>
-              <CardDescription>
-                Frontend menyusun payload backend dari jabatan aktif sebagai sumber kebenaran.
+              <CardDescription className="text-xs">
+                Tentukan tipe unit organisasi dan role penempatan operasional user.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-xl border border-border/70 p-4">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Jabatan</div>
-                <div className="mt-2 font-medium">{selectedPosition?.title || "-"}</div>
-                <div className="text-sm text-muted-foreground">
-                  {selectedPosition?.seatCode || "-"} -{" "}
-                  {selectedPosition?.organizationUnit?.name || "Pilih jabatan untuk melihat penempatan."}
-                </div>
+            <CardContent className="space-y-5 pt-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Unit Type
+                  </FieldLabel>
+                  <FieldContent>
+                    <NativeSelect
+                      value={branch}
+                      onChange={(event) => setBranch(event.target.value as BranchValue)}
+                      className="h-9 text-sm"
+                    >
+                      {BRANCH_OPTIONS.map((option) => (
+                        <NativeSelectOption key={option.value} value={option.value}>
+                          {option.label}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </FieldContent>
+                </Field>
+
+                <Field>
+                  <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Role Penempatan
+                  </FieldLabel>
+                  <FieldContent>
+                    <NativeSelect
+                      value={roleCode}
+                      onChange={(event) => setRoleCode(event.target.value as ProvisionRoleCode)}
+                      className="h-9 text-sm"
+                    >
+                      {ROLE_CODE_OPTIONS.filter((option) =>
+                        [
+                          "REGIONAL_COMMANDER",
+                          "OPERATIONAL_INTELLIGENCE_MANAGER",
+                          "FIELD_COORDINATOR",
+                          "FIELD_OFFICER",
+                        ].includes(option.value),
+                      ).map((option) => (
+                        <NativeSelectOption key={option.value} value={option.value}>
+                          {option.label}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </FieldContent>
+                </Field>
               </div>
 
-              <div className="rounded-xl border border-border/70 p-4">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                  Ringkasan assignment
+              <Field>
+                <div className="flex items-center justify-between">
+                  <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Wilayah Cakupan ({roleConfig.scopeLabel})
+                  </FieldLabel>
+                  <span className="text-[11px] text-muted-foreground">
+                    {branch === "BINDA" ? "Maks 1 wilayah" : "Satu atau lebih wilayah"}
+                  </span>
                 </div>
-                <div className="mt-2 space-y-1 text-sm">
-                  <div>Unit: {selectedPosition?.branch || "-"}</div>
-                  <div>Penempatan: {selectedPosition?.organizationUnit?.name || "-"}</div>
-                  <div>Wilayah: {selectedPosition?.areaCoverages?.length ?? 0}</div>
-                </div>
-              </div>
+                <FieldContent className="mt-1.5 space-y-2">
+                  <Popover open={areaPopoverOpen} onOpenChange={setAreaPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={areaPopoverOpen}
+                        className="h-10 w-full justify-between bg-transparent text-left text-sm font-normal border-border/70"
+                      >
+                        <span className="flex min-w-0 items-center gap-1.5 truncate">
+                          <Globe className="size-4 text-muted-foreground shrink-0" />
+                          {selectedAreas.length ? (
+                            <span className="font-medium text-foreground">
+                              {selectedAreas.map((a) => a.name).join(", ")}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Pilih {roleConfig.scopeLabel.toLowerCase()}...
+                            </span>
+                          )}
+                        </span>
+                        <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[min(600px,calc(100vw-3rem))] p-0">
+                      <Command className="bg-popover text-popover-foreground" shouldFilter={false}>
+                        <CommandInput
+                          placeholder={`Cari nama ${roleConfig.scopeLabel.toLowerCase()}...`}
+                          value={areaQuery}
+                          onValueChange={setAreaQuery}
+                        />
+                        <CommandList className="max-h-[300px]">
+                          <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
+                            {areasLoading
+                              ? "Mencari wilayah..."
+                              : areaQuery.trim().length < 2
+                                ? "Ketik minimal 2 karakter untuk mencari."
+                                : areasError || "Wilayah tidak ditemukan."}
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {areaOptions.map((area) => {
+                              const selected = selectedAreaIds.includes(area.id);
+
+                              return (
+                                <CommandItem
+                                  key={area.id}
+                                  value={`${area.code}-${area.name}`}
+                                  onSelect={() => toggleArea(area)}
+                                  className="items-start gap-2.5 py-2 text-sm"
+                                >
+                                  <Check className={cn("mt-0.5 size-4 text-primary shrink-0", selected ? "opacity-100" : "opacity-0")} />
+                                  <div className="min-w-0 flex-1">
+                                    <span className="block font-medium text-foreground">{area.name}</span>
+                                    <span className="block text-xs text-muted-foreground">
+                                      {area.code} • {AREA_LEVEL_LABELS[area.level as AreaLevel] ?? area.level}
+                                      {area.parent?.name ? ` • ${area.parent.name}` : ""}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+
+                  {selectedAreas.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {selectedAreas.map((area) => (
+                        <Badge key={area.id} variant="secondary" className="gap-1 text-xs py-1 px-2.5">
+                          {area.name}
+                          <button
+                            type="button"
+                            className="rounded-full hover:bg-muted p-0.5 transition-colors"
+                            aria-label={`Hapus ${area.name}`}
+                            onClick={() => toggleArea(area)}
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <FieldError errors={[form.formState.errors.areaScopeIds]} />
+                </FieldContent>
+              </Field>
             </CardContent>
           </Card>
 
-          <Alert>
-            <AlertTriangle className="size-4" />
-            <AlertTitle>Catatan operasional</AlertTitle>
-            <AlertDescription>
-              Endpoint provisioning menggenerate password sementara di backend. Secret hanya muncul sekali setelah
-              sukses dan tidak disimpan ulang pada halaman detail.
-            </AlertDescription>
-          </Alert>
+          <Card className="border border-border/60 shadow-sm">
+            <CardHeader className="pb-4 border-b border-border/40">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <KeyRound className="size-4 text-primary" />
+                Kredensial Akun User
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Username dan password awal wajib diisi. Email bersifat opsional.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="username">
+                    Username
+                  </FieldLabel>
+                  <FieldContent>
+                    <Input id="username" {...form.register("username")} placeholder="username.user" className="h-9 text-sm" />
+                    <FieldError errors={[form.formState.errors.username]} />
+                  </FieldContent>
+                </Field>
+
+                <Field>
+                  <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="email">
+                    Email (Opsional)
+                  </FieldLabel>
+                  <FieldContent>
+                    <Input id="email" type="email" {...form.register("email")} placeholder="user@denscakra.local" className="h-9 text-sm" />
+                    <FieldError errors={[form.formState.errors.email]} />
+                  </FieldContent>
+                </Field>
+              </div>
+
+              <Field>
+                <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="password">
+                  Password Awal
+                </FieldLabel>
+                <FieldContent>
+                  <Input id="password" type="password" {...form.register("password")} placeholder="Password awal" className="h-9 text-sm" />
+                  <FieldError errors={[form.formState.errors.password]} />
+                </FieldContent>
+              </Field>
+            </CardContent>
+
+            <CardFooter className="flex items-center justify-between gap-3 border-t border-border/40 bg-muted/20 px-6 py-4">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsCancelDialogOpen(true)}>
+                Batal
+              </Button>
+              <Button type="submit" size="sm" disabled={areasLoading || isSubmitting}>
+                {isSubmitting ? "Memproses..." : "Provision User"}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
+        {/* Right Summary Sidebar */}
+        <div className="space-y-4">
+          <div className="sticky top-6 space-y-4">
+            <Card className="border border-border/60 shadow-sm">
+              <CardHeader className="pb-3 border-b border-border/40">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <UserPlus className="size-4 text-muted-foreground" />
+                  Ringkasan Provisioning
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-4 text-xs">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Unit Type</span>
+                  <div className="font-medium text-sm text-foreground">{branchLabel}</div>
+                </div>
+
+                <div className="space-y-1 pt-2 border-t border-border/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Role</span>
+                  <div className="font-medium text-sm text-foreground">{roleConfig.label}</div>
+                </div>
+
+                <div className="space-y-1.5 pt-2 border-t border-border/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Wilayah Cakupan</span>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedAreas.length > 0 ? (
+                      selectedAreas.map((area) => (
+                        <Badge key={area.id} variant="secondary" className="text-[10px]">
+                          {area.name}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="italic text-muted-foreground text-xs">Belum dipilih</span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+              <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <AlertTitle className="text-xs font-semibold">Password Sementara</AlertTitle>
+              <AlertDescription className="text-xs mt-0.5 text-amber-800/90 dark:text-amber-300/90">
+                Password awal yang dimasukkan akan digunakan langsung saat provisioning selesai.
+              </AlertDescription>
+            </Alert>
+          </div>
         </div>
       </form>
 
-      <AlertDialog open={Boolean(pendingProvisionValues)} onOpenChange={(open) => !open && setPendingProvisionValues(null)}>
+      {/* Dialog Confirm Provision */}
+      <AlertDialog open={Boolean(pendingValues)} onOpenChange={(open) => !open && setPendingValues(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Provision user?</AlertDialogTitle>
+            <AlertDialogTitle>Konfirmasi Provision User</AlertDialogTitle>
             <AlertDialogDescription>
-              Pastikan identitas akun, master data personel, jabatan aktif, dan wilayah assignment sudah benar sebelum
-              user dibuat.
+              Apakah Anda yakin data penempatan, role, wilayah, dan kredensial pengguna sudah benar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>
             <AlertDialogAction
-              disabled={isSubmitting || !pendingProvisionValues}
+              disabled={isSubmitting || !pendingValues}
               onClick={(event) => {
                 event.preventDefault();
-                if (pendingProvisionValues) {
-                  void executeProvision(pendingProvisionValues);
+                if (pendingValues) {
+                  void executeProvision(pendingValues);
                 }
               }}
             >
-              {isSubmitting ? "Memproses..." : "Provision"}
+              {isSubmitting ? "Memproses..." : "Ya, Provision"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Dialog Cancel */}
       <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Batalkan provisioning?</AlertDialogTitle>
+            <AlertDialogTitle>Batalkan Provisioning?</AlertDialogTitle>
             <AlertDialogDescription>
-              Data yang sudah diisi pada halaman ini akan ditinggalkan dan Anda akan kembali ke daftar pengguna.
+              Form yang telah diisi akan dibatalkan dan Anda akan kembali ke daftar pengguna.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Tetap di halaman</AlertDialogCancel>
+            <AlertDialogCancel>Kembali ke Form</AlertDialogCancel>
             <AlertDialogAction onClick={() => router.push("/dashboard/admin-system/pengguna")}>
-              Ya, batalkan
+              Ya, Batalkan
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

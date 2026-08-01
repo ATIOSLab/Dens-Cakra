@@ -12,6 +12,8 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
+  [key: string]: any;
+
   constructor() {
     const adapter = new PrismaPg({
       connectionString: env.databaseUrl,
@@ -19,6 +21,191 @@ export class PrismaService
     });
 
     super({ adapter });
+  }
+
+  private delegate(name: string): any {
+    return Reflect.get(PrismaClient.prototype, name, this);
+  }
+
+  private removedModel(name: string): any {
+    return new Proxy(
+      {},
+      {
+        get() {
+          throw new Error(
+            `${name} has been removed from the schema. Use UserOperationalAssignment and UserAreaScope instead.`,
+          );
+        },
+      },
+    );
+  }
+
+  get position(): any {
+    return this.removedModel('Position');
+  }
+
+  get positionAreaCoverage(): any {
+    return this.removedModel('PositionAreaCoverage');
+  }
+
+  get organizationUnit(): any {
+    return this.removedModel('OrganizationUnit');
+  }
+
+  get organizationUnitClosure(): any {
+    return this.removedModel('OrganizationUnitClosure');
+  }
+
+  get organizationRoleSeat(): any {
+    return this.removedModel('OrganizationRoleSeat');
+  }
+
+  get organizationAreaCoverage(): any {
+    return this.removedModel('OrganizationAreaCoverage');
+  }
+
+  get directorateProfile(): any {
+    return this.removedModel('DirectorateProfile');
+  }
+
+  get directorateCoverage(): any {
+    return this.removedModel('DirectorateCoverage');
+  }
+
+  get bindaProfile(): any {
+    return this.removedModel('BindaProfile');
+  }
+
+  get user(): any {
+    return this.delegate('user');
+  }
+
+  get userProfile(): any {
+    return this.delegate('userProfile');
+  }
+
+  get userOperationalAssignment(): any {
+    return this.delegate('userOperationalAssignment');
+  }
+
+  get userAreaScope(): any {
+    return this.delegate('userAreaScope');
+  }
+
+  get role(): any {
+    return this.delegate('role');
+  }
+
+  get administrativeArea(): any {
+    return this.delegate('administrativeArea');
+  }
+
+  get administrativeAreaClosure(): any {
+    return this.delegate('administrativeAreaClosure');
+  }
+
+  get directive(): any {
+    return this.delegate('directive');
+  }
+
+  get directiveVersion(): any {
+    return this.delegate('directiveVersion');
+  }
+
+  get directiveRecipient(): any {
+    return this.delegate('directiveRecipient');
+  }
+
+  get uukStr(): any {
+    return this.delegate('uukStr');
+  }
+
+  get uukStrVersion(): any {
+    return this.delegate('uukStrVersion');
+  }
+
+  get task(): any {
+    return this.delegate('task');
+  }
+
+  get taskAssignment(): any {
+    return this.delegate('taskAssignment');
+  }
+
+  get jaring(): any {
+    return this.delegate('jaring');
+  }
+
+  get jaringCaretakerAssignment(): any {
+    return this.delegate('jaringCaretakerAssignment');
+  }
+
+  get whatsAppMessage(): any {
+    return this.delegate('whatsAppMessage');
+  }
+
+  get whatsAppRoutingLog(): any {
+    return this.delegate('whatsAppRoutingLog');
+  }
+
+  get whatsAppReportSession(): any {
+    return this.delegate('whatsAppReportSession');
+  }
+
+  get baket(): any {
+    return this.delegate('baket');
+  }
+
+  get baketVersion(): any {
+    return this.delegate('baketVersion');
+  }
+
+  get baketVerification(): any {
+    return this.delegate('baketVerification');
+  }
+
+  get baketCoverageCheck(): any {
+    return this.delegate('baketCoverageCheck');
+  }
+
+  get analysisCase(): any {
+    return this.delegate('analysisCase');
+  }
+
+  get analysisVersion(): any {
+    return this.delegate('analysisVersion');
+  }
+
+  get intelligenceProduct(): any {
+    return this.delegate('intelligenceProduct');
+  }
+
+  get productVersion(): any {
+    return this.delegate('productVersion');
+  }
+
+  get productApprovalStep(): any {
+    return this.delegate('productApprovalStep');
+  }
+
+  get productDistribution(): any {
+    return this.delegate('productDistribution');
+  }
+
+  get emergencyIncident(): any {
+    return this.delegate('emergencyIncident');
+  }
+
+  get alert(): any {
+    return this.delegate('alert');
+  }
+
+  get personnelLocationPing(): any {
+    return this.delegate('personnelLocationPing');
+  }
+
+  get auditLog(): any {
+    return this.delegate('auditLog');
   }
 
   async onModuleInit(): Promise<void> {

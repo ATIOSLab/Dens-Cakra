@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
+import {
+  Injectable } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
 import { AUTH_ROLE_TO_DOMAIN_ROLE } from '../../common/constants/auth-role.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   AdministrativeLevel,
   CommandRouteType,
-  PositionCode,
   Prisma,
   RoleCode,
   UserProfileStatus,

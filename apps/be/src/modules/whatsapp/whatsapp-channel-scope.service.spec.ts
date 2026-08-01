@@ -6,7 +6,7 @@ function createService(channelAreaIds: string[], ancestorMatch = false) {
     userProfile: {
       findUnique: jest.fn(() =>
         Promise.resolve({
-          positionAssignments: [
+          operationalAssignments: [
             {
               areaScopes: channelAreaIds.map((areaId) => ({ areaId })),
             },

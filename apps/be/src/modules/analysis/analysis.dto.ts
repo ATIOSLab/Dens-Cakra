@@ -28,14 +28,14 @@ export class AnalysisQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(AnalysisStatus) status?: AnalysisStatus;
-  @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsEnum(AnalysisSortField) sortBy?: AnalysisSortField;
   @IsOptional() @IsEnum(SortOrder) sortOrder?: SortOrder;
 }
 
 export class CreateAnalysisCaseDto {
-  @IsOptional() @IsUUID() ownerUnitId?: string;
+  @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsString() @MaxLength(300) title!: string;
   @IsOptional() @IsDateString() periodStart?: string;
   @IsOptional() @IsDateString() periodEnd?: string;

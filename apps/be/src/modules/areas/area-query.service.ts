@@ -11,6 +11,16 @@ import type {
   ViewportBoundaryQueryDto,
 } from './dto/area.dto.js';
 
+export type AreaTreeNode = {
+  id: string;
+  parentId: string | null;
+  code: string;
+  name: string;
+  level: AdministrativeLevel;
+  hasActiveBoundary: boolean;
+  children: AreaTreeNode[];
+};
+
 @Injectable()
 export class AreaQueryService {
   constructor(
@@ -164,13 +174,13 @@ export class AreaQueryService {
         },
       },
     });
-    const nodes = new Map(
-      links.map((link) => [
+    const nodes = new Map<string, AreaTreeNode>(
+      links.map((link: (typeof links)[number]) => [
         link.descendant.id,
         {
           ...link.descendant,
           hasActiveBoundary: link.descendant.boundaries.length > 0,
-          children: [] as unknown[],
+          children: [],
         },
       ]),
     );
