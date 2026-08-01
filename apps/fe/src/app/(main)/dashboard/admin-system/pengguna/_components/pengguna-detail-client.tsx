@@ -10,7 +10,10 @@ import {
   CheckCircle2,
   ChevronLeft,
   Clock,
+  Eye,
+  EyeOff,
   Globe,
+  KeyRound,
   Lock,
   PencilLine,
   ShieldAlert,
@@ -57,7 +60,7 @@ type PenggunaDetailClientProps = {
   actorUserProfileId: string;
 };
 
-type DialogState = null | "activate" | "suspend" | "lock" | "unlock" | "archive" | "transfer";
+type DialogState = null | "activate" | "reset-password" | "suspend" | "lock" | "unlock" | "archive" | "transfer";
 
 function getAssignmentRoleLabel(assignment?: ReturnType<typeof getPrimaryAssignment>) {
   const role = getAssignmentRoleSummary(assignment);
@@ -71,14 +74,18 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
   const primaryUnit = getAssignmentUnitSummary(primaryAssignment);
   const primaryRole = getAssignmentRoleSummary(primaryAssignment);
   const locked = isUserLocked(user);
-  const derivedAuthRole = primaryRole?.code
-    ? ROLE_CODE_TO_AUTH_ROLE[primaryRole.code]
-    : null;
+  const derivedAuthRole = primaryRole?.code ? ROLE_CODE_TO_AUTH_ROLE[primaryRole.code] : null;
   const roleIsSynchronized = derivedAuthRole === user.authUser.role;
   const isSelf = user.id === actorUserProfileId;
   const [activeDialog, setActiveDialog] = useState<DialogState>(null);
   const [submittingAction, setSubmittingAction] = useState<string | null>(null);
 
+  const [resetPasswordReason, setResetPasswordReason] = useState("Reset password oleh Admin Sistem.");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetPasswordConfirmation, setResetPasswordConfirmation] = useState("");
+  const [resetRevokeSessions, setResetRevokeSessions] = useState(true);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetPasswordConfirmation, setShowResetPasswordConfirmation] = useState(false);
   const [activateReason, setActivateReason] = useState("Aktivasi setelah verifikasi provisioning.");
   const [suspendReason, setSuspendReason] = useState("");
   const [suspendUntil, setSuspendUntil] = useState("");
@@ -137,6 +144,19 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
       ),
     [user],
   );
+  const resetPasswordError =
+    resetPassword.length > 0 && resetPassword.length < 8
+      ? "Password baru minimal 8 karakter."
+      : resetPassword.length > 128
+        ? "Password baru maksimal 128 karakter."
+        : resetPasswordConfirmation.length > 0 && resetPassword !== resetPasswordConfirmation
+          ? "Konfirmasi password tidak cocok."
+          : "";
+  const canResetPassword =
+    resetPassword.length >= 8 &&
+    resetPassword.length <= 128 &&
+    resetPassword === resetPasswordConfirmation &&
+    resetPasswordReason.trim().length >= 2;
 
   async function executeAction({
     key,
@@ -201,10 +221,15 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
                   Suspended
                 </Badge>
               )}
-              {locked && <Badge variant="destructive" className="text-xs">Locked</Badge>}
+              {locked && (
+                <Badge variant="destructive" className="text-xs">
+                  Locked
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
-              @{user.username || "-"} {user.authUser.email ? `• ${user.authUser.email}` : ""} • Login terakhir: {formatDateTime(user.lastLoginAt)}
+              @{user.username || "-"} {user.authUser.email ? `• ${user.authUser.email}` : ""} • Login terakhir:{" "}
+              {formatDateTime(user.lastLoginAt)}
             </p>
           </div>
 
@@ -235,12 +260,16 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
             <CardContent className="space-y-4 pt-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">AUTH ROLE</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    AUTH ROLE
+                  </span>
                   <div className="font-semibold text-sm text-foreground">{getRoleLabel(user.authUser.role)}</div>
                 </div>
 
                 <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">DOMAIN ROLE</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    DOMAIN ROLE
+                  </span>
                   <div className="font-semibold text-sm text-foreground">
                     {derivedAuthRole ? getRoleLabel(derivedAuthRole) : "Belum terdeteksi"}
                   </div>
@@ -264,7 +293,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
                 </div>
                 <div>
                   <span className="text-muted-foreground">Status Banned Auth:</span>
-                  <div className="font-medium text-foreground mt-0.5">{user.authUser.banned ? "Ya (Banned)" : "Normal"}</div>
+                  <div className="font-medium text-foreground mt-0.5">
+                    {user.authUser.banned ? "Ya (Banned)" : "Normal"}
+                  </div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Operational Lock:</span>
@@ -333,25 +364,41 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
             </CardHeader>
             <CardContent className="space-y-3 pt-5">
               {assignmentTimeline.map((assignment, index) => (
-                <div
-                  key={assignment.id}
-                  className="rounded-lg border border-border/50 bg-card p-3.5 space-y-2 text-xs"
-                >
+                <div key={assignment.id} className="rounded-lg border border-border/50 bg-card p-3.5 space-y-2 text-xs">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="font-semibold text-foreground">
                       {getAssignmentUnitSummary(assignment)?.name || assignment.branch || "-"}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      {assignment.isPrimary ? <Badge className="text-[10px] py-0">Primary</Badge> : <Badge variant="outline" className="text-[10px] py-0">Secondary</Badge>}
-                      {assignment.isActive ? <Badge variant="secondary" className="text-[10px] py-0">Aktif</Badge> : <Badge variant="outline" className="text-[10px] py-0 text-muted-foreground">Nonaktif</Badge>}
+                      {assignment.isPrimary ? (
+                        <Badge className="text-[10px] py-0">Primary</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] py-0">
+                          Secondary
+                        </Badge>
+                      )}
+                      {assignment.isActive ? (
+                        <Badge variant="secondary" className="text-[10px] py-0">
+                          Aktif
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] py-0 text-muted-foreground">
+                          Nonaktif
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="text-muted-foreground">
-                    Role: <span className="font-medium text-foreground">{getAssignmentRoleLabel(assignment)}</span> • {formatDateTime(assignment.validFrom)} s/d {formatDateTime(assignment.validUntil)}
+                    Role: <span className="font-medium text-foreground">{getAssignmentRoleLabel(assignment)}</span> •{" "}
+                    {formatDateTime(assignment.validFrom)} s/d {formatDateTime(assignment.validUntil)}
                   </div>
                   <div className="flex flex-wrap gap-1 pt-1">
                     {assignment.areaScopes.map((scope) => (
-                      <Badge key={`${assignment.id}-${scope.area.id}-${scope.id ?? scope.areaId}`} variant="outline" className="text-[10px]">
+                      <Badge
+                        key={`${assignment.id}-${scope.area.id}-${scope.id ?? scope.areaId}`}
+                        variant="outline"
+                        className="text-[10px]"
+                      >
                         {scope.area.name} {scope.isPrimary ? " (Utama)" : ""}
                       </Badge>
                     ))}
@@ -370,9 +417,7 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
                 <ShieldCheck className="size-4 text-primary" />
                 Aksi Operasional Admin
               </CardTitle>
-              <CardDescription className="text-xs">
-                Tindakan administratif langsung ke backend server.
-              </CardDescription>
+              <CardDescription className="text-xs">Tindakan administratif langsung ke backend server.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 pt-4">
               <Button
@@ -385,6 +430,17 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               >
                 <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
                 Aktivasi Ulang Profile
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full justify-start gap-2 text-xs h-9"
+                onClick={() => setActiveDialog("reset-password")}
+              >
+                <KeyRound className="size-4 text-primary" />
+                Reset Password
               </Button>
 
               <Button
@@ -471,7 +527,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Label htmlFor="activate-reason" className="text-xs">Alasan Aktivasi</Label>
+            <Label htmlFor="activate-reason" className="text-xs">
+              Alasan Aktivasi
+            </Label>
             <Input
               id="activate-reason"
               value={activateReason}
@@ -504,6 +562,120 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
         </DialogContent>
       </Dialog>
 
+      {/* Reset Password Dialog */}
+      <Dialog
+        open={activeDialog === "reset-password"}
+        onOpenChange={(open) => setActiveDialog(open ? "reset-password" : null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password Pengguna</DialogTitle>
+            <DialogDescription>
+              Tetapkan password baru untuk akun ini. Sesi login aktif dapat dicabut setelah password diperbarui.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="reset-password-reason" className="text-xs">
+                Alasan Reset
+              </Label>
+              <Input
+                id="reset-password-reason"
+                value={resetPasswordReason}
+                onChange={(event) => setResetPasswordReason(event.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="reset-password-new" className="text-xs">
+                Password Baru
+              </Label>
+              <div className="relative">
+                <Input
+                  id="reset-password-new"
+                  type={showResetPassword ? "text" : "password"}
+                  value={resetPassword}
+                  onChange={(event) => setResetPassword(event.target.value)}
+                  autoComplete="new-password"
+                  placeholder="Minimal 8 karakter"
+                  className="h-9 pr-10 text-sm"
+                />
+                <button
+                  type="button"
+                  className="-translate-y-1/2 absolute top-1/2 right-2 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  onClick={() => setShowResetPassword((value) => !value)}
+                  aria-label={showResetPassword ? "Sembunyikan password baru" : "Tampilkan password baru"}
+                >
+                  {showResetPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="reset-password-confirm" className="text-xs">
+                Konfirmasi Password Baru
+              </Label>
+              <div className="relative">
+                <Input
+                  id="reset-password-confirm"
+                  type={showResetPasswordConfirmation ? "text" : "password"}
+                  value={resetPasswordConfirmation}
+                  onChange={(event) => setResetPasswordConfirmation(event.target.value)}
+                  autoComplete="new-password"
+                  className="h-9 pr-10 text-sm"
+                />
+                <button
+                  type="button"
+                  className="-translate-y-1/2 absolute top-1/2 right-2 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  onClick={() => setShowResetPasswordConfirmation((value) => !value)}
+                  aria-label={
+                    showResetPasswordConfirmation ? "Sembunyikan konfirmasi password" : "Tampilkan konfirmasi password"
+                  }
+                >
+                  {showResetPasswordConfirmation ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              {resetPasswordError && <p className="text-xs text-destructive">{resetPasswordError}</p>}
+            </div>
+            <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border/60 p-3 text-xs">
+              <Checkbox
+                checked={resetRevokeSessions}
+                onCheckedChange={(checked) => setResetRevokeSessions(checked === true)}
+              />
+              <span>Cabut semua sesi login aktif setelah password diperbarui</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" size="sm" onClick={() => setActiveDialog(null)}>
+              Batal
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={submittingAction === "reset-password" || !canResetPassword}
+              onClick={() =>
+                executeAction({
+                  key: "reset-password",
+                  request: async () => {
+                    await apiBrowserMutation("POST", `/user-profiles/${user.id}/reset-password`, {
+                      password: resetPassword,
+                      reason: resetPasswordReason.trim(),
+                      revokeSessions: resetRevokeSessions,
+                    });
+                    setResetPassword("");
+                    setResetPasswordConfirmation("");
+                    setShowResetPassword(false);
+                    setShowResetPasswordConfirmation(false);
+                  },
+                  successMessage: "Password pengguna berhasil direset.",
+                })
+              }
+            >
+              {submittingAction === "reset-password" ? "Memproses..." : "Reset Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Suspend Dialog */}
       <Dialog open={activeDialog === "suspend"} onOpenChange={(open) => setActiveDialog(open ? "suspend" : null)}>
         <DialogContent>
@@ -515,7 +687,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="suspend-reason" className="text-xs">Alasan Suspend</Label>
+              <Label htmlFor="suspend-reason" className="text-xs">
+                Alasan Suspend
+              </Label>
               <Input
                 id="suspend-reason"
                 value={suspendReason}
@@ -525,7 +699,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="suspend-until" className="text-xs">Berlaku Sampai (Opsional)</Label>
+              <Label htmlFor="suspend-until" className="text-xs">
+                Berlaku Sampai (Opsional)
+              </Label>
               <Input
                 id="suspend-until"
                 type="datetime-local"
@@ -578,7 +754,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="lock-reason" className="text-xs">Alasan Operational Lock</Label>
+              <Label htmlFor="lock-reason" className="text-xs">
+                Alasan Operational Lock
+              </Label>
               <Input
                 id="lock-reason"
                 value={lockReason}
@@ -588,7 +766,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="lock-until" className="text-xs">Locked Sampai (Opsional)</Label>
+              <Label htmlFor="lock-until" className="text-xs">
+                Locked Sampai (Opsional)
+              </Label>
               <Input
                 id="lock-until"
                 type="datetime-local"
@@ -630,13 +810,18 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Lepas Operational Lock</DialogTitle>
-            <DialogDescription>
-              Mencabut operational lock pada akun pengguna ini.
-            </DialogDescription>
+            <DialogDescription>Mencabut operational lock pada akun pengguna ini.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Label htmlFor="unlock-reason" className="text-xs">Alasan Unlock</Label>
-            <Input id="unlock-reason" value={unlockReason} onChange={(event) => setUnlockReason(event.target.value)} className="h-9 text-sm" />
+            <Label htmlFor="unlock-reason" className="text-xs">
+              Alasan Unlock
+            </Label>
+            <Input
+              id="unlock-reason"
+              value={unlockReason}
+              onChange={(event) => setUnlockReason(event.target.value)}
+              className="h-9 text-sm"
+            />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" size="sm" onClick={() => setActiveDialog(null)}>
@@ -668,13 +853,13 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Arsipkan Pengguna</DialogTitle>
-            <DialogDescription>
-              User akan dikeluarkan dari roster aktif dan assignment akan ditutup.
-            </DialogDescription>
+            <DialogDescription>User akan dikeluarkan dari roster aktif dan assignment akan ditutup.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="archive-reason" className="text-xs">Alasan Pengarsipan</Label>
+              <Label htmlFor="archive-reason" className="text-xs">
+                Alasan Pengarsipan
+              </Label>
               <Input
                 id="archive-reason"
                 value={archiveReason}
@@ -684,7 +869,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="archive-at" className="text-xs">Efektif Pada</Label>
+              <Label htmlFor="archive-at" className="text-xs">
+                Efektif Pada
+              </Label>
               <Input
                 id="archive-at"
                 type="datetime-local"
@@ -733,7 +920,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="transfer-reason" className="text-xs">Alasan Mutasi</Label>
+              <Label htmlFor="transfer-reason" className="text-xs">
+                Alasan Mutasi
+              </Label>
               <Input
                 id="transfer-reason"
                 value={transferReason}
@@ -743,7 +932,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="transfer-at" className="text-xs">Tanggal Efektif</Label>
+              <Label htmlFor="transfer-at" className="text-xs">
+                Tanggal Efektif
+              </Label>
               <Input
                 id="transfer-at"
                 type="datetime-local"
@@ -753,7 +944,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="transfer-position-query" className="text-xs">Cari Penempatan Tujuan</Label>
+              <Label htmlFor="transfer-position-query" className="text-xs">
+                Cari Penempatan Tujuan
+              </Label>
               <Input
                 id="transfer-position-query"
                 value={transferPositionQuery}
@@ -767,7 +960,13 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
                   <div className="text-[11px] text-muted-foreground">
                     {transferPosition.organizationUnit?.code} • {transferPosition.role?.code || transferPosition.code}
                   </div>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-2 mt-1" onClick={() => setTransferPosition(null)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[11px] px-2 mt-1"
+                    onClick={() => setTransferPosition(null)}
+                  >
                     Ganti Penempatan
                   </Button>
                 </div>
@@ -790,7 +989,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
                           {position.organizationUnit?.code} • {position.role?.code || position.code}
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-[10px]">{position.role?.code || position.code}</Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {position.role?.code || position.code}
+                      </Badge>
                     </button>
                   ))}
                 </div>
@@ -802,7 +1003,11 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               <div className="flex flex-wrap gap-1">
                 {transferPosition?.areaCoverages?.length ? (
                   transferPosition.areaCoverages.map((coverage, index) => (
-                    <Badge key={coverage.id} variant={coverage.isPrimary || index === 0 ? "default" : "secondary"} className="text-[10px]">
+                    <Badge
+                      key={coverage.id}
+                      variant={coverage.isPrimary || index === 0 ? "default" : "secondary"}
+                      className="text-[10px]"
+                    >
                       {coverage.area.name} {coverage.isPrimary || index === 0 ? "(Utama)" : ""}
                     </Badge>
                   ))

@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import { hashPassword } from 'better-auth/crypto';
 import { auth } from '../../lib/auth.js';
 import {
   AUTH_ROLE_TO_DOMAIN_ROLE,
@@ -20,6 +21,7 @@ import type {
   ChangePrimaryAssignmentDto,
   LockUserDto,
   ProvisionUserDto,
+  ResetUserPasswordDto,
   SuspendUserDto,
   UpdateUserProfileDto,
   UserProfileListQueryDto,
@@ -192,7 +194,8 @@ export class UserProfileService {
       input.profile.fullName?.trim() ||
       input.profile.username.trim();
     const authEmail =
-      input.auth.email?.trim() || this.buildFallbackEmail(input.profile.username);
+      input.auth.email?.trim() ||
+      this.buildFallbackEmail(input.profile.username);
 
     let authUserId: string | undefined;
     try {
@@ -235,18 +238,21 @@ export class UserProfileService {
             graduationYear: input.profile.graduationYear ?? null,
             ...(input.profile.positionHistory
               ? {
-                  positionHistory:
-                    input.profile.positionHistory as unknown as Prisma.InputJsonValue,
+                  positionHistory: input.profile
+                    .positionHistory as unknown as Prisma.InputJsonValue,
                 }
               : {}),
             ...(input.profile.assignmentHistory
               ? {
-                  assignmentHistory:
-                    input.profile.assignmentHistory as unknown as Prisma.InputJsonValue,
+                  assignmentHistory: input.profile
+                    .assignmentHistory as unknown as Prisma.InputJsonValue,
                 }
               : {}),
             ...(input.profile.competencies
-              ? { competencies: input.profile.competencies as Prisma.InputJsonValue }
+              ? {
+                  competencies: input.profile
+                    .competencies as Prisma.InputJsonValue,
+                }
               : {}),
             status: UserProfileStatus.PENDING,
             isActive: false,
@@ -362,6 +368,63 @@ export class UserProfileService {
     });
     await this.audit(actor, 'USER.UPDATE', id, before, updated);
     return this.detail(id);
+  }
+
+  async resetPassword(
+    id: string,
+    input: ResetUserPasswordDto,
+    actor: AuthorizationContext,
+  ) {
+    const profile = await this.ensureExists(id);
+    const hashedPassword = await hashPassword(input.password);
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updatedCredential = await tx.account.updateMany({
+        where: {
+          userId: profile.authUserId,
+          providerId: 'credential',
+        },
+        data: {
+          password: hashedPassword,
+        },
+      });
+
+      if (updatedCredential.count === 0) {
+        throw new ApiException(
+          'CREDENTIAL_ACCOUNT_NOT_FOUND',
+          'Credential account was not found for this user.',
+          422,
+        );
+      }
+
+      const revokedSessions = input.revokeSessions
+        ? await tx.session.deleteMany({ where: { userId: profile.authUserId } })
+        : { count: 0 };
+
+      await tx.auditLog.create({
+        data: {
+          actorUserProfileId: actor.userProfileId,
+          actorAssignmentId: actor.primaryAssignmentId,
+          action: 'USER.PASSWORD_RESET',
+          entityType: 'UserProfile',
+          entityId: id,
+          metadata: {
+            targetAuthUserId: profile.authUserId,
+            revokeSessions: input.revokeSessions,
+            revokedSessionCount: revokedSessions.count,
+            reason: input.reason ?? null,
+          },
+        },
+      });
+
+      return {
+        revokedSessionCount: revokedSessions.count,
+      };
+    });
+
+    return {
+      userProfile: await this.detail(id),
+      revokedSessionCount: result.revokedSessionCount,
+    };
   }
 
   async activate(id: string, reason: string, actor: AuthorizationContext) {
@@ -689,9 +752,7 @@ export class UserProfileService {
             ],
           }
         : {}),
-      ...(query.roleCode ||
-      query.branch ||
-      areaIds?.length
+      ...(query.roleCode || query.branch || areaIds?.length
         ? {
             operationalAssignments: {
               some: {
@@ -699,9 +760,7 @@ export class UserProfileService {
                 isActive: true,
                 validUntil: null,
                 ...(query.branch ? { branch: query.branch } : {}),
-                ...(query.roleCode
-                  ? { role: { code: query.roleCode } }
-                  : {}),
+                ...(query.roleCode ? { role: { code: query.roleCode } } : {}),
                 ...(areaIds?.length
                   ? {
                       areaScopes: {
@@ -757,7 +816,9 @@ export class UserProfileService {
     };
   }
 
-  private resolveProvisionAreaLevels(authRole: AuthRole): AdministrativeLevel[] {
+  private resolveProvisionAreaLevels(
+    authRole: AuthRole,
+  ): AdministrativeLevel[] {
     switch (authRole) {
       case 'regional_commander':
       case 'operational_intelligence_manager':

@@ -23,6 +23,7 @@ import {
   LockUserDto,
   ProvisionUserDto,
   ReasonDto,
+  ResetUserPasswordDto,
   SuspendUserDto,
   UpdateUserProfileDto,
   UserProfileListQueryDto,
@@ -93,6 +94,25 @@ export class UserProfileController {
     @CurrentAccessContext() actor: AuthorizationContext,
   ) {
     return apiResult(await this.users.update(id, input, actor));
+  }
+
+  @Post(':userProfileId/reset-password')
+  @ApiContract({
+    operationId: 'apiUsr004ResetPassword',
+    contractId: 'API-USR-004-RESET-PASSWORD',
+    summary: 'Reset password akun pengguna',
+    roles: ['admin_system'],
+    idempotent: true,
+  })
+  async resetPassword(
+    @Param('userProfileId', ParseUUIDPipe) id: string,
+    @Body() input: ResetUserPasswordDto,
+    @CurrentAccessContext() actor: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.users.resetPassword(id, input, actor),
+      'User password was reset.',
+    );
   }
 
   @Post(':userProfileId/activate')

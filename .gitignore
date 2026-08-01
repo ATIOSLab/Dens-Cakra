@@ -25,6 +25,8 @@ apps/be/src/generated/prisma/
 
 # Local/runtime import assets
 apps/be/storage/jaring/
+apps/be/storage/jaring-profile-photo/
+apps/be/storage/whatsapp-evidence/
 
 # Local migration drafts / generated docs
 apps/be/prisma/migrations/20260715170500_enforce_single_device_sessions/

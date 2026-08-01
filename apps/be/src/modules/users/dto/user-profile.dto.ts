@@ -1,5 +1,4 @@
-import {
-  Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
@@ -17,7 +16,7 @@ import {
   Min,
   MinLength,
   ValidateNested,
-  } from 'class-validator';
+} from 'class-validator';
 import {
   CommandRouteType,
   PersonnelGender,
@@ -68,13 +67,17 @@ export class ProvisionProfileDto {
   @IsOptional() @IsString() @MaxLength(30) phone?: string;
   @IsOptional()
   @IsString()
-  @Matches(/^\d{16}$/, { message: 'nationalIdNumber must contain exactly 16 digits' })
+  @Matches(/^\d{16}$/, {
+    message: 'nationalIdNumber must contain exactly 16 digits',
+  })
   nationalIdNumber?: string;
   @IsOptional() @IsString() @MaxLength(120) birthPlace?: string;
   @IsOptional() @IsDateString() birthDate?: string;
   @IsOptional() @IsEnum(PersonnelGender) gender?: PersonnelGender;
   @IsOptional() @IsString() @MaxLength(80) religion?: string;
-  @IsOptional() @IsEnum(PersonnelMaritalStatus) maritalStatus?: PersonnelMaritalStatus;
+  @IsOptional()
+  @IsEnum(PersonnelMaritalStatus)
+  maritalStatus?: PersonnelMaritalStatus;
   @IsOptional() @IsString() @MaxLength(5) bloodType?: string;
   @IsOptional() @IsString() @MaxLength(80) personnelNumber?: string;
   @IsOptional() @IsString() @MaxLength(120) rankGrade?: string;
@@ -83,7 +86,12 @@ export class ProvisionProfileDto {
   @IsOptional() @IsString() @MaxLength(120) lastEducation?: string;
   @IsOptional() @IsString() @MaxLength(180) educationInstitution?: string;
   @IsOptional() @IsString() @MaxLength(150) educationMajor?: string;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1900) @Max(2100) graduationYear?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1900)
+  @Max(2100)
+  graduationYear?: number;
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -128,6 +136,12 @@ export class UpdateUserProfileDto {
 
 export class ReasonDto {
   @IsString() @MinLength(2) @MaxLength(1000) reason!: string;
+}
+
+export class ResetUserPasswordDto {
+  @IsString() @MinLength(8) @MaxLength(128) password!: string;
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(1000) reason?: string;
+  @IsOptional() @IsBoolean() revokeSessions = true;
 }
 
 export class SuspendUserDto extends ReasonDto {
