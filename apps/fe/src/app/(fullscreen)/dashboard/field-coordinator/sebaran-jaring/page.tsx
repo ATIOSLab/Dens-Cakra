@@ -178,7 +178,7 @@ async function buildCityDistribution(
 }
 
 export default async function Page() {
-  await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR);
+  await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
 
   const [lists, access] = await Promise.all([
     Promise.all((["PENDING", "APPROVED", "REJECTED"] as const).map(fetchAllByRegistrationStatus)),
