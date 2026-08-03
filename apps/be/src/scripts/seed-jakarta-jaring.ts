@@ -1,12 +1,14 @@
-import { createHash } from 'node:crypto';
-import { readFile, stat } from 'node:fs/promises';
+import { OrganizationType, PositionCode } from '../common/constants/legacy-operational-code.js';
+import {
+  createHash } from 'node:crypto';
+import { readFile,
+  stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
   FileLifecycleStatus,
   FileType,
   JaringRegistrationStatus,
   JaringStatus,
-  PositionCode,
 } from '../generated/prisma/client.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
 

@@ -13,9 +13,12 @@ import makeWASocket, {
   DisconnectReason,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
+  generateWAMessageFromContent,
   jidDecode,
   jidNormalizedUser,
+  proto,
   useMultiFileAuthState,
+  type BinaryNode,
   type WAMessage,
   type WASocket,
 } from '@whiskeysockets/baileys';
@@ -43,7 +46,10 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import { WhatsAppChannelScopeService } from '../whatsapp/whatsapp-channel-scope.service.js';
-import { WhatsAppReportFlowService } from './whatsapp-report-flow.service.js';
+import {
+  WhatsAppReportFlowService,
+  type WhatsAppReportReply,
+} from './whatsapp-report-flow.service.js';
 
 type RuntimeState = {
   connecting: boolean;
@@ -844,6 +850,14 @@ export class WhatsappBotRuntimeService
       return '';
     }
 
+    // Jika pesan adalah interactiveResponseMessage (Native Flow / list response),
+    // gunakan HANYA ID pilihan dari extractNativeFlowSelection.
+    // Jangan fallback ke body.text karena itu adalah label tampilan (mis. "Selesai Isi & Lampiran"),
+    // bukan ID action, sehingga akan salah diproses sebagai konten teks biasa.
+    if (message.interactiveResponseMessage) {
+      return this.extractNativeFlowSelection(message);
+    }
+
     return (
       message.conversation ||
       message.extendedTextMessage?.text ||
@@ -852,6 +866,33 @@ export class WhatsappBotRuntimeService
       message.documentMessage?.caption ||
       ''
     ).trim();
+  }
+
+  private extractNativeFlowSelection(
+    message: ReturnType<typeof this.unwrapMessage>,
+  ) {
+    const paramsJson =
+      message?.interactiveResponseMessage?.nativeFlowResponseMessage
+        ?.paramsJson;
+    if (!paramsJson) {
+      return '';
+    }
+
+    try {
+      const params = JSON.parse(paramsJson) as Record<string, unknown>;
+      for (const key of ['id', 'selected_row_id', 'row_id']) {
+        const value = params[key];
+        if (typeof value === 'string' && value.trim()) {
+          return value.trim();
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Failed to parse WhatsApp Native Flow response: ${this.messageOf(error)}`,
+      );
+    }
+
+    return '';
   }
 
   private extractLocation(
@@ -1579,7 +1620,7 @@ export class WhatsappBotRuntimeService
     socket: WASocket,
     remoteJid: string,
     messageKeys: WAMessage['key'][],
-    replies: string[],
+    replies: WhatsAppReportReply[],
   ) {
     await sleep(1200 + Math.floor(Math.random() * 700));
 
@@ -1592,7 +1633,9 @@ export class WhatsappBotRuntimeService
     }
 
     for (const [index, reply] of replies.entries()) {
-      const text = this.sanitizeOutboundReply(reply);
+      const text = this.sanitizeOutboundReply(
+        typeof reply === 'string' ? reply : reply.body,
+      );
       const typingMs = Math.min(
         9000,
         Math.max(2500, text.length * 55 + Math.floor(Math.random() * 900)),
@@ -1612,8 +1655,93 @@ export class WhatsappBotRuntimeService
         await socket.sendPresenceUpdate('paused', remoteJid);
       } catch {}
 
-      await socket.sendMessage(remoteJid, { text });
+      if (typeof reply === 'string') {
+        await socket.sendMessage(remoteJid, { text });
+      } else {
+        await this.sendNativeFlowSingleSelect(socket, remoteJid, {
+          ...reply,
+          body: text,
+        });
+      }
     }
+  }
+
+  private async sendNativeFlowSingleSelect(
+    socket: WASocket,
+    remoteJid: string,
+    reply: Exclude<WhatsAppReportReply, string>,
+  ) {
+    const userJid = socket.user?.id;
+    if (!userJid) {
+      throw new Error(
+        'WhatsApp belum terhubung sehingga Native Flow tidak dapat dikirim.',
+      );
+    }
+
+    const buttonParamsJson = JSON.stringify({
+      title: reply.buttonTitle,
+      sections: reply.sections,
+    });
+    const interactiveMessage = proto.Message.InteractiveMessage.create({
+      body: proto.Message.InteractiveMessage.Body.create({ text: reply.body }),
+      footer: reply.footer
+        ? proto.Message.InteractiveMessage.Footer.create({
+            text: reply.footer,
+          })
+        : undefined,
+      header: proto.Message.InteractiveMessage.Header.create({
+        hasMediaAttachment: false,
+      }),
+      nativeFlowMessage:
+        proto.Message.InteractiveMessage.NativeFlowMessage.create({
+          buttons: [
+            proto.Message.InteractiveMessage.NativeFlowMessage.NativeFlowButton.create(
+              {
+                name: 'single_select',
+                buttonParamsJson,
+              },
+            ),
+          ],
+          messageParamsJson: '{}',
+          messageVersion: 1,
+        }),
+    });
+    const outgoing = generateWAMessageFromContent(
+      remoteJid,
+      { interactiveMessage },
+      { userJid },
+    );
+
+    if (!outgoing.message || !outgoing.key.id) {
+      throw new Error('Gagal membentuk WhatsApp Native Flow list message.');
+    }
+
+    const mdCompatibleMessage = proto.Message.create({
+      documentWithCaptionMessage: {
+        message: outgoing.message,
+      },
+    });
+    const nativeFlowBizNode: BinaryNode = {
+      tag: 'biz',
+      attrs: {},
+      content: [
+        {
+          tag: 'interactive',
+          attrs: { type: 'native_flow', v: '1' },
+          content: [
+            {
+              tag: 'native_flow',
+              attrs: { v: '9', name: 'mixed' },
+            },
+          ],
+        },
+      ],
+    };
+
+    await socket.relayMessage(remoteJid, mdCompatibleMessage, {
+      messageId: outgoing.key.id,
+      additionalNodes: [nativeFlowBizNode],
+    });
   }
 
   private sanitizeOutboundReply(text: string) {

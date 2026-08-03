@@ -87,7 +87,10 @@ export async function PersonelLapanganPage({
 }: {
   searchParams?: Promise<RouteSearchParams>;
 }) {
-  await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR);
+  const session = await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  const isRegional = session.role === SYSTEM_ROLES.REGIONAL_COMMANDER;
+  const apiPath = isRegional ? "/regional-commander/personnel" : "/field-coordinator/personnel";
+  const basePath = isRegional ? "/dashboard/regional-commander/personel-lapangan" : "/dashboard/field-coordinator/personel-lapangan";
 
   const queryState = buildQueryState(await searchParams);
   const commonQuery = {
@@ -97,15 +100,15 @@ export async function PersonelLapanganPage({
   };
   const [listResult, map, areaFilters] = await Promise.all([
     fetchAllPages<PersonnelListItem>(
-      "/field-coordinator/personnel",
+      apiPath,
       commonQuery,
     ),
     apiServerGet<PersonnelMapPayload>(
-      "/field-coordinator/personnel/map",
+      `${apiPath}/map`,
       commonQuery,
     ),
     apiServerGet<PersonnelAreaFilters>(
-      "/field-coordinator/personnel/area-filters",
+      `${apiPath}/area-filters`,
       {
         ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
       },
@@ -120,10 +123,11 @@ export async function PersonelLapanganPage({
       queryState={queryState}
       areaFilters={areaFilters}
       pageConfig={{
-        basePath: "/dashboard/field-coordinator/personel-lapangan",
+        basePath,
         title: "Personel Lapangan",
-        description:
-          "Daftar petugas lapangan dalam hierarki Koordinator Lapangan, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional.",
+        description: isRegional
+          ? "Daftar petugas lapangan dalam hierarki Regional Commander, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional."
+          : "Daftar petugas lapangan dalam hierarki Koordinator Lapangan, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional.",
         tableTabLabel: "DAFTAR PERSONIL",
         mapTabLabel: "PETA",
         detailTarget: "assignment",
@@ -139,16 +143,19 @@ export async function PersonelLapanganDetailPage({
 }: {
   assignmentId: string;
 }) {
-  await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR);
+  const session = await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  const isRegional = session.role === SYSTEM_ROLES.REGIONAL_COMMANDER;
+  const apiPath = isRegional ? "/regional-commander/personnel" : "/field-coordinator/personnel";
+  const basePath = isRegional ? "/dashboard/regional-commander/personel-lapangan" : "/dashboard/field-coordinator/personel-lapangan";
 
   const detail = await apiServerGet<PersonnelDetail>(
-    `/field-coordinator/personnel/${assignmentId}`,
+    `${apiPath}/${assignmentId}`,
   );
 
   return (
     <ExecutivePersonnelDetailClient
       detail={detail}
-      backHref="/dashboard/field-coordinator/personel-lapangan"
+      backHref={basePath}
     />
   );
 }

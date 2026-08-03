@@ -11,4 +11,4 @@ ALTER TABLE "PositionAreaCoverage" ALTER COLUMN "id" DROP DEFAULT;
 ALTER TABLE "ReportCategory" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
-ALTER TABLE "session" ADD COLUMN     "locationLabel" VARCHAR(255);
+ALTER TABLE "session" ADD COLUMN IF NOT EXISTS "locationLabel" VARCHAR(255);

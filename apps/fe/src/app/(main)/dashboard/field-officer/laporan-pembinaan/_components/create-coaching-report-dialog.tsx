@@ -1,0 +1,241 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { AlertCircle, Calendar, FileText, Loader2, Plus, Users } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
+import { apiBrowserMutation } from "@/lib/api/browser-client";
+
+interface JaringOption {
+  id: string;
+  code: string;
+  aliasName: string;
+  fullName?: string | null;
+}
+
+interface CreateCoachingReportDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  jarings: JaringOption[];
+  defaultJaringId?: string;
+  onSuccess: () => void;
+}
+
+function getCurrentDateTimeLocal() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+export function CreateCoachingReportDialog({
+  open,
+  onOpenChange,
+  jarings,
+  defaultJaringId,
+  onSuccess,
+}: CreateCoachingReportDialogProps) {
+  const [jaringId, setJaringId] = useState<string>(defaultJaringId || "");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [reportedAt, setReportedAt] = useState(getCurrentDateTimeLocal());
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setJaringId(defaultJaringId || (jarings.length > 0 ? jarings[0].id : ""));
+      setTitle("");
+      setContent("");
+      setReportedAt(getCurrentDateTimeLocal());
+      setErrorMessage(null);
+    }
+  }, [open, defaultJaringId, jarings]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErrorMessage(null);
+
+    if (!jaringId) {
+      setErrorMessage("Silakan pilih Jaring terlebih dahulu.");
+      return;
+    }
+    if (!title.trim()) {
+      setErrorMessage("Judul laporan pembinaan wajib diisi.");
+      return;
+    }
+    if (title.trim().length > 300) {
+      setErrorMessage("Judul laporan maksimal 300 karakter.");
+      return;
+    }
+    if (!content.trim()) {
+      setErrorMessage("Isi laporan pembinaan wajib diisi.");
+      return;
+    }
+    if (content.trim().length > 10000) {
+      setErrorMessage("Isi laporan maksimal 10.000 karakter.");
+      return;
+    }
+    if (!reportedAt) {
+      setErrorMessage("Tanggal dan waktu pelaporan wajib diisi.");
+      return;
+    }
+
+    const isoDate = new Date(reportedAt).toISOString();
+
+    setSubmitting(true);
+    try {
+      await apiBrowserMutation("POST", `/jaring/${jaringId}/coaching-reports`, {
+        title: title.trim(),
+        content: content.trim(),
+        reportedAt: isoDate,
+      });
+
+      toast.success("Laporan pembinaan Jaring berhasil dibuat.");
+      onSuccess();
+      onOpenChange(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Gagal membuat laporan pembinaan.";
+      setErrorMessage(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Plus className="h-5 w-5 text-primary" />
+            Buat Laporan Pembinaan Jaring
+          </DialogTitle>
+          <DialogDescription>
+            Isi formulir di bawah ini untuk mencatat hasil pembinaan, pengarahan, atau evaluasi Jaring di lapangan.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {errorMessage && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="jaring-select" className="text-xs font-semibold flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              Pilih Daftar Jaring <span className="text-destructive">*</span>
+            </Label>
+            <NativeSelect
+              id="jaring-select"
+              value={jaringId}
+              onChange={(e) => setJaringId(e.target.value)}
+              disabled={submitting}
+              className="w-full text-sm"
+            >
+              {jarings.length === 0 ? (
+                <option value="">-- Tidak ada Jaring tersedia --</option>
+              ) : (
+                jarings.map((j) => {
+                  const label = j.fullName && j.fullName !== j.aliasName
+                    ? `${j.aliasName || j.code} (${j.fullName})`
+                    : j.aliasName || j.code;
+                  return (
+                    <option key={j.id} value={j.id}>
+                      {label}
+                    </option>
+                  );
+                })
+              )}
+            </NativeSelect>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2 space-y-1.5">
+              <Label htmlFor="title-input" className="text-xs font-semibold flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                Judul Laporan Pembinaan <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="title-input"
+                placeholder="Contoh: Pengarahan Pengumpulan Informasi Pilkada..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={300}
+                disabled={submitting}
+                className="text-sm"
+              />
+              <div className="text-[10px] text-muted-foreground text-right">{title.length}/300</div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="reportedAt-input" className="text-xs font-semibold flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                Waktu Pembinaan <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="reportedAt-input"
+                type="datetime-local"
+                value={reportedAt}
+                onChange={(e) => setReportedAt(e.target.value)}
+                disabled={submitting}
+                className="text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="content-input" className="text-xs font-semibold flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+              Isi Laporan Pembinaan <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="content-input"
+              rows={6}
+              placeholder="Tuliskan secara rinci hasil tatap muka, bimbingan, kendala lapangan, instruksi yang diberikan, serta respon dari Jaring..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              maxLength={10000}
+              disabled={submitting}
+              className="text-sm leading-relaxed"
+            />
+            <div className="text-[10px] text-muted-foreground text-right">{content.length}/10.000</div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={submitting}
+              size="sm"
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={submitting || jarings.length === 0} size="sm">
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Laporan"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -74,7 +74,7 @@ export class FieldCoordinatorPersonnelController {
     operationId: 'apiFieldCoordinatorPersonnel001',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-001',
     summary: 'Daftar petugas lapangan dalam hierarki Field Coordinator',
-    roles: ['field_coordinator'],
+    roles: ['field_coordinator', 'regional_commander'],
   })
   async list(
     @Query() query: ExecutivePersonnelListQuery,
@@ -92,7 +92,7 @@ export class FieldCoordinatorPersonnelController {
     operationId: 'apiFieldCoordinatorPersonnel002',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-002',
     summary: 'Peta petugas lapangan dalam hierarki Field Coordinator',
-    roles: ['field_coordinator'],
+    roles: ['field_coordinator', 'regional_commander'],
   })
   async map(
     @Query() query: ExecutivePersonnelMapQuery,
@@ -110,7 +110,7 @@ export class FieldCoordinatorPersonnelController {
     operationId: 'apiFieldCoordinatorPersonnel003',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-003',
     summary: 'Filter wilayah bertingkat sesuai scope Field Coordinator',
-    roles: ['field_coordinator'],
+    roles: ['field_coordinator', 'regional_commander'],
   })
   async areaFilters(
     @Query() query: FieldCoordinatorPersonnelAreaFilterQuery,
@@ -126,7 +126,7 @@ export class FieldCoordinatorPersonnelController {
     operationId: 'apiFieldCoordinatorPersonnel004',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-004',
     summary: 'Detail petugas lapangan dalam hierarki Field Coordinator',
-    roles: ['field_coordinator'],
+    roles: ['field_coordinator', 'regional_commander'],
   })
   async detail(
     @Param('assignmentId', ParseUUIDPipe) assignmentId: string,

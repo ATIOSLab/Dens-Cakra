@@ -110,26 +110,6 @@ export function KpiEngineClient({ data, mode }: { data: unknown; mode: "regional
       {/* HEADER SECTION */}
       <header className="flex flex-col gap-3 border-[var(--dc-divider)] border-b pb-6 xl:flex-row xl:items-end xl:justify-between">
         <div className="space-y-2">
-          {/* Breadcrumb */}
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink
-                  href="/dashboard"
-                  className="font-semibold text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider"
-                >
-                  Evaluasi Kinerja
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="text-[var(--dc-text-muted)] opacity-50" />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="font-semibold text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-                  Kualitas Humint
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-
           <h1 className="mt-1 font-bold font-heading text-2xl text-[var(--dc-text-primary)] tracking-tight">
             DENS CAKRA KPI Engine
           </h1>

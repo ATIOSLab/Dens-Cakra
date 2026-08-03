@@ -1,8 +1,8 @@
+import { OrganizationType, PositionCode } from '../common/constants/legacy-operational-code.js';
 import {
   Classification,
   CommandRouteType,
   DirectiveStatus,
-  PositionCode,
   PriorityLevel,
   RecipientStatus,
   RoleCode,

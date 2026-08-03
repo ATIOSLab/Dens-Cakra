@@ -1,5 +1,9 @@
-import { createHash } from 'node:crypto';
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { OrganizationType, PositionCode } from '../common/constants/legacy-operational-code.js';
+import {
+  createHash } from 'node:crypto';
+import { readFile,
+  readdir,
+  stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
   AnalysisStatus,
@@ -22,7 +26,6 @@ import {
   IntelEntityType,
   JaringStatus,
   NotificationType,
-  PositionCode,
   Prisma,
   PriorityLevel,
   ProductStatus,

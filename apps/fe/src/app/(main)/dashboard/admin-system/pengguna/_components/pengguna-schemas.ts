@@ -1,12 +1,14 @@
 import { z } from "zod";
 
 const provisionRoleSchema = z.enum([
+  "EXECUTIVE",
   "REGIONAL_COMMANDER",
   "OPERATIONAL_INTELLIGENCE_MANAGER",
   "FIELD_COORDINATOR",
   "FIELD_OFFICER",
 ]);
-const provisionBranchSchema = z.enum(["BINDA", "DIRECTORATE"]);
+const provisionBranchSchema = z.enum(["PUSAT", "BINDA", "DIRECTORATE"]);
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const createUserSchema = z
   .object({
@@ -16,7 +18,9 @@ export const createUserSchema = z
     email: z.string().email("Masukkan email yang valid.").optional().or(z.literal("")),
     password: z.string().min(8, "Password minimal 8 karakter."),
     validFrom: z.string().min(1, "Tanggal mulai assignment wajib diisi."),
-    areaScopeIds: z.array(z.string().uuid("Scope area tidak valid.")).min(1, "Pilih minimal satu wilayah."),
+    areaScopeIds: z
+      .array(z.string().trim().regex(uuidPattern, "Scope area tidak valid. Pilih ulang wilayah dari daftar."))
+      .min(1, "Pilih minimal satu wilayah."),
   })
   .superRefine((value, context) => {
     if (value.branch === "BINDA" && value.areaScopeIds.length !== 1) {
@@ -24,6 +28,27 @@ export const createUserSchema = z
         code: "custom",
         path: ["areaScopeIds"],
         message: "Binda hanya boleh memilih satu wilayah cakupan.",
+      });
+    }
+    if (value.roleCode === "EXECUTIVE" && value.branch !== "PUSAT") {
+      context.addIssue({
+        code: "custom",
+        path: ["branch"],
+        message: "Role Eksekutif harus menggunakan unit type Pusat.",
+      });
+    }
+    if (value.branch === "PUSAT" && value.roleCode !== "EXECUTIVE") {
+      context.addIssue({
+        code: "custom",
+        path: ["roleCode"],
+        message: "Unit type Pusat hanya tersedia untuk role Eksekutif.",
+      });
+    }
+    if (value.branch === "PUSAT" && value.areaScopeIds.length !== 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["areaScopeIds"],
+        message: "Pusat harus menggunakan satu scope nasional.",
       });
     }
   });

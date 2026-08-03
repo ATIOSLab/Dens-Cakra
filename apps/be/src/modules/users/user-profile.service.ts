@@ -148,16 +148,7 @@ export class UserProfileService {
         422,
       );
     }
-    if (
-      input.assignment.branch !== CommandRouteType.BINDA &&
-      input.assignment.branch !== CommandRouteType.DIRECTORATE
-    ) {
-      throw new ApiException(
-        'BRANCH_NOT_SUPPORTED',
-        'User provisioning only supports BINDA or DIRECTORATE unit type.',
-        422,
-      );
-    }
+    this.assertProvisionBranchForRole(authRole, input.assignment.branch);
     if (
       input.assignment.branch === CommandRouteType.BINDA &&
       requestedAreaScopeIds.length !== 1
@@ -209,6 +200,11 @@ export class UserProfileService {
       });
       authUserId = created.user.id;
       const provisionedUser = await this.prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: authUserId },
+          data: { emailVerified: true },
+        });
+
         const profile = await tx.userProfile.update({
           where: { authUserId },
           data: {
@@ -629,6 +625,7 @@ export class UserProfileService {
         'Selected role has no authentication mapping.',
         422,
       );
+    this.assertProvisionBranchForRole(authRole as AuthRole, input.branch);
     const areaScopeIds = input.areaScopeIds?.length
       ? [...new Set(input.areaScopeIds)]
       : [];
@@ -820,6 +817,8 @@ export class UserProfileService {
     authRole: AuthRole,
   ): AdministrativeLevel[] {
     switch (authRole) {
+      case 'executive':
+        return [AdministrativeLevel.COUNTRY];
       case 'regional_commander':
       case 'operational_intelligence_manager':
         return [AdministrativeLevel.PROVINCE];
@@ -829,6 +828,42 @@ export class UserProfileService {
         return [AdministrativeLevel.DISTRICT];
       default:
         return [];
+    }
+  }
+
+  private assertProvisionBranchForRole(
+    authRole: AuthRole,
+    branch: CommandRouteType,
+  ) {
+    if (authRole === 'executive') {
+      if (branch !== CommandRouteType.PUSAT) {
+        throw new ApiException(
+          'EXECUTIVE_BRANCH_REQUIRED',
+          'Executive user provisioning must use PUSAT unit type.',
+          422,
+        );
+      }
+
+      return;
+    }
+
+    if (branch === CommandRouteType.PUSAT) {
+      throw new ApiException(
+        'PUSAT_ROLE_NOT_SUPPORTED',
+        'PUSAT user provisioning is only supported for Executive role.',
+        422,
+      );
+    }
+
+    if (
+      branch !== CommandRouteType.BINDA &&
+      branch !== CommandRouteType.DIRECTORATE
+    ) {
+      throw new ApiException(
+        'BRANCH_NOT_SUPPORTED',
+        'User provisioning only supports PUSAT Executive, BINDA, or DIRECTORATE unit type.',
+        422,
+      );
     }
   }
 

@@ -1,4 +1,6 @@
 export type VerificationStatus =
+  | "IN_PROGRESS_BY_JARING"
+  | "NOT_SUBMITTED"
   | "WAITING_FIELD_OFFICER_VERIFICATION"
   | "NEEDS_FIELD_OFFICER_REVIEW"
   | "VERIFIED_BY_FIELD_OFFICER"
@@ -27,6 +29,8 @@ export type ReportMediaItem = {
   caption?: string | null;
   fileName?: string | null;
   mimeType?: string | null;
+  url?: string | null;
+  fileUrl?: string | null;
 };
 
 export type SubmittedMessageInfo = {
@@ -56,11 +60,47 @@ export type BaketInfo = {
   } | null;
 };
 
+export type ResolvedAreaDetail = {
+  id: string;
+  code?: string;
+  officialCode?: string | null;
+  name: string;
+  level?: string;
+  parent?: ResolvedAreaDetail | null;
+};
+
+export function formatFullAreaName(area?: ResolvedAreaDetail | null): string {
+  if (!area || !area.name) return "-";
+  const parts: string[] = [];
+  let current: ResolvedAreaDetail | null | undefined = area;
+  while (current && current.name) {
+    parts.push(current.name);
+    current = current.parent;
+  }
+  return parts.join(", ");
+}
+
 export type JaringReportSessionDetail = {
   id: string;
   reportSessionId: string;
   jaringId: string;
   referenceNumber?: string | null;
+  currentReportVersion?: number;
+  reportVersions?: Array<{
+    id?: string;
+    versionNumber: number;
+    amendmentType: string;
+    content?: string | null;
+    fileId?: string | null;
+    file?: {
+      id: string;
+      originalName?: string | null;
+      mimeType?: string | null;
+      fileType?: string | null;
+    } | null;
+    metadata?: Record<string, unknown> | null;
+    createdAt: string;
+  }>;
   status: string;
   currentState?: string | null;
   verificationStatus: VerificationStatus;
@@ -75,6 +115,10 @@ export type JaringReportSessionDetail = {
   expiresAt?: string | null;
   submittedAt?: string | null;
   closedAt?: string | null;
+  readAt?: string | null;
+  isRead?: boolean;
+  fieldOfficerReadAt?: string | null;
+  isReadByFieldOfficer?: boolean;
   createdAt: string;
   updatedAt?: string | null;
   timezone?: string | null;
@@ -82,18 +126,18 @@ export type JaringReportSessionDetail = {
   reportCategory?: ReportCategoryOption | null;
   urgency?: PriorityLevel | null;
   fieldOfficerNote?: string | null;
-  resolvedArea?: {
-    id: string;
-    code: string;
-    officialCode?: string | null;
-    name: string;
-    level: string;
-  } | null;
+  resolvedArea?: ResolvedAreaDetail | null;
   media?: ReportMediaItem[];
   submittedMessage?: SubmittedMessageInfo | null;
   baket?: BaketInfo | null;
   jaringAlias?: string | null;
   jaringCode?: string | null;
+  gaswilName?: string | null;
+  counts?: {
+    contentParts?: number;
+    media?: number;
+    amendments?: number;
+  } | null;
 };
 
 export type ReportHistoryEvent = {

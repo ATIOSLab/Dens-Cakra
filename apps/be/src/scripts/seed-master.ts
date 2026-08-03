@@ -1,9 +1,9 @@
+import { OrganizationType, PositionCode } from '../common/constants/legacy-operational-code.js';
 import {
   AdministrativeLevel,
   AreaScopeMode,
   IntegrationStatus,
   CommandRouteType,
-  PositionCode,
   RoleCode,
 } from '../generated/prisma/client.js';
 import { AUTH_ROLE_TO_DOMAIN_ROLE } from '../common/constants/auth-role.js';

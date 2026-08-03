@@ -81,6 +81,50 @@ type JaringIdentityConflict = {
   }>;
 };
 
+const areaSelectWithParents = {
+  id: true,
+  code: true,
+  officialCode: true,
+  name: true,
+  level: true,
+  parent: {
+    select: {
+      id: true,
+      code: true,
+      officialCode: true,
+      name: true,
+      level: true,
+      parent: {
+        select: {
+          id: true,
+          code: true,
+          officialCode: true,
+          name: true,
+          level: true,
+          parent: {
+            select: {
+              id: true,
+              code: true,
+              officialCode: true,
+              name: true,
+              level: true,
+              parent: {
+                select: {
+                  id: true,
+                  code: true,
+                  officialCode: true,
+                  name: true,
+                  level: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 const jaringReportSessionSelect = {
   id: true,
   jaringId: true,
@@ -90,6 +134,25 @@ const jaringReportSessionSelect = {
       code: true,
       aliasName: true,
       fullName: true,
+      caretakerAssignments: {
+        where: { isActive: true },
+        take: 1,
+        select: {
+          id: true,
+          fieldOfficerAssignment: {
+            select: {
+              id: true,
+              userProfile: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  username: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   },
   currentState: true,
@@ -109,6 +172,7 @@ const jaringReportSessionSelect = {
   expiresAt: true,
   submittedAt: true,
   closedAt: true,
+  readAt: true,
   createdAt: true,
   updatedAt: true,
   submittedMessage: {
@@ -122,13 +186,7 @@ const jaringReportSessionSelect = {
       receivedAt: true,
       category: { select: { id: true, code: true, name: true } },
       resolvedArea: {
-        select: {
-          id: true,
-          code: true,
-          officialCode: true,
-          name: true,
-          level: true,
-        },
+        select: areaSelectWithParents,
       },
       convertedBaketId: true,
       media: {
@@ -168,19 +226,34 @@ const jaringReportSessionSelect = {
               fieldOfficerNote: true,
               coverageValidationStatus: true,
               eventArea: {
-                select: {
-                  id: true,
-                  code: true,
-                  officialCode: true,
-                  name: true,
-                  level: true,
-                },
+                select: areaSelectWithParents,
               },
             },
           },
         },
       },
       _count: { select: { media: true, reportAmendments: true } },
+    },
+  },
+  amendments: {
+    orderBy: { versionNumber: 'asc' },
+    select: {
+      id: true,
+      versionNumber: true,
+      amendmentType: true,
+      content: true,
+      fileId: true,
+      metadata: true,
+      createdAt: true,
+      file: {
+        select: {
+          id: true,
+          originalName: true,
+          mimeType: true,
+          fileType: true,
+          lifecycleStatus: true,
+        },
+      },
     },
   },
   _count: {
@@ -598,6 +671,13 @@ export class JaringService {
     const longitude =
       session.longitude === null ? null : Number(session.longitude);
     const verificationStatus = this.jaringReportVerificationStatus(session);
+    const currentReportVersion = session.amendments?.at(-1)?.versionNumber ?? 1;
+
+    const activeCaretaker = session.jaring?.caretakerAssignments?.[0]?.fieldOfficerAssignment?.userProfile;
+    const gaswilName =
+      activeCaretaker?.fullName ??
+      activeCaretaker?.username ??
+      null;
 
     return {
       id: session.id,
@@ -609,8 +689,33 @@ export class JaringService {
         session.jaring?.code ??
         null,
       jaringCode: session.jaring?.code ?? null,
+      gaswilName,
       referenceNumber:
         session.referenceNumber ?? submittedMessage?.referenceNumber ?? null,
+      currentReportVersion,
+      reportVersions: [
+        {
+          versionNumber: 1,
+          amendmentType: 'ORIGINAL',
+          content: session.content ?? submittedMessage?.content ?? null,
+          fileId: null,
+          file: null,
+          createdAt:
+            session.submittedAt ??
+            submittedMessage?.receivedAt ??
+            session.createdAt,
+        },
+        ...(session.amendments ?? []).map((amendment) => ({
+          id: amendment.id,
+          versionNumber: amendment.versionNumber,
+          amendmentType: amendment.amendmentType,
+          content: amendment.content,
+          fileId: amendment.fileId,
+          file: amendment.file,
+          metadata: amendment.metadata,
+          createdAt: amendment.createdAt,
+        })),
+      ],
       status: session.status,
       currentState: session.currentState,
       verificationStatus,
@@ -636,6 +741,10 @@ export class JaringService {
       expiresAt: session.expiresAt,
       submittedAt: session.submittedAt,
       closedAt: session.closedAt,
+      readAt: session.readAt,
+      isRead: Boolean(session.readAt),
+      fieldOfficerReadAt: session.readAt,
+      isReadByFieldOfficer: Boolean(session.readAt),
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
       timezone: session.timezone,
@@ -663,7 +772,7 @@ export class JaringService {
           id: item.fileId,
           fileId: item.fileId,
           caption: item.caption ?? null,
-          fileName: item.file?.originalName ?? "berkas_lampiran",
+          fileName: item.file?.originalName ?? 'berkas_lampiran',
           mimeType: item.file?.mimeType ?? null,
         })) ?? [],
       submittedMessage: submittedMessage
@@ -1672,6 +1781,22 @@ export class JaringService {
   ) {
     await this.domainScope.assertJaring(context, id);
 
+    const targetJaring = await this.prisma.jaring.findUnique({
+      where: { id },
+      select: { registrationStatus: true },
+    });
+
+    if (
+      !targetJaring ||
+      targetJaring.registrationStatus !== JaringRegistrationStatus.APPROVED
+    ) {
+      throw new ApiException(
+        'JARING_NOT_VERIFIED',
+        'Laporan pembinaan hanya dapat dibuat untuk Jaring yang sudah terverifikasi (disetujui).',
+        422,
+      );
+    }
+
     const title = body.title.trim();
     const content = body.content.trim();
     if (!title || !content) {
@@ -1743,17 +1868,33 @@ export class JaringService {
     return this.serializeJaringCoachingReport(report);
   }
 
-  async allReports(
-    query: JaringReportQuery,
-    context: AuthorizationContext,
-  ) {
+  async allReports(query: JaringReportQuery, context: AuthorizationContext) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
     const jaringWhere = await this.domainScope.jaringWhere(context);
+    const fromDate = query.from ? new Date(query.from) : undefined;
+    const toDate = query.to ? new Date(query.to) : undefined;
+
+    const baseJaringWhere: Prisma.JaringWhereInput = {
+      ...jaringWhere,
+      ...(query.jaringId ? { id: query.jaringId } : {}),
+      ...(query.registrationStatus
+        ? { registrationStatus: query.registrationStatus }
+        : {}),
+    };
+
     const where: Prisma.WhatsAppReportSessionWhereInput = {
-      jaring: jaringWhere,
+      jaring: baseJaringWhere,
       ...(query.status ? { status: query.status } : {}),
+      ...(fromDate || toDate
+        ? {
+            submittedAt: {
+              ...(fromDate ? { gte: fromDate } : {}),
+              ...(toDate ? { lte: toDate } : {}),
+            },
+          }
+        : {}),
     };
 
     const [sessions, total, statusCounts] = await Promise.all([
@@ -1771,7 +1912,17 @@ export class JaringService {
       this.prisma.whatsAppReportSession.count({ where }),
       this.prisma.whatsAppReportSession.groupBy({
         by: ['status'],
-        where: { jaring: jaringWhere },
+        where: {
+          jaring: baseJaringWhere,
+          ...(fromDate || toDate
+            ? {
+                submittedAt: {
+                  ...(fromDate ? { gte: fromDate } : {}),
+                  ...(toDate ? { lte: toDate } : {}),
+                },
+              }
+            : {}),
+        },
         _count: { _all: true },
       }),
     ]);
@@ -1860,6 +2011,42 @@ export class JaringService {
     }
 
     await this.domainScope.assertJaring(context, session.jaringId);
+
+    return this.serializeJaringReportSession(session);
+  }
+
+  async markReportAsRead(id: string, context: AuthorizationContext) {
+    if (context.roleCode !== RoleCode.FIELD_OFFICER) {
+      throw new ApiException(
+        'JARING_REPORT_READ_FORBIDDEN',
+        'Hanya Field Officer yang dapat menandai laporan Jaring sebagai sudah dibaca petugas.',
+        403,
+      );
+    }
+
+    let session = await this.prisma.whatsAppReportSession.findUnique({
+      where: { id },
+      select: jaringReportSessionSelect,
+    });
+    if (!session) {
+      throw new ApiException(
+        'JARING_REPORT_NOT_FOUND',
+        'Laporan Jaring tidak ditemukan.',
+        404,
+      );
+    }
+
+    await this.domainScope.assertJaring(context, session.jaringId);
+
+    if (!session.readAt) {
+      const now = new Date();
+      await this.prisma.whatsAppReportSession.update({
+        where: { id },
+        data: { readAt: now },
+      });
+      session = { ...session, readAt: now };
+    }
+
     return this.serializeJaringReportSession(session);
   }
 

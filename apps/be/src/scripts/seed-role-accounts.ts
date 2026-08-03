@@ -1,15 +1,15 @@
-import { auth } from '../lib/auth.js';
+import { OrganizationType, PositionCode } from '../common/constants/legacy-operational-code.js';
+import {
+  auth } from '../lib/auth.js';
 import { env } from '../lib/env.js';
 import {
   SYSTEM_ROLE_CATALOG,
   SYSTEM_ROLES,
   type SystemRole,
-} from '../common/constants/system-role.js';
+  } from '../common/constants/system-role.js';
 import {
   AdministrativeLevel,
   CommandRouteType,
-  OrganizationType,
-  PositionCode,
   RoleCode,
   UserProfileStatus,
 } from '../generated/prisma/client.js';

@@ -6,19 +6,32 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BriefcaseBusiness,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   EyeOff,
   FileText,
+  LayoutGrid,
   Network,
+  Plus,
   RefreshCw,
+  ScrollText,
   ShieldCheck,
+  Table as TableIcon,
   UserRound,
   Users,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FieldOfficerJaring, FieldOfficerWorkspace } from "@/server/field-ops/types";
+import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { cn } from "@/lib/utils";
+import { JaringReportCardItem } from "@/app/(main)/dashboard/field-coordinator/verifikasi-jaring/verification-client";
+
 
 function formatDateOnly(value?: string | null) {
   if (!value) {
@@ -27,6 +40,16 @@ function formatDateOnly(value?: string | null) {
   return new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
   }).format(new Date(value));
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function statusTone(status: string) {
@@ -52,7 +75,7 @@ function operationalStatusLabel(jaring: FieldOfficerJaring) {
 }
 
 function registrationStatusLabel(status: FieldOfficerJaring["registrationStatus"]) {
-  if (status === "PENDING") return "MENUNGGU VERIFIKASI";
+  if (status === "PENDING") return "BELUM TERVERIFIKASI";
   if (status === "REJECTED") return "DITOLAK / REVISI";
   return "TERVERIFIKASI";
 }
@@ -123,6 +146,54 @@ export default function JaringDetailPage({ params }: PageProps) {
   const [reports, setReports] = React.useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = React.useState(false);
   const [reportsLoaded, setReportsLoaded] = React.useState(false);
+  const [expandedReportIds, setExpandedReportIds] = React.useState<Set<string>>(new Set());
+  const [reportsViewMode, setReportsViewMode] = React.useState<"card" | "table">("card");
+  const [reportsPage, setReportsPage] = React.useState(1);
+  const [reportsLimit, setReportsLimit] = React.useState(10);
+  const [coachingReports, setCoachingReports] = React.useState<any[]>([]);
+  const [coachingLoading, setCoachingLoading] = React.useState(false);
+  const [coachingLoaded, setCoachingLoaded] = React.useState(false);
+
+
+  const loadCoachingReports = React.useCallback(async () => {
+    setCoachingLoading(true);
+    try {
+      const res = await apiBrowserFetch<{ items?: any[] } | any[]>(`/jaring/${jaringId}/coaching-reports`);
+      const itemsList = Array.isArray(res) ? res : res?.items || [];
+      setCoachingReports(itemsList);
+      setCoachingLoaded(true);
+    } catch (err) {
+      console.error("Gagal memuat laporan pembinaan:", err);
+    } finally {
+      setCoachingLoading(false);
+    }
+  }, [jaringId]);
+
+  React.useEffect(() => {
+    if (activeTab === "coaching" && !coachingLoaded) {
+      void loadCoachingReports();
+    }
+  }, [activeTab, coachingLoaded, loadCoachingReports]);
+
+  const reportsTotalPages = Math.ceil(reports.length / reportsLimit) || 1;
+  const paginatedReports = React.useMemo(() => {
+    const start = (reportsPage - 1) * reportsLimit;
+    return reports.slice(start, start + reportsLimit);
+  }, [reports, reportsPage, reportsLimit]);
+  const reportsStartIndex = reports.length === 0 ? 0 : (reportsPage - 1) * reportsLimit + 1;
+  const reportsEndIndex = Math.min(reportsPage * reportsLimit, reports.length);
+
+  const toggleReportExpand = (id: string) => {
+    setExpandedReportIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   React.useEffect(() => {
     if (activeTab === "reports" && !reportsLoaded) {
@@ -130,16 +201,14 @@ export default function JaringDetailPage({ params }: PageProps) {
       async function loadReports() {
         setReportsLoading(true);
         try {
-          const res = await fetch(`/api/jaring/${jaringId}/reports`);
-          if (res.ok) {
-            const data = await res.json();
-            if (!cancelled) {
-              setReports(Array.isArray(data) ? data : data?.items || []);
-              setReportsLoaded(true);
-            }
+          const res = await apiBrowserFetch<{ items?: any[] } | any[]>(`/jaring/${jaringId}/reports`);
+          if (!cancelled) {
+            const itemsList = Array.isArray(res) ? res : res?.items || [];
+            setReports(itemsList);
+            setReportsLoaded(true);
           }
-        } catch {
-          // ignore
+        } catch (err) {
+          console.error("Gagal memuat laporan jaring:", err);
         } finally {
           if (!cancelled) setReportsLoading(false);
         }
@@ -179,6 +248,12 @@ export default function JaringDetailPage({ params }: PageProps) {
     if (!workspace) return null;
     return workspace.jaring.find((item) => item.id === jaringId) ?? null;
   }, [workspace, jaringId]);
+
+  const gaswilName = React.useMemo(() => {
+    if (!jaring) return "-";
+    const caretaker = (jaring as any).caretakerAssignments?.[0]?.fieldOfficerAssignment?.userProfile;
+    return (jaring as any).fieldOfficerName || caretaker?.fullName || caretaker?.username || workspace?.profile?.name || "-";
+  }, [jaring, workspace]);
 
   if (isLoading) {
     return (
@@ -245,7 +320,7 @@ export default function JaringDetailPage({ params }: PageProps) {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          INFORMASI JARING
+          PROFIL
         </button>
         <button
           type="button"
@@ -267,7 +342,7 @@ export default function JaringDetailPage({ params }: PageProps) {
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          LAPORAN PEMBINAAN
+          HISTORY PEMBINAAN
         </button>
       </div>
 
@@ -280,7 +355,7 @@ export default function JaringDetailPage({ params }: PageProps) {
                 <div className="flex items-center gap-3 w-full pb-2.5 border-b dark:border-blue-400/12 border-slate-200">
                   <Network className="size-4.5 stroke-[1.5] dark:text-[#38BDF8] text-sky-600 shrink-0" />
                   <h3 className="text-[14px] font-bold dark:text-[#F8FAFC] text-slate-800 uppercase tracking-[0.08em] shrink-0">
-                    Profil Operasional
+                    Profil & Data Pribadi
                   </h3>
                   <div className="h-[1px] flex-1 bg-gradient-to-r dark:from-blue-400/12 dark:to-transparent from-slate-200 to-transparent" />
                 </div>
@@ -316,6 +391,7 @@ export default function JaringDetailPage({ params }: PageProps) {
                     </span>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                   <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
                     Nama Sandi / Alias
@@ -324,6 +400,52 @@ export default function JaringDetailPage({ params }: PageProps) {
                     {jaring.aliasName}
                   </span>
                 </div>
+
+                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                    Nama Lengkap
+                  </span>
+                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                    {jaring.fullName || "-"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                    NIK / KTP
+                  </span>
+                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">
+                    {jaring.nationalIdNumber || "-"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                    Gaswil
+                  </span>
+                  <span className="dark:text-emerald-400 text-emerald-700 font-semibold text-[15px]">
+                    {gaswilName}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                    WhatsApp
+                  </span>
+                  {jaring.whatsappNumber ? (
+                    <a
+                      href={`https://wa.me/${jaring.whatsappNumber.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="dark:text-[#38BDF8] text-sky-600 font-semibold text-[15px] font-mono hover:underline inline-flex items-center gap-1.5"
+                    >
+                      {jaring.whatsappNumber}
+                    </a>
+                  ) : (
+                    <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">-</span>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                   <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
                     PIN Registrasi
@@ -341,42 +463,64 @@ export default function JaringDetailPage({ params }: PageProps) {
                     </button>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                   <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
-                    WhatsApp
-                  </span>
-                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">
-                    {jaring.whatsappNumber}
-                  </span>
-                </div>
-                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
-                    Pekerjaan
+                    Jenis Kelamin
                   </span>
                   <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
-                    {jaring.occupationName || "-"}
+                    {jaring.gender === "MALE" ? "Laki-laki" : jaring.gender === "FEMALE" ? "Perempuan" : "-"}
                   </span>
                 </div>
+
+                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                    Tempat Lahir
+                  </span>
+                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                    {jaring.birthPlace || "-"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
+                    Tanggal Lahir
+                  </span>
+                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
+                    {formatDateOnly(jaring.birthDate)}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-start">
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Alamat</span>
+                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] whitespace-pre-wrap">
+                    {jaring.address || "-"}
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                   <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
                     Kelurahan/Desa
                   </span>
                   <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{villageNames}</span>
                 </div>
+
                 <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                   <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
                     Kecamatan
                   </span>
                   <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">{districtNames}</span>
                 </div>
+
                 <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Status</span>
+                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Kinerja</span>
                   <span
                     className={`w-fit border rounded-[4px] px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${statusTone(operationalStatusLabel(jaring))}`}
                   >
                     {operationalStatusLabel(jaring)}
                   </span>
                 </div>
+
                 <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
                   <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
                     Status Verifikasi
@@ -387,6 +531,7 @@ export default function JaringDetailPage({ params }: PageProps) {
                     {registrationStatusLabel(jaring.registrationStatus)}
                   </span>
                 </div>
+
                 {jaring.registrationStatus === "REJECTED" && jaring.rejectionReason ? (
                   <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-start">
                     <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
@@ -397,66 +542,6 @@ export default function JaringDetailPage({ params }: PageProps) {
                     </p>
                   </div>
                 ) : null}
-              </CardContent>
-            </Card>
-
-            <Card className="border dark:border-blue-400/12 border-slate-200 dark:bg-[#111827] bg-white rounded-[10px] shadow-sm border-t-2 dark:border-t-[#38BDF8]/40 border-t-sky-500/40 hover:-translate-y-[2px] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-md transition-all duration-150 ease-out overflow-hidden">
-              <CardHeader className="pb-3 pt-4 px-5">
-                <div className="flex items-center gap-3 w-full pb-2.5 border-b dark:border-blue-400/12 border-slate-200">
-                  <UserRound className="size-4.5 stroke-[1.5] dark:text-[#38BDF8] text-sky-600 shrink-0" />
-                  <h3 className="text-[14px] font-bold dark:text-[#F8FAFC] text-slate-800 uppercase tracking-[0.08em] shrink-0">
-                    Data Pribadi
-                  </h3>
-                  <div className="h-[1px] flex-1 bg-gradient-to-r dark:from-blue-400/12 dark:to-transparent from-slate-200 to-transparent" />
-                </div>
-              </CardHeader>
-              <CardContent className="px-5 pb-4 pt-1 divide-y dark:divide-blue-400/8 divide-slate-100">
-                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
-                    Nama Lengkap
-                  </span>
-                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
-                    {jaring.fullName || "-"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
-                    NIK / KTP
-                  </span>
-                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] font-mono">
-                    {jaring.nationalIdNumber || "-"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-start">
-                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">Alamat</span>
-                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px] whitespace-pre-wrap">
-                    {jaring.address || "-"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
-                    Tempat Lahir
-                  </span>
-                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
-                    {jaring.birthPlace || "-"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
-                    Tanggal Lahir
-                  </span>
-                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
-                    {formatDateOnly(jaring.birthDate)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-[160px_1fr] gap-4 py-3.5 items-center">
-                  <span className="dark:text-[#94A3B8] text-slate-500 text-[13px] font-medium tracking-wide">
-                    Jenis Kelamin
-                  </span>
-                  <span className="dark:text-[#F8FAFC] text-slate-900 font-semibold text-[15px]">
-                    {jaring.gender === "MALE" ? "Laki-laki" : jaring.gender === "FEMALE" ? "Perempuan" : "-"}
-                  </span>
-                </div>
               </CardContent>
             </Card>
 
@@ -550,45 +635,182 @@ export default function JaringDetailPage({ params }: PageProps) {
 
         {activeTab === "reports" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            {/* Header Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b dark:border-blue-400/12 border-slate-200 pb-3">
               <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
                 <FileText className="size-4 text-sky-600 dark:text-[#38BDF8]" />
                 Daftar Laporan Jaring ({reports.length})
               </h3>
+
+              <div className="flex items-center gap-3">
+                {/* Row limit select */}
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                  <span>Tampilkan:</span>
+                  <select
+                    value={reportsLimit}
+                    onChange={(e) => {
+                      setReportsLimit(Number(e.target.value));
+                      setReportsPage(1);
+                    }}
+                    className="h-7 rounded border border-slate-200 bg-white dark:bg-slate-900 px-2 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-blue-400/12 cursor-pointer"
+                  >
+                    <option value={5}>5 baris</option>
+                    <option value={10}>10 baris</option>
+                    <option value={20}>20 baris</option>
+                    <option value={50}>50 baris</option>
+                  </select>
+                </div>
+
+                {/* View mode toggle */}
+                <div className="flex items-center rounded-md border border-slate-200 bg-slate-100/80 p-0.5 dark:border-blue-400/12 dark:bg-slate-900">
+                  <button
+                    type="button"
+                    onClick={() => setReportsViewMode("card")}
+                    title="Tampilan Kartu"
+                    className={cn(
+                      "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer",
+                      reportsViewMode === "card"
+                        ? "bg-white text-sky-600 shadow-sm dark:bg-[#111827] dark:text-[#38BDF8]"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <LayoutGrid className="size-3.5" />
+                    <span>Kartu</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReportsViewMode("table")}
+                    title="Tampilan Tabel"
+                    className={cn(
+                      "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer",
+                      reportsViewMode === "table"
+                        ? "bg-white text-sky-600 shadow-sm dark:bg-[#111827] dark:text-[#38BDF8]"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <TableIcon className="size-3.5" />
+                    <span>Tabel</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
+            {/* Main Content */}
             {reportsLoading ? (
               <div className="flex py-12 justify-center items-center gap-2 text-xs text-muted-foreground font-mono">
                 <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-[#38BDF8]" />
                 Memuat laporan jaring...
               </div>
             ) : reports.length > 0 ? (
-              <div className="space-y-3">
-                {reports.map((rep) => (
-                  <div
-                    key={rep.id}
-                    className="rounded-lg border border-slate-200 bg-white p-4 space-y-2 dark:border-blue-400/12 dark:bg-[#111827]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-mono text-xs text-sky-600 dark:text-[#38BDF8] font-bold">
-                          {rep.referenceNumber || rep.submittedMessage?.referenceNumber || rep.id.slice(0, 8)}
-                        </div>
-                        <h4 className="font-semibold text-sm text-foreground mt-0.5">
-                          {rep.title || rep.submittedMessage?.title || "Laporan Jaring"}
-                        </h4>
-                      </div>
-                      <span className="text-[11px] font-mono border rounded px-2 py-0.5 bg-slate-100 dark:bg-slate-800">
-                        {rep.status || rep.currentState || "SUBMITTED"}
-                      </span>
-                    </div>
-                    {(rep.content || rep.submittedMessage?.content) && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {rep.content || rep.submittedMessage?.content}
-                      </p>
-                    )}
+              <div className="space-y-4">
+                {reportsViewMode === "card" ? (
+                  <div className="space-y-3">
+                    {paginatedReports.map((rep) => (
+                      <JaringReportCardItem
+                        key={rep.id}
+                        rep={rep}
+                        jaringId={jaringId}
+                        isExpanded={expandedReportIds.has(rep.id)}
+                        onToggleExpand={() => toggleReportExpand(rep.id)}
+                        detailHref={`/dashboard/field-officer/laporan-jaring/${rep.id}`}
+                      />
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="rounded-lg border border-slate-200 bg-white dark:border-blue-400/12 dark:bg-[#111827] overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-slate-50 dark:bg-slate-900/60">
+                        <TableRow className="border-b border-slate-200 dark:border-blue-400/12">
+                          <TableHead className="text-center font-bold text-xs uppercase tracking-wider w-[50px]">No</TableHead>
+                          <TableHead className="text-center font-bold text-xs uppercase tracking-wider w-[160px]">No. Referensi</TableHead>
+                          <TableHead className="text-center font-bold text-xs uppercase tracking-wider">Judul & Isi Laporan</TableHead>
+                          <TableHead className="text-center font-bold text-xs uppercase tracking-wider w-[140px]">Status</TableHead>
+                          <TableHead className="text-center font-bold text-xs uppercase tracking-wider w-[160px]">Waktu Dikirim</TableHead>
+                          <TableHead className="text-center font-bold text-xs uppercase tracking-wider w-[100px]">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y divide-slate-100 dark:divide-blue-400/8">
+                        {paginatedReports.map((rep, idx) => {
+                          const refNum = rep.referenceNumber || rep.submittedMessage?.referenceNumber || rep.id.slice(0, 8);
+                          const title = rep.title || rep.submittedMessage?.title || "Laporan Jaring";
+                          const content = rep.content || rep.submittedMessage?.content || "";
+                          const status = rep.status || rep.currentState || "SUBMITTED";
+
+                          return (
+                            <TableRow key={rep.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/40 transition-colors">
+                              <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                                {reportsStartIndex + idx}
+                              </TableCell>
+                              <TableCell className="text-center font-mono text-xs font-bold text-sky-600 dark:text-[#38BDF8]">
+                                {refNum}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="font-semibold text-xs text-foreground">{title}</div>
+                                {content && <div className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{content}</div>}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className="text-[10px] font-mono mx-auto">
+                                  {status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                                {formatDateTime(rep.submittedAt || rep.incidentAt || rep.createdAt)}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2.5 text-xs font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
+                                >
+                                  <Link href={`/dashboard/field-officer/laporan-jaring/${rep.id}`}>
+                                    <Eye className="size-3.5 mr-1" />
+                                    Detail
+                                  </Link>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Pagination Footer */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 text-xs text-muted-foreground border-t border-slate-200 dark:border-blue-400/12">
+                  <div>
+                    Menampilkan <span className="font-medium text-foreground">{reportsStartIndex}</span> - <span className="font-medium text-foreground">{reportsEndIndex}</span> dari <span className="font-medium text-foreground">{reports.length}</span> laporan
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={reportsPage <= 1}
+                      onClick={() => setReportsPage((p) => Math.max(1, p - 1))}
+                      className="h-8 gap-1 rounded-md text-xs font-medium"
+                    >
+                      <ChevronLeft className="size-3.5" />
+                      Sebelumnya
+                    </Button>
+
+                    <span className="font-mono text-xs px-2">
+                      Halaman <strong className="text-foreground">{reportsPage}</strong> dari <strong className="text-foreground">{reportsTotalPages}</strong>
+                    </span>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={reportsPage >= reportsTotalPages}
+                      onClick={() => setReportsPage((p) => Math.min(reportsTotalPages, p + 1))}
+                      className="h-8 gap-1 rounded-md text-xs font-medium"
+                    >
+                      Selanjutnya
+                      <ChevronRight className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
@@ -601,15 +823,104 @@ export default function JaringDetailPage({ params }: PageProps) {
         )}
 
         {activeTab === "coaching" && (
-          <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
-            <Users className="size-8 text-muted-foreground mx-auto" />
-            <div className="font-semibold text-sm text-foreground">Belum Ada Laporan Pembinaan</div>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              Histori laporan pembinaan Jaring belum tersedia. Data akan muncul setelah fitur pembinaan dihubungkan dengan backend.
-            </p>
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <ScrollText className="h-4 w-4 text-primary" />
+                  Histori Laporan Pembinaan ({coachingReports.length})
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Daftar laporan pengarahan dan bimbingan yang telah dicatat untuk Jaring ini.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void loadCoachingReports()}
+                  disabled={coachingLoading}
+                  className="h-8 text-xs gap-1"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", coachingLoading && "animate-spin")} />
+                  Refresh
+                </Button>
+                {jaring.registrationStatus === "APPROVED" && (
+                  <Link href={`/dashboard/field-officer/laporan-pembinaan/baru?jaringId=${jaringId}`}>
+                    <Button size="sm" className="h-8 text-xs gap-1">
+                      <Plus className="h-3.5 w-3.5" />
+                      Buat Laporan Pembinaan
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {coachingLoading ? (
+              <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-card/50">
+                <RefreshCw className="h-6 w-6 text-primary animate-spin mb-2" />
+                <p className="text-xs text-muted-foreground">Memuat data laporan pembinaan...</p>
+              </div>
+            ) : coachingReports.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {coachingReports.map((report: any) => (
+                  <Card key={report.id} className="border border-border/70 shadow-xs flex flex-col justify-between">
+                    <CardHeader className="p-3.5 pb-2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {formatDateTime(report.reportedAt)}
+                        </span>
+                        <span className="truncate max-w-[140px]">
+                          FO: {report.fieldOfficer?.userProfile?.fullName || "Field Officer"}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">{report.title}</h4>
+                    </CardHeader>
+                    <CardContent className="p-3.5 pt-0 space-y-2.5">
+                      <p className="text-xs text-muted-foreground line-clamp-3 bg-muted/30 p-2.5 rounded border border-border/40 leading-relaxed">
+                        {report.content}
+                      </p>
+                      <div className="flex justify-end pt-1">
+                        <Link href={`/dashboard/field-officer/laporan-pembinaan/${jaringId}/${report.id}`}>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary gap-1">
+                            Lihat Detail &rarr;
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-3">
+                <ScrollText className="size-8 text-muted-foreground/50 mx-auto" />
+                <div>
+                  <div className="font-semibold text-sm text-foreground">Belum Ada Laporan Pembinaan</div>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+                    Jaring ini belum memiliki catatan laporan pembinaan. Tekan tombol di bawah untuk membuat laporan baru.
+                  </p>
+                </div>
+                {jaring.registrationStatus === "APPROVED" ? (
+                  <Link href={`/dashboard/field-officer/laporan-pembinaan/baru?jaringId=${jaringId}`}>
+                    <Button size="sm" className="h-8 text-xs gap-1">
+                      <Plus className="h-3.5 w-3.5" />
+                      Buat Laporan Pembinaan Sekarang
+                    </Button>
+                  </Link>
+                ) : (
+                  <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 p-2 rounded border border-amber-200 dark:border-amber-800/40 inline-block">
+                    Jaring harus berstatus terverifikasi (disetujui) untuk dapat menerima laporan pembinaan.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
+
+
 
       {jaring.profilePhotoUrl ? (
         <Dialog open={photoPreviewOpen} onOpenChange={setPhotoPreviewOpen}>

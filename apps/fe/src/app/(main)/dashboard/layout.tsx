@@ -17,6 +17,7 @@ import { NotificationsMenu } from "./_components/sidebar/notifications-menu";
 import { RoleWorkspaceProvider } from "./_components/sidebar/role-workspace-provider";
 import { SearchDialog } from "./_components/sidebar/search-dialog";
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher";
+import { UserAreaBadge } from "./_components/sidebar/user-area-badge";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const principal = await requireSession();
@@ -69,6 +70,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
                   <SearchDialog />
                 </div>
                 <div className="flex items-center gap-2">
+                  <UserAreaBadge />
                   <ClientNetworkBadge />
                   <LayoutControls />
                   <NotificationsMenu />

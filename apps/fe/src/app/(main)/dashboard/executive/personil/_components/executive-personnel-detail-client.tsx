@@ -156,18 +156,6 @@ function TacticalBackground() {
       {/* 4. Radial Ambient Gradients */}
       <div className="absolute -top-[30%] -left-[10%] w-[60%] h-[70%] rounded-full bg-[var(--dc-primary)]/4 dark:bg-[var(--dc-primary)]/5 blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-[20%] -right-[5%] w-[50%] h-[60%] rounded-full bg-[var(--dc-success)]/3 blur-[120px] pointer-events-none" />
-
-      {/* 5. Animated Scanning Line */}
-      <motion.div
-        className="absolute left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[var(--dc-primary)]/20 to-transparent shadow-[0_0_10px_color-mix(in_srgb,var(--dc-primary)_30%,transparent)]"
-        initial={{ top: "-5%" }}
-        animate={{ top: "105%" }}
-        transition={{
-          duration: 9,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "linear",
-        }}
-      />
     </div>
   );
 }

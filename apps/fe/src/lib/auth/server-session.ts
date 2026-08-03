@@ -128,10 +128,10 @@ export async function requireSession(loginRedirect = "/auth/login"): Promise<Ses
   return principal;
 }
 
-export async function requireRole(role: SystemRole): Promise<SessionPrincipal> {
+export async function requireRole(...roles: SystemRole[]): Promise<SessionPrincipal> {
   const principal = await requireSession();
 
-  if (principal.role !== role) {
+  if (!roles.includes(principal.role)) {
     redirect("/unauthorized");
   }
 

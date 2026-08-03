@@ -245,6 +245,122 @@ describe('WhatsappBotRuntimeService report intake', () => {
     });
   });
 
+  it('membaca id pilihan Native Flow single_select sebagai input FSM', () => {
+    const { service } = createServiceForUnknownSender();
+    const extractText = (
+      service as unknown as {
+        extractText: (message: unknown) => string;
+      }
+    ).extractText.bind(service);
+
+    expect(
+      extractText({
+        interactiveResponseMessage: {
+          nativeFlowResponseMessage: {
+            name: 'single_select',
+            paramsJson: JSON.stringify({ id: 'report_review_edit_title' }),
+          },
+        },
+      }),
+    ).toBe('report_review_edit_title');
+  });
+
+  it('mengirim daftar tindakan melalui Native Flow single_select', async () => {
+    const { service } = createServiceForUnknownSender();
+    const relayMessage = jest.fn<
+      (jid: string, message: unknown, options: unknown) => Promise<string>
+    >(() => Promise.resolve('message-id'));
+    const sendNativeFlowSingleSelect = (
+      service as unknown as {
+        sendNativeFlowSingleSelect: (
+          socket: unknown,
+          remoteJid: string,
+          reply: Record<string, unknown>,
+        ) => Promise<void>;
+      }
+    ).sendNativeFlowSingleSelect.bind(service);
+
+    await sendNativeFlowSingleSelect(
+      {
+        relayMessage,
+        user: { id: '6280000000000:1@s.whatsapp.net' },
+      },
+      '6281234567890@s.whatsapp.net',
+      {
+        kind: 'native_flow_single_select',
+        body: 'Ringkasan informasi',
+        footer: 'Pilih satu tindakan.',
+        buttonTitle: 'Pilih Tindakan',
+        sections: [
+          {
+            title: 'Tindakan Informasi',
+            rows: [
+              { id: 'report_review_send', title: 'Kirim Informasi' },
+              { id: 'report_review_cancel', title: 'Batalkan' },
+            ],
+          },
+        ],
+      },
+    );
+
+    const relayed = relayMessage.mock.calls[0]?.[1] as {
+      viewOnceMessage?: unknown;
+      documentWithCaptionMessage?: {
+        message?: {
+          interactiveMessage?: {
+            nativeFlowMessage?: {
+              buttons?: Array<{
+                name?: string;
+                buttonParamsJson?: string;
+              }>;
+              messageParamsJson?: string;
+              messageVersion?: number;
+            };
+          };
+        };
+      };
+    };
+    expect(relayed.viewOnceMessage).toBeNull();
+    const nativeFlow =
+      relayed.documentWithCaptionMessage?.message?.interactiveMessage
+        ?.nativeFlowMessage;
+    const button = nativeFlow?.buttons?.[0];
+    expect(button?.name).toBe('single_select');
+    expect(nativeFlow?.messageParamsJson).toBe('{}');
+    expect(nativeFlow?.messageVersion).toBe(1);
+    expect(JSON.parse(button?.buttonParamsJson ?? '{}')).toMatchObject({
+      title: 'Pilih Tindakan',
+      sections: [
+        {
+          rows: [
+            { id: 'report_review_send', title: 'Kirim Informasi' },
+            { id: 'report_review_cancel', title: 'Batalkan' },
+          ],
+        },
+      ],
+    });
+    expect(relayMessage.mock.calls[0]?.[2]).toMatchObject({
+      additionalNodes: [
+        {
+          tag: 'biz',
+          attrs: {},
+          content: [
+            {
+              tag: 'interactive',
+              attrs: { type: 'native_flow', v: '1' },
+              content: [
+                {
+                  tag: 'native_flow',
+                  attrs: { v: '9', name: 'mixed' },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('mengabaikan chat biasa sebelum masuk pemroses inbox', async () => {
     const { service, sendMessage } = createServiceForUnknownSender();
     const handleBotInteraction = (

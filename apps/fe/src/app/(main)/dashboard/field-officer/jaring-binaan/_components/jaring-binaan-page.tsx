@@ -3,7 +3,7 @@ import { DensModulePage } from "@/app/(main)/dashboard/_components/dens-module-p
 export function JaringBinaanPage() {
   return (
     <DensModulePage
-      title="Jaring Binaan"
+      title="Daftar Jaring"
       role="Petugas Lapangan"
       description="Halaman ini disiapkan untuk mendaftarkan, mengelola, menonaktifkan, menghapus, dan memindahkan pembinaan Jaring."
       highlights={[

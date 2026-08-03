@@ -157,6 +157,12 @@ export class JaringReportQuery {
   @IsOptional()
   @IsEnum(WhatsAppReportSessionStatus)
   status?: WhatsAppReportSessionStatus;
+  @IsOptional() @IsUUID() jaringId?: string;
+  @IsOptional()
+  @IsEnum(JaringRegistrationStatus)
+  registrationStatus?: JaringRegistrationStatus;
+  @IsOptional() @IsDateString() from?: string;
+  @IsOptional() @IsDateString() to?: string;
 }
 
 export class JaringCoachingReportQuery {

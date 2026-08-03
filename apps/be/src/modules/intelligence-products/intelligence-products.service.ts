@@ -3835,11 +3835,7 @@ export class IntelligenceProductsService {
         }),
         this.prisma.task.count({
           where: {
-            ownerAssignment: {
-              ancestorLinks: {
-                some: { ancestorId: context.primaryAssignmentId },
-              },
-            },
+            ownerAssignmentId: context.primaryAssignmentId,
             deletedAt: null,
             ...this.buildCommonDateWhere('createdAt', query.from, query.to),
           },
@@ -3883,11 +3879,7 @@ export class IntelligenceProductsService {
         this.prisma.task.groupBy({
           by: ['status'],
           where: {
-            ownerAssignment: {
-              ancestorLinks: {
-                some: { ancestorId: context.primaryAssignmentId },
-              },
-            },
+            ownerAssignmentId: context.primaryAssignmentId,
             deletedAt: null,
             ...this.buildCommonDateWhere('createdAt', query.from, query.to),
           },

@@ -132,6 +132,9 @@ export class JaringController {
       'admin_system',
       'field_officer',
       'operational_intelligence_manager',
+      'field_coordinator',
+      'regional_commander',
+      'executive',
     ],
   })
   async listReportCategories(@Query() query: ReportCategoryQuery) {
@@ -482,6 +485,20 @@ export class JaringController {
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(await this.jaringService.report(id, context));
+  }
+
+  @Patch('reports/:reportSessionId/read')
+  @ApiContract({
+    operationId: 'apiJar016b',
+    contractId: 'API-JAR-016B',
+    summary: 'Tandai laporan Jaring sebagai sudah dibaca Field Officer',
+    roles: ['field_officer'],
+  })
+  async markReportAsRead(
+    @Param('reportSessionId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.jaringService.markReportAsRead(id, context));
   }
 
   @Post('reports/:reportSessionId/verify')

@@ -44,6 +44,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
 
+import { type CreateUserFormValues, createUserSchema } from "./pengguna-schemas";
 import {
   type AreaSearchResult,
   formatDateTime,
@@ -56,19 +57,20 @@ import {
   toIsoFromLocalValue,
   type UserProvisionResponse,
 } from "./pengguna-types";
-import { type CreateUserFormValues, createUserSchema } from "./pengguna-schemas";
 
 type ProvisionRoleCode = Extract<
   RoleCode,
-  "REGIONAL_COMMANDER" | "OPERATIONAL_INTELLIGENCE_MANAGER" | "FIELD_COORDINATOR" | "FIELD_OFFICER"
+  "EXECUTIVE" | "REGIONAL_COMMANDER" | "OPERATIONAL_INTELLIGENCE_MANAGER" | "FIELD_COORDINATOR" | "FIELD_OFFICER"
 >;
-type BranchValue = "BINDA" | "DIRECTORATE";
-type AreaLevel = "PROVINCE" | "REGENCY" | "CITY" | "DISTRICT";
+type BranchValue = "PUSAT" | "BINDA" | "DIRECTORATE";
+type AreaLevel = "COUNTRY" | "PROVINCE" | "REGENCY" | "CITY" | "DISTRICT";
 
-const ROLE_AREA_CONFIG: Record<
-  ProvisionRoleCode,
-  { label: string; levels: AreaLevel[]; scopeLabel: string }
-> = {
+const ROLE_AREA_CONFIG: Record<ProvisionRoleCode, { label: string; levels: AreaLevel[]; scopeLabel: string }> = {
+  EXECUTIVE: {
+    label: "Eksekutif",
+    levels: ["COUNTRY"],
+    scopeLabel: "Nasional",
+  },
   REGIONAL_COMMANDER: {
     label: "Komandan Regional",
     levels: ["PROVINCE"],
@@ -92,28 +94,72 @@ const ROLE_AREA_CONFIG: Record<
 };
 
 const BRANCH_OPTIONS: Array<{ value: BranchValue; label: string }> = [
+  { value: "PUSAT", label: "Pusat" },
   { value: "BINDA", label: "Binda" },
   { value: "DIRECTORATE", label: "Direktorat" },
 ];
 
 const AREA_LEVEL_LABELS: Record<AreaLevel, string> = {
+  COUNTRY: "Nasional",
   PROVINCE: "Provinsi",
   REGENCY: "Kabupaten",
   CITY: "Kota",
   DISTRICT: "Kecamatan",
 };
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_PATTERN.test(value.trim());
+}
+
+function normalizeAreaOption(area: AreaSearchResult) {
+  const id = typeof area.id === "string" ? area.id.trim() : "";
+  if (!isUuid(id)) {
+    return null;
+  }
+
+  return {
+    ...area,
+    id,
+  };
+}
+
+function normalizeAreaScopeIds(areaScopeIds: string[]) {
+  const normalizedIds: string[] = [];
+  for (const areaId of areaScopeIds) {
+    const id = areaId.trim();
+    if (!isUuid(id) || normalizedIds.includes(id)) {
+      continue;
+    }
+    normalizedIds.push(id);
+  }
+
+  return normalizedIds;
+}
 
 function dedupeAreas(items: AreaSearchResult[]) {
   const areas = new Map<string, AreaSearchResult>();
   for (const item of items) {
-    if (!areas.has(item.id)) {
-      areas.set(item.id, item);
+    const area = normalizeAreaOption(item);
+    if (area && !areas.has(area.id)) {
+      areas.set(area.id, area);
     }
   }
   return [...areas.values()].sort((left, right) => {
     const levelDiff = left.level.localeCompare(right.level);
     return levelDiff !== 0 ? levelDiff : left.name.localeCompare(right.name);
   });
+}
+
+function getProvisionRoleOptions(branch: BranchValue) {
+  const allowedRoleCodes: ProvisionRoleCode[] =
+    branch === "PUSAT"
+      ? ["EXECUTIVE"]
+      : ["REGIONAL_COMMANDER", "OPERATIONAL_INTELLIGENCE_MANAGER", "FIELD_COORDINATOR", "FIELD_OFFICER"];
+
+  return ROLE_CODE_OPTIONS.filter((option): option is { value: ProvisionRoleCode; label: string } =>
+    allowedRoleCodes.includes(option.value as ProvisionRoleCode),
+  );
 }
 
 export function PenggunaCreateClient() {
@@ -148,6 +194,7 @@ export function PenggunaCreateClient() {
   const roleConfig = ROLE_AREA_CONFIG[roleCode];
   const selectedAreaIds = form.watch("areaScopeIds") ?? [];
   const branchLabel = BRANCH_OPTIONS.find((option) => option.value === branch)?.label ?? branch;
+  const roleOptions = getProvisionRoleOptions(branch);
 
   useEffect(() => {
     form.setValue("branch", branch, { shouldDirty: true, shouldValidate: Boolean(form.formState.errors.branch) });
@@ -164,7 +211,8 @@ export function PenggunaCreateClient() {
 
     async function loadAreas() {
       const keyword = areaQuery.trim();
-      if (keyword.length < 2) {
+      const isNationalScope = roleConfig.levels.includes("COUNTRY");
+      if (!isNationalScope && keyword.length < 2) {
         setAreaOptions([]);
         setAreasError("");
         return;
@@ -192,6 +240,17 @@ export function PenggunaCreateClient() {
           const merged = dedupeAreas(responses.flat());
           setAreaOptions(merged);
           setAreasError(merged.length ? "" : `Tidak ada ${roleConfig.scopeLabel.toLowerCase()} yang cocok.`);
+          if (isNationalScope) {
+            const nationalArea =
+              merged.find((area) => area.code === "IDN" || area.name.toLowerCase().includes("indonesia")) ?? merged[0];
+            if (nationalArea) {
+              setSelectedAreas([nationalArea]);
+              form.setValue("areaScopeIds", [nationalArea.id], {
+                shouldDirty: true,
+                shouldValidate: Boolean(form.formState.errors.areaScopeIds),
+              });
+            }
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -205,25 +264,53 @@ export function PenggunaCreateClient() {
       }
     }
 
-    loadAreas();
+    void loadAreas();
 
     return () => {
       cancelled = true;
     };
-  }, [areaQuery, roleConfig.levels, roleConfig.scopeLabel]);
+  }, [areaQuery, form, roleConfig.levels, roleConfig.scopeLabel]);
+
+  function handleBranchChange(nextBranch: BranchValue) {
+    setBranch(nextBranch);
+    if (nextBranch === "PUSAT") {
+      setRoleCode("EXECUTIVE");
+    } else if (roleCode === "EXECUTIVE") {
+      setRoleCode("REGIONAL_COMMANDER");
+    }
+  }
+
+  function handleRoleChange(nextRoleCode: ProvisionRoleCode) {
+    setRoleCode(nextRoleCode);
+    if (nextRoleCode === "EXECUTIVE") {
+      setBranch("PUSAT");
+    } else if (branch === "PUSAT") {
+      setBranch("BINDA");
+    }
+  }
 
   function toggleArea(area: AreaSearchResult) {
-    const nextAreas =
-      branch === "BINDA"
-        ? selectedAreaIds[0] === area.id
-          ? []
-          : [area]
-        : selectedAreaIds.includes(area.id)
-          ? selectedAreas.filter((item) => item.id !== area.id)
-          : [...selectedAreas, area];
+    const normalizedArea = normalizeAreaOption(area);
+    if (!normalizedArea) {
+      form.setError("areaScopeIds", {
+        type: "validate",
+        message: "Scope area tidak valid. Pilih ulang wilayah dari daftar.",
+      });
+      toast.error("Scope area tidak valid. Pilih ulang wilayah dari daftar.");
+      return;
+    }
+
+    let nextAreas: AreaSearchResult[];
+    if (branch === "BINDA") {
+      nextAreas = selectedAreaIds[0] === normalizedArea.id ? [] : [normalizedArea];
+    } else if (selectedAreaIds.includes(normalizedArea.id)) {
+      nextAreas = selectedAreas.filter((item) => item.id !== normalizedArea.id);
+    } else {
+      nextAreas = [...selectedAreas, normalizedArea];
+    }
 
     setSelectedAreas(nextAreas);
-    form.setValue("areaScopeIds", nextAreas.map((item) => item.id), {
+    form.setValue("areaScopeIds", normalizeAreaScopeIds(nextAreas.map((item) => item.id)), {
       shouldDirty: true,
       shouldValidate: Boolean(form.formState.errors.areaScopeIds),
     });
@@ -233,19 +320,47 @@ export function PenggunaCreateClient() {
   }
 
   function requestProvisionConfirmation(values: CreateUserFormValues) {
-    if (!values.areaScopeIds.length) {
+    const areaScopeIds = normalizeAreaScopeIds(values.areaScopeIds);
+    if (!areaScopeIds.length) {
       toast.error(`Pilih satu ${roleConfig.scopeLabel.toLowerCase()}.`);
       return;
     }
-    if (values.branch === "BINDA" && values.areaScopeIds.length !== 1) {
+    if (areaScopeIds.length !== values.areaScopeIds.length) {
+      form.setError("areaScopeIds", {
+        type: "validate",
+        message: "Scope area tidak valid. Pilih ulang wilayah dari daftar.",
+      });
+      toast.error("Scope area tidak valid. Pilih ulang wilayah dari daftar.");
+      return;
+    }
+    if (values.branch === "BINDA" && areaScopeIds.length !== 1) {
       toast.error("Binda hanya boleh memilih satu wilayah cakupan.");
       return;
     }
+    if (values.branch === "PUSAT" && values.roleCode !== "EXECUTIVE") {
+      toast.error("Unit Pusat hanya tersedia untuk role Eksekutif.");
+      return;
+    }
+    if (values.roleCode === "EXECUTIVE" && values.branch !== "PUSAT") {
+      toast.error("Role Eksekutif harus menggunakan unit Pusat.");
+      return;
+    }
 
-    setPendingValues(values);
+    setPendingValues({ ...values, areaScopeIds });
   }
 
   async function executeProvision(values: CreateUserFormValues) {
+    const areaScopeIds = normalizeAreaScopeIds(values.areaScopeIds);
+    if (areaScopeIds.length !== values.areaScopeIds.length) {
+      form.setError("areaScopeIds", {
+        type: "validate",
+        message: "Scope area tidak valid. Pilih ulang wilayah dari daftar.",
+      });
+      setPendingValues(null);
+      toast.error("Scope area tidak valid. Pilih ulang wilayah dari daftar.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -264,7 +379,7 @@ export function PenggunaCreateClient() {
           branch: values.branch,
           validFrom: toIsoFromLocalValue(values.validFrom),
         },
-        areaScopeIds: values.areaScopeIds,
+        areaScopeIds,
       });
 
       setSuccessState(response);
@@ -294,7 +409,10 @@ export function PenggunaCreateClient() {
     return (
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+          <Badge
+            variant="outline"
+            className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          >
             Provisioning Selesai
           </Badge>
         </div>
@@ -320,7 +438,9 @@ export function PenggunaCreateClient() {
               <div className="rounded-xl border border-emerald-500/20 bg-background/90 p-4 space-y-3">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-muted-foreground">PASSWORD AKUN</span>
-                  <span className="text-[11px] text-muted-foreground">Diterbitkan: {formatDateTime(new Date().toISOString())}</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Diterbitkan: {formatDateTime(new Date().toISOString())}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/60 p-3 font-mono text-sm">
@@ -370,7 +490,9 @@ export function PenggunaCreateClient() {
               <div className="pt-2 border-t border-border/40 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Status:</span>
-                  <Badge variant="default" className="text-[11px]">{createdUser.status}</Badge>
+                  <Badge variant="default" className="text-[11px]">
+                    {createdUser.status}
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Role:</span>
@@ -417,10 +539,7 @@ export function PenggunaCreateClient() {
       </div>
 
       {/* Main Grid */}
-      <form
-        onSubmit={form.handleSubmit(requestProvisionConfirmation)}
-        className="grid gap-6 lg:grid-cols-[1fr_340px]"
-      >
+      <form onSubmit={form.handleSubmit(requestProvisionConfirmation)} className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Left Form Panel */}
         <div className="space-y-6">
           <Card className="border border-border/60 shadow-sm">
@@ -442,7 +561,7 @@ export function PenggunaCreateClient() {
                   <FieldContent>
                     <NativeSelect
                       value={branch}
-                      onChange={(event) => setBranch(event.target.value as BranchValue)}
+                      onChange={(event) => handleBranchChange(event.target.value as BranchValue)}
                       className="h-9 text-sm"
                     >
                       {BRANCH_OPTIONS.map((option) => (
@@ -461,17 +580,10 @@ export function PenggunaCreateClient() {
                   <FieldContent>
                     <NativeSelect
                       value={roleCode}
-                      onChange={(event) => setRoleCode(event.target.value as ProvisionRoleCode)}
+                      onChange={(event) => handleRoleChange(event.target.value as ProvisionRoleCode)}
                       className="h-9 text-sm"
                     >
-                      {ROLE_CODE_OPTIONS.filter((option) =>
-                        [
-                          "REGIONAL_COMMANDER",
-                          "OPERATIONAL_INTELLIGENCE_MANAGER",
-                          "FIELD_COORDINATOR",
-                          "FIELD_OFFICER",
-                        ].includes(option.value),
-                      ).map((option) => (
+                      {roleOptions.map((option) => (
                         <NativeSelectOption key={option.value} value={option.value}>
                           {option.label}
                         </NativeSelectOption>
@@ -541,7 +653,12 @@ export function PenggunaCreateClient() {
                                   onSelect={() => toggleArea(area)}
                                   className="items-start gap-2.5 py-2 text-sm"
                                 >
-                                  <Check className={cn("mt-0.5 size-4 text-primary shrink-0", selected ? "opacity-100" : "opacity-0")} />
+                                  <Check
+                                    className={cn(
+                                      "mt-0.5 size-4 text-primary shrink-0",
+                                      selected ? "opacity-100" : "opacity-0",
+                                    )}
+                                  />
                                   <div className="min-w-0 flex-1">
                                     <span className="block font-medium text-foreground">{area.name}</span>
                                     <span className="block text-xs text-muted-foreground">
@@ -594,32 +711,58 @@ export function PenggunaCreateClient() {
             <CardContent className="space-y-4 pt-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
-                  <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="username">
+                  <FieldLabel
+                    className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                    htmlFor="username"
+                  >
                     Username
                   </FieldLabel>
                   <FieldContent>
-                    <Input id="username" {...form.register("username")} placeholder="username.user" className="h-9 text-sm" />
+                    <Input
+                      id="username"
+                      {...form.register("username")}
+                      placeholder="username.user"
+                      className="h-9 text-sm"
+                    />
                     <FieldError errors={[form.formState.errors.username]} />
                   </FieldContent>
                 </Field>
 
                 <Field>
-                  <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="email">
+                  <FieldLabel
+                    className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                    htmlFor="email"
+                  >
                     Email (Opsional)
                   </FieldLabel>
                   <FieldContent>
-                    <Input id="email" type="email" {...form.register("email")} placeholder="user@denscakra.local" className="h-9 text-sm" />
+                    <Input
+                      id="email"
+                      type="email"
+                      {...form.register("email")}
+                      placeholder="user@denscakra.local"
+                      className="h-9 text-sm"
+                    />
                     <FieldError errors={[form.formState.errors.email]} />
                   </FieldContent>
                 </Field>
               </div>
 
               <Field>
-                <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="password">
+                <FieldLabel
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                  htmlFor="password"
+                >
                   Password Awal
                 </FieldLabel>
                 <FieldContent>
-                  <Input id="password" type="password" {...form.register("password")} placeholder="Password awal" className="h-9 text-sm" />
+                  <Input
+                    id="password"
+                    type="password"
+                    {...form.register("password")}
+                    placeholder="Password awal"
+                    className="h-9 text-sm"
+                  />
                   <FieldError errors={[form.formState.errors.password]} />
                 </FieldContent>
               </Field>
@@ -648,7 +791,9 @@ export function PenggunaCreateClient() {
               </CardHeader>
               <CardContent className="space-y-3 pt-4 text-xs">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Unit Type</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Unit Type
+                  </span>
                   <div className="font-medium text-sm text-foreground">{branchLabel}</div>
                 </div>
 
@@ -658,7 +803,9 @@ export function PenggunaCreateClient() {
                 </div>
 
                 <div className="space-y-1.5 pt-2 border-t border-border/40">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Wilayah Cakupan</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Wilayah Cakupan
+                  </span>
                   <div className="flex flex-wrap gap-1">
                     {selectedAreas.length > 0 ? (
                       selectedAreas.map((area) => (

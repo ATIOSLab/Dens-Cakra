@@ -69,6 +69,7 @@ const OIM_ROLE = [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER];
 const FIELD_COORDINATOR_ROLE = [SYSTEM_ROLES.FIELD_COORDINATOR];
 const FIELD_OFFICER_ROLE = [SYSTEM_ROLES.FIELD_OFFICER];
 const ADMIN_SYSTEM_ROLE = [SYSTEM_ROLES.ADMIN_SYSTEM];
+const COORDINATOR_AND_REGIONAL_ROLES = [SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER];
 
 export const sidebarItems: NavGroup[] = [
   {
@@ -165,55 +166,6 @@ export const sidebarItems: NavGroup[] = [
         roles: REGIONAL_COMMANDER_ROLE,
       },
       {
-        id: "regional-command",
-        title: "Komando Regional",
-        url: "/dashboard/regional-commander/komando-regional",
-        icon: Command,
-        roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
-        id: "regional-directives",
-        title: "Direktif & Penjabaran UUK/STR",
-        url: "/dashboard/regional-commander/direktif-penjabaran-uuk-str",
-        icon: ScrollText,
-        roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
-        id: "regional-task-monitoring",
-        title: "Monitoring Tugas",
-        url: "/dashboard/regional-commander/monitoring-tugas",
-        icon: ListTodo,
-        roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
-        id: "regional-intelligence-products",
-        title: "Laporan & Produk Intelijen",
-        url: "/dashboard/regional-commander/laporan-produk-intelijen",
-        icon: FileText,
-        roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
-        id: "regional-map-warning",
-        title: "Peta & Peringatan Dini",
-        url: "/dashboard/regional-commander/peta-peringatan-dini",
-        icon: BellRing,
-        roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
-        id: "regional-personnel-network",
-        title: "Personel Lapangan",
-        url: "/dashboard/regional-commander/personel-lapangan",
-        icon: Users,
-        roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
-        id: "regional-kpi",
-        title: "KPI & Evaluasi",
-        url: "/dashboard/regional-commander/kpi-evaluasi",
-        icon: ChartColumn,
-        roles: REGIONAL_COMMANDER_ROLE,
-      },
-      {
         id: "oim-home",
         title: "Beranda",
         url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER],
@@ -286,26 +238,31 @@ export const sidebarItems: NavGroup[] = [
         id: "field-coordinator-tasks",
         title: "Monitoring",
         icon: ListTodo,
-        roles: FIELD_COORDINATOR_ROLE,
+        roles: COORDINATOR_AND_REGIONAL_ROLES,
         subItems: [
           {
             id: "monitoring-intelijen-network",
             title: "Maps Intelijen Network",
             url: "/dashboard/field-coordinator/maps-intelijen-network",
-            roles: FIELD_COORDINATOR_ROLE,
-            badge: "soon",
+            roles: COORDINATOR_AND_REGIONAL_ROLES,
           },
           {
             id: "field-coordinator-tasks-monitoring",
             title: "Laporan Jaring",
-            url: "/dashboard/field-coordinator/Laporan-Pembinaan-Jaring",
-            roles: FIELD_COORDINATOR_ROLE,
+            url: "/dashboard/field-coordinator/laporan-jaring",
+            roles: COORDINATOR_AND_REGIONAL_ROLES,
+          },
+          {
+            id: "field-coordinator-baket",
+            title: "Baket",
+            url: "/dashboard/field-coordinator/baket",
+            roles: COORDINATOR_AND_REGIONAL_ROLES,
           },
           {
             id: "field-coordinator-laporan-pembinaan-jaring",
-            title: "Laporan Pembinaan Jaring",
+            title: "History Pembinaan Jaring",
             url: "/dashboard/field-coordinator/laporan-pembinaan-jaring",
-            roles: FIELD_COORDINATOR_ROLE,
+            roles: COORDINATOR_AND_REGIONAL_ROLES,
           },
         ],
       },
@@ -314,26 +271,26 @@ export const sidebarItems: NavGroup[] = [
         title: "Personel Lapangan",
         url: "/dashboard/field-coordinator/personel-lapangan",
         icon: Users,
-        roles: FIELD_COORDINATOR_ROLE,
+        roles: COORDINATOR_AND_REGIONAL_ROLES,
       },
       {
         id: "field-coordinator-jaring",
         title: "Jaring",
         icon: Users,
-        roles: FIELD_COORDINATOR_ROLE,
+        roles: COORDINATOR_AND_REGIONAL_ROLES,
         subItems: [
           {
             id: "field-coordinator-jaring-distribution",
             title: "Sebaran Jaring",
             url: "/dashboard/field-coordinator/sebaran-jaring",
             newTab: true,
-            roles: FIELD_COORDINATOR_ROLE,
+            roles: COORDINATOR_AND_REGIONAL_ROLES,
           },
           {
             id: "field-coordinator-jaring-list",
             title: "Daftar Jaring",
             url: "/dashboard/field-coordinator/verifikasi-jaring",
-            roles: FIELD_COORDINATOR_ROLE,
+            roles: COORDINATOR_AND_REGIONAL_ROLES,
           },
         ],
       },
@@ -377,6 +334,20 @@ export const sidebarItems: NavGroup[] = [
         title: "Laporan Jaring",
         url: "/dashboard/field-officer/laporan-jaring",
         icon: Send,
+        roles: FIELD_OFFICER_ROLE,
+      },
+      {
+        id: "field-officer-baket",
+        title: "Baket",
+        url: "/dashboard/field-officer/baket",
+        icon: FileText,
+        roles: FIELD_OFFICER_ROLE,
+      },
+      {
+        id: "field-officer-laporan-pembinaan",
+        title: "History Pembinaan",
+        url: "/dashboard/field-officer/laporan-pembinaan",
+        icon: ScrollText,
         roles: FIELD_OFFICER_ROLE,
       },
       {

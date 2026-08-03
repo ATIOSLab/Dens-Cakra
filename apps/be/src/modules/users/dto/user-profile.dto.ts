@@ -124,7 +124,7 @@ export class ProvisionUserDto {
   assignment!: ProvisionAssignmentDto;
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   areaScopeIds!: string[];
 }
 
@@ -163,7 +163,7 @@ export class ChangePrimaryAssignmentDto extends ReasonDto {
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   areaScopeIds?: string[];
   @IsDateString() effectiveAt!: string;
 }

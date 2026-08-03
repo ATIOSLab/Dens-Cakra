@@ -93,6 +93,7 @@ export type FieldOfficerIncoming = {
   content: string | null;
   contentAmendments: Array<{
     id: string;
+    versionNumber: number;
     content: string;
     createdAt: string;
   }>;

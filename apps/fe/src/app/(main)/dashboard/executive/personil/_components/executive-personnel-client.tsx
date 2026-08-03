@@ -6,9 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Layers, List, Map as MapIcon, Search, ShieldAlert, Terminal } from "lucide-react";
+import { Activity, BarChart3, Eye, Layers, List, Map as MapIcon, Search, ShieldAlert } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
+import { Button } from "@/components/ui/button";
 // biome-ignore lint/suspicious/noShadowRestrictedNames: Map component shadow
 import { Map, MapControls, MapMarker, MapMarkerPopup } from "@/components/ui/map";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -196,18 +197,6 @@ function TacticalBackground() {
       {/* 4. Radial Ambient Gradients */}
       <div className="pointer-events-none absolute -top-[30%] -left-[10%] h-[70%] w-[60%] rounded-full bg-[var(--dc-primary)]/4 blur-[120px] dark:bg-[var(--dc-primary)]/5" />
       <div className="pointer-events-none absolute -right-[5%] -bottom-[20%] h-[60%] w-[50%] rounded-full bg-[var(--dc-success)]/3 blur-[120px]" />
-
-      {/* 5. Animated Scanning Line */}
-      <motion.div
-        className="absolute left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-[var(--dc-primary)]/20 to-transparent shadow-[0_0_10px_color-mix(in_srgb,var(--dc-primary)_30%,transparent)]"
-        initial={{ top: "-5%" }}
-        animate={{ top: "105%" }}
-        transition={{
-          duration: 9,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "linear",
-        }}
-      />
     </div>
   );
 }
@@ -363,9 +352,6 @@ function TableSkeleton() {
               Personel
             </TableHead>
             <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
-              Jabatan
-            </TableHead>
-            <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
               Wilayah
             </TableHead>
             <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
@@ -382,20 +368,16 @@ function TableSkeleton() {
               key={`sk-${rowId}`}
               className="border-[var(--dc-border-subtle)] border-b hover:bg-transparent dark:border-slate-900/60"
             >
-              <TableCell className="py-4 pl-6">
-                <div className="h-4 w-36 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
-                <div className="mt-2 h-3 w-48 animate-pulse rounded-none bg-[var(--dc-primary-soft)]/10" />
+              <TableCell className="py-4 text-center">
+                <div className="mx-auto h-4 w-36 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
+                <div className="mx-auto mt-2 h-3 w-48 animate-pulse rounded-none bg-[var(--dc-primary-soft)]/10" />
               </TableCell>
-              <TableCell>
-                <div className="h-4 w-28 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
-                <div className="mt-2 h-3 w-20 animate-pulse rounded-none bg-[var(--dc-primary-soft)]/10" />
+              <TableCell className="text-center">
+                <div className="mx-auto h-4 w-32 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
+                <div className="mx-auto mt-2 h-3 w-16 animate-pulse rounded-none bg-[var(--dc-primary-soft)]/10" />
               </TableCell>
-              <TableCell>
-                <div className="h-4 w-32 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
-                <div className="mt-2 h-3 w-16 animate-pulse rounded-none bg-[var(--dc-primary-soft)]/10" />
-              </TableCell>
-              <TableCell className="pr-4 text-right">
-                <div className="inline-block h-6 w-14 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
+              <TableCell className="text-center">
+                <div className="mx-auto inline-block h-6 w-14 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
               </TableCell>
             </TableRow>
           ))}
@@ -511,9 +493,6 @@ function PersonnelTable({
               Personel
             </TableHead>
             <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-              Jabatan
-            </TableHead>
-            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
               Wilayah
             </TableHead>
             <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
@@ -534,7 +513,7 @@ function PersonnelTable({
                 className="group relative border-[var(--dc-border-subtle)] border-b transition-colors hover:bg-[var(--dc-primary-soft)]/20 dark:border-slate-900"
               >
                 {/* Left Cyan Indicator on Hover */}
-                <TableCell className="relative py-3.5 pl-6">
+                <TableCell className="relative py-3.5 text-center">
                   <div className="absolute top-0 bottom-0 left-0 w-[2.5px] bg-[var(--dc-primary)] opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
                   <Link href={detailHref} className="block min-w-56">
                     <span className="block font-bold font-mono text-foreground text-xs transition-colors group-hover:text-[var(--dc-primary)]">
@@ -545,16 +524,8 @@ function PersonnelTable({
                     </span>
                   </Link>
                 </TableCell>
-                <TableCell>
-                  <span className="block font-mono text-[var(--dc-text-primary)] text-xs">
-                    {item.assignment?.title ?? "-"}
-                  </span>
-                  <span className="mt-0.5 block font-mono text-[10px] text-[var(--dc-text-secondary)]">
-                    {item.assignment?.seatCode ?? item.authRole}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="block max-w-56 truncate font-mono text-[var(--dc-text-primary)] text-xs">
+                <TableCell className="text-center">
+                  <span className="block max-w-56 mx-auto truncate font-mono text-[var(--dc-text-primary)] text-xs">
                     {area?.name ?? "-"}
                   </span>
                 </TableCell>
@@ -584,13 +555,17 @@ function PersonnelTable({
                   })()}
                 </TableCell>
                 <TableCell className="text-center">
-                  <Link
-                    href={detailHref}
-                    className="inline-flex items-center gap-1 rounded-none border border-[var(--dc-primary)]/40 bg-[var(--dc-primary-soft)] px-2 py-1 font-bold font-mono text-[9px] text-[var(--dc-primary)] tracking-wider transition-all duration-150 hover:bg-[var(--dc-primary)] hover:text-[var(--dc-text-inverse)] group-hover:border-[var(--dc-primary)] dark:text-cyan-400"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
                   >
-                    <Terminal className="size-3" />
-                    <span>DETAIL</span>
-                  </Link>
+                    <Link href={detailHref}>
+                      <Eye className="size-3.5" />
+                      Detail
+                    </Link>
+                  </Button>
                 </TableCell>
               </TableRow>
             );
@@ -678,10 +653,14 @@ function PersonnelCardGrid({
               </div>
             </div>
 
-            <div className="mt-4 inline-flex items-center gap-1 rounded-none border border-[var(--dc-primary)]/40 bg-[var(--dc-primary-soft)] px-2 py-1 font-bold font-mono text-[9px] text-[var(--dc-primary)] tracking-wider transition-all group-hover:bg-[var(--dc-primary)] group-hover:text-[var(--dc-text-inverse)]">
-              <Terminal className="size-3" />
-              DETAIL
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4 h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
+            >
+              <Eye className="size-3.5" />
+              Detail
+            </Button>
           </Link>
         );
       })}

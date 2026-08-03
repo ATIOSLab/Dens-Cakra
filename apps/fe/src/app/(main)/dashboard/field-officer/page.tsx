@@ -1,5 +1,8 @@
-import { FieldOfficerOperationsPage } from "@/app/(main)/dashboard/field-officer/_components/field-officer-operations-page";
+import { DashboardStatsPage } from "@/app/(main)/dashboard/_components/dashboard-stats/dashboard-stats-page";
+import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
+
+export const dynamic = "force-dynamic";
 
 export default function Page() {
-  return <FieldOfficerOperationsPage view="overview" />;
+  return <DashboardStatsPage role={SYSTEM_ROLES.FIELD_OFFICER} />;
 }

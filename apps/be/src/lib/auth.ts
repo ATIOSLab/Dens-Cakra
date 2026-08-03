@@ -58,6 +58,12 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        before: async (user) => ({
+          data: {
+            ...user,
+            emailVerified: true,
+          },
+        }),
         after: async (user) => {
           await ensureUserProfileForAuthUser({
             authUserId: user.id,
@@ -131,7 +137,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     disableSignUp: env.authDisableSignUp,
-    requireEmailVerification: true,
+    requireEmailVerification: false,
     autoSignIn: false,
     minPasswordLength: 8,
     maxPasswordLength: 128,
@@ -173,7 +179,7 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
-    sendOnSignUp: true,
+    sendOnSignUp: false,
     sendVerificationEmail: ({ user, url }) => {
       const payload = createVerificationEmail({
         url,

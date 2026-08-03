@@ -21,10 +21,11 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
+  container,
   ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Content>) {
+}: React.ComponentProps<typeof PopoverPrimitive.Content> & { container?: HTMLElement | null }) {
   return (
-    <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Portal container={container}>
       <PopoverPrimitive.Content
         data-slot="popover-content"
         align={align}
@@ -59,20 +60,17 @@ function PopoverTitle({ className, ...props }: React.ComponentProps<"h2">) {
   return (
     <div
       data-slot="popover-title"
-      className={cn("font-medium", className)}
+      className={cn("font-medium text-foreground", className)}
       {...props}
     />
   )
 }
 
-function PopoverDescription({
-  className,
-  ...props
-}: React.ComponentProps<"p">) {
+function PopoverDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
-    <p
+    <div
       data-slot="popover-description"
-      className={cn("text-muted-foreground", className)}
+      className={cn("text-muted-foreground text-xs", className)}
       {...props}
     />
   )
@@ -80,10 +78,10 @@ function PopoverDescription({
 
 export {
   Popover,
-  PopoverAnchor,
+  PopoverTrigger,
   PopoverContent,
-  PopoverDescription,
+  PopoverAnchor,
   PopoverHeader,
   PopoverTitle,
-  PopoverTrigger,
+  PopoverDescription,
 }

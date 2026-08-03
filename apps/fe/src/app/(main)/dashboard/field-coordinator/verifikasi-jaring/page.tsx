@@ -27,7 +27,7 @@ async function fetchAllByRegistrationStatus(registrationStatus: RegistrationJari
 }
 
 export default async function Page() {
-  await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR);
+  await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
   const lists = await Promise.all((["PENDING", "APPROVED", "REJECTED"] as const).map(fetchAllByRegistrationStatus));
   const items = lists.flat();
 

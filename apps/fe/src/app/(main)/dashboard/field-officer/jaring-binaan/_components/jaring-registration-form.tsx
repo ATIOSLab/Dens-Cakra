@@ -586,7 +586,7 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
       toast.success(
         isEditMode
           ? editingJaring?.registrationStatus === "REJECTED"
-            ? "Revisi Jaring tersimpan dan kembali menunggu verifikasi."
+            ? "Revisi Jaring tersimpan dan kembali belum terverifikasi."
             : "Data Jaring berhasil diperbarui."
           : "Pengajuan Jaring tersimpan dan menunggu persetujuan Regional Commander.",
       );
