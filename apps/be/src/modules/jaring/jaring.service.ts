@@ -1030,6 +1030,38 @@ export class JaringService {
             },
           },
         },
+        _count: {
+          select: {
+            messages: true,
+            reportSessions: true,
+            coachingReports: true,
+          },
+        },
+        messages: {
+          take: 1,
+          orderBy: { receivedAt: 'desc' },
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            latitude: true,
+            longitude: true,
+            receivedAt: true,
+          },
+        },
+        reportSessions: {
+          take: 1,
+          orderBy: { submittedAt: 'desc' },
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            latitude: true,
+            longitude: true,
+            submittedAt: true,
+            status: true,
+          },
+        },
       },
     });
   }

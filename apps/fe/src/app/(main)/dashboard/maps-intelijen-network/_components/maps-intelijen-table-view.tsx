@@ -1,10 +1,13 @@
 "use client";
 
-import { Clock, Eye, Inbox, Mail, MailOpen, MapPin } from "lucide-react";
+import { Clock, Eye, Inbox, Mail, MailOpen, MapPin, RotateCcw, Search } from "lucide-react";
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { type JaringOption, JaringSelectPopover } from "@/components/ui/jaring-select-popover";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { cn } from "@/lib/utils";
@@ -13,6 +16,7 @@ import {
   formatDateTime,
   getUrgencyCardStyle,
   type MapIntelItem,
+  type PeriodPreset,
   verificationStatusBadgeVariant,
   verificationStatusLabel,
 } from "./maps-intelijen-types";
@@ -32,6 +36,37 @@ interface MapsIntelijenTableViewProps {
   onFocusOnMap: (item: MapIntelItem) => void;
   onOpenDetail: (item: MapIntelItem) => void;
   onResetFilters: () => void;
+
+  // Filter Toolbar States
+  search: string;
+  setSearch: (v: string) => void;
+  urgencyFilter: string;
+  setUrgencyFilter: (v: string) => void;
+  periodPreset: PeriodPreset;
+  setPeriodPreset: (v: PeriodPreset) => void;
+  statusFilter: string;
+  setStatusFilter: (v: string) => void;
+  readFilter: "ALL" | "READ" | "UNREAD";
+  setReadFilter: (v: "ALL" | "READ" | "UNREAD") => void;
+  jaringFilter: string;
+  setJaringFilter: (v: string) => void;
+  popoverJaringOptions: JaringOption[];
+  categoryFilter: string;
+  setCategoryFilter: (v: string) => void;
+  categories: any[];
+  regencyFilter: string;
+  setRegencyFilter: (v: string) => void;
+  regencyOptions: any[];
+  districtFilter: string;
+  setDistrictFilter: (v: string) => void;
+  districtOptions: any[];
+  villageFilter: string;
+  setVillageFilter: (v: string) => void;
+  villageOptions: any[];
+  startDate: string;
+  setStartDate: (v: string) => void;
+  endDate: string;
+  setEndDate: (v: string) => void;
 }
 
 export function MapsIntelijenTableView({
@@ -49,9 +84,38 @@ export function MapsIntelijenTableView({
   onFocusOnMap,
   onOpenDetail,
   onResetFilters,
+  search,
+  setSearch,
+  urgencyFilter,
+  setUrgencyFilter,
+  periodPreset,
+  setPeriodPreset,
+  statusFilter,
+  setStatusFilter,
+  readFilter,
+  setReadFilter,
+  jaringFilter,
+  setJaringFilter,
+  popoverJaringOptions,
+  categoryFilter,
+  setCategoryFilter,
+  categories,
+  regencyFilter,
+  setRegencyFilter,
+  regencyOptions,
+  districtFilter,
+  setDistrictFilter,
+  districtOptions,
+  villageFilter,
+  setVillageFilter,
+  villageOptions,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
 }: MapsIntelijenTableViewProps) {
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 font-sans">
       {/* Tab Selection & View Mode Header */}
       <div className="flex flex-col gap-4 border-slate-200 border-b pb-2 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
         {/* Tabs */}
@@ -105,6 +169,218 @@ export function MapsIntelijenTableView({
 
         {/* View Mode Toggle */}
         <ViewModeToggle value={viewMode} onValueChange={setViewMode} />
+      </div>
+
+      {/* DEDICATED TOOLBAR & FILTER BAR FOR TABLE / CARD VIEW */}
+      <div className="rounded-xl border border-slate-200 bg-card p-4 space-y-3 shadow-xs dark:border-white/10">
+        {/* Row 1: Dedicated Search Bar Toolbar & Counter */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Cari judul, nomor referensi, isi laporan, atau jaring..."
+              className="pl-9 pr-8 h-9 text-xs"
+            />
+            {search ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs font-bold"
+              >
+                ✕
+              </button>
+            ) : null}
+          </div>
+
+          {/* Reset Filters Button & Results Count */}
+          <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+            <span className="text-xs text-muted-foreground font-mono">
+              {filteredItems.length} hasil
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onResetFilters}
+              className="h-8 gap-1.5 text-xs text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+            >
+              <RotateCcw className="size-3.5" />
+              Reset Filter
+            </Button>
+          </div>
+        </div>
+
+        {/* Row 2: Filter Select Controls Grid (Termasuk Hirarki Wilayah Lengkap: Kab/Kota -> Kecamatan -> Desa/Kelurahan) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 pt-1 border-t border-slate-100 dark:border-white/5">
+          {/* Urgensi Filter */}
+          <NativeSelect
+            value={urgencyFilter}
+            onChange={(e) => {
+              setUrgencyFilter(e.target.value);
+              setPage(1);
+            }}
+            className="h-8 text-xs w-full"
+          >
+            <option value="ALL">Semua Urgensi</option>
+            <option value="URGENT">URGENT</option>
+            <option value="HIGH">HIGH</option>
+            <option value="NORMAL">NORMAL</option>
+            <option value="LOW">LOW</option>
+          </NativeSelect>
+
+          {/* Status Verifikasi */}
+          <NativeSelect
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="h-8 text-xs w-full"
+          >
+            <option value="ALL">Semua Status Verifikasi</option>
+            <option value="NOT_SUBMITTED">Belum Diverifikasi</option>
+            <option value="NEEDS_FIELD_OFFICER_REVIEW">Perlu Review</option>
+            <option value="VERIFIED_BY_FIELD_OFFICER">Terverifikasi</option>
+            <option value="METADATA_RECORDED">Baket Dibuat</option>
+          </NativeSelect>
+
+          {/* Kategori Laporan */}
+          <NativeSelect
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setPage(1);
+            }}
+            className="h-8 text-xs w-full"
+          >
+            <option value="ALL">Semua Kategori</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </NativeSelect>
+
+          {/* Wilayah 1: Kab/Kota */}
+          <NativeSelect
+            value={regencyFilter}
+            onChange={(e) => {
+              setRegencyFilter(e.target.value);
+              setDistrictFilter("ALL");
+              setVillageFilter("ALL");
+              setPage(1);
+            }}
+            className="h-8 text-xs w-full"
+          >
+            <option value="ALL">Semua Kab/Kota</option>
+            {regencyOptions.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </NativeSelect>
+
+          {/* Wilayah 2: Kecamatan */}
+          <NativeSelect
+            value={districtFilter}
+            onChange={(e) => {
+              setDistrictFilter(e.target.value);
+              setVillageFilter("ALL");
+              setPage(1);
+            }}
+            disabled={districtOptions.length === 0}
+            className="h-8 text-xs w-full"
+          >
+            <option value="ALL">Semua Kecamatan</option>
+            {districtOptions.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </NativeSelect>
+
+          {/* Wilayah 3: Desa/Kelurahan */}
+          <NativeSelect
+            value={villageFilter}
+            onChange={(e) => {
+              setVillageFilter(e.target.value);
+              setPage(1);
+            }}
+            disabled={villageOptions.length === 0}
+            className="h-8 text-xs w-full"
+          >
+            <option value="ALL">Semua Desa/Kelurahan</option>
+            {villageOptions.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </NativeSelect>
+
+          {/* Jaring / Gaswil / Pelapor */}
+          <JaringSelectPopover
+            value={jaringFilter}
+            onValueChange={(val) => {
+              setJaringFilter(val);
+              setPage(1);
+            }}
+            options={popoverJaringOptions}
+            className="h-8 text-xs w-full"
+          />
+
+          {/* Periode Waktu */}
+          <NativeSelect
+            value={periodPreset}
+            onChange={(e) => {
+              setPeriodPreset(e.target.value as any);
+              setPage(1);
+            }}
+            className="h-8 text-xs w-full"
+          >
+            <option value="ALL">Semua Periode</option>
+            <option value="TODAY">Hari Ini</option>
+            <option value="LAST_7_DAYS">7 Hari Terakhir</option>
+            <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+            <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
+          </NativeSelect>
+        </div>
+
+        {/* Row 3: Custom Date Inputs (Displayed when periodPreset === "CUSTOM") */}
+        {periodPreset === "CUSTOM" ? (
+          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 dark:border-white/5 font-mono text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground font-medium">Tgl Mulai:</span>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setPage(1);
+                }}
+                className="h-8 w-36 text-xs bg-background"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground font-medium">Tgl Sampai:</span>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setPage(1);
+                }}
+                className="h-8 w-36 text-xs bg-background"
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Empty State */}

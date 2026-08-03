@@ -296,6 +296,7 @@ export function LaporanJaringCoordinatorClient() {
   const [regencyFilter, setRegencyFilter] = useState<string>("ALL");
   const [districtFilter, setDistrictFilter] = useState<string>("ALL");
   const [villageFilter, setVillageFilter] = useState<string>("ALL");
+  const [periodPreset, setPeriodPreset] = useState<"ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM">("ALL");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
@@ -602,21 +603,29 @@ export function LaporanJaringCoordinatorClient() {
       if (districtFilter !== "ALL" && geography?.districtId !== districtFilter) return false;
       if (villageFilter !== "ALL" && geography?.villageId !== villageFilter) return false;
 
-      // Date Range Filter
+      // Date / Period Filter
       const reportDateStr = item.submittedAt || item.createdAt;
       if (reportDateStr) {
-        if (startDate && startDate.length === 10) {
-          const start = new Date(`${startDate}T00:00:00`);
-          if (!Number.isNaN(start.getTime())) {
-            const reportDate = new Date(reportDateStr);
-            if (reportDate < start) return false;
+        const itemTime = new Date(reportDateStr).getTime();
+        const now = new Date();
+
+        if (periodPreset === "TODAY") {
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+          if (itemTime < startOfDay) return false;
+        } else if (periodPreset === "LAST_7_DAYS") {
+          const sevenDaysAgo = now.getTime() - 7 * 24 * 3600 * 1000;
+          if (itemTime < sevenDaysAgo) return false;
+        } else if (periodPreset === "LAST_30_DAYS") {
+          const thirtyDaysAgo = now.getTime() - 30 * 24 * 3600 * 1000;
+          if (itemTime < thirtyDaysAgo) return false;
+        } else if (periodPreset === "CUSTOM") {
+          if (startDate && startDate.length === 10) {
+            const start = new Date(`${startDate}T00:00:00`).getTime();
+            if (itemTime < start) return false;
           }
-        }
-        if (endDate && endDate.length === 10) {
-          const end = new Date(`${endDate}T23:59:59.999`);
-          if (!Number.isNaN(end.getTime())) {
-            const reportDate = new Date(reportDateStr);
-            if (reportDate > end) return false;
+          if (endDate && endDate.length === 10) {
+            const end = new Date(`${endDate}T23:59:59.999`).getTime();
+            if (itemTime > end) return false;
           }
         }
       }
@@ -652,6 +661,7 @@ export function LaporanJaringCoordinatorClient() {
     regencyFilter,
     districtFilter,
     villageFilter,
+    periodPreset,
     startDate,
     endDate,
     search,
@@ -911,23 +921,7 @@ export function LaporanJaringCoordinatorClient() {
               <option value="READ">Sudah Dibaca Petugas</option>
             </NativeSelect>
 
-            {/* 4. Jaring Filter Popover */}
-            <div className="w-full">
-              <JaringSelectPopover
-                options={popoverJaringOptions}
-                value={jaringFilter}
-                onValueChange={(val) => {
-                  setJaringFilter(val);
-                  setPage(1);
-                }}
-                allowAllOption
-                allOptionLabel="Semua Jaring"
-                filterVerifiedOnly={false}
-                className="h-9 text-xs w-full"
-              />
-            </div>
-
-            {/* 5. Filter Kota/Kabupaten (Tampil untuk Regional Commander) */}
+            {/* 4. Filter Kota/Kabupaten (Tampil untuk Regional Commander) */}
             {regencyOptions.length > 0 && (
               <NativeSelect
                 aria-label="Filter Kota/Kabupaten"
@@ -949,7 +943,7 @@ export function LaporanJaringCoordinatorClient() {
               </NativeSelect>
             )}
 
-            {/* 6. Filter Kecamatan */}
+            {/* 5. Filter Kecamatan */}
             <NativeSelect
               aria-label="Filter Kecamatan"
               value={districtFilter}
@@ -968,7 +962,7 @@ export function LaporanJaringCoordinatorClient() {
               ))}
             </NativeSelect>
 
-            {/* 7. Filter Kelurahan/Desa */}
+            {/* 6. Filter Kelurahan/Desa */}
             <NativeSelect
               aria-label="Filter Kelurahan atau Desa"
               value={villageFilter}
@@ -986,65 +980,120 @@ export function LaporanJaringCoordinatorClient() {
                 </option>
               ))}
             </NativeSelect>
-          </div>
 
-          {/* BOTTOM ROW: Date Range Filter & Reset Button */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-white/5 text-xs">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-muted-foreground flex items-center gap-1.5 font-medium shrink-0">
-                <Calendar className="size-3.5 text-sky-500" /> Tanggal:
-              </span>
-
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
+            {/* 7. Jaring Filter Popover */}
+            <div className="w-full">
+              <JaringSelectPopover
+                options={popoverJaringOptions}
+                value={jaringFilter}
+                onValueChange={(val) => {
+                  setJaringFilter(val);
                   setPage(1);
                 }}
-                className="h-8 text-xs w-[135px] px-2 border-slate-200 dark:border-white/10"
+                allowAllOption
+                allOptionLabel="Semua Jaring"
+                filterVerifiedOnly={false}
+                className="h-9 text-xs w-full"
               />
-              <span className="text-muted-foreground font-medium">s.d</span>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                  setPage(1);
-                }}
-                className="h-8 text-xs w-[135px] px-2 border-slate-200 dark:border-white/10"
-              />
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleQuickToday}
-                className="h-8 text-xs px-3 border-dashed border-slate-300 dark:border-white/20 hover:bg-sky-50 hover:text-sky-600 dark:hover:bg-sky-950/30"
-              >
-                HARI INI
-              </Button>
             </div>
 
-            {(search ||
-              urgencyFilter !== "ALL" ||
-              statusFilter !== "ALL" ||
-              readFilter !== "ALL" ||
-              jaringFilter !== "ALL" ||
-              regencyFilter !== "ALL" ||
-              districtFilter !== "ALL" ||
-              villageFilter !== "ALL" ||
-              startDate ||
-              endDate) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleResetFilters}
-                className="h-8 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 gap-1.5 font-medium ml-auto sm:ml-0"
-              >
-                <X className="size-3.5" /> Reset Filter
-              </Button>
-            )}
+            {/* 8. Filter Periode Waktu */}
+            <NativeSelect
+              aria-label="Filter Periode Waktu"
+              value={periodPreset}
+              onChange={(event) => {
+                setPeriodPreset(event.target.value as any);
+                setPage(1);
+              }}
+              className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
+            >
+              <option value="ALL">Semua Periode</option>
+              <option value="TODAY">Hari Ini</option>
+              <option value="LAST_7_DAYS">7 Hari Terakhir</option>
+              <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+              <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
+            </NativeSelect>
           </div>
+
+          {/* BOTTOM ROW: Custom Date Range Filter Inputs & Reset Button */}
+          {periodPreset === "CUSTOM" ||
+          search ||
+          urgencyFilter !== "ALL" ||
+          statusFilter !== "ALL" ||
+          readFilter !== "ALL" ||
+          jaringFilter !== "ALL" ||
+          regencyFilter !== "ALL" ||
+          districtFilter !== "ALL" ||
+          villageFilter !== "ALL" ||
+          periodPreset !== "ALL" ||
+          startDate ||
+          endDate ? (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-white/5 text-xs">
+              {periodPreset === "CUSTOM" ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-muted-foreground flex items-center gap-1.5 font-medium shrink-0">
+                    <Calendar className="size-3.5 text-sky-500" /> Tanggal:
+                  </span>
+
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-8 text-xs w-[135px] px-2 border-slate-200 dark:border-white/10"
+                  />
+                  <span className="text-muted-foreground font-medium">s.d</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="h-8 text-xs w-[135px] px-2 border-slate-200 dark:border-white/10"
+                  />
+                </div>
+              ) : (
+                <div />
+              )}
+
+              {(search ||
+                urgencyFilter !== "ALL" ||
+                statusFilter !== "ALL" ||
+                readFilter !== "ALL" ||
+                jaringFilter !== "ALL" ||
+                regencyFilter !== "ALL" ||
+                districtFilter !== "ALL" ||
+                villageFilter !== "ALL" ||
+                periodPreset !== "ALL" ||
+                startDate ||
+                endDate) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearch("");
+                    setUrgencyFilter("ALL");
+                    setStatusFilter("ALL");
+                    setReadFilter("ALL");
+                    setJaringFilter("ALL");
+                    setRegencyFilter("ALL");
+                    setDistrictFilter("ALL");
+                    setVillageFilter("ALL");
+                    setPeriodPreset("ALL");
+                    setStartDate("");
+                    setEndDate("");
+                    setPage(1);
+                  }}
+                  className="h-8 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-medium"
+                >
+                  Reset Filter
+                </Button>
+              )}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

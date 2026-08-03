@@ -191,43 +191,30 @@ export function LaporanPembinaanClient({
         }
       }
 
-      // 4. Custom Date Range Filter (Dari Tanggal & Sampai Tanggal)
-      if (startDate && startDate.length === 10) {
-        const start = new Date(`${startDate}T00:00:00`);
-        if (!Number.isNaN(start.getTime())) {
-          const reportDate = new Date(item.reportedAt);
-          if (reportDate < start) return false;
-        }
-      }
-      if (endDate && endDate.length === 10) {
-        const end = new Date(`${endDate}T23:59:59.999`);
-        if (!Number.isNaN(end.getTime())) {
-          const reportDate = new Date(item.reportedAt);
-          if (reportDate > end) return false;
-        }
-      }
-
-      // 5. Periode Filter (Quick Filter)
-      if (periodeFilter !== "ALL") {
-        const reportDate = new Date(item.reportedAt);
+      // 4. Date / Period Filter
+      const reportDateStr = item.reportedAt || item.createdAt;
+      if (reportDateStr) {
+        const itemTime = new Date(reportDateStr).getTime();
         const now = new Date();
 
         if (periodeFilter === "TODAY") {
-          const isToday =
-            reportDate.getDate() === now.getDate() &&
-            reportDate.getMonth() === now.getMonth() &&
-            reportDate.getFullYear() === now.getFullYear();
-          if (!isToday) return false;
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+          if (itemTime < startOfDay) return false;
         } else if (periodeFilter === "LAST_7_DAYS") {
-          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          if (reportDate < sevenDaysAgo) return false;
+          const sevenDaysAgo = now.getTime() - 7 * 24 * 3600 * 1000;
+          if (itemTime < sevenDaysAgo) return false;
         } else if (periodeFilter === "LAST_30_DAYS") {
-          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          if (reportDate < thirtyDaysAgo) return false;
-        } else if (periodeFilter === "THIS_MONTH") {
-          const isThisMonth =
-            reportDate.getMonth() === now.getMonth() && reportDate.getFullYear() === now.getFullYear();
-          if (!isThisMonth) return false;
+          const thirtyDaysAgo = now.getTime() - 30 * 24 * 3600 * 1000;
+          if (itemTime < thirtyDaysAgo) return false;
+        } else if (periodeFilter === "CUSTOM") {
+          if (startDate && startDate.length === 10) {
+            const start = new Date(`${startDate}T00:00:00`).getTime();
+            if (itemTime < start) return false;
+          }
+          if (endDate && endDate.length === 10) {
+            const end = new Date(`${endDate}T23:59:59.999`).getTime();
+            if (itemTime > end) return false;
+          }
         }
       }
 
@@ -296,23 +283,6 @@ export function LaporanPembinaanClient({
             />
           </div>
 
-          {/* Jaring Filter Popover */}
-          <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-            <span>Jaring:</span>
-            <JaringSelectPopover
-              options={workspaceJarings}
-              value={jaringFilter}
-              onValueChange={(val) => {
-                setJaringFilter(val);
-                setPage(1);
-              }}
-              allowAllOption={true}
-              filterVerifiedOnly={true}
-              disabled={loadingWorkspace}
-              className="h-8 text-xs w-[160px]"
-            />
-          </div>
-
           {/* Kelurahan Filter */}
           <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
             <span>Kelurahan:</span>
@@ -333,39 +303,79 @@ export function LaporanPembinaanClient({
             </NativeSelect>
           </div>
 
-          {/* Date Range Picker (Dari & s/d) */}
+          {/* Jaring Filter Popover */}
           <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-            <span>Dari:</span>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
+            <span>Jaring:</span>
+            <JaringSelectPopover
+              options={workspaceJarings}
+              value={jaringFilter}
+              onValueChange={(val) => {
+                setJaringFilter(val);
                 setPage(1);
               }}
-              className="h-8 text-xs bg-background w-[125px]"
-              title="Dari Tanggal Pembinaan"
+              allowAllOption={true}
+              filterVerifiedOnly={true}
+              disabled={loadingWorkspace}
+              className="h-8 text-xs w-[160px]"
             />
           </div>
 
+          {/* Periode Filter Dropdown */}
           <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-            <span>s/d:</span>
-            <Input
-              type="date"
-              value={endDate}
+            <span>Periode:</span>
+            <NativeSelect
+              value={periodeFilter}
               onChange={(e) => {
-                setEndDate(e.target.value);
+                setPeriodeFilter(e.target.value as any);
                 setPage(1);
               }}
-              className="h-8 text-xs bg-background w-[125px]"
-              title="Sampai Tanggal Pembinaan"
-            />
+              className="h-8 text-xs bg-background min-w-[150px]"
+            >
+              <option value="ALL">Semua Periode</option>
+              <option value="TODAY">Hari Ini</option>
+              <option value="LAST_7_DAYS">7 Hari Terakhir</option>
+              <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+              <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
+            </NativeSelect>
           </div>
+
+          {/* Date Range Picker (Only shown when periodeFilter === "CUSTOM") */}
+          {periodeFilter === "CUSTOM" ? (
+            <>
+              <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                <span>Dari:</span>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-8 text-xs bg-background w-[125px]"
+                  title="Dari Tanggal Pembinaan"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                <span>s.d:</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-8 text-xs bg-background w-[125px]"
+                  title="Sampai Tanggal Pembinaan"
+                />
+              </div>
+            </>
+          ) : null}
         </div>
 
         {/* Right Side: Reset Button & View Mode Toggle */}
         <div className="flex items-center gap-2">
-          {(search || jaringFilter !== "ALL" || villageFilter !== "ALL" || startDate || endDate) && (
+          {(search || jaringFilter !== "ALL" || villageFilter !== "ALL" || periodeFilter !== "ALL" || startDate || endDate) && (
             <Button
               variant="ghost"
               size="sm"

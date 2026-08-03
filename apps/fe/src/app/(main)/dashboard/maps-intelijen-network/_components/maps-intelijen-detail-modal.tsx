@@ -272,7 +272,7 @@ export function MapsIntelijenDetailModal({
                       : `/dashboard/laporan-jaring/${selectedItem.id}`
                   }
                 >
-                  <Eye className="size-4" /> Buka Halaman Lengkap
+                  <Eye className="size-4" /> Buka Detail
                 </Link>
               </Button>
             </div>

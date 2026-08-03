@@ -282,6 +282,44 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     return Array.from(set).sort();
   }, [items, cityFilter, districtFilter]);
 
+  // Parent mapping helpers for auto-filling higher region levels
+  const villageToParentMap = useMemo(() => {
+    const map = new Map<string, { districtName?: string; cityName?: string }>();
+    for (const item of items) {
+      const vName = jaringVillage(item)?.name;
+      const dName = jaringDistrict(item)?.name;
+      const cName = jaringCity(item)?.name;
+
+      if (vName) {
+        if (!map.has(vName)) {
+          map.set(vName, { districtName: dName, cityName: cName });
+        } else {
+          const current = map.get(vName)!;
+          if (!current.districtName && dName) current.districtName = dName;
+          if (!current.cityName && cName) current.cityName = cName;
+        }
+      }
+    }
+    return map;
+  }, [items]);
+
+  const districtToParentMap = useMemo(() => {
+    const map = new Map<string, { cityName?: string }>();
+    for (const item of items) {
+      const dName = jaringDistrict(item)?.name;
+      const cName = jaringCity(item)?.name;
+
+      if (dName) {
+        if (!map.has(dName)) {
+          map.set(dName, { cityName: cName });
+        } else if (!map.get(dName)!.cityName && cName) {
+          map.get(dName)!.cityName = cName;
+        }
+      }
+    }
+    return map;
+  }, [items]);
+
   const uniqueOfficers = useMemo(() => {
     const set = new Set<string>();
     for (const item of items) {
@@ -569,8 +607,15 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             <NativeSelect
               value={districtFilter}
               onChange={(e) => {
-                setDistrictFilter(e.target.value);
+                const val = e.target.value;
+                setDistrictFilter(val);
                 setVillageFilter("ALL");
+                if (val !== "ALL") {
+                  const parent = districtToParentMap.get(val);
+                  if (parent?.cityName) {
+                    setCityFilter(parent.cityName);
+                  }
+                }
                 setPage(1);
               }}
               className="w-full sm:w-auto min-w-[150px]"
@@ -587,7 +632,17 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             <NativeSelect
               value={villageFilter}
               onChange={(e) => {
-                setVillageFilter(e.target.value);
+                const val = e.target.value;
+                setVillageFilter(val);
+                if (val !== "ALL") {
+                  const parent = villageToParentMap.get(val);
+                  if (parent?.districtName) {
+                    setDistrictFilter(parent.districtName);
+                  }
+                  if (parent?.cityName) {
+                    setCityFilter(parent.cityName);
+                  }
+                }
                 setPage(1);
               }}
               className="w-full sm:w-auto min-w-[150px]"

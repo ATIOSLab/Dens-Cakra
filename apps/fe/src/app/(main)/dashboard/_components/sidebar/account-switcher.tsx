@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getInitials } from "@/lib/utils";
-import { getSystemRoleLabel } from "@/navigation/sidebar/system-roles";
 
 import { useClientNetwork } from "./client-network";
 import { useRoleWorkspace } from "./role-workspace-provider";
@@ -50,7 +49,6 @@ export function AccountSwitcher() {
           </Avatar>
           <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
             <span className="truncate font-semibold text-base">{activeUser.name}</span>
-            <span className="truncate text-muted-foreground text-sm">{getSystemRoleLabel(activeUser.role)}</span>
             <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <MapPinned className="size-3.5" />
               <span className="truncate">

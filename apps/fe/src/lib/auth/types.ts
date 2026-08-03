@@ -3,6 +3,7 @@ import type { SystemRole } from "@/navigation/sidebar/system-roles";
 export type AuthPrincipalUser = {
   id: string;
   name: string;
+  username: string | null;
   email: string;
   image: string | null;
   role: SystemRole;

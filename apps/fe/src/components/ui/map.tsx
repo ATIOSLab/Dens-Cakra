@@ -34,8 +34,8 @@ import { cn } from "@/lib/utils";
 type LngLat = [number, number];
 
 type MapStyles = {
-  light?: string;
-  dark?: string;
+  light?: string | StyleSpecification;
+  dark?: string | StyleSpecification;
 };
 
 type MapViewportState = {

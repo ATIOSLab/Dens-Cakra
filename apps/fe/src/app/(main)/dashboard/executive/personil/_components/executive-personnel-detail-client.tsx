@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Cpu,
   FileText,
+  Network,
   User,
 } from "lucide-react";
 
@@ -21,11 +22,14 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
+import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
 
 import type {
   PersonnelAssignment,
   PersonnelDetail,
+  PersonnelJaringItem,
 } from "./executive-personnel-types";
 
 function formatDate(value?: string | null) {
@@ -160,6 +164,37 @@ function TacticalBackground() {
   );
 }
 
+function getJaringStatusBadge(rawStatus?: string | null) {
+  const status = (rawStatus ?? "APPROVED").toUpperCase();
+  if (status === "APPROVED" || status === "VERIFIED" || status === "ACTIVE") {
+    return {
+      label: "Terverifikasi",
+      className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-950/20",
+    };
+  }
+  if (status === "PENDING" || status === "WAITING") {
+    return {
+      label: "Belum Verifikasi",
+      className: "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400 dark:bg-sky-950/20",
+    };
+  }
+  if (status === "REJECTED") {
+    return {
+      label: "Ditolak",
+      className: "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400 dark:bg-rose-950/20",
+    };
+  }
+  return {
+    label: rawStatus ?? "Terverifikasi",
+    className: "border-slate-500/40 bg-slate-500/10 text-slate-600 dark:text-slate-400 dark:bg-slate-900/20",
+  };
+}
+
+function getPhotoUrl(jaring: PersonnelJaringItem) {
+  const fileId = jaring.profilePhotoFileId || jaring.profilePhotoFile?.id;
+  return fileId ? `/api/files/${fileId}` : null;
+}
+
 /* -------------------------------------------------------------------------- */
 /* MAIN EXPORT CLIENT COMPONENT                                               */
 /* -------------------------------------------------------------------------- */
@@ -172,11 +207,51 @@ export function ExecutivePersonnelDetailClient({
   backHref?: string;
 }) {
   const profile = detail.profile;
+  const [jaringList, setJaringList] = useState<PersonnelJaringItem[]>(detail.jaring ?? []);
+  const [jaringViewMode, setJaringViewMode] = useState<"card" | "table">("card");
   const [activityViewMode, setActivityViewMode] = useState<"card" | "table">("card");
   const [activityPeriodFrom, setActivityPeriodFrom] = useState("");
   const [activityPeriodTo, setActivityPeriodTo] = useState("");
   const [activityPage, setActivityPage] = useState(1);
   const [activityLimit, setActivityLimit] = useState(10);
+
+  useEffect(() => {
+    if (detail.jaring && detail.jaring.length > 0) {
+      setJaringList(detail.jaring);
+      return;
+    }
+
+    let isMounted = true;
+    apiBrowserFetch<any>("/jaring?limit=100")
+      .then((res) => {
+        if (!isMounted) return;
+        const rawItems: any[] = Array.isArray(res) ? res : res?.items ? res.items : res?.data ? res.data : [];
+        const currentAssignmentId = detail.currentAssignment?.id;
+        const profileId = detail.profile?.id;
+        const profileName = detail.profile?.fullName?.toLowerCase();
+
+        const filtered = rawItems.filter((item) => {
+          const caretakers = item.caretakerAssignments ?? [];
+          if (caretakers.length === 0) return false;
+          return caretakers.some((c: any) => {
+            const fo = c.fieldOfficerAssignment;
+            if (!fo) return false;
+            if (currentAssignmentId && fo.id === currentAssignmentId) return true;
+            if (profileId && (fo.userProfileId === profileId || fo.userProfile?.id === profileId)) return true;
+            if (profileName && fo.userProfile?.fullName?.toLowerCase() === profileName) return true;
+            return false;
+          });
+        });
+
+        setJaringList(filtered);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [detail]);
+
   const filteredActivityLogs = useMemo(() => {
     const fromTime = activityPeriodFrom ? new Date(`${activityPeriodFrom}T00:00:00`).getTime() : null;
     const toTime = activityPeriodTo ? new Date(`${activityPeriodTo}T23:59:59.999`).getTime() : null;
@@ -237,6 +312,13 @@ export function ExecutivePersonnelDetailClient({
             >
               <ClipboardList className="size-3.5 mr-2 text-[var(--dc-primary)]" />
               Penugasan
+            </TabsTrigger>
+            <TabsTrigger
+              value="jaring"
+              className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
+            >
+              <Network className="size-3.5 mr-2 text-[var(--dc-primary)]" />
+              Jaring ({jaringList.length})
             </TabsTrigger>
             <TabsTrigger
               value="aktivitas"
@@ -343,6 +425,177 @@ export function ExecutivePersonnelDetailClient({
             ) : null}
           </TabsContent>
 
+          {/* Jaring Binaan Node View */}
+          <TabsContent value="jaring" className="space-y-4 outline-none">
+            {/* Header with Mode Switcher */}
+            <div className="flex items-center justify-between border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-3.5 dark:border-slate-800 dark:bg-[#080d14]/80">
+              <span className="font-mono text-xs font-bold text-[var(--dc-text-primary)] uppercase tracking-wider">
+                Daftar Jaring Binaan ({jaringList.length})
+              </span>
+              <ViewModeToggle value={jaringViewMode} onValueChange={setJaringViewMode} />
+            </div>
+
+            {jaringViewMode === "card" ? (
+              jaringList.map((jaring) => {
+                const photoUrl = getPhotoUrl(jaring);
+                const areas = (jaring.areaCoverages ?? [])
+                  .map((cov) => cov.area?.name)
+                  .filter(Boolean);
+                const displayArea = (jaring.areaNames && jaring.areaNames.length > 0)
+                  ? jaring.areaNames.join(", ")
+                  : areas.length > 0
+                  ? areas.join(", ")
+                  : "Belum diset";
+                const statusBadge = getJaringStatusBadge(jaring.registrationStatus ?? jaring.status);
+                const displayName = jaring.aliasName ?? jaring.fullName ?? "Tanpa Nama";
+
+                return (
+                  <div
+                    key={jaring.id}
+                    className="relative border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-5 rounded-none overflow-hidden group select-none dark:border-slate-800 dark:bg-[#080d14]/80 hover:border-[var(--dc-primary)]/40 transition-all"
+                  >
+                    <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[var(--dc-border-subtle)] dark:border-slate-700 group-hover:border-[var(--dc-primary)]/45 transition-colors" />
+                    <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-[var(--dc-border-subtle)] dark:border-slate-700 group-hover:border-[var(--dc-primary)]/45 transition-colors" />
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between border-b border-[var(--dc-border-subtle)] pb-3.5 dark:border-slate-900/60">
+                      <div className="flex items-center gap-3">
+                        {/* Profile Photo */}
+                        <div className="relative size-12 shrink-0 overflow-hidden rounded-none border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center">
+                          {photoUrl ? (
+                            <img
+                              src={photoUrl}
+                              alt={displayName}
+                              className="size-full object-cover"
+                            />
+                          ) : (
+                            <User className="size-6 text-slate-400 dark:text-slate-600" />
+                          )}
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-bold text-[var(--dc-primary)] uppercase tracking-wider">
+                              {jaring.code}
+                            </span>
+                            <h2 className="font-mono text-sm font-bold text-[var(--dc-text-primary)]">
+                              {displayName}
+                            </h2>
+                          </div>
+                          <p className="text-[10px] font-mono text-[var(--dc-text-muted)] mt-1">
+                            {jaring.occupation?.name ?? "Pekerjaan belum diisi"} {jaring.whatsappNumber ? `· ${jaring.whatsappNumber}` : ""}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 border text-[9px] font-mono tracking-wider font-semibold rounded-none uppercase",
+                            statusBadge.className,
+                          )}
+                        >
+                          {statusBadge.label}
+                        </span>
+                        <Link
+                          href={`/dashboard/daftar-jaring/${jaring.id}`}
+                          className="px-2.5 py-1 border border-slate-300 dark:border-slate-700 bg-background/50 hover:bg-accent text-[10px] font-mono font-semibold transition-colors"
+                        >
+                          DETAIL &rarr;
+                        </Link>
+                      </div>
+                    </div>
+
+                    <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
+                      <Field label="Wilayah Binaan" value={displayArea} />
+                      <Field label="Nomor Kontak / WA" value={jaring.whatsappNumber ?? "-"} />
+                      <Field
+                        label="Terdaftar"
+                        value={formatDate(jaring.registeredAt ?? jaring.createdAt)}
+                      />
+                    </dl>
+                  </div>
+                );
+              })
+            ) : (
+              <Table className="min-w-[760px] border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 dark:border-slate-800 dark:bg-[#080d14]/80">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">Foto</TableHead>
+                    <TableHead>Kode / Nama</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Pekerjaan</TableHead>
+                    <TableHead>Wilayah Binaan</TableHead>
+                    <TableHead>Kontak / WA</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jaringList.map((jaring) => {
+                    const photoUrl = getPhotoUrl(jaring);
+                    const areas = (jaring.areaCoverages ?? [])
+                      .map((cov) => cov.area?.name)
+                      .filter(Boolean);
+                    const displayArea = (jaring.areaNames && jaring.areaNames.length > 0)
+                      ? jaring.areaNames.join(", ")
+                      : areas.length > 0
+                      ? areas.join(", ")
+                      : "Belum diset";
+                    const statusBadge = getJaringStatusBadge(jaring.registrationStatus ?? jaring.status);
+                    const displayName = jaring.aliasName ?? jaring.fullName ?? "Tanpa Nama";
+
+                    return (
+                      <TableRow key={jaring.id}>
+                        <TableCell>
+                          <div className="size-8 overflow-hidden rounded-none border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center">
+                            {photoUrl ? (
+                              <img src={photoUrl} alt={displayName} className="size-full object-cover" />
+                            ) : (
+                              <User className="size-4 text-slate-400 dark:text-slate-600" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-mono text-xs font-bold text-foreground">{displayName}</div>
+                          <div className="font-mono text-[10px] text-[var(--dc-primary)]">{jaring.code}</div>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 border text-[9px] font-mono tracking-wider font-semibold rounded-none uppercase",
+                              statusBadge.className,
+                            )}
+                          >
+                            {statusBadge.label}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-[var(--dc-text-secondary)]">
+                          {jaring.occupation?.name ?? "-"}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-[var(--dc-text-secondary)]">
+                          {displayArea}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-[var(--dc-text-secondary)]">
+                          {jaring.whatsappNumber ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link
+                            href={`/dashboard/daftar-jaring/${jaring.id}`}
+                            className="px-2.5 py-1 border border-slate-300 dark:border-slate-700 bg-background/50 hover:bg-accent text-[10px] font-mono font-semibold transition-colors inline-block"
+                          >
+                            DETAIL &rarr;
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+            {!jaringList.length ? (
+              <EmptyState title="Belum ada jaring binaan yang terdaftar untuk petugas ini" />
+            ) : null}
+          </TabsContent>
+
           {/* Aktivitas Node View */}
           <TabsContent value="aktivitas" className="space-y-4 outline-none">
             <div className="flex flex-col gap-3 border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 dark:border-slate-800 dark:bg-[#080d14]/80 lg:flex-row lg:items-end lg:justify-between">
@@ -389,26 +642,7 @@ export function ExecutivePersonnelDetailClient({
                     RESET PERIODE
                   </Button>
                 )}
-                <div className="flex h-9 items-center gap-1 border border-[var(--dc-border-subtle)] bg-background/40 p-1">
-                  <Button
-                    className="h-7 rounded-none px-3 font-mono text-[10px]"
-                    onClick={() => setActivityViewMode("card")}
-                    size="sm"
-                    type="button"
-                    variant={activityViewMode === "card" ? "secondary" : "ghost"}
-                  >
-                    KARTU
-                  </Button>
-                  <Button
-                    className="h-7 rounded-none px-3 font-mono text-[10px]"
-                    onClick={() => setActivityViewMode("table")}
-                    size="sm"
-                    type="button"
-                    variant={activityViewMode === "table" ? "secondary" : "ghost"}
-                  >
-                    TABEL
-                  </Button>
-                </div>
+                <ViewModeToggle value={activityViewMode} onValueChange={setActivityViewMode} />
               </div>
             </div>
 

@@ -93,8 +93,9 @@ export function BaketOfficerClient() {
 
   // Filter, Search, and Pagination states
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [urgencyFilter, setUrgencyFilter] = useState<string>("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [periodPreset, setPeriodPreset] = useState<"ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM">("ALL");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [page, setPage] = useState(1);
@@ -182,21 +183,29 @@ export function BaketOfficerClient() {
         if (itemCatId !== categoryFilter) return false;
       }
 
-      // Date Range Filter
+      // Date / Period Filter
       const reportDateStr = item.submittedAt || item.createdAt;
       if (reportDateStr) {
-        if (startDate && startDate.length === 10) {
-          const start = new Date(`${startDate}T00:00:00`);
-          if (!Number.isNaN(start.getTime())) {
-            const reportDate = new Date(reportDateStr);
-            if (reportDate < start) return false;
+        const itemTime = new Date(reportDateStr).getTime();
+        const now = new Date();
+
+        if (periodPreset === "TODAY") {
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+          if (itemTime < startOfDay) return false;
+        } else if (periodPreset === "LAST_7_DAYS") {
+          const sevenDaysAgo = now.getTime() - 7 * 24 * 3600 * 1000;
+          if (itemTime < sevenDaysAgo) return false;
+        } else if (periodPreset === "LAST_30_DAYS") {
+          const thirtyDaysAgo = now.getTime() - 30 * 24 * 3600 * 1000;
+          if (itemTime < thirtyDaysAgo) return false;
+        } else if (periodPreset === "CUSTOM") {
+          if (startDate && startDate.length === 10) {
+            const start = new Date(`${startDate}T00:00:00`).getTime();
+            if (itemTime < start) return false;
           }
-        }
-        if (endDate && endDate.length === 10) {
-          const end = new Date(`${endDate}T23:59:59.999`);
-          if (!Number.isNaN(end.getTime())) {
-            const reportDate = new Date(reportDateStr);
-            if (reportDate > end) return false;
+          if (endDate && endDate.length === 10) {
+            const end = new Date(`${endDate}T23:59:59.999`).getTime();
+            if (itemTime > end) return false;
           }
         }
       }
@@ -213,7 +222,7 @@ export function BaketOfficerClient() {
       }
       return true;
     });
-  }, [baketReports, urgencyFilter, categoryFilter, startDate, endDate, search]);
+  }, [baketReports, urgencyFilter, categoryFilter, periodPreset, startDate, endDate, search]);
 
   // Paginated reports for table
   const paginatedReports = useMemo(() => {
@@ -444,46 +453,69 @@ export function BaketOfficerClient() {
                 </NativeSelect>
               </div>
 
-              {/* Date Range Picker (Dari & s/d) */}
+              {/* Periode Filter Dropdown */}
               <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span>Dari:</span>
-                <Input
-                  type="date"
-                  value={startDate}
+                <span>Periode:</span>
+                <NativeSelect
+                  value={periodPreset}
                   onChange={(e) => {
-                    const val = e.target.value;
-                    setStartDate(val);
+                    setPeriodPreset(e.target.value as any);
                     setPage(1);
-                    if (val.length === 10 || val === "") {
-                      void fetchReports(val, endDate);
-                    }
                   }}
-                  className="h-8 text-xs bg-background w-[130px]"
-                  title="Dari Tanggal Masuk"
-                />
+                  className="h-8 text-xs bg-background min-w-[150px]"
+                >
+                  <option value="ALL">Semua Periode</option>
+                  <option value="TODAY">Hari Ini</option>
+                  <option value="LAST_7_DAYS">7 Hari Terakhir</option>
+                  <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+                  <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
+                </NativeSelect>
               </div>
 
-              <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span>s/d:</span>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setEndDate(val);
-                    setPage(1);
-                    if (val.length === 10 || val === "") {
-                      void fetchReports(startDate, val);
-                    }
-                  }}
-                  className="h-8 text-xs bg-background w-[130px]"
-                  title="Sampai Tanggal Masuk"
-                />
-              </div>
+              {/* Date Range Picker (Only shown when periodPreset === "CUSTOM") */}
+              {periodPreset === "CUSTOM" ? (
+                <>
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                    <span>Dari:</span>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setStartDate(val);
+                        setPage(1);
+                        if (val.length === 10 || val === "") {
+                          void fetchReports(val, endDate);
+                        }
+                      }}
+                      className="h-8 text-xs bg-background w-[130px]"
+                      title="Dari Tanggal Masuk"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                    <span>s.d:</span>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEndDate(val);
+                        setPage(1);
+                        if (val.length === 10 || val === "") {
+                          void fetchReports(startDate, val);
+                        }
+                      }}
+                      className="h-8 text-xs bg-background w-[130px]"
+                      title="Sampai Tanggal Masuk"
+                    />
+                  </div>
+                </>
+              ) : null}
             </div>
 
             <div className="flex items-center gap-2">
-              {(search || urgencyFilter !== "ALL" || categoryFilter !== "ALL" || startDate || endDate) && (
+              {(search || urgencyFilter !== "ALL" || categoryFilter !== "ALL" || periodPreset !== "ALL" || startDate || endDate) && (
                 <Button
                   variant="ghost"
                   size="sm"

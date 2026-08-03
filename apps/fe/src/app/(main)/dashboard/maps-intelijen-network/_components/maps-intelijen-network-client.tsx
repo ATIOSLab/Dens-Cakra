@@ -59,8 +59,12 @@ export function MapsIntelijenNetworkClient() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   // OSIRIS Floating Panel & Drawers State
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [tickerOpen, setTickerOpen] = useState(true);
+
+  // Map Layer State
+  const [mapLayer, setMapLayer] = useState<"dark" | "satellite" | "terrain" | "light" | "osm">("dark");
 
   // Unified Filter State
   const [activeTab, setActiveTab] = useState<"ALL" | "LAPORAN" | "BAKET">("ALL");
@@ -290,14 +294,22 @@ export function MapsIntelijenNetworkClient() {
   }, [areaScopes]);
 
   const districtOptions = useMemo(() => {
-    if (regencyFilter === "ALL") return [];
-    const selectedRegency = areaScopes.find((a) => a.areaId === regencyFilter);
-    const selectedCode = selectedRegency?.officialCode || selectedRegency?.code;
-
     const map = new Map<string, { id: string; name: string }>();
-    for (const area of areaScopes) {
-      if (area.level === "DISTRICT") {
-        if (area.parentAreaId === regencyFilter || (selectedCode && area.code.startsWith(`${selectedCode}.`))) {
+
+    if (regencyFilter !== "ALL") {
+      const selectedRegency = areaScopes.find((a) => a.areaId === regencyFilter);
+      const selectedCode = selectedRegency?.officialCode || selectedRegency?.code;
+
+      for (const area of areaScopes) {
+        if (area.level === "DISTRICT" || area.level === "KECAMATAN") {
+          if (area.parentAreaId === regencyFilter || (selectedCode && area.code.startsWith(`${selectedCode}.`))) {
+            map.set(area.areaId, { id: area.areaId, name: area.name });
+          }
+        }
+      }
+    } else {
+      for (const area of areaScopes) {
+        if (area.level === "DISTRICT" || area.level === "KECAMATAN") {
           map.set(area.areaId, { id: area.areaId, name: area.name });
         }
       }
@@ -306,14 +318,22 @@ export function MapsIntelijenNetworkClient() {
   }, [areaScopes, regencyFilter]);
 
   const villageOptions = useMemo(() => {
-    if (districtFilter === "ALL") return [];
-    const selectedDistrict = areaScopes.find((a) => a.areaId === districtFilter);
-    const selectedCode = selectedDistrict?.officialCode || selectedDistrict?.code;
-
     const map = new Map<string, { id: string; name: string }>();
-    for (const area of areaScopes) {
-      if (area.level === "VILLAGE" || area.level === "URBAN_VILLAGE") {
-        if (area.parentAreaId === districtFilter || (selectedCode && area.code.startsWith(`${selectedCode}.`))) {
+
+    if (districtFilter !== "ALL") {
+      const selectedDistrict = areaScopes.find((a) => a.areaId === districtFilter);
+      const selectedCode = selectedDistrict?.officialCode || selectedDistrict?.code;
+
+      for (const area of areaScopes) {
+        if (area.level === "VILLAGE" || area.level === "URBAN_VILLAGE" || area.level === "DESA" || area.level === "KELURAHAN") {
+          if (area.parentAreaId === districtFilter || (selectedCode && area.code.startsWith(`${selectedCode}.`))) {
+            map.set(area.areaId, { id: area.areaId, name: area.name });
+          }
+        }
+      }
+    } else {
+      for (const area of areaScopes) {
+        if (area.level === "VILLAGE" || area.level === "URBAN_VILLAGE" || area.level === "DESA" || area.level === "KELURAHAN") {
           map.set(area.areaId, { id: area.areaId, name: area.name });
         }
       }
@@ -469,15 +489,10 @@ export function MapsIntelijenNetworkClient() {
     const total = baseFilteredItems.length;
     const totalLaporan = baseFilteredItems.filter((i) => !i.isBaket).length;
     const totalBaket = baseFilteredItems.filter((i) => i.isBaket).length;
-    return { total, totalLaporan, totalBaket };
-  }, [baseFilteredItems]);
-
-  const urgentCount = useMemo(() => {
-    return baseFilteredItems.filter((i) => i.urgency === "URGENT").length;
-  }, [baseFilteredItems]);
-
-  const unreadCount = useMemo(() => {
-    return baseFilteredItems.filter((i) => !i.hasBeenRead).length;
+    const unverifiedCount = baseFilteredItems.filter(
+      (i) => !i.isBaket && i.verificationStatus !== "VERIFIED_BY_FIELD_OFFICER"
+    ).length;
+    return { total, totalLaporan, totalBaket, unverifiedCount };
   }, [baseFilteredItems]);
 
   const tickerItems = useMemo(() => {
@@ -570,8 +585,7 @@ export function MapsIntelijenNetworkClient() {
         total={metrics.total}
         totalLaporan={metrics.totalLaporan}
         totalBaket={metrics.totalBaket}
-        urgentCount={urgentCount}
-        unreadCount={unreadCount}
+        unverifiedCount={metrics.unverifiedCount}
       />
 
       {/* 3. Map View with Controls */}
@@ -584,12 +598,17 @@ export function MapsIntelijenNetworkClient() {
         filteredItems={filteredItems}
         panelOpen={panelOpen}
         setPanelOpen={setPanelOpen}
+        rightPanelOpen={rightPanelOpen}
+        setRightPanelOpen={setRightPanelOpen}
         tickerOpen={tickerOpen}
         setTickerOpen={setTickerOpen}
+        mapLayer={mapLayer}
+        setMapLayer={setMapLayer}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         mapCenter={mapCenter}
         mapZoom={mapZoom}
+        setMapZoom={setMapZoom}
         mapPitch={mapPitch}
         setMapPitch={setMapPitch}
         hoveredItemId={hoveredItemId}
@@ -633,22 +652,53 @@ export function MapsIntelijenNetworkClient() {
       />
 
       {/* 4. Table / Card Grid View */}
-      <MapsIntelijenTableView
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        filteredItems={filteredItems}
-        paginatedItems={paginatedItems}
-        metrics={metrics}
-        page={page}
-        setPage={setPage}
-        limit={limit}
-        setLimit={setLimit}
-        onFocusOnMap={handleFocusOnMap}
-        onOpenDetail={handleOpenDetail}
-        onResetFilters={resetAllFilters}
-      />
+      {!isFullscreen && (
+        <MapsIntelijenTableView
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          filteredItems={filteredItems}
+          paginatedItems={paginatedItems}
+          metrics={metrics}
+          page={page}
+          setPage={setPage}
+          limit={limit}
+          setLimit={setLimit}
+          onFocusOnMap={handleFocusOnMap}
+          onOpenDetail={handleOpenDetail}
+          onResetFilters={resetAllFilters}
+          search={search}
+          setSearch={setSearch}
+          urgencyFilter={urgencyFilter}
+          setUrgencyFilter={setUrgencyFilter}
+          periodPreset={periodPreset}
+          setPeriodPreset={setPeriodPreset}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          readFilter={readFilter}
+          setReadFilter={setReadFilter}
+          jaringFilter={jaringFilter}
+          setJaringFilter={setJaringFilter}
+          popoverJaringOptions={popoverJaringOptions}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+          categories={categories}
+          regencyFilter={regencyFilter}
+          setRegencyFilter={setRegencyFilter}
+          regencyOptions={regencyOptions}
+          districtFilter={districtFilter}
+          setDistrictFilter={setDistrictFilter}
+          districtOptions={districtOptions}
+          villageFilter={villageFilter}
+          setVillageFilter={setVillageFilter}
+          villageOptions={villageOptions}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+        />
+      )}
 
       {/* 5. Detail Inspection Modal */}
       <MapsIntelijenDetailModal

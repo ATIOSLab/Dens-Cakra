@@ -17,6 +17,8 @@ type AuthMeResponse = {
     email?: string;
     image?: string | null;
     role?: string | null;
+    username?: string | null;
+    displayUsername?: string | null;
     emailVerified?: boolean;
   } | null;
   session?: {
@@ -100,6 +102,7 @@ export const getSessionPrincipal = cache(async (): Promise<SessionPrincipal | nu
     user: {
       id: payload.user.id,
       name: payload.user.name,
+      username: payload.user.username ?? payload.user.displayUsername ?? null,
       email: payload.user.email,
       image: payload.user.image ?? null,
       role,

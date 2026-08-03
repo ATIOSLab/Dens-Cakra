@@ -14,7 +14,7 @@ export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
   [SYSTEM_ROLES.REGIONAL_COMMANDER]: "Komandan Regional",
   [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: "Manajer Intelijen Operasional",
   [SYSTEM_ROLES.FIELD_COORDINATOR]: "Koordinator Lapangan",
-  [SYSTEM_ROLES.FIELD_OFFICER]: "Petugas Lapangan",
+  [SYSTEM_ROLES.FIELD_OFFICER]: "Petugas Wilayah",
   [SYSTEM_ROLES.ADMIN_SYSTEM]: "Admin Sistem",
 };
 

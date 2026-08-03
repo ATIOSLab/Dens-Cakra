@@ -35,4 +35,4 @@ export interface CreateCoachingReportPayload {
   reportedAt: string;
 }
 
-export type PeriodeFilterOption = "ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "THIS_MONTH";
+export type PeriodeFilterOption = "ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "THIS_MONTH" | "CUSTOM";

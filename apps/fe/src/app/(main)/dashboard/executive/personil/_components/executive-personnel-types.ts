@@ -105,6 +105,32 @@ export type PersonnelMapPayload = {
   };
 };
 
+export type PersonnelJaringItem = {
+  id: string;
+  code: string;
+  aliasName?: string | null;
+  fullName?: string | null;
+  gender?: string | null;
+  address?: string | null;
+  whatsappNumber?: string | null;
+  status?: string | null;
+  registrationStatus?: "PENDING" | "APPROVED" | "REJECTED" | string | null;
+  registeredAt?: string | null;
+  createdAt?: string | null;
+  profilePhotoFileId?: string | null;
+  profilePhotoFile?: { id: string } | null;
+  occupation?: { id?: string; name: string } | null;
+  areaNames?: string[];
+  areaCoverages?: Array<{ area?: { id?: string; name?: string } | null }>;
+  caretakerAssignments?: Array<{
+    fieldOfficerAssignment?: {
+      id?: string;
+      userProfileId?: string;
+      userProfile?: { id?: string; fullName: string | null } | null;
+    } | null;
+  }>;
+};
+
 export type PersonnelDetail = {
   profile: Omit<PersonnelListItem, "assignment" | "lastLocation" | "reportCount"> & {
     operationalLockedAt: string | null;
@@ -141,6 +167,7 @@ export type PersonnelDetail = {
     metrics: unknown[];
     note: string;
   };
+  jaring?: PersonnelJaringItem[];
 };
 
 export type PersonnelListQueryState = {

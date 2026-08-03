@@ -1,3 +1,31 @@
+export type AgentOperationalStatus = "VERIFIED" | "PENDING" | "REJECTED";
+
+export type AdminLevel = "PROVINCE" | "CITY" | "DISTRICT" | "VILLAGE";
+
+export type DisplayMode = "marker" | "cluster" | "heatmap";
+
+export type MapStyleMode = "dark" | "street" | "satellite" | "terrain";
+
+export type DateRangeOption = "24H" | "7D" | "30D" | "CUSTOM";
+
+export type CoordinateSourceMode = "domisili" | "laporan";
+
+export type AdminLayersState = {
+  province: boolean;
+  city: boolean;
+  district: boolean;
+  village: boolean;
+};
+
+export type JaringDistributionVillage = {
+  id: string;
+  name: string;
+  total: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+};
+
 export type JaringDistributionDistrict = {
   id: string;
   name: string;
@@ -11,11 +39,14 @@ export type JaringDistributionDistrict = {
   centroidLatitude: number | null;
   centroidLongitude: number | null;
   geometry: GeoJSON.Geometry | null;
+  villages: JaringDistributionVillage[];
 };
 
 export type JaringDistributionCity = {
   id: string;
   name: string;
+  provinceId?: string;
+  provinceName?: string;
   total: number;
   approved: number;
   pending: number;
@@ -34,11 +65,24 @@ export type JaringDistributionEntry = {
   gender: string | null;
   address: string | null;
   profilePhotoFileId: string | null;
+  provinceName?: string;
+  cityName?: string;
   districtId: string | null;
   districtName: string;
   villageName: string;
   fieldOfficerName: string | null;
   registeredAt: string;
+  status: AgentOperationalStatus;
+  latitude: number;
+  longitude: number;
+  domicileLat?: number;
+  domicileLng?: number;
+  hasReport: boolean;
+  latestReportLat?: number | null;
+  latestReportLng?: number | null;
+  lastReportDate: string;
+  lastActivityTime: string;
+  reportCount: number;
 };
 
 export type DistrictFeatureProperties = {
@@ -51,7 +95,16 @@ export type DistrictFeatureProperties = {
 export const SATELLITE_SOURCE_ID = "jaring-satellite-source";
 export const SATELLITE_LAYER_ID = "jaring-satellite-layer";
 export const SATELLITE_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+export const STREET_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
 export const DEFAULT_CENTER: [number, number] = [106.8166, -6.2];
+
+export const STATUS_COLORS: Record<AgentOperationalStatus, { bg: string; border: string; label: string; dotClass: string }> = {
+  VERIFIED: { bg: "#22c55e", border: "#16a34a", label: "Terverifikasi", dotClass: "bg-emerald-500" },
+  PENDING: { bg: "#3b82f6", border: "#2563eb", label: "Belum Verifikasi", dotClass: "bg-blue-500" },
+  REJECTED: { bg: "#ef4444", border: "#dc2626", label: "Ditolak", dotClass: "bg-red-500" },
+};
+
 export const CALLOUT_COLORS = [
   "#06b6d4",
   "#22c55e",
@@ -102,6 +155,32 @@ export function geoJsonBounds(value: GeoJSON.GeoJSON): [[number, number], [numbe
   ];
 }
 
+export type RecentReportItem = {
+  id: string;
+  jaringCode: string;
+  jaringName: string;
+  title: string;
+  timeAgo: string;
+  urgency: "NORMAL" | "HIGH" | "URGENT";
+  locationName: string;
+};
+
+export type OperationalMonitoringData = {
+  recentReports: RecentReportItem[];
+  newlyVerifiedJaring: Array<{ id: string; code: string; name: string; verifiedAt: string }>;
+  longInactiveJaring: Array<{ id: string; code: string; name: string; inactiveDays: number }>;
+  highActivityAreas: Array<{ districtName: string; count: number }>;
+  priorityAlertsCount: number;
+};
+
+export type QuickStatsData = {
+  topJaringDistricts: Array<{ name: string; count: number }>;
+  topReportDistricts: Array<{ name: string; count: number }>;
+  reportTrend: Array<{ day: string; count: number }>;
+  newJaringTrend: Array<{ day: string; count: number }>;
+  verificationRates: Array<{ districtName: string; rate: number }>;
+};
+
 export function geometryCenter(geometry: GeoJSON.Geometry | null): [number, number] | null {
   if (!geometry) return null;
   const bounds = geoJsonBounds(geometry);
@@ -115,3 +194,41 @@ export function districtCoordinate(district: JaringDistributionDistrict): [numbe
   }
   return geometryCenter(district.geometry);
 }
+
+export function cityCoordinate(city: JaringDistributionCity): [number, number] | null {
+  if (city.geometry) {
+    const center = geometryCenter(city.geometry);
+    if (center) return center;
+  }
+  const validDistrictCoords = city.districts
+    .map((d) => districtCoordinate(d))
+    .filter((c): c is [number, number] => c !== null);
+  if (validDistrictCoords.length === 0) return null;
+  const sumLng = validDistrictCoords.reduce((acc, c) => acc + c[0], 0);
+  const sumLat = validDistrictCoords.reduce((acc, c) => acc + c[1], 0);
+  return [sumLng / validDistrictCoords.length, sumLat / validDistrictCoords.length];
+}
+
+export function villageCoordinate(
+  villageName: string,
+  agents: JaringDistributionEntry[],
+  fallbackCoord: [number, number] | null,
+  index = 0
+): [number, number] | null {
+  const villageAgents = agents.filter(
+    (a) => a.villageName.toLowerCase() === villageName.toLowerCase()
+  );
+  if (villageAgents.length > 0) {
+    const sumLng = villageAgents.reduce((acc, a) => acc + a.longitude, 0);
+    const sumLat = villageAgents.reduce((acc, a) => acc + a.latitude, 0);
+    return [sumLng / villageAgents.length, sumLat / villageAgents.length];
+  }
+  if (!fallbackCoord) return null;
+  const angle = (index * 2 * Math.PI) / 6;
+  const radius = 0.008;
+  return [
+    fallbackCoord[0] + radius * Math.cos(angle),
+    fallbackCoord[1] + radius * Math.sin(angle),
+  ];
+}
+

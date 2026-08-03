@@ -268,7 +268,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "field-coordinator-personnel",
-        title: "Personel Lapangan",
+        title: "Petugas Wilayah",
         url: "/dashboard/personel-lapangan",
         icon: Users,
         roles: COORDINATOR_AND_REGIONAL_ROLES,

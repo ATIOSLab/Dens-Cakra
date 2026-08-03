@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import { ExecutivePersonnelClient } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-client";
 import { ExecutivePersonnelDetailClient } from "@/app/(main)/dashboard/executive/personil/_components/executive-personnel-detail-client";
 import type {
@@ -124,7 +126,7 @@ export async function PersonelLapanganPage({
       areaFilters={areaFilters}
       pageConfig={{
         basePath,
-        title: "Personel Lapangan",
+        title: "Petugas Wilayah (Gaswil)",
         description: isRegional
           ? "Daftar petugas lapangan dalam hierarki Regional Commander, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional."
           : "Daftar petugas lapangan dalam hierarki Koordinator Lapangan, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional.",
@@ -148,13 +150,39 @@ export async function PersonelLapanganDetailPage({
   const apiPath = isRegional ? "/regional-commander/personnel" : "/field-coordinator/personnel";
   const basePath = "/dashboard/personel-lapangan";
 
-  const detail = await apiServerGet<PersonnelDetail>(
-    `${apiPath}/${assignmentId}`,
-  );
+  const [detail, allJaring] = await Promise.all([
+    apiServerGet<PersonnelDetail>(`${apiPath}/${assignmentId}`).catch(() => null),
+    apiServerGet<any[]>("/jaring", { limit: 100 }).catch(() => []),
+  ]);
+
+  if (!detail) {
+    notFound();
+  }
+
+  const rawJaring = Array.isArray(allJaring) ? allJaring : [];
+  const profileId = detail.profile?.id;
+  const profileName = detail.profile?.fullName?.toLowerCase();
+
+  const officerJaring = (detail.jaring && detail.jaring.length > 0)
+    ? detail.jaring
+    : rawJaring.filter((item) => {
+        const caretakers = item.caretakerAssignments ?? [];
+        return caretakers.some((c: any) => {
+          const fo = c.fieldOfficerAssignment;
+          if (!fo) return false;
+          if (fo.id === assignmentId) return true;
+          if (profileId && (fo.userProfileId === profileId || fo.userProfile?.id === profileId)) return true;
+          if (profileName && fo.userProfile?.fullName?.toLowerCase() === profileName) return true;
+          return false;
+        });
+      });
 
   return (
     <ExecutivePersonnelDetailClient
-      detail={detail}
+      detail={{
+        ...detail,
+        jaring: officerJaring,
+      }}
       backHref={basePath}
     />
   );
