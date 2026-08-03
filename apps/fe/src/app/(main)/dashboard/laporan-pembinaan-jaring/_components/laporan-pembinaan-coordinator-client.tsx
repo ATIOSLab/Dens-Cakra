@@ -545,7 +545,7 @@ export function LaporanPembinaanCoordinatorClient() {
                       variant="outline"
                       className="w-full h-9 text-xs font-bold gap-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors uppercase tracking-wider"
                     >
-                      <Link href={`/dashboard/field-coordinator/laporan-pembinaan-jaring/${item.id}?jaringId=${item.jaringId}`}>
+                      <Link href={`/dashboard/laporan-pembinaan-jaring/${item.id}?jaringId=${item.jaringId}`}>
                         <Eye className="size-4" /> LIHAT DETAIL
                       </Link>
                     </Button>
@@ -619,7 +619,7 @@ export function LaporanPembinaanCoordinatorClient() {
                           size="sm"
                           className="h-8 text-xs gap-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                         >
-                          <Link href={`/dashboard/field-coordinator/laporan-pembinaan-jaring/${item.id}?jaringId=${item.jaringId}`}>
+                          <Link href={`/dashboard/laporan-pembinaan-jaring/${item.id}?jaringId=${item.jaringId}`}>
                             <Eye className="size-3.5" /> Detail
                           </Link>
                         </Button>

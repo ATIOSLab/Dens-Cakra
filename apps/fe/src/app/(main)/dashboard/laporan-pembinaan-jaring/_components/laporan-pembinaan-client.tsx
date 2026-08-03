@@ -270,7 +270,7 @@ export function LaporanPembinaanClient({
             Refresh
           </Button>
 
-          <Link href="/dashboard/field-officer/laporan-pembinaan/baru">
+          <Link href="/dashboard/laporan-pembinaan-jaring/baru">
             <Button size="sm" className="h-9 gap-1.5 text-xs">
               <Plus className="h-4 w-4" />
               Buat Laporan Pembinaan
@@ -404,7 +404,7 @@ export function LaporanPembinaanClient({
               : "Tidak ada laporan pembinaan yang cocok dengan kriteria filter atau kata kunci pencarian Anda."}
           </p>
           {reports.length === 0 ? (
-            <Link href="/dashboard/field-officer/laporan-pembinaan/baru">
+            <Link href="/dashboard/laporan-pembinaan-jaring/baru">
               <Button size="sm" className="gap-1.5 text-xs">
                 <Plus className="h-4 w-4" />
                 Buat Laporan Pembinaan
@@ -462,7 +462,7 @@ export function LaporanPembinaanClient({
                 </p>
 
                 <div className="pt-2 border-t flex items-center justify-end text-xs">
-                  <Link href={`/dashboard/field-officer/laporan-pembinaan/${report.jaringId}/${report.id}`}>
+                  <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
                     <Button variant="ghost" size="sm" className="h-7 px-2.5 text-xs text-primary hover:text-primary/90 gap-1">
                       Lihat Detail
                       <ChevronRight className="h-3.5 w-3.5" />
@@ -519,7 +519,7 @@ export function LaporanPembinaanClient({
                       {report.villageName || "-"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link href={`/dashboard/field-officer/laporan-pembinaan/${report.jaringId}/${report.id}`}>
+                      <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
                         <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1">
                           <Eye className="h-3.5 w-3.5" />
                           Detail

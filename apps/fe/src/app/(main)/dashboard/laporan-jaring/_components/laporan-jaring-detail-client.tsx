@@ -114,7 +114,7 @@ const URGENCY_OPTIONS: { value: PriorityLevel; label: string }[] = [
 
 export function LaporanJaringDetailClient({
   laporanId,
-  backHref = "/dashboard/field-officer/laporan-jaring",
+  backHref = "/dashboard/laporan-jaring",
   readOnly = false,
 }: {
   laporanId: string;

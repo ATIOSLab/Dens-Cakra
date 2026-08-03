@@ -585,7 +585,7 @@ export function BaketOfficerClient() {
                           onClick={() => markReportAsRead(item.id)}
                           className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
                         >
-                          <Link href={`/dashboard/field-officer/laporan-jaring/${item.id}?from=baket`}>
+                          <Link href={`/dashboard/laporan-jaring/${item.id}?from=baket`}>
                             <Eye className="size-3.5" />
                             Detail
                           </Link>

@@ -194,7 +194,7 @@ export function LaporanJaringLeadershipDetailClient({
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline">
-              <Link href="/dashboard/field-coordinator/laporan-jaring">
+              <Link href="/dashboard/laporan-jaring">
                 <ArrowLeft data-icon="inline-start" />
                 Kembali ke Daftar
               </Link>

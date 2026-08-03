@@ -17,7 +17,6 @@ export default async function Page({ params }: PageProps) {
   const detail = await apiServerGet<PersonnelDetail>(`/regional-commander/personnel/${assignmentId}`);
 
   return (
-    <ExecutivePersonnelDetailClient backHref="/dashboard/regional-commander/personel-jaring" detail={detail} />
+    <ExecutivePersonnelDetailClient backHref="/dashboard/personel-lapangan" detail={detail} />
   );
-  redirect(`/dashboard/regional-commander/personel-lapangan/${assignmentId}`);
 }

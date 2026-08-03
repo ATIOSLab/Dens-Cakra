@@ -1131,7 +1131,7 @@ export function BaketCoordinatorClient() {
                         urgencyStyle.button,
                       )}
                     >
-                      <Link href={`/dashboard/field-coordinator/laporan-jaring/${item.id}?from=baket`}>
+                      <Link href={`/dashboard/laporan-jaring/${item.id}?from=baket`}>
                         <Eye className="size-4" /> LIHAT DETAIL BAKET
                       </Link>
                     </Button>
@@ -1226,7 +1226,7 @@ export function BaketCoordinatorClient() {
                           size="sm"
                           className={cn("h-8 text-xs gap-1.5 font-semibold", urgencyStyle.button)}
                         >
-                          <Link href={`/dashboard/field-coordinator/laporan-jaring/${item.id}?from=baket`}>
+                          <Link href={`/dashboard/laporan-jaring/${item.id}?from=baket`}>
                             <Eye className="size-3.5" /> Detail
                           </Link>
                         </Button>

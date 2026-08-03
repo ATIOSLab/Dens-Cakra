@@ -167,7 +167,7 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
           <FileText className="size-10 text-muted-foreground/50 mb-3" />
           <p className="text-base font-semibold text-foreground">Detail Laporan Tidak Ditemukan</p>
           <Button asChild variant="outline" size="sm" className="mt-4 text-xs">
-            <Link href="/dashboard/field-coordinator/laporan-pembinaan-jaring">Kembali ke Daftar</Link>
+            <Link href="/dashboard/laporan-pembinaan-jaring">Kembali ke Daftar</Link>
           </Button>
         </div>
       ) : (

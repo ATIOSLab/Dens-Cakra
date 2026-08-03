@@ -76,7 +76,7 @@ import { cn } from "@/lib/utils";
 import { useRoleWorkspace } from "@/app/(main)/dashboard/_components/sidebar/role-workspace-provider";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
-import { jaringDistrict, jaringVillage, type RegistrationJaring } from "@/app/(main)/dashboard/field-coordinator/_components/jaring-types";
+import { jaringCity, jaringDistrict, jaringVillage, type RegistrationJaring } from "@/app/(main)/dashboard/field-coordinator/_components/jaring-types";
 
 export type { RegistrationJaring } from "@/app/(main)/dashboard/field-coordinator/_components/jaring-types";
 
@@ -195,7 +195,9 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const [items, setItems] = useState<RegistrationJaring[]>(initialItems);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [areaFilter, setAreaFilter] = useState<string>("ALL");
+  const [cityFilter, setCityFilter] = useState<string>("ALL");
+  const [districtFilter, setDistrictFilter] = useState<string>("ALL");
+  const [villageFilter, setVillageFilter] = useState<string>("ALL");
   const [officerFilter, setOfficerFilter] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name_asc" | "name_desc">("newest");
   const [page, setPage] = useState(1);
@@ -211,16 +213,74 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
-  // Extract unique areas & officers for filter options
-  const uniqueAreas = useMemo(() => {
+  // Region matching helpers
+  function matchesCity(item: RegistrationJaring, city: string) {
+    if (city === "ALL") return true;
+    const c = jaringCity(item);
+    if (c?.name) return c.name === city;
+    return item.areaCoverages.some((cov) => cov.area?.name === city);
+  }
+
+  function matchesDistrict(item: RegistrationJaring, district: string) {
+    if (district === "ALL") return true;
+    const d = jaringDistrict(item);
+    if (d?.name) return d.name === district;
+    return item.areaCoverages.some((cov) => cov.area?.name === district);
+  }
+
+  function matchesVillage(item: RegistrationJaring, village: string) {
+    if (village === "ALL") return true;
+    const v = jaringVillage(item);
+    if (v?.name) return v.name === village;
+    return item.areaCoverages.some((cov) => cov.area?.name === village);
+  }
+
+  // Extract unique cities, districts, villages & officers for filter options
+  const uniqueCities = useMemo(() => {
     const set = new Set<string>();
     for (const item of items) {
+      const city = jaringCity(item)?.name;
+      if (city) set.add(city);
       for (const cov of item.areaCoverages) {
-        if (cov.area?.name) set.add(cov.area.name);
+        if (cov.area?.level === "CITY" || cov.area?.level === "REGENCY") {
+          if (cov.area.name) set.add(cov.area.name);
+        }
       }
     }
     return Array.from(set).sort();
   }, [items]);
+
+  const uniqueDistricts = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      if (matchesCity(item, cityFilter)) {
+        const dist = jaringDistrict(item)?.name;
+        if (dist) set.add(dist);
+        for (const cov of item.areaCoverages) {
+          if (cov.area?.level === "DISTRICT") {
+            if (cov.area.name) set.add(cov.area.name);
+          }
+        }
+      }
+    }
+    return Array.from(set).sort();
+  }, [items, cityFilter]);
+
+  const uniqueVillages = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      if (matchesCity(item, cityFilter) && matchesDistrict(item, districtFilter)) {
+        const vill = jaringVillage(item)?.name;
+        if (vill) set.add(vill);
+        for (const cov of item.areaCoverages) {
+          if (cov.area?.level === "VILLAGE" || cov.area?.level === "URBAN_VILLAGE") {
+            if (cov.area.name) set.add(cov.area.name);
+          }
+        }
+      }
+    }
+    return Array.from(set).sort();
+  }, [items, cityFilter, districtFilter]);
 
   const uniqueOfficers = useMemo(() => {
     const set = new Set<string>();
@@ -231,32 +291,13 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     return Array.from(set).sort();
   }, [items]);
 
-  // Calculate summary metrics synchronously
-  const summary = useMemo(() => {
-    const total = items.length;
-    const pending = items.filter((i) => i.registrationStatus === "PENDING").length;
-    const approved = items.filter((i) => i.registrationStatus === "APPROVED").length;
-    const rejected = items.filter((i) => i.registrationStatus === "REJECTED").length;
-    return { total, pending, approved, rejected };
-  }, [items]);
-
-  // Filter and sort items
-  const filteredItems = useMemo(() => {
+  // Base filtered items (non-status filters applied: City, District, Village, Officer, Search)
+  const baseFilteredItems = useMemo(() => {
     return items.filter((item) => {
-      // Status filter
-      if (statusFilter !== "ALL" && item.registrationStatus !== statusFilter) {
-        return false;
-      }
-      // Area filter
-      if (areaFilter !== "ALL") {
-        const itemAreas = item.areaCoverages.map((c) => c.area.name);
-        if (!itemAreas.includes(areaFilter)) return false;
-      }
-      // Officer filter
-      if (officerFilter !== "ALL") {
-        if (officerName(item) !== officerFilter) return false;
-      }
-      // Search query
+      if (!matchesCity(item, cityFilter)) return false;
+      if (!matchesDistrict(item, districtFilter)) return false;
+      if (!matchesVillage(item, villageFilter)) return false;
+      if (officerFilter !== "ALL" && officerName(item) !== officerFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const alias = (item.aliasName ?? "").toLowerCase();
@@ -280,7 +321,22 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       }
       return true;
     });
-  }, [items, statusFilter, areaFilter, officerFilter, search]);
+  }, [items, cityFilter, districtFilter, villageFilter, officerFilter, search]);
+
+  // Dynamically calculate summary metrics from baseFilteredItems
+  const summary = useMemo(() => {
+    const total = baseFilteredItems.length;
+    const pending = baseFilteredItems.filter((i) => i.registrationStatus === "PENDING").length;
+    const approved = baseFilteredItems.filter((i) => i.registrationStatus === "APPROVED").length;
+    const rejected = baseFilteredItems.filter((i) => i.registrationStatus === "REJECTED").length;
+    return { total, pending, approved, rejected };
+  }, [baseFilteredItems]);
+
+  // Final filtered items with status filter applied
+  const filteredItems = useMemo(() => {
+    if (statusFilter === "ALL") return baseFilteredItems;
+    return baseFilteredItems.filter((item) => item.registrationStatus === statusFilter);
+  }, [baseFilteredItems, statusFilter]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((left, right) => {
@@ -301,12 +357,19 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   }, [sortedItems, page, limit]);
 
   const hasActiveFilters =
-    search.trim() !== "" || statusFilter !== "ALL" || areaFilter !== "ALL" || officerFilter !== "ALL";
+    search.trim() !== "" ||
+    statusFilter !== "ALL" ||
+    cityFilter !== "ALL" ||
+    districtFilter !== "ALL" ||
+    villageFilter !== "ALL" ||
+    officerFilter !== "ALL";
 
   function handleResetFilters() {
     setSearch("");
     setStatusFilter("ALL");
-    setAreaFilter("ALL");
+    setCityFilter("ALL");
+    setDistrictFilter("ALL");
+    setVillageFilter("ALL");
     setOfficerFilter("ALL");
     setSortBy("newest");
     setPage(1);
@@ -479,118 +542,159 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
         </div>
       </div>
 
-      {/* ACTION BAR */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-4 shadow-xs">
-        <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-[240px]">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
+      {/* FILTER TOOLBAR CONTAINER */}
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-4 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3 flex-1">
+            {/* Filter Kota / Kabupaten */}
+            <NativeSelect
+              value={cityFilter}
               onChange={(e) => {
-                setSearch(e.target.value);
+                setCityFilter(e.target.value);
+                setDistrictFilter("ALL");
+                setVillageFilter("ALL");
                 setPage(1);
               }}
-              placeholder="Cari alias, nama, ID, pekerjaan, Gaswil, wilayah..."
-              className="pl-9 pr-8 h-9 text-sm rounded-lg bg-background"
-            />
-            {search ? (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-3.5" />
-              </button>
-            ) : null}
+              className="w-full sm:w-auto min-w-[150px]"
+            >
+              <option value="ALL">Semua Kota/Kab</option>
+              {uniqueCities.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </NativeSelect>
+
+            {/* Filter Kecamatan */}
+            <NativeSelect
+              value={districtFilter}
+              onChange={(e) => {
+                setDistrictFilter(e.target.value);
+                setVillageFilter("ALL");
+                setPage(1);
+              }}
+              className="w-full sm:w-auto min-w-[150px]"
+            >
+              <option value="ALL">Semua Kecamatan</option>
+              {uniqueDistricts.map((dist) => (
+                <option key={dist} value={dist}>
+                  {dist}
+                </option>
+              ))}
+            </NativeSelect>
+
+            {/* Filter Kelurahan / Desa */}
+            <NativeSelect
+              value={villageFilter}
+              onChange={(e) => {
+                setVillageFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full sm:w-auto min-w-[150px]"
+            >
+              <option value="ALL">Semua Kelurahan</option>
+              {uniqueVillages.map((vill) => (
+                <option key={vill} value={vill}>
+                  {vill}
+                </option>
+              ))}
+            </NativeSelect>
+
+            {/* Filter Status */}
+            <NativeSelect
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full sm:w-auto min-w-[140px]"
+            >
+              <option value="ALL">Semua Status</option>
+              <option value="PENDING">Belum Terverifikasi</option>
+              <option value="APPROVED">Terverifikasi</option>
+              <option value="REJECTED">Ditolak</option>
+            </NativeSelect>
+
+            {/* Filter Gaswil */}
+            <NativeSelect
+              value={officerFilter}
+              onChange={(e) => {
+                setOfficerFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full sm:w-auto min-w-[160px]"
+            >
+              <option value="ALL">Semua Gaswil</option>
+              {uniqueOfficers.map((fo) => (
+                <option key={fo} value={fo}>
+                  {fo}
+                </option>
+              ))}
+            </NativeSelect>
           </div>
 
-          {/* Filter Wilayah */}
-          <NativeSelect
-            value={areaFilter}
-            onChange={(e) => {
-              setAreaFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full sm:w-auto min-w-[150px]"
-          >
-            <option value="ALL">Semua Wilayah</option>
-            {uniqueAreas.map((area) => (
-              <option key={area} value={area}>
-                {area}
-              </option>
-            ))}
-          </NativeSelect>
-
-          {/* Filter Status */}
-          <NativeSelect
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full sm:w-auto min-w-[140px]"
-          >
-            <option value="ALL">Semua Status</option>
-            <option value="PENDING">Belum Terverifikasi</option>
-            <option value="APPROVED">Terverifikasi</option>
-            <option value="REJECTED">Ditolak</option>
-          </NativeSelect>
-
-          {/* Filter Gaswil */}
-          <NativeSelect
-            value={officerFilter}
-            onChange={(e) => {
-              setOfficerFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full sm:w-auto min-w-[160px]"
-          >
-            <option value="ALL">Semua Gaswil</option>
-            {uniqueOfficers.map((fo) => (
-              <option key={fo} value={fo}>
-                {fo}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
-
-        <div className="flex items-center gap-2 self-end lg:self-auto">
-          {/* Sort Dropdown */}
-          <NativeSelect
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="w-auto min-w-[130px]"
-          >
-            <option value="newest">Terbaru</option>
-            <option value="oldest">Terlama</option>
-            <option value="name_asc">Nama A-Z</option>
-            <option value="name_desc">Nama Z-A</option>
-          </NativeSelect>
-
-          {/* Reset Filters */}
-          {hasActiveFilters ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetFilters}
-              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+          <div className="flex items-center gap-2 self-end lg:self-auto">
+            {/* Sort Dropdown */}
+            <NativeSelect
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="w-auto min-w-[130px]"
             >
-              Reset Filter
-            </Button>
-          ) : null}
+              <option value="newest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+              <option value="name_asc">Nama A-Z</option>
+              <option value="name_desc">Nama Z-A</option>
+            </NativeSelect>
 
-          {/* Refresh Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="h-8 gap-1.5 rounded-lg"
-          >
-            <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin text-primary")} />
-            <span className="hidden sm:inline">Refresh</span>
-          </Button>
+            {/* Reset Filters */}
+            {hasActiveFilters ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Reset Filter
+              </Button>
+            ) : null}
+
+            {/* Refresh Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="h-8 gap-1.5 rounded-lg"
+            >
+              <RefreshCw className={cn("size-3.5", isRefreshing && "animate-spin text-primary")} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* SEARCH BAR CONTAINER (SEPARATED & POSITIONED BELOW FILTER TOOLBAR) */}
+      <div className="relative w-full rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-3 shadow-xs">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Cari alias, nama, ID, pekerjaan, Gaswil, wilayah..."
+            className="pl-10 pr-9 h-10 text-sm rounded-lg bg-background border-border"
+          />
+          {search ? (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          ) : null}
         </div>
       </div>
 

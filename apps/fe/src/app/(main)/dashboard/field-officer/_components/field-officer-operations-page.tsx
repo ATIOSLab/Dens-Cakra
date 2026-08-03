@@ -1599,7 +1599,7 @@ export function FieldOfficerOperationsPage({
                 size="lg"
                 className="font-mono uppercase tracking-wider"
               >
-                <Link href="/dashboard/field-officer/jaring-binaan/baru">
+                <Link href="/dashboard/daftar-jaring/baru">
                   <Plus className="size-4" />
                   Tambah Jaring
                 </Link>
@@ -1954,14 +1954,14 @@ export function FieldOfficerOperationsPage({
                                 <TableCell>
                                   <div className="flex justify-end gap-2">
                                     <Link
-                                      href={`/dashboard/field-officer/jaring-binaan/${jaring.id}`}
+                                      href={`/dashboard/daftar-jaring/${jaring.id}`}
                                       className="inline-flex h-8 items-center gap-1.5 rounded-[4px] border border-[var(--tactical-border)] px-3 font-mono font-semibold text-[11px] text-[var(--tactical-text-secondary)] uppercase hover:bg-secondary/40 cursor-pointer"
                                     >
                                       <Eye className="size-3.5" />
                                       Detail
                                     </Link>
                                     <Link
-                                      href={`/dashboard/field-officer/jaring-binaan/${jaring.id}/edit`}
+                                      href={`/dashboard/daftar-jaring/${jaring.id}/edit`}
                                       className="inline-flex h-8 items-center gap-1.5 rounded-[4px] border border-amber-600 px-3 font-mono font-semibold text-amber-700 text-[11px] uppercase hover:bg-amber-500/10 dark:text-amber-400"
                                     >
                                       <Pencil className="size-3.5" />

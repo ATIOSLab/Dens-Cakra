@@ -3,5 +3,5 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default function Page() {
-  redirect("/dashboard/regional-commander/personel-lapangan");
+  redirect("/dashboard/personel-lapangan");
 }

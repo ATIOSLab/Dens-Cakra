@@ -809,7 +809,7 @@ export function LaporanJaringClient() {
                           onClick={() => markReportAsRead(item.id)}
                           className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
                         >
-                          <Link href={`/dashboard/field-officer/laporan-jaring/${item.id}`}>
+                          <Link href={`/dashboard/laporan-jaring/${item.id}`}>
                             <Eye className="size-3.5" />
                             Detail
                           </Link>

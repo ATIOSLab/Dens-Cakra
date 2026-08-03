@@ -1184,7 +1184,7 @@ export function LaporanJaringCoordinatorClient() {
                       variant="outline"
                       className="w-full h-9 text-xs font-bold gap-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors uppercase tracking-wider"
                     >
-                      <Link href={`/dashboard/field-coordinator/laporan-jaring/${item.id}`}>
+                      <Link href={`/dashboard/laporan-jaring/${item.id}`}>
                         <Eye className="size-4" /> LIHAT DETAIL
                       </Link>
                     </Button>
@@ -1295,7 +1295,7 @@ export function LaporanJaringCoordinatorClient() {
                           size="sm"
                           className="h-8 text-xs gap-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                         >
-                          <Link href={`/dashboard/field-coordinator/laporan-jaring/${item.id}`}>
+                          <Link href={`/dashboard/laporan-jaring/${item.id}`}>
                             <Eye className="size-3.5" /> Detail
                           </Link>
                         </Button>
