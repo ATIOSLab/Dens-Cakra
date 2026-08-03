@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { Mail, Lock, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { User, Lock, Eye, EyeOff, RefreshCw } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { detectPublicIp } from "@/lib/network/public-ip";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Masukkan alamat email yang valid." }),
+  identifier: z.string().min(1, { message: "Masukkan alamat email atau username Anda." }),
   password: z.string().min(8, { message: "Password minimal harus 8 karakter." }),
   remember: z.boolean().optional(),
 });
@@ -60,7 +60,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
+      identifier: "",
       password: "",
       remember: false,
     },
@@ -108,11 +108,22 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
 
     startTransition(async () => {
       const callbackUrl = searchParams.get("callbackUrl")?.trim();
-      const { data, error } = await authClient.signIn.email({
-        email: values.email,
-        password: values.password,
-        rememberMe: values.remember ?? true,
-      });
+      const identifier = values.identifier.trim();
+      const isEmail = identifier.includes("@");
+
+      const signInResult = isEmail
+        ? await authClient.signIn.email({
+            email: identifier,
+            password: values.password,
+            rememberMe: values.remember ?? true,
+          })
+        : await authClient.signIn.username({
+            username: identifier,
+            password: values.password,
+            rememberMe: values.remember ?? true,
+          });
+
+      const { data, error } = signInResult;
 
       if (error) {
         if (error.status === 403) {
@@ -179,25 +190,26 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
       ) : null}
 
       <FieldGroup className="gap-4">
-        {/* Email Address */}
+        {/* Email or Username */}
         <Controller
           control={form.control}
-          name="email"
+          name="identifier"
           render={({ field, fieldState }) => (
             <Field className="gap-1.5" data-invalid={fieldState.invalid}>
               <FieldLabel
-                htmlFor="login-email"
+                htmlFor="login-identifier"
                 className="text-xs font-mono font-bold text-muted-foreground/80 uppercase"
               >
-                Email Address
+                Email / Username
               </FieldLabel>
               <div className="relative">
-                <Mail className="absolute left-3 top-4 size-4 text-muted-foreground/50" />
+                <User className="absolute left-3 top-4 size-4 text-muted-foreground/50" />
                 <Input
                   {...field}
-                  id="login-email"
-                  type="email"
-                  autoComplete="email"
+                  id="login-identifier"
+                  type="text"
+                  placeholder="nama@email.com atau username"
+                  autoComplete="username"
                   aria-invalid={fieldState.invalid}
                   disabled={isFormDisabled}
                   className="pl-9 rounded-[8px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm h-12"

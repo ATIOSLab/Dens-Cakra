@@ -1,5 +1,5 @@
 import { createAuthClient } from "better-auth/react";
-import { adminClient } from "better-auth/client/plugins";
+import { adminClient, usernameClient } from "better-auth/client/plugins";
 import { accessControl, accessControlRoles } from "./access-control";
 
 export const authClient = createAuthClient({
@@ -12,6 +12,7 @@ export const authClient = createAuthClient({
       ac: accessControl,
       roles: accessControlRoles,
     }),
+    usernameClient(),
   ],
 });
 

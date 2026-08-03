@@ -4,6 +4,7 @@ import { prisma } from '../modules/prisma/prisma.service.js';
 type EnsureUserProfileInput = {
   authUserId: string;
   fullName?: string | null;
+  username?: string | null;
   status?: UserProfileStatus;
 };
 
@@ -16,12 +17,25 @@ export async function ensureUserProfileForAuthUser(
 ) {
   const nextStatus = input.status;
 
+  if (input.username) {
+    await prisma.user.updateMany({
+      where: {
+        id: input.authUserId,
+      },
+      data: {
+        username: input.username,
+        displayUsername: input.username,
+      },
+    });
+  }
+
   return prisma.userProfile.upsert({
     where: {
       authUserId: input.authUserId,
     },
     update: {
       ...(input.fullName === undefined ? {} : { fullName: input.fullName }),
+      ...(input.username === undefined ? {} : { username: input.username }),
       ...(nextStatus === undefined
         ? {}
         : {
@@ -33,6 +47,7 @@ export async function ensureUserProfileForAuthUser(
     create: {
       authUserId: input.authUserId,
       fullName: input.fullName ?? null,
+      username: input.username ?? null,
       status: nextStatus ?? UserProfileStatus.PENDING,
       isActive: isActiveStatus(nextStatus ?? UserProfileStatus.PENDING),
     },

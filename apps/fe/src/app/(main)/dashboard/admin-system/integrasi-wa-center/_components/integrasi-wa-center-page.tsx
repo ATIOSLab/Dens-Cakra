@@ -137,8 +137,9 @@ export function AdminWaCenterPage() {
         if (!cancelled) {
           const optionMap = new Map<string, CoordinatorAreaOption>();
           allUsers.forEach((user) => {
-            user.positionAssignments?.forEach((assignment) => {
-              const branch = assignment.seat?.branch || assignment.position?.branch || null;
+            const assignments = getUserAssignments(user);
+            assignments.forEach((assignment) => {
+              const branch = assignment.branch || assignment.seat?.branch || assignment.position?.branch || null;
               assignment.areaScopes?.forEach((scope) => {
                 if (scope.area) {
                   const key = `${scope.area.id}-${branch || "default"}`;
@@ -171,12 +172,16 @@ export function AdminWaCenterPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAddOpen]);
 
   const areaQueryStr = deferredAreaQuery.trim().toLowerCase();
   const areaResults = useMemo(() => {
     if (!areaQueryStr) return allCoordinatorAreas;
-    return allCoordinatorAreas.filter((a) => a.label.toLowerCase().includes(areaQueryStr));
+    return allCoordinatorAreas.filter(
+      (a) =>
+        a.label.toLowerCase().includes(areaQueryStr) ||
+        (a.parent?.name && a.parent.name.toLowerCase().includes(areaQueryStr)),
+    );
   }, [allCoordinatorAreas, areaQueryStr]);
 
   const handleCreate = async () => {

@@ -202,7 +202,11 @@ export class UserProfileService {
       const provisionedUser = await this.prisma.$transaction(async (tx) => {
         await tx.user.update({
           where: { id: authUserId },
-          data: { emailVerified: true },
+          data: {
+            emailVerified: true,
+            username: input.profile.username,
+            displayUsername: input.profile.username,
+          },
         });
 
         const profile = await tx.userProfile.update({
@@ -362,6 +366,15 @@ export class UserProfileService {
           : {}),
       },
     });
+    if (input.username) {
+      await this.prisma.user.update({
+        where: { id: updated.authUserId },
+        data: {
+          username: input.username,
+          displayUsername: input.username,
+        },
+      });
+    }
     await this.audit(actor, 'USER.UPDATE', id, before, updated);
     return this.detail(id);
   }

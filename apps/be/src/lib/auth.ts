@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { admin } from 'better-auth/plugins';
+import { admin, username } from 'better-auth/plugins';
 import type { Prisma } from '../generated/prisma/client.js';
 import {
   accessControl,
@@ -230,6 +230,7 @@ export const auth = betterAuth({
     storage: 'memory',
     customRules: {
       '/sign-in/email': { window: 10, max: 3 },
+      '/sign-in/username': { window: 10, max: 3 },
       '/forget-password': { window: 60, max: 3 },
     },
   },
@@ -250,5 +251,6 @@ export const auth = betterAuth({
       adminRoles: [SYSTEM_ROLES.ADMIN_SYSTEM],
       defaultRole: SYSTEM_ROLES.FIELD_OFFICER,
     }),
+    username(),
   ],
 });

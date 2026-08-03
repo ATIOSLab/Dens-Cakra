@@ -489,17 +489,19 @@ enum CommandRouteType {
  */
 
 model User {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  role          String    @default("field_officer")
-  banned        Boolean   @default(false)
-  banReason     String?
-  banExpires    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id
+  name            String
+  email           String    @unique
+  emailVerified   Boolean   @default(false)
+  image           String?
+  role            String    @default("field_officer")
+  username        String?   @unique
+  displayUsername String?
+  banned          Boolean   @default(false)
+  banReason       String?
+  banExpires      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   accounts Account[]
   sessions Session[]
