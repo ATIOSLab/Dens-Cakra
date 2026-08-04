@@ -208,25 +208,14 @@ export function MapsIntelijenNetworkClient() {
         fetchedScopes = areaScopesRes.value;
       }
 
-      if (fetchedReports.length === 0) {
-        fetchedReports = SAMPLE_MOCK_REPORTS;
-      } else {
-        const existingIds = new Set(fetchedReports.map((r) => r.id));
-        for (const mock of SAMPLE_MOCK_REPORTS) {
-          if (!existingIds.has(mock.id)) {
-            fetchedReports.push(mock);
-          }
-        }
-      }
-
       setReports(fetchedReports);
       setJaringList(fetchedJaring);
       setCategories(fetchedCategories);
       setAreaScopes(fetchedScopes);
     } catch (err) {
       console.error("Gagal memuat data maps intelijen network:", err);
-      setLoadError("Terjadi kendala memuat data server. Menampilkan mode cadangan.");
-      setReports(SAMPLE_MOCK_REPORTS);
+      setLoadError("Terjadi kendala memuat data server.");
+      setReports([]);
     } finally {
       setLoading(false);
     }
