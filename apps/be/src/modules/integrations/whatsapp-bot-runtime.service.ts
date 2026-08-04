@@ -1637,11 +1637,11 @@ export class WhatsappBotRuntimeService
         typeof reply === 'string' ? reply : reply.body,
       );
       const typingMs = Math.min(
-        9000,
-        Math.max(2500, text.length * 55 + Math.floor(Math.random() * 900)),
+        3000,
+        Math.max(1000, text.length * 30 + Math.floor(Math.random() * 400)),
       );
       const betweenMessageDelayMs =
-        (index === 0 ? 1000 : 1800) + Math.floor(Math.random() * 900);
+        (index === 0 ? 500 : 1000) + Math.floor(Math.random() * 500);
 
       await sleep(betweenMessageDelayMs);
 
@@ -1658,12 +1658,49 @@ export class WhatsappBotRuntimeService
       if (typeof reply === 'string') {
         await socket.sendMessage(remoteJid, { text });
       } else {
-        await this.sendNativeFlowSingleSelect(socket, remoteJid, {
-          ...reply,
-          body: text,
-        });
+        try {
+          await this.sendNativeFlowSingleSelect(socket, remoteJid, {
+            ...reply,
+            body: text,
+          });
+        } catch (error: unknown) {
+          this.logger.warn(
+            `Failed to send Native Flow list to ${remoteJid}: ${this.messageOf(error)}. Sending plain text fallback.`,
+          );
+          const fallbackText = this.formatReplyAsPlainText({
+            ...reply,
+            body: text,
+          });
+          await socket.sendMessage(remoteJid, { text: fallbackText });
+        }
       }
     }
+  }
+
+  private formatReplyAsPlainText(
+    reply: Exclude<WhatsAppReportReply, string>,
+  ): string {
+    let result = reply.body;
+    if (reply.sections && reply.sections.length > 0) {
+      const choices: string[] = [];
+      let optionIndex = 1;
+      for (const section of reply.sections) {
+        if (section.title) {
+          choices.push(`\n📌 *${section.title}*`);
+        }
+        for (const row of section.rows) {
+          choices.push(
+            `${optionIndex}. *${row.title}*${row.description ? ` — ${row.description}` : ''}`,
+          );
+          optionIndex++;
+        }
+      }
+      result += `\n${choices.join('\n')}`;
+    }
+    if (reply.footer) {
+      result += `\n\n_${reply.footer}_`;
+    }
+    return result;
   }
 
   private async sendNativeFlowSingleSelect(

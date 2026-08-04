@@ -223,6 +223,54 @@ export class WhatsAppReportFlowService {
       return;
     }
 
+    if (
+      session.integrationChannelId &&
+      session.integrationChannelId !== channel.id
+    ) {
+      const startsNewReport = this.isCommand(commandText, [
+        'INFORMASI BARU',
+        'LAPOR',
+      ]);
+      const cancelsReport = this.isCommand(commandText, ['BATAL', 'CANCEL']);
+
+      if (startsNewReport || cancelsReport) {
+        await this.closeSession(
+          session,
+          startsNewReport
+            ? 'NEW_REPORT_REQUESTED'
+            : 'CLOSED_FROM_DIFFERENT_CHANNEL',
+          payload.externalMessageId,
+        );
+        if (startsNewReport) {
+          await this.startSession(channel, payload, message, reply);
+        } else {
+          await reply([
+            'Draft informasi aktif dari kanal lain telah dibatalkan. Silakan kirim PIN/kode Jaring Anda untuk memulai.',
+          ]);
+        }
+        return;
+      }
+
+      const jaring = await this.findJaringByPhone(payload.senderPhone);
+      if (!jaring) return;
+
+      const allowed = await this.channelScope.isJaringAllowed(
+        channel,
+        jaring.areaCoverages.map((coverage) => coverage.areaId),
+      );
+      if (!allowed) {
+        await reply([
+          'Nomor Anda terdaftar, tetapi tidak berada dalam wilayah layanan kanal WhatsApp ini.',
+        ]);
+        return;
+      }
+
+      await reply([
+        'Anda masih memiliki draft informasi aktif yang dibuka dari kanal WhatsApp lain. Ketik BATAL untuk membatalkan draft tersebut dan memulai informasi baru di kanal ini.',
+      ]);
+      return;
+    }
+
     await this.touchSession(session.id, session.status);
     session = (await this.loadSession(session.id)) ?? session;
 
@@ -2044,6 +2092,9 @@ export class WhatsAppReportFlowService {
   }
 
   private findJaringByPhone(senderPhone: string) {
+    if (!this.prisma?.jaring?.findFirst) {
+      return Promise.resolve(null);
+    }
     const raw = senderPhone.replace(/\D+/g, '');
     const candidates = Array.from(
       new Set([
