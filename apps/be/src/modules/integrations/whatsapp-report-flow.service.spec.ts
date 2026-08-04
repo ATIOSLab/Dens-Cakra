@@ -51,12 +51,13 @@ describe('WhatsAppReportFlowService', () => {
     );
   });
 
-  it('setelah PIN benar meminta Live Location sebagai data pertama', async () => {
+  it('setelah PIN benar menampilkan menu Pilihan Tindakan (Daftar Berita Hari Ini & Buat Berita Baru)', async () => {
     const sessionUpdate = jest.fn(() => Promise.resolve());
     const historyCreate = jest.fn(() => Promise.resolve());
+    const findFirst = jest.fn(() => Promise.resolve(null));
     const service = createService({
       prisma: {
-        whatsAppReportSession: { update: sessionUpdate },
+        whatsAppReportSession: { update: sessionUpdate, findFirst },
         whatsAppReportHistory: { create: historyCreate },
         $transaction: (operations: Array<Promise<unknown>>) =>
           Promise.all(operations),
@@ -94,12 +95,22 @@ describe('WhatsAppReportFlowService', () => {
     expect(sessionUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          currentState: WhatsAppReportSessionState.LOCATION,
+          currentState: WhatsAppReportSessionState.SUBMITTED,
         }),
       }),
     );
     expect(reply).toHaveBeenCalledWith([
-      expect.stringContaining('LANGKAH 1/4'),
+      expect.objectContaining({
+        kind: 'native_flow_single_select',
+        sections: expect.arrayContaining([
+          expect.objectContaining({
+            rows: expect.arrayContaining([
+              expect.objectContaining({ title: 'Daftar Berita Hari Ini' }),
+              expect.objectContaining({ title: 'Buat Berita Baru' }),
+            ]),
+          }),
+        ]),
+      }),
     ]);
   });
 
@@ -355,12 +366,10 @@ describe('WhatsAppReportFlowService', () => {
       target.mediaConfirmationReply(session),
       target.mediaDeleteConfirmationReply(),
       target.cancellationConfirmationReply(),
-      target.postSubmitTextConfirmationReply(session),
-      target.postSubmitMediaPurposeReply(session),
       target.postSubmitActionReply(session),
     ];
 
-    expect(replies).toHaveLength(12);
+    expect(replies).toHaveLength(10);
     for (const reply of replies) {
       expect(reply.kind).toBe('native_flow_single_select');
       expect(reply.body).not.toMatch(/[1-9]️⃣/);
@@ -430,12 +439,12 @@ describe('WhatsAppReportFlowService', () => {
     expect(target.parseIncidentAt('03-08-2026 25:30')).toBeNull();
   });
 
-  it('hanya menampilkan aksi penambahan versi pada hari laporan yang sama', () => {
+  it('membentuk menu pilihan tindakan setelah submit hanya berisi Daftar Berita Hari Ini dan Buat Berita Baru', () => {
     const service = createService();
     const target = service as unknown as {
       postSubmitActionReply: (
         session: Record<string, unknown>,
-        now: Date,
+        now?: Date,
       ) => {
         sections: Array<{ rows: Array<{ title: string }> }>;
       };
@@ -443,7 +452,7 @@ describe('WhatsAppReportFlowService', () => {
     const session = {
       referenceNumber: 'INF-20260803-00001',
       submittedAt: new Date('2026-08-03T02:00:00.000Z'),
-      amendments: [{ versionNumber: 2 }],
+      amendments: [],
       submittedMessage: {
         status: 'READY_FOR_BAKET',
         validationSummary: 'VALID',
@@ -451,23 +460,17 @@ describe('WhatsAppReportFlowService', () => {
       },
     };
 
-    const sameDayTitles = target
-      .postSubmitActionReply(session, new Date('2026-08-03T16:59:00.000Z'))
-      .sections[0]?.rows.map((row) => row.title);
-    const nextDayTitles = target
-      .postSubmitActionReply(session, new Date('2026-08-03T17:01:00.000Z'))
-      .sections[0]?.rows.map((row) => row.title);
-
-    expect(sameDayTitles).toEqual(
-      expect.arrayContaining([
-        'Daftar Berita Hari Ini',
-        'Tambah Informasi',
-        'Tambah Dokumentasi',
-      ]),
+    const actionReply = target.postSubmitActionReply(
+      session,
+      new Date('2026-08-03T16:59:00.000Z'),
     );
-    expect(nextDayTitles).toContain('Daftar Berita Hari Ini');
-    expect(nextDayTitles).not.toContain('Tambah Informasi');
-    expect(nextDayTitles).not.toContain('Tambah Dokumentasi');
+    const titles = actionReply.sections[0]?.rows.map((row) => row.title);
+
+    expect(titles).toEqual(['Daftar Berita Hari Ini', 'Buat Berita Baru']);
+    expect(titles).not.toContain('Lihat Status');
+    expect(titles).not.toContain('Lihat Ringkasan');
+    expect(titles).not.toContain('Tambah Informasi');
+    expect(titles).not.toContain('Tambah Dokumentasi');
   });
 
   it('membentuk daftar laporan hari yang sama dengan nomor status dan versi', async () => {
@@ -609,117 +612,53 @@ describe('WhatsAppReportFlowService', () => {
     );
   });
 
-  it('menolak penambahan versi jika tanggal WIB laporan sudah berbeda', async () => {
+  it('menampilkan menu Pilihan Tindakan jika ada input setelah laporan submitted', async () => {
     const service = createService();
-    const target = service as unknown as {
-      ensureSameDayFollowUp: (
-        session: Record<string, unknown>,
-        payload: Record<string, string>,
-        reply: (messages: unknown[]) => Promise<void>,
-      ) => Promise<boolean>;
-    };
+    const advance = (
+      service as unknown as {
+        advance: (
+          session: Record<string, unknown>,
+          input: Record<string, unknown>,
+          text: string,
+        ) => Promise<void>;
+      }
+    ).advance.bind(service);
     const reply = jest.fn<() => Promise<void>>(() => Promise.resolve());
 
-    const allowed = await target.ensureSameDayFollowUp(
+    await advance(
       {
         id: 'session-id',
         currentState: WhatsAppReportSessionState.SUBMITTED,
-        submittedAt: new Date('2026-08-02T16:59:00.000Z'),
-        referenceNumber: 'INF-20260802-00001',
-        amendments: [],
-        submittedMessage: null,
-      },
-      {
-        senderPhone: '6281234567890',
-        externalMessageId: 'late-follow-up-id',
-        receivedAt: '2026-08-02T17:01:00.000Z',
-      },
-      reply,
-    );
-
-    expect(allowed).toBe(false);
-    expect(reply).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.stringContaining('hari yang sama dalam zona WIB'),
-      ]),
-    );
-  });
-
-  it('mencatat informasi tambahan sebagai versi berikutnya dari nomor yang sama', async () => {
-    const amendmentCreate = jest.fn(() => Promise.resolve());
-    const aggregate = jest.fn(() =>
-      Promise.resolve({ _max: { versionNumber: 1 } }),
-    );
-    const queryRaw = jest.fn(() => Promise.resolve([{ id: 'message-id' }]));
-    type TransactionMock = {
-      $queryRaw: typeof queryRaw;
-      whatsAppReportAmendment: {
-        aggregate: typeof aggregate;
-        create: typeof amendmentCreate;
-      };
-    };
-    const transaction = jest.fn(
-      async (callback: (tx: TransactionMock) => Promise<unknown>) =>
-        callback({
-          $queryRaw: queryRaw,
-          whatsAppReportAmendment: { aggregate, create: amendmentCreate },
-        }),
-    );
-    const service = createService({ prisma: { $transaction: transaction } });
-    const transition = jest.fn<() => Promise<void>>(() => Promise.resolve());
-    const target = service as unknown as {
-      advance: (
-        session: Record<string, unknown>,
-        input: Record<string, unknown>,
-        text: string,
-      ) => Promise<void>;
-      transition: typeof transition;
-    };
-    target.transition = transition;
-    const reply = jest.fn<() => Promise<void>>(() => Promise.resolve());
-
-    await target.advance(
-      {
-        id: 'session-id',
-        senderPhone: '6281234567890',
-        currentState: WhatsAppReportSessionState.POST_SUBMIT_TEXT_CONFIRMATION,
         status: WhatsAppReportSessionStatus.SUBMITTED,
-        submittedAt: new Date('2026-08-03T02:00:00.000Z'),
-        submittedMessageId: 'message-id',
-        referenceNumber: 'INF-20260803-00001',
-        pendingAmendmentText: 'Perkembangan situasi terbaru.',
-        amendments: [],
-        submittedMessage: {
-          status: 'READY_FOR_BAKET',
-          validationSummary: 'VALID',
-          convertedBaket: null,
-        },
+        referenceNumber: 'INF-20260802-00001',
+        submittedMessage: null,
       },
       {
         channel: {},
         message: {},
         payload: {
-          externalMessageId: 'amendment-confirm-id',
           senderPhone: '6281234567890',
-          receivedAt: '2026-08-03T05:00:00.000Z',
+          externalMessageId: 'post-submit-msg-id',
+          receivedAt: '2026-08-02T17:01:00.000Z',
         },
         reply,
       },
-      'report_post_submit_text_add',
+      'pesan tambahan',
     );
 
-    expect(amendmentCreate).toHaveBeenCalledWith(
+    expect(reply).toHaveBeenCalledWith([
       expect.objectContaining({
-        data: expect.objectContaining({
-          whatsappMessageId: 'message-id',
-          versionNumber: 2,
-          content: 'Perkembangan situasi terbaru.',
-        }),
+        kind: 'native_flow_single_select',
+        sections: expect.arrayContaining([
+          expect.objectContaining({
+            rows: expect.arrayContaining([
+              expect.objectContaining({ title: 'Daftar Berita Hari Ini' }),
+              expect.objectContaining({ title: 'Buat Berita Baru' }),
+            ]),
+          }),
+        ]),
       }),
-    );
-    expect(reply).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.stringContaining('Versi 2')]),
-    );
+    ]);
   });
 
   it('melanjutkan konfirmasi informasi ke input waktu kejadian', async () => {

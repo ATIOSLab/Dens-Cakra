@@ -482,6 +482,95 @@ export class WhatsAppReportFlowService {
             activeSenderKey: payload.senderPhone,
             jaringId: jaring.id,
             fieldOfficerAssignmentId,
+            currentState: WhatsAppReportSessionState.SUBMITTED,
+            status: WhatsAppReportSessionStatus.SUBMITTED,
+            expiresAt: new Date(Date.now() + SUBMITTED_SESSION_TTL_MS),
+          },
+        });
+        await tx.whatsAppReportHistory.create({
+          data: {
+            reportSessionId: reportSession.id,
+            action: 'SESSION_CREATED',
+            newState: WhatsAppReportSessionState.SUBMITTED,
+            externalMessageId: payload.externalMessageId,
+          },
+        });
+        return reportSession;
+      });
+      const latestSubmitted = await this.prisma.whatsAppReportSession.findFirst({
+        where: { senderPhone: payload.senderPhone, submittedMessageId: { not: null } },
+        orderBy: { submittedAt: 'desc' },
+        include: this.sessionInclude(),
+      });
+      await reply([this.postSubmitActionReply(latestSubmitted ?? created)]);
+      this.logger.log(`WhatsApp report session ${created.id} created via PIN`);
+    } catch (error) {
+      if (this.isUniqueConstraint(error)) {
+        const latestSubmitted = await this.prisma.whatsAppReportSession.findFirst({
+          where: { senderPhone: payload.senderPhone, submittedMessageId: { not: null } },
+          orderBy: { submittedAt: 'desc' },
+          include: this.sessionInclude(),
+        });
+        await reply([this.postSubmitActionReply(latestSubmitted)]);
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private async startLocationSession(
+    channel: WhatsAppReportChannel,
+    payload: WhatsAppReportInboundPayload,
+    message: WAMessage,
+    reply: ReplySender,
+  ) {
+    const jaring = await this.findJaringByPhone(payload.senderPhone);
+    if (!jaring) {
+      this.logger.warn(
+        `No approved Jaring found for sender ${payload.senderPhone} on channel ${channel.code}`,
+      );
+      return;
+    }
+
+    const allowed = await this.channelScope.isJaringAllowed(
+      channel,
+      jaring.areaCoverages.map((coverage) => coverage.areaId),
+    );
+    if (!allowed) {
+      this.logger.warn(
+        `Jaring ${jaring.code} (${payload.senderPhone}) not allowed on channel ${channel.code}`,
+      );
+      await reply([
+        'Nomor Anda terdaftar, tetapi tidak berada dalam wilayah layanan kanal WhatsApp ini.',
+      ]);
+      return;
+    }
+
+    const fieldOfficerAssignmentId =
+      jaring.caretakerAssignments[0]?.fieldOfficerAssignmentId;
+    if (!fieldOfficerAssignmentId) {
+      this.logger.warn(
+        `Jaring ${jaring.code} (${payload.senderPhone}) has no active field officer assignment`,
+      );
+      await reply([
+        'Field Officer penanggung jawab aktif belum tersedia. Silakan hubungi admin.',
+      ]);
+      return;
+    }
+
+    const remoteJid = message.key.remoteJid;
+    if (!remoteJid) return;
+
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        const reportSession = await tx.whatsAppReportSession.create({
+          data: {
+            integrationChannelId: channel.id,
+            senderPhone: payload.senderPhone,
+            remoteJid,
+            activeSenderKey: payload.senderPhone,
+            jaringId: jaring.id,
+            fieldOfficerAssignmentId,
             currentState: WhatsAppReportSessionState.LOCATION,
             expiresAt: new Date(Date.now() + SESSION_TTL_MS),
           },
@@ -497,7 +586,7 @@ export class WhatsAppReportFlowService {
         return reportSession;
       });
       await reply([this.promptForState(WhatsAppReportSessionState.LOCATION)]);
-      this.logger.log(`WhatsApp report session ${created.id} created via PIN`);
+      this.logger.log(`WhatsApp report session ${created.id} created in LOCATION state`);
     } catch (error) {
       if (this.isUniqueConstraint(error)) {
         await reply([
@@ -595,11 +684,16 @@ export class WhatsAppReportFlowService {
       }
       await this.transition(
         session,
-        WhatsAppReportSessionState.LOCATION,
+        WhatsAppReportSessionState.SUBMITTED,
         'CODE_VERIFIED',
         payload.externalMessageId,
       );
-      await reply([this.promptForState(WhatsAppReportSessionState.LOCATION)]);
+      const latestSubmitted = await this.prisma.whatsAppReportSession.findFirst({
+        where: { senderPhone: payload.senderPhone, submittedMessageId: { not: null } },
+        orderBy: { submittedAt: 'desc' },
+        include: this.sessionInclude(),
+      });
+      await reply([this.postSubmitActionReply(latestSubmitted ?? session)]);
       return;
     }
 
@@ -1316,101 +1410,13 @@ export class WhatsAppReportFlowService {
       return;
     }
 
-    if (state === WhatsAppReportSessionState.SUBMITTED) {
+    if (
+      state === WhatsAppReportSessionState.SUBMITTED ||
+      state === WhatsAppReportSessionState.POST_SUBMIT_TEXT_CONFIRMATION ||
+      state === WhatsAppReportSessionState.POST_SUBMIT_MEDIA_PURPOSE
+    ) {
       await this.handleSubmittedInput(session, input, text);
       return;
-    }
-
-    if (state === WhatsAppReportSessionState.POST_SUBMIT_TEXT_CONFIRMATION) {
-      if (!(await this.ensureSameDayFollowUp(session, payload, reply))) {
-        return;
-      }
-      if (
-        this.isChoice(
-          text,
-          1,
-          'YA',
-          'TAMBAHKAN',
-          REPORT_ACTION_IDS.postSubmitTextAdd,
-        )
-      ) {
-        if (session.submittedMessageId && session.pendingAmendmentText) {
-          const versionNumber = await this.prisma.$transaction(async (tx) => {
-            const nextVersion = await this.nextAmendmentVersion(
-              tx,
-              session.submittedMessageId as string,
-            );
-            await tx.whatsAppReportAmendment.create({
-              data: {
-                reportSessionId: session.id,
-                whatsappMessageId: session.submittedMessageId as string,
-                versionNumber: nextVersion,
-                amendmentType: WhatsAppReportAmendmentType.CONTENT_ADDITION,
-                content: session.pendingAmendmentText,
-                senderPhone: session.senderPhone,
-              },
-            });
-            return nextVersion;
-          });
-          await this.transition(
-            session,
-            WhatsAppReportSessionState.SUBMITTED,
-            'AMENDMENT_ADDED',
-            payload.externalMessageId,
-            { pendingAmendmentText: null },
-          );
-          await reply([
-            `Informasi tambahan berhasil disimpan sebagai Versi ${versionNumber}.\n\nNomor Referensi: ${session.referenceNumber}\nStatus: ${this.reportStatusLabel(session)}`,
-            this.postSubmitActionReply({
-              ...session,
-              amendments: [{ versionNumber }],
-            }),
-          ]);
-        }
-      } else if (
-        this.isChoice(text, 2, 'TIDAK', REPORT_ACTION_IDS.postSubmitTextDiscard)
-      ) {
-        await this.transition(
-          session,
-          WhatsAppReportSessionState.SUBMITTED,
-          'AMENDMENT_DISCARDED',
-          payload.externalMessageId,
-          { pendingAmendmentText: null },
-        );
-        await reply([
-          'Informasi tambahan tidak disimpan.',
-          this.postSubmitActionReply(session),
-        ]);
-      } else if (
-        this.isChoice(
-          text,
-          3,
-          'BUAT BERITA BARU',
-          REPORT_ACTION_IDS.postSubmitTextNew,
-        )
-      ) {
-        await this.closeSession(
-          session,
-          'NEW_REPORT_REQUESTED',
-          payload.externalMessageId,
-        );
-        await this.startSession(
-          input.channel,
-          payload,
-          input.message,
-          input.reply,
-        );
-      } else {
-        await reply([this.postSubmitTextConfirmationReply(session)]);
-      }
-      return;
-    }
-
-    if (state === WhatsAppReportSessionState.POST_SUBMIT_MEDIA_PURPOSE) {
-      if (!(await this.ensureSameDayFollowUp(session, payload, reply))) {
-        return;
-      }
-      await this.handlePostSubmitMediaChoice(session, input, text);
     }
   }
 
@@ -1425,32 +1431,25 @@ export class WhatsAppReportFlowService {
     },
     text: string,
   ) {
-    if (this.isCommand(text, [REPORT_ACTION_IDS.postSubmitNew])) {
+    if (
+      this.isCommand(text, [
+        REPORT_ACTION_IDS.postSubmitNew,
+        'BUAT BERITA BARU',
+        'INFORMASI BARU',
+        'LAPOR',
+      ])
+    ) {
       await this.closeSession(
         session,
         'NEW_REPORT_REQUESTED',
         input.payload.externalMessageId,
       );
-      await this.startSession(
+      await this.startLocationSession(
         input.channel,
         input.payload,
         input.message,
         input.reply,
       );
-      return;
-    }
-    if (this.isCommand(text, [REPORT_ACTION_IDS.postSubmitStatus])) {
-      await input.reply([
-        await this.statusText(input.payload.senderPhone, session),
-        this.postSubmitActionReply(session),
-      ]);
-      return;
-    }
-    if (this.isCommand(text, [REPORT_ACTION_IDS.postSubmitSummary])) {
-      await input.reply([
-        this.summaryText(session),
-        this.postSubmitActionReply(session),
-      ]);
       return;
     }
     if (this.isCommand(text, [REPORT_ACTION_IDS.postSubmitList])) {
@@ -1487,215 +1486,8 @@ export class WhatsAppReportFlowService {
       );
       return;
     }
-    if (
-      !(await this.ensureSameDayFollowUp(session, input.payload, input.reply))
-    ) {
-      return;
-    }
-    if (this.isCommand(text, [REPORT_ACTION_IDS.postSubmitContentAdd])) {
-      await input.reply([
-        'Silakan kirimkan narasi informasi tambahan. Setelah dikirim, bot akan meminta konfirmasi.',
-      ]);
-      return;
-    }
-    if (this.isCommand(text, [REPORT_ACTION_IDS.postSubmitMediaAdd])) {
-      await input.reply([
-        'Silakan kirim foto atau video dokumentasi tambahan.',
-      ]);
-      return;
-    }
-    const media = this.mediaMessage(input.message);
-    if (media) {
-      try {
-        const file = await this.storeAndScanMedia(
-          input.socket,
-          input.message,
-          session,
-          media,
-        );
-        await this.transition(
-          session,
-          WhatsAppReportSessionState.POST_SUBMIT_MEDIA_PURPOSE,
-          'POST_SUBMIT_MEDIA_RECEIVED',
-          input.payload.externalMessageId,
-          { pendingFileId: file.id },
-        );
-        await input.reply([this.postSubmitMediaPurposeReply(session)]);
-      } catch (error) {
-        this.logger.warn(`Post-submit media failed: ${this.messageOf(error)}`);
-        await input.reply(['Dokumentasi gagal diterima. Silakan kirim ulang.']);
-      }
-      return;
-    }
-    if (text) {
-      await this.transition(
-        session,
-        WhatsAppReportSessionState.POST_SUBMIT_TEXT_CONFIRMATION,
-        'POST_SUBMIT_TEXT_RECEIVED',
-        input.payload.externalMessageId,
-        { pendingAmendmentText: text },
-      );
-      await input.reply([this.postSubmitTextConfirmationReply(session)]);
-    }
-  }
 
-  private async handlePostSubmitMediaChoice(
-    session: LoadedSession,
-    input: {
-      channel: WhatsAppReportChannel;
-      message: WAMessage;
-      payload: WhatsAppReportInboundPayload;
-      reply: ReplySender;
-    },
-    text: string,
-  ) {
-    if (
-      this.isChoice(
-        text,
-        1,
-        'TAMBAH DOKUMENTASI',
-        REPORT_ACTION_IDS.postSubmitMediaAdd,
-      )
-    ) {
-      if (session.submittedMessageId && session.pendingFileId) {
-        const versionNumber = await this.prisma.$transaction(async (tx) => {
-          const nextVersion = await this.nextAmendmentVersion(
-            tx,
-            session.submittedMessageId as string,
-          );
-          const count = await tx.whatsAppMessageMedia.count({
-            where: { messageId: session.submittedMessageId as string },
-          });
-          await tx.whatsAppMessageMedia.create({
-            data: {
-              messageId: session.submittedMessageId as string,
-              fileId: session.pendingFileId as string,
-              orderNo: count + 1,
-            },
-          });
-          await tx.whatsAppReportAmendment.create({
-            data: {
-              reportSessionId: session.id,
-              whatsappMessageId: session.submittedMessageId as string,
-              versionNumber: nextVersion,
-              amendmentType: WhatsAppReportAmendmentType.MEDIA_ADDITION,
-              fileId: session.pendingFileId,
-              senderPhone: session.senderPhone,
-            },
-          });
-          return nextVersion;
-        });
-        await this.transition(
-          session,
-          WhatsAppReportSessionState.SUBMITTED,
-          'AMENDMENT_MEDIA_ADDED',
-          input.payload.externalMessageId,
-          { pendingFileId: null },
-        );
-        await input.reply([
-          `Dokumentasi tambahan berhasil disimpan sebagai Versi ${versionNumber}.\n\nNomor Referensi: ${session.referenceNumber}\nStatus: ${this.reportStatusLabel(session)}`,
-          this.postSubmitActionReply({
-            ...session,
-            amendments: [{ versionNumber }],
-          }),
-        ]);
-      }
-    } else if (
-      this.isChoice(
-        text,
-        2,
-        'TAMBAH INFORMASI',
-        REPORT_ACTION_IDS.postSubmitContentAdd,
-      )
-    ) {
-      await this.transition(
-        session,
-        WhatsAppReportSessionState.SUBMITTED,
-        'POST_SUBMIT_MEDIA_DISCARDED',
-        input.payload.externalMessageId,
-        { pendingFileId: null },
-      );
-      await input.reply(['Silakan kirimkan narasi informasi tambahan.']);
-    } else if (
-      this.isChoice(
-        text,
-        3,
-        'LIHAT RINGKASAN',
-        REPORT_ACTION_IDS.postSubmitSummary,
-      )
-    ) {
-      await input.reply([
-        this.summaryText(session),
-        this.postSubmitMediaPurposeReply(session),
-      ]);
-    } else if (
-      this.isChoice(
-        text,
-        4,
-        'KIRIM INFORMASI BARU',
-        REPORT_ACTION_IDS.postSubmitNew,
-      )
-    ) {
-      await this.closeSession(
-        session,
-        'NEW_REPORT_REQUESTED',
-        input.payload.externalMessageId,
-      );
-      await this.startSession(
-        input.channel,
-        input.payload,
-        input.message,
-        input.reply,
-      );
-    } else {
-      await input.reply([this.postSubmitMediaPurposeReply(session)]);
-    }
-  }
-
-  private async nextAmendmentVersion(
-    tx: Prisma.TransactionClient,
-    whatsappMessageId: string,
-  ) {
-    await tx.$queryRaw`
-      SELECT "id"
-      FROM "WhatsAppMessage"
-      WHERE "id" = ${whatsappMessageId}::uuid
-      FOR UPDATE
-    `;
-    const latest = await tx.whatsAppReportAmendment.aggregate({
-      where: { whatsappMessageId },
-      _max: { versionNumber: true },
-    });
-    return (latest._max.versionNumber ?? 1) + 1;
-  }
-
-  private async ensureSameDayFollowUp(
-    session: LoadedSession,
-    payload: WhatsAppReportInboundPayload,
-    reply: ReplySender,
-  ) {
-    const referenceDate = this.validDate(payload.receivedAt);
-    if (
-      session.submittedAt &&
-      this.wibDateKey(session.submittedAt) === this.wibDateKey(referenceDate)
-    ) {
-      return true;
-    }
-
-    if (session.currentState !== WhatsAppReportSessionState.SUBMITTED) {
-      await this.transition(
-        session,
-        WhatsAppReportSessionState.SUBMITTED,
-        'SAME_DAY_FOLLOW_UP_EXPIRED',
-        payload.externalMessageId,
-        { pendingAmendmentText: null, pendingFileId: null },
-      );
-    }
-    await reply([
-      'Penambahan versi hanya dapat dilakukan pada tanggal berita dikirim (hari yang sama dalam zona WIB).',
-      this.postSubmitActionReply(session, referenceDate),
-    ]);
-    return false;
+    await input.reply([this.postSubmitActionReply(session)]);
   }
 
   private async reportHistoryReply(
@@ -2582,57 +2374,8 @@ Foto/Video: ${session.media?.length ?? 0} file`;
     });
   }
 
-  private postSubmitTextConfirmationReply(session: LoadedSession) {
-    return this.singleSelectReply({
-      body: `Informasi tambahan terdeteksi.\n\nTambahkan ke berita ${session.referenceNumber ?? '-'}?`,
-      sectionTitle: 'Informasi Tambahan',
-      rows: [
-        {
-          id: REPORT_ACTION_IDS.postSubmitTextAdd,
-          title: 'Ya, Tambahkan',
-        },
-        {
-          id: REPORT_ACTION_IDS.postSubmitTextDiscard,
-          title: 'Tidak',
-        },
-        {
-          id: REPORT_ACTION_IDS.postSubmitTextNew,
-          title: 'Buat Berita Baru',
-        },
-      ],
-    });
-  }
 
-  private postSubmitMediaPurposeReply(session: LoadedSession) {
-    return this.singleSelectReply({
-      body: `Masih terdapat informasi yang sedang diproses.\n\nNomor Referensi: ${session.referenceNumber ?? '-'}\n\nApa yang ingin Anda lakukan?`,
-      sectionTitle: 'Tindakan Berita',
-      rows: [
-        {
-          id: REPORT_ACTION_IDS.postSubmitMediaAdd,
-          title: 'Tambah Dokumentasi',
-        },
-        {
-          id: REPORT_ACTION_IDS.postSubmitContentAdd,
-          title: 'Tambah Informasi',
-        },
-        {
-          id: REPORT_ACTION_IDS.postSubmitSummary,
-          title: 'Lihat Ringkasan',
-        },
-        {
-          id: REPORT_ACTION_IDS.postSubmitNew,
-          title: 'Kirim Informasi Baru',
-        },
-      ],
-    });
-  }
-
-  private postSubmitActionReply(session: LoadedSession, now = new Date()) {
-    const canAddVersion = Boolean(
-      session.submittedAt &&
-      this.wibDateKey(session.submittedAt) === this.wibDateKey(now),
-    );
+  private postSubmitActionReply(session: LoadedSession | null, _now = new Date()) {
     const rows: NativeFlowSingleSelectReply['sections'][number]['rows'] = [
       {
         id: REPORT_ACTION_IDS.postSubmitList,
@@ -2641,34 +2384,17 @@ Foto/Video: ${session.media?.length ?? 0} file`;
       },
       {
         id: REPORT_ACTION_IDS.postSubmitNew,
-        title: 'Buat Informasi Baru',
-      },
-      {
-        id: REPORT_ACTION_IDS.postSubmitStatus,
-        title: 'Lihat Status',
-      },
-      {
-        id: REPORT_ACTION_IDS.postSubmitSummary,
-        title: 'Lihat Ringkasan',
+        title: 'Buat Berita Baru',
       },
     ];
-    if (canAddVersion) {
-      rows.push(
-        {
-          id: REPORT_ACTION_IDS.postSubmitContentAdd,
-          title: 'Tambah Informasi',
-          description: 'Disimpan sebagai versi berikutnya.',
-        },
-        {
-          id: REPORT_ACTION_IDS.postSubmitMediaAdd,
-          title: 'Tambah Dokumentasi',
-          description: 'Disimpan sebagai versi berikutnya.',
-        },
-      );
-    }
+
+    const bodyText = session?.referenceNumber
+      ? `Nomor Referensi: ${session.referenceNumber ?? '-'}\nStatus: ${this.reportStatusLabel(session)}\nVersi Saat Ini: ${this.currentReportVersion(session)}`
+      : 'Silakan pilih menu di bawah ini.';
+
     return this.singleSelectReply({
-      body: `Nomor Referensi: ${session.referenceNumber ?? '-'}\nStatus: ${this.reportStatusLabel(session)}\nVersi Saat Ini: ${this.currentReportVersion(session)}\n\nPenambahan versi hanya tersedia pada hari berita dikirim (WIB).`,
-      sectionTitle: 'Lanjutkan Berita',
+      body: bodyText,
+      sectionTitle: 'Pilihan Tindakan',
       rows,
     });
   }
@@ -2708,11 +2434,8 @@ Foto/Video: ${session.media?.length ?? 0} file`;
     if (state === WhatsAppReportSessionState.CANCEL_CONFIRMATION) {
       return this.cancellationConfirmationReply();
     }
-    if (state === WhatsAppReportSessionState.POST_SUBMIT_TEXT_CONFIRMATION) {
-      return this.postSubmitTextConfirmationReply(session);
-    }
-    if (state === WhatsAppReportSessionState.POST_SUBMIT_MEDIA_PURPOSE) {
-      return this.postSubmitMediaPurposeReply(session);
+    if (state === WhatsAppReportSessionState.POST_SUBMIT_TEXT_CONFIRMATION || state === WhatsAppReportSessionState.POST_SUBMIT_MEDIA_PURPOSE) {
+      return this.postSubmitActionReply(session);
     }
     return this.promptForState(state);
   }
