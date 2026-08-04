@@ -582,8 +582,49 @@ export class JaringService {
     }
   }
 
-  private detail(id: string, includeDeleted = false) {
-    return this.prisma.jaring.findFirstOrThrow({
+  private calculateJaringReportActivity(item: {
+    messages?: Array<{ receivedAt: Date }>;
+    reportSessions?: Array<{ submittedAt: Date | null }>;
+    registrationStatus?: JaringRegistrationStatus;
+    status?: JaringStatus;
+  }) {
+    const latestMessageDate = item.messages?.[0]?.receivedAt
+      ? new Date(item.messages[0].receivedAt).getTime()
+      : null;
+    const latestSessionDate = item.reportSessions?.[0]?.submittedAt
+      ? new Date(item.reportSessions[0].submittedAt).getTime()
+      : null;
+
+    let lastReportAt: Date | null = null;
+    if (latestMessageDate && latestSessionDate) {
+      lastReportAt = new Date(Math.max(latestMessageDate, latestSessionDate));
+    } else if (latestMessageDate) {
+      lastReportAt = new Date(latestMessageDate);
+    } else if (latestSessionDate) {
+      lastReportAt = new Date(latestSessionDate);
+    }
+
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
+
+    const isApproved =
+      item.registrationStatus === JaringRegistrationStatus.APPROVED;
+    const hasReportInLast3Months =
+      lastReportAt !== null && lastReportAt.getTime() >= threeMonthsAgo.getTime();
+
+    const computedStatus =
+      isApproved && hasReportInLast3Months
+        ? JaringStatus.ACTIVE
+        : JaringStatus.INACTIVE;
+
+    return {
+      lastReportAt: lastReportAt ? lastReportAt.toISOString() : null,
+      computedStatus,
+    };
+  }
+
+  private async detail(id: string, includeDeleted = false) {
+    const item = await this.prisma.jaring.findFirstOrThrow({
       where: { id, ...(includeDeleted ? {} : { deletedAt: null }) },
       include: {
         occupation: true,
@@ -611,8 +652,27 @@ export class JaringService {
         _count: {
           select: { messages: true, primaryBakets: true, reportSessions: true },
         },
+        messages: {
+          take: 1,
+          orderBy: { receivedAt: 'desc' },
+          select: { receivedAt: true },
+        },
+        reportSessions: {
+          take: 1,
+          orderBy: { submittedAt: 'desc' },
+          select: { submittedAt: true },
+        },
       },
     });
+
+    const { lastReportAt, computedStatus } =
+      this.calculateJaringReportActivity(item);
+
+    return {
+      ...item,
+      lastReportAt,
+      status: computedStatus,
+    };
   }
 
   private audit(
@@ -967,7 +1027,11 @@ export class JaringService {
     const isFieldOfficer = context.authRole === 'field_officer';
     const isFieldCoordinator = context.authRole === 'field_coordinator';
     const page = query.page ?? 1;
-    return this.prisma.jaring.findMany({
+
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
+
+    const items = await this.prisma.jaring.findMany({
       where: {
         deletedAt: null,
         ...(isFieldCoordinator && scope.areaRootIds.length === 0
@@ -989,7 +1053,49 @@ export class JaringService {
           },
         },
         ...this.scopedJaringAreaWhere(scope),
-        ...(query.status ? { status: query.status } : {}),
+        ...(query.status === JaringStatus.ACTIVE
+          ? {
+              registrationStatus: JaringRegistrationStatus.APPROVED,
+              OR: [
+                {
+                  reportSessions: {
+                    some: { submittedAt: { gte: threeMonthsAgo } },
+                  },
+                },
+                {
+                  messages: {
+                    some: { receivedAt: { gte: threeMonthsAgo } },
+                  },
+                },
+              ],
+            }
+          : query.status === JaringStatus.INACTIVE
+            ? {
+                OR: [
+                  {
+                    registrationStatus: {
+                      not: JaringRegistrationStatus.APPROVED,
+                    },
+                  },
+                  {
+                    AND: [
+                      {
+                        reportSessions: {
+                          none: { submittedAt: { gte: threeMonthsAgo } },
+                        },
+                      },
+                      {
+                        messages: {
+                          none: { receivedAt: { gte: threeMonthsAgo } },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              }
+            : query.status === JaringStatus.ARCHIVED
+              ? { deletedAt: { not: null } }
+              : {}),
         ...(query.registrationStatus
           ? { registrationStatus: query.registrationStatus }
           : isFieldOfficer
@@ -1063,6 +1169,16 @@ export class JaringService {
           },
         },
       },
+    });
+
+    return items.map((item) => {
+      const { lastReportAt, computedStatus } =
+        this.calculateJaringReportActivity(item);
+      return {
+        ...item,
+        lastReportAt,
+        status: computedStatus,
+      };
     });
   }
 
@@ -1647,11 +1763,19 @@ export class JaringService {
   }
 
   async activate(id: string, body: ReasonDto, context: AuthorizationContext) {
-    return this.status(id, JaringStatus.ACTIVE, body.reason, context);
+    throw new ApiException(
+      'JARING_STATUS_AUTOMATIC',
+      'Status aktif/tidak aktif Jaring diatur secara otomatis berdasarkan aktivitas pelaporan 3 bulan terakhir.',
+      400,
+    );
   }
 
   async deactivate(id: string, body: ReasonDto, context: AuthorizationContext) {
-    return this.status(id, JaringStatus.INACTIVE, body.reason, context);
+    throw new ApiException(
+      'JARING_STATUS_AUTOMATIC',
+      'Status aktif/tidak aktif Jaring diatur secara otomatis berdasarkan aktivitas pelaporan 3 bulan terakhir.',
+      400,
+    );
   }
 
   async softDelete(id: string, body: ReasonDto, context: AuthorizationContext) {

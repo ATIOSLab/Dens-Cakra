@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { ChevronRight, MapPin, X } from "lucide-react";
+import { ChevronRight, MapPin, User, X } from "lucide-react";
 import type { Map as MapLibreMap, StyleSpecification } from "maplibre-gl";
 
 import { Badge } from "@/components/ui/badge";

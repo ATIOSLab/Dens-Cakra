@@ -195,6 +195,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const [items, setItems] = useState<RegistrationJaring[]>(initialItems);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [activeStatusFilter, setActiveStatusFilter] = useState<string>("ALL");
   const [cityFilter, setCityFilter] = useState<string>("ALL");
   const [districtFilter, setDistrictFilter] = useState<string>("ALL");
   const [villageFilter, setVillageFilter] = useState<string>("ALL");
@@ -372,9 +373,19 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
 
   // Final filtered items with status filter applied
   const filteredItems = useMemo(() => {
-    if (statusFilter === "ALL") return baseFilteredItems;
-    return baseFilteredItems.filter((item) => item.registrationStatus === statusFilter);
-  }, [baseFilteredItems, statusFilter]);
+    return baseFilteredItems.filter((item) => {
+      if (statusFilter !== "ALL" && item.registrationStatus !== statusFilter) {
+        return false;
+      }
+      if (activeStatusFilter === "ACTIVE" && !isJaringActive(item)) {
+        return false;
+      }
+      if (activeStatusFilter === "INACTIVE" && isJaringActive(item)) {
+        return false;
+      }
+      return true;
+    });
+  }, [baseFilteredItems, statusFilter, activeStatusFilter]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((left, right) => {
@@ -397,6 +408,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const hasActiveFilters =
     search.trim() !== "" ||
     statusFilter !== "ALL" ||
+    activeStatusFilter !== "ALL" ||
     cityFilter !== "ALL" ||
     districtFilter !== "ALL" ||
     villageFilter !== "ALL" ||
@@ -405,6 +417,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   function handleResetFilters() {
     setSearch("");
     setStatusFilter("ALL");
+    setActiveStatusFilter("ALL");
     setCityFilter("ALL");
     setDistrictFilter("ALL");
     setVillageFilter("ALL");
@@ -668,6 +681,20 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               <option value="PENDING">Belum Terverifikasi</option>
               <option value="APPROVED">Terverifikasi</option>
               <option value="REJECTED">Ditolak</option>
+            </NativeSelect>
+
+            {/* Filter Kinerja (Pelaporan 3 Bulan) */}
+            <NativeSelect
+              value={activeStatusFilter}
+              onChange={(e) => {
+                setActiveStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full sm:w-auto min-w-[150px]"
+            >
+              <option value="ALL">Semua Kinerja</option>
+              <option value="ACTIVE">Aktif (Melapor &lt; 3 Bln)</option>
+              <option value="INACTIVE">Tidak Aktif (&gt; 3 Bln)</option>
             </NativeSelect>
 
             {/* Filter Gaswil */}
@@ -960,17 +987,29 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
 
                       {isColumnVisible("status") ? (
                         <TableCell className="py-3">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
-                              statusBadgeVariant(item.registrationStatus),
+                          <div className="flex flex-col items-start gap-1">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
+                                statusBadgeVariant(item.registrationStatus),
+                              )}
+                            >
+                              {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3 shrink-0" />}
+                              {item.registrationStatus === "REJECTED" && <XCircle className="size-3 shrink-0" />}
+                              {item.registrationStatus === "PENDING" && <Clock className="size-3 shrink-0" />}
+                              {statusLabel(item.registrationStatus)}
+                            </span>
+                            {item.registrationStatus === "APPROVED" && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold text-[10px] uppercase tracking-[0.06em]",
+                                  operationalStatusTone(item),
+                                )}
+                              >
+                                {operationalStatusLabel(item)}
+                              </span>
                             )}
-                          >
-                            {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3 shrink-0" />}
-                            {item.registrationStatus === "REJECTED" && <XCircle className="size-3 shrink-0" />}
-                            {item.registrationStatus === "PENDING" && <Clock className="size-3 shrink-0" />}
-                            {statusLabel(item.registrationStatus)}
-                          </span>
+                          </div>
                         </TableCell>
                       ) : null}
 
@@ -1567,9 +1606,14 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               <DetailRow label="Kelurahan/Desa">{villageName}</DetailRow>
               <DetailRow label="Kecamatan">{districtName}</DetailRow>
               <DetailRow label="Kinerja">
-                <StatusPill tone={operationalStatusTone(item.registrationStatus)}>
-                  {operationalStatusLabel(item.registrationStatus)}
+                <StatusPill tone={operationalStatusTone(item)}>
+                  {operationalStatusLabel(item)}
                 </StatusPill>
+              </DetailRow>
+              <DetailRow label="Terakhir Melapor">
+                <span className="font-mono font-medium">
+                  {item.lastReportAt ? formatDateTime(item.lastReportAt) : "Belum pernah melapor"}
+                </span>
               </DetailRow>
               <DetailRow label="Status Verifikasi">
                 <StatusPill tone={statusBadgeVariant(item.registrationStatus)}>
@@ -1773,18 +1817,23 @@ function detailRegistrationStatusLabel(status: RegistrationJaring["registrationS
   return "TERVERIFIKASI";
 }
 
-function operationalStatusLabel(status: RegistrationJaring["registrationStatus"]) {
-  if (status === "REJECTED") return "NONAKTIF";
-  if (status === "PENDING") return "BELUM AKTIF";
-  return "AKTIF";
+function isJaringActive(item: RegistrationJaring): boolean {
+  if (item.registrationStatus !== "APPROVED") return false;
+  if (item.status) return item.status === "ACTIVE";
+  if (!item.lastReportAt) return false;
+  const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  return new Date(item.lastReportAt).getTime() >= threeMonthsAgo;
 }
 
-function operationalStatusTone(status: RegistrationJaring["registrationStatus"]) {
-  if (status === "PENDING") {
-    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-950/40 dark:text-amber-300";
-  }
-  if (status === "REJECTED") {
-    return "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-950/40 dark:text-red-400";
+function operationalStatusLabel(item: RegistrationJaring) {
+  if (item.registrationStatus === "REJECTED") return "TIDAK AKTIF";
+  if (item.registrationStatus === "PENDING") return "BELUM TERVERIFIKASI";
+  return isJaringActive(item) ? "AKTIF" : "TIDAK AKTIF";
+}
+
+function operationalStatusTone(item: RegistrationJaring) {
+  if (item.registrationStatus !== "APPROVED" || !isJaringActive(item)) {
+    return "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
   }
   return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-[#22C55E]";
 }

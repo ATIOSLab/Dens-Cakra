@@ -263,6 +263,15 @@ function jaringRegistrationStatusLabel(
   }
 }
 
+function isFieldOfficerJaringActive(item: FieldOfficerJaring): boolean {
+  if (item.registrationStatus !== "APPROVED") return false;
+  if (item.status === "ACTIVE") return true;
+  if (item.status === "INACTIVE") return false;
+  if (!item.lastReportAt) return false;
+  const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  return new Date(item.lastReportAt).getTime() >= threeMonthsAgo;
+}
+
 function nextTaskAction(status: string) {
   const value = status.toUpperCase();
 
@@ -383,6 +392,7 @@ export function FieldOfficerOperationsPage({
   const [jaringOccupationFilter, setJaringOccupationFilter] = useState("all");
   const [jaringVillageFilter, setJaringVillageFilter] = useState("all");
   const [jaringStatusFilter, setJaringStatusFilter] = useState("all");
+  const [jaringActiveFilter, setJaringActiveFilter] = useState("all");
   const [jaringPage, setJaringPage] = useState(1);
   const [jaringLimit, setJaringLimit] = useState(10);
   const [visibleJaringColumns, setVisibleJaringColumns] = useState<
@@ -421,6 +431,12 @@ export function FieldOfficerOperationsPage({
       if (jaringStatusFilter !== "all") {
         if (item.registrationStatus !== jaringStatusFilter) return false;
       }
+      if (jaringActiveFilter === "active" && !isFieldOfficerJaringActive(item)) {
+        return false;
+      }
+      if (jaringActiveFilter === "inactive" && isFieldOfficerJaringActive(item)) {
+        return false;
+      }
       return true;
     });
   }, [
@@ -429,6 +445,7 @@ export function FieldOfficerOperationsPage({
     jaringOccupationFilter,
     jaringVillageFilter,
     jaringStatusFilter,
+    jaringActiveFilter,
   ]);
 
   const safeJaringPage = Math.min(
@@ -1751,13 +1768,35 @@ export function FieldOfficerOperationsPage({
                             </SelectContent>
                           </Select>
                         </div>
+
+                        <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--tactical-text-secondary)]">
+                          <span>Kinerja:</span>
+                          <Select
+                            value={jaringActiveFilter}
+                            onValueChange={setJaringActiveFilter}
+                          >
+                            <SelectTrigger className="w-[180px] h-8 border-[var(--tactical-border)] bg-background dark:bg-slate-900/40 text-xs">
+                              <SelectValue placeholder="Pilih Kinerja" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
+                              <SelectItem value="all">Semua Kinerja</SelectItem>
+                              <SelectItem value="active">
+                                Aktif (Melapor &lt; 3 Bln)
+                              </SelectItem>
+                              <SelectItem value="inactive">
+                                Tidak Aktif (&gt; 3 Bln)
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
                         {(jaringSearch ||
                           jaringOccupationFilter !== "all" ||
                           jaringVillageFilter !== "all" ||
-                          jaringStatusFilter !== "all") && (
+                          jaringStatusFilter !== "all" ||
+                          jaringActiveFilter !== "all") && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1766,6 +1805,7 @@ export function FieldOfficerOperationsPage({
                               setJaringOccupationFilter("all");
                               setJaringVillageFilter("all");
                               setJaringStatusFilter("all");
+                              setJaringActiveFilter("all");
                             }}
                             className="h-8 text-xs font-mono hover:bg-secondary/40"
                           >
@@ -1942,13 +1982,22 @@ export function FieldOfficerOperationsPage({
                                 )}
                                 {visibleJaringColumns.has("status") && (
                                   <TableCell>
-                                    <span
-                                      className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(jaring.registrationStatus)}`}
-                                    >
-                                      {jaringRegistrationStatusLabel(
-                                        jaring.registrationStatus,
+                                    <div className="flex flex-col items-start gap-1">
+                                      <span
+                                        className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(jaring.registrationStatus)}`}
+                                      >
+                                        {jaringRegistrationStatusLabel(
+                                          jaring.registrationStatus,
+                                        )}
+                                      </span>
+                                      {jaring.registrationStatus === "APPROVED" && (
+                                        <span
+                                          className={`tactical-badge rounded px-2 py-0.5 text-[10px] ${isFieldOfficerJaringActive(jaring) ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/30"}`}
+                                        >
+                                          {isFieldOfficerJaringActive(jaring) ? "AKTIF" : "TIDAK AKTIF"}
+                                        </span>
                                       )}
-                                    </span>
+                                    </div>
                                   </TableCell>
                                 )}
                                 <TableCell>
@@ -1988,42 +2037,6 @@ export function FieldOfficerOperationsPage({
                                       <RefreshCw className="size-3.5" />
                                       Perbarui PIN
                                     </button>
-                                    {jaring.registrationStatus !==
-                                      "REJECTED" && (
-                                      <button
-                                        disabled={
-                                          isBusy ===
-                                          `jaring:${jaring.id}:${jaring.status === "ACTIVE" ? "deactivate" : "activate"}`
-                                        }
-                                        onClick={() => {
-                                          const action =
-                                            jaring.status === "ACTIVE"
-                                              ? "deactivate"
-                                              : "activate";
-                                          requestConfirmation({
-                                            title:
-                                              action === "activate"
-                                                ? "KONFIRMASI AKTIVASI JARING"
-                                                : "KONFIRMASI NONAKTIFKAN JARING",
-                                            description: `${action === "activate" ? "Aktifkan kembali" : "Nonaktifkan sementara"} jaring ${jaring.aliasName}?`,
-                                            confirmLabel:
-                                              action === "activate"
-                                                ? "YA, AKTIFKAN"
-                                                : "YA, NONAKTIFKAN",
-                                            onConfirm: () =>
-                                              void changeJaringStatus(
-                                                jaring.id,
-                                                action,
-                                              ),
-                                          });
-                                        }}
-                                        className="h-8 rounded-[4px] border border-amber-600 px-3 font-mono font-semibold text-amber-700 text-[11px] uppercase hover:bg-amber-500/10 disabled:opacity-50 dark:text-amber-400"
-                                      >
-                                        {jaring.status === "ACTIVE"
-                                          ? "Nonaktifkan"
-                                          : "Aktifkan"}
-                                      </button>
-                                    )}
                                     <button
                                       disabled={
                                         isBusy === `jaring:${jaring.id}:delete`

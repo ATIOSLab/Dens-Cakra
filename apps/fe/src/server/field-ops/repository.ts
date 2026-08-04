@@ -544,6 +544,7 @@ export async function getFieldOfficerWorkspace(
       aliasName: item.aliasName,
       whatsappNumber: item.whatsappNumber,
       status: item.registrationStatus === "APPROVED" ? item.status : "INACTIVE",
+      lastReportAt: (item as unknown as { lastReportAt?: string | null }).lastReportAt ?? null,
       registrationStatus: item.registrationStatus ?? "APPROVED",
       rejectionReason: item.rejectionReason ?? null,
       reviewedAt: item.reviewedAt

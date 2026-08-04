@@ -39,6 +39,8 @@ export type RegistrationJaring = {
   organizationName: string | null;
   politicalAffiliation: string | null;
   notes: string | null;
+  status?: "ACTIVE" | "INACTIVE";
+  lastReportAt?: string | null;
   registrationStatus: "PENDING" | "APPROVED" | "REJECTED";
   registeredAt: string;
   createdAt?: string;

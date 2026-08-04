@@ -40,6 +40,7 @@ export type FieldOfficerJaring = {
   aliasName: string;
   whatsappNumber: string;
   status: string;
+  lastReportAt: string | null;
   registrationStatus: "PENDING" | "APPROVED" | "REJECTED";
   rejectionReason: string | null;
   reviewedAt: string | null;
