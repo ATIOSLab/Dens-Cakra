@@ -211,25 +211,21 @@ export class WhatsAppReportFlowService {
       await reply([
         session
           ? this.summaryText(session)
-          : 'Belum ada informasi aktif. Ketik LAPOR untuk memulai.',
+          : 'Belum ada berita aktif. Silakan kirim PIN/kode Jaring Anda untuk memulai.',
       ]);
       return;
     }
 
     if (!session) {
-      if (this.isCommand(commandText, ['LAPOR'])) {
-        await this.startSession(channel, payload, message, reply);
-      }
+      if (!commandText) return;
+      await this.startSessionWithPin(channel, payload, message, reply, commandText);
       return;
     }
 
     await this.touchSession(session.id, session.status);
     session = (await this.loadSession(session.id)) ?? session;
 
-    const startsNewReport =
-      this.isCommand(commandText, ['INFORMASI BARU', 'LAPOR BARU']) ||
-      (this.isCommand(commandText, ['LAPOR']) &&
-        session.status !== WhatsAppReportSessionStatus.ACTIVE);
+    const startsNewReport = this.isCommand(commandText, ['INFORMASI BARU']);
     if (startsNewReport) {
       await this.closeSession(
         session,
@@ -237,21 +233,6 @@ export class WhatsAppReportFlowService {
         payload.externalMessageId,
       );
       await this.startSession(channel, payload, message, reply);
-      return;
-    }
-
-    if (
-      this.isCommand(commandText, ['LAPOR']) &&
-      session.status === WhatsAppReportSessionStatus.ACTIVE
-    ) {
-      await this.transition(
-        session,
-        WhatsAppReportSessionState.EXISTING_SESSION_CHOICE,
-        'EXISTING_SESSION_DETECTED',
-        payload.externalMessageId,
-        { resumeState: session.currentState },
-      );
-      await reply([this.existingSessionChoiceReply()]);
       return;
     }
 
@@ -391,6 +372,101 @@ export class WhatsAppReportFlowService {
       if (this.isUniqueConstraint(error)) {
         await reply([
           'Anda masih memiliki informasi aktif. Ketik STATUS atau RINGKASAN untuk melanjutkan.',
+        ]);
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private async startSessionWithPin(
+    channel: WhatsAppReportChannel,
+    payload: WhatsAppReportInboundPayload,
+    message: WAMessage,
+    reply: ReplySender,
+    pinText: string,
+  ) {
+    const jaring = await this.prisma.jaring.findFirst({
+      where: {
+        whatsappNumber: payload.senderPhone,
+        status: 'ACTIVE',
+        deletedAt: null,
+      },
+      include: {
+        areaCoverages: {
+          where: { validUntil: null },
+          select: { areaId: true },
+        },
+        caretakerAssignments: {
+          where: { isActive: true, validUntil: null },
+          take: 1,
+        },
+      },
+    });
+    if (!jaring) {
+      return;
+    }
+
+    const allowed = await this.channelScope.isJaringAllowed(
+      channel,
+      jaring.areaCoverages.map((coverage) => coverage.areaId),
+    );
+    if (!allowed) {
+      await reply([
+        'Nomor Anda terdaftar, tetapi tidak berada dalam wilayah layanan kanal WhatsApp ini.',
+      ]);
+      return;
+    }
+
+    const fieldOfficerAssignmentId =
+      jaring.caretakerAssignments[0]?.fieldOfficerAssignmentId;
+    if (!fieldOfficerAssignmentId) {
+      await reply([
+        'Field Officer penanggung jawab aktif belum tersedia. Silakan hubungi admin.',
+      ]);
+      return;
+    }
+
+    if (pinText !== jaring.code) {
+      await reply([
+        'PIN/kode Jaring belum sesuai. Silakan coba lagi.',
+      ]);
+      return;
+    }
+
+    const remoteJid = message.key.remoteJid;
+    if (!remoteJid) return;
+
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        const reportSession = await tx.whatsAppReportSession.create({
+          data: {
+            integrationChannelId: channel.id,
+            senderPhone: payload.senderPhone,
+            remoteJid,
+            activeSenderKey: payload.senderPhone,
+            jaringId: jaring.id,
+            fieldOfficerAssignmentId,
+            currentState: WhatsAppReportSessionState.LOCATION,
+            expiresAt: new Date(Date.now() + SESSION_TTL_MS),
+          },
+        });
+        await tx.whatsAppReportHistory.create({
+          data: {
+            reportSessionId: reportSession.id,
+            action: 'SESSION_CREATED',
+            newState: WhatsAppReportSessionState.LOCATION,
+            externalMessageId: payload.externalMessageId,
+          },
+        });
+        return reportSession;
+      });
+      await reply([this.promptForState(WhatsAppReportSessionState.LOCATION)]);
+      this.logger.log(`WhatsApp report session ${created.id} created via PIN`);
+    } catch (error) {
+      if (this.isUniqueConstraint(error)) {
+        await reply([
+          'Anda masih memiliki berita aktif. Ketik STATUS atau RINGKASAN untuk melanjutkan.',
         ]);
         return;
       }
@@ -1154,7 +1230,7 @@ export class WhatsAppReportFlowService {
       ) {
         await this.cancelSession(session, payload.externalMessageId);
         await reply([
-          'Pembuatan informasi dibatalkan. Ketik LAPOR untuk memulai kembali.',
+          'Pembuatan berita dibatalkan. Silakan kirim PIN/kode Jaring Anda untuk memulai kembali.',
         ]);
       } else if (
         this.isChoice(
@@ -1250,7 +1326,7 @@ export class WhatsAppReportFlowService {
         this.isChoice(
           text,
           3,
-          'BUAT LAPORAN BARU',
+          'BUAT BERITA BARU',
           REPORT_ACTION_IDS.postSubmitTextNew,
         )
       ) {
@@ -1557,7 +1633,7 @@ export class WhatsAppReportFlowService {
       );
     }
     await reply([
-      'Penambahan versi hanya dapat dilakukan pada tanggal laporan dikirim (hari yang sama dalam zona WIB).',
+      'Penambahan versi hanya dapat dilakukan pada tanggal berita dikirim (hari yang sama dalam zona WIB).',
       this.postSubmitActionReply(session, referenceDate),
     ]);
     return false;
@@ -1577,7 +1653,7 @@ export class WhatsAppReportFlowService {
     };
     const total = await this.prisma.whatsAppReportSession.count({ where });
     if (total === 0) {
-      return 'Belum ada laporan yang dikirim hari ini dalam zona waktu WIB.';
+      return 'Belum ada berita yang dikirim hari ini dalam zona waktu WIB.';
     }
     const lastPage = Math.max(
       0,
@@ -1614,9 +1690,9 @@ export class WhatsAppReportFlowService {
       title: 'Kembali',
     });
     return this.singleSelectReply({
-      body: `DAFTAR LAPORAN HARI INI\n\nTanggal WIB: ${this.wibDisplayDate(referenceDate)}\nTotal: ${total} laporan\nHalaman: ${page + 1}/${lastPage + 1}\n\nPilih laporan untuk melihat atau menambahkan versi.`,
-      buttonTitle: 'Pilih Laporan',
-      sectionTitle: 'Nomor dan Status Laporan',
+      body: `DAFTAR BERITA HARI INI\n\nTanggal WIB: ${this.wibDisplayDate(referenceDate)}\nTotal: ${total} berita\nHalaman: ${page + 1}/${lastPage + 1}\n\nPilih berita untuk melihat atau menambahkan versi.`,
+      buttonTitle: 'Pilih Berita',
+      sectionTitle: 'Nomor dan Status Berita',
       rows,
     });
   }
@@ -1640,7 +1716,7 @@ export class WhatsAppReportFlowService {
     });
     if (!target) {
       await reply([
-        'Laporan tidak ditemukan atau tidak termasuk laporan yang dikirim hari ini (WIB).',
+        'Berita tidak ditemukan atau tidak termasuk berita yang dikirim hari ini (WIB).',
         await this.reportHistoryReply(payload.senderPhone, 0, referenceDate),
       ]);
       return;
@@ -1694,7 +1770,7 @@ export class WhatsAppReportFlowService {
       activeSenderKey: payload.senderPhone,
     };
     await reply([
-      `Laporan dipilih.\n\nNomor Referensi: ${selected.referenceNumber ?? '-'}\nStatus: ${this.reportStatusLabel(selected)}\nVersi Saat Ini: ${this.currentReportVersion(selected)}`,
+      `Berita dipilih.\n\nNomor Referensi: ${selected.referenceNumber ?? '-'}\nStatus: ${this.reportStatusLabel(selected)}\nVersi Saat Ini: ${this.currentReportVersion(selected)}`,
       this.postSubmitActionReply(selected, referenceDate),
     ]);
   }
@@ -2432,7 +2508,7 @@ Foto/Video: ${session.media.length} file`;
 
   private postSubmitTextConfirmationReply(session: LoadedSession) {
     return this.singleSelectReply({
-      body: `Informasi tambahan terdeteksi.\n\nTambahkan ke laporan ${session.referenceNumber ?? '-'}?`,
+      body: `Informasi tambahan terdeteksi.\n\nTambahkan ke berita ${session.referenceNumber ?? '-'}?`,
       sectionTitle: 'Informasi Tambahan',
       rows: [
         {
@@ -2445,7 +2521,7 @@ Foto/Video: ${session.media.length} file`;
         },
         {
           id: REPORT_ACTION_IDS.postSubmitTextNew,
-          title: 'Buat Laporan Baru',
+          title: 'Buat Berita Baru',
         },
       ],
     });
@@ -2454,7 +2530,7 @@ Foto/Video: ${session.media.length} file`;
   private postSubmitMediaPurposeReply(session: LoadedSession) {
     return this.singleSelectReply({
       body: `Masih terdapat informasi yang sedang diproses.\n\nNomor Referensi: ${session.referenceNumber ?? '-'}\n\nApa yang ingin Anda lakukan?`,
-      sectionTitle: 'Tindakan Laporan',
+      sectionTitle: 'Tindakan Berita',
       rows: [
         {
           id: REPORT_ACTION_IDS.postSubmitMediaAdd,
@@ -2484,8 +2560,8 @@ Foto/Video: ${session.media.length} file`;
     const rows: NativeFlowSingleSelectReply['sections'][number]['rows'] = [
       {
         id: REPORT_ACTION_IDS.postSubmitList,
-        title: 'Daftar Laporan Hari Ini',
-        description: 'Lihat nomor laporan, status, dan versi.',
+        title: 'Daftar Berita Hari Ini',
+        description: 'Lihat nomor berita, status, dan versi.',
       },
       {
         id: REPORT_ACTION_IDS.postSubmitNew,
@@ -2515,8 +2591,8 @@ Foto/Video: ${session.media.length} file`;
       );
     }
     return this.singleSelectReply({
-      body: `Nomor Referensi: ${session.referenceNumber ?? '-'}\nStatus: ${this.reportStatusLabel(session)}\nVersi Saat Ini: ${this.currentReportVersion(session)}\n\nPenambahan versi hanya tersedia pada hari laporan dikirim (WIB).`,
-      sectionTitle: 'Lanjutkan Laporan',
+      body: `Nomor Referensi: ${session.referenceNumber ?? '-'}\nStatus: ${this.reportStatusLabel(session)}\nVersi Saat Ini: ${this.currentReportVersion(session)}\n\nPenambahan versi hanya tersedia pada hari berita dikirim (WIB).`,
+      sectionTitle: 'Lanjutkan Berita',
       rows,
     });
   }
@@ -2597,7 +2673,7 @@ Foto/Video: ${session.media.length} file`;
 
   private menuText(session: LoadedSession | null) {
     if (!session) {
-      return 'MENU\n\nKetik LAPOR untuk membuat informasi baru.\nKetik BANTUAN untuk melihat petunjuk.';
+      return 'MENU\n\nKirim PIN/kode Jaring untuk membuat berita baru.\nKetik BANTUAN untuk melihat petunjuk.';
     }
     return `MENU
 
@@ -2617,9 +2693,9 @@ BANTUAN`;
   private helpText() {
     return `BANTUAN BOT
 
-Ketik LAPOR untuk memulai.
+Kirim PIN/kode Jaring untuk memulai berita baru.
 Ikuti empat tahap dan konfirmasi setiap data.
-Pada tahap isi, Anda dapat mengirim teks, foto, atau video. Caption media akan menjadi isi informasi.
+Pada tahap isi, Anda dapat mengirim teks, foto, atau video. Caption media akan menjadi isi berita.
 Live Location, narasi, serta minimal satu foto/video wajib tersedia.
 
 Command:

@@ -117,11 +117,11 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const REPORT_REPLIES = {
   cancelled: [
-    'Oke, pembuatan laporan dibatalkan. Kalau mau mulai lagi, tinggal ketik lapor.',
-    'Siap, laporan ini dibatalkan ya. Ketik lapor kapan saja untuk mulai dari awal.',
-    'Tidak masalah, prosesnya sudah dibatalkan. Nanti cukup ketik lapor kalau mau lanjut lagi.',
-    'Sudah aku batalkan. Kalau berubah pikiran, kirim saja kata lapor.',
-    'Proses laporan dihentikan ya. Kamu bisa mulai lagi dengan mengetik lapor.',
+    'Oke, pembuatan berita dibatalkan. Silakan kirim PIN/kode Jaring untuk memulai lagi.',
+    'Siap, berita ini dibatalkan ya. Kirim PIN/kode Jaring kapan saja untuk mulai dari awal.',
+    'Tidak masalah, prosesnya sudah dibatalkan. Nanti kirim PIN/kode Jaring kalau mau lanjut lagi.',
+    'Sudah aku batalkan. Kalau berubah pikiran, kirim saja PIN/kode Jaring kamu.',
+    'Proses berita dihentikan ya. Kamu bisa mulai lagi dengan mengirim PIN/kode Jaring.',
   ],
   outsideChannelScope: [
     'Maaf, nomor kamu tidak berada dalam wilayah layanan WhatsApp ini. Coba gunakan kanal sesuai wilayah Field Officer kamu ya.',
@@ -131,9 +131,9 @@ const REPORT_REPLIES = {
     'Nomor kamu terdaftar, tetapi tidak berada dalam wilayah layanan kanal ini. Silakan gunakan kanal Field Officer setempat.',
   ],
   missingCaretaker: [
-    'Akun kamu belum punya Field Officer penanggung jawab aktif. Hubungi admin dulu ya supaya bisa mengirim laporan.',
+    'Akun kamu belum punya Field Officer penanggung jawab aktif. Hubungi admin dulu ya supaya bisa mengirim berita.',
     'Belum ada Field Officer aktif yang menangani akun kamu. Silakan minta admin melengkapinya dulu.',
-    'Laporan belum bisa dimulai karena penanggung jawab Field Officer belum tersedia. Coba hubungi admin ya.',
+    'Berita belum bisa dimulai karena penanggung jawab Field Officer belum tersedia. Coba hubungi admin ya.',
     'Field Officer penanggung jawab akun ini belum aktif. Mohon konfirmasi ke admin terlebih dahulu.',
     'Akun kamu masih perlu dihubungkan ke Field Officer aktif. Silakan hubungi admin untuk dibantu.',
   ],
@@ -169,28 +169,28 @@ const REPORT_REPLIES = {
     'Aku masih menunggu Live Location WhatsApp. Pilih Lampiran > Lokasi > Bagikan lokasi terkini ya.',
     'Yang dikirim harus Live Location aktif ya. Silakan bagikan lewat menu Lokasi WhatsApp.',
     'Belum terbaca sebagai Live Location nih. Coba bagikan lokasi terkini dari menu Lampiran.',
-    'Kirim Live Location WhatsApp dulu ya supaya laporannya bisa dilanjutkan.',
+    'Kirim Live Location WhatsApp dulu ya supaya beritanya bisa dilanjutkan.',
     'Tahap ini perlu Live Location aktif. Pilih Lampiran, Lokasi, lalu Bagikan lokasi terkini.',
   ],
   requestTitle: [
-    'Live Location diterima. Sekarang tulis judul laporannya ya.',
-    'Live Location diterima. Lanjut kirim judul singkat untuk laporan ini.',
-    'Live Location diterima. Oke, sekarang laporannya mau diberi judul apa?',
-    'Live Location diterima. Sip, tinggal ketik judul laporannya dulu.',
-    'Live Location diterima. Lokasi aman, sekarang kirim judul laporan ya.',
+    'Live Location diterima. Sekarang tulis judul beritanya ya.',
+    'Live Location diterima. Lanjut kirim judul singkat untuk berita ini.',
+    'Live Location diterima. Oke, sekarang beritanya mau diberi judul apa?',
+    'Live Location diterima. Sip, tinggal ketik judul beritanya dulu.',
+    'Live Location diterima. Lokasi aman, sekarang kirim judul berita ya.',
   ],
   requestContent: [
-    'Judulnya sudah masuk. Sekarang ceritakan isi laporannya secara detail ya.',
+    'Judulnya sudah masuk. Sekarang ceritakan isi beritanya secara detail ya.',
     'Sip, judul sudah dicatat. Lanjut kirim detail kejadiannya.',
-    'Oke, judul beres. Sekarang tulis isi laporan selengkap mungkin ya.',
-    'Judul diterima. Boleh lanjut jelaskan detail laporannya sekarang.',
-    'Sudah dapat judulnya. Aku tunggu isi laporan lengkapnya ya.',
+    'Oke, judul beres. Sekarang tulis isi berita selengkap mungkin ya.',
+    'Judul diterima. Boleh lanjut jelaskan detail beritanya sekarang.',
+    'Sudah dapat judulnya. Aku tunggu isi berita lengkapnya ya.',
   ],
   requestEventTime: [
-    'Isi laporan sudah masuk. Sekarang kirim waktu kejadian, contoh: 13/07/2026 21:30.',
+    'Isi berita sudah masuk. Sekarang kirim waktu kejadian, contoh: 13/07/2026 21:30.',
     'Detailnya sudah dicatat. Kapan kejadiannya? Pakai format seperti 13/07/2026 21:30 ya.',
-    'Sip, isi laporan aman. Lanjut kirim tanggal dan jam kejadian dengan format 13/07/2026 21:30.',
-    'Laporannya sudah terbaca. Sekarang tulis tanggal dan jam kejadiannya ya, misalnya 13/07/2026 21:30.',
+    'Sip, isi berita aman. Lanjut kirim tanggal dan jam kejadian dengan format 13/07/2026 21:30.',
+    'Beritanya sudah terbaca. Sekarang tulis tanggal dan jam kejadiannya ya, misalnya 13/07/2026 21:30.',
     'Oke, tinggal waktu kejadian. Kirim dengan format tanggal/bulan/tahun jam, contohnya 13/07/2026 21:30.',
   ],
   invalidEventTime: [
@@ -211,7 +211,7 @@ const REPORT_REPLIES = {
     'Aku masih menunggu foto buktinya. Kirim satu foto dulu ya.',
     'Yang dibutuhkan sekarang foto bukti. Boleh kirim sebagai foto biasa?',
     'Belum ada foto yang terbaca nih. Coba kirim satu foto bukti ya.',
-    'Kirim foto buktinya dulu supaya laporan bisa diselesaikan.',
+    'Kirim foto buktinya dulu supaya berita bisa diselesaikan.',
     'Tinggal fotonya saja. Kirim satu foto bukti, jangan sebagai dokumen ya.',
   ],
   missingLiveLocation: [
@@ -222,11 +222,11 @@ const REPORT_REPLIES = {
     'Sebelum selesai, aku perlu Live Location aktif kamu. Kirim ulang ya.',
   ],
   reportCompleted: [
-    'Sip, laporan kamu sudah berhasil dikirim.',
-    'Beres! Laporannya sudah masuk dan siap diproses.',
-    'Terima kasih, laporannya sudah berhasil terkirim.',
-    'Oke, semua data sudah masuk. Laporan berhasil dikirim.',
-    'Laporannya sudah terkirim dengan aman. Terima kasih ya.',
+    'Sip, berita kamu sudah berhasil dikirim.',
+    'Beres! Beritanya sudah masuk dan siap diproses.',
+    'Terima kasih, beritanya sudah berhasil terkirim.',
+    'Oke, semua data sudah masuk. Berita berhasil dikirim.',
+    'Beritanya sudah terkirim dengan aman. Terima kasih ya.',
   ],
 } as const;
 
@@ -803,7 +803,7 @@ export class WhatsappBotRuntimeService
     const title = text
       ? text.split(/\r?\n/)[0]?.trim().slice(0, 120)
       : location
-        ? 'Laporan lokasi WhatsApp'
+        ? 'Berita lokasi WhatsApp'
         : undefined;
 
     return {
