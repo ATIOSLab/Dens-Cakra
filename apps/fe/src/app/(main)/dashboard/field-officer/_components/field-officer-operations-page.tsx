@@ -124,7 +124,8 @@ type JaringColumnKey =
   | "address"
   | "occupation"
   | "village"
-  | "status";
+  | "status"
+  | "kinerja";
 
 const JARING_COLUMN_OPTIONS: Array<{ key: JaringColumnKey; label: string }> = [
   { key: "pin", label: "PIN" },
@@ -135,6 +136,7 @@ const JARING_COLUMN_OPTIONS: Array<{ key: JaringColumnKey; label: string }> = [
   { key: "occupation", label: "Pekerjaan" },
   { key: "village", label: "Kelurahan" },
   { key: "status", label: "Status" },
+  { key: "kinerja", label: "Kinerja" },
 ];
 
 type PendingFieldOfficerAction = {
@@ -1780,12 +1782,8 @@ export function FieldOfficerOperationsPage({
                             </SelectTrigger>
                             <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
                               <SelectItem value="all">Semua Kinerja</SelectItem>
-                              <SelectItem value="active">
-                                Aktif (Melapor &lt; 3 Bln)
-                              </SelectItem>
-                              <SelectItem value="inactive">
-                                Tidak Aktif (&gt; 3 Bln)
-                              </SelectItem>
+                              <SelectItem value="active">Aktif</SelectItem>
+                              <SelectItem value="inactive">Tidak Aktif</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1881,6 +1879,9 @@ export function FieldOfficerOperationsPage({
                               )}
                               {visibleJaringColumns.has("status") && (
                                 <TableHead>Status</TableHead>
+                              )}
+                              {visibleJaringColumns.has("kinerja") && (
+                                <TableHead>Kinerja</TableHead>
                               )}
                               <TableHead className="text-right">Aksi</TableHead>
                             </TableRow>
@@ -1982,22 +1983,22 @@ export function FieldOfficerOperationsPage({
                                 )}
                                 {visibleJaringColumns.has("status") && (
                                   <TableCell>
-                                    <div className="flex flex-col items-start gap-1">
-                                      <span
-                                        className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(jaring.registrationStatus)}`}
-                                      >
-                                        {jaringRegistrationStatusLabel(
-                                          jaring.registrationStatus,
-                                        )}
-                                      </span>
-                                      {jaring.registrationStatus === "APPROVED" && (
-                                        <span
-                                          className={`tactical-badge rounded px-2 py-0.5 text-[10px] ${isFieldOfficerJaringActive(jaring) ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/30"}`}
-                                        >
-                                          {isFieldOfficerJaringActive(jaring) ? "AKTIF" : "TIDAK AKTIF"}
-                                        </span>
+                                    <span
+                                      className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(jaring.registrationStatus)}`}
+                                    >
+                                      {jaringRegistrationStatusLabel(
+                                        jaring.registrationStatus,
                                       )}
-                                    </div>
+                                    </span>
+                                  </TableCell>
+                                )}
+                                {visibleJaringColumns.has("kinerja") && (
+                                  <TableCell>
+                                    <span
+                                      className={`tactical-badge rounded px-2 py-0.5 text-[10px] ${isFieldOfficerJaringActive(jaring) ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/30"}`}
+                                    >
+                                      {isFieldOfficerJaringActive(jaring) ? "AKTIF" : "TIDAK AKTIF"}
+                                    </span>
                                   </TableCell>
                                 )}
                                 <TableCell>

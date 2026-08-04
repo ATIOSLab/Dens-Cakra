@@ -513,6 +513,57 @@ describe('JaringService registration security', () => {
     expect(prisma.jaring.findFirst).toHaveBeenCalledTimes(2);
   });
 
+  it('mengembalikan status Jaring APPROVED ke PENDING dan INACTIVE saat di-update oleh Field Officer', async () => {
+    const update = jest.fn(() => Promise.resolve({}));
+    const findUniqueOrThrow = jest.fn(() =>
+      Promise.resolve({ registrationStatus: 'APPROVED' }),
+    );
+    const findFirstOrThrow = jest.fn(() =>
+      Promise.resolve({
+        id: 'jaring-id',
+        registrationStatus: 'PENDING',
+        status: 'INACTIVE',
+      }),
+    );
+    const auditCreate = jest.fn(() => Promise.resolve({}));
+    const assertJaring = jest.fn(() => Promise.resolve());
+    const service = new JaringService(
+      {
+        jaring: { update, findUniqueOrThrow, findFirstOrThrow, findFirst: jest.fn(() => Promise.resolve(null)) },
+        auditLog: { create: auditCreate },
+      } as never,
+      { assertJaring } as never,
+    );
+
+    await service.update(
+      'jaring-id',
+      { fullName: 'Nama Jaring Diubah' },
+      {
+        userProfileId: 'profile-id',
+        primaryAssignmentId: 'assignment-id',
+      } as never,
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'jaring-id' },
+      data: expect.objectContaining({
+        fullName: 'Nama Jaring Diubah',
+        registrationStatus: 'PENDING',
+        status: 'INACTIVE',
+        deactivatedAt: expect.any(Date),
+        rejectionReason: null,
+        reviewedAt: null,
+        reviewedByAssignmentId: null,
+      }),
+    });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'JARING.UPDATE',
+        entityId: 'jaring-id',
+      }),
+    });
+  });
+
   it('melakukan soft delete dan menyimpan audit delete', async () => {
     const update = jest.fn(() => Promise.resolve({}));
     const findUniqueOrThrow = jest.fn(() =>

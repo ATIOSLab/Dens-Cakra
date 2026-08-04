@@ -11,6 +11,7 @@ import {
   CoordinateSource,
   FileLifecycleStatus,
   FileType,
+  JaringRegistrationStatus,
   Prisma,
   WhatsAppMessageStatus,
   WhatsAppReportAmendmentType,
@@ -225,7 +226,10 @@ export class WhatsAppReportFlowService {
     await this.touchSession(session.id, session.status);
     session = (await this.loadSession(session.id)) ?? session;
 
-    const startsNewReport = this.isCommand(commandText, ['INFORMASI BARU']);
+    const startsNewReport = this.isCommand(commandText, [
+      'INFORMASI BARU',
+      'LAPOR',
+    ]);
     if (startsNewReport) {
       await this.closeSession(
         session,
@@ -298,24 +302,11 @@ export class WhatsAppReportFlowService {
     message: WAMessage,
     reply: ReplySender,
   ) {
-    const jaring = await this.prisma.jaring.findFirst({
-      where: {
-        whatsappNumber: payload.senderPhone,
-        status: 'ACTIVE',
-        deletedAt: null,
-      },
-      include: {
-        areaCoverages: {
-          where: { validUntil: null },
-          select: { areaId: true },
-        },
-        caretakerAssignments: {
-          where: { isActive: true, validUntil: null },
-          take: 1,
-        },
-      },
-    });
+    const jaring = await this.findJaringByPhone(payload.senderPhone);
     if (!jaring) {
+      this.logger.warn(
+        `No approved Jaring found for sender ${payload.senderPhone} on channel ${channel.code}`,
+      );
       return;
     }
 
@@ -324,6 +315,9 @@ export class WhatsAppReportFlowService {
       jaring.areaCoverages.map((coverage) => coverage.areaId),
     );
     if (!allowed) {
+      this.logger.warn(
+        `Jaring ${jaring.code} (${payload.senderPhone}) not allowed on channel ${channel.code}`,
+      );
       await reply([
         'Nomor Anda terdaftar, tetapi tidak berada dalam wilayah layanan kanal WhatsApp ini.',
       ]);
@@ -333,6 +327,9 @@ export class WhatsAppReportFlowService {
     const fieldOfficerAssignmentId =
       jaring.caretakerAssignments[0]?.fieldOfficerAssignmentId;
     if (!fieldOfficerAssignmentId) {
+      this.logger.warn(
+        `Jaring ${jaring.code} (${payload.senderPhone}) has no active field officer assignment`,
+      );
       await reply([
         'Field Officer penanggung jawab aktif belum tersedia. Silakan hubungi admin.',
       ]);
@@ -386,24 +383,11 @@ export class WhatsAppReportFlowService {
     reply: ReplySender,
     pinText: string,
   ) {
-    const jaring = await this.prisma.jaring.findFirst({
-      where: {
-        whatsappNumber: payload.senderPhone,
-        status: 'ACTIVE',
-        deletedAt: null,
-      },
-      include: {
-        areaCoverages: {
-          where: { validUntil: null },
-          select: { areaId: true },
-        },
-        caretakerAssignments: {
-          where: { isActive: true, validUntil: null },
-          take: 1,
-        },
-      },
-    });
+    const jaring = await this.findJaringByPhone(payload.senderPhone);
     if (!jaring) {
+      this.logger.warn(
+        `No approved Jaring found for sender ${payload.senderPhone} on channel ${channel.code}`,
+      );
       return;
     }
 
@@ -412,6 +396,9 @@ export class WhatsAppReportFlowService {
       jaring.areaCoverages.map((coverage) => coverage.areaId),
     );
     if (!allowed) {
+      this.logger.warn(
+        `Jaring ${jaring.code} (${payload.senderPhone}) not allowed on channel ${channel.code}`,
+      );
       await reply([
         'Nomor Anda terdaftar, tetapi tidak berada dalam wilayah layanan kanal WhatsApp ini.',
       ]);
@@ -421,6 +408,9 @@ export class WhatsAppReportFlowService {
     const fieldOfficerAssignmentId =
       jaring.caretakerAssignments[0]?.fieldOfficerAssignmentId;
     if (!fieldOfficerAssignmentId) {
+      this.logger.warn(
+        `Jaring ${jaring.code} (${payload.senderPhone}) has no active field officer assignment`,
+      );
       await reply([
         'Field Officer penanggung jawab aktif belum tersedia. Silakan hubungi admin.',
       ]);
@@ -577,14 +567,25 @@ export class WhatsAppReportFlowService {
         await reply([validation]);
         return;
       }
+      const next = session.returnToReview
+        ? WhatsAppReportSessionState.REVIEW
+        : WhatsAppReportSessionState.CONTENT;
       await this.transition(
         session,
-        WhatsAppReportSessionState.TITLE_CONFIRMATION,
+        next,
         session.title ? 'TITLE_UPDATED' : 'TITLE_CREATED',
         payload.externalMessageId,
-        { title: text },
+        {
+          title: text,
+          returnToReview: false,
+        },
       );
-      await reply([this.titleConfirmationReply(text)]);
+      const refreshed = await this.loadSession(session.id).catch(() => null);
+      await reply([
+        next === WhatsAppReportSessionState.REVIEW
+          ? this.reviewReply(refreshed ?? { ...session, title: text })
+          : this.promptForState(next),
+      ]);
       return;
     }
 
@@ -631,58 +632,15 @@ export class WhatsAppReportFlowService {
 
     if (state === WhatsAppReportSessionState.CONTENT) {
       const contentMedia = this.mediaMessage(message);
-      if (
-        !contentMedia &&
-        this.isCommand(text, ['SELESAI', REPORT_ACTION_IDS.contentFinish])
-      ) {
-        if (session.contentParts.length === 0) {
-          await reply([
-            'Belum ada informasi yang diterima. Silakan kirim narasi terlebih dahulu.',
-          ]);
-          return;
-        }
-        if (session.media.length === 0) {
-          await reply([
-            'Dokumentasi wajib diisi minimal satu foto atau video. Silakan kirim lampiran untuk melanjutkan.',
-          ]);
-          return;
-        }
-        const combined = session.contentParts
-          .map((part) => part.content)
-          .join('\n\n');
-        await this.transition(
-          session,
-          WhatsAppReportSessionState.CONTENT_CONFIRMATION,
-          'CONTENT_COMBINED',
-          payload.externalMessageId,
-          { content: combined },
-        );
-        await reply([this.contentConfirmationReply(combined)]);
-        return;
-      }
-      if (
-        !contentMedia &&
-        this.isCommand(text, [REPORT_ACTION_IDS.contentContinue])
-      ) {
-        await reply([
-          'Silakan kirim teks, foto, atau video berikutnya. Caption foto/video akan dimasukkan sebagai isi informasi.',
-        ]);
-        return;
-      }
+
       if (contentMedia) {
         if (session.media.length >= MAX_MEDIA) {
-          await reply([
-            `Dokumentasi maksimal ${MAX_MEDIA} file.`,
-            this.contentCollectionReply(
-              session.contentParts.length,
-              session.media.length,
-            ),
-          ]);
+          await reply([`Dokumentasi maksimal ${MAX_MEDIA} file.`]);
           return;
         }
         if (text && session.contentParts.length >= MAX_CONTENT_PARTS) {
           await reply([
-            `Batas maksimal ${MAX_CONTENT_PARTS} bagian informasi telah tercapai. Kirim media tanpa caption atau selesaikan informasi.`,
+            `Batas maksimal ${MAX_CONTENT_PARTS} bagian informasi telah tercapai.`,
           ]);
           return;
         }
@@ -741,12 +699,39 @@ export class WhatsAppReportFlowService {
               },
             });
           });
-          await reply([
-            this.contentCollectionReply(
-              session.contentParts.length + (text ? 1 : 0),
-              session.media.length + 1,
-            ),
-          ]);
+
+          const refreshed = await this.loadSession(session.id);
+          const currentSession = refreshed ?? session;
+          const hasContent = currentSession.contentParts.length > 0;
+          const hasMedia = currentSession.media.length > 0;
+
+          if (hasContent && hasMedia) {
+            const combined = currentSession.contentParts
+              .map((part) => part.content)
+              .join('\n\n');
+            const next = currentSession.returnToReview
+              ? WhatsAppReportSessionState.REVIEW
+              : WhatsAppReportSessionState.TIME;
+            await this.transition(
+              currentSession,
+              next,
+              'CONTENT_COMBINED',
+              payload.externalMessageId,
+              { content: combined, returnToReview: false },
+            );
+            const finalSession =
+              (await this.loadSession(session.id).catch(() => null)) ??
+              currentSession;
+            await reply([
+              next === WhatsAppReportSessionState.REVIEW
+                ? this.reviewReply(finalSession)
+                : this.promptForState(next),
+            ]);
+          } else {
+            await reply([
+              'Dokumentasi foto/video diterima. Silakan kirim narasi informasi.',
+            ]);
+          }
         } catch (error) {
           this.logger.warn(
             `Content media intake failed: ${this.messageOf(error)}`,
@@ -757,19 +742,52 @@ export class WhatsAppReportFlowService {
         }
         return;
       }
+
       if (!text) {
         await reply([
-          'Silakan kirim teks, foto, atau video. Caption foto/video akan dimasukkan sebagai isi informasi.',
+          'Silakan kirim narasi informasi atau foto/video dokumentasi.',
         ]);
         return;
       }
+
+      if (this.isCommand(text, ['SELESAI', REPORT_ACTION_IDS.contentFinish])) {
+        if (session.contentParts.length === 0) {
+          await reply([
+            'Belum ada narasi informasi yang diterima. Silakan kirim narasi terlebih dahulu.',
+          ]);
+          return;
+        }
+        if (session.media.length === 0) {
+          await reply([
+            'Dokumentasi wajib diisi minimal satu foto atau video. Silakan kirim lampiran foto/video.',
+          ]);
+          return;
+        }
+        const combined = session.contentParts
+          .map((part) => part.content)
+          .join('\n\n');
+        const next = session.returnToReview
+          ? WhatsAppReportSessionState.REVIEW
+          : WhatsAppReportSessionState.TIME;
+        await this.transition(
+          session,
+          next,
+          'CONTENT_COMBINED',
+          payload.externalMessageId,
+          { content: combined, returnToReview: false },
+        );
+        const refreshed = await this.loadSession(session.id).catch(() => null);
+        await reply([
+          next === WhatsAppReportSessionState.REVIEW
+            ? this.reviewReply(refreshed ?? { ...session, content: combined })
+            : this.promptForState(next),
+        ]);
+        return;
+      }
+
       if (session.contentParts.length >= MAX_CONTENT_PARTS) {
         await reply([
           `Batas maksimal ${MAX_CONTENT_PARTS} pesan informasi telah tercapai.`,
-          this.contentCollectionReply(
-            session.contentParts.length,
-            session.media.length,
-          ),
         ]);
         return;
       }
@@ -778,9 +796,12 @@ export class WhatsAppReportFlowService {
         0,
       );
       if (currentLength + text.length > MAX_CONTENT_LENGTH) {
-        await reply([`Isi informasi maksimal ${MAX_CONTENT_LENGTH} karakter.`]);
+        await reply([
+          `Isi informasi maksimal ${MAX_CONTENT_LENGTH} karakter.`,
+        ]);
         return;
       }
+
       await this.prisma.whatsAppReportContentPart.create({
         data: {
           reportSessionId: session.id,
@@ -797,12 +818,39 @@ export class WhatsAppReportFlowService {
           orderNo: session.contentParts.length + 1,
         },
       );
-      await reply([
-        this.contentCollectionReply(
-          session.contentParts.length + 1,
-          session.media.length,
-        ),
-      ]);
+
+      const refreshed = await this.loadSession(session.id);
+      const currentSession = refreshed ?? session;
+      const hasContent = currentSession.contentParts.length > 0;
+      const hasMedia = currentSession.media.length > 0;
+
+      if (hasContent && hasMedia) {
+        const combined = currentSession.contentParts
+          .map((part) => part.content)
+          .join('\n\n');
+        const next = currentSession.returnToReview
+          ? WhatsAppReportSessionState.REVIEW
+          : WhatsAppReportSessionState.TIME;
+        await this.transition(
+          currentSession,
+          next,
+          'CONTENT_COMBINED',
+          payload.externalMessageId,
+          { content: combined, returnToReview: false },
+        );
+        const finalSession =
+          (await this.loadSession(session.id).catch(() => null)) ??
+          currentSession;
+        await reply([
+          next === WhatsAppReportSessionState.REVIEW
+            ? this.reviewReply(finalSession)
+            : this.promptForState(next),
+        ]);
+      } else {
+        await reply([
+          'Narasi informasi diterima. Silakan kirim foto atau video dokumentasi.',
+        ]);
+      }
       return;
     }
 
@@ -888,9 +936,12 @@ export class WhatsAppReportFlowService {
         ]);
         return;
       }
+      const next = session.returnToReview
+        ? WhatsAppReportSessionState.REVIEW
+        : WhatsAppReportSessionState.TITLE;
       await this.transition(
         session,
-        WhatsAppReportSessionState.LOCATION_CONFIRMATION,
+        next,
         session.latitude === null ? 'LOCATION_ADDED' : 'LOCATION_UPDATED',
         payload.externalMessageId,
         {
@@ -900,14 +951,22 @@ export class WhatsAppReportFlowService {
           locationCapturedAt: new Date(payload.receivedAt),
           locationMessageId: payload.externalMessageId,
           locationType: 'LIVE_LOCATION',
+          returnToReview: false,
         },
       );
+      const refreshed = await this.loadSession(session.id).catch(() => null);
       await reply([
-        this.locationConfirmationReply(
-          location.latitude,
-          location.longitude,
-          location.accuracy,
-        ),
+        next === WhatsAppReportSessionState.REVIEW
+          ? this.reviewReply(
+              refreshed ??
+                ({
+                  ...session,
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  locationAccuracyMeters: location.accuracy,
+                } as unknown as LoadedSession),
+            )
+          : this.promptForState(next),
       ]);
       return;
     }
@@ -979,12 +1038,13 @@ export class WhatsAppReportFlowService {
       }
       await this.transition(
         session,
-        WhatsAppReportSessionState.TIME_CONFIRMATION,
+        WhatsAppReportSessionState.REVIEW,
         session.incidentAt ? 'INCIDENT_TIME_UPDATED' : 'INCIDENT_TIME_ADDED',
         payload.externalMessageId,
-        { incidentAt },
+        { incidentAt, returnToReview: false },
       );
-      await reply([this.timeConfirmationReply(incidentAt)]);
+      const refreshed = await this.loadSession(session.id).catch(() => null);
+      await reply([this.reviewReply(refreshed ?? { ...session, incidentAt })]);
       return;
     }
 
@@ -1983,7 +2043,41 @@ export class WhatsAppReportFlowService {
     });
   }
 
+  private findJaringByPhone(senderPhone: string) {
+    const raw = senderPhone.replace(/\D+/g, '');
+    const candidates = Array.from(
+      new Set([
+        senderPhone,
+        raw,
+        `+${raw}`,
+        raw.startsWith('62') ? `0${raw.slice(2)}` : raw,
+        raw.startsWith('62') ? raw.slice(2) : raw,
+      ]),
+    );
+
+    return this.prisma.jaring.findFirst({
+      where: {
+        whatsappNumber: { in: candidates },
+        registrationStatus: JaringRegistrationStatus.APPROVED,
+        deletedAt: null,
+      },
+      include: {
+        areaCoverages: {
+          where: { validUntil: null },
+          select: { areaId: true },
+        },
+        caretakerAssignments: {
+          where: { isActive: true, validUntil: null },
+          take: 1,
+        },
+      },
+    });
+  }
+
   private loadSession(id: string) {
+    if (!this.prisma?.whatsAppReportSession?.findUnique) {
+      return Promise.resolve(null);
+    }
     return this.prisma.whatsAppReportSession.findUnique({
       where: { id },
       include: this.sessionInclude(),
@@ -2271,7 +2365,7 @@ ${session.title ?? '-'}
 ${session.content ?? '-'}
 
 📷 DOKUMENTASI
-Foto/Video: ${session.media.length} file`;
+Foto/Video: ${session.media?.length ?? 0} file`;
   }
 
   private singleSelectReply(input: {
@@ -2658,7 +2752,7 @@ Foto/Video: ${session.media.length} file`;
       [WhatsAppReportSessionState.TITLE]:
         '━━━━━━━━━━━━━━━━━━\nLANGKAH 2/4\n📝 JUDUL INFORMASI\n━━━━━━━━━━━━━━━━━━\n\nSilakan tuliskan judul informasi.',
       [WhatsAppReportSessionState.CONTENT]:
-        '━━━━━━━━━━━━━━━━━━\nLANGKAH 3/4\n📄 ISI & LAMPIRAN\n━━━━━━━━━━━━━━━━━━\n\nKirim informasi dalam bentuk teks, foto, atau video. Caption pada foto/video otomatis dimasukkan sebagai isi informasi. Minimal satu narasi dan satu foto/video wajib tersedia.',
+        '━━━━━━━━━━━━━━━━━━\nLANGKAH 3/4\n📄 INFORMASI & DOKUMENTASI\n━━━━━━━━━━━━━━━━━━\n\nSilakan kirim narasi berita beserta foto/video dokumentasi. Caption pada foto/video otomatis dimasukkan sebagai isi narasi.',
       [WhatsAppReportSessionState.TIME]:
         '━━━━━━━━━━━━━━━━━━\nLANGKAH 4/4\n🕒 WAKTU KEJADIAN\n━━━━━━━━━━━━━━━━━━\n\nMasukkan tanggal dan waktu kejadian dalam format DD-MM-YYYY HH:mm.\n\nContoh: 03-08-2026 14:30\nZona waktu: WIB.',
       [WhatsAppReportSessionState.MEDIA]:

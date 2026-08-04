@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BriefcaseBusiness, ImagePlus, LoaderCircle, Network, UserRound, X } from "lucide-react";
+import { AlertTriangle, BriefcaseBusiness, ImagePlus, LoaderCircle, Network, UserRound, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -585,10 +585,12 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
 
       toast.success(
         isEditMode
-          ? editingJaring?.registrationStatus === "REJECTED"
-            ? "Revisi Jaring tersimpan dan kembali belum terverifikasi."
-            : "Data Jaring berhasil diperbarui."
-          : "Pengajuan Jaring tersimpan dan menunggu persetujuan Regional Commander.",
+          ? editingJaring?.registrationStatus === "APPROVED"
+            ? "Perubahan data Jaring berhasil disimpan dan diajukan ulang untuk verifikasi."
+            : editingJaring?.registrationStatus === "REJECTED"
+              ? "Revisi Jaring tersimpan dan diajukan ulang untuk verifikasi."
+              : "Perubahan data Jaring berhasil disimpan dan menunggu verifikasi."
+          : "Pengajuan Jaring tersimpan dan menunggu persetujuan.",
       );
       router.push(isEditMode && jaringId ? `${LIST_ROUTE}/${jaringId}` : LIST_ROUTE);
       router.refresh();
@@ -601,7 +603,7 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
   }
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
       <PageHeader
         title={
           isEditMode
@@ -626,8 +628,20 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
         </Alert>
       ) : null}
 
+      {isEditMode && editingJaring?.registrationStatus === "APPROVED" ? (
+        <Alert className="border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+          <AlertTitle className="flex items-center gap-2 font-semibold">
+            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+            Pengajuan Ulang Verifikasi Jaring
+          </AlertTitle>
+          <AlertDescription>
+            Jaring ini saat ini berstatus <strong>Terverifikasi (APPROVED)</strong>. Menyimpan perubahan data ini akan mengajukan ulang data Jaring sehingga statusnya kembali menjadi <strong>Belum Terverifikasi (PENDING)</strong> dan memerlukan verifikasi ulang.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <form
-        className="mx-auto flex max-w-6xl flex-col gap-5"
+        className="flex flex-col gap-5"
         onSubmit={form.handleSubmit(() => setShowConfirmation(true))}
         noValidate
       >
@@ -1013,8 +1027,9 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
               {isEditMode ? "Simpan perubahan data Jaring?" : "Pastikan data Jaring sudah sesuai?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Periksa kembali data pribadi, pekerjaan, cakupan wilayah, dan kebermanfaatan. Jika semuanya sudah benar,
-              klik Simpan untuk {isEditMode ? "memperbarui" : "menyimpan"} Jaring.
+              {isEditMode && editingJaring?.registrationStatus === "APPROVED"
+                ? "Data Jaring ini saat ini telah terverifikasi. Perubahan data akan membuat Jaring diajukan ulang (status kembali ke Belum Terverifikasi) dan memerlukan persetujuan/verifikasi ulang. Lanjutkan menyimpan?"
+                : `Periksa kembali data pribadi, pekerjaan, dan cakupan wilayah. Jika semuanya sudah benar, klik Simpan untuk ${isEditMode ? "memperbarui" : "menyimpan"} Jaring.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

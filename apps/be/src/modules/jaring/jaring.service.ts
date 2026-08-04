@@ -1510,16 +1510,12 @@ export class JaringService {
         ...(body.politicalAffiliation !== undefined
           ? { politicalAffiliation: body.politicalAffiliation?.trim() || null }
           : {}),
-        ...(existing.registrationStatus === JaringRegistrationStatus.REJECTED
-          ? {
-              registrationStatus: JaringRegistrationStatus.PENDING,
-              status: JaringStatus.INACTIVE,
-              deactivatedAt: new Date(),
-              rejectionReason: null,
-              reviewedAt: null,
-              reviewedByAssignmentId: null,
-            }
-          : {}),
+        registrationStatus: JaringRegistrationStatus.PENDING,
+        status: JaringStatus.INACTIVE,
+        deactivatedAt: new Date(),
+        rejectionReason: null,
+        reviewedAt: null,
+        reviewedByAssignmentId: null,
       },
     });
     if (areaIds) {

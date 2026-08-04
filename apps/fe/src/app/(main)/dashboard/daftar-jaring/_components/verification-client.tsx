@@ -90,11 +90,12 @@ const COLUMN_OPTIONS = [
   { id: "occupation", label: "Pekerjaan" },
   { id: "fieldOfficer", label: "Gaswil" },
   { id: "status", label: "Status" },
+  { id: "kinerja", label: "Kinerja" },
 ] as const;
 
 type JaringColumn = (typeof COLUMN_OPTIONS)[number]["id"];
 
-const DEFAULT_COLUMNS: JaringColumn[] = ["alias", "name", "gender", "village", "district"];
+const DEFAULT_COLUMNS: JaringColumn[] = ["alias", "name", "gender", "village", "district", "status", "kinerja"];
 
 function formatDateOnly(value?: string | null) {
   if (!value) return "-";
@@ -693,8 +694,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               className="w-full sm:w-auto min-w-[150px]"
             >
               <option value="ALL">Semua Kinerja</option>
-              <option value="ACTIVE">Aktif (Melapor &lt; 3 Bln)</option>
-              <option value="INACTIVE">Tidak Aktif (&gt; 3 Bln)</option>
+              <option value="ACTIVE">Aktif</option>
+              <option value="INACTIVE">Tidak Aktif</option>
             </NativeSelect>
 
             {/* Filter Gaswil */}
@@ -877,6 +878,11 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                       Status
                     </TableHead>
                   ) : null}
+                  {isColumnVisible("kinerja") ? (
+                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[130px]">
+                      Kinerja
+                    </TableHead>
+                  ) : null}
                   <TableHead className="pr-6 py-3.5 text-right font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[180px]">
                     Aksi
                   </TableHead>
@@ -987,29 +993,32 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
 
                       {isColumnVisible("status") ? (
                         <TableCell className="py-3">
-                          <div className="flex flex-col items-start gap-1">
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
-                                statusBadgeVariant(item.registrationStatus),
-                              )}
-                            >
-                              {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3 shrink-0" />}
-                              {item.registrationStatus === "REJECTED" && <XCircle className="size-3 shrink-0" />}
-                              {item.registrationStatus === "PENDING" && <Clock className="size-3 shrink-0" />}
-                              {statusLabel(item.registrationStatus)}
-                            </span>
-                            {item.registrationStatus === "APPROVED" && (
-                              <span
-                                className={cn(
-                                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold text-[10px] uppercase tracking-[0.06em]",
-                                  operationalStatusTone(item),
-                                )}
-                              >
-                                {operationalStatusLabel(item)}
-                              </span>
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
+                              statusBadgeVariant(item.registrationStatus),
                             )}
-                          </div>
+                          >
+                            {item.registrationStatus === "APPROVED" && <CheckCircle2 className="size-3 shrink-0" />}
+                            {item.registrationStatus === "REJECTED" && <XCircle className="size-3 shrink-0" />}
+                            {item.registrationStatus === "PENDING" && <Clock className="size-3 shrink-0" />}
+                            {statusLabel(item.registrationStatus)}
+                          </span>
+                        </TableCell>
+                      ) : null}
+
+                      {isColumnVisible("kinerja") ? (
+                        <TableCell className="py-3">
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold text-[10px] uppercase tracking-[0.06em]",
+                              item.registrationStatus === "APPROVED" && item.status === "ACTIVE"
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                : "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-400",
+                            )}
+                          >
+                            {item.registrationStatus === "APPROVED" && item.status === "ACTIVE" ? "AKTIF" : "TIDAK AKTIF"}
+                          </span>
                         </TableCell>
                       ) : null}
 

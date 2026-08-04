@@ -473,12 +473,12 @@ describe('WhatsAppReportFlowService', () => {
 
     expect(sameDayTitles).toEqual(
       expect.arrayContaining([
-        'Daftar Laporan Hari Ini',
+        'Daftar Berita Hari Ini',
         'Tambah Informasi',
         'Tambah Dokumentasi',
       ]),
     );
-    expect(nextDayTitles).toContain('Daftar Laporan Hari Ini');
+    expect(nextDayTitles).toContain('Daftar Berita Hari Ini');
     expect(nextDayTitles).not.toContain('Tambah Informasi');
     expect(nextDayTitles).not.toContain('Tambah Dokumentasi');
   });
@@ -803,10 +803,13 @@ describe('WhatsAppReportFlowService', () => {
 
     expect(transition).toHaveBeenCalledWith(
       expect.anything(),
-      WhatsAppReportSessionState.TIME_CONFIRMATION,
+      WhatsAppReportSessionState.REVIEW,
       'INCIDENT_TIME_ADDED',
       'time-input-id',
-      { incidentAt: new Date('2024-08-03T07:30:00.000Z') },
+      {
+        incidentAt: new Date('2024-08-03T07:30:00.000Z'),
+        returnToReview: false,
+      },
     );
     expect(reply).toHaveBeenCalledWith([
       expect.objectContaining({ kind: 'native_flow_single_select' }),
@@ -822,15 +825,22 @@ describe('WhatsAppReportFlowService', () => {
       whatsAppReportContentPart: { create: typeof contentCreate };
       whatsAppReportHistory: { create: typeof historyCreate };
     };
-    const transaction = jest.fn(
-      async (callback: (tx: TransactionMock) => Promise<unknown>) =>
-        callback({
-          whatsAppReportMedia: { create: mediaCreate },
-          whatsAppReportContentPart: { create: contentCreate },
-          whatsAppReportHistory: { create: historyCreate },
-        }),
+    const transaction = jest.fn(async (arg: unknown) =>
+      typeof arg === 'function'
+        ? arg({
+            whatsAppReportMedia: { create: mediaCreate },
+            whatsAppReportContentPart: { create: contentCreate },
+            whatsAppReportHistory: { create: historyCreate },
+          })
+        : Promise.all(arg as Array<Promise<unknown>>),
     );
-    const service = createService({ prisma: { $transaction: transaction } });
+    const service = createService({
+      prisma: {
+        $transaction: transaction,
+        whatsAppReportSession: { update: jest.fn(() => Promise.resolve()) },
+        whatsAppReportHistory: { create: historyCreate },
+      },
+    });
     const target = service as unknown as {
       advance: (
         session: Record<string, unknown>,
@@ -841,6 +851,15 @@ describe('WhatsAppReportFlowService', () => {
     };
     target.storeAndScanMedia = jest.fn(() =>
       Promise.resolve({ id: 'content-photo-file-id' }),
+    );
+    target.loadSession = jest.fn(() =>
+      Promise.resolve({
+        id: 'session-id',
+        currentState: WhatsAppReportSessionState.CONTENT,
+        contentParts: [{ content: 'Kondisi jalan mengalami kerusakan berat.' }],
+        media: [{ mediaType: FileType.PHOTO }],
+        returnToReview: false,
+      }),
     );
     const reply = jest.fn<() => Promise<void>>(() => Promise.resolve());
 
@@ -886,10 +905,7 @@ describe('WhatsAppReportFlowService', () => {
       }),
     );
     expect(reply).toHaveBeenCalledWith([
-      expect.objectContaining({
-        kind: 'native_flow_single_select',
-        body: expect.stringContaining('Foto/Video: 1 file'),
-      }),
+      expect.stringContaining('LANGKAH 4/4'),
     ]);
   });
 

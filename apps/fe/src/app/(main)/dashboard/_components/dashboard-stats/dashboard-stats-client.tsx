@@ -27,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSession } from "@/lib/auth/auth-client";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
@@ -342,6 +343,8 @@ type DashboardStatsClientProps = {
 };
 
 export function DashboardStatsClient({ initialData, initialError, role }: DashboardStatsClientProps) {
+  const { data: sessionData } = useSession();
+  const displayName = sessionData?.user?.name || ROLE_LABELS[role];
   const [data, setData] = useState(initialData);
   const [error, setError] = useState(initialError);
   const [loading, setLoading] = useState(false);
@@ -502,7 +505,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
             Dashboard Beranda
           </p>
           <h1 className="mt-0.5 truncate text-lg font-semibold">
-            Selamat Datang, {ROLE_LABELS[role]}
+            Selamat Datang, {displayName}
           </h1>
           {data.generatedAt && (
             <p className="mt-0.5 text-[0.68rem] text-muted-foreground">
