@@ -147,6 +147,14 @@ export function SebaranJaringRightPanel({
                     >
                       {statusMeta.label}
                     </Badge>
+                    <Badge
+                      className={cn(
+                        "text-[9px] px-1.5 py-0 border-none font-semibold text-white",
+                        agent.isActive ? "bg-emerald-600" : "bg-red-600"
+                      )}
+                    >
+                      {agent.isActive ? "Aktif" : "Tidak Aktif"}
+                    </Badge>
                   </div>
                   <span className="font-mono text-[10px] text-slate-500 shrink-0">{agent.lastActivityTime}</span>
                 </div>
@@ -174,10 +182,13 @@ export function SebaranJaringRightPanel({
       {selectedJaring && (
         <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-950/95 p-3.5 space-y-3 shrink-0 shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono font-bold text-sm text-slate-900 dark:text-slate-100">{selectedJaring.aliasName || selectedJaring.code}</span>
               <Badge className={cn("text-[10px] px-1.5 py-0 border-none font-semibold text-slate-950", STATUS_COLORS[selectedJaring.status]?.dotClass || "bg-emerald-500")}>
                 {STATUS_COLORS[selectedJaring.status]?.label || "Terverifikasi"}
+              </Badge>
+              <Badge className={cn("text-[10px] px-1.5 py-0 border-none font-semibold text-white", selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600")}>
+                {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
               </Badge>
             </div>
             <button onClick={onDeselectAgent} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800">
@@ -239,6 +250,13 @@ export function SebaranJaringRightPanel({
               <div className="flex justify-between items-center font-mono">
                 <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-sans">📍 Koordinat</span>
                 <span className="text-cyan-700 dark:text-cyan-300 font-mono text-[11px]">{selectedJaring.latitude.toFixed(4)}, {selectedJaring.longitude.toFixed(4)}</span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">⚡ Kinerja</span>
+                <Badge className={cn("text-[10px] px-2 py-0.5 border-none font-semibold text-white", selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600")}>
+                  {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
+                </Badge>
               </div>
 
               <div className="flex justify-between items-center">

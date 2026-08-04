@@ -73,6 +73,7 @@ export type JaringDistributionEntry = {
   fieldOfficerName: string | null;
   registeredAt: string;
   status: AgentOperationalStatus;
+  isActive: boolean;
   latitude: number;
   longitude: number;
   domicileLat?: number;

@@ -141,8 +141,15 @@ function distributionEntry(item: RegistrationJaring, index: number, districtLat:
   const status = deriveOperationalStatus(item);
   const reportCount = realReportCount;
 
-  const latestActivityDate = latestSession?.submittedAt ?? latestMsg?.receivedAt ?? null;
+  const latestActivityDate = (item as unknown as { lastReportAt?: string | null }).lastReportAt ?? latestSession?.submittedAt ?? latestMsg?.receivedAt ?? null;
   const lastReportDate = latestActivityDate ? formatRelativeDate(latestActivityDate) : "Belum ada laporan";
+
+  const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  const isActive = Boolean(
+    item.registrationStatus === "APPROVED" &&
+      latestActivityDate &&
+      new Date(latestActivityDate).getTime() >= threeMonthsAgo
+  );
 
   return {
     id: item.id,
@@ -160,6 +167,7 @@ function distributionEntry(item: RegistrationJaring, index: number, districtLat:
     fieldOfficerName: officerName(item),
     registeredAt: item.registeredAt,
     status,
+    isActive,
     latitude: domicileLat,
     longitude: domicileLng,
     domicileLat,

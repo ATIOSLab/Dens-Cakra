@@ -482,9 +482,12 @@ export function SebaranJaringMapView({
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 self-start">
+                  <div className="flex items-center gap-1.5 self-start flex-wrap">
                     <Badge className={cn("text-[10px] px-1.5 py-0 border-none font-semibold text-slate-950", STATUS_COLORS[selectedJaring.status]?.dotClass || "bg-emerald-500")}>
                       {STATUS_COLORS[selectedJaring.status]?.label || "Terverifikasi"}
+                    </Badge>
+                    <Badge className={cn("text-[10px] px-1.5 py-0 border-none font-semibold text-white", selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600")}>
+                      {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
                     </Badge>
                     <button
                       type="button"
@@ -515,6 +518,12 @@ export function SebaranJaringMapView({
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-mono">Gaswil</span>
                     <span className="font-semibold text-amber-300">{selectedJaring.fieldOfficerName || "Belum ada petugas"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 font-mono">Kinerja</span>
+                    <span className={cn("font-bold text-[11px]", selectedJaring.isActive ? "text-emerald-400" : "text-red-400")}>
+                      {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-mono">Laporan Terakhir</span>
