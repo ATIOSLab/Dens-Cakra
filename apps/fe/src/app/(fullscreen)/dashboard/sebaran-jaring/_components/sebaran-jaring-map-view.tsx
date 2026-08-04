@@ -458,10 +458,31 @@ export function SebaranJaringMapView({
               onClose={onClosePopup}
               className="z-50"
             >
-              <div className="p-3.5 bg-slate-900/95 border border-slate-800 rounded-xl text-slate-100 min-w-[260px] space-y-2 shadow-2xl backdrop-blur-md">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="font-mono font-bold text-sm text-cyan-400">{selectedJaring.aliasName || selectedJaring.code}</span>
-                  <div className="flex items-center gap-1.5">
+              <div className="p-3.5 bg-slate-900/95 border border-slate-800 rounded-xl text-slate-100 min-w-[270px] space-y-2.5 shadow-2xl backdrop-blur-md">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    {/* Profile Photo */}
+                    <div className="size-10 rounded-full overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center shrink-0">
+                      {selectedJaring.profilePhotoFileId ? (
+                        <img
+                          src={`/api/files/${selectedJaring.profilePhotoFileId}`}
+                          alt={selectedJaring.fullName || selectedJaring.aliasName || "Jaring"}
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <User className="size-5 text-slate-400" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-mono font-bold text-sm text-cyan-400 leading-none mb-1">
+                        {selectedJaring.code}
+                      </div>
+                      <div className="text-xs font-semibold text-slate-100 line-clamp-1">
+                        {selectedJaring.aliasName || selectedJaring.fullName || "Tanpa Nama"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 self-start">
                     <Badge className={cn("text-[10px] px-1.5 py-0 border-none font-semibold text-slate-950", STATUS_COLORS[selectedJaring.status]?.dotClass || "bg-emerald-500")}>
                       {STATUS_COLORS[selectedJaring.status]?.label || "Terverifikasi"}
                     </Badge>
@@ -472,7 +493,7 @@ export function SebaranJaringMapView({
                         e.preventDefault();
                         onClosePopup();
                       }}
-                      className="text-slate-400 hover:text-white cursor-pointer ml-1 p-1 rounded hover:bg-slate-800 transition-colors"
+                      className="text-slate-400 hover:text-white cursor-pointer p-0.5 rounded hover:bg-slate-800 transition-colors"
                       title="Tutup Popup"
                     >
                       <X className="size-3.5" />
@@ -480,15 +501,20 @@ export function SebaranJaringMapView({
                   </div>
                 </div>
 
-                <div className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
-                  <span>👤</span>
-                  <span>{selectedJaring.fullName || "Tanpa Nama"}</span>
-                </div>
-
                 <div className="text-[11px] space-y-1 text-slate-300 pt-0.5">
+                  {selectedJaring.fullName && selectedJaring.aliasName && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400 font-mono">Nama Jaring</span>
+                      <span className="font-medium text-slate-200">{selectedJaring.fullName}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-mono">Domisili</span>
                     <span className="font-medium text-slate-200">{selectedJaring.villageName}, {selectedJaring.districtName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 font-mono">Gaswil</span>
+                    <span className="font-semibold text-amber-300">{selectedJaring.fieldOfficerName || "Belum ada petugas"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-mono">Laporan Terakhir</span>
@@ -500,13 +526,15 @@ export function SebaranJaringMapView({
                   </div>
                 </div>
 
-                <button
-                  onClick={onOpenRightPanel}
+                <a
+                  href={`/dashboard/daftar-jaring/${selectedJaring.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full mt-2.5 text-center text-cyan-400 hover:text-cyan-300 text-xs font-medium pt-1.5 border-t border-slate-800/80 flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <span>Lihat Detail</span>
                   <ChevronRight className="size-3.5" />
-                </button>
+                </a>
               </div>
             </MapPopup>
           )}

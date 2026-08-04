@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, MapPin, Search, Users, X } from "lucide-react";
+import { ChevronRight, MapPin, Search, User, Users, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,31 +43,31 @@ export function SebaranJaringRightPanel({
   if (!isOpen) return null;
 
   return (
-    <aside className="z-20 w-96 shrink-0 bg-white/95 dark:bg-slate-900/95 border-l border-slate-200 dark:border-slate-800/90 backdrop-blur-lg flex flex-col shadow-xl absolute lg:relative inset-y-0 right-0 transition-colors">
-      {/* Top Panel Header */}
-      <div className="p-3.5 border-b border-slate-200 dark:border-slate-800/90 flex items-center justify-between bg-slate-100/70 dark:bg-slate-950/50">
-        <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-semibold text-xs tracking-wider">
-          <Users className="size-3.5" />
-          <span>DAFTAR JARING</span>
+    <aside className="w-80 border-l border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex flex-col h-full z-10 shrink-0 shadow-2xl transition-all">
+      {/* Header */}
+      <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Users className="size-4 text-cyan-600 dark:text-cyan-400" />
+          <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">DAFTAR JARING</h2>
         </div>
-        <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+        <span className="font-mono text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold">
           {filteredAgents.length} Total
         </span>
       </div>
 
-      {/* Search & Agent Filter Tabs */}
-      <div className="p-3 border-b border-slate-200 dark:border-slate-800/80 space-y-2.5 bg-slate-50/50 dark:bg-slate-950/30">
+      {/* Search & Tabs */}
+      <div className="p-3 space-y-2 border-b border-slate-200 dark:border-slate-800">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 size-3.5 text-slate-400 dark:text-slate-500" />
+          <Search className="absolute left-2.5 top-2.5 size-3.5 text-slate-400" />
           <Input
+            placeholder="Cari jaring atau kode..."
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            placeholder="Cari jaring atau kode..."
-            className="pl-8 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs h-8 focus:border-cyan-500/50 placeholder:text-slate-400 dark:placeholder:text-slate-600"
+            className="pl-8 text-xs h-8.5 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
           />
         </div>
 
-        <div className="flex items-center border-b border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <div className="flex items-center text-xs font-mono border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
           <button
             onClick={() => onTabChange("ALL")}
             className={cn(
@@ -110,16 +110,26 @@ export function SebaranJaringRightPanel({
               key={agent.id}
               onClick={() => onSelectAgent(agent)}
               className={cn(
-                "p-3.5 flex items-start gap-3 cursor-pointer transition-colors group",
+                "p-3 flex items-start gap-3 cursor-pointer transition-colors group",
                 isSelected ? "bg-cyan-50 dark:bg-cyan-950/40 border-l-2 border-l-cyan-500" : "hover:bg-slate-100/70 dark:hover:bg-slate-800/50"
               )}
             >
-              {/* Status Map Pin Icon */}
-              <div
-                className="size-7 rounded-lg flex items-center justify-center shrink-0 shadow-md border border-slate-200 dark:border-slate-800/80 mt-0.5"
-                style={{ backgroundColor: `${statusMeta.bg}20` }}
-              >
-                <MapPin className="size-4" style={{ color: statusMeta.bg, fill: statusMeta.bg }} />
+              {/* Profile Photo Avatar */}
+              <div className="relative size-10 rounded-full shrink-0 border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden mt-0.5">
+                {agent.profilePhotoFileId ? (
+                  <img
+                    src={`/api/files/${agent.profilePhotoFileId}`}
+                    alt={agent.fullName || agent.code}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <User className="size-5 text-slate-400 dark:text-slate-500" />
+                )}
+                {/* Status Dot */}
+                <span
+                  className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-white dark:border-slate-900"
+                  style={{ backgroundColor: statusMeta.bg }}
+                />
               </div>
 
               {/* Jaring Details */}
@@ -221,6 +231,11 @@ export function SebaranJaringRightPanel({
                 <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedJaring.villageName}, {selectedJaring.districtName}</span>
               </div>
 
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">👮 Gaswil</span>
+                <span className="font-semibold text-amber-600 dark:text-amber-300">{selectedJaring.fieldOfficerName || "Belum ada petugas"}</span>
+              </div>
+
               <div className="flex justify-between items-center font-mono">
                 <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-sans">📍 Koordinat</span>
                 <span className="text-cyan-700 dark:text-cyan-300 font-mono text-[11px]">{selectedJaring.latitude.toFixed(4)}, {selectedJaring.longitude.toFixed(4)}</span>
@@ -258,11 +273,16 @@ export function SebaranJaringRightPanel({
           )}
 
           {/* Primary Action Button */}
-          <Link href={`/dashboard/daftar-jaring?id=${selectedJaring.id}`} className="block w-full pt-1">
+          <a
+            href={`/dashboard/daftar-jaring/${selectedJaring.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full pt-1"
+          >
             <Button className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-semibold text-xs h-9 shadow-sm cursor-pointer">
               Lihat Detail Lengkap
             </Button>
-          </Link>
+          </a>
         </div>
       )}
     </aside>

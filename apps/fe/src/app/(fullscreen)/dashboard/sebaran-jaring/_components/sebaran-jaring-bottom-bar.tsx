@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronUp, SlidersHorizontal, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
@@ -38,9 +40,35 @@ export function SebaranJaringBottomBar({
   zoomLevel,
   adminLevelLabel,
 }: Props) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  if (isCollapsed) {
+    return (
+      <div className="absolute bottom-3 right-4 z-20">
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(false)}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 text-slate-200 border border-slate-700/80 backdrop-blur-md shadow-2xl text-xs font-mono font-medium hover:bg-slate-800 hover:text-cyan-400 transition-all cursor-pointer"
+        >
+          <SlidersHorizontal className="size-3.5 text-cyan-400" />
+          <span>Panel Kontrol Peta</span>
+          <ChevronUp className="size-3.5 text-slate-400" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="absolute bottom-3 left-3 right-3 z-10 bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 backdrop-blur-md px-3.5 py-2 rounded-xl flex flex-col gap-1.5 shadow-xl transition-colors">
-      <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-4 text-xs pr-8 relative">
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(true)}
+          className="absolute -top-1 -right-1 p-1 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer"
+          title="Tutup Panel Kontrol"
+        >
+          <X className="size-4" />
+        </button>
         {/* MODE TAMPILAN */}
         <div className="flex items-center gap-2">
           <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">MODE TAMPILAN</span>

@@ -207,7 +207,7 @@ export function SebaranJaringLeftPanel({
             </div>
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60">
               <div className="font-bold text-sm text-blue-600 dark:text-blue-400">{summaryStats.pending}</div>
-              <div className="text-[9px] text-blue-600/80 dark:text-blue-500/80 font-mono">Pending</div>
+              <div className="text-[9px] text-blue-600/80 dark:text-blue-500/80 font-mono">Belum Verifikasi</div>
             </div>
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/60">
               <div className="font-bold text-sm text-red-600 dark:text-red-400">{summaryStats.rejected}</div>
