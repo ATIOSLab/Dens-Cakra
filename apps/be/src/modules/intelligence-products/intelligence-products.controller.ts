@@ -831,6 +831,7 @@ export class IntelligenceProductsController {
       'regional_commander',
       'operational_intelligence_manager',
       'field_coordinator',
+      'field_officer',
     ],
   })
   async dashboardOverview(
@@ -1028,6 +1029,7 @@ export class IntelligenceProductsController {
       'regional_commander',
       'operational_intelligence_manager',
       'field_coordinator',
+      'field_officer',
     ],
   })
   async dashboardBriefing(
@@ -1042,6 +1044,44 @@ export class IntelligenceProductsController {
         appliedScope: query,
       },
     );
+  }
+
+  @Get('field-officer/dashboard')
+  @ApiContract({
+    operationId: 'apiFieldOfficerDashboard001',
+    contractId: 'API-FIELD-OFFICER-DASHBOARD-001',
+    summary: 'Data beranda dan dashboard operasional Field Officer',
+    roles: [
+      'field_officer',
+      'field_coordinator',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
+  })
+  async fieldOfficerDashboard(
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.service.fieldOfficerDashboard(context));
+  }
+
+  @Get('field-officer/workspace-summary')
+  @ApiContract({
+    operationId: 'apiFieldOfficerWorkspaceSummary001',
+    contractId: 'API-FIELD-OFFICER-WORKSPACE-SUMMARY-001',
+    summary: 'Ringkasan data beranda dan workspace Field Officer',
+    roles: [
+      'field_officer',
+      'field_coordinator',
+      'executive',
+      'regional_commander',
+      'operational_intelligence_manager',
+    ],
+  })
+  async fieldOfficerWorkspaceSummary(
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.service.fieldOfficerDashboard(context));
   }
 
   @Get('map/reports')

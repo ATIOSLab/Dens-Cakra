@@ -489,12 +489,15 @@ export function LaporanJaringDetailClient({
                     </p>
                   </div>
 
-                  {/* ISI PESAN WHATSAPP ASLI */}
-                  <div className="md:col-span-2 space-y-1">
-                    <span className="text-muted-foreground font-medium">Isi Pesan WhatsApp Asli:</span>
-                    <div className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 font-mono text-xs whitespace-pre-wrap text-foreground leading-relaxed">
-                      {activeReport.content || "Belum ada teks isi laporan."}
-                    </div>
+                  {/* ISI PESAN WHATSAPP BUBBLE VIEW */}
+                  <div className="md:col-span-2 space-y-1.5">
+                    <span className="text-muted-foreground font-medium text-xs">Tampilan Pesan WhatsApp Chat Bubble:</span>
+                    <WhatsAppChatBubbleThread
+                      senderAlias={activeReport.jaringAlias || activeReport.jaringCode || "Pengirim"}
+                      content={activeReport.content ?? undefined}
+                      mediaList={mediaList}
+                      submittedAt={activeReport.submittedAt ?? activeReport.createdAt ?? undefined}
+                    />
                   </div>
 
                   {/* INFORMASI KOORDINAT & WILAYAH LENGKAP */}
@@ -1174,5 +1177,97 @@ export function LaporanJaringDetailClient({
         </AlertDialogContent>
       </AlertDialog>
     </main>
+  );
+}
+
+function WhatsAppChatBubbleThread({
+  senderAlias,
+  content,
+  mediaList = [],
+  submittedAt,
+}: {
+  senderAlias: string;
+  content?: string;
+  mediaList?: any[];
+  submittedAt?: string;
+}) {
+  const timeFormatted = submittedAt ? formatDateTime(submittedAt) : "";
+
+  return (
+    <div className="rounded-xl border border-slate-200/90 bg-[#efeae2] dark:bg-slate-950 dark:border-white/10 p-4 md:p-5 space-y-3 relative shadow-xs">
+      {/* WA Header Bar */}
+      <div className="flex items-center justify-between pb-2 border-b border-slate-300/60 dark:border-slate-800 text-xs">
+        <div className="flex items-center gap-2">
+          <div className="size-6 rounded-full bg-[#075E54] text-white flex items-center justify-center font-bold text-[10px]">
+            WA
+          </div>
+          <span className="font-semibold text-slate-800 dark:text-slate-200">
+            Pesan WhatsApp Masuk (Pengirim: {senderAlias})
+          </span>
+        </div>
+        {timeFormatted && (
+          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+            {timeFormatted}
+          </span>
+        )}
+      </div>
+
+      {/* Chat Messages Container */}
+      <div className="space-y-3 pt-1">
+        {/* Text Message Bubble */}
+        {content ? (
+          <div className="flex justify-start">
+            <div className="relative max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-tl-none bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3.5 shadow-xs space-y-1.5">
+              <div className="text-[11px] font-bold text-[#075E54] dark:text-emerald-400 flex items-center gap-1.5">
+                <span>{senderAlias}</span>
+              </div>
+              <div className="text-xs text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
+                {content}
+              </div>
+              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right pt-0.5">
+                {timeFormatted ? timeFormatted.split(", ")[1] || timeFormatted : "Tersimpan"} ✓✓
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Media Message Bubbles */}
+        {mediaList && mediaList.length > 0 ? (
+          <div className="flex justify-start">
+            <div className="relative max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-tl-none bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs space-y-2">
+              <div className="text-[11px] font-bold text-[#075E54] dark:text-emerald-400 flex items-center gap-1.5">
+                <Paperclip className="size-3.5" />
+                <span>{senderAlias} • Lampiran Media ({mediaList.length} berkas)</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {mediaList.map((media) => (
+                  <div
+                    key={media.id}
+                    className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 p-1 space-y-1"
+                  >
+                    <EvidenceImageViewer
+                      src={`/api/files/${media.fileId}`}
+                      alt={media.fileName || "Lampiran Media"}
+                      fileName={media.fileName || "Foto Lampiran"}
+                      caption={media.caption}
+                    />
+                    {media.caption && (
+                      <p className="text-[11px] text-slate-700 dark:text-slate-300 px-1 py-0.5 whitespace-pre-wrap font-sans">
+                        {media.caption}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right">
+                {timeFormatted ? timeFormatted.split(", ")[1] || timeFormatted : "Tersimpan"} ✓✓
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }

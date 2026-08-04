@@ -509,7 +509,7 @@ describe('JaringService registration security', () => {
 
     const createInput = prisma.jaring.create.mock.calls[0]?.[0];
     expect(createInput.data.code).toMatch(/^\d{6}$/);
-    expect(createInput.data.aliasName).toMatch(/^[0-9A-F]{8}$/);
+    expect(createInput.data.aliasName).toMatch(/^[0-9A-F]{8}(01|08)\d{4}$/);
     expect(createInput.data.address).toBe(
       'Jl. Tebet Timur Dalam No. 10, Jakarta Selatan',
     );

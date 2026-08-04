@@ -3835,7 +3835,10 @@ export class IntelligenceProductsService {
         }),
         this.prisma.task.count({
           where: {
-            ownerAssignmentId: context.primaryAssignmentId,
+            OR: [
+              { ownerAssignmentId: context.primaryAssignmentId },
+              { assignments: { some: { assigneeId: context.primaryAssignmentId } } },
+            ],
             deletedAt: null,
             ...this.buildCommonDateWhere('createdAt', query.from, query.to),
           },
@@ -4664,18 +4667,174 @@ export class IntelligenceProductsService {
     };
   }
 
+  async fieldOfficerDashboard(context: AuthorizationContext) {
+    const assignmentId = context.primaryAssignmentId;
+
+    const [
+      totalJaringCount,
+      activeTasks,
+      recentMessages,
+      recentBakets,
+      assignedAreas,
+    ] = await Promise.all([
+      // Total Jaring binaan aktif di bawah Field Officer
+      this.prisma.jaringCaretakerAssignment.count({
+        where: {
+          fieldOfficerAssignmentId: assignmentId,
+          isActive: true,
+          jaring: { status: 'ACTIVE', deletedAt: null },
+        },
+      }),
+
+      // Daftar Tugas Aktif yang ditugaskan ke Field Officer
+      this.prisma.taskAssignment.findMany({
+        where: {
+          assigneeId: assignmentId,
+          status: { in: ['ASSIGNED', 'IN_PROGRESS', 'PENDING_ACK'] },
+          task: { deletedAt: null },
+        },
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          task: {
+            select: {
+              id: true,
+              title: true,
+              priority: true,
+              status: true,
+              dueDate: true,
+              createdAt: true,
+            },
+          },
+        },
+      }),
+
+      // Pesan WhatsApp / Laporan Masuk dari Jaring
+      this.prisma.whatsAppMessage.findMany({
+        where: {
+          jaring: {
+            caretakerAssignments: {
+              some: {
+                fieldOfficerAssignmentId: assignmentId,
+                isActive: true,
+              },
+            },
+          },
+        },
+        take: 10,
+        orderBy: { receivedAt: 'desc' },
+        select: {
+          id: true,
+          messageText: true,
+          receivedAt: true,
+          status: true,
+          jaring: {
+            select: {
+              id: true,
+              aliasName: true,
+              code: true,
+              fullName: true,
+            },
+          },
+        },
+      }),
+
+      // Laporan Informasi / Baket yang Dibuat Field Officer
+      this.prisma.baket.findMany({
+        where: {
+          createdByAssignmentId: assignmentId,
+          deletedAt: null,
+        },
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          createdAt: true,
+          category: {
+            select: { id: true, name: true },
+          },
+        },
+      }),
+
+      // Scope Wilayah Tugas Field Officer
+      this.prisma.userAreaScope.findMany({
+        where: {
+          userAssignmentId: assignmentId,
+        },
+        select: {
+          area: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              officialCode: true,
+              level: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const activeTaskCount = activeTasks.length;
+    const pendingMessageCount = recentMessages.filter(
+      (m) => m.status === 'RECEIVED' || m.status === 'PENDING',
+    ).length;
+    const draftBaketCount = recentBakets.filter(
+      (b) => b.status === 'DRAFT',
+    ).length;
+
+    return {
+      summary: {
+        totalJaring: totalJaringCount,
+        activeTasks: activeTaskCount,
+        pendingMessages: pendingMessageCount,
+        totalBaket: recentBakets.length,
+        draftBaket: draftBaketCount,
+      },
+      myTasks: activeTasks.map((ta) => ({
+        assignmentId: ta.id,
+        taskId: ta.task.id,
+        title: ta.task.title,
+        priority: ta.task.priority,
+        status: ta.status,
+        dueDate: ta.task.dueDate,
+        createdAt: ta.task.createdAt,
+      })),
+      recentIncomingMessages: recentMessages.map((msg) => ({
+        id: msg.id,
+        jaring: msg.jaring,
+        messageText: msg.messageText,
+        receivedAt: msg.receivedAt,
+        status: msg.status,
+      })),
+      recentBakets: recentBakets.map((b) => ({
+        id: b.id,
+        title: b.title,
+        status: b.status,
+        category: b.category?.name ?? null,
+        createdAt: b.createdAt,
+      })),
+      assignedAreas: assignedAreas.map((uas) => uas.area),
+    };
+  }
+
   async dashboardBriefing(
     query: DashboardQuery,
     context: AuthorizationContext,
   ) {
     this.ensureDateOrder(query.from, query.to);
-    const [overview, kpis, productStatus, alerts, emergencies] =
+    const [overview, kpis, productStatus, alerts, emergencies, fieldOfficerDashboardData] =
       await Promise.all([
         this.dashboardOverview(query, context),
         this.dashboardKpis(query, context),
         this.dashboardProductStatus(query, context),
         this.listAlerts({ ...query, limit: 5 }, context),
         this.listEmergencyIncidents({ ...query, limit: 5 }, context),
+        context.roleCode === 'FIELD_OFFICER'
+          ? this.fieldOfficerDashboard(context)
+          : Promise.resolve(null),
       ]);
 
     return {
@@ -4686,6 +4845,7 @@ export class IntelligenceProductsService {
       productStatus,
       priorityAlerts: alerts.items,
       priorityEmergencies: emergencies.items,
+      fieldOfficer: fieldOfficerDashboardData,
       availableActions: [
         'refresh',
         'open-alert',

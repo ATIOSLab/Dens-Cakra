@@ -117,11 +117,11 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const REPORT_REPLIES = {
   cancelled: [
-    'Oke, pembuatan berita dibatalkan. Silakan kirim PIN/kode Jaring untuk memulai lagi.',
-    'Siap, berita ini dibatalkan ya. Kirim PIN/kode Jaring kapan saja untuk mulai dari awal.',
-    'Tidak masalah, prosesnya sudah dibatalkan. Nanti kirim PIN/kode Jaring kalau mau lanjut lagi.',
-    'Sudah aku batalkan. Kalau berubah pikiran, kirim saja PIN/kode Jaring kamu.',
-    'Proses berita dihentikan ya. Kamu bisa mulai lagi dengan mengirim PIN/kode Jaring.',
+    'Oke, pembuatan berita dibatalkan. Silakan kirim PIN/kode untuk memulai lagi.',
+    'Siap, berita ini dibatalkan ya. Kirim PIN/kode kapan saja untuk mulai dari awal.',
+    'Tidak masalah, prosesnya sudah dibatalkan. Nanti kirim PIN/kode kalau mau lanjut lagi.',
+    'Sudah aku batalkan. Kalau berubah pikiran, kirim saja PIN/kode kamu.',
+    'Proses berita dihentikan ya. Kamu bisa mulai lagi dengan mengirim PIN/kode.',
   ],
   outsideChannelScope: [
     'Maaf, nomor kamu tidak berada dalam wilayah layanan WhatsApp ini. Coba gunakan kanal sesuai wilayah Field Officer kamu ya.',
@@ -1254,12 +1254,6 @@ export class WhatsappBotRuntimeService
       }
 
       if (text !== session.jaringCode) {
-        await this.sendHumanLikeReplies(
-          socket,
-          remoteJid,
-          [message.key],
-          [pickRandomReply(REPORT_REPLIES.invalidPin)],
-        );
         return;
       }
 

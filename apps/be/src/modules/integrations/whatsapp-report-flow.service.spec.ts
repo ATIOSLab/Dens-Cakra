@@ -31,7 +31,7 @@ describe('WhatsAppReportFlowService', () => {
     };
 
     expect(target.welcomeText()).toBe(
-      'Selamat datang, apakah ada yang ingin Anda sampaikan.\n\nSilakan masukkan PIN/kode Jaring Anda.',
+      'Selamat datang, apakah ada yang ingin Anda sampaikan.\n\nSilakan masukkan PIN/kode Anda.',
     );
     expect(target.welcomeText()).not.toContain('DENS CAKRA');
     expect(
@@ -289,25 +289,12 @@ describe('WhatsAppReportFlowService', () => {
     expect(reply.buttonTitle).toBe('Pilih Tindakan');
     expect(reply.body).not.toContain('1️⃣');
     expect(reply.sections[0]?.rows.map((row) => row.title)).toEqual([
-      'Kirim Informasi',
-      'Edit Judul',
-      'Edit Informasi',
-      'Edit Lokasi',
-      'Edit Waktu Kejadian',
-      'Edit Dokumentasi',
+      'Kirimkan Berita',
+      'Tambah Isi / Lampiran',
       'Batalkan',
     ]);
-    expect(target.reviewChoiceState('report_review_edit_title')).toBe(
-      WhatsAppReportSessionState.TITLE,
-    );
     expect(target.reviewChoiceState('report_review_edit_content')).toBe(
       WhatsAppReportSessionState.CONTENT,
-    );
-    expect(target.reviewChoiceState('report_review_edit_location')).toBe(
-      WhatsAppReportSessionState.LOCATION,
-    );
-    expect(target.reviewChoiceState('report_review_edit_time')).toBe(
-      WhatsAppReportSessionState.TIME,
     );
     expect(target.reviewChoiceState('report_review_edit_media')).toBe(
       WhatsAppReportSessionState.MEDIA_CONFIRMATION,
@@ -905,7 +892,9 @@ describe('WhatsAppReportFlowService', () => {
       }),
     );
     expect(reply).toHaveBeenCalledWith([
-      expect.stringContaining('LANGKAH 4/4'),
+      expect.objectContaining({
+        kind: 'native_flow_single_select',
+      }),
     ]);
   });
 

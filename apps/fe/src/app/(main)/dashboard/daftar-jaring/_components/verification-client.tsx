@@ -24,6 +24,7 @@ import {
   MapPin,
   Network,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldCheck,
   Table as TableIcon,
@@ -1413,14 +1414,48 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const [reportsViewMode, setReportsViewMode] = useState<"card" | "table">("card");
   const [reportsPage, setReportsPage] = useState(1);
   const [reportsLimit, setReportsLimit] = useState(10);
+  const [periodPreset, setPeriodPreset] = useState<"ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM">("ALL");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
-  const reportsTotalPages = Math.ceil(reports.length / reportsLimit) || 1;
+  const filteredReports = useMemo(() => {
+    return reports.filter((rep) => {
+      const reportDateStr = rep.submittedAt || rep.incidentAt || rep.createdAt;
+      if (reportDateStr) {
+        const itemTime = new Date(reportDateStr).getTime();
+        const now = new Date();
+
+        if (periodPreset === "TODAY") {
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+          if (itemTime < startOfDay) return false;
+        } else if (periodPreset === "LAST_7_DAYS") {
+          const sevenDaysAgo = now.getTime() - 7 * 24 * 3600 * 1000;
+          if (itemTime < sevenDaysAgo) return false;
+        } else if (periodPreset === "LAST_30_DAYS") {
+          const thirtyDaysAgo = now.getTime() - 30 * 24 * 3600 * 1000;
+          if (itemTime < thirtyDaysAgo) return false;
+        } else if (periodPreset === "CUSTOM") {
+          if (startDate && startDate.length === 10) {
+            const start = new Date(`${startDate}T00:00:00`).getTime();
+            if (itemTime < start) return false;
+          }
+          if (endDate && endDate.length === 10) {
+            const end = new Date(`${endDate}T23:59:59.999`).getTime();
+            if (itemTime > end) return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [reports, periodPreset, startDate, endDate]);
+
+  const reportsTotalPages = Math.ceil(filteredReports.length / reportsLimit) || 1;
   const paginatedReports = useMemo(() => {
     const start = (reportsPage - 1) * reportsLimit;
-    return reports.slice(start, start + reportsLimit);
-  }, [reports, reportsPage, reportsLimit]);
-  const reportsStartIndex = reports.length === 0 ? 0 : (reportsPage - 1) * reportsLimit + 1;
-  const reportsEndIndex = Math.min(reportsPage * reportsLimit, reports.length);
+    return filteredReports.slice(start, start + reportsLimit);
+  }, [filteredReports, reportsPage, reportsLimit]);
+  const reportsStartIndex = filteredReports.length === 0 ? 0 : (reportsPage - 1) * reportsLimit + 1;
+  const reportsEndIndex = Math.min(reportsPage * reportsLimit, filteredReports.length);
 
   const toggleReportExpand = (id: string) => {
     setExpandedReportIds((prev) => {
@@ -1566,9 +1601,9 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                       <UserRound className="size-8 text-muted-foreground" />
                     )}
                   </div>
-                  <span className="text-muted-foreground text-xs">
-                    {selectedPhotoUrl ? "Foto profil Jaring tersimpan." : "Belum ada foto profil."}
-                  </span>
+                  {!selectedPhotoUrl && (
+                    <span className="text-muted-foreground text-xs">Belum ada foto profil.</span>
+                  )}
                 </div>
               </DetailRow>
               <DetailRow label="Nama Sandi / Alias">{item.aliasName ?? item.code}</DetailRow>
@@ -1669,8 +1704,79 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             <div className="flex flex-wrap items-center justify-between gap-3 border-b dark:border-blue-400/12 border-slate-200 pb-3">
               <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
                 <FileText className="size-4 text-sky-600 dark:text-[#38BDF8]" />
-                Daftar Laporan Jaring ({reports.length})
+                Daftar Laporan Jaring ({filteredReports.length})
               </h3>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Periode Filter Dropdown */}
+                <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                  <span>Periode:</span>
+                  <NativeSelect
+                    value={periodPreset}
+                    onChange={(e) => {
+                      setPeriodPreset(e.target.value as any);
+                      setReportsPage(1);
+                    }}
+                    className="h-8 text-xs bg-background min-w-[150px]"
+                  >
+                    <option value="ALL">Semua Periode</option>
+                    <option value="TODAY">Hari Ini</option>
+                    <option value="LAST_7_DAYS">7 Hari Terakhir</option>
+                    <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+                    <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
+                  </NativeSelect>
+                </div>
+
+                {/* Date Range Picker (Only shown when periodPreset === "CUSTOM") */}
+                {periodPreset === "CUSTOM" && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                      <span>Dari:</span>
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => {
+                          setStartDate(e.target.value);
+                          setReportsPage(1);
+                        }}
+                        className="h-8 text-xs bg-background w-[130px]"
+                        title="Dari Tanggal"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+                      <span>s.d:</span>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => {
+                          setEndDate(e.target.value);
+                          setReportsPage(1);
+                        }}
+                        className="h-8 text-xs bg-background w-[130px]"
+                        title="Sampai Tanggal"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Reset Filter Button */}
+                {(periodPreset !== "ALL" || startDate || endDate) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPeriodPreset("ALL");
+                      setStartDate("");
+                      setEndDate("");
+                      setReportsPage(1);
+                    }}
+                    className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <RotateCcw className="size-3.5 mr-1" />
+                    Reset
+                  </Button>
+                )}
+              </div>
             </div>
 
             {reportsLoading ? (
@@ -1678,7 +1784,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                 <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-[#38BDF8]" />
                 Memuat laporan jaring...
               </div>
-            ) : reports.length > 0 ? (
+            ) : filteredReports.length > 0 ? (
               <div className="space-y-4">
                 <div className="space-y-3">
                   {paginatedReports.map((rep) => (
@@ -1692,6 +1798,39 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                     />
                   ))}
                 </div>
+
+                {reportsTotalPages > 1 && (
+                  <TablePagination
+                    page={reportsPage}
+                    limit={reportsLimit}
+                    total={filteredReports.length}
+                    onPageChange={setReportsPage}
+                    onLimitChange={(limit) => {
+                      setReportsLimit(limit);
+                      setReportsPage(1);
+                    }}
+                  />
+                )}
+              </div>
+            ) : reports.length > 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
+                <FileText className="size-8 text-muted-foreground mx-auto" />
+                <div className="font-semibold text-sm text-foreground">Tidak Ada Laporan Ditemukan</div>
+                <p className="text-xs text-muted-foreground">Tidak ada laporan yang sesuai dengan filter tanggal yang dipilih.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPeriodPreset("ALL");
+                    setStartDate("");
+                    setEndDate("");
+                    setReportsPage(1);
+                  }}
+                  className="mt-2 text-xs"
+                >
+                  <RotateCcw className="size-3.5 mr-1" />
+                  Reset Filter Tanggal
+                </Button>
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">

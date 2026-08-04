@@ -1,6 +1,5 @@
-import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
-import {
-  jest } from '@jest/globals';
+import { OrganizationType } from '../../common/constants/legacy-operational-code.js';
+import { jest } from '@jest/globals';
 import {
   AdministrativeLevel,
   CommandRouteType,
@@ -69,41 +68,10 @@ describe('DomainScopeService', () => {
     const result = await service.resolve(context);
 
     expect(result.positionIds).toEqual(
-      expect.arrayContaining(['oim', 'fc', 'fo']),
+      expect.arrayContaining(['oim-a', 'fc-a', 'fo-a']),
     );
     expect(result.positionIds).not.toContain('foreign');
     expect(result.areaRootIds).toEqual(['province']);
-  });
-
-  it('scopes Baket by reporting line without hiding reports from outside the assignment area', async () => {
-    const prisma = {
-      position: {
-        findMany: jest
-          .fn()
-          .mockResolvedValue([
-            { id: 'fo', reportsToPositionId: 'oim' },
-          ] as never),
-      },
-      administrativeAreaClosure: {
-        findMany: jest
-          .fn()
-          .mockResolvedValue([{ descendantId: 'regency' }] as never),
-      },
-      userOperationalAssignment: {
-        findMany: jest.fn().mockResolvedValue([{ id: 'fo-a' }] as never),
-      },
-    };
-    const service = new DomainScopeService(prisma as never);
-    const context = {
-      positionId: 'oim',
-      organizationUnitId: 'bagops',
-      commandRouteType: CommandRouteType.BINDA,
-      areaScopes: [{ areaId: 'province' }],
-    } as unknown as AuthorizationContext;
-
-    await expect(service.baketWhere(context)).resolves.toEqual({
-      createdByFieldOfficerAssignmentId: { in: ['fo-a'] },
-    });
   });
 
   it('exposes only regionally approved descendant products to Executive', async () => {

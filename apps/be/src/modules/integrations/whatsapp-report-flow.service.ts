@@ -212,7 +212,7 @@ export class WhatsAppReportFlowService {
       await reply([
         session
           ? this.summaryText(session)
-          : 'Belum ada berita aktif. Silakan kirim PIN/kode Jaring Anda untuk memulai.',
+          : 'Belum ada berita aktif. Silakan kirim PIN/kode Anda untuk memulai.',
       ]);
       return;
     }
@@ -245,7 +245,7 @@ export class WhatsAppReportFlowService {
           await this.startSession(channel, payload, message, reply);
         } else {
           await reply([
-            'Draft informasi aktif dari kanal lain telah dibatalkan. Silakan kirim PIN/kode Jaring Anda untuk memulai.',
+            'Draft informasi aktif dari kanal lain telah dibatalkan. Silakan kirim PIN/kode Anda untuk memulai.',
           ]);
         }
         return;
@@ -466,9 +466,6 @@ export class WhatsAppReportFlowService {
     }
 
     if (pinText !== jaring.code) {
-      await reply([
-        'PIN/kode Jaring belum sesuai. Silakan coba lagi.',
-      ]);
       return;
     }
 
@@ -593,9 +590,6 @@ export class WhatsAppReportFlowService {
     if (state === WhatsAppReportSessionState.AWAITING_CODE) {
       if (!text) return;
       if (text !== session.jaring.code) {
-        await reply([
-          'PIN/kode Jaring belum sesuai. Silakan coba lagi atau ketik BATAL.',
-        ]);
         await this.history(session, 'INVALID_CODE', payload.externalMessageId);
         return;
       }
@@ -750,36 +744,20 @@ export class WhatsAppReportFlowService {
 
           const refreshed = await this.loadSession(session.id);
           const currentSession = refreshed ?? session;
-          const hasContent = currentSession.contentParts.length > 0;
-          const hasMedia = currentSession.media.length > 0;
 
-          if (hasContent && hasMedia) {
-            const combined = currentSession.contentParts
-              .map((part) => part.content)
-              .join('\n\n');
-            const next = currentSession.returnToReview
-              ? WhatsAppReportSessionState.REVIEW
-              : WhatsAppReportSessionState.TIME;
-            await this.transition(
-              currentSession,
-              next,
-              'CONTENT_COMBINED',
-              payload.externalMessageId,
-              { content: combined, returnToReview: false },
-            );
-            const finalSession =
-              (await this.loadSession(session.id).catch(() => null)) ??
-              currentSession;
-            await reply([
-              next === WhatsAppReportSessionState.REVIEW
-                ? this.reviewReply(finalSession)
-                : this.promptForState(next),
-            ]);
-          } else {
-            await reply([
-              'Dokumentasi foto/video diterima. Silakan kirim narasi informasi.',
-            ]);
-          }
+          await reply([
+            this.singleSelectReply({
+              body: `Data tersimpan (${currentSession.contentParts.length} pesan teks, ${currentSession.media.length} lampiran).\n\nJika ada yang ingin ditambahkan silakan kirim kembali teks/foto/video.\nJika sudah selesai, pilih tombol Selesai.`,
+              sectionTitle: 'Opsi Isi & Lampiran',
+              rows: [
+                {
+                  id: REPORT_ACTION_IDS.contentFinish,
+                  title: 'Selesai',
+                  description: 'Lanjut ke pengisian waktu kejadian.',
+                },
+              ],
+            }),
+          ]);
         } catch (error) {
           this.logger.warn(
             `Content media intake failed: ${this.messageOf(error)}`,
@@ -799,21 +777,10 @@ export class WhatsAppReportFlowService {
       }
 
       if (this.isCommand(text, ['SELESAI', REPORT_ACTION_IDS.contentFinish])) {
-        if (session.contentParts.length === 0) {
-          await reply([
-            'Belum ada narasi informasi yang diterima. Silakan kirim narasi terlebih dahulu.',
-          ]);
-          return;
-        }
-        if (session.media.length === 0) {
-          await reply([
-            'Dokumentasi wajib diisi minimal satu foto atau video. Silakan kirim lampiran foto/video.',
-          ]);
-          return;
-        }
-        const combined = session.contentParts
-          .map((part) => part.content)
-          .join('\n\n');
+        const combined =
+          session.contentParts.length > 0
+            ? session.contentParts.map((part) => part.content).join('\n\n')
+            : session.title || 'Laporan Informasi';
         const next = session.returnToReview
           ? WhatsAppReportSessionState.REVIEW
           : WhatsAppReportSessionState.TIME;
@@ -869,36 +836,20 @@ export class WhatsAppReportFlowService {
 
       const refreshed = await this.loadSession(session.id);
       const currentSession = refreshed ?? session;
-      const hasContent = currentSession.contentParts.length > 0;
-      const hasMedia = currentSession.media.length > 0;
 
-      if (hasContent && hasMedia) {
-        const combined = currentSession.contentParts
-          .map((part) => part.content)
-          .join('\n\n');
-        const next = currentSession.returnToReview
-          ? WhatsAppReportSessionState.REVIEW
-          : WhatsAppReportSessionState.TIME;
-        await this.transition(
-          currentSession,
-          next,
-          'CONTENT_COMBINED',
-          payload.externalMessageId,
-          { content: combined, returnToReview: false },
-        );
-        const finalSession =
-          (await this.loadSession(session.id).catch(() => null)) ??
-          currentSession;
-        await reply([
-          next === WhatsAppReportSessionState.REVIEW
-            ? this.reviewReply(finalSession)
-            : this.promptForState(next),
-        ]);
-      } else {
-        await reply([
-          'Narasi informasi diterima. Silakan kirim foto atau video dokumentasi.',
-        ]);
-      }
+      await reply([
+        this.singleSelectReply({
+          body: `Data tersimpan (${currentSession.contentParts.length} pesan teks, ${currentSession.media.length} lampiran).\n\nJika ada yang ingin ditambahkan silakan kirim kembali teks/foto/video.\nJika sudah selesai, pilih tombol Selesai.`,
+          sectionTitle: 'Opsi Isi & Lampiran',
+          rows: [
+            {
+              id: REPORT_ACTION_IDS.contentFinish,
+              title: 'Selesai',
+              description: 'Lanjut ke pengisian waktu kejadian.',
+            },
+          ],
+        }),
+      ]);
       return;
     }
 
@@ -1338,7 +1289,7 @@ export class WhatsAppReportFlowService {
       ) {
         await this.cancelSession(session, payload.externalMessageId);
         await reply([
-          'Pembuatan berita dibatalkan. Silakan kirim PIN/kode Jaring Anda untuk memulai kembali.',
+          'Pembuatan berita dibatalkan. Silakan kirim PIN/kode Anda untuk memulai kembali.',
         ]);
       } else if (
         this.isChoice(
@@ -2543,42 +2494,22 @@ Foto/Video: ${session.media?.length ?? 0} file`;
   private reviewReply(session: LoadedSession) {
     return this.singleSelectReply({
       body: `${this.reviewSummaryText(session)}\n\nSilakan pilih tindakan.`,
-      sectionTitle: 'Tindakan Informasi',
+      sectionTitle: 'Tindakan Berita',
       rows: [
         {
           id: REPORT_ACTION_IDS.reviewSend,
-          title: 'Kirim Informasi',
-          description: 'Kirim informasi untuk proses validasi.',
-        },
-        {
-          id: REPORT_ACTION_IDS.reviewEditTitle,
-          title: 'Edit Judul',
-          description: 'Ubah judul informasi.',
+          title: 'Kirimkan Berita',
+          description: 'Kirim berita untuk proses validasi.',
         },
         {
           id: REPORT_ACTION_IDS.reviewEditContent,
-          title: 'Edit Informasi',
-          description: 'Ubah isi atau kronologi informasi.',
-        },
-        {
-          id: REPORT_ACTION_IDS.reviewEditLocation,
-          title: 'Edit Lokasi',
-          description: 'Kirim ulang Live Location.',
-        },
-        {
-          id: REPORT_ACTION_IDS.reviewEditTime,
-          title: 'Edit Waktu Kejadian',
-          description: 'Ubah tanggal dan waktu kejadian.',
-        },
-        {
-          id: REPORT_ACTION_IDS.reviewEditMedia,
-          title: 'Edit Dokumentasi',
-          description: 'Kelola foto atau video dokumentasi.',
+          title: 'Tambah Isi / Lampiran',
+          description: 'Tambah teks informasi atau foto/video.',
         },
         {
           id: REPORT_ACTION_IDS.reviewCancel,
           title: 'Batalkan',
-          description: 'Batalkan pembuatan informasi.',
+          description: 'Batalkan pembuatan berita.',
         },
       ],
     });
@@ -2813,12 +2744,12 @@ Foto/Video: ${session.media?.length ?? 0} file`;
   }
 
   private welcomeText() {
-    return 'Selamat datang, apakah ada yang ingin Anda sampaikan.\n\nSilakan masukkan PIN/kode Jaring Anda.';
+    return 'Selamat datang, apakah ada yang ingin Anda sampaikan.\n\nSilakan masukkan PIN/kode Anda.';
   }
 
   private menuText(session: LoadedSession | null) {
     if (!session) {
-      return 'MENU\n\nKirim PIN/kode Jaring untuk membuat berita baru.\nKetik BANTUAN untuk melihat petunjuk.';
+      return 'MENU\n\nKirim PIN/kode untuk membuat berita baru.\nKetik BANTUAN untuk melihat petunjuk.';
     }
     return `MENU
 
@@ -2838,7 +2769,7 @@ BANTUAN`;
   private helpText() {
     return `BANTUAN BOT
 
-Kirim PIN/kode Jaring untuk memulai berita baru.
+Kirim PIN/kode untuk memulai berita baru.
 Ikuti empat tahap dan konfirmasi setiap data.
 Pada tahap isi, Anda dapat mengirim teks, foto, atau video. Caption media akan menjadi isi berita.
 Live Location, narasi, serta minimal satu foto/video wajib tersedia.
@@ -2947,17 +2878,70 @@ EDIT LOKASI, EDIT WAKTU KEJADIAN, EDIT DOKUMENTASI, KIRIM, BATAL.`;
   }
 
   private parseIncidentAt(value: string) {
-    const match = value
-      .trim()
-      .match(/^(\d{1,2})[-/]([0-1]?\d)[-/](\d{4})\s+([0-2]?\d)[:.]([0-5]\d)$/);
-    if (!match) return null;
-    const [, dayText, monthText, yearText, hourText, minuteText] = match;
-    const day = Number(dayText);
-    const month = Number(monthText);
-    const year = Number(yearText);
-    const hour = Number(hourText);
-    const minute = Number(minuteText);
-    if (month < 1 || month > 12 || hour > 23) return null;
+    const str = value.trim();
+    if (!str) return null;
+
+    // 1. Flexible regex for DD-MM-YYYY HH:mm or DD/MM/YYYY HH:mm or DD.MM.YYYY HH.mm
+    const match = str.match(
+      /^(\d{1,2})[\s\-/\.,]+(\d{1,2})[\s\-/\.,]+(\d{2,4})(?:[\s,]+(\d{1,2})[\s:\.]+(\d{1,2})(?:[\s:\.]+(\d{1,2}))?)?$/,
+    );
+
+    let day: number,
+      month: number,
+      year: number,
+      hour: number = 0,
+      minute: number = 0;
+
+    if (match) {
+      day = Number(match[1]);
+      month = Number(match[2]);
+      let rawYear = Number(match[3]);
+      year = rawYear < 100 ? 2000 + rawYear : rawYear;
+      hour = match[4] !== undefined ? Number(match[4]) : 0;
+      minute = match[5] !== undefined ? Number(match[5]) : 0;
+    } else {
+      // 2. YYYY-MM-DD HH:mm
+      const isoMatch = str.match(
+        /^(\d{4})[\s\-/\.,]+(\d{1,2})[\s\-/\.,]+(\d{1,2})(?:[\s,]+(\d{1,2})[\s:\.]+(\d{1,2}))?$/,
+      );
+      if (isoMatch) {
+        year = Number(isoMatch[1]);
+        month = Number(isoMatch[2]);
+        day = Number(isoMatch[3]);
+        hour = isoMatch[4] !== undefined ? Number(isoMatch[4]) : 0;
+        minute = isoMatch[5] !== undefined ? Number(isoMatch[5]) : 0;
+      } else {
+        // 3. Fallback: Extract digits
+        const nums = str.match(/\d+/g);
+        if (nums && nums.length >= 3) {
+          if (nums[0].length === 4) {
+            year = Number(nums[0]);
+            month = Number(nums[1]);
+            day = Number(nums[2]);
+          } else {
+            day = Number(nums[0]);
+            month = Number(nums[1]);
+            year = Number(nums[2]);
+            if (year < 100) year += 2000;
+          }
+          hour = nums[3] ? Number(nums[3]) : 0;
+          minute = nums[4] ? Number(nums[4]) : 0;
+        } else {
+          return null;
+        }
+      }
+    }
+
+    if (
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31 ||
+      hour > 23 ||
+      minute > 59
+    ) {
+      return null;
+    }
 
     const timestamp = Date.UTC(year, month - 1, day, hour - 7, minute);
     const jakartaWallClock = new Date(timestamp + 7 * 60 * 60 * 1000);

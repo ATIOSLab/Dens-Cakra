@@ -44,9 +44,15 @@ import type {
   VerifyJaringReportDto,
 } from './jaring.dto.js';
 
-export function computeCrc32Alias(areaCode: string, sequence: number): string {
-  const input = `${areaCode.trim()}-${sequence}`;
-  return crc32(input).toString(16).toUpperCase().padStart(8, '0');
+export function computeCrc32Alias(
+  areaCode: string,
+  gender: 'MALE' | 'FEMALE' | string | null | undefined,
+  sequence: number,
+): string {
+  const areaHash = crc32(areaCode.trim()).toString(16).toUpperCase().padStart(8, '0');
+  const genderCode = gender === 'FEMALE' ? '08' : '01';
+  const sequenceStr = String(sequence).padStart(4, '0');
+  return `${areaHash}${genderCode}${sequenceStr}`;
 }
 
 type AliasAdministrativeArea = {
@@ -334,7 +340,7 @@ export class JaringService {
     return area.officialCode?.trim() || area.code.trim();
   }
 
-  private async generateAliasName(areaIds: string[]) {
+  private async generateAliasName(areaIds: string[], gender?: string | null) {
     const areas = await this.prisma.administrativeArea.findMany({
       where: {
         id: { in: areaIds },
@@ -374,7 +380,7 @@ export class JaringService {
     });
 
     let sequence = existingCount + 1;
-    let aliasName = computeCrc32Alias(areaCode, sequence);
+    let aliasName = computeCrc32Alias(areaCode, gender, sequence);
 
     let attempts = 0;
     while (
@@ -385,7 +391,7 @@ export class JaringService {
     ) {
       sequence++;
       attempts++;
-      aliasName = computeCrc32Alias(areaCode, sequence);
+      aliasName = computeCrc32Alias(areaCode, gender, sequence);
       if (attempts > 100) {
         break;
       }
@@ -1269,7 +1275,7 @@ export class JaringService {
       );
     }
     await this.ensureProfilePhoto(body.profilePhotoFileId, context);
-    const aliasName = await this.generateAliasName(areaIds);
+    const aliasName = await this.generateAliasName(areaIds, body.gender);
     const jaring = await this.prisma.jaring.create({
       data: {
         code: randomInt(100_000, 1_000_000).toString(),
