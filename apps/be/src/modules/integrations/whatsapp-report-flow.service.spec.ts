@@ -415,12 +415,12 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       {
         depth: 2,
         ancestor: {
-          name: 'Kota Administrasi Jakarta Pusat',
+          name: 'Kota Administrasi Jakarta Selatan',
           level: 'CITY',
         },
       },
     ]);
-    txReferenceCounterUpsert.mockResolvedValue({ lastValue: 123 });
+    txReferenceCounterUpsert.mockResolvedValue({ lastValue: 2 });
     const input = inbound('selesai');
     input.payload.receivedAt = '2026-08-05T05:00:00.000Z';
 
@@ -429,7 +429,7 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     expect(txMessageCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         content: 'Narasi lengkap situasi wilayah',
-        referenceNumber: 'JKT-PST-20260805-000123',
+        referenceNumber: 'JKT-SEL-20260805-000002',
       }),
     });
     expect(txMessageCreate.mock.calls[0][0].data).not.toHaveProperty('title');
@@ -441,8 +441,11 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       }),
     });
     expect(input.reply).toHaveBeenCalledWith([
-      expect.stringContaining('*INFORMASI BERHASIL DIKIRIM*'),
+      'Kode Pengiriman: *JKT-SEL-20260805-000002*\n\nTerima kasih.\nInformasi telah kami terima.',
     ]);
+    expect(input.reply.mock.calls[0][0][0]).not.toContain(
+      'MENUNGGU VERIFIKASI',
+    );
   });
 
   it('cancels immediately and confirms deletion', async () => {

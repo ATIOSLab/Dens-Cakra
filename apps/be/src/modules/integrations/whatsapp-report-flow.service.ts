@@ -586,7 +586,7 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
     });
 
     await reply([
-      `*INFORMASI BERHASIL DIKIRIM*\n\nNomor Referensi: *${submitted}*\nStatus: MENUNGGU VERIFIKASI`,
+      `Kode Pengiriman: *${submitted}*\n\nTerima kasih.\nInformasi telah kami terima.`,
     ]);
   }
 
