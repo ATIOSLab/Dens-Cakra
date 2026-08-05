@@ -21,7 +21,6 @@ export type JaringAdministrativeArea = {
 
 export type RegistrationJaring = {
   id: string;
-  code: string;
   aliasName: string | null;
   fullName: string | null;
   nationalIdNumber: string | null;

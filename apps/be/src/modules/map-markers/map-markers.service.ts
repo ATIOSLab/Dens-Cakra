@@ -142,7 +142,7 @@ export class MapMarkersService {
                   some: {
                     OR: [
                       {
-                        title: {
+                        originalContent: {
                           contains: filters.search,
                           mode: 'insensitive',
                         },
@@ -183,9 +183,8 @@ export class MapMarkersService {
           take: 1,
           select: {
             id: true,
-            title: true,
+            originalContent: true,
             versionNumber: true,
-            eventTime: true,
             eventAreaId: true,
             latitude: true,
             longitude: true,
@@ -234,9 +233,9 @@ export class MapMarkersService {
 
     const features = located
       .filter(({ version }) => {
-        const occurredAt = version.eventTime ?? version.createdAt;
+        const reportedAt = version.createdAt;
         return (
-          this.matchesDate(occurredAt, filters.from, filters.to) &&
+          this.matchesDate(reportedAt, filters.from, filters.to) &&
           (!query.urgencies?.length ||
             query.urgencies.includes(version.urgency)) &&
           this.isInViewport(
@@ -263,6 +262,10 @@ export class MapMarkersService {
         const categoryCode = baket.reportCategory?.code ?? 'uncategorized';
         const visibleAreas = this.visibleAreas(areas, query);
         const primaryArea = visibleAreas[0] ?? null;
+        const normalizedContent = (version.originalContent ?? '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const words = normalizedContent.split(' ');
         return {
           type: 'Feature',
           id: `baket:${baket.id}`,
@@ -277,12 +280,13 @@ export class MapMarkersService {
             baketId: baket.id,
             versionId: version.id,
             currentVersionNumber: baket.currentVersionNumber,
-            title: version.title,
+            displayTitle: normalizedContent
+              ? `${words.slice(0, 6).join(' ')}${words.length > 6 ? '…' : ''}`
+              : 'Baket tanpa isi',
             status: baket.status,
             urgency: version.urgency,
             category: baket.reportCategory,
-            eventTime: version.eventTime,
-            occurredAt: version.eventTime ?? version.createdAt,
+            reportedAt: version.createdAt,
             locationCapturedAt: version.locationCapturedAt,
             coordinateSource: version.coordinateSource,
             areaResolutionMethod: hasSpatialMatch

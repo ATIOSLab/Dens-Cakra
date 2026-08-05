@@ -475,7 +475,7 @@ export function ExecutivePersonnelDetailClient({
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-xs font-bold text-[var(--dc-primary)] uppercase tracking-wider">
-                              {jaring.code}
+                              {jaring.aliasName || jaring.fullName || jaring.id}
                             </span>
                             <h2 className="font-mono text-sm font-bold text-[var(--dc-text-primary)]">
                               {displayName}
@@ -556,7 +556,9 @@ export function ExecutivePersonnelDetailClient({
                         </TableCell>
                         <TableCell>
                           <div className="font-mono text-xs font-bold text-foreground">{displayName}</div>
-                          <div className="font-mono text-[10px] text-[var(--dc-primary)]">{jaring.code}</div>
+                          <div className="font-mono text-[10px] text-[var(--dc-primary)]">
+                            {jaring.aliasName || jaring.fullName || jaring.id}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <span
@@ -717,7 +719,7 @@ export function ExecutivePersonnelDetailClient({
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div>
                     <h2 className="font-mono text-xs font-bold text-[var(--dc-text-primary)]">
-                      {report.title}
+                      {report.displayTitle}
                     </h2>
                     <p className="text-[10px] font-mono text-[var(--dc-text-secondary)] mt-1.5 leading-relaxed">
                       {report.category?.name ?? "Tanpa kategori"} ·{" "}

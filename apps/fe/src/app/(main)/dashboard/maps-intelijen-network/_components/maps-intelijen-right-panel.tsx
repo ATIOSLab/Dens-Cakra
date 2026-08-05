@@ -324,7 +324,7 @@ export function MapsIntelijenRightPanel({
                       </div>
                       <div className="flex-1 min-w-0 space-y-0.5">
                         <div className="text-[11px] font-semibold text-foreground dark:text-slate-200 group-hover:text-amber-600 dark:group-hover:text-amber-400 line-clamp-1 leading-snug">
-                          {item.title}
+                          {item.displayTitle}
                         </div>
                         <div className="text-[10px] text-muted-foreground dark:text-slate-400 line-clamp-1">
                           {item.locationName}

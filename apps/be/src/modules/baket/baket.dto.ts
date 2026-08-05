@@ -54,10 +54,8 @@ export class BaketQuery {
 }
 
 export class BaketVersionPayloadDto {
-  @IsString() @MaxLength(300) title!: string;
   @IsString() originalContent!: string;
   @IsOptional() @IsString() normalizedContent?: string;
-  @IsOptional() @IsDateString() eventTime?: string;
   @IsOptional() @IsNumber() @Min(-90) @Max(90) latitude?: number;
   @IsOptional() @IsNumber() @Min(-180) @Max(180) longitude?: number;
   @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
@@ -93,10 +91,8 @@ export class UpdateBaketMetadataDto {
 }
 
 export class BaketPatchDto {
-  @IsOptional() @IsString() @MaxLength(300) title?: string;
   @IsOptional() @IsString() originalContent?: string;
   @IsOptional() @IsString() normalizedContent?: string;
-  @IsOptional() @IsDateString() eventTime?: string;
   @IsOptional() @IsNumber() @Min(-90) @Max(90) latitude?: number;
   @IsOptional() @IsNumber() @Min(-180) @Max(180) longitude?: number;
   @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;

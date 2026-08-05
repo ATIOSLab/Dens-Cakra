@@ -77,7 +77,7 @@ export function MapsIntelijenDetailModal({
             </div>
 
             <DialogTitle className="mt-2 font-extrabold font-heading text-xl leading-snug">
-              {selectedItem.title}
+              {selectedItem.displayTitle}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-xs">
               ID Sesi: {selectedItem.id} • Masuk pada {formatDateTime(selectedItem.submittedAt)}
@@ -179,20 +179,9 @@ export function MapsIntelijenDetailModal({
             </div>
 
             <div>
-              <dt className="font-medium text-muted-foreground">Waktu Kejadian</dt>
+              <dt className="font-medium text-muted-foreground">Waktu Pelaporan</dt>
               <dd className="mt-1 font-bold text-foreground">
-                {formatDateTime(
-                  selectedItem.incidentAt ||
-                    selectedItem.report.incidentAt ||
-                    selectedItem.report.baket?.latestVersion?.eventTime,
-                )}
-              </dd>
-            </div>
-
-            <div>
-              <dt className="font-medium text-muted-foreground">Waktu Dilaporkan</dt>
-              <dd className="mt-1 font-bold text-foreground">
-                {formatDateTime(selectedItem.submittedAt)}
+                {formatDateTime(selectedItem.submittedAt || selectedItem.report.reportedAt)}
               </dd>
             </div>
 

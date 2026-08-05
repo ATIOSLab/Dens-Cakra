@@ -56,8 +56,27 @@ export class BaketQueryService {
     private readonly scope: DomainScopeService,
   ) {}
 
-  baketDetail(baketId: string) {
-    return this.prisma.baket.findFirstOrThrow({
+  private versionDisplayFields(version: {
+    originalContent: string;
+    normalizedContent: string | null;
+    createdAt: Date;
+  }) {
+    const content = version.normalizedContent || version.originalContent;
+    const words = content.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    const headline = words.slice(0, 6).join(' ');
+    return {
+      displayTitle:
+        words.length === 0
+          ? 'Baket tanpa isi'
+          : words.length > 6
+            ? `${headline}…`
+            : headline,
+      reportedAt: version.createdAt,
+    };
+  }
+
+  async baketDetail(baketId: string) {
+    const baket = await this.prisma.baket.findFirstOrThrow({
       where: { id: baketId, deletedAt: null },
       include: {
         createdByFieldOfficerAssignment: {
@@ -132,10 +151,17 @@ export class BaketQueryService {
         alerts: true,
       },
     });
+    return {
+      ...baket,
+      versions: baket.versions.map((version) => ({
+        ...version,
+        ...this.versionDisplayFields(version),
+      })),
+    };
   }
 
-  baketVersionDetail(versionId: string) {
-    return this.prisma.baketVersion.findUniqueOrThrow({
+  async baketVersionDetail(versionId: string) {
+    const version = await this.prisma.baketVersion.findUniqueOrThrow({
       where: { id: versionId },
       include: {
         baket: true,
@@ -178,6 +204,7 @@ export class BaketQueryService {
         },
       },
     });
+    return { ...version, ...this.versionDisplayFields(version) };
   }
 
   verificationDetail(verificationId: string) {
@@ -281,17 +308,10 @@ export class BaketQueryService {
         ? {
             versions: {
               some: {
-                OR: [
-                  {
-                    title: { contains: query.search, mode: 'insensitive' },
-                  },
-                  {
-                    originalContent: {
-                      contains: query.search,
-                      mode: 'insensitive',
-                    },
-                  },
-                ],
+                originalContent: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
               },
             },
           }
@@ -335,7 +355,13 @@ export class BaketQueryService {
       this.prisma.baket.count({ where }),
     ]);
     return {
-      items,
+      items: items.map((item) => ({
+        ...item,
+        versions: item.versions.map((version) => ({
+          ...version,
+          ...this.versionDisplayFields(version),
+        })),
+      })),
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -345,8 +371,8 @@ export class BaketQueryService {
     };
   }
 
-  versions(baketId: string) {
-    return this.prisma.baketVersion.findMany({
+  async versions(baketId: string) {
+    const versions = await this.prisma.baketVersion.findMany({
       where: { baketId },
       orderBy: { versionNumber: 'desc' },
       include: {
@@ -355,6 +381,10 @@ export class BaketQueryService {
         coverageChecks: true,
       },
     });
+    return versions.map((version) => ({
+      ...version,
+      ...this.versionDisplayFields(version),
+    }));
   }
 
   async timeline(baketId: string) {

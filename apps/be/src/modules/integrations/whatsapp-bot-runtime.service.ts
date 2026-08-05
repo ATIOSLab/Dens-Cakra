@@ -69,7 +69,6 @@ type InboundMessagePayload = {
   externalMessageId: string;
   senderPhone: string;
   receivedAt: string;
-  title?: string;
   content?: string;
   latitude?: number;
   longitude?: number;
@@ -78,7 +77,6 @@ type InboundMessagePayload = {
 };
 
 type ReportSessionStep =
-  | 'AWAITING_CODE'
   | 'AWAITING_LIVE_LOCATION'
   | 'AWAITING_TITLE'
   | 'AWAITING_CONTENT'
@@ -96,7 +94,7 @@ type ReportSession = {
   remoteJid: string;
   senderPhone: string;
   jaringId: string;
-  jaringCode: string;
+  jaringIdentifier: string;
   jaringLabel: string;
   fieldOfficerAssignmentId: string;
   step: ReportSessionStep;
@@ -117,11 +115,11 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const REPORT_REPLIES = {
   cancelled: [
-    'Oke, pembuatan berita dibatalkan. Silakan kirim PIN/kode untuk memulai lagi.',
-    'Siap, berita ini dibatalkan ya. Kirim PIN/kode kapan saja untuk mulai dari awal.',
-    'Tidak masalah, prosesnya sudah dibatalkan. Nanti kirim PIN/kode kalau mau lanjut lagi.',
-    'Sudah aku batalkan. Kalau berubah pikiran, kirim saja PIN/kode kamu.',
-    'Proses berita dihentikan ya. Kamu bisa mulai lagi dengan mengirim PIN/kode.',
+    'Oke, pembuatan berita dibatalkan. Kirim 1945 untuk memulai lagi.',
+    'Siap, berita ini dibatalkan ya. Kirim 1945 kapan saja untuk mulai dari awal.',
+    'Tidak masalah, prosesnya sudah dibatalkan. Nanti kirim 1945 kalau mau lanjut lagi.',
+    'Sudah aku batalkan. Kalau berubah pikiran, kirim saja 1945.',
+    'Proses berita dihentikan ya. Kamu bisa mulai lagi dengan mengirim 1945.',
   ],
   outsideChannelScope: [
     'Maaf, nomor kamu tidak berada dalam wilayah layanan WhatsApp ini. Coba gunakan kanal sesuai wilayah Field Officer kamu ya.',
@@ -137,25 +135,11 @@ const REPORT_REPLIES = {
     'Field Officer penanggung jawab akun ini belum aktif. Mohon konfirmasi ke admin terlebih dahulu.',
     'Akun kamu masih perlu dihubungkan ke Field Officer aktif. Silakan hubungi admin untuk dibantu.',
   ],
-  requestPin: [
-    'Halo! Boleh kirim PIN kamu dulu biar kita lanjut?',
-    'Hai, kirim PIN autentikasinya dulu ya.',
-    'Siap bantu. Masukkan PIN kamu dulu, ya.',
-    'Sebelum mulai, kirim PIN autentikasi kamu dulu ya.',
-    'Yuk verifikasi sebentar. Kirim PIN kamu di sini.',
-  ],
-  invalidPin: [
-    'PIN-nya belum cocok. Coba cek dan kirim lagi ya. Ketik Batal kalau mau berhenti.',
-    'Sepertinya PIN itu kurang tepat. Coba kirim ulang, ya. Kalau batal, cukup ketik Batal.',
-    'PIN belum sesuai nih. Silakan coba sekali lagi atau ketik Batal untuk berhenti.',
-    'Belum berhasil masuk dengan PIN itu. Cek lagi lalu kirim ulang, ya.',
-    'PIN-nya masih salah. Coba lagi pelan-pelan, atau ketik Batal kalau tidak jadi.',
-  ],
   requestLiveLocation: [
-    'PIN benar! Sekarang kirim Live Location WhatsApp kamu ya, bukan lokasi statis.',
-    'Sip, PIN cocok. Lanjut bagikan Live Location lewat WhatsApp, ya.',
+    'Sekarang kirim Live Location WhatsApp kamu ya, bukan lokasi statis.',
+    'Lanjut bagikan Live Location lewat WhatsApp, ya.',
     'Verifikasi beres. Sekarang aku tunggu Live Location aktif kamu.',
-    'PIN aman. Boleh lanjut kirim Live Location WhatsApp sekarang?',
+    'Boleh lanjut kirim Live Location WhatsApp sekarang?',
     'Oke, sudah terverifikasi. Kirim Live Location aktif dulu ya supaya bisa lanjut.',
   ],
   rejectStaticLocation: [
@@ -800,19 +784,12 @@ export class WhatsappBotRuntimeService
     const unwrapped = this.unwrapMessage(message.message);
     const text = this.extractText(unwrapped);
     const location = this.extractLocation(unwrapped);
-    const title = text
-      ? text.split(/\r?\n/)[0]?.trim().slice(0, 120)
-      : location
-        ? 'Berita lokasi WhatsApp'
-        : undefined;
-
     return {
       externalMessageId,
       senderPhone,
       receivedAt: new Date(
         Number(message.messageTimestamp ?? Date.now()) * 1000,
       ).toISOString(),
-      title,
       content:
         text || (location ? 'Lokasi diterima dari sesi WhatsApp.' : undefined),
       latitude: location?.latitude,
@@ -1176,7 +1153,7 @@ export class WhatsappBotRuntimeService
       return;
     }
 
-    const jaring = await this.findActiveJaring(payload.senderPhone);
+    const jaring = await this.findVerifiedJaring(payload.senderPhone);
     const isInChannelScope = jaring
       ? await this.channelScope.isJaringAllowed(
           channel,
@@ -1211,16 +1188,16 @@ export class WhatsappBotRuntimeService
       return;
     }
 
-    const jaringLabel = jaring.aliasName || jaring.code;
+    const jaringLabel = jaring.aliasName || jaring.fullName || jaring.id;
     this.reportSessions.set(sessionKey, {
       channelId: channel.id,
       remoteJid,
       senderPhone: payload.senderPhone,
       jaringId: jaring.id,
-      jaringCode: jaring.code,
+      jaringIdentifier: jaring.aliasName || jaring.id,
       jaringLabel,
       fieldOfficerAssignmentId: caretakerAssignmentId,
-      step: 'AWAITING_CODE',
+      step: 'AWAITING_LIVE_LOCATION',
       startedAt: new Date(),
     });
 
@@ -1228,7 +1205,7 @@ export class WhatsappBotRuntimeService
       socket,
       remoteJid,
       [message.key],
-      [pickRandomReply(REPORT_REPLIES.requestPin)],
+      [pickRandomReply(REPORT_REPLIES.requestLiveLocation)],
     );
   }
 
@@ -1245,25 +1222,6 @@ export class WhatsappBotRuntimeService
     const unwrapped = this.unwrapMessage(message.message);
 
     if (!remoteJid) {
-      return;
-    }
-
-    if (session.step === 'AWAITING_CODE') {
-      if (!text) {
-        return;
-      }
-
-      if (text !== session.jaringCode) {
-        return;
-      }
-
-      session.step = 'AWAITING_LIVE_LOCATION';
-      await this.sendHumanLikeReplies(
-        socket,
-        remoteJid,
-        [message.key],
-        [pickRandomReply(REPORT_REPLIES.requestLiveLocation)],
-      );
       return;
     }
 
@@ -1443,7 +1401,6 @@ export class WhatsappBotRuntimeService
         senderPhone: session.senderPhone,
         jaringId: session.jaringId,
         routedToFieldOfficerAssignmentId: session.fieldOfficerAssignmentId,
-        title: session.title,
         content: session.content,
         latitude: location.latitude,
         longitude: location.longitude,
@@ -1461,10 +1418,8 @@ export class WhatsappBotRuntimeService
         rawPayload: {
           source: 'WHATSAPP_BOT_REPORT_FLOW',
           senderPhone: session.senderPhone,
-          jaringCode: session.jaringCode,
+          jaringIdentifier: session.jaringIdentifier,
           jaringLabel: session.jaringLabel,
-          eventDateTime: session.eventDateTime?.toISOString(),
-          eventDateTimeText: session.eventDateTimeText,
           photoMessageId: session.photoMessageId,
           photoCaption: session.photoCaption,
           locationMessageId: session.locationMessageId,
@@ -1509,7 +1464,7 @@ export class WhatsappBotRuntimeService
         this.unwrapMessage(message.message)?.imageMessage?.mimetype ||
         'image/jpeg';
       const extension = mimeType.includes('png') ? 'png' : 'jpg';
-      const originalName = `${session.jaringCode}-${session.photoMessageId}.${extension}`;
+      const originalName = `${session.jaringIdentifier}-${session.photoMessageId}.${extension}`;
       const storageKey = this.storage.createStorageKey(
         'whatsapp-evidence',
         originalName,
@@ -1585,11 +1540,11 @@ export class WhatsappBotRuntimeService
     return `${channelId}:${remoteJid}`;
   }
 
-  private findActiveJaring(senderPhone: string) {
+  private findVerifiedJaring(senderPhone: string) {
     return this.prisma.jaring.findFirst({
       where: {
         whatsappNumber: senderPhone,
-        status: 'ACTIVE',
+        registrationStatus: 'APPROVED',
         deletedAt: null,
       },
       include: {

@@ -239,7 +239,7 @@ export function PetaLaporanMap() {
         });
 
         marker.bindPopup(`
-          <strong>${report.title ?? "Laporan Jaring"}</strong><br />
+          <strong>${report.displayTitle ?? "Laporan Jaring"}</strong><br />
           Jaring: ${report.jaringAlias} (${report.jaringCode})<br />
           Area: ${report.areaName ?? "-"}<br />
           Kategori: ${report.categoryName ?? "-"}<br />
@@ -431,7 +431,7 @@ export function PetaLaporanMap() {
                       onClick={() => focusReport(report)}
                     >
                       <div>
-                        <p className="font-semibold text-white">{report.title || "Laporan Jaring"}</p>
+                        <p className="font-semibold text-white">{report.displayTitle || "Laporan Jaring"}</p>
                         <p className="text-xs text-white/55">
                           {report.jaringAlias} ({report.jaringCode})
                         </p>

@@ -570,14 +570,20 @@ export class ExecutivePersonnelService {
       })),
       reports: reports.map((report) => {
         const latestVersion = report.versions[0] ?? null;
+        const normalized = latestVersion?.originalContent
+          ?.replace(/\s+/g, ' ')
+          .trim();
+        const words = normalized?.split(' ') ?? [];
         return {
           id: report.id,
           status: report.status,
           currentVersionNumber: report.currentVersionNumber,
           category: report.reportCategory,
-          title: latestVersion?.title ?? 'Tanpa judul',
+          displayTitle: normalized
+            ? `${words.slice(0, 6).join(' ')}${words.length > 6 ? '…' : ''}`
+            : 'Baket tanpa isi',
           urgency: latestVersion?.urgency ?? null,
-          eventTime: latestVersion?.eventTime ?? null,
+          reportedAt: latestVersion?.createdAt ?? report.createdAt,
           eventArea: latestVersion?.eventArea ?? null,
           createdAt: report.createdAt,
           updatedAt: report.updatedAt,

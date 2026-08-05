@@ -436,7 +436,7 @@ export function SebaranJaringMapView({
                       "group relative flex items-center justify-center transition-all duration-150 cursor-pointer p-1",
                       isSelected ? "z-50 scale-125" : "z-10 hover:scale-125"
                     )}
-                    title={`${agent.aliasName || agent.code} - ${agent.fullName || "Tanpa Nama"}`}
+                    title={`${agent.aliasName || agent.fullName || agent.id} - ${agent.fullName || "Tanpa Nama"}`}
                   >
                     <div
                       className={cn(
@@ -475,7 +475,7 @@ export function SebaranJaringMapView({
                     </div>
                     <div>
                       <div className="font-mono font-bold text-sm text-cyan-400 leading-none mb-1">
-                        {selectedJaring.code}
+                        {selectedJaring.aliasName || selectedJaring.fullName || selectedJaring.id}
                       </div>
                       <div className="text-xs font-semibold text-slate-100 line-clamp-1">
                         {selectedJaring.aliasName || selectedJaring.fullName || "Tanpa Nama"}

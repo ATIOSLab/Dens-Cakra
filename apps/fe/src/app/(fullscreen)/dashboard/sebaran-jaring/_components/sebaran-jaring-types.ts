@@ -59,7 +59,6 @@ export type JaringDistributionCity = {
 
 export type JaringDistributionEntry = {
   id: string;
-  code: string;
   aliasName: string | null;
   fullName: string | null;
   gender: string | null;
@@ -158,7 +157,7 @@ export function geoJsonBounds(value: GeoJSON.GeoJSON): [[number, number], [numbe
 
 export type RecentReportItem = {
   id: string;
-  jaringCode: string;
+  jaringAlias: string;
   jaringName: string;
   title: string;
   timeAgo: string;
@@ -168,8 +167,8 @@ export type RecentReportItem = {
 
 export type OperationalMonitoringData = {
   recentReports: RecentReportItem[];
-  newlyVerifiedJaring: Array<{ id: string; code: string; name: string; verifiedAt: string }>;
-  longInactiveJaring: Array<{ id: string; code: string; name: string; inactiveDays: number }>;
+  newlyVerifiedJaring: Array<{ id: string; alias: string; name: string; verifiedAt: string }>;
+  longInactiveJaring: Array<{ id: string; alias: string; name: string; inactiveDays: number }>;
   highActivityAreas: Array<{ districtName: string; count: number }>;
   priorityAlertsCount: number;
 };
@@ -232,4 +231,3 @@ export function villageCoordinate(
     fallbackCoord[1] + radius * Math.sin(angle),
   ];
 }
-

@@ -2,7 +2,6 @@ import {
   OrganizationType,
   PositionCode,
 } from '../../common/constants/legacy-operational-code.js';
-import { randomInt } from 'node:crypto';
 import { crc32 } from 'node:zlib';
 import { Injectable } from '@nestjs/common';
 import {
@@ -10,6 +9,7 @@ import {
   BaketStatus,
   CoordinateSource,
   FileLifecycleStatus,
+  FileType,
   JaringRegistrationStatus,
   JaringStatus,
   PriorityLevel,
@@ -134,7 +134,6 @@ const jaringReportSessionSelect = {
   jaring: {
     select: {
       id: true,
-      code: true,
       aliasName: true,
       fullName: true,
       caretakerAssignments: {
@@ -160,14 +159,13 @@ const jaringReportSessionSelect = {
   },
   currentState: true,
   status: true,
-  title: true,
   content: true,
   latitude: true,
   longitude: true,
   locationAccuracyMeters: true,
   locationCapturedAt: true,
+  locationMessageId: true,
   locationType: true,
-  incidentAt: true,
   timezone: true,
   referenceNumber: true,
   startedAt: true,
@@ -182,7 +180,6 @@ const jaringReportSessionSelect = {
     select: {
       id: true,
       referenceNumber: true,
-      title: true,
       content: true,
       status: true,
       validationSummary: true,
@@ -221,11 +218,9 @@ const jaringReportSessionSelect = {
             select: {
               id: true,
               versionNumber: true,
-              title: true,
               originalContent: true,
               normalizedContent: true,
               urgency: true,
-              eventTime: true,
               fieldOfficerNote: true,
               coverageValidationStatus: true,
               eventArea: {
@@ -248,6 +243,38 @@ const jaringReportSessionSelect = {
       fileId: true,
       metadata: true,
       createdAt: true,
+      file: {
+        select: {
+          id: true,
+          originalName: true,
+          mimeType: true,
+          fileType: true,
+          lifecycleStatus: true,
+        },
+      },
+    },
+  },
+  contentParts: {
+    orderBy: { orderNo: 'asc' },
+    select: {
+      id: true,
+      externalMessageId: true,
+      content: true,
+      orderNo: true,
+      createdAt: true,
+    },
+  },
+  media: {
+    where: { deletedAt: null },
+    orderBy: { orderNo: 'asc' },
+    select: {
+      id: true,
+      externalMessageId: true,
+      mediaType: true,
+      caption: true,
+      orderNo: true,
+      createdAt: true,
+      fileId: true,
       file: {
         select: {
           id: true,
@@ -693,6 +720,13 @@ export class JaringService {
     return 'WAITING_FIELD_OFFICER_VERIFICATION';
   }
 
+  private deriveDisplayTitle(content: string | null | undefined) {
+    const words = content?.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean) ?? [];
+    if (words.length === 0) return 'Laporan sedang dibuat';
+    const headline = words.slice(0, 6).join(' ');
+    return words.length > 6 ? `${headline}…` : headline;
+  }
+
   private serializeJaringReportSession(session: JaringReportSessionRecord) {
     const submittedMessage = session.submittedMessage;
     const baket = submittedMessage?.convertedBaket ?? null;
@@ -703,6 +737,50 @@ export class JaringService {
       session.longitude === null ? null : Number(session.longitude);
     const verificationStatus = this.jaringReportVerificationStatus(session);
     const currentReportVersion = session.amendments?.at(-1)?.versionNumber ?? 1;
+    const content =
+      latestVersion?.originalContent ??
+      session.content ??
+      submittedMessage?.content ??
+      null;
+    const sessionMedia = session.media ?? [];
+    const contentParts = session.contentParts ?? [];
+    const mediaMessageIds = new Set(
+      sessionMedia.map((item) => item.externalMessageId),
+    );
+    const messages = [
+      ...contentParts
+        .filter((part) => !mediaMessageIds.has(part.externalMessageId))
+        .map((part) => ({
+          id: part.id,
+          kind: 'TEXT' as const,
+          text: part.content,
+          sentAt: part.createdAt,
+        })),
+      ...sessionMedia.map((item) => ({
+        id: item.id,
+        kind: item.mediaType === FileType.VIDEO ? ('VIDEO' as const) : ('IMAGE' as const),
+        fileId: item.fileId,
+        caption: item.caption,
+        fileName: item.file.originalName ?? 'berkas_lampiran',
+        mimeType: item.file.mimeType,
+        sentAt: item.createdAt,
+      })),
+      ...(latitude !== null && longitude !== null && session.locationCapturedAt
+        ? [
+            {
+              id: session.locationMessageId ?? `location:${session.id}`,
+              kind: 'LIVE_LOCATION' as const,
+              latitude,
+              longitude,
+              accuracyMeters:
+                session.locationAccuracyMeters === null
+                  ? null
+                  : Number(session.locationAccuracyMeters),
+              sentAt: session.locationCapturedAt,
+            },
+          ]
+        : []),
+    ].sort((left, right) => left.sentAt.getTime() - right.sentAt.getTime());
 
     const activeCaretaker = session.jaring?.caretakerAssignments?.[0]?.fieldOfficerAssignment?.userProfile;
     const gaswilName =
@@ -717,9 +795,7 @@ export class JaringService {
       jaringAlias:
         session.jaring?.aliasName ??
         session.jaring?.fullName ??
-        session.jaring?.code ??
         null,
-      jaringCode: session.jaring?.code ?? null,
       gaswilName,
       referenceNumber:
         session.referenceNumber ?? submittedMessage?.referenceNumber ?? null,
@@ -755,18 +831,11 @@ export class JaringService {
         'VERIFIED_BY_FIELD_OFFICER',
         'METADATA_RECORDED',
       ].includes(verificationStatus),
-      title:
-        latestVersion?.title ??
-        session.title ??
-        submittedMessage?.title ??
-        null,
-      content:
-        latestVersion?.originalContent ??
-        session.content ??
-        submittedMessage?.content ??
-        null,
+      displayTitle: this.deriveDisplayTitle(content),
+      content,
       normalizedContent: latestVersion?.normalizedContent ?? null,
-      incidentAt: latestVersion?.eventTime ?? session.incidentAt,
+      reportedAt: session.submittedAt ?? session.startedAt,
+      messages,
       startedAt: session.startedAt,
       lastActivityAt: session.lastActivityAt,
       expiresAt: session.expiresAt,
@@ -799,8 +868,8 @@ export class JaringService {
       resolvedArea:
         submittedMessage?.resolvedArea ?? latestVersion?.eventArea ?? null,
       media:
-        submittedMessage?.media?.map((item) => ({
-          id: item.fileId,
+        sessionMedia.map((item) => ({
+          id: item.id,
           fileId: item.fileId,
           caption: item.caption ?? null,
           fileName: item.file?.originalName ?? 'berkas_lampiran',
@@ -852,7 +921,6 @@ export class JaringService {
   }
 
   private validateReportMessageForFieldOfficer(message: {
-    title: string | null;
     content: string | null;
     senderPhone: string;
     jaringId: string | null;
@@ -875,7 +943,6 @@ export class JaringService {
         rawPayload.photoMessageId.length > 0);
 
     return [
-      ...(!message.title ? [['MISSING_TITLE', 'Judul wajib tersedia']] : []),
       ...(!message.content ? [['MISSING_CONTENT', 'Isi wajib tersedia']] : []),
       ...(!message.senderPhone
         ? [['MISSING_SOURCE', 'Identitas pengirim wajib tersedia']]
@@ -906,11 +973,9 @@ export class JaringService {
   private reportFieldSnapshot(input: {
     categoryId?: string | null;
     urgency?: PriorityLevel | null;
-    title?: string | null;
     content?: string | null;
     normalizedContent?: string | null;
     fieldOfficerNote?: string | null;
-    eventTime?: Date | null;
     taskAssignmentId?: string | null;
     baketId?: string | null;
     baketVersionId?: string | null;
@@ -920,11 +985,9 @@ export class JaringService {
     return {
       categoryId: input.categoryId ?? null,
       urgency: input.urgency ?? null,
-      title: input.title ?? null,
       content: input.content ?? null,
       normalizedContent: input.normalizedContent ?? null,
       fieldOfficerNote: input.fieldOfficerNote ?? null,
-      eventTime: input.eventTime?.toISOString() ?? null,
       taskAssignmentId: input.taskAssignmentId ?? null,
       baketId: input.baketId ?? null,
       baketVersionId: input.baketVersionId ?? null,
@@ -1075,8 +1138,8 @@ export class JaringService {
         ...(query.search
           ? {
               OR: [
-                { code: { contains: query.search, mode: 'insensitive' } },
                 { aliasName: { contains: query.search, mode: 'insensitive' } },
+                { fullName: { contains: query.search, mode: 'insensitive' } },
                 { whatsappNumber: { contains: query.search } },
                 { address: { contains: query.search, mode: 'insensitive' } },
               ],
@@ -1119,7 +1182,6 @@ export class JaringService {
           orderBy: { receivedAt: 'desc' },
           select: {
             id: true,
-            title: true,
             content: true,
             latitude: true,
             longitude: true,
@@ -1128,14 +1190,14 @@ export class JaringService {
         },
         reportSessions: {
           take: 1,
-          orderBy: { submittedAt: 'desc' },
+          orderBy: { lastActivityAt: 'desc' },
           select: {
             id: true,
-            title: true,
             content: true,
             latitude: true,
             longitude: true,
             submittedAt: true,
+            startedAt: true,
             status: true,
           },
         },
@@ -1278,7 +1340,6 @@ export class JaringService {
     const aliasName = await this.generateAliasName(areaIds, body.gender);
     const jaring = await this.prisma.jaring.create({
       data: {
-        code: randomInt(100_000, 1_000_000).toString(),
         aliasName,
         whatsappNumber,
         fullName: body.fullName.trim(),
@@ -1755,19 +1816,6 @@ export class JaringService {
     );
   }
 
-  async regeneratePin(id: string, context: AuthorizationContext) {
-    await this.domainScope.assertJaring(context, id);
-    const code = randomInt(100_000, 1_000_000).toString();
-
-    await this.prisma.jaring.update({
-      where: { id },
-      data: { code },
-    });
-    await this.audit(context, 'JARING.PIN_REGENERATE', id);
-
-    return this.detail(id);
-  }
-
   async caretakers(id: string, context: AuthorizationContext) {
     await this.domainScope.assertJaring(context, id);
     return this.prisma.jaringCaretakerAssignment.findMany({
@@ -2012,10 +2060,21 @@ export class JaringService {
       ...(query.status ? { status: query.status } : {}),
       ...(fromDate || toDate
         ? {
-            submittedAt: {
-              ...(fromDate ? { gte: fromDate } : {}),
-              ...(toDate ? { lte: toDate } : {}),
-            },
+            OR: [
+              {
+                submittedAt: {
+                  ...(fromDate ? { gte: fromDate } : {}),
+                  ...(toDate ? { lte: toDate } : {}),
+                },
+              },
+              {
+                submittedAt: null,
+                startedAt: {
+                  ...(fromDate ? { gte: fromDate } : {}),
+                  ...(toDate ? { lte: toDate } : {}),
+                },
+              },
+            ],
           }
         : {}),
     };
@@ -2039,10 +2098,21 @@ export class JaringService {
           jaring: baseJaringWhere,
           ...(fromDate || toDate
             ? {
-                submittedAt: {
-                  ...(fromDate ? { gte: fromDate } : {}),
-                  ...(toDate ? { lte: toDate } : {}),
-                },
+                OR: [
+                  {
+                    submittedAt: {
+                      ...(fromDate ? { gte: fromDate } : {}),
+                      ...(toDate ? { lte: toDate } : {}),
+                    },
+                  },
+                  {
+                    submittedAt: null,
+                    startedAt: {
+                      ...(fromDate ? { gte: fromDate } : {}),
+                      ...(toDate ? { lte: toDate } : {}),
+                    },
+                  },
+                ],
               }
             : {}),
         },
@@ -2161,6 +2231,14 @@ export class JaringService {
 
     await this.domainScope.assertJaring(context, session.jaringId);
 
+    if (!session.submittedMessage) {
+      throw new ApiException(
+        'JARING_REPORT_NOT_SUBMITTED',
+        'Laporan Jaring yang masih disusun belum dapat ditandai sudah dibaca.',
+        422,
+      );
+    }
+
     if (!session.readAt) {
       const now = new Date();
       await this.prisma.whatsAppReportSession.update({
@@ -2214,7 +2292,6 @@ export class JaringService {
     const issues = this.validateReportMessageForFieldOfficer(message);
     const before = this.reportFieldSnapshot({
       categoryId: message.categoryId,
-      title: message.title,
       content: message.content,
       messageStatus: message.status,
       validationSummary: message.validationSummary,
@@ -2399,12 +2476,6 @@ export class JaringService {
       }
     }
 
-    const nextTitle =
-      body.title?.trim() ||
-      latestVersion?.title ||
-      message.title ||
-      session.title ||
-      'Laporan Jaring';
     const nextContent =
       body.content !== undefined
         ? body.content.trim()
@@ -2424,22 +2495,15 @@ export class JaringService {
       body.fieldOfficerNote !== undefined
         ? body.fieldOfficerNote.trim()
         : (latestVersion?.fieldOfficerNote ?? null);
-    const nextEventTime = body.eventTime
-      ? new Date(body.eventTime)
-      : (latestVersion?.eventTime ??
-        message.locationCapturedAt ??
-        message.receivedAt);
     const nextTaskAssignmentId =
       body.taskAssignmentId ?? baket?.taskAssignmentId ?? null;
 
     const before = this.reportFieldSnapshot({
       categoryId: message.categoryId ?? baket?.reportCategoryId ?? null,
       urgency: latestVersion?.urgency ?? null,
-      title: latestVersion?.title ?? message.title,
       content: latestVersion?.originalContent ?? message.content,
       normalizedContent: latestVersion?.normalizedContent,
       fieldOfficerNote: latestVersion?.fieldOfficerNote,
-      eventTime: latestVersion?.eventTime ?? message.locationCapturedAt,
       taskAssignmentId: baket?.taskAssignmentId ?? null,
       baketId: baket?.id ?? null,
       baketVersionId: latestVersion?.id ?? null,
@@ -2449,11 +2513,9 @@ export class JaringService {
     const after = this.reportFieldSnapshot({
       categoryId: category.id,
       urgency,
-      title: nextTitle,
       content: nextContent,
       normalizedContent: nextNormalizedContent,
       fieldOfficerNote: nextFieldOfficerNote,
-      eventTime: nextEventTime,
       taskAssignmentId: nextTaskAssignmentId,
       baketId: baket?.id ?? null,
       baketVersionId: latestVersion?.id ?? null,
@@ -2463,11 +2525,9 @@ export class JaringService {
     const versionChanged =
       !latestVersion ||
       before.urgency !== after.urgency ||
-      before.title !== after.title ||
       before.content !== after.content ||
       before.normalizedContent !== after.normalizedContent ||
-      before.fieldOfficerNote !== after.fieldOfficerNote ||
-      before.eventTime !== after.eventTime;
+      before.fieldOfficerNote !== after.fieldOfficerNote;
 
     await this.prisma.$transaction(async (tx) => {
       const usableFileStatuses: FileLifecycleStatus[] = [
@@ -2478,10 +2538,8 @@ export class JaringService {
         usableFileStatuses.includes(item.file.lifecycleStatus),
       );
       const versionPayload = {
-        title: nextTitle,
         originalContent: nextContent,
         normalizedContent: nextNormalizedContent || nextContent,
-        eventTime: nextEventTime,
         eventAreaId: message.resolvedAreaId,
         latitude: message.latitude,
         longitude: message.longitude,

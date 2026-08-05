@@ -618,7 +618,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
   const visibleJaring = useMemo(() => {
     return jaring.filter((item) => {
       const cluster = record(item.cluster);
-      return [item.code, item.aliasName, cluster.name]
+      return [item.aliasName, item.fullName, item.id, cluster.name]
         .map((value) => text(value, "").toLocaleLowerCase("id-ID"))
         .some((value) => value.includes(normalizedSearch));
     });
@@ -1199,7 +1199,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                               </Badge>
                             </div>
                             <div className="text-[9px] font-mono truncate opacity-70">
-                              {text(item.code)} / {text(cluster.name)}
+                              {text(item.aliasName || item.fullName || item.id)} / {text(cluster.name)}
                             </div>
                           </button>
                         );
@@ -1287,7 +1287,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-2">
                                 <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
-                                  {text(item.code)}
+                                  {text(item.aliasName || item.fullName || item.id)}
                                 </span>
                                 <Badge
                                   variant={item.status === "ACTIVE" ? "default" : "secondary"}

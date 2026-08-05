@@ -411,7 +411,7 @@ function MapInspector({
         <CardContent className="max-h-72 space-y-2 overflow-y-auto">
           {reports.slice(0, 12).map((feature) => (
             <div key={String(feature.id)} className="border-b pb-2 text-sm last:border-0">
-              <p className="font-medium">{text(feature.properties.title)}</p>
+              <p className="font-medium">{text(feature.properties.displayTitle)}</p>
               <p className="mt-1 text-muted-foreground text-xs">
                 {text(feature.properties.areaName)} / {text(feature.properties.urgency)}
               </p>

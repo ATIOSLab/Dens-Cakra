@@ -214,7 +214,7 @@ export function BaketOfficerClient() {
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const ref = (item.referenceNumber || "").toLowerCase();
-        const t = (item.title || "").toLowerCase();
+        const t = (item.displayTitle || "").toLowerCase();
         const c = (item.content || "").toLowerCase();
         const jAlias = (item.jaringAlias || "").toLowerCase();
         const jCode = (item.jaringCode || "").toLowerCase();
@@ -586,7 +586,7 @@ export function BaketOfficerClient() {
                       <TableCell className="max-w-xs">
                         <div className="space-y-0.5">
                           <p className="font-bold text-xs text-foreground line-clamp-1">
-                            {item.title || "Baket Intelijen"}
+                            {item.displayTitle || "Baket Intelijen"}
                           </p>
                           {item.content ? (
                             <p className="text-[11px] text-muted-foreground line-clamp-1 font-normal">

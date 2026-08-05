@@ -149,7 +149,6 @@ export function formatRelativeTime(dateStr: string) {
 
 export interface RawJaringItem {
   id: string;
-  code: string;
   aliasName?: string | null;
   fullName?: string | null;
   registrationStatus?: string | null;
@@ -242,14 +241,13 @@ export type MapIntelItem = {
   report: JaringReportSessionDetail;
   isBaket: boolean;
   coordinates: [number, number]; // [lng, lat]
-  title: string;
+  displayTitle: string;
   content: string;
   urgency: PriorityLevel | "NORMAL";
   verificationStatus: VerificationStatus;
   jaringName: string;
   jaringCode: string;
   locationName: string;
-  incidentAt?: string | null;
   submittedAt: string;
   regencyId?: string | null;
   districtId?: string | null;
@@ -259,4 +257,3 @@ export type MapIntelItem = {
 };
 
 export const SAMPLE_MOCK_REPORTS: JaringReportSessionDetail[] = [];
-

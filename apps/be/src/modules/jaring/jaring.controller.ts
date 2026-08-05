@@ -306,21 +306,6 @@ export class JaringController {
     return apiResult(await this.jaringService.softDelete(id, body, context));
   }
 
-  @Post(':jaringId/regenerate-pin')
-  @ApiContract({
-    operationId: 'apiJar014',
-    contractId: 'API-JAR-014',
-    summary: 'Buat ulang PIN Jaring',
-    roles: ['field_officer'],
-    idempotent: true,
-  })
-  async regeneratePin(
-    @Param('jaringId', ParseUUIDPipe) id: string,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.jaringService.regeneratePin(id, context));
-  }
-
   @Get(':jaringId/caretakers')
   @ApiContract({
     operationId: 'apiJar008',

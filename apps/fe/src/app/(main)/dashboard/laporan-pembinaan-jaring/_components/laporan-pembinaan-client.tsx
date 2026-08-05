@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Calendar,
   ChevronRight,
@@ -30,8 +31,6 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
-
-
 import { JaringSelectPopover } from "@/components/ui/jaring-select-popover";
 import type { CoachingReportItem, PeriodeFilterOption } from "./laporan-pembinaan-types";
 import type { FieldOfficerJaring, FieldOfficerWorkspace } from "@/server/field-ops/types";
@@ -64,17 +63,12 @@ function formatDateOnly(value?: string | null) {
   }
 }
 
-export function LaporanPembinaanClient({
-  openCreateDialogOnMount = false,
-}: {
-  openCreateDialogOnMount?: boolean;
-} = {}) {
+export function LaporanPembinaanClient() {
   const [reports, setReports] = useState<CoachingReportItem[]>([]);
   const [workspaceJarings, setWorkspaceJarings] = useState<FieldOfficerJaring[]>([]);
   const [villageAreas, setVillageAreas] = useState<Array<{ areaId: string; name: string }>>([]);
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
   const [loadingReports, setLoadingReports] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(openCreateDialogOnMount);
 
   // View mode state
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
@@ -133,9 +127,9 @@ export function LaporanPembinaanClient({
           const items = Array.isArray(res) ? res : res?.items || [];
           return items.map((report) => ({
             ...report,
-            jaringCode: jaring.code,
-            jaringAlias: jaring.aliasName || jaring.code,
-            jaringName: jaring.fullName || jaring.aliasName || jaring.code,
+            jaringCode: jaring.aliasName || jaring.id,
+            jaringAlias: jaring.aliasName || jaring.fullName || jaring.id,
+            jaringName: jaring.fullName || jaring.aliasName || jaring.id,
             villageName: jaring.areaNames && jaring.areaNames.length > 0 ? jaring.areaNames.join(", ") : "-",
           }));
         } catch {
@@ -559,7 +553,6 @@ export function LaporanPembinaanClient({
           />
         </div>
       )}
-
 
     </div>
   );

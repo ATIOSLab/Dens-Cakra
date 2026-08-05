@@ -72,8 +72,7 @@ function toJaringGeoJson(data: FieldIntelligenceDashboard): GeoJSON.FeatureColle
       id: item.id,
       properties: {
         id: item.id,
-        code: item.code,
-        label: item.aliasName ?? item.fullName ?? item.code,
+        label: item.aliasName ?? item.fullName ?? item.id,
         registrationStatus: item.registrationStatus,
         activityLevel: item.activityLevel,
         periodReports: item.periodReports,
@@ -94,7 +93,7 @@ function toBaketGeoJson(data: FieldIntelligenceDashboard): GeoJSON.FeatureCollec
       id: item.id,
       properties: {
         id: item.id,
-        title: item.title ?? "Laporan",
+        title: item.displayTitle ?? "Laporan",
         status: item.status,
         urgency: item.urgency,
       },

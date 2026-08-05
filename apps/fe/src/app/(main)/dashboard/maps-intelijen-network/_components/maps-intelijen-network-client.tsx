@@ -40,6 +40,7 @@ export function MapsIntelijenNetworkClient() {
   const [areaScopes, setAreaScopes] = useState<AdministrativeAreaScope[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const dataRequestInFlight = useRef(false);
 
   // OSIRIS Zulu Live Clock
   const [zuluTime, setZuluTime] = useState<string>("");
@@ -97,7 +98,7 @@ export function MapsIntelijenNetworkClient() {
   const matchingJaring = useMemo(() => {
     if (!selectedItem) return null;
     return jaringList.find(
-      (j) => j.id === selectedItem.report.jaringId || j.code === selectedItem.jaringCode,
+      (j) => j.id === selectedItem.report.jaringId,
     );
   }, [selectedItem, jaringList]);
 
@@ -170,8 +171,10 @@ export function MapsIntelijenNetworkClient() {
   }
 
   // Fetch Data
-  async function fetchAllData() {
-    setLoading(true);
+  async function fetchAllData(silent = false) {
+    if (dataRequestInFlight.current) return;
+    dataRequestInFlight.current = true;
+    if (!silent) setLoading(true);
     setLoadError(null);
     try {
       const [reportsRes, jaringRes, categoryRes, areaScopesRes] = await Promise.allSettled([
@@ -217,13 +220,18 @@ export function MapsIntelijenNetworkClient() {
       setLoadError("Terjadi kendala memuat data server.");
       setReports([]);
     } finally {
-      setLoading(false);
+      dataRequestInFlight.current = false;
+      if (!silent) setLoading(false);
     }
   }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: initial mount fetch
   useEffect(() => {
     void fetchAllData();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void fetchAllData(true);
+    }, 5_000);
+    return () => window.clearInterval(interval);
   }, []);
 
   // Compute unified MapIntelItem list
@@ -232,11 +240,11 @@ export function MapsIntelijenNetworkClient() {
       const isBaket = r.verificationStatus === "METADATA_RECORDED";
       const coords = resolveCoordinates(r);
       const urgency: PriorityLevel = (r.urgency as PriorityLevel) || "NORMAL";
-      const jaringName = r.jaringAlias || r.jaringCode || "Jaring Sembunyi";
-      const jaringCode = r.jaringCode || "-";
+      const jaringName = r.jaringAlias || r.jaringId || "Jaring Sembunyi";
+      const jaringCode = r.jaringAlias || r.jaringId || "-";
       const locationName = formatFullAreaName(r.resolvedArea);
-      const submittedAt = r.submittedAt || r.createdAt;
-      const title = r.title || r.content?.slice(0, 60) || (isBaket ? "Baket" : "Laporan Jaring");
+      const submittedAt = r.reportedAt || r.submittedAt || r.createdAt;
+      const displayTitle = r.displayTitle || r.content?.slice(0, 60) || (isBaket ? "Baket" : "Laporan Jaring");
       const content = r.content || r.normalizedContent || "-";
       const hasBeenRead = isReadByFieldOfficer(r);
 
@@ -245,14 +253,13 @@ export function MapsIntelijenNetworkClient() {
         report: r,
         isBaket,
         coordinates: coords,
-        title,
+        displayTitle,
         content,
         urgency,
         verificationStatus: r.verificationStatus,
         jaringName,
         jaringCode,
         locationName,
-        incidentAt: r.incidentAt || r.baket?.latestVersion?.eventTime || null,
         submittedAt,
         categoryId: r.reportCategory?.id ?? null,
         hasBeenRead,
@@ -264,8 +271,8 @@ export function MapsIntelijenNetworkClient() {
   const popoverJaringOptions: JaringOption[] = useMemo(() => {
     return jaringList.map((j) => ({
       id: j.id,
-      code: j.code,
-      aliasName: j.aliasName || j.code,
+      code: j.aliasName || j.fullName || j.id,
+      aliasName: j.aliasName || j.fullName || j.id,
       fullName: j.fullName,
       registrationStatus: j.registrationStatus,
     }));
@@ -338,7 +345,7 @@ export function MapsIntelijenNetworkClient() {
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const refNum = (item.report.referenceNumber || "").toLowerCase();
-        const matchTitle = item.title.toLowerCase().includes(q);
+        const matchTitle = item.displayTitle.toLowerCase().includes(q);
         const matchContent = item.content.toLowerCase().includes(q);
         const matchJaring = item.jaringName.toLowerCase().includes(q) || item.jaringCode.toLowerCase().includes(q);
         const matchLocation = item.locationName.toLowerCase().includes(q);

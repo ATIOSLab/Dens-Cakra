@@ -457,7 +457,7 @@ export function MapsIntelijenTableView({
 
                     <div>
                       <h3 className="line-clamp-2 font-bold font-heading text-foreground text-sm leading-snug">
-                        {item.title}
+                        {item.displayTitle}
                       </h3>
                       <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">{item.content}</p>
                     </div>
@@ -573,7 +573,7 @@ export function MapsIntelijenTableView({
                       </TableCell>
 
                       <TableCell className="max-w-[280px]">
-                        <p className="line-clamp-1 font-semibold text-foreground text-xs">{item.title}</p>
+                        <p className="line-clamp-1 font-semibold text-foreground text-xs">{item.displayTitle}</p>
                         <p className="line-clamp-1 text-[11px] text-muted-foreground">{item.content}</p>
                       </TableCell>
 

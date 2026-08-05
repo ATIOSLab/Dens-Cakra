@@ -65,7 +65,6 @@ function formatDateTime(value?: string | null) {
 
 interface RawJaringItem {
   id: string;
-  code: string;
   aliasName?: string | null;
   fullName?: string | null;
   registrationStatus?: string | null;
@@ -398,8 +397,8 @@ export function BaketCoordinatorClient() {
   const popoverJaringOptions: JaringOption[] = useMemo(() => {
     return jaringList.map((j) => ({
       id: j.id,
-      code: j.code,
-      aliasName: j.aliasName || j.code,
+      code: j.aliasName || j.fullName || j.id,
+      aliasName: j.aliasName || j.fullName || j.id,
       fullName: j.fullName,
       registrationStatus: j.registrationStatus,
     }));
@@ -542,7 +541,7 @@ export function BaketCoordinatorClient() {
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const ref = (item.referenceNumber || "").toLowerCase();
-        const title = (item.title || "").toLowerCase();
+        const title = (item.displayTitle || "").toLowerCase();
         const content = (item.content || "").toLowerCase();
         const jAlias = (item.jaringAlias || "").toLowerCase();
         const jCode = (item.jaringCode || "").toLowerCase();
@@ -622,10 +621,10 @@ export function BaketCoordinatorClient() {
     const rows = filteredReports.map((r) => [
       `"${r.referenceNumber || r.id}"`,
       `"${r.jaringAlias || r.jaringCode || "-"}"`,
-      `"${(r.title || r.content || "-").replace(/"/g, '""')}"`,
+      `"${(r.displayTitle || r.content || "-").replace(/"/g, '""')}"`,
       `"Baket Dibuat"`,
       `"${r.resolvedArea?.name || "-"}"`,
-      `"${formatDateTime(r.incidentAt)}"`,
+      `"${formatDateTime(r.reportedAt)}"`,
       `"${formatDateTime(r.submittedAt || r.createdAt)}"`,
     ]);
 
@@ -1090,7 +1089,7 @@ export function BaketCoordinatorClient() {
                 item.jaringAlias ||
                 item.jaringCode ||
                 `# ${item.id.slice(0, 8)}`;
-              const title = item.title || item.content || "Baket Intelijen";
+              const title = item.displayTitle || item.content || "Baket Intelijen";
               const mediaCount = item.media?.length || item.counts?.media || 0;
               const partsCount = item.counts?.contentParts || 1;
               const locationName = formatFullAreaName(item.resolvedArea);
@@ -1224,7 +1223,7 @@ export function BaketCoordinatorClient() {
 
                       <TableCell className="max-w-[320px]">
                         <p className="font-semibold text-xs text-foreground line-clamp-1">
-                          {item.title || item.content || "Baket Intelijen"}
+                          {item.displayTitle || item.content || "Baket Intelijen"}
                         </p>
                         <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{item.content || "-"}</p>
                       </TableCell>

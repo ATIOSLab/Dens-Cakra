@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -59,6 +59,7 @@ import {
   type ReportHistoryResponse,
   type VerificationStatus,
 } from "./laporan-jaring-types";
+import { WhatsAppReportThread } from "./whatsapp-report-thread";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
@@ -77,6 +78,9 @@ function formatDateTime(value?: string | null) {
 
 function verificationStatusLabel(status: VerificationStatus) {
   switch (status) {
+    case "IN_PROGRESS_BY_JARING":
+    case "NOT_SUBMITTED":
+      return "Sedang disusun Jaring";
     case "WAITING_FIELD_OFFICER_VERIFICATION":
       return "Belum Terverifikasi";
     case "NEEDS_FIELD_OFFICER_REVIEW":
@@ -136,12 +140,11 @@ export function LaporanJaringDetailClient({
   // Step 2: Metadata form state
   const [categoryId, setCategoryId] = useState("");
   const [urgency, setUrgency] = useState<PriorityLevel>("NORMAL");
-  const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [normalizedContent, setNormalizedContent] = useState("");
   const [fieldOfficerNote, setFieldOfficerNote] = useState("");
-  const [eventTime, setEventTime] = useState("");
   const [isSavingMetadata, setIsSavingMetadata] = useState(false);
+  const detailRequestInFlight = useRef(false);
 
   // Confirmation modal states
   const [confirmVerifyOpen, setConfirmVerifyOpen] = useState(false);
@@ -170,51 +173,46 @@ export function LaporanJaringDetailClient({
   }, []);
 
   // Fetch report detail
-  async function fetchDetail() {
-    setLoadingDetail(true);
+  const fetchDetail = useCallback(async (silent = false) => {
+    if (detailRequestInFlight.current) return;
+    detailRequestInFlight.current = true;
+    if (!silent) setLoadingDetail(true);
     try {
       const detail = await apiBrowserFetch<JaringReportSessionDetail>(`/jaring/reports/${laporanId}`);
       setActiveReport(detail);
-      // Populate Step 2 form fields
-      setCategoryId(detail.reportCategory?.id || "");
-      setUrgency(detail.urgency || "NORMAL");
-      setTitle(detail.title || detail.submittedMessage?.referenceNumber || "Laporan Jaring");
-      setContent(detail.content || "");
-      setNormalizedContent(detail.normalizedContent || "");
-      setFieldOfficerNote(detail.fieldOfficerNote || "");
-      if (detail.incidentAt) {
+      if (!silent) {
+        setCategoryId(detail.reportCategory?.id || "");
+        setUrgency(detail.urgency || "NORMAL");
+        setContent(detail.content || "");
+        setNormalizedContent(detail.normalizedContent || "");
+        setFieldOfficerNote(detail.fieldOfficerNote || "");
+      }
+      if (!silent && !readOnly && detail.status === "SUBMITTED") {
+        void apiBrowserMutation("PATCH", `/jaring/reports/${laporanId}/read`).catch(() => undefined);
         try {
-          const d = new Date(detail.incidentAt);
-          setEventTime(d.toISOString().slice(0, 16));
-        } catch {
-          setEventTime("");
-        }
-      } else {
-        setEventTime("");
+          const stored: string[] = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
+          if (!stored.includes(laporanId)) {
+            stored.push(laporanId);
+            localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
+          }
+        } catch {}
       }
     } catch (err) {
       console.error("Gagal memuat detail laporan:", err);
-      toast.error("Detail laporan tidak ditemukan.");
+      if (!silent) toast.error("Detail laporan tidak ditemukan.");
     } finally {
-      setLoadingDetail(false);
+      detailRequestInFlight.current = false;
+      if (!silent) setLoadingDetail(false);
     }
-  }
+  }, [laporanId, readOnly]);
 
   useEffect(() => {
     void fetchDetail();
-    if (laporanId && !readOnly) {
-      void apiBrowserMutation("PATCH", `/jaring/reports/${laporanId}/read`).catch(() => undefined);
-    }
-    if (typeof window !== "undefined" && laporanId && !readOnly) {
-      try {
-        const stored: string[] = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
-        if (!stored.includes(laporanId)) {
-          stored.push(laporanId);
-          localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
-        }
-      } catch {}
-    }
-  }, [laporanId, readOnly]);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void fetchDetail(true);
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, [fetchDetail]);
 
   // Handler: Verify Report (Step 1)
   async function handleVerifyReport() {
@@ -272,11 +270,9 @@ export function LaporanJaringDetailClient({
         {
           categoryId,
           urgency,
-          title: title.trim() || undefined,
           content: content.trim() || undefined,
           normalizedContent: normalizedContent.trim() || undefined,
           fieldOfficerNote: fieldOfficerNote.trim() || undefined,
-          eventTime: eventTime ? new Date(eventTime).toISOString() : undefined,
         },
       );
       toast.success("Informasi lanjutan berhasil disimpan dan Baket diterbitkan.");
@@ -396,12 +392,22 @@ export function LaporanJaringDetailClient({
                 ) : null}
               </div>
               <h1 className="font-bold text-2xl text-foreground mt-0.5">
-                {activeReport?.title || "Detail Laporan Jaring"}
+                {activeReport?.displayTitle || "Detail Laporan Jaring"}
               </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void fetchDetail()}
+              disabled={loadingDetail}
+              className="h-9 gap-1.5 rounded-lg text-xs"
+            >
+              <RefreshCw className={cn("size-4", loadingDetail && "animate-spin")} />
+              Refresh
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -477,26 +483,19 @@ export function LaporanJaringDetailClient({
                       Waktu Dikirim:
                     </span>
                     <p className="font-mono text-sm text-foreground">
-                      {formatDateTime(activeReport.submittedAt || activeReport.createdAt)}
-                    </p>
-                  </div>
-
-                  {/* JUDUL LAPORAN */}
-                  <div className="md:col-span-2 space-y-1">
-                    <span className="text-muted-foreground font-medium">Judul Laporan:</span>
-                    <p className="font-bold text-sm text-foreground bg-background p-2.5 rounded-lg border border-slate-200/80 dark:border-white/10">
-                      {activeReport.title || "Laporan Jaring"}
+                      {formatDateTime(activeReport.reportedAt)}
                     </p>
                   </div>
 
                   {/* ISI PESAN WHATSAPP BUBBLE VIEW */}
                   <div className="md:col-span-2 space-y-1.5">
                     <span className="text-muted-foreground font-medium text-xs">Tampilan Pesan WhatsApp Chat Bubble:</span>
-                    <WhatsAppChatBubbleThread
+                    <WhatsAppReportThread
                       senderAlias={activeReport.jaringAlias || activeReport.jaringCode || "Pengirim"}
-                      content={activeReport.content ?? undefined}
-                      mediaList={mediaList}
-                      submittedAt={activeReport.submittedAt ?? activeReport.createdAt ?? undefined}
+                      messages={activeReport.messages}
+                      fallbackContent={activeReport.content ?? undefined}
+                      fallbackMedia={mediaList}
+                      fallbackSentAt={activeReport.reportedAt}
                     />
                   </div>
 
@@ -612,7 +611,11 @@ export function LaporanJaringDetailClient({
 
                 {/* Verification Action Form */}
                 {!readOnly && (
-                  activeReport.verificationStatus === "WAITING_FIELD_OFFICER_VERIFICATION" ? (
+                  activeReport.status === "ACTIVE" ? (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                      Laporan masih disusun oleh Jaring. Aksi baca, verifikasi, dan metadata tersedia setelah Jaring mengetik SELESAI.
+                    </div>
+                  ) : activeReport.verificationStatus === "WAITING_FIELD_OFFICER_VERIFICATION" ? (
                     <div className="pt-4 border-t border-slate-200/80 dark:border-white/10 space-y-3">
                       <label htmlFor="verify-note" className="font-medium text-xs text-foreground block">
                         Catatan Verifikasi Petugas Lapangan (opsional):
@@ -669,7 +672,7 @@ export function LaporanJaringDetailClient({
                         <CardDescription className="text-xs">
                           {readOnly || activeReport.verificationStatus === "METADATA_RECORDED"
                             ? "Informasi lanjutan dan narasi Baket yang terverifikasi."
-                            : "Isi kategori, urgency, judul, dan formulasi narasi informasi lanjutan untuk menerbitkan Baket."}
+                            : "Isi kategori, urgency, dan formulasi narasi informasi lanjutan untuk menerbitkan Baket."}
                         </CardDescription>
                       </div>
                     </div>
@@ -709,13 +712,6 @@ export function LaporanJaringDetailClient({
                         <span className="text-muted-foreground font-medium block">Tingkat Urgensi (Urgency):</span>
                         <p className="font-semibold text-foreground">
                           {activeReport.urgency || "NORMAL"}
-                        </p>
-                      </div>
-
-                      <div className="md:col-span-2 space-y-1">
-                        <span className="text-muted-foreground font-medium block">Judul Laporan / Baket:</span>
-                        <p className="font-bold text-sm text-foreground bg-background p-2.5 rounded-lg border border-slate-200/80 dark:border-white/10">
-                          {activeReport.title || "-"}
                         </p>
                       </div>
 
@@ -785,20 +781,6 @@ export function LaporanJaringDetailClient({
                             </option>
                           ))}
                         </NativeSelect>
-                      </div>
-
-                      {/* Judul Laporan/Baket */}
-                      <div className="space-y-1.5 md:col-span-2">
-                        <label htmlFor="title-input" className="font-medium text-xs text-foreground block">
-                          Judul Laporan / Baket:
-                        </label>
-                        <Input
-                          id="title-input"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          placeholder="Tuliskan judul laporan..."
-                          className="h-9 text-xs bg-background"
-                        />
                       </div>
 
                       {/* Formulasi Isi Baket */}
@@ -1177,97 +1159,5 @@ export function LaporanJaringDetailClient({
         </AlertDialogContent>
       </AlertDialog>
     </main>
-  );
-}
-
-function WhatsAppChatBubbleThread({
-  senderAlias,
-  content,
-  mediaList = [],
-  submittedAt,
-}: {
-  senderAlias: string;
-  content?: string;
-  mediaList?: any[];
-  submittedAt?: string;
-}) {
-  const timeFormatted = submittedAt ? formatDateTime(submittedAt) : "";
-
-  return (
-    <div className="rounded-xl border border-slate-200/90 bg-[#efeae2] dark:bg-slate-950 dark:border-white/10 p-4 md:p-5 space-y-3 relative shadow-xs">
-      {/* WA Header Bar */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-300/60 dark:border-slate-800 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="size-6 rounded-full bg-[#075E54] text-white flex items-center justify-center font-bold text-[10px]">
-            WA
-          </div>
-          <span className="font-semibold text-slate-800 dark:text-slate-200">
-            Pesan WhatsApp Masuk (Pengirim: {senderAlias})
-          </span>
-        </div>
-        {timeFormatted && (
-          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-            {timeFormatted}
-          </span>
-        )}
-      </div>
-
-      {/* Chat Messages Container */}
-      <div className="space-y-3 pt-1">
-        {/* Text Message Bubble */}
-        {content ? (
-          <div className="flex justify-start">
-            <div className="relative max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-tl-none bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3.5 shadow-xs space-y-1.5">
-              <div className="text-[11px] font-bold text-[#075E54] dark:text-emerald-400 flex items-center gap-1.5">
-                <span>{senderAlias}</span>
-              </div>
-              <div className="text-xs text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
-                {content}
-              </div>
-              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right pt-0.5">
-                {timeFormatted ? timeFormatted.split(", ")[1] || timeFormatted : "Tersimpan"} ✓✓
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Media Message Bubbles */}
-        {mediaList && mediaList.length > 0 ? (
-          <div className="flex justify-start">
-            <div className="relative max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-tl-none bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs space-y-2">
-              <div className="text-[11px] font-bold text-[#075E54] dark:text-emerald-400 flex items-center gap-1.5">
-                <Paperclip className="size-3.5" />
-                <span>{senderAlias} • Lampiran Media ({mediaList.length} berkas)</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {mediaList.map((media) => (
-                  <div
-                    key={media.id}
-                    className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 p-1 space-y-1"
-                  >
-                    <EvidenceImageViewer
-                      src={`/api/files/${media.fileId}`}
-                      alt={media.fileName || "Lampiran Media"}
-                      fileName={media.fileName || "Foto Lampiran"}
-                      caption={media.caption}
-                    />
-                    {media.caption && (
-                      <p className="text-[11px] text-slate-700 dark:text-slate-300 px-1 py-0.5 whitespace-pre-wrap font-sans">
-                        {media.caption}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right">
-                {timeFormatted ? timeFormatted.split(", ")[1] || timeFormatted : "Tersimpan"} ✓✓
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </div>
   );
 }

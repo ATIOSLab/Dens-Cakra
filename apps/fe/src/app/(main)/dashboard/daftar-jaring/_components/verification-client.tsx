@@ -16,7 +16,6 @@ import {
   Clock,
   Columns3,
   Eye,
-  EyeOff,
   FileText,
   ImageIcon,
   Inbox,
@@ -154,12 +153,16 @@ function jaringFullNameSortKey(item: RegistrationJaring) {
   return item.fullName?.trim() || "";
 }
 
+function jaringDisplayName(item: RegistrationJaring) {
+  return item.aliasName ?? item.fullName ?? item.id;
+}
+
 function compareJaringFullName(left: RegistrationJaring, right: RegistrationJaring) {
   const leftName = jaringFullNameSortKey(left);
   const rightName = jaringFullNameSortKey(right);
   const result = leftName.localeCompare(rightName, "id", { sensitivity: "base" });
   return (
-    result || (left.aliasName ?? left.code).localeCompare(right.aliasName ?? right.code, "id", { sensitivity: "base" })
+    result || jaringDisplayName(left).localeCompare(jaringDisplayName(right), "id", { sensitivity: "base" })
   );
 }
 
@@ -342,7 +345,6 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const alias = (item.aliasName ?? "").toLowerCase();
-        const code = item.code.toLowerCase();
         const name = (item.fullName ?? "").toLowerCase();
         const address = (item.address ?? "").toLowerCase();
         const occ = (item.occupation?.name ?? "").toLowerCase();
@@ -351,7 +353,6 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
         const fo = officerName(item).toLowerCase();
         return (
           alias.includes(q) ||
-          code.includes(q) ||
           name.includes(q) ||
           address.includes(q) ||
           occ.includes(q) ||
@@ -471,8 +472,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
 
       toast.success(
         action === "approve"
-          ? `Pengajuan ${item.aliasName ?? item.code} terverifikasi.`
-          : `Pengajuan ${item.aliasName ?? item.code} ditolak.`,
+          ? `Pengajuan ${jaringDisplayName(item)} terverifikasi.`
+          : `Pengajuan ${jaringDisplayName(item)} ditolak.`,
       );
       router.refresh();
     } catch (error) {
@@ -908,18 +909,17 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                           <div className="flex items-center gap-3">
                             <Avatar className="size-9 border border-border">
                               {photo ? (
-                                <AvatarImage src={photo} alt={item.aliasName ?? item.code} />
+                                <AvatarImage src={photo} alt={jaringDisplayName(item)} />
                               ) : (
                                 <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
-                                  {getInitials(item.aliasName ?? item.code)}
+                                  {getInitials(jaringDisplayName(item))}
                                 </AvatarFallback>
                               )}
                             </Avatar>
                             <div className="flex flex-col min-w-0">
                               <span className="font-semibold text-sm font-mono text-foreground truncate">
-                                {item.aliasName ?? item.code}
+                                {jaringDisplayName(item)}
                               </span>
-                              <span className="text-xs text-muted-foreground font-mono">ID: {item.code}</span>
                             </div>
                           </div>
                         </TableCell>
@@ -1140,8 +1140,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
               {selectedItemForAction?.action === "approve"
-                ? `Status pengajuan untuk "${selectedItemForAction.item.aliasName ?? selectedItemForAction.item.code}" (${selectedItemForAction.item.fullName ?? "-"}) akan diubah menjadi Terverifikasi.`
-                : `Status pengajuan untuk "${selectedItemForAction?.item.aliasName ?? selectedItemForAction?.item.code}" (${selectedItemForAction?.item.fullName ?? "-"}) akan diubah menjadi Ditolak.`}
+                ? `Status pengajuan untuk "${jaringDisplayName(selectedItemForAction.item)}" (${selectedItemForAction.item.fullName ?? "-"}) akan diubah menjadi Terverifikasi.`
+                : `Status pengajuan untuk "${selectedItemForAction ? jaringDisplayName(selectedItemForAction.item) : "Jaring"}" (${selectedItemForAction?.item.fullName ?? "-"}) akan diubah menjadi Ditolak.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -1205,11 +1205,11 @@ type JaringReportMedia = {
 type JaringReportItem = {
   id: string;
   referenceNumber?: string | null;
-  title?: string | null;
+  displayTitle: string;
   content?: string | null;
   status: string;
   currentState?: string | null;
-  incidentAt?: string | null;
+  reportedAt: string;
   submittedAt?: string | null;
   createdAt: string;
   attachments?: JaringReportMedia[];
@@ -1217,7 +1217,6 @@ type JaringReportItem = {
   media?: JaringReportMedia[];
   submittedMessage?: {
     referenceNumber?: string | null;
-    title?: string | null;
     content?: string | null;
     status?: string | null;
     receivedAt?: string | null;
@@ -1263,7 +1262,7 @@ export function JaringReportCardItem({
   }
 
   const refNum = rep.referenceNumber || rep.submittedMessage?.referenceNumber || rep.id.slice(0, 8);
-  const title = rep.title || rep.submittedMessage?.title || "Laporan Jaring";
+  const displayTitle = rep.displayTitle || "Laporan sedang dibuat";
   const content = rep.content || rep.submittedMessage?.content || "";
   const categoryName = rep.submittedMessage?.category?.name || rep.convertedBaket?.reportCategory?.name;
   const targetHref = detailHref ?? `/dashboard/daftar-jaring/${jaringId}/laporan/${rep.id}`;
@@ -1290,7 +1289,7 @@ export function JaringReportCardItem({
               </span>
             )}
           </div>
-          <h4 className="font-semibold text-sm text-foreground truncate">{title}</h4>
+          <h4 className="font-semibold text-sm text-foreground truncate">{displayTitle}</h4>
           {!isExpanded && content && (
             <p className="text-xs text-muted-foreground line-clamp-1">{content}</p>
           )}
@@ -1298,7 +1297,7 @@ export function JaringReportCardItem({
 
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline-block">
-            {formatDateTime(rep.submittedAt || rep.incidentAt || rep.createdAt)}
+            {formatDateTime(rep.reportedAt || rep.submittedAt || rep.createdAt)}
           </span>
           <Button variant="ghost" size="icon" className="size-7 rounded-md shrink-0">
             {isExpanded ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
@@ -1356,8 +1355,7 @@ export function JaringReportCardItem({
                   Kategori: <strong className="text-foreground">{categoryName}</strong>
                 </span>
               )}
-              {rep.incidentAt && <span>Waktu Kejadian: {formatDateTime(rep.incidentAt)}</span>}
-              {rep.submittedAt && <span>Dikirim: {formatDateTime(rep.submittedAt)}</span>}
+              <span>Waktu Pelaporan: {formatDateTime(rep.reportedAt)}</span>
             </div>
 
             <Button
@@ -1403,7 +1401,6 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
-  const [visiblePin, setVisiblePin] = useState(false);
   const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"information" | "reports" | "coaching">("information");
 
@@ -1420,7 +1417,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
 
   const filteredReports = useMemo(() => {
     return reports.filter((rep) => {
-      const reportDateStr = rep.submittedAt || rep.incidentAt || rep.createdAt;
+      const reportDateStr = rep.reportedAt || rep.submittedAt || rep.createdAt;
       if (reportDateStr) {
         const itemTime = new Date(reportDateStr).getTime();
         const now = new Date();
@@ -1546,7 +1543,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
           <h1 className="flex min-w-0 items-center gap-2 font-heading font-bold text-xl tracking-tight text-slate-900 dark:text-[#F8FAFC]">
             <Users className="size-5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />
             <span className="shrink-0">DETAIL JARING:</span>
-            <span className="min-w-0 truncate font-mono tracking-wide">{item.aliasName ?? item.code}</span>
+            <span className="min-w-0 truncate font-mono tracking-wide">{jaringDisplayName(item)}</span>
           </h1>
         </div>
 
@@ -1585,12 +1582,12 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                         type="button"
                         onClick={() => setPhotoPreviewOpen(true)}
                         className="group relative size-full cursor-zoom-in overflow-hidden"
-                        aria-label={`Buka popup foto ${item.aliasName ?? item.code}`}
+                        aria-label={`Buka popup foto ${jaringDisplayName(item)}`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={selectedPhotoUrl}
-                          alt={`Foto ${item.aliasName ?? item.code}`}
+                          alt={`Foto ${jaringDisplayName(item)}`}
                           className="size-full object-cover transition-transform duration-150 group-hover:scale-105"
                         />
                         <span className="absolute inset-0 grid place-items-center bg-black/0 font-semibold text-[10px] text-white uppercase tracking-[0.14em] opacity-0 transition-all duration-150 group-hover:bg-black/35 group-hover:opacity-100">
@@ -1606,7 +1603,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                   )}
                 </div>
               </DetailRow>
-              <DetailRow label="Nama Sandi / Alias">{item.aliasName ?? item.code}</DetailRow>
+              <DetailRow label="Nama Sandi / Alias">{jaringDisplayName(item)}</DetailRow>
               <DetailRow label="Nama Lengkap">{item.fullName || "-"}</DetailRow>
               <DetailRow label="NIK / KTP">
                 <span className="font-mono">{item.nationalIdNumber || "-"}</span>
@@ -1625,21 +1622,6 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                 ) : (
                   <span className="font-mono">-</span>
                 )}
-              </DetailRow>
-              <DetailRow label="PIN Registrasi">
-                <div className="flex items-center gap-2">
-                  <span className="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 font-mono font-bold text-[15px] tracking-[0.15em] text-slate-900 dark:border-blue-400/8 dark:bg-slate-900/50 dark:text-[#F8FAFC]">
-                    {visiblePin ? item.code : "******"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setVisiblePin((current) => !current)}
-                    className="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:bg-slate-200 hover:text-foreground dark:hover:bg-slate-800"
-                    aria-label={visiblePin ? "Sembunyikan PIN registrasi" : "Tampilkan PIN registrasi"}
-                  >
-                    {visiblePin ? <EyeOff className="size-4 stroke-[1.5]" /> : <Eye className="size-4 stroke-[1.5]" />}
-                  </button>
-                </div>
               </DetailRow>
               <DetailRow label="Jenis Kelamin">{item.gender ? formatGender(item.gender) : "-"}</DetailRow>
               <DetailRow label="Tempat Lahir">{item.birthPlace || "-"}</DetailRow>
@@ -1901,14 +1883,14 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             <DialogHeader className="pr-10">
               <DialogTitle>Foto Profil Jaring</DialogTitle>
               <DialogDescription className="text-white/60">
-                {item.aliasName ?? item.code} {item.fullName ? `- ${item.fullName}` : ""}
+                {jaringDisplayName(item)} {item.fullName ? `- ${item.fullName}` : ""}
               </DialogDescription>
             </DialogHeader>
             <div className="grid min-h-0 place-items-center overflow-auto rounded-md border border-white/10 bg-black">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={selectedPhotoUrl}
-                alt={`Foto profil Jaring ${item.aliasName ?? item.code}`}
+                alt={`Foto profil Jaring ${jaringDisplayName(item)}`}
                 className="max-h-full max-w-full object-contain"
               />
             </div>

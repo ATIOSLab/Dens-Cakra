@@ -51,14 +51,39 @@ export type BaketInfo = {
   latestVersion?: {
     id: string;
     versionNumber: number;
-    title?: string | null;
+    displayTitle?: string | null;
     originalContent?: string | null;
     normalizedContent?: string | null;
     urgency?: PriorityLevel | null;
     fieldOfficerNote?: string | null;
-    eventTime?: string | null;
+    reportedAt?: string | null;
   } | null;
 };
+
+export type ReportMessageItem =
+  | {
+      id: string;
+      kind: "TEXT";
+      text: string;
+      sentAt: string;
+    }
+  | {
+      id: string;
+      kind: "IMAGE" | "VIDEO";
+      fileId: string;
+      caption?: string | null;
+      fileName?: string | null;
+      mimeType?: string | null;
+      sentAt: string;
+    }
+  | {
+      id: string;
+      kind: "LIVE_LOCATION";
+      latitude: number;
+      longitude: number;
+      accuracyMeters?: number | null;
+      sentAt: string;
+    };
 
 export type ResolvedAreaDetail = {
   id: string;
@@ -106,10 +131,11 @@ export type JaringReportSessionDetail = {
   verificationStatus: VerificationStatus;
   displayStatus: VerificationStatus;
   canFillMetadata: boolean;
-  title?: string | null;
+  displayTitle: string;
   content?: string | null;
   normalizedContent?: string | null;
-  incidentAt?: string | null;
+  reportedAt: string;
+  messages?: ReportMessageItem[];
   startedAt?: string | null;
   lastActivityAt?: string | null;
   expiresAt?: string | null;

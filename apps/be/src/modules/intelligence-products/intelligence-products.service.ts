@@ -118,6 +118,13 @@ const USABLE_FILE_STATUSES: FileLifecycleStatus[] = [
   FileLifecycleStatus.UPLOADED,
 ];
 
+function deriveReportDisplayTitle(content?: string | null) {
+  const words =
+    content?.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean) ?? [];
+  if (!words.length) return 'Baket tanpa isi';
+  return `${words.slice(0, 6).join(' ')}${words.length > 6 ? '…' : ''}`;
+}
+
 @Injectable()
 export class IntelligenceProductsService {
   private readonly locationPingSelect = {
@@ -3112,7 +3119,6 @@ export class IntelligenceProductsService {
       orderBy: [{ registeredAt: 'desc' }, { id: 'desc' }],
       select: {
         id: true,
-        code: true,
         aliasName: true,
         whatsappNumber: true,
         fullName: true,
@@ -3257,7 +3263,6 @@ export class IntelligenceProductsService {
               primaryJaring: {
                 select: {
                   id: true,
-                  code: true,
                   aliasName: true,
                   fullName: true,
                   registrationStatus: true,
@@ -3268,10 +3273,9 @@ export class IntelligenceProductsService {
                 take: 1,
                 select: {
                   id: true,
-                  title: true,
                   originalContent: true,
                   normalizedContent: true,
-                  eventTime: true,
+                  createdAt: true,
                   urgency: true,
                   fieldOfficerNote: true,
                   latitude: true,
@@ -3484,7 +3488,6 @@ export class IntelligenceProductsService {
         }
         if (normalizedSearch) {
           const searchable = [
-            item.code,
             item.aliasName,
             item.fullName,
             item.whatsappNumber,
@@ -3542,10 +3545,9 @@ export class IntelligenceProductsService {
               take: 1,
               select: {
                 id: true,
-                title: true,
                 originalContent: true,
                 normalizedContent: true,
-                eventTime: true,
+                createdAt: true,
                 urgency: true,
                 fieldOfficerNote: true,
                 latitude: true,
@@ -3558,10 +3560,13 @@ export class IntelligenceProductsService {
           },
         })
       : [];
-    const latestReportByJaring = new Map(
+    const latestReportByJaring = new Map<
+      string,
+      (typeof latestReports)[number]
+    >(
       latestReports
         .filter((report) => report.primaryJaringId)
-        .map((report) => [report.primaryJaringId!, report]),
+        .map((report) => [report.primaryJaringId!, report] as const),
     );
 
     const registrationStatuses = baseItems.reduce(
@@ -3675,7 +3680,15 @@ export class IntelligenceProductsService {
         currentVersionNumber: report.currentVersionNumber,
         category: report.reportCategory,
         jaring: report.primaryJaring,
-        version: report.versions[0] ?? null,
+        version: report.versions[0]
+          ? {
+              ...report.versions[0],
+              displayTitle: deriveReportDisplayTitle(
+                report.versions[0].originalContent,
+              ),
+              reportedAt: report.versions[0].createdAt,
+            }
+          : null,
       })),
       filters: {
         areas: [...areaOptions.values()].sort((left, right) => {
@@ -3701,7 +3714,6 @@ export class IntelligenceProductsService {
             ? [
                 {
                   id: item.id,
-                  code: item.code,
                   aliasName: item.aliasName,
                   fullName: item.fullName,
                   registrationStatus: item.registrationStatus,
@@ -3743,9 +3755,11 @@ export class IntelligenceProductsService {
               id: report.id,
               status: report.status,
               createdAt: report.createdAt,
-              title: version?.title ?? null,
+              displayTitle: deriveReportDisplayTitle(
+                version?.originalContent,
+              ),
               urgency: version?.urgency ?? null,
-              eventTime: version?.eventTime ?? null,
+              reportedAt: version?.createdAt ?? report.createdAt,
               originalContent: version?.originalContent ?? null,
               normalizedContent: version?.normalizedContent ?? null,
               fieldOfficerNote: version?.fieldOfficerNote ?? null,
@@ -3776,10 +3790,24 @@ export class IntelligenceProductsService {
         }),
       },
       jaring: {
-        items: pagedItems.map((item) => ({
-          ...item,
-          latestReport: latestReportByJaring.get(item.id) ?? null,
-        })),
+        items: pagedItems.map((item) => {
+          const latestReport = latestReportByJaring.get(item.id);
+          return {
+            ...item,
+            latestReport: latestReport
+              ? {
+                  ...latestReport,
+                  versions: latestReport.versions.map((version) => ({
+                    ...version,
+                    displayTitle: deriveReportDisplayTitle(
+                      version.originalContent,
+                    ),
+                    reportedAt: version.createdAt,
+                  })),
+                }
+              : null,
+          };
+        }),
         pagination: this.paginate(page, query.limit, filteredItems.length),
       },
     };
@@ -4732,7 +4760,6 @@ export class IntelligenceProductsService {
             select: {
               id: true,
               aliasName: true,
-              code: true,
               fullName: true,
             },
           },
@@ -4943,8 +4970,7 @@ export class IntelligenceProductsService {
           take: 1,
           select: {
             id: true,
-            title: true,
-            eventTime: true,
+            originalContent: true,
             createdAt: true,
             latitude: true,
             longitude: true,
@@ -4994,10 +5020,11 @@ export class IntelligenceProductsService {
         properties: {
           baketId: item.baketId,
           status: item.status,
-          title: item.version.title,
+          displayTitle: deriveReportDisplayTitle(
+            item.version.originalContent,
+          ),
           urgency: item.version.urgency,
-          eventTime: item.version.eventTime,
-          occurredAt: item.version.eventTime ?? item.version.createdAt,
+          reportedAt: item.version.createdAt,
           reportCategoryId: item.reportCategory?.id ?? null,
           reportCategoryName: item.reportCategory?.name ?? null,
           category: item.reportCategory,

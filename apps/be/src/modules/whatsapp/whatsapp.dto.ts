@@ -22,7 +22,6 @@ export class WebhookDto {
   @IsString() externalMessageId!: string;
   @IsString() senderPhone!: string;
   @IsDateString() receivedAt!: string;
-  @IsOptional() @IsString() @MaxLength(300) title?: string;
   @IsOptional() @IsString() content?: string;
   @IsOptional() @IsNumber() @Min(-90) @Max(90) latitude?: number;
   @IsOptional() @IsNumber() @Min(-180) @Max(180) longitude?: number;
@@ -47,11 +46,9 @@ export class AssignCategoryDto {
 export class CreateBaketFromMessageDto {
   @IsUUID() categoryId!: string;
   @IsEnum(PriorityLevel) urgency!: PriorityLevel;
-  @IsOptional() @IsString() @MaxLength(300) title?: string;
   @IsOptional() @IsString() normalizedContent?: string;
   @IsOptional() @IsString() @MaxLength(3000) fieldOfficerNote?: string;
   @IsOptional() @IsUUID() taskAssignmentId?: string;
-  @IsOptional() @IsDateString() eventTime?: string;
 }
 
 export class ResolveDto {

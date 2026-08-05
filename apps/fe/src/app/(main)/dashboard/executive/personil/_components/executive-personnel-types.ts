@@ -107,7 +107,6 @@ export type PersonnelMapPayload = {
 
 export type PersonnelJaringItem = {
   id: string;
-  code: string;
   aliasName?: string | null;
   fullName?: string | null;
   gender?: string | null;
@@ -155,9 +154,9 @@ export type PersonnelDetail = {
     status: string;
     currentVersionNumber: number;
     category: { id: string; code: string; name: string } | null;
-    title: string;
+    displayTitle: string;
     urgency: string | null;
-    eventTime: string | null;
+    reportedAt: string;
     eventArea: Omit<PersonnelArea, "isPrimary"> | null;
     createdAt: string;
     updatedAt: string;

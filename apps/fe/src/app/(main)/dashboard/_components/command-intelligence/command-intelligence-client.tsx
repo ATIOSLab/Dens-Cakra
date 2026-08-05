@@ -276,7 +276,7 @@ function ReportDetailDialog({
             <UrgencyBadge urgency={item.urgency} />
             {item.category ? <Badge variant="secondary">{item.category.name}</Badge> : null}
           </div>
-          <DialogTitle className="pt-2 text-2xl leading-8">{item.title ?? "Laporan tanpa judul"}</DialogTitle>
+          <DialogTitle className="pt-2 text-2xl leading-8">{item.displayTitle ?? "Laporan tanpa isi"}</DialogTitle>
           <DialogDescription className="sr-only">Detail laporan lengkap dari titik peta.</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[calc(90dvh-142px)]">
@@ -289,7 +289,7 @@ function ReportDetailDialog({
                 <ReportInfoRow label="Jaring" value={item.jaring?.aliasName ?? item.jaring?.fullName ?? "-"} />
                 <ReportInfoRow label="Kategori" value={item.category?.name} />
                 <ReportInfoRow label="Urgensi" value={REPORT_URGENCY_LABELS[reportUrgency(item.urgency)]} />
-                <ReportInfoRow label="Waktu kejadian" value={formatDateTime(item.eventTime)} />
+                <ReportInfoRow label="Waktu pelaporan" value={formatDateTime(item.reportedAt)} />
                 <ReportInfoRow label="Diterima" value={formatDateTime(item.createdAt)} />
                 <ReportInfoRow label="Wilayah" value={item.areaName} />
                 <div className="grid gap-1 border-border/60 border-b py-2 last:border-b-0 sm:grid-cols-[130px_1fr]">
@@ -385,7 +385,7 @@ function ReportHoverCard({ hover }: { hover: { item: MapBaket; x: number; y: num
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-mono text-[9px] text-primary uppercase tracking-[0.18em]">Preview Laporan</p>
-          <p className="mt-1 truncate font-semibold text-sm">{hover.item.title ?? "Laporan tanpa judul"}</p>
+          <p className="mt-1 truncate font-semibold text-sm">{hover.item.displayTitle ?? "Laporan tanpa isi"}</p>
         </div>
         <span
           className="mt-1 size-2.5 shrink-0 rounded-full shadow-[0_0_12px_currentColor]"
@@ -435,18 +435,17 @@ function JaringDossier({
                   {item.profilePhotoFileId ? (
                     <Image
                       src={`/api/files/${item.profilePhotoFileId}`}
-                      alt={item.aliasName ?? item.fullName ?? item.code}
+                      alt={item.aliasName ?? item.fullName ?? item.id}
                       fill
                       className="object-cover"
                       sizes="64px"
                     />
                   ) : (
-                    initials(item.aliasName ?? item.fullName ?? item.code)
+                    initials(item.aliasName ?? item.fullName ?? item.id)
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-lg">{item.aliasName ?? item.fullName ?? item.code}</p>
-                  <p className="font-mono text-muted-foreground text-xs">{item.code}</p>
+                  <p className="truncate font-semibold text-lg">{item.aliasName ?? item.fullName ?? item.id}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <RegistrationBadge status={item.registrationStatus} />
                     <ActivityBadge level={item.activity.level} />
@@ -825,7 +824,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-xs">
-                      {report.version?.title ?? "Laporan tanpa judul"}
+                      {report.version?.displayTitle ?? "Laporan tanpa isi"}
                     </span>
                     <span className="mt-1 block truncate text-[10px] text-muted-foreground">
                       {report.jaring?.aliasName ?? report.jaring?.fullName ?? "Jaring belum tertaut"}
@@ -868,7 +867,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
             <div className="min-w-0">
               <p className="font-mono text-[9px] text-primary uppercase tracking-[0.18em]">Jaring terpilih</p>
               <p className="mt-1 truncate font-semibold text-sm">
-                {selectedMapJaring.aliasName ?? selectedMapJaring.fullName ?? selectedMapJaring.code}
+                {selectedMapJaring.aliasName ?? selectedMapJaring.fullName ?? selectedMapJaring.id}
               </p>
             </div>
             <Button
@@ -898,7 +897,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
             size="sm"
             className="mt-3 w-full"
             onClick={() => {
-              updateFilter("search", selectedMapJaring.code);
+              updateFilter("search", selectedMapJaring.aliasName ?? selectedMapJaring.fullName ?? selectedMapJaring.id);
               setRegistryOpen(true);
             }}
           >
@@ -1234,8 +1233,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                           }}
                         >
                           <TableCell>
-                            <p className="font-medium">{item.aliasName ?? item.fullName ?? item.code}</p>
-                            <p className="font-mono text-muted-foreground text-xs">{item.code}</p>
+                            <p className="font-medium">{item.aliasName ?? item.fullName ?? item.id}</p>
                           </TableCell>
                           <TableCell className="max-w-64 truncate">
                             {item.area?.pathLabel ?? "Belum dipetakan"}

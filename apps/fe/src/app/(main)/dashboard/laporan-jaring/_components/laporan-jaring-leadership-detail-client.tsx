@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   Mail,
   MailOpen,
   MapPin,
+  RefreshCw,
   UserCheck,
   UserRound,
 } from "lucide-react";
@@ -42,6 +43,7 @@ import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 
 import { LaporanJaringLocationMap } from "./laporan-jaring-location-map";
+import { WhatsAppReportThread } from "./whatsapp-report-thread";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "Belum tercatat";
@@ -61,6 +63,7 @@ function formatDateTime(value?: string | null) {
 function verificationStatusLabel(status: VerificationStatus) {
   switch (status) {
     case "IN_PROGRESS_BY_JARING":
+      return "Sedang disusun Jaring";
     case "NOT_SUBMITTED":
     case "WAITING_FIELD_OFFICER_VERIFICATION":
       return "Belum Diverifikasi";
@@ -104,32 +107,33 @@ export function LaporanJaringLeadershipDetailClient({
   const [report, setReport] = useState<JaringReportSessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestInFlight = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadReport() {
-      setLoading(true);
+  const loadReport = useCallback(async (silent = false) => {
+    if (requestInFlight.current) return;
+    requestInFlight.current = true;
+    if (!silent) setLoading(true);
       setError(null);
       try {
         const detail = await apiBrowserFetch<JaringReportSessionDetail>(`/jaring/reports/${reportSessionId}`);
-        if (!cancelled) setReport(detail);
+        setReport(detail);
       } catch (loadError) {
-        if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "Detail laporan Jaring gagal dimuat.");
-        }
+        setError(loadError instanceof Error ? loadError.message : "Detail laporan Jaring gagal dimuat.");
       } finally {
-        if (!cancelled) setLoading(false);
+        requestInFlight.current = false;
+        if (!silent) setLoading(false);
       }
-    }
-
-    void loadReport();
-    return () => {
-      cancelled = true;
-    };
   }, [reportSessionId]);
 
-  const reportTitle = report?.title || "Laporan Informasi Jaring";
+  useEffect(() => {
+    void loadReport();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadReport(true);
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, [loadReport]);
+
+  const reportTitle = report?.displayTitle || "Laporan Informasi Jaring";
   const readAt = report?.fieldOfficerReadAt ?? report?.readAt ?? null;
   const hasBeenRead = report?.isReadByFieldOfficer ?? report?.isRead ?? Boolean(readAt);
   const reportIsVerified = report ? isVerifiedReport(report.verificationStatus) : false;
@@ -182,6 +186,10 @@ export function LaporanJaringLeadershipDetailClient({
             </a>
           </Button>
         ) : null}
+        <Button variant="outline" size="sm" onClick={() => void loadReport()} disabled={loading}>
+          <RefreshCw className={loading ? "animate-spin" : undefined} />
+          Refresh
+        </Button>
       </div>
 
       {loading ? (
@@ -261,14 +269,14 @@ export function LaporanJaringLeadershipDetailClient({
                 <Clock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <div>
                   <dt className="text-xs text-muted-foreground">Laporan diterima</dt>
-                  <dd className="font-semibold">{formatDateTime(report.submittedAt || report.createdAt)}</dd>
+                  <dd className="font-semibold">{formatDateTime(report.reportedAt)}</dd>
                 </div>
               </div>
               <div className="flex gap-3">
                 <CalendarClock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <div>
-                  <dt className="text-xs text-muted-foreground">Waktu kejadian</dt>
-                  <dd className="font-semibold">{formatDateTime(report.incidentAt)}</dd>
+                  <dt className="text-xs text-muted-foreground">Waktu pelaporan</dt>
+                  <dd className="font-semibold">{formatDateTime(report.reportedAt)}</dd>
                 </div>
               </div>
               <div className="flex gap-3">
@@ -289,11 +297,12 @@ export function LaporanJaringLeadershipDetailClient({
                   Isi Laporan Jaring (WhatsApp View)
                 </h2>
               </div>
-              <WhatsAppLeadershipChatBubbleThread
+              <WhatsAppReportThread
                 senderAlias={report.jaringAlias || report.jaringCode || "Pengirim Jaring"}
-                content={report.content ?? undefined}
-                mediaList={report.media}
-                submittedAt={report.submittedAt ?? report.createdAt ?? undefined}
+                messages={report.messages}
+                fallbackContent={report.content ?? undefined}
+                fallbackMedia={report.media}
+                fallbackSentAt={report.reportedAt}
               />
             </section>
 
@@ -419,92 +428,5 @@ export function LaporanJaringLeadershipDetailClient({
         </Card>
       )}
     </main>
-  );
-}
-
-function WhatsAppLeadershipChatBubbleThread({
-  senderAlias,
-  content,
-  mediaList = [],
-  submittedAt,
-}: {
-  senderAlias: string;
-  content?: string;
-  mediaList?: any[];
-  submittedAt?: string;
-}) {
-  const timeFormatted = submittedAt ? formatDateTime(submittedAt) : "";
-
-  return (
-    <div className="rounded-xl border border-slate-200/90 bg-[#efeae2] dark:bg-slate-950 dark:border-white/10 p-4 md:p-5 space-y-3 relative shadow-xs">
-      <div className="flex items-center justify-between pb-2 border-b border-slate-300/60 dark:border-slate-800 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="size-6 rounded-full bg-[#075E54] text-white flex items-center justify-center font-bold text-[10px]">
-            WA
-          </div>
-          <span className="font-semibold text-slate-800 dark:text-slate-200">
-            Pesan WhatsApp Masuk (Pengirim: {senderAlias})
-          </span>
-        </div>
-        {timeFormatted && (
-          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-            {timeFormatted}
-          </span>
-        )}
-      </div>
-
-      <div className="space-y-3 pt-1">
-        {content ? (
-          <div className="flex justify-start">
-            <div className="relative max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-tl-none bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3.5 shadow-xs space-y-1.5">
-              <div className="text-[11px] font-bold text-[#075E54] dark:text-emerald-400 flex items-center gap-1.5">
-                <span>{senderAlias}</span>
-              </div>
-              <div className="text-xs text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed">
-                {content}
-              </div>
-              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right pt-0.5">
-                {timeFormatted ? timeFormatted.split(", ")[1] || timeFormatted : "Tersimpan"} ✓✓
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {mediaList && mediaList.length > 0 ? (
-          <div className="flex justify-start">
-            <div className="relative max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-tl-none bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs space-y-2">
-              <div className="text-[11px] font-bold text-[#075E54] dark:text-emerald-400 flex items-center gap-1.5">
-                <span>{senderAlias} • Lampiran Media ({mediaList.length} berkas)</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {mediaList.map((media) => (
-                  <div
-                    key={media.id}
-                    className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 p-1 space-y-1"
-                  >
-                    <EvidenceImageViewer
-                      src={`/api/files/${media.fileId}`}
-                      alt={media.fileName || "Lampiran Media"}
-                      fileName={media.fileName || "Foto Lampiran"}
-                      caption={media.caption}
-                    />
-                    {media.caption && (
-                      <p className="text-[11px] text-slate-700 dark:text-slate-300 px-1 py-0.5 whitespace-pre-wrap font-sans">
-                        {media.caption}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 text-right">
-                {timeFormatted ? timeFormatted.split(", ")[1] || timeFormatted : "Tersimpan"} ✓✓
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </div>
   );
 }

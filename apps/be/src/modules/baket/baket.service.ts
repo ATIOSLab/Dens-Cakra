@@ -198,12 +198,8 @@ export class BaketService {
           versions: {
             create: {
               versionNumber: 1,
-              title: body.version.title,
               originalContent: body.version.originalContent,
               normalizedContent: body.version.normalizedContent,
-              eventTime: body.version.eventTime
-                ? new Date(body.version.eventTime)
-                : null,
               latitude: body.version.latitude,
               longitude: body.version.longitude,
               urgency: body.version.urgency ?? PriorityLevel.NORMAL,
@@ -349,14 +345,10 @@ export class BaketService {
         data: {
           baketId,
           versionNumber: nextVersionNumber,
-          title: body.patch.title ?? baseVersion.title,
           originalContent:
             body.patch.originalContent ?? baseVersion.originalContent,
           normalizedContent:
             body.patch.normalizedContent ?? baseVersion.normalizedContent,
-          eventTime: body.patch.eventTime
-            ? new Date(body.patch.eventTime)
-            : baseVersion.eventTime,
           latitude:
             body.patch.latitude !== undefined
               ? body.patch.latitude
@@ -423,10 +415,8 @@ export class BaketService {
     await this.prisma.baketVersion.update({
       where: { id: versionId },
       data: {
-        title: body.title,
         originalContent: body.originalContent,
         normalizedContent: body.normalizedContent,
-        ...(body.eventTime ? { eventTime: new Date(body.eventTime) } : {}),
         ...(body.latitude !== undefined ? { latitude: body.latitude } : {}),
         ...(body.longitude !== undefined ? { longitude: body.longitude } : {}),
         ...(body.urgency ? { urgency: body.urgency } : {}),
@@ -642,10 +632,10 @@ export class BaketService {
         422,
       );
     }
-    if (!currentVersion.title || !currentVersion.originalContent) {
+    if (!currentVersion.originalContent) {
       throw new ApiException(
         'BAKET_INCOMPLETE',
-        'Baket current version must contain title and content.',
+        'Baket current version must contain content.',
         422,
       );
     }

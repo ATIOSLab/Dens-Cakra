@@ -187,12 +187,10 @@ export class VerifyJaringReportDto {
 export class UpdateJaringReportMetadataDto {
   @IsOptional() @IsUUID() categoryId?: string;
   @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
-  @IsOptional() @IsString() @MaxLength(300) title?: string;
   @IsOptional() @IsString() content?: string;
   @IsOptional() @IsString() normalizedContent?: string;
   @IsOptional() @IsString() @MaxLength(3000) fieldOfficerNote?: string;
   @IsOptional() @IsUUID() taskAssignmentId?: string;
-  @IsOptional() @IsDateString() eventTime?: string;
 }
 
 export class CreateReportCategoryDto {

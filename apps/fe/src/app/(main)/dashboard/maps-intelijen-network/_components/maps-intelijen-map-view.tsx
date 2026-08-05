@@ -409,7 +409,7 @@ export function MapsIntelijenMapView({
                         ? urgencyStyle.markerBg
                         : "border-slate-300 bg-slate-600 text-slate-100 shadow-[0_0_10px_rgba(100,116,139,0.4)] dark:border-slate-400 dark:bg-slate-500",
                     )}
-                    aria-label={`${item.isBaket ? "Baket" : "Laporan"} ${item.title}`}
+                    aria-label={`${item.isBaket ? "Baket" : "Laporan"} ${item.displayTitle}`}
                   >
                     {item.isBaket ? <Inbox className="size-4" /> : <FileText className="size-4" />}
                   </button>
@@ -442,7 +442,7 @@ export function MapsIntelijenMapView({
                         </div>
 
                         <h4 className="line-clamp-2 font-bold font-heading text-foreground dark:text-slate-100 text-xs leading-snug">
-                          {item.title}
+                          {item.displayTitle}
                         </h4>
                         <p className="line-clamp-2 text-[11px] text-muted-foreground dark:text-slate-400 leading-normal">
                           {item.content}
@@ -964,7 +964,7 @@ export function MapsIntelijenMapView({
                         >
                           {item.urgency}
                         </span>
-                        <span className="font-semibold">{item.title}</span>
+                        <span className="font-semibold">{item.displayTitle}</span>
                         <span className="text-muted-foreground dark:text-slate-500">({item.locationName})</span>
                         {item.relativeTime ? (
                           <span className="rounded font-bold font-mono text-[9px] text-amber-600 dark:text-amber-400">
@@ -989,7 +989,7 @@ export function MapsIntelijenMapView({
                         >
                           {item.urgency}
                         </span>
-                        <span className="font-semibold">{item.title}</span>
+                        <span className="font-semibold">{item.displayTitle}</span>
                         <span className="text-muted-foreground dark:text-slate-500">({item.locationName})</span>
                         {item.relativeTime ? (
                           <span className="rounded font-bold font-mono text-[9px] text-amber-600 dark:text-amber-400">

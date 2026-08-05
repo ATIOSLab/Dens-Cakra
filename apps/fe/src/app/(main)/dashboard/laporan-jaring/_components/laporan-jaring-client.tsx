@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -53,6 +53,9 @@ function formatDateTime(value?: string | null) {
 
 function verificationStatusLabel(status: VerificationStatus) {
   switch (status) {
+    case "IN_PROGRESS_BY_JARING":
+    case "NOT_SUBMITTED":
+      return "Sedang disusun Jaring";
     case "WAITING_FIELD_OFFICER_VERIFICATION":
       return "Belum Terverifikasi";
     case "NEEDS_FIELD_OFFICER_REVIEW":
@@ -309,7 +312,7 @@ function JaringFilterPopover({
 
 export function LaporanJaringClient() {
   const [reports, setReports] = useState<JaringReportSessionDetail[]>([]);
-  const [workspaceJarings, setWorkspaceJarings] = useState<{ id: string; code: string; aliasName: string; fullName?: string | null; registrationStatus?: string | null }[]>([]);
+  const [workspaceJarings, setWorkspaceJarings] = useState<{ id: string; aliasName: string; fullName?: string | null; registrationStatus?: string | null }[]>([]);
   const [loadingList, setLoadingList] = useState(true);
 
   // Read report IDs state from localStorage
@@ -351,10 +354,13 @@ export function LaporanJaringClient() {
   const [endDate, setEndDate] = useState<string>("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const listRequestInFlight = useRef(false);
 
   // Fetch list of reports
-  async function fetchReports(overrideStart?: string, overrideEnd?: string) {
-    setLoadingList(true);
+  const fetchReports = useCallback(async (overrideStart?: string, overrideEnd?: string, silent = false) => {
+    if (listRequestInFlight.current) return;
+    listRequestInFlight.current = true;
+    if (!silent) setLoadingList(true);
     try {
       let url = "/jaring/reports?registrationStatus=APPROVED";
       const sDate = overrideStart !== undefined ? overrideStart : startDate;
@@ -375,12 +381,20 @@ export function LaporanJaringClient() {
     } catch (err) {
       console.error("Gagal memuat daftar laporan:", err);
     } finally {
-      setLoadingList(false);
+      listRequestInFlight.current = false;
+      if (!silent) setLoadingList(false);
     }
-  }
+  }, [endDate, startDate]);
 
   useEffect(() => {
     void fetchReports();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void fetchReports(undefined, undefined, true);
+    }, 5_000);
+    return () => window.clearInterval(interval);
+  }, [fetchReports]);
+
+  useEffect(() => {
     async function loadWorkspace() {
       try {
         const res = await fetch("/api/field-officer/workspace");
@@ -409,7 +423,7 @@ export function LaporanJaringClient() {
     );
 
     for (const j of verifiedJarings) {
-      const sandi = j.aliasName || j.code;
+      const sandi = j.aliasName || j.fullName || j.id;
       const name = j.fullName || j.aliasName;
       map.set(j.id, {
         id: j.id,
@@ -463,7 +477,7 @@ export function LaporanJaringClient() {
       }
 
       // Date / Period Filter
-      const reportDateStr = item.submittedAt || item.createdAt;
+      const reportDateStr = item.reportedAt || item.submittedAt || item.createdAt;
       if (reportDateStr) {
         const itemTime = new Date(reportDateStr).getTime();
         const now = new Date();
@@ -492,7 +506,7 @@ export function LaporanJaringClient() {
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const ref = (item.referenceNumber || "").toLowerCase();
-        const t = (item.title || "").toLowerCase();
+        const t = (item.displayTitle || "").toLowerCase();
         const c = (item.content || "").toLowerCase();
         const jAlias = (item.jaringAlias || "").toLowerCase();
         const jCode = (item.jaringCode || "").toLowerCase();
@@ -777,6 +791,9 @@ export function LaporanJaringClient() {
                 paginatedReports.map((item, idx) => {
                   const itemIndex = (page - 1) * limit + idx + 1;
                   const isUnread = !readReportIds.has(item.id);
+                  const messageCount = item.messages?.length ?? item.counts?.contentParts ?? 0;
+                  const mediaCount = item.media?.length ?? item.counts?.media ?? 0;
+                  const draftComplete = Boolean(item.content && item.location && mediaCount > 0);
                   return (
                     <TableRow
                       key={item.id}
@@ -804,13 +821,17 @@ export function LaporanJaringClient() {
                       <TableCell className="max-w-xs">
                         <div className="space-y-0.5">
                           <p className="font-bold text-xs text-foreground line-clamp-1">
-                            {item.title || "Laporan Jaring"}
+                            {item.displayTitle}
                           </p>
                           {item.content ? (
                             <p className="text-[11px] text-muted-foreground line-clamp-1 font-normal">
                               {item.content}
                             </p>
                           ) : null}
+                          <p className="text-[10px] text-muted-foreground">
+                            {messageCount} pesan · {mediaCount} media
+                            {item.status === "ACTIVE" ? ` · ${draftComplete ? "Lengkap" : "Belum lengkap"}` : ""}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -830,14 +851,16 @@ export function LaporanJaringClient() {
                         </span>
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDateTime(item.submittedAt || item.createdAt)}
+                        {formatDateTime(item.reportedAt || item.submittedAt || item.createdAt)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Button
                           variant="outline"
                           size="sm"
                           asChild
-                          onClick={() => markReportAsRead(item.id)}
+                          onClick={() => {
+                            if (item.status === "SUBMITTED") void markReportAsRead(item.id);
+                          }}
                           className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
                         >
                           <Link href={`/dashboard/laporan-jaring/${item.id}`}>

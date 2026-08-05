@@ -99,7 +99,6 @@ export class PositionQueryService {
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
-          code: true,
           aliasName: true,
           status: true,
           createdAt: true,

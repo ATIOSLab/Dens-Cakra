@@ -14,11 +14,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     const body = (await request.json()) as {
       categoryId: string;
       urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
-      title?: string;
       normalizedContent?: string;
       fieldOfficerNote?: string;
       taskAssignmentId?: string;
-      eventTime?: string;
     };
 
     return NextResponse.json(await createBaketFromMessage(request.headers.get("cookie") ?? "", messageId, body), {

@@ -973,7 +973,7 @@ function BaketList({ data }: { data: OimPageData }) {
                         </TableCell>
                         <TableCell className="py-4 max-w-[280px]">
                           <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-2 leading-relaxed">
-                            {version.title ?? "Baket tanpa judul"}
+                            {version.displayTitle ?? "Baket tanpa isi"}
                           </h4>
                         </TableCell>
                         <TableCell className="py-4">
@@ -1069,7 +1069,7 @@ function BaketList({ data }: { data: OimPageData }) {
                         </div>
 
                         <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">
-                          {version.title ?? "Baket tanpa judul"}
+                          {version.displayTitle ?? "Baket tanpa isi"}
                         </h2>
 
                         <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] leading-relaxed line-clamp-2">
@@ -1196,9 +1196,9 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
               <StatusBadge value={version.urgency} />
               <Badge variant="outline">KATEGORI: {baket.reportCategory?.name ?? "Kategori legacy"}</Badge>
             </div>
-            <CardTitle>{version.title ?? "Baket"}</CardTitle>
+            <CardTitle>{version.displayTitle ?? "Baket"}</CardTitle>
             <CardDescription>
-              {eventAreaLabel} · {fmtDate(version.eventTime)}
+              {eventAreaLabel} · {fmtDate(version.reportedAt)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -1218,12 +1218,12 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
               <div>
                 <dt className="text-muted-foreground">Jaring sumber</dt>
                 <dd className="mt-1 font-medium">
-                  {baket.primaryJaring?.aliasName ?? baket.primaryJaring?.code ?? "-"}
+                  {baket.primaryJaring?.aliasName ?? baket.primaryJaring?.fullName ?? baket.primaryJaring?.id ?? "-"}
                 </dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Waktu kejadian</dt>
-                <dd className="mt-1 font-medium">{fmtDate(version.eventTime)}</dd>
+                <dt className="text-muted-foreground">Waktu pelaporan</dt>
+                <dd className="mt-1 font-medium">{fmtDate(version.reportedAt)}</dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">GPS lokasi</dt>
@@ -1283,7 +1283,7 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
                   <BaketLocationMap
                     latitude={Number(version.latitude)}
                     longitude={Number(version.longitude)}
-                    title={version.title ?? "Lokasi Baket"}
+                    title={version.displayTitle ?? "Lokasi Baket"}
                     areaLabel={eventAreaLabel}
                     urgency={version.urgency}
                   />
@@ -1326,7 +1326,7 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
             {sourceMessages.map((source) => (
               <div key={source.messageId} className="rounded-lg border p-3">
                 <p className="font-medium">
-                  Pesan sumber · {source.message?.jaring?.aliasName ?? source.message?.jaring?.code ?? "Jaring"}
+                  Pesan sumber · {source.message?.jaring?.aliasName ?? source.message?.jaring?.fullName ?? source.message?.jaring?.id ?? "Jaring"}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {source.message?.content ?? "Isi sumber tidak tersedia"}
@@ -2316,7 +2316,7 @@ function buildJournalRows(analysisCase: Row | null): JournalRow[] {
     const officerName = fieldOfficerUserName(fieldOfficer);
     return {
       NO_URUT: index + 1,
-      PERMASALAHAN_AGENDA: version.title ?? "Baket tanpa judul",
+      PERMASALAHAN_AGENDA: version.displayTitle ?? "Baket tanpa isi",
       DAERAH_KEJADIAN: administrativeAreaLabel(version.eventArea),
       MATERI_SUMBER: `${version.originalContent ?? "-"}\n\nSumber: ${officerName}`,
     };

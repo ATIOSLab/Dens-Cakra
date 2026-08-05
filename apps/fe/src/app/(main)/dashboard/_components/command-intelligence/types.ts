@@ -14,10 +14,10 @@ export type DashboardArea = {
 
 export type DashboardReportVersion = {
   id: string;
-  title: string;
+  displayTitle: string;
   originalContent?: string | null;
   normalizedContent?: string | null;
-  eventTime: string | null;
+  reportedAt: string;
   urgency: string;
   fieldOfficerNote?: string | null;
   latitude?: string | number | null;
@@ -40,7 +40,6 @@ export type DashboardReport = {
   versions?: DashboardReportVersion[];
   jaring?: {
     id: string;
-    code: string;
     aliasName: string | null;
     fullName: string | null;
     registrationStatus: JaringRegistrationStatus;
@@ -49,7 +48,6 @@ export type DashboardReport = {
 
 export type FieldIntelligenceJaring = {
   id: string;
-  code: string;
   aliasName: string | null;
   whatsappNumber: string;
   fullName: string | null;
@@ -146,7 +144,6 @@ export type FieldIntelligenceDashboard = {
   map: {
     jaring: Array<{
       id: string;
-      code: string;
       aliasName: string | null;
       fullName: string | null;
       registrationStatus: JaringRegistrationStatus;
@@ -164,9 +161,9 @@ export type FieldIntelligenceDashboard = {
       id: string;
       status: string;
       createdAt: string;
-      title: string | null;
+      displayTitle: string;
       urgency: string | null;
-      eventTime: string | null;
+      reportedAt: string;
       originalContent: string | null;
       normalizedContent: string | null;
       fieldOfficerNote: string | null;

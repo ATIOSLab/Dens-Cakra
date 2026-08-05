@@ -61,7 +61,6 @@ function formatDateOnly(value?: string | null) {
 
 interface RawJaringItem {
   id: string;
-  code: string;
   aliasName?: string | null;
   fullName?: string | null;
   registrationStatus?: string | null;
@@ -180,9 +179,9 @@ export function LaporanPembinaanCoordinatorClient() {
           return items.map((report) => ({
             ...report,
             jaringId: jaring.id,
-            jaringCode: jaring.code,
-            jaringAlias: jaring.aliasName || jaring.code,
-            jaringName: jaring.fullName || jaring.aliasName || jaring.code,
+            jaringCode: jaring.aliasName || jaring.id,
+            jaringAlias: jaring.aliasName || jaring.fullName || jaring.id,
+            jaringName: jaring.fullName || jaring.aliasName || jaring.id,
           }));
         } catch {
           return [];
@@ -338,8 +337,8 @@ export function LaporanPembinaanCoordinatorClient() {
   const popoverJaringOptions: JaringOption[] = useMemo(() => {
     return jaringList.map((j) => ({
       id: j.id,
-      code: j.code,
-      aliasName: j.aliasName || j.code,
+      code: j.aliasName || j.id,
+      aliasName: j.aliasName || j.fullName || j.id,
       fullName: j.fullName,
       registrationStatus: j.registrationStatus,
     }));

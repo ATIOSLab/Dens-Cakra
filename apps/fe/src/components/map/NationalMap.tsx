@@ -301,11 +301,15 @@ function mergeReportDetails(featureProperties: any, detailValue: unknown) {
   return {
     ...featureProperties,
     status: stringOrNull(detail.status) ?? featureProperties.status,
-    title: stringOrNull(currentVersion.title) ?? featureProperties.title,
+    displayTitle:
+      stringOrNull(currentVersion.displayTitle) ?? featureProperties.displayTitle,
     urgency: stringOrNull(currentVersion.urgency) ?? featureProperties.urgency,
     originalContent: stringOrNull(currentVersion.originalContent),
     normalizedContent: stringOrNull(currentVersion.normalizedContent),
-    eventTime: stringOrNull(currentVersion.eventTime),
+    reportedAt:
+      stringOrNull(currentVersion.reportedAt) ??
+      stringOrNull(currentVersion.createdAt) ??
+      featureProperties.reportedAt,
     areaName:
       stringOrNull(eventArea.name) ??
       stringOrNull(featureProperties.areaName) ??
@@ -1500,11 +1504,11 @@ export function NationalMap() {
 
 function ReportCard({ feature, onSelect }: { feature: NationalMapFeature; onSelect: () => void }) {
   const properties = record(feature.properties);
-  const title = stringOrNull(properties.title) ?? "Baket terpetakan";
+  const title = stringOrNull(properties.displayTitle) ?? "Baket terpetakan";
   const status = stringOrNull(properties.status) ?? "";
   const urgency = String(properties.urgency || "NORMAL") as keyof typeof REPORT_URGENCY_COLORS;
   const urgencyColor = REPORT_URGENCY_COLORS[urgency] ?? REPORT_URGENCY_COLORS.NORMAL;
-  const occurredAt = properties.eventTime ?? properties.occurredAt;
+  const reportedAt = properties.reportedAt;
 
   return (
     <button
@@ -1544,8 +1548,8 @@ function ReportCard({ feature, onSelect }: { feature: NationalMapFeature; onSele
               <dd className="mt-0.5 truncate font-medium text-foreground">{getReportCategoryName(properties)}</dd>
             </div>
             <div className="min-w-0 sm:col-span-2">
-              <dt className="text-[10px] text-muted-foreground">Waktu kejadian</dt>
-              <dd className="mt-0.5 font-mono text-[11px] text-foreground">{formatReportCardDate(occurredAt)}</dd>
+              <dt className="text-[10px] text-muted-foreground">Waktu pelaporan</dt>
+              <dd className="mt-0.5 font-mono text-[11px] text-foreground">{formatReportCardDate(reportedAt)}</dd>
             </div>
           </dl>
         </CardContent>
@@ -1560,11 +1564,11 @@ function ReportMarker({ feature, onSelect }: { feature: any; onSelect: () => voi
   if (!coordinates) return null;
 
   const properties = record(feature.properties);
-  const title = stringOrNull(properties.title) ?? "Baket terpetakan";
+  const title = stringOrNull(properties.displayTitle) ?? "Baket terpetakan";
   const status = stringOrNull(properties.status) ?? "";
   const urgency = String(properties.urgency || "NORMAL") as keyof typeof REPORT_URGENCY_COLORS;
   const markerColor = REPORT_URGENCY_COLORS[urgency] ?? REPORT_URGENCY_COLORS.NORMAL;
-  const occurredAt = properties.eventTime ?? properties.occurredAt;
+  const reportedAt = properties.reportedAt;
 
   return (
     <>
@@ -1612,8 +1616,8 @@ function ReportMarker({ feature, onSelect }: { feature: any; onSelect: () => voi
                 <dd className="truncate font-medium">{getReportAreaName(properties)}</dd>
               </div>
               <div className="col-span-2 min-w-0">
-                <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Waktu kejadian</dt>
-                <dd className="font-mono text-[11px]">{formatReportCardDate(occurredAt)}</dd>
+                <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Waktu pelaporan</dt>
+                <dd className="font-mono text-[11px]">{formatReportCardDate(reportedAt)}</dd>
               </div>
             </dl>
             <p className="border-t border-border/50 pt-2 text-[10px] text-muted-foreground">

@@ -75,7 +75,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
     expect(isReportIntent('lapor sekarang')).toBe(false);
   });
 
-  it('setelah PIN benar hanya menerima live location sebelum judul', async () => {
+  it('menolak lokasi statis dan menerima live location pada sesi laporan', async () => {
     const service = new WhatsappBotRuntimeService(
       {} as never,
       {} as never,
@@ -101,39 +101,14 @@ describe('WhatsappBotRuntimeService report intake', () => {
       remoteJid: '6281234567890@s.whatsapp.net',
       senderPhone: '6281234567890',
       jaringId: 'source-id',
-      jaringCode: '123456',
+      jaringIdentifier: 'Jaring Alpha',
       jaringLabel: 'Pelapor 001',
       fieldOfficerAssignmentId: 'assignment-id',
-      step: 'AWAITING_CODE',
+      step: 'AWAITING_LIVE_LOCATION',
       startedAt: new Date(),
     };
     const channel = { id: 'channel-id', config: {} };
     const socket = {};
-
-    await advanceReportSession(
-      channel,
-      socket,
-      {
-        key: { remoteJid: session.remoteJid },
-        message: { conversation: '123456' },
-      },
-      {
-        externalMessageId: 'pin-message-id',
-        senderPhone: session.senderPhone,
-        receivedAt: '2026-07-15T10:00:00.000Z',
-        content: '123456',
-      },
-      session,
-      'session-key',
-    );
-
-    expect(session.step).toBe('AWAITING_LIVE_LOCATION');
-    expect(sendHumanLikeReplies).toHaveBeenLastCalledWith(
-      socket,
-      session.remoteJid,
-      expect.anything(),
-      expect.arrayContaining([expect.stringContaining('Live Location')]),
-    );
 
     await advanceReportSession(
       channel,
@@ -492,7 +467,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
         fieldOfficerAssignmentId: 'assignment-id',
         title: 'Laporan Jaring',
         content: 'Isi laporan',
-        jaringCode: '123',
+        jaringIdentifier: 'Jaring Alpha',
         jaringLabel: 'Jaring 123',
         startedAt: new Date('2026-07-14T02:10:00.000Z'),
       },

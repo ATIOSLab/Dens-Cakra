@@ -1231,11 +1231,10 @@ export class TaskService {
       },
       select: {
         id: true,
-        code: true,
         aliasName: true,
         whatsappNumber: true,
       },
-      orderBy: [{ aliasName: 'asc' }, { code: 'asc' }],
+      orderBy: [{ aliasName: 'asc' }, { id: 'asc' }],
     });
 
     if (body.jaringIds?.length && jaring.length !== body.jaringIds.length) {
@@ -1256,7 +1255,6 @@ export class TaskService {
 
     const recipients = jaring.map((item) => ({
       id: item.id,
-      code: item.code,
       aliasName: item.aliasName,
       whatsappNumber: item.whatsappNumber,
     }));

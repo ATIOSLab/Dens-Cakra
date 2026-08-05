@@ -246,7 +246,7 @@ export function JaringDistributionClient({
       }
 
       if (query) {
-        const text = `${agent.code} ${agent.fullName || ""} ${agent.aliasName || ""} ${agent.villageName} ${agent.districtName}`.toLowerCase();
+        const text = `${agent.fullName || ""} ${agent.aliasName || ""} ${agent.villageName} ${agent.districtName}`.toLowerCase();
         if (!text.includes(query)) return false;
       }
 

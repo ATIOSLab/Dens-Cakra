@@ -434,10 +434,10 @@ describe('JaringService registration security', () => {
     expect(auditCreate).not.toHaveBeenCalled();
   });
 
-  it('membuat PIN enam digit otomatis tanpa pemeriksaan duplikasi kode', async () => {
+  it('membuat Jaring tanpa PIN individual dan tetap menghasilkan alias', async () => {
     const createdJaring = { id: 'new-jaring-id' };
     type JaringCreateInput = {
-      data: { code: string; aliasName: string };
+      data: { aliasName: string };
     };
     const prisma = {
       jaring: {
@@ -508,7 +508,7 @@ describe('JaringService registration security', () => {
     } as never);
 
     const createInput = prisma.jaring.create.mock.calls[0]?.[0];
-    expect(createInput.data.code).toMatch(/^\d{6}$/);
+    expect(createInput.data).not.toHaveProperty('code');
     expect(createInput.data.aliasName).toMatch(/^[0-9A-F]{8}(01|08)\d{4}$/);
     expect(createInput.data.address).toBe(
       'Jl. Tebet Timur Dalam No. 10, Jakarta Selatan',
@@ -610,40 +610,6 @@ describe('JaringService registration security', () => {
     });
   });
 
-  it('membuat ulang PIN enam digit dan menyimpan audit', async () => {
-    type JaringUpdateInput = {
-      data: { code: string };
-    };
-    const update = jest.fn((input: JaringUpdateInput) => Promise.resolve({}));
-    const findFirstOrThrow = jest.fn(() =>
-      Promise.resolve({ id: 'jaring-id', code: '123456' }),
-    );
-    const auditCreate = jest.fn(() => Promise.resolve({}));
-    const assertJaring = jest.fn(() => Promise.resolve());
-    const service = new JaringService(
-      {
-        jaring: { update, findFirstOrThrow },
-        auditLog: { create: auditCreate },
-      } as never,
-      { assertJaring } as never,
-    );
-
-    await service.regeneratePin('jaring-id', {
-      userProfileId: 'profile-id',
-      primaryAssignmentId: 'assignment-id',
-    } as never);
-
-    expect(assertJaring).toHaveBeenCalledWith(expect.anything(), 'jaring-id');
-    const updateInput = update.mock.calls[0]?.[0];
-    expect(updateInput.data.code).toMatch(/^\d{6}$/);
-    expect(auditCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        action: 'JARING.PIN_REGENERATE',
-        entityId: 'jaring-id',
-      }),
-    });
-  });
-
   it('menampilkan laporan yang pernah dibuat oleh Jaring dengan pagination', async () => {
     const assertJaring = jest.fn(() => Promise.resolve());
     const findMany = jest.fn(() =>
@@ -653,14 +619,13 @@ describe('JaringService registration security', () => {
           jaringId: 'jaring-id',
           currentState: 'SUBMITTED',
           status: 'SUBMITTED',
-          title: 'Laporan Situasi Pasar',
-          content: 'Aktivitas meningkat pada pagi hari.',
+          content: 'Aktivitas meningkat pada pagi hari di pasar utama',
           latitude: '1.2345678',
           longitude: '104.1234567',
           locationAccuracyMeters: '8.5',
           locationCapturedAt: new Date('2026-07-31T01:00:00.000Z'),
           locationType: 'live',
-          incidentAt: new Date('2026-07-31T00:30:00.000Z'),
+          locationMessageId: 'location-message-id',
           timezone: 'Asia/Jakarta',
           referenceNumber: 'DC-20260731-0001',
           startedAt: new Date('2026-07-31T00:00:00.000Z'),
@@ -673,8 +638,7 @@ describe('JaringService registration security', () => {
           submittedMessage: {
             id: 'message-id',
             referenceNumber: 'DC-20260731-0001',
-            title: 'Laporan Situasi Pasar',
-            content: 'Aktivitas meningkat pada pagi hari.',
+            content: 'Aktivitas meningkat pada pagi hari di pasar utama',
             status: 'RECEIVED',
             validationSummary: 'NOT_CHECKED',
             receivedAt: new Date('2026-07-31T01:10:00.000Z'),
@@ -698,9 +662,9 @@ describe('JaringService registration security', () => {
                 {
                   id: 'version-id',
                   versionNumber: 1,
-                  title: 'Laporan Situasi Pasar',
+                  originalContent: 'Aktivitas meningkat pada pagi hari di pasar utama',
                   urgency: 'MEDIUM',
-                  eventTime: new Date('2026-07-31T00:30:00.000Z'),
+                  createdAt: new Date('2026-07-31T01:10:00.000Z'),
                   coverageValidationStatus: 'PENDING',
                   eventArea: null,
                 },
@@ -708,6 +672,29 @@ describe('JaringService registration security', () => {
             },
             _count: { media: 2, reportAmendments: 1 },
           },
+          contentParts: [
+            {
+              id: 'part-id',
+              externalMessageId: 'text-message-id',
+              content: 'Aktivitas meningkat pada pagi hari di pasar utama',
+              createdAt: new Date('2026-07-31T00:45:00.000Z'),
+            },
+          ],
+          media: [
+            {
+              id: 'report-media-id',
+              externalMessageId: 'media-message-id',
+              fileId: 'file-id',
+              mediaType: 'PHOTO',
+              caption: 'Dokumentasi pasar',
+              createdAt: new Date('2026-07-31T00:50:00.000Z'),
+              file: {
+                id: 'file-id',
+                originalName: 'pasar.jpg',
+                mimeType: 'image/jpeg',
+              },
+            },
+          ],
           _count: { contentParts: 1, media: 2, amendments: 1 },
         },
       ]),
@@ -752,7 +739,14 @@ describe('JaringService registration security', () => {
       reportCategory: { id: 'category-id', name: 'Situasi' },
       baket: { id: 'baket-id', currentVersionNumber: 1 },
       counts: { contentParts: 1, media: 2, amendments: 1 },
+      displayTitle: 'Aktivitas meningkat pada pagi hari di…',
+      reportedAt: new Date('2026-07-31T01:10:00.000Z'),
     });
+    expect(result.items[0].messages.map((item) => item.kind)).toEqual([
+      'TEXT',
+      'IMAGE',
+      'LIVE_LOCATION',
+    ]);
     expect(result.items[0].location).toMatchObject({
       latitude: 1.2345678,
       longitude: 104.1234567,
@@ -767,14 +761,12 @@ describe('JaringService registration security', () => {
       jaringId: 'jaring-id',
       currentState: 'SUBMITTED',
       status: 'SUBMITTED',
-      title: 'Laporan Situasi Pasar',
       content: 'Aktivitas meningkat pada pagi hari.',
       latitude: null,
       longitude: null,
       locationAccuracyMeters: null,
       locationCapturedAt: null,
       locationType: null,
-      incidentAt: null,
       timezone: 'Asia/Jakarta',
       referenceNumber: 'DC-20260731-0001',
       startedAt: new Date('2026-07-31T00:00:00.000Z'),

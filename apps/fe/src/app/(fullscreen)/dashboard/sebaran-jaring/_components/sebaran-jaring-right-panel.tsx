@@ -103,7 +103,7 @@ export function SebaranJaringRightPanel({
         {filteredAgents.map((agent) => {
           const isSelected = selectedJaring?.id === agent.id;
           const statusMeta = STATUS_COLORS[agent.status] || STATUS_COLORS.PENDING;
-          const primaryDisplayCode = agent.aliasName || agent.code;
+          const primaryDisplayCode = agent.aliasName || agent.fullName || agent.id;
 
           return (
             <div
@@ -119,7 +119,7 @@ export function SebaranJaringRightPanel({
                 {agent.profilePhotoFileId ? (
                   <img
                     src={`/api/files/${agent.profilePhotoFileId}`}
-                    alt={agent.fullName || agent.code}
+                    alt={agent.fullName || agent.aliasName || agent.id}
                     className="size-full object-cover"
                   />
                 ) : (
@@ -183,7 +183,7 @@ export function SebaranJaringRightPanel({
         <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-950/95 p-3.5 space-y-3 shrink-0 shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono font-bold text-sm text-slate-900 dark:text-slate-100">{selectedJaring.aliasName || selectedJaring.code}</span>
+              <span className="font-mono font-bold text-sm text-slate-900 dark:text-slate-100">{selectedJaring.aliasName || selectedJaring.fullName || selectedJaring.id}</span>
               <Badge className={cn("text-[10px] px-1.5 py-0 border-none font-semibold text-slate-950", STATUS_COLORS[selectedJaring.status]?.dotClass || "bg-emerald-500")}>
                 {STATUS_COLORS[selectedJaring.status]?.label || "Terverifikasi"}
               </Badge>

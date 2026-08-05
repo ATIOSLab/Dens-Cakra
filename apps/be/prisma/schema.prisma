@@ -1122,7 +1122,6 @@ model TaskAttachment {
 
 model Jaring {
   id                     String                   @id @default(uuid()) @db.Uuid
-  code                   String                   @db.VarChar(80)
   aliasName              String?                  @db.VarChar(150)
   whatsappNumber         String                   @db.VarChar(30)
   fullName               String?                  @db.VarChar(180)
@@ -1166,7 +1165,6 @@ model Jaring {
   @@index([status, deletedAt])
   @@index([registrationStatus, createdAt])
   @@index([reviewedByAssignmentId])
-  @@index([code])
   @@index([occupationId])
   @@index([profilePhotoFileId])
 }
@@ -1258,7 +1256,6 @@ model WhatsAppMessage {
   jaringId                         String?                              @db.Uuid
   categoryId                       String?                              @db.Uuid
   routedToFieldOfficerAssignmentId String?                              @db.Uuid
-  title                            String?                              @db.VarChar(300)
   content                          String?                              @db.Text
   referenceNumber                  String?                              @unique @db.VarChar(24)
   latitude                         Decimal?                             @db.Decimal(10, 7)
@@ -1352,7 +1349,6 @@ model WhatsAppReportSession {
   fieldOfficerAssignmentId String                      @db.Uuid
   currentState             WhatsAppReportSessionState
   status                   WhatsAppReportSessionStatus @default(ACTIVE)
-  title                    String?                     @db.VarChar(150)
   content                  String?                     @db.Text
   latitude                 Decimal?                    @db.Decimal(10, 7)
   longitude                Decimal?                    @db.Decimal(10, 7)
@@ -1360,7 +1356,6 @@ model WhatsAppReportSession {
   locationCapturedAt       DateTime?
   locationMessageId        String?                     @db.VarChar(255)
   locationType             String?                     @db.VarChar(40)
-  incidentAt               DateTime?
   timezone                 String                      @default("Asia/Jakarta") @db.VarChar(60)
   returnToReview           Boolean                     @default(false)
   resumeState              WhatsAppReportSessionState?
@@ -1507,10 +1502,8 @@ model BaketVersion {
   id                       String                               @id @default(uuid()) @db.Uuid
   baketId                  String                               @db.Uuid
   versionNumber            Int
-  title                    String                               @db.VarChar(300)
   originalContent          String                               @db.Text
   normalizedContent        String?                              @db.Text
-  eventTime                DateTime?
   eventAreaId              String?                              @db.Uuid
   latitude                 Decimal?                             @db.Decimal(10, 7)
   longitude                Decimal?                             @db.Decimal(10, 7)
@@ -1543,7 +1536,7 @@ model BaketVersion {
   attachments        BaketVersionAttachment[]
 
   @@unique([baketId, versionNumber])
-  @@index([eventAreaId, eventTime])
+  @@index([eventAreaId])
   @@index([coverageValidationStatus, createdAt])
 }
 

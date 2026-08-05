@@ -279,7 +279,6 @@ export class WhatsAppService {
       (typeof rawPayload?.photoMessageId === 'string' &&
         rawPayload.photoMessageId.length > 0);
     const issues = [
-      ...(!message.title ? [['MISSING_TITLE', 'Judul wajib tersedia']] : []),
       ...(!message.content ? [['MISSING_CONTENT', 'Isi wajib tersedia']] : []),
       ...(!message.senderPhone
         ? [['MISSING_SOURCE', 'Identitas pengirim wajib tersedia']]
@@ -557,13 +556,9 @@ export class WhatsAppService {
           versions: {
             create: {
               versionNumber: 1,
-              title: body.title?.trim() || message.title || 'Laporan Jaring',
               originalContent: message.content ?? '',
               normalizedContent:
                 body.normalizedContent?.trim() || message.content,
-              eventTime: body.eventTime
-                ? new Date(body.eventTime)
-                : (message.locationCapturedAt ?? message.receivedAt),
               eventAreaId,
               latitude: message.latitude,
               longitude: message.longitude,

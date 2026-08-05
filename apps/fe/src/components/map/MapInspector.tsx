@@ -218,7 +218,7 @@ function ReportInspector({ selection }: { selection: Extract<SelectionType, { ki
     <div className="space-y-3 font-mono">
       <div className="mb-2 flex items-center gap-2 border-border/20 border-b pb-2">
         <FileText className="size-4 shrink-0 text-emerald-500" />
-        <span className="font-bold font-sans text-foreground text-sm">{properties.title || "Baket terpetakan"}</span>
+        <span className="font-bold font-sans text-foreground text-sm">{properties.displayTitle || "Baket terpetakan"}</span>
       </div>
 
       {selection.loading && (
@@ -247,7 +247,7 @@ function ReportInspector({ selection }: { selection: Extract<SelectionType, { ki
 
       <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
         <DataField label="Wilayah Kejadian" value={properties.areaName || "-"} breakWords />
-        <DataField label="Waktu Kejadian" value={formatReportDateTime(properties.eventTime)} />
+        <DataField label="Waktu Pelaporan" value={formatReportDateTime(properties.reportedAt)} />
       </div>
 
       <div className="space-y-1 border-t border-border/20 pt-2">

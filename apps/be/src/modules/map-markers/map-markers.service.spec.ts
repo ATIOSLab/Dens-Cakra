@@ -58,9 +58,7 @@ describe('MapMarkersService', () => {
             versions: [
               {
                 id: 'version',
-                title: 'Aksi massa di pusat kota',
                 versionNumber: 1,
-                eventTime: new Date('2026-07-13T09:00:00.000Z'),
                 eventAreaId: BANDUNG.id,
                 latitude: -6.9175,
                 longitude: 107.6191,

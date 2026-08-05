@@ -124,7 +124,7 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
               </span>
             </div>
             <h1 className="font-semibold text-[var(--tactical-text-primary)] text-2xl tracking-tight">
-              {message.title || message.jaringAlias}
+              {message.displayTitle || message.jaringAlias}
             </h1>
           </div>
         </div>
@@ -162,8 +162,8 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
                 <span>{formatDateTime(message.receivedAt)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border(--tactical-border)/50">
-                <span className="text-[var(--tactical-text-secondary)]">WAKTU KEJADIAN</span>
-                <span>{formatDateTime(message.eventDateTime)}</span>
+                <span className="text-[var(--tactical-text-secondary)]">WAKTU PELAPORAN</span>
+                <span>{formatDateTime(message.reportedAt)}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-[var(--tactical-text-secondary)]">GPS TIME</span>
@@ -192,7 +192,7 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
                       >
                         <EvidenceImageViewer
                           src={file.url}
-                          alt={`Dokumentasi ${index + 1} ${message.title || message.jaringAlias}`}
+                          alt={`Dokumentasi ${index + 1} ${message.displayTitle || message.jaringAlias}`}
                           fileName={file.originalName || file.fileId}
                           caption={file.caption || `Dokumentasi ${index + 1} · Jaring ${message.jaringCode}`}
                         />
@@ -203,7 +203,7 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
                   <div className="max-w-xs overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm">
                     <EvidenceImageViewer
                       src={message.photoUrl}
-                      alt={`Foto bukti ${message.title || message.jaringAlias}`}
+                      alt={`Foto bukti ${message.displayTitle || message.jaringAlias}`}
                       fileName={message.photoFileId || `${message.id}.jpg`}
                       caption={message.photoCaption || `Jaring ${message.jaringCode}`}
                     />
@@ -260,7 +260,7 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
                 <LeafletLocationPreview
                   latitude={message.latitude}
                   longitude={message.longitude}
-                  title={message.title || message.jaringAlias}
+                  title={message.displayTitle || message.jaringAlias}
                 />
               </a>
             </div>

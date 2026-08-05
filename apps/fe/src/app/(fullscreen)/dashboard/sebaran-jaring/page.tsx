@@ -153,7 +153,6 @@ function distributionEntry(item: RegistrationJaring, index: number, districtLat:
 
   return {
     id: item.id,
-    code: item.code,
     aliasName: item.aliasName,
     fullName: item.fullName,
     gender: item.gender,

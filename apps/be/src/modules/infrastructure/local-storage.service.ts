@@ -5,7 +5,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { env } from '../../lib/env.js';
@@ -96,6 +96,10 @@ export class LocalStorageService implements OnModuleInit {
     const filePath = this.resolvePath(storageKey);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, body, { flag: 'wx' });
+  }
+
+  async remove(storageKey: string): Promise<void> {
+    await rm(this.resolvePath(storageKey), { force: true });
   }
 
   async inspect(

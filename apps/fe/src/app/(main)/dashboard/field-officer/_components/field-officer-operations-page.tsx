@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
@@ -10,10 +10,8 @@ import {
   CheckCircle2,
   Clock,
   Columns3,
-  Copy,
   Crosshair,
   Eye,
-  EyeOff,
   Inbox,
   MapPin,
   Network,
@@ -117,7 +115,6 @@ const EMPTY_BAKET_FILTERS = {
 };
 
 type JaringColumnKey =
-  | "pin"
   | "alias"
   | "name"
   | "whatsapp"
@@ -128,7 +125,6 @@ type JaringColumnKey =
   | "kinerja";
 
 const JARING_COLUMN_OPTIONS: Array<{ key: JaringColumnKey; label: string }> = [
-  { key: "pin", label: "PIN" },
   { key: "alias", label: "Alias / Nama Sandi" },
   { key: "name", label: "Nama" },
   { key: "whatsapp", label: "WhatsApp" },
@@ -348,6 +344,7 @@ export function FieldOfficerOperationsPage({
   const [error, setError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const workspaceRequestInFlight = useRef(false);
   const [isBusy, setIsBusy] = useState<string | null>(null);
   const [baketTab, setBaketTab] = useState(
     view === "reports" ? "sent" : "ready-to-send",
@@ -362,13 +359,6 @@ export function FieldOfficerOperationsPage({
   >("desc");
   const [forwardedAssignments, setForwardedAssignments] = useState<string[]>(
     [],
-  );
-  const [createdJaring, setCreatedJaring] = useState<{
-    aliasName: string;
-    pin: string;
-  } | null>(null);
-  const [visibleJaringPins, setVisibleJaringPins] = useState<Set<string>>(
-    () => new Set(),
   );
   const [baketFilterDraft, setBaketFilterDraft] = useState(EMPTY_BAKET_FILTERS);
   const [appliedBaketFilters, setAppliedBaketFilters] =
@@ -419,7 +409,6 @@ export function FieldOfficerOperationsPage({
         const matchesSearch =
           item.aliasName.toLowerCase().includes(q) ||
           item.whatsappNumber.includes(q) ||
-          item.code.toLowerCase().includes(q) ||
           (item.fullName || "").toLowerCase().includes(q) ||
           (item.address || "").toLowerCase().includes(q);
         if (!matchesSearch) return false;
@@ -588,9 +577,11 @@ export function FieldOfficerOperationsPage({
   }, []);
 
   const loadWorkspace = useCallback(
-    async (filters = appliedBaketFilters) => {
+    async (filters = appliedBaketFilters, silent = false) => {
+      if (workspaceRequestInFlight.current) return;
+      workspaceRequestInFlight.current = true;
       try {
-        setIsLoading(true);
+        if (!silent) setIsLoading(true);
         const params = new URLSearchParams();
         if (filters.categoryId) params.set("categoryId", filters.categoryId);
         if (filters.from) params.set("from", filters.from);
@@ -622,7 +613,8 @@ export function FieldOfficerOperationsPage({
             : "Gagal memuat workspace field officer.",
         );
       } finally {
-        setIsLoading(false);
+        workspaceRequestInFlight.current = false;
+        if (!silent) setIsLoading(false);
       }
     },
     [appliedBaketFilters],
@@ -630,6 +622,12 @@ export function FieldOfficerOperationsPage({
 
   useEffect(() => {
     void loadWorkspace(appliedBaketFilters);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadWorkspace(appliedBaketFilters, true);
+      }
+    }, 5_000);
+    return () => window.clearInterval(interval);
   }, [appliedBaketFilters, loadWorkspace]);
 
   const metrics = useMemo(() => {
@@ -838,51 +836,6 @@ export function FieldOfficerOperationsPage({
     });
   };
 
-  const copyCreatedJaringPin = async () => {
-    if (!createdJaring) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(createdJaring.pin);
-      toast.success("PIN Jaring berhasil disalin.");
-    } catch {
-      toast.error(
-        "PIN tidak dapat disalin otomatis. Silakan salin secara manual.",
-      );
-    }
-  };
-
-  const regenerateJaringPin = async (jaring: FieldOfficerJaring) => {
-    await runAction(`jaring:${jaring.id}:regenerate-pin`, async () => {
-      const response = await fetch(
-        `/api/field-officer/jaring/${jaring.id}/regenerate-pin`,
-        {
-          method: "POST",
-        },
-      );
-      const body = (await response.json().catch(() => null)) as {
-        code?: string;
-        aliasName?: string | null;
-        message?: string;
-      } | null;
-
-      if (!response.ok || !body?.code) {
-        throw new Error(body?.message || "Gagal membuat ulang PIN Jaring.");
-      }
-
-      setVisibleJaringPins((current) => {
-        const next = new Set(current);
-        next.delete(jaring.id);
-        return next;
-      });
-      setCreatedJaring({
-        aliasName: body.aliasName || jaring.aliasName,
-        pin: body.code,
-      });
-    });
-  };
-
   const updateTaskStatus = async (
     assignmentId: string,
     nextStatus: "READ" | "ACKNOWLEDGED" | "IN_PROGRESS" | "COMPLETED",
@@ -939,11 +892,9 @@ export function FieldOfficerOperationsPage({
     payload: {
       categoryId: string;
       urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
-      title?: string;
       normalizedContent?: string;
       fieldOfficerNote?: string;
       taskAssignmentId?: string;
-      eventTime?: string;
     },
   ) => {
     await runAction(`baket:${messageId}`, async () => {
@@ -1084,7 +1035,7 @@ export function FieldOfficerOperationsPage({
         kind: "incoming" as const,
         latitude: item.latitude as number,
         longitude: item.longitude as number,
-        title: item.title || item.jaringAlias,
+        title: item.displayTitle || item.jaringAlias,
         subtitle: `${item.jaringCode} • ${item.status}`,
       }));
 
@@ -1626,56 +1577,6 @@ export function FieldOfficerOperationsPage({
             </div>
 
             <div>
-              <Dialog
-                open={createdJaring !== null}
-                onOpenChange={(open) => {
-                  if (!open) {
-                    setCreatedJaring(null);
-                  }
-                }}
-              >
-                <DialogContent className="border-emerald-500/30 bg-[var(--tactical-card-bg)] font-mono sm:max-w-md">
-                  <DialogHeader className="items-center text-center">
-                    <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="size-8" />
-                    </div>
-                    <DialogTitle>Jaring Berhasil Ditambahkan</DialogTitle>
-                    <DialogDescription>
-                      Kirimkan PIN berikut kepada{" "}
-                      {createdJaring?.aliasName || "Jaring"} untuk proses
-                      verifikasi bot.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] px-6 py-5 text-center">
-                    <p className="mb-2 text-[11px] text-[var(--tactical-text-muted)] uppercase tracking-[0.22em]">
-                      PIN Jaring
-                    </p>
-                    <p className="select-all font-bold text-4xl text-[var(--tactical-text-primary)] tracking-[0.3em]">
-                      {createdJaring?.pin}
-                    </p>
-                  </div>
-
-                  <DialogFooter className="mx-0 mb-0 px-0">
-                    <button
-                      type="button"
-                      onClick={() => setCreatedJaring(null)}
-                      className="h-10 rounded-[4px] border border-[var(--tactical-border)] px-4 font-semibold text-[var(--tactical-text-secondary)] text-xs uppercase"
-                    >
-                      Tutup
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void copyCreatedJaringPin()}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-[4px] bg-[#16A34A] px-4 font-semibold text-white text-xs uppercase hover:bg-[#15803D]"
-                    >
-                      <Copy className="size-4" />
-                      Salin PIN
-                    </button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
               {/* Jaring Binaan List */}
               <div className="space-y-4">
                 {workspace.jaring.length === 0 ? (
@@ -1856,9 +1757,6 @@ export function FieldOfficerOperationsPage({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              {visibleJaringColumns.has("pin") && (
-                                <TableHead>PIN</TableHead>
-                              )}
                               {visibleJaringColumns.has("alias") && (
                                 <TableHead>Alias / Nama Sandi</TableHead>
                               )}
@@ -1889,48 +1787,6 @@ export function FieldOfficerOperationsPage({
                           <TableBody>
                             {paginatedJaring.map((jaring) => (
                               <TableRow key={jaring.id}>
-                                {visibleJaringColumns.has("pin") && (
-                                  <TableCell>
-                                    <div className="flex items-center gap-2 font-mono font-semibold">
-                                      <span className="min-w-16 tracking-[0.12em]">
-                                        {visibleJaringPins.has(jaring.id)
-                                          ? jaring.code
-                                          : "******"}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        title={
-                                          visibleJaringPins.has(jaring.id)
-                                            ? "Sembunyikan PIN"
-                                            : "Tampilkan PIN"
-                                        }
-                                        aria-label={
-                                          visibleJaringPins.has(jaring.id)
-                                            ? "Sembunyikan PIN"
-                                            : "Tampilkan PIN"
-                                        }
-                                        onClick={() =>
-                                          setVisibleJaringPins((current) => {
-                                            const next = new Set(current);
-                                            if (next.has(jaring.id)) {
-                                              next.delete(jaring.id);
-                                            } else {
-                                              next.add(jaring.id);
-                                            }
-                                            return next;
-                                          })
-                                        }
-                                        className="rounded p-1 text-[var(--tactical-text-muted)] hover:bg-black/5 hover:text-[var(--tactical-text-primary)] dark:hover:bg-white/5"
-                                      >
-                                        {visibleJaringPins.has(jaring.id) ? (
-                                          <EyeOff className="size-4" />
-                                        ) : (
-                                          <Eye className="size-4" />
-                                        )}
-                                      </button>
-                                    </div>
-                                  </TableCell>
-                                )}
                                 {visibleJaringColumns.has("alias") && (
                                   <TableCell>
                                     <div className="font-semibold text-[var(--tactical-text-primary)]">
@@ -2019,25 +1875,6 @@ export function FieldOfficerOperationsPage({
                                         ? "Revisi Data"
                                         : "Edit"}
                                     </Link>
-                                    <button
-                                      disabled={
-                                        isBusy ===
-                                        `jaring:${jaring.id}:regenerate-pin`
-                                      }
-                                      onClick={() =>
-                                        requestConfirmation({
-                                          title: "KONFIRMASI PERBARUI PIN",
-                                          description: `Buat PIN baru untuk ${jaring.aliasName}? PIN lama langsung tidak dapat digunakan lagi.`,
-                                          confirmLabel: "YA, BUAT PIN BARU",
-                                          onConfirm: () =>
-                                            void regenerateJaringPin(jaring),
-                                        })
-                                      }
-                                      className="inline-flex h-8 items-center gap-1.5 rounded-[4px] border border-sky-600 px-3 font-mono font-semibold text-[11px] text-sky-700 uppercase hover:bg-sky-500/10 disabled:opacity-50 dark:text-sky-400"
-                                    >
-                                      <RefreshCw className="size-3.5" />
-                                      Perbarui PIN
-                                    </button>
                                     <button
                                       disabled={
                                         isBusy === `jaring:${jaring.id}:delete`
@@ -2151,7 +1988,7 @@ export function FieldOfficerOperationsPage({
                                 href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}
                                 className="block truncate font-semibold text-[var(--tactical-text-primary)] hover:text-[var(--tactical-blue)] hover:underline"
                               >
-                                {message.title || message.jaringAlias}
+                                {message.displayTitle || message.jaringAlias}
                               </Link>
                               <p className="mt-1 line-clamp-2 text-[var(--tactical-text-secondary)] text-xs">
                                 {message.content ||
@@ -2184,7 +2021,7 @@ export function FieldOfficerOperationsPage({
                               </span>
                               <span className="block">
                                 Kejadian:{" "}
-                                {formatDateTime(message.eventDateTime)}
+                                {formatDateTime(message.reportedAt)}
                               </span>
                             </TableCell>
                             <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
@@ -2485,7 +2322,7 @@ export function FieldOfficerOperationsPage({
                                         <TableCell className="min-w-0 py-4 pl-4">
                                           <div className="space-y-1">
                                             <p className="truncate font-semibold text-[var(--tactical-text-primary)]">
-                                              {baket.currentVersionTitle ||
+                                              {baket.currentVersionDisplayTitle ||
                                                 "Tanpa judul versi aktif"}
                                             </p>
                                             <p className="font-mono text-[10px] text-[var(--tactical-text-muted)]">
@@ -2564,7 +2401,7 @@ export function FieldOfficerOperationsPage({
                                       </span>
                                     </div>
                                     <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
-                                      {baket.currentVersionTitle ||
+                                      {baket.currentVersionDisplayTitle ||
                                         "Tanpa judul versi aktif"}
                                     </h3>
                                     <p className="text-[var(--tactical-text-secondary)] text-sm">
@@ -2678,7 +2515,7 @@ export function FieldOfficerOperationsPage({
                               >
                                 <TableCell className="min-w-0 py-4 pl-4">
                                   <p className="truncate font-semibold text-[var(--tactical-text-primary)]">
-                                    {baket.currentVersionTitle ||
+                                    {baket.currentVersionDisplayTitle ||
                                       "Tanpa judul versi aktif"}
                                   </p>
                                 </TableCell>
@@ -2750,7 +2587,7 @@ export function FieldOfficerOperationsPage({
                               </span>
                             </div>
                             <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
-                              {baket.currentVersionTitle ||
+                              {baket.currentVersionDisplayTitle ||
                                 "Tanpa judul versi aktif"}
                             </h3>
                             <p className="text-[var(--tactical-text-secondary)] text-sm">
@@ -3479,9 +3316,7 @@ function TaskCard({
                           className="flex justify-between gap-3 py-1"
                         >
                           <span>{item.aliasName}</span>
-                          <span className="text-[var(--tactical-text-muted)]">
-                            {item.code}
-                          </span>
+                          <span className="text-[var(--tactical-text-muted)]">{item.fullName || item.id}</span>
                         </div>
                       ))}
                     </div>
@@ -3611,11 +3446,9 @@ function BaketCandidateForm({
   onCreate: (payload: {
     categoryId: string;
     urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
-    title?: string;
     normalizedContent?: string;
     fieldOfficerNote?: string;
     taskAssignmentId?: string;
-    eventTime?: string;
   }) => Promise<void>;
 }) {
   const [categoryId, setCategoryId] = useState("");
@@ -3624,22 +3457,13 @@ function BaketCandidateForm({
   );
   const [urgencyConfirmed, setUrgencyConfirmed] = useState(false);
   const [showCreateConfirm, setShowCreateConfirm] = useState(false);
-  const [title, setTitle] = useState(message.title || "");
   const [normalizedContent, setNormalizedContent] = useState(
     message.content || "",
   );
   const [fieldOfficerNote, setFieldOfficerNote] = useState("");
   const [taskAssignmentId, setTaskAssignmentId] = useState("");
-  const [eventTime, setEventTime] = useState(() => {
-    if (!message.eventDateTime) return "";
-    const date = new Date(message.eventDateTime);
-    const localDate = new Date(
-      date.getTime() - date.getTimezoneOffset() * 60000,
-    );
-    return localDate.toISOString().slice(0, 16);
-  });
   const canCreate = Boolean(
-    categoryId && urgencyConfirmed && title.trim() && normalizedContent.trim(),
+    categoryId && urgencyConfirmed && normalizedContent.trim(),
   );
 
   return (
@@ -3706,7 +3530,7 @@ function BaketCandidateForm({
               <div className="max-w-56 overflow-hidden rounded-lg border border-[var(--tactical-border)] bg-black/10 shadow-sm dark:bg-white/[0.01]">
                 <EvidenceImageViewer
                   src={message.photoUrl}
-                  alt={`Evidence ${message.title || message.jaringAlias}`}
+                  alt={`Evidence ${message.displayTitle || message.jaringAlias}`}
                   fileName={`${message.id}.jpg`}
                   caption={`Jaring ${message.jaringCode}`}
                 />
@@ -3724,7 +3548,7 @@ function BaketCandidateForm({
                   latitude={message.latitude}
                   longitude={message.longitude}
                   title={
-                    message.title ||
+                    message.displayTitle ||
                     message.jaringAlias ||
                     "Lokasi laporan jaring"
                   }
@@ -3751,7 +3575,7 @@ function BaketCandidateForm({
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[10px] text-[var(--tactical-text-muted)]">
             <span>SENDER: {message.senderPhone}</span>
             <span>INCOMING: {formatDateTime(message.receivedAt)}</span>
-            <span>EVENT: {formatDateTime(message.eventDateTime)}</span>
+            <span>DILAPORKAN: {formatDateTime(message.reportedAt)}</span>
             <span>AREA: {message.areaName || "-"}</span>
           </div>
         </div>
@@ -3807,18 +3631,6 @@ function BaketCandidateForm({
 
           <div className="space-y-2">
             <label className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
-              JUDUL BAKET <span className="text-[var(--tactical-red)]">*</span>
-            </label>
-            <Input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Masukkan judul laporan formal..."
-              className="tactical-input w-full"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
               ISI NORMALISASI LAPORAN{" "}
               <span className="text-[var(--tactical-red)]">*</span>
             </label>
@@ -3831,18 +3643,6 @@ function BaketCandidateForm({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
-                WAKTU KEJADIAN
-              </label>
-              <Input
-                type="datetime-local"
-                value={eventTime}
-                onChange={(event) => setEventTime(event.target.value)}
-                className="tactical-input w-full font-mono text-xs"
-              />
-            </div>
-
             <div className="space-y-2">
               <label className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
                 TUGAS OPERASIONAL TERKAIT
@@ -3928,13 +3728,9 @@ function BaketCandidateForm({
                     void onCreate({
                       categoryId,
                       urgency,
-                      title: title.trim(),
                       normalizedContent: normalizedContent.trim(),
                       fieldOfficerNote: fieldOfficerNote.trim() || undefined,
                       taskAssignmentId: taskAssignmentId || undefined,
-                      eventTime: eventTime
-                        ? new Date(eventTime).toISOString()
-                        : undefined,
                     });
                   }}
                   className="h-9 cursor-pointer rounded-[4px] bg-[#16A34A] px-4 font-semibold text-white text-xs uppercase tracking-wider hover:bg-[#15803D]"

@@ -36,6 +36,7 @@ export type FieldOfficerTask = {
 
 export type FieldOfficerJaring = {
   id: string;
+  /** Compatibility label for the shared picker; derived from alias/id, not a database PIN. */
   code: string;
   aliasName: string;
   whatsappNumber: string;
@@ -90,7 +91,7 @@ export type FieldOfficerIncoming = {
   jaringCode: string;
   jaringAlias: string;
   senderPhone: string;
-  title: string | null;
+  displayTitle: string;
   content: string | null;
   contentAmendments: Array<{
     id: string;
@@ -104,7 +105,7 @@ export type FieldOfficerIncoming = {
   categoryName: string | null;
   urgency: string | null;
   receivedAt: string;
-  eventDateTime: string | null;
+  reportedAt: string;
   gpsSharedAt: string | null;
   processedAt: string | null;
   reportTimestamp: string | null;
@@ -135,7 +136,7 @@ export type FieldOfficerBaket = {
   primaryJaringCode: string | null;
   primaryJaringAlias: string | null;
   currentVersionId: string | null;
-  currentVersionTitle: string | null;
+  currentVersionDisplayTitle: string;
   summary: string | null;
   categoryName: string | null;
   urgency: string | null;
@@ -160,7 +161,6 @@ export type JaringInstructionDispatch = {
   recipientCount: number;
   recipients: Array<{
     id: string;
-    code: string;
     aliasName: string | null;
     whatsappNumber: string;
   }>;

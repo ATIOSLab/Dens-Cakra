@@ -28,7 +28,6 @@ type AccessMeResponse = {
 
 type JaringRecord = {
   id: string;
-  code: string;
   aliasName: string;
   whatsappNumber: string;
   status: string;
@@ -87,7 +86,6 @@ type MessageRecord = {
   id: string;
   referenceNumber?: string | null;
   senderPhone: string;
-  title?: string | null;
   content?: string | null;
   status: string;
   validationSummary: string;
@@ -107,7 +105,6 @@ type MessageRecord = {
   } | null;
   jaring?: {
     id: string;
-    code: string;
     aliasName?: string | null;
   } | null;
   receivedAt: string;
@@ -135,6 +132,31 @@ type MessageRecord = {
     amendmentType: string;
     content?: string | null;
     createdAt: string;
+  }>;
+};
+
+type JaringReportSessionRecord = {
+  id: string;
+  jaringId: string;
+  referenceNumber?: string | null;
+  displayTitle: string;
+  content?: string | null;
+  status: string;
+  reportedAt: string;
+  submittedAt?: string | null;
+  location?: {
+    latitude: number;
+    longitude: number;
+    accuracyMeters?: number | null;
+    capturedAt?: string | null;
+  } | null;
+  reportCategory?: { id: string; name: string } | null;
+  media?: Array<{
+    id: string;
+    fileId: string;
+    caption?: string | null;
+    fileName?: string | null;
+    mimeType?: string | null;
   }>;
 };
 
@@ -214,7 +236,8 @@ type BaketRecord = {
   } | null;
   versions?: Array<{
     id: string;
-    title: string;
+    originalContent: string;
+    createdAt: string;
     fieldOfficerNote?: string | null;
     urgency?: string | null;
   }>;
@@ -250,6 +273,12 @@ function asRecord(value: unknown) {
 
 function asString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function deriveDisplayTitle(content?: string | null, fallback = "Laporan sedang dibuat") {
+  const words = content?.replace(/\s+/g, " ").trim().split(" ").filter(Boolean) ?? [];
+  if (!words.length) return fallback;
+  return `${words.slice(0, 6).join(" ")}${words.length > 6 ? "…" : ""}`;
 }
 
 function oimPositionTitleFrom(position?: PositionRecord | null) {
@@ -374,10 +403,10 @@ function mapIncoming(
     referenceNumber:
       record.referenceNumber ?? asString(rawPayload?.referenceNumber),
     jaringId: jaring.id,
-    jaringCode: jaring.code,
-    jaringAlias: jaring.aliasName,
+    jaringCode: jaring.aliasName || jaring.id,
+    jaringAlias: jaring.aliasName || jaring.id,
     senderPhone: record.senderPhone,
-    title: record.title ?? null,
+    displayTitle: deriveDisplayTitle(record.content),
     content: record.content ?? null,
     contentAmendments: (record.reportAmendments ?? [])
       .filter(
@@ -404,11 +433,7 @@ function mapIncoming(
       null,
     urgency: record.convertedBaket?.versions?.[0]?.urgency ?? null,
     receivedAt: record.receivedAt,
-    eventDateTime:
-      asString(rawPayload?.incidentAt) ??
-      asString(rawPayload?.eventDateTime) ??
-      record.locationCapturedAt ??
-      null,
+    reportedAt: record.receivedAt,
     gpsSharedAt:
       asString(rawPayload?.gpsSharedAt) ?? record.locationCapturedAt ?? null,
     processedAt: record.processedAt ?? null,
@@ -427,6 +452,52 @@ function mapIncoming(
     photoMessageId,
     photoFileId,
     photoUrl: photoFileId ? `/api/field-officer/files/${photoFileId}` : null,
+  };
+}
+
+function mapDraftReport(
+  report: JaringReportSessionRecord,
+  jaring: FieldOfficerJaring,
+): FieldOfficerIncoming {
+  const evidenceFiles = (report.media ?? []).map((item) => ({
+    fileId: item.fileId,
+    url: `/api/field-officer/files/${item.fileId}`,
+    caption: item.caption ?? null,
+    mimeType: item.mimeType ?? null,
+    originalName: item.fileName ?? null,
+  }));
+  const firstFile = evidenceFiles[0] ?? null;
+  return {
+    id: report.id,
+    referenceNumber: report.referenceNumber ?? null,
+    jaringId: report.jaringId,
+    jaringCode: jaring.aliasName || jaring.id,
+    jaringAlias: jaring.aliasName,
+    senderPhone: jaring.whatsappNumber,
+    displayTitle: report.displayTitle,
+    content: report.content ?? null,
+    contentAmendments: [],
+    status: report.status,
+    validationSummary: "NOT_CHECKED",
+    categoryId: report.reportCategory?.id ?? null,
+    categoryName: report.reportCategory?.name ?? null,
+    urgency: null,
+    receivedAt: report.reportedAt,
+    reportedAt: report.reportedAt,
+    gpsSharedAt: report.location?.capturedAt ?? null,
+    processedAt: report.submittedAt ?? null,
+    reportTimestamp: report.reportedAt,
+    areaName: null,
+    latitude: report.location?.latitude ?? null,
+    longitude: report.location?.longitude ?? null,
+    gpsAccuracyMeters: report.location?.accuracyMeters ?? null,
+    mediaCount: evidenceFiles.length,
+    evidenceFiles,
+    hasPhoto: evidenceFiles.length > 0,
+    photoCaption: firstFile?.caption ?? null,
+    photoMessageId: null,
+    photoFileId: firstFile?.fileId ?? null,
+    photoUrl: firstFile?.url ?? null,
   };
 }
 
@@ -450,6 +521,7 @@ export async function getFieldOfficerWorkspace(
     occupations,
     reportCategories,
     messages,
+    reportSessionsResponse,
     tasks,
     baketResponse,
     scopedAreas,
@@ -483,6 +555,10 @@ export async function getFieldOfficerWorkspace(
     backendApi<MessageRecord[]>("/whatsapp-messages", {
       cookie,
       query: { limit: 100 },
+    }),
+    backendApi<PagedResponse<JaringReportSessionRecord>>("/jaring/reports", {
+      cookie,
+      query: { limit: 100, registrationStatus: "APPROVED" },
     }),
     backendApi<TaskRecord[]>("/tasks", {
       cookie,
@@ -540,7 +616,7 @@ export async function getFieldOfficerWorkspace(
     )
     .map<FieldOfficerJaring>((item) => ({
       id: item.id,
-      code: item.code,
+      code: item.aliasName || item.id,
       aliasName: item.aliasName,
       whatsappNumber: item.whatsappNumber,
       status: item.registrationStatus === "APPROVED" ? item.status : "INACTIVE",
@@ -597,6 +673,12 @@ export async function getFieldOfficerWorkspace(
       : undefined;
     return sourceJaring ? [mapIncoming(message, sourceJaring)] : [];
   });
+  const activeDrafts = (reportSessionsResponse.items ?? []).flatMap((report) => {
+    if (report.status !== "ACTIVE") return [];
+    const sourceJaring = baketIndex.get(report.jaringId);
+    return sourceJaring ? [mapDraftReport(report, sourceJaring)] : [];
+  });
+  const reportsWithDrafts = [...activeDrafts, ...mappedMessages];
 
   return {
     context: access.context,
@@ -620,10 +702,10 @@ export async function getFieldOfficerWorkspace(
       isActive: category.isActive,
       messageCount: category._count?.whatsAppMessages ?? category.messageCount,
     })),
-    jaringReports: mappedMessages.sort((left, right) =>
+    jaringReports: reportsWithDrafts.sort((left, right) =>
       right.receivedAt.localeCompare(left.receivedAt),
     ),
-    incoming: mappedMessages
+    incoming: reportsWithDrafts
       .filter(
         (item) =>
           !["READY_FOR_BAKET", "PROCESSED", "SPAM", "DUPLICATE"].includes(
@@ -647,13 +729,16 @@ export async function getFieldOfficerWorkspace(
       createdAt: item.createdAt,
       primaryJaringId: item.primaryJaringId ?? null,
       primaryJaringCode: item.primaryJaringId
-        ? (baketIndex.get(item.primaryJaringId)?.code ?? null)
+        ? (baketIndex.get(item.primaryJaringId)?.aliasName ?? item.primaryJaringId)
         : null,
       primaryJaringAlias: item.primaryJaringId
         ? (baketIndex.get(item.primaryJaringId)?.aliasName ?? null)
         : null,
       currentVersionId: item.versions?.[0]?.id ?? null,
-      currentVersionTitle: item.versions?.[0]?.title ?? null,
+      currentVersionDisplayTitle: deriveDisplayTitle(
+        item.versions?.[0]?.originalContent,
+        "Baket tanpa isi",
+      ),
       summary: item.versions?.[0]?.fieldOfficerNote ?? null,
       categoryName: item.reportCategory?.name ?? null,
       urgency: item.versions?.[0]?.urgency ?? null,
@@ -739,20 +824,6 @@ export async function updateFieldOfficerJaringStatus(
   });
 }
 
-export async function regenerateFieldOfficerJaringPin(
-  cookie: string,
-  jaringId: string,
-) {
-  return backendApi<{ code: string; aliasName?: string | null }>(
-    `/jaring/${jaringId}/regenerate-pin`,
-    {
-      cookie,
-      method: "POST",
-      idempotent: true,
-    },
-  );
-}
-
 export async function validateIncomingMessage(
   cookie: string,
   messageId: string,
@@ -782,11 +853,9 @@ export async function createBaketFromMessage(
   body: {
     categoryId: string;
     urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
-    title?: string;
     normalizedContent?: string;
     fieldOfficerNote?: string;
     taskAssignmentId?: string;
-    eventTime?: string;
   },
 ) {
   return backendApi(`/whatsapp-messages/${messageId}/create-baket`, {
@@ -822,9 +891,7 @@ export async function updateBaketDraft(
     versionId: string;
     reportCategoryId: string;
     taskAssignmentId?: string | null;
-    title: string;
     normalizedContent?: string;
-    eventTime?: string;
     urgency: "LOW" | "NORMAL" | "HIGH" | "URGENT";
     fieldOfficerNote?: string;
   },
@@ -841,9 +908,7 @@ export async function updateBaketDraft(
     cookie,
     method: "PATCH",
     body: {
-      title: body.title,
       normalizedContent: body.normalizedContent,
-      eventTime: body.eventTime,
       urgency: body.urgency,
       fieldOfficerNote: body.fieldOfficerNote,
     },

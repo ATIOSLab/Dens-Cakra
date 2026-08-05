@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
@@ -69,7 +69,7 @@ function verificationStatusLabel(status: VerificationStatus) {
   switch (status) {
     case "IN_PROGRESS_BY_JARING":
     case "NOT_SUBMITTED":
-      return "Belum Diverifikasi";
+      return "Sedang disusun Jaring";
     case "WAITING_FIELD_OFFICER_VERIFICATION":
       return "Belum Diverifikasi";
     case "NEEDS_FIELD_OFFICER_REVIEW":
@@ -135,7 +135,6 @@ function getUrgencyCardStyle(urgency?: PriorityLevel | null) {
 
 interface RawJaringItem {
   id: string;
-  code: string;
   aliasName?: string | null;
   fullName?: string | null;
   registrationStatus?: string | null;
@@ -303,6 +302,7 @@ export function LaporanJaringCoordinatorClient() {
   // Pagination
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);
+  const listRequestInFlight = useRef(false);
 
   // Fetch reports and Jarings
   async function fetchAllReportPages() {
@@ -355,8 +355,10 @@ export function LaporanJaringCoordinatorClient() {
     });
   }
 
-  async function fetchAllData() {
-    setLoadingList(true);
+  async function fetchAllData(silent = false) {
+    if (listRequestInFlight.current) return;
+    listRequestInFlight.current = true;
+    if (!silent) setLoadingList(true);
     setLoadError(null);
     try {
       const [reportItems, jaringItems, areaScopeItems] = await Promise.all([
@@ -372,12 +374,17 @@ export function LaporanJaringCoordinatorClient() {
       console.error("Gagal memuat laporan jaring (field-coordinator):", err);
       setLoadError(err instanceof Error ? err.message : "Daftar laporan Jaring gagal dimuat.");
     } finally {
-      setLoadingList(false);
+      listRequestInFlight.current = false;
+      if (!silent) setLoadingList(false);
     }
   }
 
   useEffect(() => {
     void fetchAllData();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void fetchAllData(true);
+    }, 5_000);
+    return () => window.clearInterval(interval);
   }, []);
 
   const kpiSummary = useMemo(() => {
@@ -485,8 +492,8 @@ export function LaporanJaringCoordinatorClient() {
   const popoverJaringOptions: JaringOption[] = useMemo(() => {
     return jaringList.map((j) => ({
       id: j.id,
-      code: j.code,
-      aliasName: j.aliasName || j.code,
+      code: j.aliasName || j.fullName || j.id,
+      aliasName: j.aliasName || j.fullName || j.id,
       fullName: j.fullName,
       registrationStatus: j.registrationStatus,
     }));
@@ -604,7 +611,7 @@ export function LaporanJaringCoordinatorClient() {
       if (villageFilter !== "ALL" && geography?.villageId !== villageFilter) return false;
 
       // Date / Period Filter
-      const reportDateStr = item.submittedAt || item.createdAt;
+      const reportDateStr = item.reportedAt || item.submittedAt || item.createdAt;
       if (reportDateStr) {
         const itemTime = new Date(reportDateStr).getTime();
         const now = new Date();
@@ -634,7 +641,7 @@ export function LaporanJaringCoordinatorClient() {
       if (search.trim()) {
         const q = search.toLowerCase().trim();
         const ref = (item.referenceNumber || "").toLowerCase();
-        const title = (item.title || "").toLowerCase();
+        const title = (item.displayTitle || "").toLowerCase();
         const content = (item.content || "").toLowerCase();
         const jAlias = (item.jaringAlias || "").toLowerCase();
         const jCode = (item.jaringCode || "").toLowerCase();
@@ -703,23 +710,23 @@ export function LaporanJaringCoordinatorClient() {
     const headers = [
       "No Ref",
       "Sandi Jaring",
-      "Judul Laporan",
+      "Sorotan Isi",
       "Urgensi",
       "Status Verifikasi",
       "Wilayah",
-      "Waktu Kejadian",
-      "Waktu Diterima",
+      "Waktu Pelaporan",
+      "Waktu Pelaporan (Status)",
     ];
 
     const rows = filteredReports.map((r) => [
       `"${r.referenceNumber || r.id}"`,
       `"${r.jaringAlias || r.jaringCode || "-"}"`,
-      `"${(r.title || r.content || "-").replace(/"/g, '""')}"`,
+      `"${(r.displayTitle || r.content || "-").replace(/"/g, '""')}"`,
       `"${isVerifiedReport(r.verificationStatus) ? r.urgency || "Belum ditentukan" : "Belum diverifikasi"}"`,
       `"${verificationStatusLabel(r.verificationStatus)}"`,
       `"${r.resolvedArea?.name || "-"}"`,
-      `"${formatDateTime(r.incidentAt)}"`,
-      `"${formatDateTime(r.submittedAt || r.createdAt)}"`,
+      `"${formatDateTime(r.reportedAt)}"`,
+      `"${formatDateTime(r.reportedAt)}"`,
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
@@ -1142,9 +1149,10 @@ export function LaporanJaringCoordinatorClient() {
                 item.jaringAlias ||
                 item.jaringCode ||
                 `# ${item.id.slice(0, 8)}`;
-              const title = item.title || item.content || "Laporan Informasi Jaring";
+              const title = item.displayTitle || item.content || "Laporan sedang dibuat";
               const mediaCount = item.media?.length || item.counts?.media || 0;
-              const partsCount = item.counts?.contentParts || 1;
+              const partsCount = item.messages?.length || item.counts?.contentParts || 0;
+              const draftComplete = Boolean(item.content && item.location && mediaCount > 0);
               const locationName = formatFullAreaName(item.resolvedArea);
 
               return (
@@ -1215,7 +1223,7 @@ export function LaporanJaringCoordinatorClient() {
                     {/* Timestamp */}
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <Clock className="size-3" /> {formatDateTime(item.submittedAt || item.createdAt)}
+                        <Clock className="size-3" /> {formatDateTime(item.reportedAt)}
                       </span>
                       <span className="font-semibold text-foreground/80">
                         Jaring: {item.jaringAlias || item.jaringCode || "-"}
@@ -1226,6 +1234,11 @@ export function LaporanJaringCoordinatorClient() {
                       {hasBeenRead ? <MailOpen /> : <Mail />}
                       {hasBeenRead ? "Sudah dibaca petugas" : "Belum dibaca petugas"}
                     </Badge>
+                    {item.status === "ACTIVE" ? (
+                      <Badge variant="outline" className="w-fit border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400">
+                        {draftComplete ? "Komponen lengkap" : "Komponen belum lengkap"}
+                      </Badge>
+                    ) : null}
 
                     {/* Action button */}
                     <Button
@@ -1283,6 +1296,9 @@ export function LaporanJaringCoordinatorClient() {
                   const hasVerifiedUrgency = reportIsVerified && Boolean(item.urgency);
                   const hasBeenRead = isReadByFieldOfficer(item);
                   const refNum = item.referenceNumber || item.jaringAlias || item.jaringCode || item.id.slice(0, 8);
+                  const messageCount = item.messages?.length ?? item.counts?.contentParts ?? 0;
+                  const mediaCount = item.media?.length ?? item.counts?.media ?? 0;
+                  const draftComplete = Boolean(item.content && item.location && mediaCount > 0);
 
                   return (
                     <TableRow key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5">
@@ -1295,9 +1311,13 @@ export function LaporanJaringCoordinatorClient() {
 
                       <TableCell className="max-w-[320px]">
                         <p className="font-semibold text-xs text-foreground line-clamp-1">
-                          {item.title || item.content || "Laporan Jaring"}
+                          {item.displayTitle || item.content || "Laporan sedang dibuat"}
                         </p>
                         <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{item.content || "-"}</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                          {messageCount} pesan · {mediaCount} media
+                          {item.status === "ACTIVE" ? ` · ${draftComplete ? "Lengkap" : "Belum lengkap"}` : ""}
+                        </p>
                       </TableCell>
 
                       <TableCell className="text-xs text-muted-foreground">{formatFullAreaName(item.resolvedArea)}</TableCell>
@@ -1334,7 +1354,7 @@ export function LaporanJaringCoordinatorClient() {
                       </TableCell>
 
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDateTime(item.submittedAt || item.createdAt)}
+                        {formatDateTime(item.reportedAt)}
                       </TableCell>
 
                       <TableCell className="text-right">

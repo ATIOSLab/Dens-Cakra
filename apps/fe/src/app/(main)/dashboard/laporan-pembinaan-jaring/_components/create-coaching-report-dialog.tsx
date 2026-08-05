@@ -14,7 +14,6 @@ import { apiBrowserMutation } from "@/lib/api/browser-client";
 
 interface JaringOption {
   id: string;
-  code: string;
   aliasName: string;
   fullName?: string | null;
 }
@@ -149,8 +148,8 @@ export function CreateCoachingReportDialog({
               ) : (
                 jarings.map((j) => {
                   const label = j.fullName && j.fullName !== j.aliasName
-                    ? `${j.aliasName || j.code} (${j.fullName})`
-                    : j.aliasName || j.code;
+                    ? `${j.aliasName || j.id} (${j.fullName})`
+                    : j.aliasName || j.fullName || j.id;
                   return (
                     <option key={j.id} value={j.id}>
                       {label}

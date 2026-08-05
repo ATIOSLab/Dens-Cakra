@@ -41,7 +41,6 @@ function formatDateTime(value?: string | null) {
 
 interface RawJaringItem {
   id: string;
-  code: string;
   aliasName?: string | null;
   fullName?: string | null;
   profilePhotoUrl?: string | null;
@@ -178,7 +177,7 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
               <CardHeader className="border-b border-slate-100 dark:border-white/5 pb-4">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-xs">
-                    Sandi: {jaringInfo?.aliasName || jaringInfo?.code || report.jaringAlias || report.jaringCode || "-"}
+                    Sandi: {jaringInfo?.aliasName || jaringInfo?.fullName || report.jaringAlias || report.jaringCode || "-"}
                   </Badge>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="size-3.5" /> Dilaporkan: {formatDateTime(report.reportedAt)}
@@ -249,7 +248,7 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={jaringInfo.profilePhotoUrl}
-                        alt={`Foto ${jaringInfo.aliasName || jaringInfo.code}`}
+                        alt={`Foto ${jaringInfo.aliasName || jaringInfo.fullName || jaringInfo.id}`}
                         className="size-full object-cover"
                       />
                     </div>
@@ -262,9 +261,9 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-[11px]">Kode Jaring</p>
+                  <p className="text-muted-foreground text-[11px]">Alias Jaring</p>
                   <p className="font-mono text-foreground">
-                    {jaringInfo?.code || report.jaringCode || "-"}
+                    {jaringInfo?.aliasName || report.jaringAlias || "-"}
                   </p>
                 </div>
                 <div>
