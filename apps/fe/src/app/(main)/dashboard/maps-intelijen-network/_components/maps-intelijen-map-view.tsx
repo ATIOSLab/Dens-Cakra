@@ -335,6 +335,7 @@ export function MapsIntelijenMapView({
           {selectedPopup && mode !== "heatmap" ? (
             <MapsIntelijenHoverPopup
               feature={selectedPopup}
+              isFullscreen={isFullscreen}
               onPointerEnter={clearCloseTimer}
               onPointerLeave={() => handleHover(null)}
               onClose={handleMapClick}

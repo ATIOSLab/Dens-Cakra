@@ -18,14 +18,23 @@ import {
   type MapNetworkFeature,
 } from "./maps-intelijen-types";
 
+const FULLSCREEN_HUD_POPUP_PADDING = {
+  top: 164,
+  right: 308,
+  bottom: 192,
+  left: 276,
+};
+
 export function MapsIntelijenHoverPopup({
   feature,
+  isFullscreen,
   onPointerEnter,
   onPointerLeave,
   onClose,
   onDetail,
 }: {
   feature: MapNetworkFeature;
+  isFullscreen: boolean;
   onPointerEnter: () => void;
   onPointerLeave: () => void;
   onClose: () => void;
@@ -42,6 +51,7 @@ export function MapsIntelijenHoverPopup({
       longitude={feature.geometry.coordinates[0]}
       latitude={feature.geometry.coordinates[1]}
       closeButton={false}
+      padding={isFullscreen ? FULLSCREEN_HUD_POPUP_PADDING : undefined}
     >
       <article
         role="dialog"

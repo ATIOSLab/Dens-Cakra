@@ -25,6 +25,7 @@ import maplibregl, {
   NavigationControl,
   Popup,
   type Popup as MapLibrePopup,
+  type PopupOptions,
   type StyleSpecification,
 } from "maplibre-gl";
 
@@ -92,6 +93,7 @@ type MapPopupProps = {
   className?: string;
   closeButton?: boolean;
   onClose?: () => void;
+  padding?: PopupOptions["padding"];
 };
 
 type MarkerPopupProps = {
@@ -551,6 +553,7 @@ export function MapPopup({
   className,
   closeButton = false,
   onClose,
+  padding,
 }: MapPopupProps) {
   const context = useMapContext();
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -573,6 +576,7 @@ export function MapPopup({
       closeButton,
       closeOnClick: false,
       offset: 16,
+      padding,
     })
       .setLngLat([longitude, latitude])
       .setDOMContent(container)
@@ -591,7 +595,7 @@ export function MapPopup({
       popup.remove();
       popupRef.current = null;
     };
-  }, [className, closeButton, container, context?.map, latitude, longitude, onClose]);
+  }, [className, closeButton, container, context?.map, latitude, longitude, onClose, padding]);
 
   useEffect(() => {
     popupRef.current?.setLngLat([longitude, latitude]);
