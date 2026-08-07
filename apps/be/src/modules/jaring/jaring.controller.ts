@@ -196,6 +196,22 @@ export class JaringController {
     return apiResult(await this.jaringService.allReports(query, context));
   }
 
+  @Get('coaching-reports')
+  @ApiContract({
+    operationId: 'apiJarCoachingReportAll',
+    contractId: 'API-JAR-COACHING-REPORT-ALL',
+    summary: 'Daftar semua laporan pembinaan Jaring',
+    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+  })
+  async allCoachingReports(
+    @Query() query: JaringCoachingReportQuery,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.jaringService.allCoachingReports(query, context),
+    );
+  }
+
   @Get(':jaringId')
   @ApiContract({
     operationId: 'apiJar003',

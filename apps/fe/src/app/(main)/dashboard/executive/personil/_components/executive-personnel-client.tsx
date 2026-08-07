@@ -52,7 +52,7 @@ function isPersonnelOnline(
   item: PersonnelListItem,
   freshness?: { activeWithinMinutes: number; recentWithinHours: number },
 ) {
-  const lastLocation = item.lastLocation || item.assignment?.lastLocation;
+  const lastLocation = item.lastLocation ?? item.assignment?.lastLocation;
   if (!lastLocation || !lastLocation.capturedAt) return false;
 
   const activeWithinMinutes = freshness?.activeWithinMinutes ?? 30;
@@ -355,6 +355,9 @@ function TableSkeleton() {
               Wilayah
             </TableHead>
             <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
+              Jumlah Jaring
+            </TableHead>
+            <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
               Status
             </TableHead>
             <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
@@ -378,6 +381,12 @@ function TableSkeleton() {
               </TableCell>
               <TableCell className="text-center">
                 <div className="mx-auto inline-block h-6 w-14 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
+              </TableCell>
+              <TableCell className="text-center">
+                <div className="mx-auto inline-block h-6 w-14 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
+              </TableCell>
+              <TableCell className="text-center">
+                <div className="mx-auto inline-block h-7 w-16 animate-pulse rounded-none border border-[var(--dc-primary-soft)]/10 bg-[var(--dc-primary-soft)]/20" />
               </TableCell>
             </TableRow>
           ))}
@@ -496,6 +505,9 @@ function PersonnelTable({
               Wilayah
             </TableHead>
             <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+              Jumlah Jaring
+            </TableHead>
+            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
               Status
             </TableHead>
             <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
@@ -527,6 +539,11 @@ function PersonnelTable({
                 <TableCell className="text-center">
                   <span className="block max-w-56 mx-auto truncate font-mono text-[var(--dc-text-primary)] text-xs">
                     {area?.name ?? "-"}
+                  </span>
+                </TableCell>
+                <TableCell className="text-center">
+                  <span className="inline-flex min-w-8 items-center justify-center border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 font-mono font-semibold text-xs text-cyan-600 dark:text-cyan-300">
+                    {item.jaringCount ?? 0}
                   </span>
                 </TableCell>
                 <TableCell className="text-center">
@@ -635,9 +652,7 @@ function PersonnelCardGrid({
                     : "border-slate-500/40 bg-slate-500/10 text-slate-500 dark:text-slate-400 dark:bg-slate-900/20",
                 )}
               >
-                <span
-                  className={cn("size-1 rounded-full", online ? "animate-pulse bg-emerald-500" : "bg-slate-500")}
-                />
+                <span className={cn("size-1 rounded-full", online ? "animate-pulse bg-emerald-500" : "bg-slate-500")} />
                 {online ? "Online" : "Offline"}
               </span>
             </div>
@@ -651,16 +666,16 @@ function PersonnelCardGrid({
                 <span className="block text-[var(--dc-text-muted)] uppercase">Wilayah</span>
                 <span className="block truncate text-[var(--dc-text-primary)]">{area?.name ?? "-"}</span>
               </div>
+              <div>
+                <span className="block text-[var(--dc-text-muted)] uppercase">Jumlah Jaring</span>
+                <span className="block text-[var(--dc-text-primary)] font-semibold">{item.jaringCount ?? 0} Jaring</span>
+              </div>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-4 h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
-            >
+            <span className="mt-4 inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs transition-colors group-hover:bg-sky-500/10 dark:text-[#38BDF8]">
               <Eye className="size-3.5" />
               Detail
-            </Button>
+            </span>
           </Link>
         );
       })}
@@ -682,8 +697,9 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
 
   const totalPersonnel = items.length;
+  const totalJaring = items.reduce((total, item) => total + (item.jaringCount ?? 0), 0);
   const onlineCount = (map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0);
-  const noSignalCount = map.meta.counts.byStatus.NO_SIGNAL ?? 0;
+  const offlineCount = (map.meta.counts.byStatus.STALE ?? 0) + (map.meta.counts.byStatus.NO_SIGNAL ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalPersonnel / rowsPerPage));
   const safePage = Math.min(page, totalPages);
 
@@ -722,7 +738,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
 
   // KPI Calculations
   const onlinePercentage = (onlineCount / (totalPersonnel || 1)) * 100;
-  const offlinePercentage = (noSignalCount / (totalPersonnel || 1)) * 100;
+  const offlinePercentage = (offlineCount / (totalPersonnel || 1)) * 100;
 
   return (
     <main className="relative min-h-screen space-y-6 p-6">
@@ -771,7 +787,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 <input
                   name="q"
                   defaultValue={queryState.q}
-                  placeholder="Cari nama, jabatan, unit..."
+                  placeholder="Cari nama, nomor HP, jabatan, wilayah, atau Jaring..."
                   className="h-10 w-full rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] pr-3 pl-9 font-mono text-foreground text-xs outline-none transition-all placeholder:text-[var(--dc-text-muted)] focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 dark:border-slate-800 dark:bg-slate-950/80"
                 />
               </div>
@@ -910,10 +926,16 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
           {/* Database List Tab View */}
           <TabsContent value="daftar" className="space-y-4 outline-none">
             {/* Redesigned statistics indicators */}
-            <section className="grid gap-4 md:grid-cols-3">
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <KpiCard label="Total Personel" value={totalPersonnel} progress={100} variant="cyan" />
+              <KpiCard label="Jaring Binaan" value={totalJaring} progress={100} variant="cyan" />
               <KpiCard label="Aktif / Online" value={onlineCount} progress={onlinePercentage} variant="emerald" />
-              <KpiCard label="Tanpa Sinyal" value={noSignalCount} progress={offlinePercentage} variant="amber" />
+              <KpiCard
+                label="Offline / Tanpa Sinyal"
+                value={offlineCount}
+                progress={offlinePercentage}
+                variant="amber"
+              />
             </section>
 
             <div className="flex items-center justify-end gap-3">
@@ -1035,7 +1057,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
 
                 <div className="grid gap-4 md:grid-cols-3">
                   <KpiCard
-                    label="Total Petugas Lapangan"
+                    label="Total Petugas Wilayah"
                     value={map.meta.counts.totalFieldOfficers}
                     trend="Agen Aktif"
                     progress={100}

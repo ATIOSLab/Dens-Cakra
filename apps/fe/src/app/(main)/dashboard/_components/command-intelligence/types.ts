@@ -42,6 +42,12 @@ export type DashboardReport = {
     id: string;
     aliasName: string | null;
     fullName: string | null;
+    whatsappNumber?: string | null;
+    profilePhotoFileId?: string | null;
+    gaswilName?: string | null;
+    gaswilAssignmentId?: string | null;
+    gaswilUserProfileId?: string | null;
+    areaPathLabel?: string | null;
     registrationStatus: JaringRegistrationStatus;
   } | null;
 };
@@ -146,6 +152,11 @@ export type FieldIntelligenceDashboard = {
       id: string;
       aliasName: string | null;
       fullName: string | null;
+      whatsappNumber: string;
+      profilePhotoFileId: string | null;
+      gaswilName: string | null;
+      gaswilAssignmentId: string | null;
+      gaswilUserProfileId: string | null;
       registrationStatus: JaringRegistrationStatus;
       operationalStatus: JaringOperationalStatus;
       activityLevel: JaringActivityLevel;

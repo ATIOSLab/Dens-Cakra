@@ -50,7 +50,13 @@ export class PositionQueryService {
           isPrimary: true,
           validFrom: true,
           userProfile: {
-            select: { id: true, username: true, fullName: true },
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              phone: true,
+              authUser: { select: { email: true } },
+            },
           },
           position: {
             select: {
@@ -100,7 +106,10 @@ export class PositionQueryService {
         select: {
           id: true,
           aliasName: true,
+          fullName: true,
+          whatsappNumber: true,
           status: true,
+          registrationStatus: true,
           createdAt: true,
           caretakerAssignments: {
             where: {

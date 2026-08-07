@@ -1,6 +1,4 @@
-import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
-import {
-  jest } from '@jest/globals';
+import { jest } from '@jest/globals';
 import {
   AdministrativeLevel,
   AreaResolutionMethod,
@@ -8,6 +6,7 @@ import {
   CoordinateSource,
   PriorityLevel,
   RoleCode,
+  WhatsAppValidationSummary,
 } from '../../generated/prisma/client.js';
 import {
   AgentLocationState,
@@ -47,13 +46,21 @@ describe('MapMarkersService', () => {
               code: 'AKSI_MASSA',
               name: 'Aksi Massa',
             },
+            convertedSourceMessages: [
+              {
+                id: 'source-message',
+                referenceNumber: 'LJ-001',
+                reportSession: { id: 'report-session', referenceNumber: 'LJ-001' },
+              },
+            ],
+            _count: { convertedSourceMessages: 1 },
+            primaryJaring: null,
             createdByFieldOfficerAssignment: {
               id: 'officer-assignment',
+              branch: 'BINDA',
               userProfile: { id: 'officer', fullName: 'Petugas Satu' },
-              position: {
-                title: 'Petugas Organik',
-                organizationUnit: { id: 'unit', name: 'Unit Bandung' },
-              },
+              role: { code: RoleCode.FIELD_OFFICER, name: 'Petugas Organik' },
+              areaScopes: [{ area: { id: 'unit', name: 'Unit Bandung' } }],
             },
             versions: [
               {
@@ -119,6 +126,14 @@ describe('MapMarkersService', () => {
         markerType: 'baket',
         markerKey: 'baket:AKSI_MASSA',
         primaryArea: BANDUNG,
+        fieldOfficer: {
+          assignmentId: 'officer-assignment',
+          userProfileId: 'officer',
+          name: 'Petugas Satu',
+          positionTitle: 'Petugas Organik',
+          unitId: 'unit',
+          unitName: 'Unit Bandung',
+        },
       }),
     );
     expect(result.features[1]?.properties).toEqual(
@@ -134,6 +149,22 @@ describe('MapMarkersService', () => {
         baket: 1,
         agent: 1,
         activeAgents: 1,
+      }),
+    );
+    expect(prisma.baket.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            {
+              convertedSourceMessages: {
+                some: {
+                  validationSummary: WhatsAppValidationSummary.VALID,
+                  reportSession: { isNot: null },
+                },
+              },
+            },
+          ]),
+        }),
       }),
     );
     jest.useRealTimers();
@@ -165,6 +196,166 @@ describe('MapMarkersService', () => {
 
     expect(spatial.findLatestPersonnelLocations).toHaveBeenCalledWith(
       expect.objectContaining({ assignmentIds: [] }),
+    );
+  });
+
+  it('maps only actual report coordinates while keeping unlocated reports in summary', async () => {
+    const locatedReport = {
+      id: 'report-located',
+      jaringId: 'jaring-1',
+      fieldOfficerAssignmentId: 'officer-assignment',
+      status: 'COMPLETED',
+      currentState: 'COMPLETED',
+      content: 'Laporan kegiatan aktual',
+      latitude: -6.9175,
+      longitude: 107.6191,
+      locationAccuracyMeters: 8,
+      locationCapturedAt: new Date('2026-07-13T09:00:00.000Z'),
+      locationType: 'LIVE_LOCATION',
+      referenceNumber: 'LJ-001',
+      submittedAt: new Date('2026-07-13T09:00:00.000Z'),
+      startedAt: new Date('2026-07-13T08:50:00.000Z'),
+      createdAt: new Date('2026-07-13T08:50:00.000Z'),
+      jaring: {
+        id: 'jaring-1',
+        aliasName: 'JR-001',
+        fullName: 'Jaring Satu',
+        profilePhotoFileId: 'photo-1',
+        caretakerAssignments: [
+          {
+            fieldOfficerAssignment: {
+              id: 'officer-assignment',
+              userProfile: { id: 'officer-1', fullName: 'Petugas Satu' },
+            },
+          },
+        ],
+      },
+      submittedMessage: {
+        id: 'message-1',
+        referenceNumber: 'LJ-001',
+        content: 'Laporan kegiatan aktual',
+        senderPhone: '628123456789',
+        jaringId: 'jaring-1',
+        latitude: -6.9175,
+        longitude: 107.6191,
+        resolvedAreaId: BANDUNG.id,
+        rawPayload: { photoMessageId: 'photo-message' },
+        status: 'PROCESSED',
+        validationSummary: WhatsAppValidationSummary.VALID,
+        receivedAt: new Date('2026-07-13T09:00:00.000Z'),
+        coordinateSource: CoordinateSource.DEVICE_GPS,
+        category: { id: 'category', code: 'AKSI_MASSA', name: 'Aksi Massa' },
+        resolvedArea: null,
+        convertedBaket: null,
+        _count: { media: 0 },
+      },
+      media: [
+        {
+          id: 'report-media-1',
+          fileId: 'photo-1',
+          mediaType: 'IMAGE',
+          caption: 'Dokumentasi lokasi',
+          orderNo: 1,
+          createdAt: new Date('2026-07-13T08:59:00.000Z'),
+          file: {
+            originalName: 'dokumentasi-lokasi.jpg',
+            mimeType: 'image/jpeg',
+          },
+        },
+      ],
+    };
+    const prisma = {
+      reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
+      whatsAppReportSession: {
+        findMany: jest.fn().mockResolvedValue([
+          locatedReport,
+          {
+            ...locatedReport,
+            id: 'report-unlocated',
+            referenceNumber: 'LJ-002',
+            latitude: null,
+            longitude: null,
+            submittedMessage: {
+              ...locatedReport.submittedMessage,
+              id: 'message-2',
+              referenceNumber: 'LJ-002',
+              latitude: null,
+              longitude: null,
+              resolvedAreaId: null,
+              rawPayload: {},
+              validationSummary: WhatsAppValidationSummary.NOT_CHECKED,
+            },
+            media: [],
+          },
+        ] as never),
+      },
+    };
+    const scope = {
+      jaringWhere: jest.fn().mockResolvedValue({ deletedAt: null } as never),
+    };
+    const spatial = {
+      matchCoordinates: jest
+        .fn()
+        .mockResolvedValue(new Map([['report-located', [BANDUNG]]]) as never),
+    };
+    const service = new MapMarkersService(
+      prisma as never,
+      scope as never,
+      spatial as never,
+    );
+    const query = new MapMarkersQuery();
+    query.types = [MapMarkerType.REPORT];
+
+    const result = await service.list(query, {} as never);
+
+    expect(result.features).toHaveLength(1);
+    expect(result.features[0]?.geometry.coordinates).toEqual([
+      107.6191, -6.9175,
+    ]);
+    expect(result.features[0]?.properties).toEqual(
+      expect.objectContaining({
+        markerType: 'report',
+        validity: 'VALID',
+        completeness: 'COMPLETE',
+        jaring: expect.objectContaining({ id: 'jaring-1' }),
+        attachments: expect.objectContaining({
+          total: 1,
+          images: 1,
+          items: [
+            expect.objectContaining({
+              fileId: 'photo-1',
+              fileName: 'dokumentasi-lokasi.jpg',
+              mimeType: 'image/jpeg',
+            }),
+          ],
+        }),
+      }),
+    );
+    expect(result.meta.summary.reports).toEqual(
+      expect.objectContaining({
+        total: 2,
+        valid: 1,
+        complete: 1,
+        incomplete: 1,
+        mappable: 1,
+        unlocated: 1,
+      }),
+    );
+    expect(result.meta.summary.reports.total).toBe(
+      (result.meta.summary.reports.complete ?? 0) +
+        (result.meta.summary.reports.incomplete ?? 0),
+    );
+    expect(result.meta.unlocatedItems).toHaveLength(1);
+    expect(scope.jaringWhere).toHaveBeenCalledTimes(1);
+    expect(prisma.whatsAppReportSession.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            { jaring: { deletedAt: null } },
+            { submittedMessage: { is: { convertedBaketId: null } } },
+          ]),
+        }),
+      }),
     );
   });
 

@@ -120,6 +120,14 @@ export class LocalStorageService implements OnModuleInit {
     return createReadStream(this.resolvePath(storageKey));
   }
 
+  async size(storageKey: string): Promise<number> {
+    return (await stat(this.resolvePath(storageKey))).size;
+  }
+
+  openReadRange(storageKey: string, start: number, end: number) {
+    return createReadStream(this.resolvePath(storageKey), { start, end });
+  }
+
   private resolvePath(storageKey: string): string {
     const resolved = path.resolve(this.root, storageKey);
     if (

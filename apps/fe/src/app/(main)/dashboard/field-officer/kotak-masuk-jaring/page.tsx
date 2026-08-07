@@ -1,5 +1,10 @@
-import { FieldOfficerOperationsPage } from "@/app/(main)/dashboard/field-officer/_components/field-officer-operations-page";
+import { headers } from "next/headers";
 
-export default function Page() {
-  return <FieldOfficerOperationsPage view="incoming" />;
+import { FieldOfficerOperationsPage } from "@/app/(main)/dashboard/field-officer/_components/field-officer-operations-page";
+import { getFieldOfficerView } from "@/server/field-ops/repository";
+
+export default async function Page() {
+  const cookie = (await headers()).get("cookie") ?? "";
+  const initial = await getFieldOfficerView(cookie, "incoming").catch(() => null);
+  return <FieldOfficerOperationsPage view="incoming" initialWorkspace={initial?.data ?? null} />;
 }

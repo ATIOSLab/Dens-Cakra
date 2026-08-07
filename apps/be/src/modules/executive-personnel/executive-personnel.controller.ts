@@ -73,7 +73,7 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel001',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-001',
-    summary: 'Daftar petugas lapangan dalam hierarki Field Coordinator',
+    summary: 'Daftar petugas wilayah dalam hierarki Field Coordinator',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async list(
@@ -91,7 +91,7 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel002',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-002',
-    summary: 'Peta petugas lapangan dalam hierarki Field Coordinator',
+    summary: 'Peta petugas wilayah dalam hierarki Field Coordinator',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async map(
@@ -125,7 +125,7 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel004',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-004',
-    summary: 'Detail petugas lapangan dalam hierarki Field Coordinator',
+    summary: 'Detail petugas wilayah dalam hierarki Field Coordinator',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async detail(
@@ -148,7 +148,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel001',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-001',
-    summary: 'Daftar petugas lapangan dalam hierarki Regional Commander',
+    summary: 'Daftar petugas wilayah dalam hierarki Regional Commander',
     roles: ['regional_commander'],
   })
   async list(
@@ -166,7 +166,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel002',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-002',
-    summary: 'Peta petugas lapangan dalam hierarki Regional Commander',
+    summary: 'Peta petugas wilayah dalam hierarki Regional Commander',
     roles: ['regional_commander'],
   })
   async map(
@@ -200,7 +200,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel004',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-004',
-    summary: 'Detail petugas lapangan dalam hierarki Regional Commander',
+    summary: 'Detail petugas wilayah dalam hierarki Regional Commander',
     roles: ['regional_commander'],
   })
   async detail(

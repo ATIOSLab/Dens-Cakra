@@ -45,7 +45,11 @@ export type RegistrationJaring = {
   createdAt?: string;
   rejectionReason?: string | null;
   caretakerAssignments: Array<{
-    fieldOfficerAssignment: { userProfile: { fullName: string | null } };
+    fieldOfficerAssignment: {
+      id: string;
+      userProfileId?: string | null;
+      userProfile: { id?: string | null; fullName: string | null };
+    };
   }>;
   areaCoverages: Array<{ area: JaringAdministrativeArea }>;
 };

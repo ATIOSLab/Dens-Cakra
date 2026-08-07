@@ -30,6 +30,7 @@ describe('BaketQueryService detail serialization', () => {
     const findFirstOrThrow = jest.fn((input: FindDetailInput) => ({
       id: 'baket',
       input,
+      versions: [],
     }));
     const service = new BaketQueryService(
       { baket: { findFirstOrThrow } } as never,

@@ -198,7 +198,7 @@ export function PetaKerawananMap() {
 
   return (
     <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="relative h-[580px] overflow-hidden rounded-xl border bg-muted/20 lg:h-[680px]">
+      <div className="relative h-[min(62svh,36rem)] min-h-[26rem] overflow-hidden rounded-[var(--dc-radius-lg)] border bg-muted/20 lg:h-[min(70svh,42rem)]">
         <MapView
           ref={mapRef}
           bearing={-16}

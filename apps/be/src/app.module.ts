@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ApiExceptionFilter } from './common/api/api-exception.filter.js';
 import { ApiResponseInterceptor } from './common/api/api-response.interceptor.js';
 import { IdempotencyInterceptor } from './common/api/idempotency.interceptor.js';
+import { PerformanceInterceptor } from './common/performance/performance.interceptor.js';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware.js';
 import { AccessModule } from './modules/access/access.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -32,6 +33,9 @@ import { AnalysisModule } from './modules/analysis/analysis.module.js';
 import { IntelligenceProductsModule } from './modules/intelligence-products/intelligence-products.module.js';
 import { MapMarkersModule } from './modules/map-markers/map-markers.module.js';
 import { ExecutivePersonnelModule } from './modules/executive-personnel/executive-personnel.module.js';
+import { ApplicationCacheModule } from './modules/cache/application-cache.module.js';
+import { CacheInvalidationInterceptor } from './modules/cache/cache-invalidation.interceptor.js';
+import { ExecutiveDashboardModule } from './modules/executive-dashboard/executive-dashboard.module.js';
 
 @Module({
   imports: [
@@ -43,6 +47,7 @@ import { ExecutivePersonnelModule } from './modules/executive-personnel/executiv
       { name: 'short', ttl: 1_000, limit: 20 },
       { name: 'default', ttl: 60_000, limit: 300 },
     ]),
+    ApplicationCacheModule,
     PrismaModule,
     RuntimeModule,
     InfrastructureModule,
@@ -66,6 +71,7 @@ import { ExecutivePersonnelModule } from './modules/executive-personnel/executiv
     IntelligenceProductsModule,
     MapMarkersModule,
     ExecutivePersonnelModule,
+    ExecutiveDashboardModule,
     TaskModule,
     JaringModule,
     WhatsAppModule,
@@ -73,6 +79,8 @@ import { ExecutivePersonnelModule } from './modules/executive-personnel/executiv
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: PerformanceInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: CacheInvalidationInterceptor },
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
   ],

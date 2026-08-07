@@ -45,21 +45,25 @@ describe('JaringService registration security', () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          areaCoverages: {
-            some: {
-              validUntil: null,
-              area: {
-                OR: [
-                  { id: { in: ['district-id'] } },
-                  {
-                    descendantLinks: {
-                      some: { ancestorId: { in: ['district-id'] } },
-                    },
+          AND: expect.arrayContaining([
+            {
+              areaCoverages: {
+                some: {
+                  validUntil: null,
+                  area: {
+                    OR: [
+                      { id: { in: ['district-id'] } },
+                      {
+                        descendantLinks: {
+                          some: { ancestorId: { in: ['district-id'] } },
+                        },
+                      },
+                    ],
                   },
-                ],
+                },
               },
             },
-          },
+          ]),
         }),
       }),
     );
@@ -94,6 +98,52 @@ describe('JaringService registration security', () => {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       }),
     );
+  });
+
+  it('mengembalikan ringkasan kartu dari scope dan filter yang sama', async () => {
+    const service = new JaringService(
+      {
+        jaring: {
+          findMany: jest.fn(() => Promise.resolve([])),
+          count: jest.fn(() => Promise.resolve(3)),
+          groupBy: jest.fn(() =>
+            Promise.resolve([
+              { registrationStatus: 'PENDING', _count: { _all: 2 } },
+              { registrationStatus: 'APPROVED', _count: { _all: 3 } },
+              { registrationStatus: 'REJECTED', _count: { _all: 1 } },
+            ]),
+          ),
+        },
+      } as never,
+      {
+        resolve: jest.fn(() =>
+          Promise.resolve({
+            organizationUnitId: 'unit-id',
+            commandRouteType: 'BINDA',
+            positionIds: ['position-id'],
+            assignmentIds: ['assignment-id'],
+            areaRootIds: ['district-id'],
+          }),
+        ),
+      } as never,
+    );
+
+    await expect(
+      service.list(
+        {
+          limit: 10,
+          paginated: true,
+          registrationStatus: 'APPROVED',
+        } as never,
+        {
+          authRole: 'field_officer',
+          primaryAssignmentId: 'assignment-id',
+        } as never,
+      ),
+    ).resolves.toMatchObject({
+      pagination: { total: 3 },
+      summary: { total: 6, pending: 2, approved: 3, rejected: 1 },
+    });
   });
 
   it('menolak tanggal bergabung sebelum tanggal lahir', async () => {
@@ -532,20 +582,21 @@ describe('JaringService registration security', () => {
     const assertJaring = jest.fn(() => Promise.resolve());
     const service = new JaringService(
       {
-        jaring: { update, findUniqueOrThrow, findFirstOrThrow, findFirst: jest.fn(() => Promise.resolve(null)) },
+        jaring: {
+          update,
+          findUniqueOrThrow,
+          findFirstOrThrow,
+          findFirst: jest.fn(() => Promise.resolve(null)),
+        },
         auditLog: { create: auditCreate },
       } as never,
       { assertJaring } as never,
     );
 
-    await service.update(
-      'jaring-id',
-      { fullName: 'Nama Jaring Diubah' },
-      {
-        userProfileId: 'profile-id',
-        primaryAssignmentId: 'assignment-id',
-      } as never,
-    );
+    await service.update('jaring-id', { fullName: 'Nama Jaring Diubah' }, {
+      userProfileId: 'profile-id',
+      primaryAssignmentId: 'assignment-id',
+    } as never);
 
     expect(update).toHaveBeenCalledWith({
       where: { id: 'jaring-id' },
@@ -662,7 +713,8 @@ describe('JaringService registration security', () => {
                 {
                   id: 'version-id',
                   versionNumber: 1,
-                  originalContent: 'Aktivitas meningkat pada pagi hari di pasar utama',
+                  originalContent:
+                    'Aktivitas meningkat pada pagi hari di pasar utama',
                   urgency: 'MEDIUM',
                   createdAt: new Date('2026-07-31T01:10:00.000Z'),
                   coverageValidationStatus: 'PENDING',
@@ -751,6 +803,228 @@ describe('JaringService registration security', () => {
       latitude: 1.2345678,
       longitude: 104.1234567,
       accuracyMeters: 8.5,
+    });
+  });
+
+  it('menghitung ringkasan laporan tanpa double counting Baket', async () => {
+    const findMany = jest.fn(() => Promise.resolve([]));
+    const count = jest
+      .fn<() => Promise<number>>()
+      .mockResolvedValueOnce(3)
+      .mockResolvedValueOnce(3)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1);
+    const groupBy = jest.fn(() => Promise.resolve([]));
+    const jaringWhere = jest.fn(() =>
+      Promise.resolve({ id: { in: ['jaring-id'] } }),
+    );
+    const service = new JaringService(
+      {
+        whatsAppReportSession: { findMany, count, groupBy },
+      } as never,
+      { jaringWhere } as never,
+      {} as never,
+    );
+
+    const result = await service.allReports(
+      { page: 1, limit: 100, stage: 'JARING_REPORT' } as never,
+      {
+        authRole: 'field_officer',
+        primaryAssignmentId: 'assignment-id',
+      } as never,
+    );
+
+    expect(jaringWhere).toHaveBeenCalledTimes(1);
+    expect(count).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({ AND: expect.any(Array) }),
+      }),
+    );
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            {
+              submittedMessage: { is: { convertedBaketId: null } },
+            },
+          ]),
+        }),
+      }),
+    );
+    expect(count).toHaveBeenNthCalledWith(3, {
+      where: {
+        AND: [
+          expect.any(Object),
+          {
+            submittedMessage: { is: { convertedBaketId: null } },
+          },
+        ],
+      },
+    });
+    expect(count).toHaveBeenNthCalledWith(5, {
+      where: {
+        AND: [
+          expect.any(Object),
+          {
+            submittedMessage: {
+              is: {
+                convertedBaketId: { not: null },
+                validationSummary: 'VALID',
+              },
+            },
+          },
+        ],
+      },
+    });
+    expect(result.summary).toEqual({
+      totalSessions: 3,
+      totalJaringReports: 2,
+      completeJaringReports: 1,
+      incompleteJaringReports: 1,
+      baketReports: 1,
+      verifiedJaringReports: 1,
+      waitingVerificationReports: 1,
+    });
+    expect(result.summary.totalJaringReports).toBe(
+      result.summary.completeJaringReports +
+        result.summary.incompleteJaringReports,
+    );
+    expect(result.summary.baketReports).toBe(1);
+  });
+
+  it('menerapkan filter laporan pada seluruh dataset dan sorting stabil', async () => {
+    const findMany = jest.fn(() => Promise.resolve([]));
+    const count = jest.fn(() => Promise.resolve(0));
+    const groupBy = jest.fn(() => Promise.resolve([]));
+    const jaringWhere = jest.fn(() =>
+      Promise.resolve({ id: { in: ['jaring-id'] } }),
+    );
+    const service = new JaringService(
+      {
+        whatsAppReportSession: { findMany, count, groupBy },
+      } as never,
+      { jaringWhere } as never,
+      {} as never,
+    );
+
+    await service.allReports(
+      {
+        page: 2,
+        limit: 25,
+        search: '0812-3456-7890',
+        verificationStatus: 'VERIFIED',
+        areaId: '247c7732-44df-4f4a-bf50-f80c81245205',
+        fieldOfficerAssignmentId: '00000000-0000-4000-8000-000000000101',
+        workflowStatus: 'READY_TO_SEND',
+        coordinateSource: 'WHATSAPP_LOCATION',
+        hasAttachment: 'true',
+        sortBy: 'reportedAt',
+        sortOrder: 'desc',
+      },
+      { authRole: 'field_officer' } as never,
+    );
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 25,
+        take: 25,
+        orderBy: [
+          { submittedAt: { sort: 'desc', nulls: 'last' } },
+          { startedAt: 'desc' },
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+        where: {
+          AND: expect.arrayContaining([
+            { jaring: { id: { in: ['jaring-id'] } } },
+            { media: { some: { deletedAt: null } } },
+            {
+              fieldOfficerAssignmentId: '00000000-0000-4000-8000-000000000101',
+            },
+            {
+              submittedMessage: {
+                is: {
+                  convertedBaket: { is: { status: 'READY_TO_SEND' } },
+                },
+              },
+            },
+            {
+              submittedMessage: {
+                is: { coordinateSource: 'WHATSAPP_LOCATION' },
+              },
+            },
+            {
+              submittedMessage: {
+                is: { validationSummary: 'VALID' },
+              },
+            },
+          ]),
+        },
+      }),
+    );
+  });
+
+  it('memuat laporan pembinaan global dengan scope, filter, dan pagination server', async () => {
+    const findMany = jest.fn(() => Promise.resolve([]));
+    const count = jest.fn(() => Promise.resolve(0));
+    const groupBy = jest.fn(() => Promise.resolve([]));
+    const jaringWhere = jest.fn(() =>
+      Promise.resolve({ id: { in: ['jaring-id'] } }),
+    );
+    const service = new JaringService(
+      {
+        jaringCoachingReport: { findMany, count, groupBy },
+      } as never,
+      { jaringWhere } as never,
+      {} as never,
+    );
+
+    const result = await service.allCoachingReports(
+      {
+        page: 3,
+        limit: 10,
+        search: 'pembinaan',
+        areaId: '247c7732-44df-4f4a-bf50-f80c81245205',
+        sortBy: 'title',
+        sortOrder: 'asc',
+      },
+      { authRole: 'field_coordinator' } as never,
+    );
+
+    expect(jaringWhere).toHaveBeenCalledTimes(1);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 20,
+        take: 10,
+        orderBy: [
+          { title: 'asc' },
+          { reportedAt: 'desc' },
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+        where: expect.objectContaining({
+          jaring: expect.objectContaining({
+            id: { in: ['jaring-id'] },
+            areaCoverages: expect.any(Object),
+          }),
+          OR: expect.any(Array),
+        }),
+      }),
+    );
+    expect(result.pagination).toEqual({
+      page: 3,
+      limit: 10,
+      total: 0,
+      totalPages: 1,
+    });
+    expect(result.summary).toEqual({
+      total: 0,
+      uniqueJaringCount: 0,
+      thisMonthCount: 0,
     });
   });
 

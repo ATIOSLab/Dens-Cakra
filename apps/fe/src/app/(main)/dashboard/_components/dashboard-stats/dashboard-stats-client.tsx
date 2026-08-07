@@ -7,36 +7,34 @@ import {
   AlertTriangle,
   BarChart3,
   CheckCircle2,
-  Clock,
   FileText,
   Flame,
   Layers3,
   Package,
+  RadioTower,
   RefreshCw,
   ShieldAlert,
   Target,
   TrendingUp,
-  Users,
   Zap,
 } from "lucide-react";
 
+import { DashboardLiveStatus } from "@/app/(main)/dashboard/_components/dashboard-live-status";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Spinner } from "@/components/ui/spinner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSession } from "@/lib/auth/auth-client";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
 import {
-  ROLE_SECTIONS,
   type DashboardAlertItem,
   type DashboardBriefingData,
   type DashboardEmergencyItem,
   type DashboardSection,
+  ROLE_SECTIONS,
 } from "./dashboard-stats-types";
 
 /* ── Helpers ── */
@@ -73,7 +71,7 @@ const ROLE_LABELS: Record<SystemRole, string> = {
   [SYSTEM_ROLES.ADMIN_SYSTEM]: "Admin Sistem",
   [SYSTEM_ROLES.EXECUTIVE]: "Eksekutif",
   [SYSTEM_ROLES.FIELD_COORDINATOR]: "Koordinator Lapangan",
-  [SYSTEM_ROLES.FIELD_OFFICER]: "Petugas Lapangan",
+  [SYSTEM_ROLES.FIELD_OFFICER]: "Petugas Wilayah (Gaswil)",
   [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: "Manajer Intelijen Operasional",
   [SYSTEM_ROLES.REGIONAL_COMMANDER]: "Komandan Regional",
 };
@@ -99,11 +97,14 @@ const TASK_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 const VERIFICATION_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   VERIFIED: { label: "Terverifikasi", color: "var(--dc-success)" },
   IN_PROGRESS: { label: "Dalam Proses", color: "var(--dc-warning)" },
-  PENDING: { label: "Belum Diverifikasi", color: "var(--dc-neutral)" },
+  PENDING: { label: "Belum Diverifikasi", color: "var(--dc-warning)" },
   REJECTED: { label: "Ditolak", color: "var(--dc-danger)" },
 };
 
 type ApiEnvelope<T> = { success: true; data: T } | { success: false; error?: { message?: string } };
+
+const SUMMARY_SKELETON_KEYS = ["baket", "tugas", "direktif", "produk", "alert", "darurat"];
+const SECTION_SKELETON_KEYS = ["kinerja", "pipeline", "verifikasi"];
 
 /* ── Subcomponents ── */
 
@@ -124,7 +125,7 @@ function StatCard({
 }) {
   return (
     <div
-      className="group relative overflow-hidden rounded-md border border-[var(--dc-border-subtle)] bg-card/90 p-4 shadow-[var(--dc-shadow-card)] transition-all duration-300 hover:shadow-[var(--dc-shadow-soft)]"
+      className="group relative min-h-36 overflow-hidden rounded-[8px] border border-[var(--dc-border-subtle)] bg-card p-5 shadow-[var(--dc-shadow-card)] transition-[border-color,box-shadow] duration-200 hover:border-[color-mix(in_srgb,var(--dc-primary)_28%,var(--dc-border-subtle))] hover:shadow-[var(--dc-shadow-soft)]"
       style={{
         animationDelay: `${index * 60}ms`,
         animation: "dc-stat-fadein 0.5s ease-out both",
@@ -138,18 +139,12 @@ function StatCard({
 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="dc-eyebrow truncate text-[0.65rem] text-muted-foreground uppercase tracking-[0.12em]">
-            {label}
-          </p>
-          <p className="mt-2 font-mono text-2xl font-bold tabular-nums tracking-tight xl:text-3xl">
-            {formatNumber(value)}
-          </p>
-          {description && (
-            <p className="mt-1 truncate text-[0.7rem] text-muted-foreground">{description}</p>
-          )}
+          <p className="dc-eyebrow truncate text-[0.7rem] text-muted-foreground uppercase tracking-[0.08em]">{label}</p>
+          <p className="mt-3 font-mono text-3xl font-bold tabular-nums tracking-tight">{formatNumber(value)}</p>
+          {description && <p className="mt-2 truncate text-xs text-muted-foreground">{description}</p>}
         </div>
         <div
-          className="flex size-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110"
+          className="flex size-10 shrink-0 items-center justify-center rounded-[8px] border border-[color-mix(in_srgb,currentColor_12%,transparent)]"
           style={{ background: `color-mix(in srgb, ${accentColor} 12%, transparent)` }}
         >
           <Icon className="size-5" style={{ color: accentColor }} />
@@ -159,17 +154,7 @@ function StatCard({
   );
 }
 
-function ProgressBar({
-  label,
-  value,
-  total,
-  color,
-}: {
-  label: string;
-  value: number;
-  total: number;
-  color: string;
-}) {
+function ProgressBar({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
   const pct = total === 0 ? 0 : Math.round((value / total) * 100);
 
   return (
@@ -177,8 +162,7 @@ function ProgressBar({
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
         <span className="font-mono font-medium tabular-nums">
-          {formatNumber(value)}{" "}
-          <span className="text-muted-foreground">({pct}%)</span>
+          {formatNumber(value)} <span className="text-muted-foreground">({pct}%)</span>
         </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted/50">
@@ -202,15 +186,8 @@ function CircularGauge({ value, label, color }: { value: number; label: string; 
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative size-24">
-        <svg className="size-24 -rotate-90" viewBox="0 0 96 96">
-          <circle
-            cx="48"
-            cy="48"
-            r={radius}
-            fill="none"
-            strokeWidth="6"
-            className="stroke-muted/30"
-          />
+        <svg aria-hidden="true" className="size-24 -rotate-90" viewBox="0 0 96 96">
+          <circle cx="48" cy="48" r={radius} fill="none" strokeWidth="6" className="stroke-muted/30" />
           <circle
             cx="48"
             cy="48"
@@ -266,7 +243,7 @@ function AlertListItem({ item }: { item: DashboardAlertItem }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium">{item.title}</p>
+          <p className="line-clamp-2 text-sm font-medium leading-5">{item.title}</p>
           <SeverityBadge severity={item.severity} />
         </div>
         <div className="mt-1 flex items-center gap-2 text-[0.68rem] text-muted-foreground">
@@ -287,7 +264,7 @@ function EmergencyListItem({ item }: { item: DashboardEmergencyItem }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium">{item.title}</p>
+          <p className="line-clamp-2 text-sm font-medium leading-5">{item.title}</p>
           <SeverityBadge severity={item.severity} />
         </div>
         <div className="mt-1 flex items-center gap-2 text-[0.68rem] text-muted-foreground">
@@ -303,17 +280,15 @@ function EmergencyListItem({ item }: { item: DashboardEmergencyItem }) {
 function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
     <div className="flex items-center gap-2 pb-1">
-      <Icon className="size-4 text-[var(--dc-primary)]" />
-      <h2 className="font-mono text-[0.72rem] font-semibold text-[var(--dc-primary)] uppercase tracking-[0.14em]">
-        {title}
-      </h2>
+      <Icon className="size-5 text-[var(--dc-primary)]" />
+      <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
     </div>
   );
 }
 
 function SkeletonCard() {
   return (
-    <div className="animate-pulse rounded-md border border-[var(--dc-border-subtle)] bg-card/60 p-4">
+    <div className="min-h-36 animate-pulse rounded-[8px] border border-[var(--dc-border-subtle)] bg-card/60 p-5">
       <div className="h-3 w-24 rounded bg-muted/50" />
       <div className="mt-3 h-7 w-16 rounded bg-muted/50" />
       <div className="mt-2 h-3 w-32 rounded bg-muted/40" />
@@ -323,7 +298,7 @@ function SkeletonCard() {
 
 function SkeletonSection() {
   return (
-    <div className="animate-pulse rounded-md border border-[var(--dc-border-subtle)] bg-card/60 p-4">
+    <div className="animate-pulse rounded-[8px] border border-[var(--dc-border-subtle)] bg-card/60 p-5">
       <div className="h-4 w-28 rounded bg-muted/50" />
       <div className="mt-4 space-y-3">
         <div className="h-3 w-full rounded bg-muted/40" />
@@ -348,14 +323,12 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
   const [data, setData] = useState(initialData);
   const [error, setError] = useState(initialError);
   const [loading, setLoading] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const skippedInitialRef = useRef(false);
 
   const visibleSections = ROLE_SECTIONS[role] ?? ROLE_SECTIONS.field_officer;
 
-  const hasSection = useCallback(
-    (section: DashboardSection) => visibleSections.includes(section),
-    [visibleSections],
-  );
+  const hasSection = useCallback((section: DashboardSection) => visibleSections.includes(section), [visibleSections]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -380,6 +353,14 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadData();
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [autoRefresh, loadData]);
 
   useEffect(() => {
     if (!skippedInitialRef.current && initialData) {
@@ -409,15 +390,15 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
   /* ── Loading skeleton ── */
   if (!data) {
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+          {SUMMARY_SKELETON_KEYS.map((key) => (
+            <SkeletonCard key={key} />
           ))}
         </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <SkeletonSection key={i} />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {SECTION_SKELETON_KEYS.map((key) => (
+            <SkeletonSection key={key} />
           ))}
         </div>
       </div>
@@ -431,9 +412,9 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
   const summaryCards = [
     {
       icon: FileText,
-      label: "Total Laporan",
+      label: "Total Baket",
       value: cards.bakets,
-      description: "BAKET dalam periode",
+      description: "Bahan Keterangan dalam periode",
       accentColor: "var(--dc-primary)",
       section: "summaryCards" as DashboardSection,
     },
@@ -473,7 +454,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
       icon: Flame,
       label: "Insiden Darurat",
       value: cards.emergencies,
-      description: "Kejadian emergency",
+      description: "Kejadian darurat",
       accentColor: "#f97316",
       section: "emergencies" as DashboardSection,
     },
@@ -497,39 +478,51 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
     : (data.productStatus as Record<string, number>);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* ── Header ── */}
-      <section className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="dc-eyebrow text-[0.65rem] text-muted-foreground uppercase tracking-[0.12em]">
-            Dashboard Beranda
-          </p>
-          <h1 className="mt-0.5 truncate text-lg font-semibold">
-            Selamat Datang, {displayName}
-          </h1>
-          {data.generatedAt && (
-            <p className="mt-0.5 text-[0.68rem] text-muted-foreground">
-              Diperbarui {formatDateTime(data.generatedAt)}
+      <section className="relative overflow-hidden rounded-xl border border-cyan-300/15 bg-[#06111f] px-5 py-5 text-slate-100 shadow-[0_18px_50px_rgba(2,8,23,0.2)] sm:px-6">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-35"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(56,189,248,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.06) 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+            maskImage: "linear-gradient(to right, black, transparent 80%)",
+          }}
+        />
+        <div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-cyan-400/10 blur-[90px]" />
+        <div className="relative flex flex-wrap items-center justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="border border-cyan-300/20 bg-cyan-300/10 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-cyan-200 hover:bg-cyan-300/10">
+                <RadioTower className="size-3.5" /> Pusat Operasi
+              </Badge>
+              <Badge className="border border-white/10 bg-white/[0.06] text-slate-300 hover:bg-white/[0.06]">
+                {ROLE_LABELS[role]}
+              </Badge>
+            </div>
+            <h1 className="mt-3 text-balance text-2xl font-bold tracking-tight text-white md:text-[28px]">
+              Selamat Datang, {displayName}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-400">
+              Ringkasan operasional berbasis data dan kewenangan aktif Anda.
             </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {loading && <Spinner className="size-4" />}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void loadData()}
-                disabled={loading}
-                className="gap-1.5"
-              >
-                <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
-                Refresh
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Muat ulang data dashboard</TooltipContent>
-          </Tooltip>
+            {data.generatedAt && (
+              <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/15 bg-emerald-300/[0.07] px-2.5 py-1 text-xs text-emerald-300">
+                <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+                <span>Diperbarui {formatDateTime(data.generatedAt)}</span>
+              </p>
+            )}
+          </div>
+          <div className="rounded-lg bg-white/95 p-0.5 text-slate-950 shadow-lg dark:bg-slate-950/90 dark:text-slate-100">
+            <DashboardLiveStatus
+              updatedAt={data.generatedAt}
+              autoRefresh={autoRefresh}
+              loading={loading}
+              onToggleAutoRefresh={() => setAutoRefresh((current) => !current)}
+              onRefresh={() => void loadData()}
+            />
+          </div>
         </div>
       </section>
 
@@ -545,7 +538,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
       {hasSection("summaryCards") && (
         <section
           className={cn(
-            "grid gap-3",
+            "grid gap-4",
             visibleCards.length <= 3 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-3",
             visibleCards.length === 4 && "grid-cols-2 md:grid-cols-4",
             visibleCards.length === 5 && "grid-cols-2 md:grid-cols-3 xl:grid-cols-5",
@@ -560,37 +553,27 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
 
       {/* ── KPI + Task Pipeline + Verification ── */}
       {(hasSection("kpis") || hasSection("taskPipeline")) && (
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {/* KPI Gauge */}
           {hasSection("kpis") && (
-            <Card className="border-[var(--dc-border-subtle)] bg-card/90 shadow-[var(--dc-shadow-card)]">
+            <Card className="rounded-[8px] border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]">
               <CardHeader className="pb-3">
                 <SectionHeader icon={TrendingUp} title="Indikator Kinerja" />
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-around gap-4">
-                  <CircularGauge
-                    value={kpis.completionRate}
-                    label="Penyelesaian Tugas"
-                    color="var(--dc-success)"
-                  />
+                  <CircularGauge value={kpis.completionRate} label="Penyelesaian Tugas" color="var(--dc-success)" />
                   <Separator orientation="vertical" className="h-20" />
                   <div className="space-y-3">
                     <div className="text-center">
                       <p className="font-mono text-2xl font-bold tabular-nums text-[var(--dc-warning)]">
                         {formatNumber(kpis.approvalBacklog)}
                       </p>
-                      <p className="text-[0.65rem] text-muted-foreground">
-                        Approval Backlog
-                      </p>
+                      <p className="text-[0.65rem] text-muted-foreground">Antrean Persetujuan</p>
                     </div>
                     <div className="text-center">
-                      <p className="font-mono text-lg font-semibold tabular-nums">
-                        {formatNumber(verificationTotal)}
-                      </p>
-                      <p className="text-[0.65rem] text-muted-foreground">
-                        Total Verifikasi
-                      </p>
+                      <p className="font-mono text-lg font-semibold tabular-nums">{formatNumber(verificationTotal)}</p>
+                      <p className="text-[0.65rem] text-muted-foreground">Total Verifikasi</p>
                     </div>
                   </div>
                 </div>
@@ -600,12 +583,10 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
 
           {/* Task Pipeline */}
           {hasSection("taskPipeline") && (
-            <Card className="border-[var(--dc-border-subtle)] bg-card/90 shadow-[var(--dc-shadow-card)]">
+            <Card className="rounded-[8px] border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]">
               <CardHeader className="pb-3">
                 <SectionHeader icon={Activity} title="Pipeline Tugas" />
-                <p className="text-[0.68rem] text-muted-foreground">
-                  {formatNumber(taskTotal)} tugas total
-                </p>
+                <p className="text-[0.68rem] text-muted-foreground">{formatNumber(taskTotal)} tugas total</p>
               </CardHeader>
               <CardContent className="space-y-2.5">
                 {Object.entries(taskStatuses).map(([status, count]) => {
@@ -624,9 +605,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
                   );
                 })}
                 {Object.keys(taskStatuses).length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">
-                    Belum ada data tugas
-                  </p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">Belum ada data tugas</p>
                 )}
               </CardContent>
             </Card>
@@ -634,7 +613,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
 
           {/* Verification Breakdown */}
           {hasSection("kpis") && (
-            <Card className="border-[var(--dc-border-subtle)] bg-card/90 shadow-[var(--dc-shadow-card)]">
+            <Card className="rounded-[8px] border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]">
               <CardHeader className="pb-3">
                 <SectionHeader icon={CheckCircle2} title="Status Verifikasi" />
                 <p className="text-[0.68rem] text-muted-foreground">
@@ -658,9 +637,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
                   );
                 })}
                 {Object.keys(verificationStatuses).length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">
-                    Belum ada data verifikasi
-                  </p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">Belum ada data verifikasi</p>
                 )}
               </CardContent>
             </Card>
@@ -671,14 +648,11 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
       {/* ── Alerts + Emergencies + Products row ── */}
       {(hasSection("alerts") || hasSection("emergencies") || hasSection("products")) && (
         <section
-          className={cn(
-            "grid gap-3",
-            hasSection("products") ? "md:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2",
-          )}
+          className={cn("grid gap-4", hasSection("products") ? "md:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2")}
         >
           {/* Priority Alerts */}
           {hasSection("alerts") && (
-            <Card className="border-[var(--dc-border-subtle)] bg-card/90 shadow-[var(--dc-shadow-card)]">
+            <Card className="rounded-[8px] border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]">
               <CardHeader className="pb-2">
                 <SectionHeader icon={AlertTriangle} title="Alert Prioritas" />
               </CardHeader>
@@ -694,9 +668,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
                     <div className="flex size-10 items-center justify-center rounded-full bg-[var(--dc-success-soft)]">
                       <CheckCircle2 className="size-5 text-[var(--dc-success)]" />
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Tidak ada alert aktif
-                    </p>
+                    <p className="text-sm text-muted-foreground">Tidak ada alert aktif</p>
                   </div>
                 )}
               </CardContent>
@@ -705,7 +677,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
 
           {/* Priority Emergencies */}
           {hasSection("emergencies") && (
-            <Card className="border-[var(--dc-border-subtle)] bg-card/90 shadow-[var(--dc-shadow-card)]">
+            <Card className="rounded-[8px] border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]">
               <CardHeader className="pb-2">
                 <SectionHeader icon={Zap} title="Insiden Darurat" />
               </CardHeader>
@@ -721,9 +693,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
                     <div className="flex size-10 items-center justify-center rounded-full bg-[var(--dc-success-soft)]">
                       <CheckCircle2 className="size-5 text-[var(--dc-success)]" />
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Tidak ada insiden darurat
-                    </p>
+                    <p className="text-sm text-muted-foreground">Tidak ada insiden darurat</p>
                   </div>
                 )}
               </CardContent>
@@ -732,7 +702,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
 
           {/* Product Status */}
           {hasSection("products") && (
-            <Card className="border-[var(--dc-border-subtle)] bg-card/90 shadow-[var(--dc-shadow-card)]">
+            <Card className="rounded-[8px] border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]">
               <CardHeader className="pb-2">
                 <SectionHeader icon={BarChart3} title="Produk Intelijen" />
               </CardHeader>
@@ -743,7 +713,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
                       const productTotal = Object.values(productStatusMap).reduce((sum, n) => sum + n, 0);
                       const statusLabels: Record<string, string> = {
                         DRAFT: "Draf",
-                        REVIEW: "Review",
+                        REVIEW: "Peninjauan",
                         APPROVED: "Disetujui",
                         PUBLISHED: "Dipublikasi",
                         ARCHIVED: "Diarsipkan",
@@ -773,9 +743,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
                     <div className="flex size-10 items-center justify-center rounded-full bg-muted/30">
                       <Package className="size-5 text-muted-foreground" />
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Belum ada produk intelijen
-                    </p>
+                    <p className="text-sm text-muted-foreground">Belum ada produk intelijen</p>
                   </div>
                 )}
               </CardContent>

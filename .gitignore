@@ -5,6 +5,14 @@ skills
 folder/
 apps/worldmonitor/
 
+# Local logs and temporary runtime output
+*.log
+*.log.*
+*.err
+*.out
+logs/
+.tmp/
+
 # Dependencies
 node_modules/
 apps/be/node_modules/
@@ -37,6 +45,7 @@ docs/alur-produk-intelijen.md
 docs/baket-detail-location-plan.md
 docs/daftar-akun-jakarta-field-ops.md
 docs/daftar-akun-production-2026-07-30.md
+docs/data-jaring-production-2026-08-05.md
 docs/executive-national-risk-map.md
 docs/map-markers-endpoint.md
 docs/real-client-ip.md

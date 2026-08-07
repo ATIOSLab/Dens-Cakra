@@ -19,3 +19,23 @@ export function normalizeIndonesianPhoneNumber(input: string): string {
 
   return digits;
 }
+
+export function getIndonesianPhoneSearchVariants(input: string): string[] {
+  const value = input.trim();
+
+  if (!value || !/^[+\d\s().-]+$/.test(value)) {
+    return [];
+  }
+
+  const digits = value.replace(/\D+/g, '');
+  if (!digits) {
+    return [];
+  }
+
+  const normalized = normalizeIndonesianPhoneNumber(digits);
+  const local = normalized.startsWith('62')
+    ? `0${normalized.slice(2)}`
+    : normalized;
+
+  return [...new Set([digits, normalized, local])];
+}

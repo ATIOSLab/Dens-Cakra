@@ -228,6 +228,12 @@ export class ApprovalInboxQuery {
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
+  @IsOptional() @IsString() search?: string;
+  @IsOptional() @IsUUID() productTypeId?: string;
+  @IsOptional() @IsEnum(Classification) classification?: Classification;
+  @IsOptional() @IsUUID() ownerAssignmentId?: string;
+  @IsOptional() @IsDateString() periodFrom?: string;
+  @IsOptional() @IsDateString() periodTo?: string;
 }
 
 export class CreateApprovalWorkflowDto {

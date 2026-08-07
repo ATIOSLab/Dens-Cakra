@@ -1,5 +1,12 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { getPerformanceContext } from '../../common/performance/performance-context.js';
 import { env } from '../../lib/env.js';
 import { PrismaClient } from '../../generated/prisma/client.js';
 
@@ -13,6 +20,7 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   [key: string]: any;
+  private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
     const adapter = new PrismaPg({
@@ -20,7 +28,43 @@ export class PrismaService
       options: '-c timezone=UTC',
     });
 
-    super({ adapter });
+    super({
+      adapter,
+      log:
+        env.performance.slowQueryMs > 0
+          ? [{ emit: 'event', level: 'query' }]
+          : [],
+    });
+
+    if (env.performance.slowQueryMs > 0) {
+      const clientWithEvents = this as unknown as {
+        $on(
+          event: 'query',
+          callback: (event: {
+            query: string;
+            duration: number;
+            target: string;
+          }) => void,
+        ): void;
+      };
+      clientWithEvents.$on('query', (event) => {
+        if (event.duration < env.performance.slowQueryMs) return;
+
+        const normalized = event.query.replace(/\s+/g, ' ').trim();
+        this.logger.warn(
+          JSON.stringify({
+            event: 'prisma_slow_query',
+            requestId: getPerformanceContext()?.requestId ?? 'background',
+            durationMs: event.duration,
+            target: event.target,
+            fingerprint: createHash('sha256')
+              .update(normalized)
+              .digest('hex')
+              .slice(0, 16),
+          }),
+        );
+      });
+    }
   }
 
   private delegate(name: string): any {

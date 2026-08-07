@@ -41,11 +41,11 @@ export function TablePagination({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 py-3.5 md:flex-row md:items-center md:justify-between border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] px-6",
+        "flex flex-col gap-[var(--dc-section-gap)] border-t border-border bg-muted/20 p-[var(--dc-card-padding)] md:flex-row md:items-center md:justify-between",
         className
       )}
     >
-      <p className="text-muted-foreground text-xs font-mono uppercase tracking-wider">
+      <p aria-live="polite" className="text-xs text-muted-foreground">
         Menampilkan{" "}
         <span className="font-semibold text-foreground">
           {startRow}-{endRow}
@@ -53,15 +53,15 @@ export function TablePagination({
         dari <span className="font-semibold text-foreground">{total}</span> data.
       </p>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
         <div className="flex items-center gap-2">
-          <Label className="text-muted-foreground text-xs font-mono uppercase tracking-wider">Baris</Label>
+          <Label className="text-xs font-medium text-muted-foreground">Baris per halaman</Label>
           <Select
             value={String(limit)}
             onValueChange={(value) => onLimitChange(Number(value))}
             disabled={loading}
           >
-            <SelectTrigger className="h-8 w-[70px] bg-background/50 border-border text-xs focus:ring-0">
+            <SelectTrigger aria-label="Jumlah baris per halaman" className="w-[76px] border-border bg-background text-sm">
               <SelectValue placeholder={String(limit)} />
             </SelectTrigger>
             <SelectContent position="popper">
@@ -81,7 +81,8 @@ export function TablePagination({
             size="icon"
             onClick={() => onPageChange(safePage - 1)}
             disabled={safePage === 1 || loading}
-            className="size-8 cursor-pointer rounded-md"
+            aria-label="Halaman sebelumnya"
+            className="cursor-pointer"
           >
             <ChevronLeft className="size-4" />
           </Button>
@@ -94,8 +95,10 @@ export function TablePagination({
               size="sm"
               onClick={() => onPageChange(pageNum)}
               disabled={loading}
+              aria-label={`Buka halaman ${pageNum}`}
+              aria-current={pageNum === safePage ? "page" : undefined}
               className={cn(
-                "h-8 w-8 cursor-pointer rounded-md text-xs font-mono",
+                "cursor-pointer text-sm",
                 pageNum === safePage
                   ? "bg-primary text-primary-foreground font-semibold"
                   : "hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -111,7 +114,8 @@ export function TablePagination({
             size="icon"
             onClick={() => onPageChange(safePage + 1)}
             disabled={safePage === totalPages || loading}
-            className="size-8 cursor-pointer rounded-md"
+            aria-label="Halaman berikutnya"
+            className="cursor-pointer"
           >
             <ChevronRight className="size-4" />
           </Button>

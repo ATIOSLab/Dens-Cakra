@@ -6,16 +6,9 @@ export type DisplayMode = "marker" | "cluster" | "heatmap";
 
 export type MapStyleMode = "dark" | "street" | "satellite" | "terrain";
 
-export type DateRangeOption = "24H" | "7D" | "30D" | "CUSTOM";
+export type DateRangeOption = "ALL" | "24H" | "7D" | "30D";
 
 export type CoordinateSourceMode = "domisili" | "laporan";
-
-export type AdminLayersState = {
-  province: boolean;
-  city: boolean;
-  district: boolean;
-  village: boolean;
-};
 
 export type JaringDistributionVillage = {
   id: string;
@@ -61,6 +54,7 @@ export type JaringDistributionEntry = {
   id: string;
   aliasName: string | null;
   fullName: string | null;
+  whatsappNumber: string | null;
   gender: string | null;
   address: string | null;
   profilePhotoFileId: string | null;
@@ -77,12 +71,15 @@ export type JaringDistributionEntry = {
   longitude: number;
   domicileLat?: number;
   domicileLng?: number;
+  domicileCoordinateSource: "REGISTERED" | "AREA_APPROXIMATION";
   hasReport: boolean;
   latestReportLat?: number | null;
   latestReportLng?: number | null;
+  lastReportAt: string | null;
   lastReportDate: string;
   lastActivityTime: string;
   reportCount: number;
+  baketCount: number;
 };
 
 export type DistrictFeatureProperties = {
@@ -94,14 +91,18 @@ export type DistrictFeatureProperties = {
 
 export const SATELLITE_SOURCE_ID = "jaring-satellite-source";
 export const SATELLITE_LAYER_ID = "jaring-satellite-layer";
-export const SATELLITE_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+export const SATELLITE_TILES =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 export const STREET_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 export const DEFAULT_CENTER: [number, number] = [106.8166, -6.2];
 
-export const STATUS_COLORS: Record<AgentOperationalStatus, { bg: string; border: string; label: string; dotClass: string }> = {
+export const STATUS_COLORS: Record<
+  AgentOperationalStatus,
+  { bg: string; border: string; label: string; dotClass: string }
+> = {
   VERIFIED: { bg: "#22c55e", border: "#16a34a", label: "Terverifikasi", dotClass: "bg-emerald-500" },
-  PENDING: { bg: "#3b82f6", border: "#2563eb", label: "Belum Verifikasi", dotClass: "bg-blue-500" },
+  PENDING: { bg: "#3b82f6", border: "#2563eb", label: "Belum Terverifikasi", dotClass: "bg-blue-500" },
   REJECTED: { bg: "#ef4444", border: "#dc2626", label: "Ditolak", dotClass: "bg-red-500" },
 };
 
@@ -213,11 +214,9 @@ export function villageCoordinate(
   villageName: string,
   agents: JaringDistributionEntry[],
   fallbackCoord: [number, number] | null,
-  index = 0
+  index = 0,
 ): [number, number] | null {
-  const villageAgents = agents.filter(
-    (a) => a.villageName.toLowerCase() === villageName.toLowerCase()
-  );
+  const villageAgents = agents.filter((a) => a.villageName.toLowerCase() === villageName.toLowerCase());
   if (villageAgents.length > 0) {
     const sumLng = villageAgents.reduce((acc, a) => acc + a.longitude, 0);
     const sumLat = villageAgents.reduce((acc, a) => acc + a.latitude, 0);
@@ -226,8 +225,5 @@ export function villageCoordinate(
   if (!fallbackCoord) return null;
   const angle = (index * 2 * Math.PI) / 6;
   const radius = 0.008;
-  return [
-    fallbackCoord[0] + radius * Math.cos(angle),
-    fallbackCoord[1] + radius * Math.sin(angle),
-  ];
+  return [fallbackCoord[0] + radius * Math.cos(angle), fallbackCoord[1] + radius * Math.sin(angle)];
 }

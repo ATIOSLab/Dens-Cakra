@@ -1,6 +1,6 @@
 import { FieldOfficerOperationsPage } from "@/app/(main)/dashboard/field-officer/_components/field-officer-operations-page";
 import { apiServerGet } from "@/lib/api/server-client";
-import { requireRole, getSessionPrincipal } from "@/lib/auth/server-session";
+import { getSessionPrincipal, requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 import { JaringVerificationListClient, type RegistrationJaring } from "./_components/verification-client";
@@ -28,11 +28,7 @@ async function fetchAllByRegistrationStatus(registrationStatus: RegistrationJari
 }
 
 export default async function Page() {
-  await requireRole(
-    SYSTEM_ROLES.FIELD_OFFICER,
-    SYSTEM_ROLES.FIELD_COORDINATOR,
-    SYSTEM_ROLES.REGIONAL_COMMANDER,
-  );
+  await requireRole(SYSTEM_ROLES.FIELD_OFFICER, SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
 
   const principal = await getSessionPrincipal();
 

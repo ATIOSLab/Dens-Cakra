@@ -1,6 +1,7 @@
 "use client";
 
-import { Filter, Search } from "lucide-react";
+import { CheckCircle2, Filter, RotateCcw, Search } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,8 +34,6 @@ type Props = {
   onSearchQueryChange: (q: string) => void;
   statusFilter: Record<AgentOperationalStatus | "ALL", boolean>;
   onStatusFilterChange: (update: Record<AgentOperationalStatus | "ALL", boolean>) => void;
-  categoryFilter: string;
-  onCategoryFilterChange: (c: string) => void;
   dateRange: DateRangeOption;
   onDateRangeChange: (d: DateRangeOption) => void;
   onResetFilters: () => void;
@@ -66,14 +65,12 @@ export function SebaranJaringLeftPanel({
   onSearchQueryChange,
   statusFilter,
   onStatusFilterChange,
-  categoryFilter,
-  onCategoryFilterChange,
   dateRange,
   onDateRangeChange,
   onResetFilters,
   summaryStats,
 }: Props) {
-  const selectedCity = cities.find((c) => c.id === selectedCityId) ?? cities[0] ?? null;
+  const selectedCity = cities.find((c) => c.id === selectedCityId) ?? null;
 
   if (!isOpen) return null;
 
@@ -85,7 +82,11 @@ export function SebaranJaringLeftPanel({
           <Filter className="size-3.5" />
           <span>FILTER & RINGKASAN</span>
         </div>
-        <button onClick={onClose} className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-[11px] font-medium transition-colors cursor-pointer">
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-[11px] font-medium transition-colors cursor-pointer"
+        >
           Sembunyikan
         </button>
       </div>
@@ -94,7 +95,9 @@ export function SebaranJaringLeftPanel({
       <div className="flex-1 overflow-y-auto p-3.5 pb-24 space-y-4 text-xs scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
         {/* PENCARIAN */}
         <div className="space-y-1.5">
-          <label className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">PENCARIAN</label>
+          <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            PENCARIAN
+          </p>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 size-3.5 text-slate-400 dark:text-slate-500" />
             <Input
@@ -108,7 +111,9 @@ export function SebaranJaringLeftPanel({
 
         {/* TINGKAT WILAYAH */}
         <div className="space-y-2">
-          <label className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">TINGKAT WILAYAH</label>
+          <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            TINGKAT WILAYAH
+          </p>
           <div className="space-y-1.5 pl-1">
             {allowedAdminLevels.map((level) => {
               const labels: Record<AdminLevel, string> = {
@@ -118,7 +123,10 @@ export function SebaranJaringLeftPanel({
                 VILLAGE: "Kelurahan",
               };
               return (
-                <label key={level} className="flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors">
+                <label
+                  key={level}
+                  className="flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors"
+                >
                   <input
                     type="radio"
                     name="adminLevel"
@@ -142,8 +150,17 @@ export function SebaranJaringLeftPanel({
               onChange={(e) => onSelectCity(e.target.value)}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-slate-800 dark:text-slate-300 text-xs focus:border-cyan-500 cursor-pointer"
             >
+              {allowedAdminLevels.includes("PROVINCE") ? (
+                <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+                  Seluruh Wilayah
+                </option>
+              ) : null}
               {cities.map((city) => (
-                <option key={city.id} value={city.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                <option
+                  key={city.id}
+                  value={city.id}
+                  className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                >
                   {city.name}
                 </option>
               ))}
@@ -153,13 +170,20 @@ export function SebaranJaringLeftPanel({
           <div className="space-y-1">
             <span className="text-[10px] text-slate-500 font-mono">KECAMATAN</span>
             <select
-              value={selectedDistrictId || ""}
+              value={selectedDistrictId ?? ""}
               onChange={(e) => onSelectDistrict(e.target.value)}
+              disabled={!selectedCity}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-slate-800 dark:text-slate-300 text-xs focus:border-cyan-500 cursor-pointer"
             >
-              <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Semua Kecamatan</option>
+              <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                Semua Kecamatan
+              </option>
               {selectedCity?.districts.map((district) => (
-                <option key={district.id} value={district.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                <option
+                  key={district.id}
+                  value={district.id}
+                  className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                >
                   {district.name} ({district.total})
                 </option>
               ))}
@@ -169,13 +193,20 @@ export function SebaranJaringLeftPanel({
           <div className="space-y-1">
             <span className="text-[10px] text-slate-500 font-mono">KELURAHAN</span>
             <select
-              value={selectedVillageId || ""}
+              value={selectedVillageId ?? ""}
               onChange={(e) => onSelectVillage(e.target.value)}
+              disabled={!selectedCity}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-slate-800 dark:text-slate-300 text-xs focus:border-cyan-500 cursor-pointer"
             >
-              <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Semua Kelurahan</option>
+              <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                Semua Kelurahan
+              </option>
               {availableVillages.map((village) => (
-                <option key={village.id} value={village.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                <option
+                  key={village.id}
+                  value={village.id}
+                  className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                >
                   {village.name} ({village.total})
                 </option>
               ))}
@@ -186,11 +217,18 @@ export function SebaranJaringLeftPanel({
         {/* RINGKASAN WILAYAH */}
         <div className="p-3 bg-slate-100/80 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/90 rounded-lg space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">RINGKASAN WILAYAH</span>
+            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              RINGKASAN WILAYAH
+            </span>
           </div>
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-2">
-            <span className="font-bold text-sm text-cyan-700 dark:text-cyan-300 truncate max-w-[170px]">{summaryStats.regionName}</span>
-            <Badge variant="outline" className="text-[10px] border-cyan-300 dark:border-cyan-800 text-cyan-800 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/60 px-1.5 py-0 font-semibold">
+            <span className="font-bold text-sm text-cyan-700 dark:text-cyan-300 truncate max-w-[170px]">
+              {summaryStats.regionName}
+            </span>
+            <Badge
+              variant="outline"
+              className="text-[10px] border-cyan-300 dark:border-cyan-800 text-cyan-800 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/60 px-1.5 py-0 font-semibold"
+            >
               {summaryStats.levelName}
             </Badge>
           </div>
@@ -207,7 +245,7 @@ export function SebaranJaringLeftPanel({
             </div>
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60">
               <div className="font-bold text-sm text-blue-600 dark:text-blue-400">{summaryStats.pending}</div>
-              <div className="text-[9px] text-blue-600/80 dark:text-blue-500/80 font-mono">Belum Verifikasi</div>
+              <div className="text-[9px] text-blue-600/80 dark:text-blue-500/80 font-mono">Belum Terverifikasi</div>
             </div>
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/60">
               <div className="font-bold text-sm text-red-600 dark:text-red-400">{summaryStats.rejected}</div>
@@ -218,10 +256,13 @@ export function SebaranJaringLeftPanel({
 
         {/* FILTER STATUS */}
         <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800/60">
-          <label className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">FILTER STATUS</label>
+          <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            FILTER STATUS
+          </p>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <label className="col-span-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 cursor-pointer font-medium">
+            <label htmlFor="sebaran-status-all" className="col-span-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 cursor-pointer font-medium">
               <Checkbox
+                id="sebaran-status-all"
                 checked={statusFilter.ALL}
                 onCheckedChange={(checked) =>
                   onStatusFilterChange({
@@ -239,12 +280,17 @@ export function SebaranJaringLeftPanel({
             {(
               [
                 ["VERIFIED", "Terverifikasi", "#22c55e"],
-                ["PENDING", "Belum Verifikasi", "#3b82f6"],
+                ["PENDING", "Belum Terverifikasi", "#3b82f6"],
                 ["REJECTED", "Ditolak", "#ef4444"],
               ] as const
             ).map(([key, label, color]) => (
-              <label key={key} className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 cursor-pointer hover:text-slate-900 dark:hover:text-white">
+              <label
+                key={key}
+                htmlFor={`sebaran-status-${key.toLowerCase()}`}
+                className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 cursor-pointer hover:text-slate-900 dark:hover:text-white"
+              >
                 <Checkbox
+                  id={`sebaran-status-${key.toLowerCase()}`}
                   checked={statusFilter[key]}
                   onCheckedChange={(checked) =>
                     onStatusFilterChange({
@@ -262,52 +308,43 @@ export function SebaranJaringLeftPanel({
           </div>
         </div>
 
-        {/* FILTER LAINNYA */}
+        {/* FILTER AKTIVITAS */}
         <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800/60">
-          <label className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">FILTER LAINNYA</label>
-          <div className="space-y-2">
-            <NativeSelect
-              value={categoryFilter}
-              onChange={(e) => onCategoryFilterChange(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs h-8"
-            >
-              <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Semua Kategori Laporan</option>
-              <option value="POLITIK" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Politik & Keamanan</option>
-              <option value="EKONOMI" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Ekonomi & Logistik</option>
-              <option value="CYBER" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Siber & Informasi</option>
-            </NativeSelect>
-
-            <div className="space-y-1">
-              <span className="text-[10px] text-slate-500 font-mono">Rentang Waktu Laporan</span>
-              <NativeSelect
-                value={dateRange}
-                onChange={(e) => onDateRangeChange(e.target.value as DateRangeOption)}
-                className="bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs h-8"
-              >
-                <option value="24H" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">24 Jam Terakhir</option>
-                <option value="7D" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">7 Hari Terakhir</option>
-                <option value="30D" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">30 Hari Terakhir</option>
-                <option value="CUSTOM" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Custom Period</option>
-              </NativeSelect>
-            </div>
-          </div>
+          <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            AKTIVITAS LAPORAN
+          </p>
+          <NativeSelect
+            value={dateRange}
+            onChange={(e) => onDateRangeChange(e.target.value as DateRangeOption)}
+            className="bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs h-8"
+          >
+            <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+              Semua Jaring
+            </option>
+            <option value="24H" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+              Melapor 24 Jam Terakhir
+            </option>
+            <option value="7D" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+              Melapor 7 Hari Terakhir
+            </option>
+            <option value="30D" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+              Melapor 30 Hari Terakhir
+            </option>
+          </NativeSelect>
         </div>
 
-        {/* Action Buttons */}
-        <div className="pt-2 flex items-center gap-2">
-          <Button
-            size="sm"
-            className="flex-1 bg-slate-900 hover:bg-slate-800 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-medium text-xs h-9 shadow-sm cursor-pointer"
-          >
-            TERAPKAN FILTER
-          </Button>
+        <div className="flex items-center gap-2 pt-2">
+          <div className="flex min-h-9 flex-1 items-center gap-2 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2.5 text-[10px] text-emerald-700 dark:text-emerald-300">
+            <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+            Filter diterapkan otomatis
+          </div>
           <Button
             size="sm"
             variant="outline"
             onClick={onResetFilters}
-            className="border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs h-9 cursor-pointer"
+            className="h-9 gap-1.5 border-slate-300 bg-slate-100 text-slate-700 text-xs hover:bg-slate-200 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800"
           >
-            RESET
+            <RotateCcw className="size-3.5" aria-hidden /> Reset
           </Button>
         </div>
       </div>

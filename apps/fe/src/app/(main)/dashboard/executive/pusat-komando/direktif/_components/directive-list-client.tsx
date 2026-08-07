@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { ArrowUpRight, FileText, Plus, RadioTower, Search, ShieldCheck, Users } from "lucide-react";
 
@@ -15,12 +16,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { buildDirectiveUukSummary, parseDirectiveCommandDescription } from "@/features/directives/structured-uuk";
 import type { DirectiveSummary } from "@/features/directives/types";
+import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { classificationBadgeClass } from "@/lib/classification";
+import { jakartaBoundaryIso } from "@/lib/domain/date-time";
 
 import { badgeVariant, formatDate, getCurrentVersion } from "./directive-shared";
 
 type DirectiveListClientProps = {
   directives: DirectiveSummary[];
+};
+
+type DirectiveListResponse = {
+  items: DirectiveSummary[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  summary?: { total: number; published: number; draft: number };
 };
 
 function statusBadgeClass(status: string) {
@@ -182,9 +191,15 @@ function translateStatus(status: string) {
 }
 
 export function DirectiveListClient({ directives }: DirectiveListClientProps) {
+  const searchParams = useSearchParams();
+  const [currentDirectives, setCurrentDirectives] = useState(directives);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [totalDirectives, setTotalDirectives] = useState(directives.length);
+  const [loading, setLoading] = useState(false);
+  const requestSequence = useRef(0);
 
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
@@ -192,111 +207,74 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
   const [filterRegion, setFilterRegion] = useState("");
   const [filterUnitType, setFilterUnitType] = useState("");
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
   const uniqueRegions = useMemo(() => {
-    const set = new Set<string>();
+    const map = new Map<string, string>();
     for (const d of directives) {
       const currentVersion = getCurrentVersion(d);
       if (currentVersion?.targetAreas) {
         for (const ta of currentVersion.targetAreas) {
           if (ta.area?.name) {
-            set.add(ta.area.name);
+            map.set(ta.area.id, ta.area.name);
           }
         }
       }
     }
-    return Array.from(set).sort();
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, "id"));
   }, [directives]);
 
-  const totalRecipients = directives.reduce((sum, directive) => {
-    return sum + (getCurrentVersion(directive)?.recipients.length ?? 0);
-  }, 0);
-  const publishedCount = directives.filter((directive) =>
-    ["PUBLISHED", "DISTRIBUTED", "COMPLETED", "ACKNOWLEDGED"].includes(directive.status),
-  ).length;
-  const draftCount = directives.filter((directive) =>
-    ["DRAFT", "REVISION_REQUESTED"].includes(directive.status),
-  ).length;
-
-  const filteredDirectives = useMemo(() => {
-    let result = directives;
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter((directive) => {
-        const currentVersion = getCurrentVersion(directive);
-        const parsed = parseDirectiveCommandDescription(currentVersion?.commandDescription);
-        const title = parsed.uukTitle || directive.commandNumber;
-        const desc = buildDirectiveUukSummary(parsed.uukSections) || "";
-        const classification = currentVersion?.classification || "";
-        const areaSummary = currentVersion?.targetAreas.map((item) => item.area.name).join(", ") ?? "";
-
-        return (
-          directive.commandNumber.toLowerCase().includes(q) ||
-          title.toLowerCase().includes(q) ||
-          desc.toLowerCase().includes(q) ||
-          classification.toLowerCase().includes(q) ||
-          areaSummary.toLowerCase().includes(q)
-        );
+  const fetchDirectives = useCallback(async () => {
+    const requestId = ++requestSequence.current;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        paginated: "true",
+        page: String(page),
+        limit: String(rowsPerPage),
       });
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (filterClassification) params.set("classification", filterClassification);
+      if (filterRegion) params.set("areaId", filterRegion);
+      if (filterUnitType) params.set("recipientBranch", filterUnitType);
+      if (filterStartDate) params.set("from", jakartaBoundaryIso(filterStartDate));
+      if (filterEndDate) params.set("to", jakartaBoundaryIso(filterEndDate, true));
+      const sortBy = searchParams.get("sortBy");
+      const sortOrder = searchParams.get("sortOrder");
+      if (sortBy) params.set("sortBy", sortBy);
+      if (sortOrder) params.set("sortOrder", sortOrder);
+
+      const result = await apiBrowserFetch<DirectiveListResponse>(`/directives?${params.toString()}`);
+      if (requestId !== requestSequence.current) return;
+      setCurrentDirectives(result.items ?? []);
+      setTotalDirectives(result.pagination?.total ?? 0);
+    } catch (error) {
+      if (requestId === requestSequence.current) console.error("Gagal memuat daftar STR:", error);
+    } finally {
+      if (requestId === requestSequence.current) setLoading(false);
     }
+  }, [
+    debouncedSearch,
+    filterClassification,
+    filterEndDate,
+    filterRegion,
+    filterStartDate,
+    filterUnitType,
+    page,
+    rowsPerPage,
+    searchParams,
+  ]);
 
-    if (filterClassification) {
-      result = result.filter((d) => {
-        const currentVersion = getCurrentVersion(d);
-        return currentVersion?.classification === filterClassification;
-      });
-    }
+  useEffect(() => {
+    void fetchDirectives();
+  }, [fetchDirectives]);
 
-    if (filterRegion) {
-      result = result.filter((d) => {
-        const currentVersion = getCurrentVersion(d);
-        return currentVersion?.targetAreas.some((ta) => ta.area?.name === filterRegion);
-      });
-    }
-
-    if (filterStartDate || filterEndDate) {
-      result = result.filter((d) => {
-        const currentVersion = getCurrentVersion(d);
-        if (!currentVersion?.commandDate) return false;
-        const cmdTime = new Date(currentVersion.commandDate).getTime();
-
-        if (filterStartDate) {
-          const startTime = new Date(`${filterStartDate}T00:00:00`).getTime();
-          if (cmdTime < startTime) return false;
-        }
-        if (filterEndDate) {
-          const endTime = new Date(`${filterEndDate}T23:59:59`).getTime();
-          if (cmdTime > endTime) return false;
-        }
-        return true;
-      });
-    }
-
-    if (filterUnitType) {
-      result = result.filter((d) => {
-        const currentVersion = getCurrentVersion(d);
-        if (!currentVersion?.recipients) return false;
-        return currentVersion.recipients.some((r) => {
-          const name = (r.targetUnit?.name || "").toLowerCase();
-          if (filterUnitType === "BINDA") {
-            return name.includes("binda");
-          }
-          if (filterUnitType === "DIREKTORAT") {
-            return name.includes("direktorat");
-          }
-          return false;
-        });
-      });
-    }
-
-    return result;
-  }, [directives, searchQuery, filterClassification, filterRegion, filterStartDate, filterEndDate, filterUnitType]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredDirectives.length / rowsPerPage));
+  const totalPages = Math.max(1, Math.ceil(totalDirectives / rowsPerPage));
   const safePage = Math.min(page, totalPages);
-  const paginatedDirectives = useMemo(() => {
-    return filteredDirectives.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
-  }, [filteredDirectives, safePage, rowsPerPage]);
+  const paginatedDirectives = currentDirectives;
 
   const pageNumbers = useMemo(() => {
     const pages = new Set([1, totalPages, safePage, safePage - 1, safePage + 1]);
@@ -422,8 +400,8 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                 <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
                   <SelectItem value="ALL">Semua Wilayah</SelectItem>
                   {uniqueRegions.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -576,7 +554,9 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={8} className="py-10 text-center text-[var(--dc-text-secondary)]">
-                      {searchQuery
+                      {loading
+                        ? "Memuat daftar STR..."
+                        : searchQuery
                         ? "Tidak ada direktif atau STR yang cocok dengan kata kunci pencarian Anda."
                         : "Belum ada STR yang dibuat pada unit eksekutif ini."}
                     </TableCell>
@@ -588,8 +568,8 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--dc-border-subtle)]/70 p-3 bg-muted/5 mt-4">
             <div className="text-muted-foreground text-xs pl-5">
-              Menampilkan {filteredDirectives.length ? (safePage - 1) * rowsPerPage + 1 : 0}-
-              {Math.min(safePage * rowsPerPage, filteredDirectives.length)} dari {filteredDirectives.length} baris.
+              Menampilkan {totalDirectives ? (safePage - 1) * rowsPerPage + 1 : 0}-
+              {Math.min(safePage * rowsPerPage, totalDirectives)} dari {totalDirectives} baris.
             </div>
             <div className="flex items-center gap-4 pr-5">
               <div className="flex items-center gap-2">

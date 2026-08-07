@@ -1,12 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, Calendar, FileText, Loader2, Plus, ScrollText, Users } from "lucide-react";
+
+import { AlertCircle, Calendar, FileText, Loader2, Plus, ScrollText, Users } from "lucide-react";
 import { toast } from "sonner";
 
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { BackButton } from "@/components/ui/back-button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,6 +43,7 @@ export function CreateCoachingReportForm() {
   const defaultJaringIdParam = searchParams.get("jaringId") || "";
 
   const [jarings, setJarings] = useState<FieldOfficerJaring[]>([]);
+  const [gaswilName, setGaswilName] = useState<string | null>(null);
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
 
   const [jaringId, setJaringId] = useState<string>("");
@@ -51,6 +63,7 @@ export function CreateCoachingReportForm() {
           const rawJarings = Array.isArray(data?.jaring) ? data.jaring : [];
           const approved = rawJarings.filter((j) => j.registrationStatus === "APPROVED");
           setJarings(approved);
+          setGaswilName(data.profile.name);
 
           if (defaultJaringIdParam && approved.some((j) => j.id === defaultJaringIdParam)) {
             setJaringId(defaultJaringIdParam);
@@ -67,6 +80,8 @@ export function CreateCoachingReportForm() {
 
     void loadWorkspace();
   }, [defaultJaringIdParam]);
+
+  const selectedJaring = jarings.find((jaring) => jaring.id === jaringId);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -118,7 +133,7 @@ export function CreateCoachingReportForm() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-4xl mx-auto w-full">
+    <div className="dc-page !max-w-4xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumb>
         <BreadcrumbList>
@@ -127,7 +142,7 @@ export function CreateCoachingReportForm() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/laporan-pembinaan-jaring">History Pembinaan Jaring</BreadcrumbLink>
+            <BreadcrumbLink href="/dashboard/laporan-pembinaan-jaring">Riwayat Pembinaan Jaring</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -138,12 +153,7 @@ export function CreateCoachingReportForm() {
 
       {/* Back Button */}
       <div>
-        <Link href="/dashboard/laporan-pembinaan-jaring">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-            <ArrowLeft className="h-4 w-4" />
-            Kembali
-          </Button>
-        </Link>
+        <BackButton href="/dashboard/laporan-pembinaan-jaring" />
       </div>
 
       {/* Header Bar */}
@@ -188,7 +198,7 @@ export function CreateCoachingReportForm() {
               <div className="space-y-2">
                 <Label htmlFor="jaring-select" className="text-xs font-semibold flex items-center gap-1.5">
                   <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                  Pilih Daftar Jaring <span className="text-destructive">*</span>
+                  Pilih Jaring <span className="text-destructive">*</span>
                 </Label>
                 <NativeSelect
                   id="jaring-select"
@@ -201,10 +211,11 @@ export function CreateCoachingReportForm() {
                     <option value="">-- Tidak ada Jaring terverifikasi tersedia --</option>
                   ) : (
                     jarings.map((j) => {
-                      const label =
-                        j.fullName && j.fullName !== j.aliasName
-                          ? `${j.aliasName || j.id} (${j.fullName})`
-                          : j.aliasName || j.fullName || j.id;
+                      const label = [
+                        j.fullName || "Nama belum tersedia",
+                        j.whatsappNumber || "WhatsApp belum tersedia",
+                        j.aliasName || j.id,
+                      ].join(" — ");
                       return (
                         <option key={j.id} value={j.id}>
                           {label}
@@ -213,6 +224,23 @@ export function CreateCoachingReportForm() {
                     })
                   )}
                 </NativeSelect>
+                {selectedJaring ? (
+                  <JaringIdentitySummary
+                    compact
+                    className="rounded-lg border bg-muted/20 p-3"
+                    source={{
+                      id: selectedJaring.id,
+                      fullName: selectedJaring.fullName,
+                      aliasName: selectedJaring.aliasName,
+                      whatsappNumber: selectedJaring.whatsappNumber,
+                      profilePhotoUrl: selectedJaring.profilePhotoUrl,
+                      profilePhotoFileId: selectedJaring.profilePhotoFileId,
+                      gaswilName,
+                      gaswilHref: "/dashboard/profil",
+                      villageName: selectedJaring.areaNames.join(", "),
+                    }}
+                  />
+                ) : null}
               </div>
 
               {/* Title & Date */}
@@ -271,12 +299,21 @@ export function CreateCoachingReportForm() {
 
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t">
-                <Link href="/dashboard/laporan-pembinaan-jaring">
-                  <Button type="button" variant="outline" disabled={submitting} size="sm" className="h-9 px-4 text-xs">
+                <Button asChild variant="outline" size="sm" className="h-9 px-4 text-xs">
+                  <Link
+                    href="/dashboard/laporan-pembinaan-jaring"
+                    aria-disabled={submitting}
+                    className={submitting ? "pointer-events-none opacity-50" : undefined}
+                  >
                     Batal
-                  </Button>
-                </Link>
-                <Button type="submit" disabled={submitting || jarings.length === 0} size="sm" className="h-9 px-5 text-xs">
+                  </Link>
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting || jarings.length === 0}
+                  size="sm"
+                  className="h-9 px-5 text-xs"
+                >
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

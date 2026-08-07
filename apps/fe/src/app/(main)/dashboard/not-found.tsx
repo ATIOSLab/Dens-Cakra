@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 export default function NotFound() {
   return (
     <div className="dc-card p-6">
-      <p className="dc-eyebrow">Masked not found</p>
-      <h1 className="mt-3 font-semibold text-2xl">Resource tidak tersedia</h1>
+      <p className="dc-eyebrow">Akses Data</p>
+      <h1 className="mt-3 font-semibold text-2xl">Data Tidak Tersedia</h1>
       <p className="mt-2 max-w-2xl text-[var(--dc-text-secondary)] text-sm">
-        Data tidak ditemukan atau berada di luar scope akses yang diberikan backend.
+        Data tidak ditemukan atau berada di luar cakupan akses akun Anda.
       </p>
       <Button asChild className="mt-5">
-        <Link href="/dashboard">Kembali ke workspace</Link>
+        <Link href="/dashboard">Kembali ke Beranda</Link>
       </Button>
     </div>
   );

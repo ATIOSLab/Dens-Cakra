@@ -2,20 +2,11 @@
 
 import { type ReactNode, useDeferredValue, useEffect, useMemo, useState } from "react";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ArrowLeft, Save, Search } from "lucide-react";
+import { Save, Search } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,9 +17,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { BackButton } from "@/components/ui/back-button";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Switch } from "@/components/ui/switch";
+import type { RegionalMasterOverview } from "@/features/directives/types";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
-import type { RegionalMasterOverview } from "@/features/directives/types";
 import {
   type AreaSearchResult,
   type AreaSummary,
@@ -466,18 +466,13 @@ export function JabatanFormClient({ mode, position }: Props) {
               : "Perubahan jabatan akan dipakai oleh flow provisioning dan mutasi user berikutnya."}
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link
-            href={
-              position
-                ? `/dashboard/admin-system/jabatan-reporting-line/${position.id}`
-                : "/dashboard/admin-system/jabatan-reporting-line"
-            }
-          >
-            <ArrowLeft className="size-4" />
-            Kembali
-          </Link>
-        </Button>
+        <BackButton
+          href={
+            position
+              ? `/dashboard/admin-system/jabatan-reporting-line/${position.id}`
+              : "/dashboard/admin-system/jabatan-reporting-line"
+          }
+        />
       </div>
 
       <Card className="border border-border/70">
@@ -655,7 +650,7 @@ export function JabatanFormClient({ mode, position }: Props) {
                   router.push(
                     position
                       ? `/dashboard/admin-system/jabatan-reporting-line/${position.id}`
-                      : "/dashboard/admin-system/jabatan-reporting-line"
+                      : "/dashboard/admin-system/jabatan-reporting-line",
                   );
                 },
               });
@@ -854,7 +849,7 @@ function RegencyCitySelector({
       <div>
         <Label>Kabupaten/Kota induk</Label>
         <p className="mt-1 text-sm text-muted-foreground">
-          Pilih kabupaten/kota untuk menurunkan daftar kecamatan Field Officer.
+          Pilih kabupaten/kota untuk menurunkan daftar kecamatan Petugas Wilayah (Gaswil).
         </p>
       </div>
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">

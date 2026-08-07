@@ -8,6 +8,7 @@ import {
   AdministrativeLevel,
   BaketStatus,
   CoordinateSource,
+  CoverageValidationStatus,
   FileLifecycleStatus,
   FileType,
   JaringRegistrationStatus,
@@ -20,8 +21,12 @@ import {
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
-import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
+import {
+  getIndonesianPhoneSearchVariants,
+  normalizeIndonesianPhoneNumber,
+} from '../../common/utils/phone-normalizer.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
+import { ApplicationCacheService } from '../cache/application-cache.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateJaringCoachingReportDto,
@@ -49,7 +54,10 @@ export function computeCrc32Alias(
   gender: 'MALE' | 'FEMALE' | string | null | undefined,
   sequence: number,
 ): string {
-  const areaHash = crc32(areaCode.trim()).toString(16).toUpperCase().padStart(8, '0');
+  const areaHash = crc32(areaCode.trim())
+    .toString(16)
+    .toUpperCase()
+    .padStart(8, '0');
   const genderCode = gender === 'FEMALE' ? '08' : '01';
   const sequenceStr = String(sequence).padStart(4, '0');
   return `${areaHash}${genderCode}${sequenceStr}`;
@@ -136,6 +144,8 @@ const jaringReportSessionSelect = {
       id: true,
       aliasName: true,
       fullName: true,
+      whatsappNumber: true,
+      profilePhotoFileId: true,
       caretakerAssignments: {
         where: { isActive: true },
         take: 1,
@@ -153,6 +163,14 @@ const jaringReportSessionSelect = {
               },
             },
           },
+        },
+      },
+      areaCoverages: {
+        where: { validUntil: null },
+        orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+        select: {
+          isPrimary: true,
+          area: { select: areaSelectWithParents },
         },
       },
     },
@@ -181,6 +199,12 @@ const jaringReportSessionSelect = {
       id: true,
       referenceNumber: true,
       content: true,
+      senderPhone: true,
+      jaringId: true,
+      latitude: true,
+      longitude: true,
+      resolvedAreaId: true,
+      rawPayload: true,
       status: true,
       validationSummary: true,
       receivedAt: true,
@@ -304,6 +328,23 @@ const jaringCoachingReportSelect = {
   reportedAt: true,
   createdAt: true,
   updatedAt: true,
+  jaring: {
+    select: {
+      id: true,
+      aliasName: true,
+      fullName: true,
+      whatsappNumber: true,
+      profilePhotoFileId: true,
+      areaCoverages: {
+        where: { validUntil: null },
+        orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+        select: {
+          isPrimary: true,
+          area: { select: areaSelectWithParents },
+        },
+      },
+    },
+  },
   fieldOfficerAssignment: {
     select: {
       id: true,
@@ -329,6 +370,7 @@ export class JaringService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly domainScope: DomainScopeService,
+    private readonly cache: ApplicationCacheService,
   ) {}
 
   private referenceCode(value: string) {
@@ -340,6 +382,26 @@ export class JaringService {
       .slice(0, 80);
 
     return normalized || `REFERENCE_${Date.now()}`;
+  }
+
+  private currentWibMonthRange(value = new Date()) {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+      })
+        .formatToParts(value)
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, part.value]),
+    );
+    const year = Number(parts.year);
+    const monthIndex = Number(parts.month) - 1;
+
+    return {
+      from: new Date(Date.UTC(year, monthIndex, 1, -7)),
+      to: new Date(Date.UTC(year, monthIndex + 1, 1, -7)),
+    };
   }
 
   private reportCategoryCode(value: string) {
@@ -608,7 +670,8 @@ export class JaringService {
     const isApproved =
       item.registrationStatus === JaringRegistrationStatus.APPROVED;
     const hasReportInLast3Months =
-      lastReportAt !== null && lastReportAt.getTime() >= threeMonthsAgo.getTime();
+      lastReportAt !== null &&
+      lastReportAt.getTime() >= threeMonthsAgo.getTime();
 
     const computedStatus =
       isApproved && hasReportInLast3Months
@@ -721,7 +784,8 @@ export class JaringService {
   }
 
   private deriveDisplayTitle(content: string | null | undefined) {
-    const words = content?.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean) ?? [];
+    const words =
+      content?.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean) ?? [];
     if (words.length === 0) return 'Laporan sedang dibuat';
     const headline = words.slice(0, 6).join(' ');
     return words.length > 6 ? `${headline}…` : headline;
@@ -736,6 +800,9 @@ export class JaringService {
     const longitude =
       session.longitude === null ? null : Number(session.longitude);
     const verificationStatus = this.jaringReportVerificationStatus(session);
+    const completenessIssues = submittedMessage
+      ? this.validateReportMessageForFieldOfficer(submittedMessage)
+      : [];
     const currentReportVersion = session.amendments?.at(-1)?.versionNumber ?? 1;
     const content =
       latestVersion?.originalContent ??
@@ -758,7 +825,10 @@ export class JaringService {
         })),
       ...sessionMedia.map((item) => ({
         id: item.id,
-        kind: item.mediaType === FileType.VIDEO ? ('VIDEO' as const) : ('IMAGE' as const),
+        kind:
+          item.mediaType === FileType.VIDEO
+            ? ('VIDEO' as const)
+            : ('IMAGE' as const),
         fileId: item.fileId,
         caption: item.caption,
         fileName: item.file.originalName ?? 'berkas_lampiran',
@@ -782,10 +852,14 @@ export class JaringService {
         : []),
     ].sort((left, right) => left.sentAt.getTime() - right.sentAt.getTime());
 
-    const activeCaretaker = session.jaring?.caretakerAssignments?.[0]?.fieldOfficerAssignment?.userProfile;
+    const activeCaretakerAssignment =
+      session.jaring?.caretakerAssignments?.[0]?.fieldOfficerAssignment;
+    const activeCaretaker = activeCaretakerAssignment?.userProfile;
     const gaswilName =
-      activeCaretaker?.fullName ??
-      activeCaretaker?.username ??
+      activeCaretaker?.fullName ?? activeCaretaker?.username ?? null;
+    const primaryCoverage =
+      session.jaring?.areaCoverages.find((coverage) => coverage.isPrimary) ??
+      session.jaring?.areaCoverages[0] ??
       null;
 
     return {
@@ -793,10 +867,15 @@ export class JaringService {
       reportSessionId: session.id,
       jaringId: session.jaringId,
       jaringAlias:
-        session.jaring?.aliasName ??
-        session.jaring?.fullName ??
-        null,
+        session.jaring?.aliasName ?? session.jaring?.fullName ?? null,
+      jaringFullName: session.jaring?.fullName ?? null,
+      jaringCode: session.jaring?.aliasName ?? session.jaring?.id ?? session.jaringId,
+      jaringWhatsAppNumber: session.jaring?.whatsappNumber ?? null,
+      jaringProfilePhotoFileId: session.jaring?.profilePhotoFileId ?? null,
       gaswilName,
+      gaswilAssignmentId: activeCaretakerAssignment?.id ?? null,
+      gaswilUserProfileId: activeCaretaker?.id ?? null,
+      placementArea: primaryCoverage?.area ?? null,
       referenceNumber:
         session.referenceNumber ?? submittedMessage?.referenceNumber ?? null,
       currentReportVersion,
@@ -827,6 +906,12 @@ export class JaringService {
       currentState: session.currentState,
       verificationStatus,
       displayStatus: verificationStatus,
+      completenessStatus: !submittedMessage
+        ? 'NOT_DETERMINED'
+        : completenessIssues.length === 0
+          ? 'COMPLETE'
+          : 'INCOMPLETE',
+      completenessIssues: completenessIssues.map(([, message]) => message),
       canFillMetadata: [
         'VERIFIED_BY_FIELD_OFFICER',
         'METADATA_RECORDED',
@@ -864,6 +949,9 @@ export class JaringService {
       reportCategory:
         submittedMessage?.category ?? baket?.reportCategory ?? null,
       urgency: latestVersion?.urgency ?? null,
+      locationSuitabilityStatus:
+        latestVersion?.coverageValidationStatus ??
+        CoverageValidationStatus.NOT_CHECKED,
       fieldOfficerNote: latestVersion?.fieldOfficerNote ?? null,
       resolvedArea:
         submittedMessage?.resolvedArea ?? latestVersion?.eventArea ?? null,
@@ -904,6 +992,11 @@ export class JaringService {
   }
 
   private serializeJaringCoachingReport(report: JaringCoachingReportRecord) {
+    const primaryCoverage =
+      report.jaring.areaCoverages.find((coverage) => coverage.isPrimary) ??
+      report.jaring.areaCoverages[0] ??
+      null;
+
     return {
       id: report.id,
       jaringId: report.jaringId,
@@ -912,6 +1005,15 @@ export class JaringService {
       reportedAt: report.reportedAt,
       createdAt: report.createdAt,
       updatedAt: report.updatedAt,
+      jaringCode: report.jaring.aliasName ?? report.jaring.id,
+      jaringAlias:
+        report.jaring.aliasName ?? report.jaring.fullName ?? report.jaring.id,
+      jaringName:
+        report.jaring.fullName ?? report.jaring.aliasName ?? report.jaring.id,
+      jaringWhatsAppNumber: report.jaring.whatsappNumber,
+      jaringProfilePhotoFileId: report.jaring.profilePhotoFileId,
+      assignedArea: primaryCoverage?.area ?? null,
+      areaCoverages: report.jaring.areaCoverages,
       fieldOfficer: {
         assignmentId: report.fieldOfficerAssignmentId,
         role: report.fieldOfficerAssignment.role,
@@ -938,7 +1040,7 @@ export class JaringService {
         ? (message.rawPayload as Record<string, unknown>)
         : null;
     const hasPhotoEvidence =
-      message.media.length > 0 ||
+      (message.media?.length ?? 0) > 0 ||
       (typeof rawPayload?.photoMessageId === 'string' &&
         rawPayload.photoMessageId.length > 0);
 
@@ -968,6 +1070,254 @@ export class JaringService {
         : []),
       ...(!hasPhotoEvidence ? [['MISSING_PHOTO', 'Foto wajib tersedia']] : []),
     ];
+  }
+
+  private async summarizeReportSessions(
+    where: Prisma.WhatsAppReportSessionWhereInput,
+  ) {
+    const completeMessageWhere = this.completeReportMessageWhere();
+    const jaringReportWhere: Prisma.WhatsAppReportSessionWhereInput = {
+      AND: [
+        where,
+        {
+          submittedMessage: {
+            is: { convertedBaketId: null },
+          },
+        },
+      ],
+    };
+    const verifiedWhere = this.verificationStatusWhere(
+      'VERIFIED_BY_FIELD_OFFICER',
+    );
+    const waitingWhere = this.verificationStatusWhere(
+      'WAITING_FIELD_OFFICER_VERIFICATION',
+    );
+    const [
+      totalSessions,
+      totalJaringReports,
+      completeJaringReports,
+      baketReports,
+      verifiedJaringReports,
+      waitingVerificationReports,
+    ] = await Promise.all([
+      this.prisma.whatsAppReportSession.count({ where }),
+      this.prisma.whatsAppReportSession.count({ where: jaringReportWhere }),
+      this.prisma.whatsAppReportSession.count({
+        where: {
+          AND: [
+            where,
+            {
+              submittedMessage: {
+                is: {
+                  ...completeMessageWhere,
+                  convertedBaketId: null,
+                },
+              },
+            },
+          ],
+        },
+      }),
+      this.prisma.whatsAppReportSession.count({
+        where: {
+          AND: [
+            where,
+            {
+              submittedMessage: {
+                is: {
+                  convertedBaketId: { not: null },
+                  validationSummary: WhatsAppValidationSummary.VALID,
+                },
+              },
+            },
+          ],
+        },
+      }),
+      this.prisma.whatsAppReportSession.count({
+        where: {
+          AND: [where, ...(verifiedWhere ? [verifiedWhere] : [])],
+        },
+      }),
+      this.prisma.whatsAppReportSession.count({
+        where: {
+          AND: [where, ...(waitingWhere ? [waitingWhere] : [])],
+        },
+      }),
+    ]);
+    const incompleteJaringReports = Math.max(
+      0,
+      totalJaringReports - completeJaringReports,
+    );
+
+    return {
+      totalSessions,
+      totalJaringReports,
+      completeJaringReports,
+      incompleteJaringReports,
+      baketReports,
+      verifiedJaringReports,
+      waitingVerificationReports,
+    };
+  }
+
+  private completeReportMessageWhere(): Prisma.WhatsAppMessageWhereInput {
+    return {
+      content: { not: null },
+      senderPhone: { not: '' },
+      jaringId: { not: null },
+      latitude: { not: null },
+      longitude: { not: null },
+      resolvedAreaId: { not: null },
+      OR: [
+        { media: { some: {} } },
+        {
+          rawPayload: {
+            path: ['photoMessageId'],
+            not: Prisma.AnyNull,
+          },
+        },
+      ],
+    };
+  }
+
+  private verificationStatusWhere(
+    status: JaringReportQuery['verificationStatus'],
+  ): Prisma.WhatsAppReportSessionWhereInput | null {
+    if (!status) return null;
+
+    switch (status) {
+      case 'VERIFIED':
+        return {
+          submittedMessage: {
+            is: { validationSummary: WhatsAppValidationSummary.VALID },
+          },
+        };
+      case 'NEEDS_REVIEW':
+        return {
+          submittedMessage: {
+            is: {
+              OR: [
+                { validationSummary: WhatsAppValidationSummary.INVALID },
+                { status: WhatsAppMessageStatus.UNDER_REVIEW },
+              ],
+            },
+          },
+        };
+      case 'WAITING':
+        return {
+          submittedMessage: {
+            is: {
+              NOT: {
+                OR: [
+                  { validationSummary: WhatsAppValidationSummary.VALID },
+                  { validationSummary: WhatsAppValidationSummary.INVALID },
+                  { status: WhatsAppMessageStatus.UNDER_REVIEW },
+                ],
+              },
+            },
+          },
+        };
+      case 'IN_PROGRESS_BY_JARING':
+        return {
+          status: 'ACTIVE',
+          submittedMessage: { is: null },
+        };
+      case 'NOT_SUBMITTED':
+        return {
+          status: { not: 'ACTIVE' },
+          submittedMessage: { is: null },
+        };
+      case 'METADATA_RECORDED':
+        return {
+          submittedMessage: {
+            is: {
+              convertedBaketId: { not: null },
+              validationSummary: WhatsAppValidationSummary.VALID,
+            },
+          },
+        };
+      case 'VERIFIED_BY_FIELD_OFFICER':
+        return {
+          submittedMessage: {
+            is: {
+              convertedBaketId: null,
+              validationSummary: WhatsAppValidationSummary.VALID,
+              status: WhatsAppMessageStatus.READY_FOR_BAKET,
+            },
+          },
+        };
+      case 'NEEDS_FIELD_OFFICER_REVIEW':
+        return {
+          submittedMessage: {
+            is: {
+              convertedBaketId: null,
+              OR: [
+                { validationSummary: WhatsAppValidationSummary.INVALID },
+                { status: WhatsAppMessageStatus.UNDER_REVIEW },
+              ],
+            },
+          },
+        };
+      case 'WAITING_FIELD_OFFICER_VERIFICATION':
+        return {
+          submittedMessage: {
+            is: {
+              convertedBaketId: null,
+              NOT: [
+                {
+                  validationSummary: WhatsAppValidationSummary.VALID,
+                  status: WhatsAppMessageStatus.READY_FOR_BAKET,
+                },
+                { validationSummary: WhatsAppValidationSummary.INVALID },
+                { status: WhatsAppMessageStatus.UNDER_REVIEW },
+              ],
+            },
+          },
+        };
+      case 'UNVERIFIED':
+        return {
+          NOT: {
+            submittedMessage: {
+              is: {
+                convertedBaketId: null,
+                validationSummary: WhatsAppValidationSummary.VALID,
+                status: WhatsAppMessageStatus.READY_FOR_BAKET,
+              },
+            },
+          },
+        };
+      default:
+        return null;
+    }
+  }
+
+  private reportOrderBy(
+    query: JaringReportQuery,
+  ): Prisma.WhatsAppReportSessionOrderByWithRelationInput[] {
+    const direction = query.sortOrder ?? 'desc';
+    switch (query.sortBy ?? 'reportedAt') {
+      case 'createdAt':
+        return [{ createdAt: direction }, { id: direction }];
+      case 'updatedAt':
+        return [
+          { updatedAt: direction },
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ];
+      case 'referenceNumber':
+        return [
+          { referenceNumber: { sort: direction, nulls: 'last' } },
+          { submittedAt: { sort: 'desc', nulls: 'last' } },
+          { startedAt: 'desc' },
+          { id: 'desc' },
+        ];
+      default:
+        return [
+          { submittedAt: { sort: direction, nulls: 'last' } },
+          { startedAt: direction },
+          { createdAt: direction },
+          { id: direction },
+        ];
+    }
   }
 
   private reportFieldSnapshot(input: {
@@ -1061,110 +1411,255 @@ export class JaringService {
     const isFieldOfficer = context.authRole === 'field_officer';
     const isFieldCoordinator = context.authRole === 'field_coordinator';
     const page = query.page ?? 1;
+    const search = query.search?.trim();
+    const phoneSearchVariants = search
+      ? getIndonesianPhoneSearchVariants(search)
+      : [];
+    const scopedAreaWhere = this.scopedJaringAreaWhere(scope);
 
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
 
-    const items = await this.prisma.jaring.findMany({
-      where: {
-        deletedAt: null,
-        ...(isFieldCoordinator && scope.areaRootIds.length === 0
-          ? { id: { in: [] } }
-          : {}),
-        caretakerAssignments: {
-          some: {
-            ...(isFieldCoordinator
-              ? {
-                  fieldOfficerAssignment: {
-                    branch: scope.commandRouteType,
-                  },
-                }
-              : {
-                  fieldOfficerAssignmentId: { in: scope.assignmentIds },
-                }),
-            isActive: true,
-            OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-          },
-        },
-        ...this.scopedJaringAreaWhere(scope),
-        ...(query.status === JaringStatus.ACTIVE
-          ? {
-              registrationStatus: JaringRegistrationStatus.APPROVED,
-              OR: [
-                {
-                  reportSessions: {
-                    some: { submittedAt: { gte: threeMonthsAgo } },
+    const baseWhere: Prisma.JaringWhereInput = {
+      deletedAt: null,
+      AND: [
+        scopedAreaWhere,
+        ...(query.areaId
+          ? [
+              {
+                areaCoverages: {
+                  some: {
+                    validUntil: null,
+                    area: {
+                      OR: [
+                        { id: query.areaId },
+                        {
+                          descendantLinks: {
+                            some: { ancestorId: query.areaId },
+                          },
+                        },
+                      ],
+                    },
                   },
                 },
-                {
-                  messages: {
-                    some: { receivedAt: { gte: threeMonthsAgo } },
-                  },
-                },
-              ],
-            }
-          : query.status === JaringStatus.INACTIVE
-            ? {
+              } satisfies Prisma.JaringWhereInput,
+            ]
+          : []),
+        ...(search
+          ? [
+              {
                 OR: [
+                  { aliasName: { contains: search, mode: 'insensitive' } },
+                  { fullName: { contains: search, mode: 'insensitive' } },
+                  { address: { contains: search, mode: 'insensitive' } },
+                  ...phoneSearchVariants.map((phone) => ({
+                    whatsappNumber: { contains: phone },
+                  })),
                   {
-                    registrationStatus: {
-                      not: JaringRegistrationStatus.APPROVED,
+                    caretakerAssignments: {
+                      some: {
+                        isActive: true,
+                        fieldOfficerAssignment: {
+                          userProfile: {
+                            OR: [
+                              { fullName: { contains: search, mode: 'insensitive' } },
+                              { username: { contains: search, mode: 'insensitive' } },
+                            ],
+                          },
+                        },
+                      },
                     },
                   },
                   {
-                    AND: [
-                      {
-                        reportSessions: {
-                          none: { submittedAt: { gte: threeMonthsAgo } },
+                    areaCoverages: {
+                      some: {
+                        validUntil: null,
+                        area: {
+                          OR: [
+                            { name: { contains: search, mode: 'insensitive' } },
+                            {
+                              descendantLinks: {
+                                some: {
+                                  ancestor: { name: { contains: search, mode: 'insensitive' } },
+                                },
+                              },
+                            },
+                          ],
                         },
                       },
-                      {
-                        messages: {
-                          none: { receivedAt: { gte: threeMonthsAgo } },
-                        },
-                      },
-                    ],
+                    },
                   },
                 ],
+              } satisfies Prisma.JaringWhereInput,
+            ]
+          : []),
+      ],
+      ...(isFieldCoordinator && scope.areaRootIds.length === 0
+        ? { id: { in: [] } }
+        : {}),
+      caretakerAssignments: {
+        some: {
+          ...(isFieldCoordinator
+            ? {
+                fieldOfficerAssignment: {
+                  branch: scope.commandRouteType,
+                },
               }
-            : query.status === JaringStatus.ARCHIVED
-              ? { deletedAt: { not: null } }
-              : {}),
-        ...(query.registrationStatus
-          ? { registrationStatus: query.registrationStatus }
-          : isFieldOfficer
-            ? {}
-            : { registrationStatus: JaringRegistrationStatus.APPROVED }),
-        ...(query.search
+            : {
+                fieldOfficerAssignmentId: { in: scope.assignmentIds },
+              }),
+          ...(query.fieldOfficerAssignmentId
+            ? { fieldOfficerAssignmentId: query.fieldOfficerAssignmentId }
+            : {}),
+          isActive: true,
+          OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+        },
+      },
+      ...(query.occupationId ? { occupationId: query.occupationId } : {}),
+      ...(query.status === JaringStatus.ACTIVE
+        ? {
+            registrationStatus: JaringRegistrationStatus.APPROVED,
+            OR: [
+              {
+                reportSessions: {
+                  some: { submittedAt: { gte: threeMonthsAgo } },
+                },
+              },
+              {
+                messages: {
+                  some: { receivedAt: { gte: threeMonthsAgo } },
+                },
+              },
+            ],
+          }
+        : query.status === JaringStatus.INACTIVE
           ? {
               OR: [
-                { aliasName: { contains: query.search, mode: 'insensitive' } },
-                { fullName: { contains: query.search, mode: 'insensitive' } },
-                { whatsappNumber: { contains: query.search } },
-                { address: { contains: query.search, mode: 'insensitive' } },
+                {
+                  registrationStatus: {
+                    not: JaringRegistrationStatus.APPROVED,
+                  },
+                },
+                {
+                  AND: [
+                    {
+                      reportSessions: {
+                        none: { submittedAt: { gte: threeMonthsAgo } },
+                      },
+                    },
+                    {
+                      messages: {
+                        none: { receivedAt: { gte: threeMonthsAgo } },
+                      },
+                    },
+                  ],
+                },
               ],
             }
-          : {}),
-      },
+          : query.status === JaringStatus.ARCHIVED
+            ? { deletedAt: { not: null } }
+            : {}),
+    };
+    const where: Prisma.JaringWhereInput = {
+      ...baseWhere,
+      ...(query.registrationStatus
+        ? { registrationStatus: query.registrationStatus }
+        : isFieldOfficer
+          ? {}
+          : { registrationStatus: JaringRegistrationStatus.APPROVED }),
+    };
+    const items = await this.prisma.jaring.findMany({
+      where,
       ...(page > 1 ? { skip: (page - 1) * query.limit } : {}),
       take: query.limit,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      include: {
-        occupation: true,
-        profilePhotoFile: true,
+      select: {
+        id: true,
+        aliasName: true,
+        whatsappNumber: true,
+        fullName: true,
+        nationalIdNumber: true,
+        address: true,
+        birthPlace: true,
+        birthDate: true,
+        gender: true,
+        occupationId: true,
+        profilePhotoFileId: true,
+        workplace: true,
+        jobTitle: true,
+        joinedAt: true,
+        organizationName: true,
+        politicalAffiliation: true,
+        status: true,
+        registrationStatus: true,
+        rejectionReason: true,
+        reviewedAt: true,
+        reviewedByAssignmentId: true,
+        createdByAssignmentId: true,
+        notes: true,
+        registeredAt: true,
+        deactivatedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        occupation: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            description: true,
+            isActive: true,
+          },
+        },
+        profilePhotoFile: { select: { id: true } },
         caretakerAssignments: {
           where: { isActive: true, validUntil: null },
-          include: {
-            fieldOfficerAssignment: { include: { userProfile: true } },
+          select: {
+            id: true,
+            fieldOfficerAssignmentId: true,
+            isActive: true,
+            validFrom: true,
+            validUntil: true,
+            transferReason: true,
+            fieldOfficerAssignment: {
+              select: {
+                id: true,
+                userProfile: { select: { id: true, fullName: true } },
+              },
+            },
           },
         },
         areaCoverages: {
           where: { validUntil: null },
-          include: {
+          select: {
+            id: true,
+            areaId: true,
+            isPrimary: true,
+            validFrom: true,
+            validUntil: true,
             area: {
-              include: {
+              select: {
+                id: true,
+                code: true,
+                officialCode: true,
+                name: true,
+                level: true,
                 parent: {
-                  include: { parent: true },
+                  select: {
+                    id: true,
+                    code: true,
+                    officialCode: true,
+                    name: true,
+                    level: true,
+                    parent: {
+                      select: {
+                        id: true,
+                        code: true,
+                        officialCode: true,
+                        name: true,
+                        level: true,
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -1175,6 +1670,7 @@ export class JaringService {
             messages: true,
             reportSessions: true,
             coachingReports: true,
+            primaryBakets: true,
           },
         },
         messages: {
@@ -1204,7 +1700,7 @@ export class JaringService {
       },
     });
 
-    return items.map((item) => {
+    const mappedItems = items.map((item) => {
       const { lastReportAt, computedStatus } =
         this.calculateJaringReportActivity(item);
       return {
@@ -1213,6 +1709,49 @@ export class JaringService {
         status: computedStatus,
       };
     });
+    if (!query.paginated) return mappedItems;
+
+    const summaryWhere: Prisma.JaringWhereInput = {
+      ...baseWhere,
+      ...(isFieldOfficer
+        ? {}
+        : { registrationStatus: JaringRegistrationStatus.APPROVED }),
+    };
+    const [total, registrationGroups] = await Promise.all([
+      this.prisma.jaring.count({ where }),
+      this.prisma.jaring.groupBy({
+        by: ['registrationStatus'],
+        where: summaryWhere,
+        _count: { _all: true },
+      }),
+    ]);
+    const registrationCounts = new Map(
+      registrationGroups.map((group) => [
+        group.registrationStatus,
+        group._count._all,
+      ]),
+    );
+    const summaryTotal = registrationGroups.reduce(
+      (sum, group) => sum + group._count._all,
+      0,
+    );
+    return {
+      items: mappedItems,
+      pagination: {
+        page,
+        limit: query.limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / query.limit)),
+      },
+      summary: {
+        total: summaryTotal,
+        pending: registrationCounts.get(JaringRegistrationStatus.PENDING) ?? 0,
+        approved:
+          registrationCounts.get(JaringRegistrationStatus.APPROVED) ?? 0,
+        rejected:
+          registrationCounts.get(JaringRegistrationStatus.REJECTED) ?? 0,
+      },
+    };
   }
 
   async create(body: CreateJaringDto, context: AuthorizationContext) {
@@ -1563,24 +2102,32 @@ export class JaringService {
   }
 
   async listOccupations(query: JaringOccupationQuery) {
-    return this.prisma.jaringOccupation.findMany({
-      where: {
-        ...(query.includeInactive ? {} : { isActive: true }),
-        ...(query.search
-          ? {
-              OR: [
-                { code: { contains: query.search, mode: 'insensitive' } },
-                { name: { contains: query.search, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
+    return this.cache.getOrSet(
+      {
+        namespace: 'jaring-occupations',
+        identity: query,
+        ttlMs: 30 * 60_000,
       },
-      take: query.limit,
-      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
-      include: {
-        _count: { select: { jaring: true } },
-      },
-    });
+      () =>
+        this.prisma.jaringOccupation.findMany({
+          where: {
+            ...(query.includeInactive ? {} : { isActive: true }),
+            ...(query.search
+              ? {
+                  OR: [
+                    { code: { contains: query.search, mode: 'insensitive' } },
+                    { name: { contains: query.search, mode: 'insensitive' } },
+                  ],
+                }
+              : {}),
+          },
+          take: query.limit,
+          orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+          include: {
+            _count: { select: { jaring: true } },
+          },
+        }),
+    );
   }
 
   async createOccupation(
@@ -1616,6 +2163,7 @@ export class JaringService {
     });
 
     await this.audit(context, 'JARING_OCCUPATION.CREATE', occupation.id);
+    await this.cache.invalidate('jaring-occupations');
     return occupation;
   }
 
@@ -1673,28 +2221,37 @@ export class JaringService {
     });
 
     await this.audit(context, 'JARING_OCCUPATION.UPDATE', id);
+    await this.cache.invalidate('jaring-occupations');
     return occupation;
   }
 
   async listReportCategories(query: ReportCategoryQuery) {
-    return this.prisma.reportCategory.findMany({
-      where: {
-        ...(query.includeInactive ? {} : { isActive: true }),
-        ...(query.search
-          ? {
-              OR: [
-                { code: { contains: query.search, mode: 'insensitive' } },
-                { name: { contains: query.search, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
+    return this.cache.getOrSet(
+      {
+        namespace: 'report-categories',
+        identity: query,
+        ttlMs: 30 * 60_000,
       },
-      take: query.limit,
-      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
-      include: {
-        _count: { select: { whatsAppMessages: true } },
-      },
-    });
+      () =>
+        this.prisma.reportCategory.findMany({
+          where: {
+            ...(query.includeInactive ? {} : { isActive: true }),
+            ...(query.search
+              ? {
+                  OR: [
+                    { code: { contains: query.search, mode: 'insensitive' } },
+                    { name: { contains: query.search, mode: 'insensitive' } },
+                  ],
+                }
+              : {}),
+          },
+          take: query.limit,
+          orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+          include: {
+            _count: { select: { whatsAppMessages: true } },
+          },
+        }),
+    );
   }
 
   async createReportCategory(
@@ -1730,6 +2287,7 @@ export class JaringService {
     });
 
     await this.audit(context, 'REPORT_CATEGORY.CREATE', category.id);
+    await this.cache.invalidate('report-categories');
     return category;
   }
 
@@ -1787,6 +2345,7 @@ export class JaringService {
     });
 
     await this.audit(context, 'REPORT_CATEGORY.UPDATE', id);
+    await this.cache.invalidate('report-categories');
     return category;
   }
 
@@ -1920,16 +2479,62 @@ export class JaringService {
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const where = { jaringId: id };
-    const [reports, total] = await Promise.all([
+    const fromDate = query.from ? new Date(query.from) : undefined;
+    const toDate = query.to ? new Date(query.to) : undefined;
+    const search = query.search?.trim();
+    const where: Prisma.JaringCoachingReportWhereInput = {
+      jaringId: id,
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: 'insensitive' } },
+              { content: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+      ...(fromDate || toDate
+        ? {
+            reportedAt: {
+              ...(fromDate ? { gte: fromDate } : {}),
+              ...(toDate ? { lte: toDate } : {}),
+            },
+          }
+        : {}),
+    };
+    const sortOrder = query.sortOrder ?? 'desc';
+    const sortBy = query.sortBy ?? 'reportedAt';
+    const currentMonth = this.currentWibMonthRange();
+    const [reports, total, groupedJaring, thisMonthCount] = await Promise.all([
       this.prisma.jaringCoachingReport.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: [{ reportedAt: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [
+          { [sortBy]: sortOrder },
+          ...(sortBy === 'reportedAt' ? [] : [{ reportedAt: 'desc' as const }]),
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
         select: jaringCoachingReportSelect,
       }),
       this.prisma.jaringCoachingReport.count({ where }),
+      this.prisma.jaringCoachingReport.groupBy({
+        by: ['jaringId'],
+        where,
+      }),
+      this.prisma.jaringCoachingReport.count({
+        where: {
+          AND: [
+            where,
+            {
+              reportedAt: {
+                gte: currentMonth.from,
+                lt: currentMonth.to,
+              },
+            },
+          ],
+        },
+      }),
     ]);
 
     return {
@@ -1941,6 +2546,155 @@ export class JaringService {
         limit,
         total,
         totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+      summary: {
+        total,
+        uniqueJaringCount: groupedJaring.length,
+        thisMonthCount,
+      },
+    };
+  }
+
+  async allCoachingReports(
+    query: JaringCoachingReportQuery,
+    context: AuthorizationContext,
+  ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const fromDate = query.from ? new Date(query.from) : undefined;
+    const toDate = query.to ? new Date(query.to) : undefined;
+    const search = query.search?.trim();
+    const phoneSearchVariants = search ? getIndonesianPhoneSearchVariants(search) : [];
+    const sortOrder = query.sortOrder ?? 'desc';
+    const sortBy = query.sortBy ?? 'reportedAt';
+    const scopedJaringWhere = await this.domainScope.jaringWhere(context);
+
+    const areaWhere: Prisma.AdministrativeAreaWhereInput | undefined =
+      query.areaId
+        ? {
+            OR: [
+              { id: query.areaId },
+              { descendantLinks: { some: { ancestorId: query.areaId } } },
+            ],
+          }
+        : undefined;
+    const jaringWhere: Prisma.JaringWhereInput = {
+      ...scopedJaringWhere,
+      ...(query.jaringId ? { id: query.jaringId } : {}),
+      ...(areaWhere
+        ? {
+            areaCoverages: {
+              some: { validUntil: null, area: areaWhere },
+            },
+          }
+        : {}),
+    };
+    const where: Prisma.JaringCoachingReportWhereInput = {
+      jaring: jaringWhere,
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: 'insensitive' } },
+              { content: { contains: search, mode: 'insensitive' } },
+              {
+                jaring: {
+                  OR: [
+                    { aliasName: { contains: search, mode: 'insensitive' } },
+                    { fullName: { contains: search, mode: 'insensitive' } },
+                    ...phoneSearchVariants.map((phone) => ({ whatsappNumber: { contains: phone } })),
+                    {
+                      areaCoverages: {
+                        some: {
+                          validUntil: null,
+                          area: {
+                            OR: [
+                              { name: { contains: search, mode: 'insensitive' } },
+                              {
+                                descendantLinks: {
+                                  some: {
+                                    ancestor: { name: { contains: search, mode: 'insensitive' } },
+                                  },
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                fieldOfficerAssignment: {
+                  userProfile: {
+                    OR: [
+                      { fullName: { contains: search, mode: 'insensitive' } },
+                      { username: { contains: search, mode: 'insensitive' } },
+                    ],
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+      ...(fromDate || toDate
+        ? {
+            reportedAt: {
+              ...(fromDate ? { gte: fromDate } : {}),
+              ...(toDate ? { lte: toDate } : {}),
+            },
+          }
+        : {}),
+    };
+
+    const currentMonth = this.currentWibMonthRange();
+    const [reports, total, groupedJaring, thisMonthCount] = await Promise.all([
+      this.prisma.jaringCoachingReport.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: [
+          { [sortBy]: sortOrder },
+          ...(sortBy === 'reportedAt' ? [] : [{ reportedAt: 'desc' as const }]),
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+        select: jaringCoachingReportSelect,
+      }),
+      this.prisma.jaringCoachingReport.count({ where }),
+      this.prisma.jaringCoachingReport.groupBy({
+        by: ['jaringId'],
+        where,
+      }),
+      this.prisma.jaringCoachingReport.count({
+        where: {
+          AND: [
+            where,
+            {
+              reportedAt: {
+                gte: currentMonth.from,
+                lt: currentMonth.to,
+              },
+            },
+          ],
+        },
+      }),
+    ]);
+
+    return {
+      items: reports.map((report) =>
+        this.serializeJaringCoachingReport(report),
+      ),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+      summary: {
+        total,
+        uniqueJaringCount: groupedJaring.length,
+        thisMonthCount,
       },
     };
   }
@@ -2046,6 +2800,10 @@ export class JaringService {
     const jaringWhere = await this.domainScope.jaringWhere(context);
     const fromDate = query.from ? new Date(query.from) : undefined;
     const toDate = query.to ? new Date(query.to) : undefined;
+    const search = query.search?.trim();
+    const phoneSearchVariants = search
+      ? getIndonesianPhoneSearchVariants(search)
+      : [];
 
     const baseJaringWhere: Prisma.JaringWhereInput = {
       ...jaringWhere,
@@ -2055,69 +2813,311 @@ export class JaringService {
         : {}),
     };
 
-    const where: Prisma.WhatsAppReportSessionWhereInput = {
-      jaring: baseJaringWhere,
-      ...(query.status ? { status: query.status } : {}),
-      ...(fromDate || toDate
-        ? {
-            OR: [
-              {
-                submittedAt: {
-                  ...(fromDate ? { gte: fromDate } : {}),
-                  ...(toDate ? { lte: toDate } : {}),
+    const filters: Prisma.WhatsAppReportSessionWhereInput[] = [
+      { jaring: baseJaringWhere },
+    ];
+    if (query.status) filters.push({ status: query.status });
+    if (fromDate || toDate) {
+      filters.push({
+        OR: [
+          {
+            submittedAt: {
+              ...(fromDate ? { gte: fromDate } : {}),
+              ...(toDate ? { lte: toDate } : {}),
+            },
+          },
+          {
+            submittedAt: null,
+            startedAt: {
+              ...(fromDate ? { gte: fromDate } : {}),
+              ...(toDate ? { lte: toDate } : {}),
+            },
+          },
+        ],
+      });
+    }
+    if (search) {
+      filters.push({
+        OR: [
+          { referenceNumber: { contains: search, mode: 'insensitive' } },
+          { content: { contains: search, mode: 'insensitive' } },
+          {
+            jaring: {
+              OR: [
+                { aliasName: { contains: search, mode: 'insensitive' } },
+                { fullName: { contains: search, mode: 'insensitive' } },
+                ...phoneSearchVariants.map((phone) => ({
+                  whatsappNumber: { contains: phone },
+                })),
+                {
+                  caretakerAssignments: {
+                    some: {
+                      isActive: true,
+                      fieldOfficerAssignment: {
+                        userProfile: {
+                          OR: [
+                            { fullName: { contains: search, mode: 'insensitive' } },
+                            { username: { contains: search, mode: 'insensitive' } },
+                          ],
+                        },
+                      },
+                    },
+                  },
                 },
+                {
+                  areaCoverages: {
+                    some: {
+                      validUntil: null,
+                      area: {
+                        OR: [
+                          { name: { contains: search, mode: 'insensitive' } },
+                          {
+                            descendantLinks: {
+                              some: {
+                                ancestor: { name: { contains: search, mode: 'insensitive' } },
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          {
+            submittedMessage: {
+              is: {
+                OR: [
+                  { content: { contains: search, mode: 'insensitive' } },
+                  {
+                    referenceNumber: {
+                      contains: search,
+                      mode: 'insensitive',
+                    },
+                  },
+                ],
               },
+            },
+          },
+        ],
+      });
+    }
+    if (query.categoryId) {
+      filters.push({
+        submittedMessage: {
+          is: {
+            OR: [
+              { categoryId: query.categoryId },
               {
-                submittedAt: null,
-                startedAt: {
-                  ...(fromDate ? { gte: fromDate } : {}),
-                  ...(toDate ? { lte: toDate } : {}),
+                convertedBaket: {
+                  is: { reportCategoryId: query.categoryId },
                 },
               },
             ],
-          }
-        : {}),
+          },
+        },
+      });
+    }
+    if (query.areaId) {
+      filters.push({
+        submittedMessage: {
+          is: {
+            resolvedArea: {
+              is: {
+                OR: [
+                  { id: query.areaId },
+                  {
+                    descendantLinks: {
+                      some: { ancestorId: query.areaId },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      });
+    }
+    if (query.jaringAreaId) {
+      filters.push({
+        jaring: {
+          ...baseJaringWhere,
+          areaCoverages: {
+            some: {
+              validUntil: null,
+              area: {
+                OR: [
+                  { id: query.jaringAreaId },
+                  {
+                    descendantLinks: {
+                      some: { ancestorId: query.jaringAreaId },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      });
+    }
+    if (query.fieldOfficerAssignmentId) {
+      filters.push({
+        fieldOfficerAssignmentId: query.fieldOfficerAssignmentId,
+      });
+    }
+    if (query.workflowStatus) {
+      filters.push({
+        submittedMessage: {
+          is: {
+            convertedBaket: { is: { status: query.workflowStatus } },
+          },
+        },
+      });
+    }
+    if (query.coordinateSource) {
+      filters.push({
+        submittedMessage: { is: { coordinateSource: query.coordinateSource } },
+      });
+    }
+    if (query.urgency) {
+      filters.push({
+        submittedMessage: {
+          is: {
+            convertedBaket: {
+              is: { versions: { some: { urgency: query.urgency } } },
+            },
+          },
+        },
+      });
+    }
+    if (query.hasAttachment === 'true') {
+      filters.push({ media: { some: { deletedAt: null } } });
+    } else if (query.hasAttachment === 'false') {
+      filters.push({ media: { none: { deletedAt: null } } });
+    }
+    if (query.locationSuitability) {
+      const outsideStatuses = [
+        CoverageValidationStatus.OUTSIDE_JARING_SCOPE,
+        CoverageValidationStatus.OUTSIDE_FIELD_OFFICER_SCOPE,
+        CoverageValidationStatus.OUTSIDE_FIELD_COORDINATOR_SCOPE,
+        CoverageValidationStatus.OUTSIDE_UNIT_SCOPE,
+      ];
+      const coverageStatusWhere: Prisma.BaketVersionWhereInput =
+        query.locationSuitability === 'WITHIN_SCOPE'
+          ? { coverageValidationStatus: CoverageValidationStatus.WITHIN_SCOPE }
+          : query.locationSuitability === 'BORDER_AMBIGUOUS'
+            ? {
+                coverageValidationStatus:
+                  CoverageValidationStatus.BORDER_AMBIGUOUS,
+              }
+            : query.locationSuitability === 'OUTSIDE_SCOPE'
+              ? { coverageValidationStatus: { in: outsideStatuses } }
+              : {
+                  coverageValidationStatus:
+                    CoverageValidationStatus.NOT_CHECKED,
+                };
+      filters.push(
+        query.locationSuitability === 'NOT_DETERMINED'
+          ? {
+              OR: [
+                { submittedMessage: { is: null } },
+                {
+                  submittedMessage: {
+                    is: { convertedBaketId: null },
+                  },
+                },
+                {
+                  submittedMessage: {
+                    is: {
+                      convertedBaket: {
+                        is: { versions: { some: coverageStatusWhere } },
+                      },
+                    },
+                  },
+                },
+              ],
+            }
+          : {
+              submittedMessage: {
+                is: {
+                  convertedBaket: {
+                    is: { versions: { some: coverageStatusWhere } },
+                  },
+                },
+              },
+            },
+      );
+    }
+    const summaryWhere: Prisma.WhatsAppReportSessionWhereInput = {
+      AND: [...filters],
     };
+    const verificationWhere = this.verificationStatusWhere(
+      query.verificationStatus,
+    );
+    if (verificationWhere) filters.push(verificationWhere);
+    if (query.completeness === 'COMPLETE') {
+      filters.push({
+        submittedMessage: {
+          is: {
+            ...this.completeReportMessageWhere(),
+            convertedBaketId: null,
+          },
+        },
+      });
+    } else if (query.completeness === 'INCOMPLETE') {
+      filters.push({
+        submittedMessage: {
+          is: {
+            convertedBaketId: null,
+            NOT: this.completeReportMessageWhere(),
+          },
+        },
+      });
+    }
+    if (query.stage === 'JARING_REPORT') {
+      filters.push({
+        submittedMessage: { is: { convertedBaketId: null } },
+      });
+    } else if (query.stage === 'DRAFT_BAKET') {
+      filters.push({
+        submittedMessage: {
+          is: {
+            validationSummary: WhatsAppValidationSummary.VALID,
+            convertedBaket: {
+              is: { status: { not: BaketStatus.VERIFIED } },
+            },
+          },
+        },
+      });
+    } else if (query.stage === 'VALIDATED_BAKET') {
+      filters.push({
+        submittedMessage: {
+          is: {
+            validationSummary: WhatsAppValidationSummary.VALID,
+            convertedBaket: { is: { status: BaketStatus.VERIFIED } },
+          },
+        },
+      });
+    }
+    const where: Prisma.WhatsAppReportSessionWhereInput = { AND: filters };
 
-    const [sessions, total, statusCounts] = await Promise.all([
+    const [sessions, total, statusCounts, summary] = await Promise.all([
       this.prisma.whatsAppReportSession.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: [
-          { submittedAt: 'desc' },
-          { updatedAt: 'desc' },
-          { id: 'desc' },
-        ],
+        orderBy: this.reportOrderBy(query),
         select: jaringReportSessionSelect,
       }),
       this.prisma.whatsAppReportSession.count({ where }),
       this.prisma.whatsAppReportSession.groupBy({
         by: ['status'],
-        where: {
-          jaring: baseJaringWhere,
-          ...(fromDate || toDate
-            ? {
-                OR: [
-                  {
-                    submittedAt: {
-                      ...(fromDate ? { gte: fromDate } : {}),
-                      ...(toDate ? { lte: toDate } : {}),
-                    },
-                  },
-                  {
-                    submittedAt: null,
-                    startedAt: {
-                      ...(fromDate ? { gte: fromDate } : {}),
-                      ...(toDate ? { lte: toDate } : {}),
-                    },
-                  },
-                ],
-              }
-            : {}),
-        },
+        where,
         _count: { _all: true },
       }),
+      this.summarizeReportSessions(summaryWhere),
     ]);
 
     return {
@@ -2135,6 +3135,7 @@ export class JaringService {
           statusCounts.map((item) => [item.status, item._count._all]),
         ),
       },
+      summary,
     };
   }
 

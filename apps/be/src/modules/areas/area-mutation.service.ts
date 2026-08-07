@@ -7,6 +7,7 @@ import {
   Prisma,
 } from '../../generated/prisma/client.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
+import { ApplicationCacheService } from '../cache/application-cache.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PARENT_LEVELS } from './area.constants.js';
 import type {
@@ -21,11 +22,12 @@ export class AreaMutationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobs: AsyncJobService,
+    private readonly cache: ApplicationCacheService,
   ) {}
 
   async create(input: CreateAreaDto, actor: AuthorizationContext) {
     await this.validateParent(input.level, input.parentId ?? null);
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const area = await tx.administrativeArea.create({ data: input });
       await tx.administrativeAreaClosure.create({
         data: { ancestorId: area.id, descendantId: area.id, depth: 0 },
@@ -46,6 +48,11 @@ export class AreaMutationService {
       await this.audit(tx, actor, 'AREA.CREATE', area.id, null, area);
       return area;
     });
+    await this.cache.invalidate(
+      'administrative-area-tree',
+      'administrative-boundaries',
+    );
+    return result;
   }
 
   async update(id: string, input: UpdateAreaDto, actor: AuthorizationContext) {
@@ -57,6 +64,10 @@ export class AreaMutationService {
       data: input,
     });
     await this.audit(this.prisma, actor, 'AREA.UPDATE', id, before, updated);
+    await this.cache.invalidate(
+      'administrative-area-tree',
+      'administrative-boundaries',
+    );
     return updated;
   }
 
@@ -97,6 +108,10 @@ export class AreaMutationService {
         { parentId, reason },
       );
     });
+    await this.cache.invalidate(
+      'administrative-area-tree',
+      'administrative-boundaries',
+    );
   }
 
   async createBoundary(
@@ -120,9 +135,12 @@ export class AreaMutationService {
       null,
       { areaId, versionNumber: nextVersion },
     );
-    return this.prisma.administrativeAreaBoundary.findUniqueOrThrow({
-      where: { id: rows[0].id },
-    });
+    const result =
+      await this.prisma.administrativeAreaBoundary.findUniqueOrThrow({
+        where: { id: rows[0].id },
+      });
+    await this.cache.invalidate('administrative-boundaries');
+    return result;
   }
 
   async activateBoundary(
@@ -152,9 +170,12 @@ export class AreaMutationService {
         reason,
       });
     });
-    return this.prisma.administrativeAreaBoundary.findUniqueOrThrow({
-      where: { id },
-    });
+    const result =
+      await this.prisma.administrativeAreaBoundary.findUniqueOrThrow({
+        where: { id },
+      });
+    await this.cache.invalidate('administrative-boundaries');
+    return result;
   }
 
   async invalidateBoundary(
@@ -173,6 +194,7 @@ export class AreaMutationService {
     await this.audit(this.prisma, actor, 'AREA.BOUNDARY.INVALIDATE', id, null, {
       reason,
     });
+    await this.cache.invalidate('administrative-boundaries');
     return updated;
   }
 

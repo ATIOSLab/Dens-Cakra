@@ -50,3 +50,7 @@ export function useRoleWorkspace() {
 
   return context;
 }
+
+export function useOptionalRoleWorkspace() {
+  return useContext(RoleWorkspaceContext);
+}

@@ -41,12 +41,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" className="h-12">
+            <SidebarMenuButton asChild size="lg" className="h-14 focus-visible:ring-2 focus-visible:ring-sky-300">
               <Link prefetch={false} href={homeUrl}>
-                <span className="flex size-9 items-center justify-center rounded-md border border-[var(--sidebar-active-border)] bg-[var(--sidebar-active)] font-bold text-[13px] text-[var(--sidebar-text)] shadow-[inset_0_0_0_1px_rgba(255,255,255,.04)]">
+                <span className="flex size-9 items-center justify-center rounded-lg border border-[var(--sidebar-active-border)] bg-[var(--sidebar-active)] font-bold text-[13px] text-[var(--sidebar-active-text)] shadow-[inset_0_0_0_1px_rgba(255,255,255,.06)]">
                   DC
                 </span>
-                <span className="font-bold text-[var(--sidebar-text)] text-lg tracking-wider">DENS CAKRA</span>
+                <span className="font-semibold text-[var(--sidebar-text)] text-base tracking-[0.08em]">DENS CAKRA</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

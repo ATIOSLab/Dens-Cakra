@@ -7,6 +7,7 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -19,6 +20,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import {
+  BaketStatus,
+  CoordinateSource,
   JaringGender,
   JaringRegistrationStatus,
   JaringStatus,
@@ -34,6 +37,10 @@ export class JaringQuery {
   @IsOptional()
   @IsEnum(JaringRegistrationStatus)
   registrationStatus?: JaringRegistrationStatus;
+  @IsOptional() @IsUUID() areaId?: string;
+  @IsOptional() @IsUUID() occupationId?: string;
+  @IsOptional() @IsUUID() fieldOfficerAssignmentId?: string;
+  @IsOptional() @Type(() => Boolean) @IsBoolean() paginated?: boolean;
 }
 
 export class CreateJaringDto {
@@ -158,16 +165,62 @@ export class JaringReportQuery {
   @IsEnum(WhatsAppReportSessionStatus)
   status?: WhatsAppReportSessionStatus;
   @IsOptional() @IsUUID() jaringId?: string;
+  @IsOptional() @IsUUID() fieldOfficerAssignmentId?: string;
   @IsOptional()
   @IsEnum(JaringRegistrationStatus)
   registrationStatus?: JaringRegistrationStatus;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
+  @IsOptional() @IsString() @MaxLength(200) search?: string;
+  @IsOptional() @IsUUID() categoryId?: string;
+  @IsOptional() @IsUUID() areaId?: string;
+  @IsOptional() @IsUUID() jaringAreaId?: string;
+  @IsOptional() @IsEnum(BaketStatus) workflowStatus?: BaketStatus;
+  @IsOptional() @IsEnum(CoordinateSource) coordinateSource?: CoordinateSource;
+  @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
+  @IsOptional()
+  @IsIn([
+    'IN_PROGRESS_BY_JARING',
+    'NOT_SUBMITTED',
+    'WAITING_FIELD_OFFICER_VERIFICATION',
+    'NEEDS_FIELD_OFFICER_REVIEW',
+    'VERIFIED_BY_FIELD_OFFICER',
+    'METADATA_RECORDED',
+    'UNVERIFIED',
+    'WAITING',
+    'NEEDS_REVIEW',
+    'VERIFIED',
+  ])
+  verificationStatus?: string;
+  @IsOptional()
+  @IsIn(['COMPLETE', 'INCOMPLETE'])
+  completeness?: 'COMPLETE' | 'INCOMPLETE';
+  @IsOptional() @IsIn(['true', 'false']) hasAttachment?: 'true' | 'false';
+  @IsOptional()
+  @IsIn(['WITHIN_SCOPE', 'OUTSIDE_SCOPE', 'BORDER_AMBIGUOUS', 'NOT_DETERMINED'])
+  locationSuitability?:
+    'WITHIN_SCOPE' | 'OUTSIDE_SCOPE' | 'BORDER_AMBIGUOUS' | 'NOT_DETERMINED';
+  @IsOptional()
+  @IsIn(['reportedAt', 'createdAt', 'updatedAt', 'referenceNumber'])
+  sortBy?: 'reportedAt' | 'createdAt' | 'updatedAt' | 'referenceNumber';
+  @IsOptional() @IsIn(['asc', 'desc']) sortOrder?: 'asc' | 'desc';
+  @IsOptional()
+  @IsIn(['ALL', 'JARING_REPORT', 'DRAFT_BAKET', 'VALIDATED_BAKET'])
+  stage?: 'ALL' | 'JARING_REPORT' | 'DRAFT_BAKET' | 'VALIDATED_BAKET';
 }
 
 export class JaringCoachingReportQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
+  @IsOptional() @IsString() @MaxLength(200) search?: string;
+  @IsOptional() @IsUUID() jaringId?: string;
+  @IsOptional() @IsUUID() areaId?: string;
+  @IsOptional() @IsDateString() from?: string;
+  @IsOptional() @IsDateString() to?: string;
+  @IsOptional()
+  @IsIn(['reportedAt', 'createdAt', 'updatedAt', 'title'])
+  sortBy?: 'reportedAt' | 'createdAt' | 'updatedAt' | 'title';
+  @IsOptional() @IsIn(['asc', 'desc']) sortOrder?: 'asc' | 'desc';
 }
 
 export class CreateJaringCoachingReportDto {

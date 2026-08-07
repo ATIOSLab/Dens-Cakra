@@ -4,10 +4,14 @@ import { Injectable } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
 import { env } from '../../lib/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ApplicationCacheService } from '../cache/application-cache.service.js';
 
 @Injectable()
 export class HealthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: ApplicationCacheService,
+  ) {}
 
   async checkReadiness() {
     const checks: Record<string, { ok: boolean; detail?: string }> = {};
@@ -39,7 +43,17 @@ export class HealthService {
       checks.storage = { ok: false, detail: this.message(error) };
     }
 
-    if (Object.values(checks).some((check) => !check.ok)) {
+    const cache = await this.cache.health();
+    checks.redis = {
+      ok: cache.ok,
+      detail: cache.status,
+    };
+
+    if (
+      Object.entries(checks).some(
+        ([name, check]) => name !== 'redis' && !check.ok,
+      )
+    ) {
       throw new ApiException(
         'DEPENDENCY_UNAVAILABLE',
         'One or more required dependencies are unavailable.',
@@ -49,7 +63,10 @@ export class HealthService {
       );
     }
 
-    return { status: 'ready', checks };
+    return {
+      status: checks.redis.ok ? 'ready' : 'degraded',
+      checks,
+    };
   }
 
   private message(error: unknown): string {

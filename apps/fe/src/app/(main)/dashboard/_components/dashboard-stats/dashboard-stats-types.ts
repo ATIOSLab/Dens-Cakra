@@ -55,13 +55,7 @@ export type DashboardBriefingData = {
 
 /* ── Role-aware visibility config ── */
 
-export type DashboardSection =
-  | "summaryCards"
-  | "kpis"
-  | "taskPipeline"
-  | "alerts"
-  | "emergencies"
-  | "products";
+export type DashboardSection = "summaryCards" | "kpis" | "taskPipeline" | "alerts" | "emergencies" | "products";
 
 export const ROLE_SECTIONS: Record<SystemRole, DashboardSection[]> = {
   executive: ["summaryCards", "kpis", "taskPipeline", "alerts", "emergencies", "products"],

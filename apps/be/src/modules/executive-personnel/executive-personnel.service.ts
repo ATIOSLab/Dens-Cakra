@@ -1,6 +1,4 @@
-import {
-  Injectable,
-  NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   AdministrativeLevel,
   Prisma,
@@ -8,6 +6,7 @@ import {
   UserProfileStatus,
 } from '../../generated/prisma/client.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
+import { getIndonesianPhoneSearchVariants } from '../../common/utils/phone-normalizer.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -118,14 +117,17 @@ export class ExecutivePersonnelService {
       }),
     ]);
     const profileIds = profiles.map((profile) => profile.id);
-    const assignments = await this.findActiveAssignmentsForProfiles(
+    const assignments = (await this.findActiveAssignmentsForProfiles(
       profileIds,
       query,
       scopeOptions,
-    ) as any[];
-    const assignmentByProfile = new Map(
-      assignments.map((assignment: any) => [assignment.userProfileId, assignment]),
-    );
+    )) as any[];
+    const assignmentByProfile = new Map<string, any>();
+    for (const assignment of assignments) {
+      if (!assignmentByProfile.has(assignment.userProfileId)) {
+        assignmentByProfile.set(assignment.userProfileId, assignment);
+      }
+    }
     const assignmentIds = assignments.map((assignment) => assignment.id);
     const [latestPings, reportCounts] = await Promise.all([
       this.latestLocationPings(assignmentIds),
@@ -144,6 +146,11 @@ export class ExecutivePersonnelService {
         const ping = assignment
           ? (pingByAssignment.get(assignment.id) ?? null)
           : null;
+        const jaringPreview = assignment
+          ? assignment.jaringCaretakerAssignments.map(
+              (caretaker: any) => caretaker.jaring,
+            )
+          : [];
         return {
           id: profile.id,
           username: profile.username,
@@ -158,6 +165,8 @@ export class ExecutivePersonnelService {
           assignment: assignment ? this.assignmentSummary(assignment) : null,
           lastLocation: ping ? this.locationSummary(ping) : null,
           reportCount: assignment ? (reportCounts.get(assignment.id) ?? 0) : 0,
+          jaringCount: jaringPreview.length,
+          jaringPreview,
         };
       }),
       meta: {
@@ -292,7 +301,7 @@ export class ExecutivePersonnelService {
       throw new NotFoundException('Personel tidak ditemukan.');
     }
 
-    return this.detail(assignment.userProfileId);
+    return this.detail(assignment.userProfileId, assignmentId);
   }
 
   async detailRegionalPersonnel(
@@ -324,7 +333,7 @@ export class ExecutivePersonnelService {
       throw new NotFoundException('Personel tidak ditemukan.');
     }
 
-    return this.detail(assignment.userProfileId);
+    return this.detail(assignment.userProfileId, assignmentId);
   }
 
   private async mapPersonnel(
@@ -332,39 +341,149 @@ export class ExecutivePersonnelService {
     scopeOptions: PersonnelScopeOptions = {},
   ) {
     const selectedAreaId = this.selectedAreaId(query);
-    const assignments = await this.prisma.userOperationalAssignment.findMany({
-      where: {
-        isActive: true,
-        validUntil: null,
-        ...(scopeOptions.assignmentIds
-          ? { id: { in: scopeOptions.assignmentIds } }
-          : {}),
-        ...(selectedAreaId
-          ? { areaScopes: { some: this.areaScopeWhere(selectedAreaId) } }
-          : {}),
-        role: {
-          code: scopeOptions.requiredRoleCode ?? RoleCode.FIELD_OFFICER,
+    const search = query.search?.trim();
+    const phoneSearchVariants = search
+      ? getIndonesianPhoneSearchVariants(search)
+      : [];
+    const assignmentRows = await this.prisma.userOperationalAssignment.findMany(
+      {
+        where: {
+          isActive: true,
+          validUntil: null,
+          ...(scopeOptions.assignmentIds
+            ? { id: { in: scopeOptions.assignmentIds } }
+            : {}),
+          ...(selectedAreaId
+            ? { areaScopes: { some: this.areaScopeWhere(selectedAreaId) } }
+            : {}),
+          role: {
+            code: scopeOptions.requiredRoleCode ?? RoleCode.FIELD_OFFICER,
+          },
+          ...(query.unitId
+            ? { areaScopes: { some: this.areaScopeWhere(query.unitId) } }
+            : {}),
+          userProfile: { deletedAt: null, isActive: true },
+          ...(search
+            ? {
+                OR: [
+                  {
+                    userProfile: {
+                      OR: [
+                        {
+                          username: {
+                            contains: search,
+                            mode: 'insensitive',
+                          },
+                        },
+                        {
+                          fullName: {
+                            contains: search,
+                            mode: 'insensitive',
+                          },
+                        },
+                        ...phoneSearchVariants.map((phone) => ({
+                          phone: { contains: phone },
+                        })),
+                        {
+                          authUser: {
+                            OR: [
+                              {
+                                email: {
+                                  contains: search,
+                                  mode: 'insensitive',
+                                },
+                              },
+                              {
+                                name: {
+                                  contains: search,
+                                  mode: 'insensitive',
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  {
+                    role: {
+                      name: { contains: search, mode: 'insensitive' },
+                    },
+                  },
+                  {
+                    areaScopes: {
+                      some: {
+                        area: {
+                          OR: [
+                            {
+                              name: { contains: search, mode: 'insensitive' },
+                            },
+                            {
+                              code: { contains: search, mode: 'insensitive' },
+                            },
+                          ],
+                        },
+                      },
+                    },
+                  },
+                  {
+                    jaringCaretakerAssignments: {
+                      some: {
+                        isActive: true,
+                        validUntil: null,
+                        jaring: {
+                          deletedAt: null,
+                          OR: [
+                            {
+                              aliasName: {
+                                contains: search,
+                                mode: 'insensitive',
+                              },
+                            },
+                            {
+                              fullName: {
+                                contains: search,
+                                mode: 'insensitive',
+                              },
+                            },
+                            ...phoneSearchVariants.map((phone) => ({
+                              whatsappNumber: { contains: phone },
+                            })),
+                          ],
+                        },
+                      },
+                    },
+                  },
+                ],
+              }
+            : {}),
         },
-        ...(query.unitId
-          ? { areaScopes: { some: this.areaScopeWhere(query.unitId) } }
-          : {}),
-        userProfile: { deletedAt: null, isActive: true },
-      },
-      include: {
-        userProfile: {
-          include: {
-            authUser: { select: { email: true, name: true } },
+        include: {
+          userProfile: {
+            include: {
+              authUser: { select: { email: true, name: true } },
+            },
+          },
+          role: true,
+          areaScopes: {
+            where: { validUntil: null },
+            include: { area: true },
+            orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
           },
         },
-        role: true,
-        areaScopes: {
-          where: { validUntil: null },
-          include: { area: true },
-          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-        },
+        orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
       },
-      orderBy: { validFrom: 'desc' },
-    });
+    );
+    const assignmentByProfile = new Map<
+      string,
+      (typeof assignmentRows)[number]
+    >();
+    for (const assignment of assignmentRows) {
+      if (!assignmentByProfile.has(assignment.userProfileId)) {
+        assignmentByProfile.set(assignment.userProfileId, assignment);
+      }
+    }
+    const assignments = [...assignmentByProfile.values()];
     const pings = await this.latestLocationPings(
       assignments.map((item) => item.id),
     );
@@ -460,7 +579,7 @@ export class ExecutivePersonnelService {
     };
   }
 
-  async detail(userProfileId: string) {
+  async detail(userProfileId: string, focusAssignmentId?: string) {
     const profile = await this.prisma.userProfile.findUnique({
       where: { id: userProfileId },
       include: {
@@ -498,12 +617,15 @@ export class ExecutivePersonnelService {
     }
 
     const assignmentIds = profile.operationalAssignments.map((item) => item.id);
-    const [latestPings, reports] = await Promise.all([
+    const relatedAssignmentIds = focusAssignmentId
+      ? [focusAssignmentId]
+      : assignmentIds;
+    const [latestPings, reports, baketCount, jaring] = await Promise.all([
       this.latestLocationPings(assignmentIds),
       this.prisma.baket.findMany({
         where: {
           deletedAt: null,
-          createdByFieldOfficerAssignmentId: { in: assignmentIds },
+          createdByFieldOfficerAssignmentId: { in: relatedAssignmentIds },
         },
         include: {
           reportCategory: { select: { id: true, code: true, name: true } },
@@ -520,14 +642,60 @@ export class ExecutivePersonnelService {
         orderBy: { updatedAt: 'desc' },
         take: 30,
       }),
+      this.prisma.baket.count({
+        where: {
+          deletedAt: null,
+          createdByFieldOfficerAssignmentId: { in: relatedAssignmentIds },
+        },
+      }),
+      this.prisma.jaring.findMany({
+        where: {
+          deletedAt: null,
+          caretakerAssignments: {
+            some: {
+              fieldOfficerAssignmentId: { in: relatedAssignmentIds },
+              isActive: true,
+              validUntil: null,
+            },
+          },
+        },
+        select: {
+          id: true,
+          aliasName: true,
+          fullName: true,
+          gender: true,
+          address: true,
+          whatsappNumber: true,
+          status: true,
+          registrationStatus: true,
+          registeredAt: true,
+          createdAt: true,
+          profilePhotoFileId: true,
+          profilePhotoFile: { select: { id: true } },
+          occupation: { select: { id: true, name: true } },
+          areaCoverages: {
+            where: { validUntil: null },
+            select: {
+              area: { select: { id: true, name: true } },
+            },
+          },
+        },
+        orderBy: [{ registeredAt: 'desc' }, { id: 'desc' }],
+      }),
     ]);
     const pingByAssignment = new Map(
       latestPings.map((ping) => [ping.operationalAssignmentId, ping]),
     );
     const currentAssignment =
+      (focusAssignmentId
+        ? profile.operationalAssignments.find(
+            (assignment) => assignment.id === focusAssignmentId,
+          )
+        : null) ??
       profile.operationalAssignments.find(
         (assignment) => assignment.isActive && !assignment.validUntil,
-      ) ?? null;
+      ) ??
+      null;
 
     return {
       profile: {
@@ -589,6 +757,15 @@ export class ExecutivePersonnelService {
           updatedAt: report.updatedAt,
         };
       }),
+      jaring,
+      summary: {
+        jaringCount: jaring.length,
+        baketCount,
+        assignmentCount: profile.operationalAssignments.length,
+        activeAreaCount:
+          currentAssignment?.areaScopes.filter((scope) => !scope.validUntil)
+            .length ?? 0,
+      },
       kpi: {
         status: 'EMPTY',
         metrics: [],
@@ -604,6 +781,9 @@ export class ExecutivePersonnelService {
     const where: Prisma.UserProfileWhereInput = { deletedAt: null };
     const and: Prisma.UserProfileWhereInput[] = [];
     const search = query.search?.trim();
+    const phoneSearchVariants = search
+      ? getIndonesianPhoneSearchVariants(search)
+      : [];
     const selectedAreaId = this.selectedAreaId(query);
 
     if (query.status) {
@@ -629,44 +809,79 @@ export class ExecutivePersonnelService {
         OR: [
           { username: { contains: search, mode: 'insensitive' } },
           { fullName: { contains: search, mode: 'insensitive' } },
-          { phone: { contains: search, mode: 'insensitive' } },
+          ...phoneSearchVariants.map((phone) => ({
+            phone: { contains: phone },
+          })),
           { authUser: { email: { contains: search, mode: 'insensitive' } } },
           { authUser: { name: { contains: search, mode: 'insensitive' } } },
           {
             operationalAssignments: {
               some: {
-                OR: [
+                AND: [
+                  this.activeAssignmentWhere(query, scopeOptions),
                   {
-                    role: {
-                      name: { contains: search, mode: 'insensitive' },
-                    },
-                  },
-                  {
-                    role: {
-                      code: { equals: search as RoleCode },
-                    },
-                  },
-                  {
-                    areaScopes: {
-                      some: {
-                        area: {
-                          OR: [
-                            {
-                              name: {
-                                contains: search,
-                                mode: 'insensitive',
-                              },
-                            },
-                            {
-                              code: {
-                                contains: search,
-                                mode: 'insensitive',
-                              },
-                            },
-                          ],
+                    OR: [
+                      {
+                        role: {
+                          name: { contains: search, mode: 'insensitive' },
                         },
                       },
-                    },
+                      {
+                        role: {
+                          code: { equals: search as RoleCode },
+                        },
+                      },
+                      {
+                        areaScopes: {
+                          some: {
+                            area: {
+                              OR: [
+                                {
+                                  name: {
+                                    contains: search,
+                                    mode: 'insensitive',
+                                  },
+                                },
+                                {
+                                  code: {
+                                    contains: search,
+                                    mode: 'insensitive',
+                                  },
+                                },
+                              ],
+                            },
+                          },
+                        },
+                      },
+                      {
+                        jaringCaretakerAssignments: {
+                          some: {
+                            isActive: true,
+                            validUntil: null,
+                            jaring: {
+                              deletedAt: null,
+                              OR: [
+                                {
+                                  aliasName: {
+                                    contains: search,
+                                    mode: 'insensitive',
+                                  },
+                                },
+                                {
+                                  fullName: {
+                                    contains: search,
+                                    mode: 'insensitive',
+                                  },
+                                },
+                                ...phoneSearchVariants.map((phone) => ({
+                                  whatsappNumber: { contains: phone },
+                                })),
+                              ],
+                            },
+                          },
+                        },
+                      },
+                    ],
                   },
                 ],
               },
@@ -706,6 +921,34 @@ export class ExecutivePersonnelService {
           where: { validUntil: null },
           include: { area: true },
           orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        },
+        jaringCaretakerAssignments: {
+          where: {
+            isActive: true,
+            validUntil: null,
+            jaring: { deletedAt: null },
+          },
+          orderBy: { validFrom: 'desc' },
+          select: {
+            jaring: {
+              select: {
+                id: true,
+                aliasName: true,
+                fullName: true,
+                whatsappNumber: true,
+                status: true,
+                registrationStatus: true,
+                areaCoverages: {
+                  where: { validUntil: null },
+                  orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+                  take: 1,
+                  select: {
+                    area: { select: { id: true, name: true } },
+                  },
+                },
+              },
+            },
+          },
         },
       },
       orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],

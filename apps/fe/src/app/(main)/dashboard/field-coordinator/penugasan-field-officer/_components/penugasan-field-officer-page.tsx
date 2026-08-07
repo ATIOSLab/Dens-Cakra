@@ -3,11 +3,11 @@ import { DensModulePage } from "@/app/(main)/dashboard/_components/dens-module-p
 export function PenugasanFieldOfficerPage() {
   return (
     <DensModulePage
-      title="Penugasan Field Officer"
+      title="Penugasan Petugas Wilayah (Gaswil)"
       role="Koordinator Lapangan"
-      description="Halaman ini disiapkan untuk membagi tugas kepada Field Officer berdasarkan wilayah, target, deadline, dan prioritas."
+      description="Halaman ini disiapkan untuk membagi tugas kepada Petugas Wilayah (Gaswil) berdasarkan wilayah, target, batas waktu, dan prioritas."
       highlights={[
-        "Pemilihan Field Officer berdasarkan coverage dan workload.",
+        "Pemilihan Petugas Wilayah (Gaswil) berdasarkan cakupan dan beban kerja.",
         "Instruksi operasional, lampiran, dan target hasil per penugasan.",
         "Riwayat distribusi tugas dan perubahan assignment.",
       ]}

@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+
 import { useRouter } from "next/navigation";
 
 import {
   AlertCircle,
-  ArrowLeft,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -23,12 +22,9 @@ import {
   Paperclip,
   RefreshCw,
   ShieldCheck,
-  User,
-  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,17 +35,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { BackButton } from "@/components/ui/back-button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
+import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
 
+import {
+  formatDateTime,
+  JARING_REPORT_CATEGORY_FILTERS,
+  urgencyBadgeClass,
+  urgencyLabel,
+  verificationStatusBadgeVariant,
+  verificationStatusLabel,
+} from "./laporan-jaring-presentation";
 import {
   formatFullAreaName,
   type JaringReportSessionDetail,
@@ -57,63 +71,14 @@ import {
   type ReportCategoryOption,
   type ReportHistoryEvent,
   type ReportHistoryResponse,
-  type VerificationStatus,
 } from "./laporan-jaring-types";
 import { WhatsAppReportThread } from "./whatsapp-report-thread";
 
-function formatDateTime(value?: string | null) {
-  if (!value) return "-";
-  try {
-    return new Intl.DateTimeFormat("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return "-";
-  }
-}
-
-function verificationStatusLabel(status: VerificationStatus) {
-  switch (status) {
-    case "IN_PROGRESS_BY_JARING":
-    case "NOT_SUBMITTED":
-      return "Sedang disusun Jaring";
-    case "WAITING_FIELD_OFFICER_VERIFICATION":
-      return "Belum Terverifikasi";
-    case "NEEDS_FIELD_OFFICER_REVIEW":
-      return "Perlu Review";
-    case "VERIFIED_BY_FIELD_OFFICER":
-      return "Terverifikasi";
-    case "METADATA_RECORDED":
-      return "Baket Dibuat";
-    default:
-      return status;
-  }
-}
-
-function verificationStatusBadgeVariant(status: VerificationStatus) {
-  switch (status) {
-    case "WAITING_FIELD_OFFICER_VERIFICATION":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400";
-    case "NEEDS_FIELD_OFFICER_REVIEW":
-      return "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400";
-    case "VERIFIED_BY_FIELD_OFFICER":
-      return "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-[#38BDF8]";
-    case "METADATA_RECORDED":
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
-    default:
-      return "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-400";
-  }
-}
-
 const URGENCY_OPTIONS: { value: PriorityLevel; label: string }[] = [
-  { value: "LOW", label: "Rendah (Low)" },
-  { value: "NORMAL", label: "Normal (Normal)" },
-  { value: "HIGH", label: "Tinggi (High)" },
-  { value: "URGENT", label: "Mendesak (Urgent)" },
+  { value: "LOW", label: "Rendah" },
+  { value: "NORMAL", label: "Normal" },
+  { value: "HIGH", label: "Tinggi" },
+  { value: "URGENT", label: "Mendesak" },
 ];
 
 export function LaporanJaringDetailClient({
@@ -173,38 +138,41 @@ export function LaporanJaringDetailClient({
   }, []);
 
   // Fetch report detail
-  const fetchDetail = useCallback(async (silent = false) => {
-    if (detailRequestInFlight.current) return;
-    detailRequestInFlight.current = true;
-    if (!silent) setLoadingDetail(true);
-    try {
-      const detail = await apiBrowserFetch<JaringReportSessionDetail>(`/jaring/reports/${laporanId}`);
-      setActiveReport(detail);
-      if (!silent) {
-        setCategoryId(detail.reportCategory?.id || "");
-        setUrgency(detail.urgency || "NORMAL");
-        setContent(detail.content || "");
-        setNormalizedContent(detail.normalizedContent || "");
-        setFieldOfficerNote(detail.fieldOfficerNote || "");
+  const fetchDetail = useCallback(
+    async (silent = false) => {
+      if (detailRequestInFlight.current) return;
+      detailRequestInFlight.current = true;
+      if (!silent) setLoadingDetail(true);
+      try {
+        const detail = await apiBrowserFetch<JaringReportSessionDetail>(`/jaring/reports/${laporanId}`);
+        setActiveReport(detail);
+        if (!silent) {
+          setCategoryId(detail.reportCategory?.id || "");
+          setUrgency(detail.urgency || "NORMAL");
+          setContent(detail.content || "");
+          setNormalizedContent(detail.normalizedContent || "");
+          setFieldOfficerNote(detail.fieldOfficerNote || "");
+        }
+        if (!silent && !readOnly && detail.status === "SUBMITTED") {
+          void apiBrowserMutation("PATCH", `/jaring/reports/${laporanId}/read`).catch(() => undefined);
+          try {
+            const stored: string[] = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
+            if (!stored.includes(laporanId)) {
+              stored.push(laporanId);
+              localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
+            }
+          } catch {}
+        }
+      } catch (err) {
+        console.error("Gagal memuat detail laporan:", err);
+        if (!silent) toast.error("Detail laporan tidak ditemukan.");
+      } finally {
+        detailRequestInFlight.current = false;
+        if (!silent) setLoadingDetail(false);
       }
-      if (!silent && !readOnly && detail.status === "SUBMITTED") {
-        void apiBrowserMutation("PATCH", `/jaring/reports/${laporanId}/read`).catch(() => undefined);
-        try {
-          const stored: string[] = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
-          if (!stored.includes(laporanId)) {
-            stored.push(laporanId);
-            localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
-          }
-        } catch {}
-      }
-    } catch (err) {
-      console.error("Gagal memuat detail laporan:", err);
-      if (!silent) toast.error("Detail laporan tidak ditemukan.");
-    } finally {
-      detailRequestInFlight.current = false;
-      if (!silent) setLoadingDetail(false);
-    }
-  }, [laporanId, readOnly]);
+    },
+    [laporanId, readOnly],
+  );
 
   useEffect(() => {
     void fetchDetail();
@@ -310,13 +278,12 @@ export function LaporanJaringDetailClient({
     return evt.source === historyCategoryFilter;
   });
 
-  const selectedEvent =
-    historyEvents.find((evt) => evt.id === selectedEventId) || filteredEvents[0] || null;
+  const selectedEvent = historyEvents.find((evt) => evt.id === selectedEventId) || filteredEvents[0] || null;
 
   function getActorLabel(evt: ReportHistoryEvent): string {
     if (evt.metadata?.actor) return String(evt.metadata.actor);
-    if (evt.actorUserProfileId) return "Petugas Lapangan";
-    if (evt.action.includes("SUBMITTED")) return `Pengirim (Jaring Bhabin) ${evt.metadata?.jaringCode || ""}`.trim();
+    if (evt.actorUserProfileId) return "Petugas Wilayah (Gaswil)";
+    if (evt.action.includes("SUBMITTED")) return `Pengirim Jaring ${evt.metadata?.jaringCode || ""}`.trim();
     return "System";
   }
 
@@ -341,18 +308,16 @@ export function LaporanJaringDetailClient({
   const isFromBaket = backHref.includes("/baket");
 
   return (
-    <main className="space-y-6 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto transition-colors duration-150">
+    <main className="mx-auto w-full max-w-5xl space-y-5 transition-colors duration-150 sm:space-y-6">
       {/* BREADCRUMB */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/field-officer">Field Officer</BreadcrumbLink>
+            <BreadcrumbLink href="/dashboard/field-officer">Petugas Wilayah (Gaswil)</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href={backHref}>
-              {isFromBaket ? "Baket" : "Laporan Jaring"}
-            </BreadcrumbLink>
+            <BreadcrumbLink href={backHref}>{isFromBaket ? "Baket" : "Laporan Jaring"}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -365,16 +330,11 @@ export function LaporanJaringDetailClient({
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              asChild
-              className="size-9 rounded-lg border-slate-200/80 dark:border-white/10 shrink-0"
-            >
-              <Link href={backHref}>
-                <ArrowLeft className="size-4" />
-              </Link>
-            </Button>
+            <BackButton
+              href={backHref}
+              label="Kembali"
+              className="h-9 shrink-0 rounded-lg border-slate-200/80 dark:border-white/10"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-mono font-bold text-sm text-sky-600 dark:text-[#38BDF8]">
@@ -429,423 +389,434 @@ export function LaporanJaringDetailClient({
             <p className="text-xs font-mono text-muted-foreground">Memuat detail laporan...</p>
           </div>
         </Card>
-      ) : activeReport ? (() => {
-        const hasFormulatedMetadata =
-          activeReport.verificationStatus === "METADATA_RECORDED" ||
-          Boolean(activeReport.reportCategory) ||
-          Boolean(activeReport.baket?.latestVersion);
+      ) : activeReport ? (
+        (() => {
+          const hasFormulatedMetadata =
+            activeReport.verificationStatus === "METADATA_RECORDED" ||
+            Boolean(activeReport.reportCategory) ||
+            Boolean(activeReport.baket?.latestVersion);
 
-        return (
-          <div className="space-y-6">
-            {/* STEP 1: PEMERIKSAAN & VERIFIKASI FIELD OFFICER */}
-            <Card className="border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden">
-              <CardHeader className="p-4 md:p-5 border-b border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-[#38BDF8] font-bold text-xs">
-                    1
+          return (
+            <div className="space-y-6">
+              {/* STEP 1: PEMERIKSAAN & VERIFIKASI FIELD OFFICER */}
+              <Card className="border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden">
+                <CardHeader className="p-4 md:p-5 border-b border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-[#38BDF8] font-bold text-xs">
+                      1
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-bold uppercase tracking-wide">
+                        Tahap 1: Pemeriksaan dan Verifikasi Petugas Wilayah (Gaswil)
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Periksa keabsahan isi laporan WhatsApp dari Jaring sebelum dikonversi ke Baket.
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-sm font-bold uppercase tracking-wide">
-                      Step 1: Pemeriksaan & Verifikasi Field Officer
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Periksa keabsahan isi laporan WhatsApp dari Jaring sebelum dikonversi ke Baket.
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 md:p-6 space-y-5">
-                {/* LENGKAP INFORMASI INFORMASI LAPORAN */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1">
-                    <span className="text-muted-foreground font-medium flex items-center gap-1.5">
-                      <User className="size-3.5 text-sky-600 dark:text-[#38BDF8]" />
-                      Pengirim (Daftar Jaring):
-                    </span>
-                    <p className="font-semibold text-sm text-foreground">
-                      {activeReport.jaringAlias || activeReport.jaringCode || activeReport.jaringId}
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1">
-                    <span className="text-muted-foreground font-medium flex items-center gap-1.5">
-                      <UserCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                      Gaswil (Petugas Lapangan):
-                    </span>
-                    <p className="font-semibold text-sm text-foreground">
-                      {activeReport.gaswilName || "-"}
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1 md:col-span-2">
-                    <span className="text-muted-foreground font-medium flex items-center gap-1.5">
-                      <Clock className="size-3.5 text-sky-600 dark:text-[#38BDF8]" />
-                      Waktu Dikirim:
-                    </span>
-                    <p className="font-mono text-sm text-foreground">
-                      {formatDateTime(activeReport.reportedAt)}
-                    </p>
-                  </div>
-
-                  {/* ISI PESAN WHATSAPP BUBBLE VIEW */}
-                  <div className="md:col-span-2 space-y-1.5">
-                    <span className="text-muted-foreground font-medium text-xs">Tampilan Pesan WhatsApp Chat Bubble:</span>
-                    <WhatsAppReportThread
-                      senderAlias={activeReport.jaringAlias || activeReport.jaringCode || "Pengirim"}
-                      messages={activeReport.messages}
-                      fallbackContent={activeReport.content ?? undefined}
-                      fallbackMedia={mediaList}
-                      fallbackSentAt={activeReport.reportedAt}
+                </CardHeader>
+                <CardContent className="p-4 md:p-6 space-y-5">
+                  {/* LENGKAP INFORMASI INFORMASI LAPORAN */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <JaringIdentitySummary
+                      source={{
+                        id: activeReport.jaringId,
+                        jaringFullName: activeReport.jaringFullName,
+                        jaringAlias: activeReport.jaringAlias,
+                        jaringCode: activeReport.jaringCode,
+                        jaringWhatsAppNumber: activeReport.jaringWhatsAppNumber,
+                        jaringProfilePhotoFileId: activeReport.jaringProfilePhotoFileId,
+                        profilePhotoUrl: activeReport.jaringProfilePhotoUrl,
+                        gaswilName: activeReport.gaswilName,
+                        gaswilAssignmentId: activeReport.gaswilAssignmentId,
+                        gaswilUserProfileId: activeReport.gaswilUserProfileId,
+                        placementArea: activeReport.placementArea,
+                      }}
+                      className="md:col-span-2"
                     />
-                  </div>
 
-                  {/* INFORMASI KOORDINAT & WILAYAH LENGKAP */}
-                  <div className="md:col-span-2 space-y-2 p-3.5 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-foreground flex items-center gap-1.5">
-                        <MapPin className="size-4 text-sky-600 dark:text-[#38BDF8]" />
-                        Informasi Lokasi & Koordinat GPS Lengkap
+                    <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1 md:col-span-2">
+                      <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                        <Clock className="size-3.5 text-sky-600 dark:text-[#38BDF8]" />
+                        Waktu Dikirim:
                       </span>
-
-                      {activeReport.location ? (
-                        <a
-                          href={`https://maps.google.com/?q=${activeReport.location.latitude},${activeReport.location.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 dark:text-[#38BDF8] hover:underline"
-                        >
-                          Buka Google Maps <ExternalLink className="size-3" />
-                        </a>
-                      ) : null}
+                      <p className="font-mono text-sm text-foreground">{formatDateTime(activeReport.reportedAt)}</p>
                     </div>
 
-                    {activeReport.location ? (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1 text-[11px] font-mono">
-                        <div>
-                          <span className="text-muted-foreground block">Latitude:</span>
-                          <span className="font-bold text-foreground">{activeReport.location.latitude}</span>
+                    {/* ISI PESAN WHATSAPP BUBBLE VIEW */}
+                    <div className="md:col-span-2 space-y-1.5">
+                      <span className="text-muted-foreground font-medium text-xs">
+                        Tampilan Pesan WhatsApp Chat Bubble:
+                      </span>
+                      <WhatsAppReportThread
+                        senderAlias={activeReport.jaringAlias || activeReport.jaringCode || "Pengirim"}
+                        messages={activeReport.messages}
+                        fallbackContent={activeReport.content ?? undefined}
+                        fallbackMedia={mediaList}
+                        fallbackSentAt={activeReport.reportedAt}
+                      />
+                    </div>
+
+                    {/* INFORMASI KOORDINAT & WILAYAH LENGKAP */}
+                    <div className="md:col-span-2 space-y-2 p-3.5 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                          <MapPin className="size-4 text-sky-600 dark:text-[#38BDF8]" />
+                          Informasi Lokasi & Koordinat GPS Lengkap
+                        </span>
+
+                        {activeReport.location ? (
+                          <a
+                            href={`https://maps.google.com/?q=${activeReport.location.latitude},${activeReport.location.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 dark:text-[#38BDF8] hover:underline"
+                          >
+                            Buka Google Maps <ExternalLink className="size-3" />
+                          </a>
+                        ) : null}
+                      </div>
+
+                      {activeReport.location ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1 text-[11px] font-mono">
+                          <div>
+                            <span className="text-muted-foreground block">Latitude:</span>
+                            <span className="font-bold text-foreground">{activeReport.location.latitude}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">Longitude:</span>
+                            <span className="font-bold text-foreground">{activeReport.location.longitude}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">Akurasi GPS:</span>
+                            <span className="font-bold text-foreground">
+                              {activeReport.location.accuracyMeters ? `±${activeReport.location.accuracyMeters}m` : "-"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">Wilayah Teresolusi:</span>
+                            <span className="font-bold text-foreground">
+                              {formatFullAreaName(activeReport.resolvedArea)}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground block">Longitude:</span>
-                          <span className="font-bold text-foreground">{activeReport.location.longitude}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block">Akurasi GPS:</span>
-                          <span className="font-bold text-foreground">
-                            {activeReport.location.accuracyMeters ? `±${activeReport.location.accuracyMeters}m` : "-"}
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Tidak ada koordinat GPS terlampir.</p>
+                      )}
+                    </div>
+
+                    {/* MEDIA LAMPIRAN (COLLAPSIBLE / TERSEMBUNYI SAAT BELUM DIBUKA) */}
+                    <div className="md:col-span-2 space-y-3 pt-2">
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-card shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <Paperclip className="size-4 text-sky-600 dark:text-[#38BDF8]" />
+                          <span className="font-semibold text-xs text-foreground">
+                            Lampiran Media ({mediaList.length} Berkas)
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            (Pratinjau gambar tersembunyi secara bawaan)
                           </span>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground block">Wilayah Teresolusi:</span>
-                          <span className="font-bold text-foreground">
-                            {formatFullAreaName(activeReport.resolvedArea)}
-                          </span>
+
+                        {mediaList.length > 0 ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowMediaPreview(!showMediaPreview)}
+                            className="h-8 gap-1.5 text-xs rounded-lg border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
+                          >
+                            {showMediaPreview ? (
+                              <>
+                                <EyeOff className="size-3.5" />
+                                Sembunyikan Pratinjau
+                                <ChevronUp className="size-3.5" />
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="size-3.5" />
+                                Tampilkan Pratinjau ({mediaList.length})
+                                <ChevronDown className="size-3.5" />
+                              </>
+                            )}
+                          </Button>
+                        ) : null}
+                      </div>
+
+                      {/* MEDIA PREVIEW GRID (HANYA TERLIHAT JIKA TOGGLE DIBUKA) */}
+                      {showMediaPreview && mediaList.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40">
+                          {mediaList.map((media) => (
+                            <div
+                              key={media.id}
+                              className="rounded-lg border border-slate-200/80 dark:border-white/10 bg-card overflow-hidden shadow-2xs space-y-2 p-2"
+                            >
+                              <EvidenceAttachmentViewer
+                                src={`/api/files/${media.fileId}`}
+                                fileName={media.fileName || "Lampiran Laporan"}
+                                mimeType={media.mimeType}
+                                caption={media.caption}
+                              />
+                              <div className="px-1 text-[11px] font-mono text-muted-foreground truncate">
+                                {media.fileName}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Verification Action Form */}
+                  {!readOnly &&
+                    (activeReport.status === "ACTIVE" ? (
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                        Laporan masih disusun oleh Jaring. Aksi baca, verifikasi, dan metadata tersedia setelah Jaring
+                        mengetik SELESAI.
+                      </div>
+                    ) : activeReport.verificationStatus === "WAITING_FIELD_OFFICER_VERIFICATION" ? (
+                      <div className="pt-4 border-t border-slate-200/80 dark:border-white/10 space-y-3">
+                        <label htmlFor="verify-note" className="font-medium text-xs text-foreground block">
+                          Catatan Verifikasi Petugas Wilayah (Gaswil) (opsional):
+                        </label>
+                        <Input
+                          id="verify-note"
+                          value={verificationNote}
+                          onChange={(e) => setVerificationNote(e.target.value)}
+                          placeholder="Masukkan catatan verifikasi atau arahan pengayaan data..."
+                          className="h-9 text-xs bg-background"
+                        />
+
+                        <div className="flex items-center justify-end gap-3 pt-1">
+                          <Button
+                            disabled={isVerifying}
+                            onClick={() => setConfirmVerifyOpen(true)}
+                            className="h-9 gap-1.5 text-xs rounded-lg bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600"
+                          >
+                            <ShieldCheck className="size-4" />
+                            {isVerifying ? "Memproses Verifikasi..." : "Verifikasi & Setujui Laporan"}
+                          </Button>
                         </div>
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground">Tidak ada koordinat GPS terlampir.</p>
-                    )}
-                  </div>
-
-                  {/* MEDIA LAMPIRAN (COLLAPSIBLE / TERSEMBUNYI SAAT BELUM DIBUKA) */}
-                  <div className="md:col-span-2 space-y-3 pt-2">
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-card shadow-2xs">
-                      <div className="flex items-center gap-2">
-                        <Paperclip className="size-4 text-sky-600 dark:text-[#38BDF8]" />
-                        <span className="font-semibold text-xs text-foreground">
-                          Lampiran Media ({mediaList.length} Berkas)
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          (Pratinjau gambar tersembunyi secara bawaan)
-                        </span>
+                      <div className="pt-3 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 dark:text-[#38BDF8]">
+                          <CheckCircle2 className="size-4 shrink-0 text-sky-500" />
+                          <span>Laporan telah diverifikasi dan disetujui Petugas Wilayah (Gaswil).</span>
+                        </div>
                       </div>
+                    ))}
+                </CardContent>
+              </Card>
 
-                      {mediaList.length > 0 ? (
-                        <Button
-                          type="button"
+              {/* STEP 2: INFORMASI LANJUTAN */}
+              {(!readOnly || hasFormulatedMetadata) && (
+                <Card
+                  className={cn(
+                    "border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden transition-opacity",
+                    !readOnly && !activeReport.canFillMetadata && "opacity-60 pointer-events-none",
+                  )}
+                >
+                  <CardHeader className="p-4 md:p-5 border-b border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                          2
+                        </div>
+                        <div>
+                          <CardTitle className="text-sm font-bold uppercase tracking-wide">
+                            Tahap 2: Informasi Lanjutan
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            {readOnly || activeReport.verificationStatus === "METADATA_RECORDED"
+                              ? "Informasi lanjutan dan narasi Baket yang terverifikasi."
+                              : "Isi kategori, urgency, dan formulasi narasi informasi lanjutan untuk menerbitkan Baket."}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      {readOnly ? (
+                        <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
+                          Mode Lihat (Read Only)
+                        </Badge>
+                      ) : activeReport.verificationStatus === "METADATA_RECORDED" || activeReport.baket ? (
+                        <Badge
                           variant="outline"
-                          size="sm"
-                          onClick={() => setShowMediaPreview(!showMediaPreview)}
-                          className="h-8 gap-1.5 text-xs rounded-lg border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
+                          className="border-violet-500/40 bg-violet-500/10 text-[10px] font-mono text-violet-700 dark:text-violet-400"
                         >
-                          {showMediaPreview ? (
-                            <>
-                              <EyeOff className="size-3.5" />
-                              Sembunyikan Pratinjau
-                              <ChevronUp className="size-3.5" />
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="size-3.5" />
-                              Tampilkan Pratinjau ({mediaList.length})
-                              <ChevronDown className="size-3.5" />
-                            </>
-                          )}
-                        </Button>
+                          {JARING_REPORT_CATEGORY_FILTERS.BAKET.label}
+                        </Badge>
+                      ) : !activeReport.canFillMetadata ? (
+                        <Badge variant="outline" className="text-[10px] font-mono">
+                          Terkunci (Selesaikan Tahap 1 Dahulu)
+                        </Badge>
                       ) : null}
                     </div>
+                  </CardHeader>
 
-                    {/* MEDIA PREVIEW GRID (HANYA TERLIHAT JIKA TOGGLE DIBUKA) */}
-                    {showMediaPreview && mediaList.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40">
-                        {mediaList.map((media) => (
-                          <div
-                            key={media.id}
-                            className="rounded-lg border border-slate-200/80 dark:border-white/10 bg-card overflow-hidden shadow-2xs space-y-2 p-2"
+                  {readOnly || activeReport.verificationStatus === "METADATA_RECORDED" || activeReport.baket ? (
+                    <CardContent className="p-4 md:p-6 space-y-4 text-xs">
+                      {(activeReport.verificationStatus === "METADATA_RECORDED" || Boolean(activeReport.baket)) && (
+                        <div className="flex items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 p-3 font-semibold text-violet-700 text-xs dark:text-violet-400">
+                          <CheckCircle2 className="size-4 shrink-0 text-violet-600 dark:text-violet-400" />
+                          <span>Informasi Lanjutan telah disimpan dan Baket Intelijen telah resmi diterbitkan.</span>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1">
+                          <span className="text-muted-foreground font-medium block">Kategori Laporan:</span>
+                          <p className="font-semibold text-foreground">{activeReport.reportCategory?.name || "-"}</p>
+                        </div>
+
+                        <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1">
+                          <span className="text-muted-foreground font-medium block">Tingkat Urgensi (Urgency):</span>
+                          <Badge
+                            variant="outline"
+                            className={cn("font-semibold", urgencyBadgeClass(activeReport.urgency))}
                           >
-                            <EvidenceImageViewer
-                              src={`/api/files/${media.fileId}`}
-                              alt={media.fileName || "Lampiran Media"}
-                              fileName={media.fileName || "Foto Lampiran"}
-                              caption={media.caption}
-                            />
-                            <div className="px-1 text-[11px] font-mono text-muted-foreground truncate">
-                              {media.fileName}
+                            {urgencyLabel(activeReport.urgency)}
+                          </Badge>
+                        </div>
+
+                        <div className="md:col-span-2 space-y-1">
+                          <span className="text-muted-foreground font-medium block">
+                            Formulasi Isi Laporan / Baket:
+                          </span>
+                          <div className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 font-mono text-xs whitespace-pre-wrap text-foreground leading-relaxed">
+                            {activeReport.content || "-"}
+                          </div>
+                        </div>
+
+                        {activeReport.normalizedContent && (
+                          <div className="md:col-span-2 space-y-1">
+                            <span className="text-muted-foreground font-medium block">
+                              Ringkasan Informasi (Normalized Content):
+                            </span>
+                            <div className="p-3 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 text-xs text-foreground">
+                              {activeReport.normalizedContent}
                             </div>
                           </div>
-                        ))}
+                        )}
+
+                        {activeReport.fieldOfficerNote && (
+                          <div className="md:col-span-2 space-y-1">
+                            <span className="text-muted-foreground font-medium block">
+                              Catatan Tambahan Petugas Wilayah (Gaswil):
+                            </span>
+                            <div className="p-3 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 text-xs text-foreground">
+                              {activeReport.fieldOfficerNote}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ) : null}
-                  </div>
-                </div>
+                    </CardContent>
+                  ) : (
+                    <CardContent className="p-4 md:p-6 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Kategori Laporan */}
+                        <div className="space-y-1.5">
+                          <label htmlFor="category-select" className="font-medium text-xs text-foreground block">
+                            Kategori Laporan <span className="text-rose-500">*</span>
+                          </label>
+                          <NativeSelect
+                            id="category-select"
+                            value={categoryId}
+                            onChange={(e) => setCategoryId(e.target.value)}
+                            className="h-9 text-xs bg-background"
+                          >
+                            <option value="">-- Pilih Kategori --</option>
+                            {categories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </option>
+                            ))}
+                          </NativeSelect>
+                        </div>
 
-                {/* Verification Action Form */}
-                {!readOnly && (
-                  activeReport.status === "ACTIVE" ? (
-                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-amber-700 dark:text-amber-400">
-                      Laporan masih disusun oleh Jaring. Aksi baca, verifikasi, dan metadata tersedia setelah Jaring mengetik SELESAI.
-                    </div>
-                  ) : activeReport.verificationStatus === "WAITING_FIELD_OFFICER_VERIFICATION" ? (
-                    <div className="pt-4 border-t border-slate-200/80 dark:border-white/10 space-y-3">
-                      <label htmlFor="verify-note" className="font-medium text-xs text-foreground block">
-                        Catatan Verifikasi Petugas Lapangan (opsional):
-                      </label>
-                      <Input
-                        id="verify-note"
-                        value={verificationNote}
-                        onChange={(e) => setVerificationNote(e.target.value)}
-                        placeholder="Masukkan catatan verifikasi atau arahan pengayaan data..."
-                        className="h-9 text-xs bg-background"
-                      />
+                        {/* Urgency */}
+                        <div className="space-y-1.5">
+                          <label htmlFor="urgency-select" className="font-medium text-xs text-foreground block">
+                            Tingkat Urgensi (Urgency) <span className="text-rose-500">*</span>
+                          </label>
+                          <NativeSelect
+                            id="urgency-select"
+                            value={urgency}
+                            onChange={(e) => setUrgency(e.target.value as PriorityLevel)}
+                            className="h-9 text-xs bg-background"
+                          >
+                            {URGENCY_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </NativeSelect>
+                        </div>
 
-                      <div className="flex items-center justify-end gap-3 pt-1">
+                        {/* Formulasi Isi Baket */}
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label htmlFor="content-textarea" className="font-medium text-xs text-foreground block">
+                            Formulasi Isi Laporan / Baket:
+                          </label>
+                          <Textarea
+                            id="content-textarea"
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            placeholder="Formulasikan isi Baket yang telah diperkaya..."
+                            rows={5}
+                            className="text-xs bg-background leading-relaxed"
+                          />
+                        </div>
+
+                        {/* Normalized Content */}
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label htmlFor="normalized-textarea" className="font-medium text-xs text-foreground block">
+                            Ringkasan Informasi (Normalized Content):
+                          </label>
+                          <Textarea
+                            id="normalized-textarea"
+                            value={normalizedContent}
+                            onChange={(e) => setNormalizedContent(e.target.value)}
+                            placeholder="Ringkasan poin-poin utama laporan..."
+                            rows={2}
+                            className="text-xs bg-background"
+                          />
+                        </div>
+
+                        {/* Catatan Field Officer */}
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label htmlFor="fo-note-textarea" className="font-medium text-xs text-foreground block">
+                            Catatan Tambahan Petugas Wilayah (Gaswil):
+                          </label>
+                          <Textarea
+                            id="fo-note-textarea"
+                            value={fieldOfficerNote}
+                            onChange={(e) => setFieldOfficerNote(e.target.value)}
+                            placeholder="Catatan analisis atau rekomendasi tindak lanjut..."
+                            rows={2}
+                            className="text-xs bg-background"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200/80 dark:border-white/10">
                         <Button
-                          disabled={isVerifying}
-                          onClick={() => setConfirmVerifyOpen(true)}
-                          className="h-9 gap-1.5 text-xs rounded-lg bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600"
+                          disabled={isSavingMetadata || !activeReport.canFillMetadata}
+                          onClick={onClickSaveMetadata}
+                          className="h-9 gap-1.5 text-xs rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
                         >
-                          <ShieldCheck className="size-4" />
-                          {isVerifying ? "Memproses Verifikasi..." : "Verifikasi & Setujui Laporan"}
+                          <FileEdit className="size-4" />
+                          {isSavingMetadata
+                            ? "Menyimpan Informasi Lanjutan..."
+                            : "Simpan Informasi Lanjutan & Buat Baket"}
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="pt-3 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 dark:text-[#38BDF8]">
-                        <CheckCircle2 className="size-4 shrink-0 text-sky-500" />
-                        <span>Laporan telah diverifikasi dan disetujui Petugas Lapangan.</span>
-                      </div>
-                    </div>
-                  )
-                )}
-              </CardContent>
-            </Card>
-
-            {/* STEP 2: INFORMASI LANJUTAN */}
-            {(!readOnly || hasFormulatedMetadata) && (
-              <Card
-                className={cn(
-                  "border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden transition-opacity",
-                  !readOnly && !activeReport.canFillMetadata && "opacity-60 pointer-events-none",
-                )}
-              >
-                <CardHeader className="p-4 md:p-5 border-b border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                        2
-                      </div>
-                      <div>
-                        <CardTitle className="text-sm font-bold uppercase tracking-wide">
-                          Step 2: Informasi Lanjutan
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                          {readOnly || activeReport.verificationStatus === "METADATA_RECORDED"
-                            ? "Informasi lanjutan dan narasi Baket yang terverifikasi."
-                            : "Isi kategori, urgency, dan formulasi narasi informasi lanjutan untuk menerbitkan Baket."}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    {readOnly ? (
-                      <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
-                        Mode Lihat (Read Only)
-                      </Badge>
-                    ) : activeReport.verificationStatus === "METADATA_RECORDED" || Boolean(activeReport.baket) ? (
-                      <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                        Baket Dibuat
-                      </Badge>
-                    ) : !activeReport.canFillMetadata ? (
-                      <Badge variant="outline" className="text-[10px] font-mono">
-                        Kunci (Selesaikan Step 1 Dulu)
-                      </Badge>
-                    ) : null}
-                  </div>
-                </CardHeader>
-
-                {readOnly || activeReport.verificationStatus === "METADATA_RECORDED" || Boolean(activeReport.baket) ? (
-                  <CardContent className="p-4 md:p-6 space-y-4 text-xs">
-                    {(activeReport.verificationStatus === "METADATA_RECORDED" || Boolean(activeReport.baket)) && (
-                      <div className="flex items-center gap-2 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
-                        <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span>Informasi Lanjutan telah disimpan dan Baket Intelijen telah resmi diterbitkan.</span>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1">
-                        <span className="text-muted-foreground font-medium block">Kategori Laporan:</span>
-                        <p className="font-semibold text-foreground">
-                          {activeReport.reportCategory?.name || "-"}
-                        </p>
-                      </div>
-
-                      <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1">
-                        <span className="text-muted-foreground font-medium block">Tingkat Urgensi (Urgency):</span>
-                        <p className="font-semibold text-foreground">
-                          {activeReport.urgency || "NORMAL"}
-                        </p>
-                      </div>
-
-                      <div className="md:col-span-2 space-y-1">
-                        <span className="text-muted-foreground font-medium block">Formulasi Isi Laporan / Baket:</span>
-                        <div className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 font-mono text-xs whitespace-pre-wrap text-foreground leading-relaxed">
-                          {activeReport.content || "-"}
-                        </div>
-                      </div>
-
-                      {activeReport.normalizedContent && (
-                        <div className="md:col-span-2 space-y-1">
-                          <span className="text-muted-foreground font-medium block">Ringkasan Informasi (Normalized Content):</span>
-                          <div className="p-3 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 text-xs text-foreground">
-                            {activeReport.normalizedContent}
-                          </div>
-                        </div>
-                      )}
-
-                      {activeReport.fieldOfficerNote && (
-                        <div className="md:col-span-2 space-y-1">
-                          <span className="text-muted-foreground font-medium block">Catatan Tambahan Petugas Lapangan:</span>
-                          <div className="p-3 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 text-xs text-foreground">
-                            {activeReport.fieldOfficerNote}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                ) : (
-                  <CardContent className="p-4 md:p-6 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Kategori Laporan */}
-                      <div className="space-y-1.5">
-                        <label htmlFor="category-select" className="font-medium text-xs text-foreground block">
-                          Kategori Laporan <span className="text-rose-500">*</span>
-                        </label>
-                        <NativeSelect
-                          id="category-select"
-                          value={categoryId}
-                          onChange={(e) => setCategoryId(e.target.value)}
-                          className="h-9 text-xs bg-background"
-                        >
-                          <option value="">-- Pilih Kategori --</option>
-                          {categories.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </option>
-                          ))}
-                        </NativeSelect>
-                      </div>
-
-                      {/* Urgency */}
-                      <div className="space-y-1.5">
-                        <label htmlFor="urgency-select" className="font-medium text-xs text-foreground block">
-                          Tingkat Urgensi (Urgency) <span className="text-rose-500">*</span>
-                        </label>
-                        <NativeSelect
-                          id="urgency-select"
-                          value={urgency}
-                          onChange={(e) => setUrgency(e.target.value as PriorityLevel)}
-                          className="h-9 text-xs bg-background"
-                        >
-                          {URGENCY_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </NativeSelect>
-                      </div>
-
-                      {/* Formulasi Isi Baket */}
-                      <div className="space-y-1.5 md:col-span-2">
-                        <label htmlFor="content-textarea" className="font-medium text-xs text-foreground block">
-                          Formulasi Isi Laporan / Baket:
-                        </label>
-                        <Textarea
-                          id="content-textarea"
-                          value={content}
-                          onChange={(e) => setContent(e.target.value)}
-                          placeholder="Formulasikan isi Baket yang telah diperkaya..."
-                          rows={5}
-                          className="text-xs bg-background leading-relaxed"
-                        />
-                      </div>
-
-                      {/* Normalized Content */}
-                      <div className="space-y-1.5 md:col-span-2">
-                        <label htmlFor="normalized-textarea" className="font-medium text-xs text-foreground block">
-                          Ringkasan Informasi (Normalized Content):
-                        </label>
-                        <Textarea
-                          id="normalized-textarea"
-                          value={normalizedContent}
-                          onChange={(e) => setNormalizedContent(e.target.value)}
-                          placeholder="Ringkasan poin-poin utama laporan..."
-                          rows={2}
-                          className="text-xs bg-background"
-                        />
-                      </div>
-
-                      {/* Catatan Field Officer */}
-                      <div className="space-y-1.5 md:col-span-2">
-                        <label htmlFor="fo-note-textarea" className="font-medium text-xs text-foreground block">
-                          Catatan Tambahan Petugas Lapangan:
-                        </label>
-                        <Textarea
-                          id="fo-note-textarea"
-                          value={fieldOfficerNote}
-                          onChange={(e) => setFieldOfficerNote(e.target.value)}
-                          placeholder="Catatan analisis atau rekomendasi tindak lanjut..."
-                          rows={2}
-                          className="text-xs bg-background"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200/80 dark:border-white/10">
-                      <Button
-                        disabled={isSavingMetadata || !activeReport.canFillMetadata}
-                        onClick={onClickSaveMetadata}
-                        className="h-9 gap-1.5 text-xs rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700"
-                      >
-                        <FileEdit className="size-4" />
-                        {isSavingMetadata ? "Menyimpan Informasi Lanjutan..." : "Simpan Informasi Lanjutan & Buat Baket"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            )}
-          </div>
-        );
-      })() : null}
+                    </CardContent>
+                  )}
+                </Card>
+              )}
+            </div>
+          );
+        })()
+      ) : null}
 
       {/* DIALOG RIWAYAT PERUBAHAN & AUDIT LOG */}
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
@@ -917,18 +888,12 @@ export function LaporanJaringDetailClient({
                         <span
                           className={cn(
                             "mt-1 flex size-2.5 rounded-full shrink-0 transition-colors",
-                            isSelected
-                              ? "bg-sky-500 ring-4 ring-sky-500/20"
-                              : "bg-slate-300 dark:bg-slate-600",
+                            isSelected ? "bg-sky-500 ring-4 ring-sky-500/20" : "bg-slate-300 dark:bg-slate-600",
                           )}
                         />
                         <div className="flex-1 min-w-0 space-y-0.5">
-                          <p className="font-mono text-xs font-bold truncate leading-tight">
-                            {evt.action}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground font-mono">
-                            {formatDateTime(evt.createdAt)}
-                          </p>
+                          <p className="font-mono text-xs font-bold truncate leading-tight">{evt.action}</p>
+                          <p className="text-[11px] text-muted-foreground font-mono">{formatDateTime(evt.createdAt)}</p>
                           <p className="text-[11px] text-muted-foreground truncate">
                             oleh <span className="font-medium">{actorName}</span>
                           </p>
@@ -937,23 +902,14 @@ export function LaporanJaringDetailClient({
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center text-xs text-muted-foreground">
-                    Belum ada riwayat tercatat.
-                  </div>
+                  <div className="p-8 text-center text-xs text-muted-foreground">Belum ada riwayat tercatat.</div>
                 )}
               </div>
 
-              {/* Muat lebih lama Button */}
               <div className="p-3 border-t border-slate-200/80 dark:border-white/10 bg-background/50 mt-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-8 text-xs font-medium text-muted-foreground hover:text-foreground justify-center gap-1.5 rounded-lg border-slate-200 dark:border-white/10"
-                >
-                  Muat lebih lama
-                  <ChevronDown className="size-3.5" />
-                </Button>
+                <p className="text-center font-mono text-[11px] text-muted-foreground">
+                  {filteredEvents.length.toLocaleString("id-ID")} event ditampilkan
+                </p>
               </div>
             </div>
 
@@ -974,18 +930,26 @@ export function LaporanJaringDetailClient({
                       </div>
                       <div className="text-right font-mono text-[11px] text-muted-foreground shrink-0 leading-tight">
                         <p>{formatDateTime(selectedEvent.createdAt)}</p>
-                        <p className="mt-0.5">oleh <span className="font-medium text-foreground">{getActorLabel(selectedEvent)}</span></p>
+                        <p className="mt-0.5">
+                          oleh <span className="font-medium text-foreground">{getActorLabel(selectedEvent)}</span>
+                        </p>
                       </div>
                     </div>
 
                     {/* Status transition / badge info */}
                     <div className="flex items-center gap-2 pt-1">
                       {selectedEvent.newState || selectedEvent.previousState ? (
-                        <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 uppercase font-bold">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-mono border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 uppercase font-bold"
+                        >
                           {selectedEvent.newState || selectedEvent.previousState}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 uppercase font-bold">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-mono border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 uppercase font-bold"
+                        >
                           VERIFIED
                         </Badge>
                       )}
@@ -996,7 +960,7 @@ export function LaporanJaringDetailClient({
                   </div>
 
                   {/* Perubahan Data (Comparison View) */}
-                  {(selectedEvent.beforeData || selectedEvent.afterData) ? (
+                  {selectedEvent.beforeData || selectedEvent.afterData ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <FileDiff className="size-4 text-sky-600 dark:text-[#38BDF8]" />
@@ -1008,11 +972,14 @@ export function LaporanJaringDetailClient({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                         {/* SEBELUM */}
                         <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/30 space-y-2">
-                          <span className="text-xs font-bold text-rose-600 dark:text-rose-400 block">
-                            Sebelum
-                          </span>
+                          <span className="text-xs font-bold text-rose-600 dark:text-rose-400 block">Sebelum</span>
                           {selectedEvent.beforeData ? (
-                            <div className={cn("font-mono text-[11px] space-y-1 overflow-hidden transition-all", !expandBefore && "max-h-[160px]")}>
+                            <div
+                              className={cn(
+                                "font-mono text-[11px] space-y-1 overflow-hidden transition-all",
+                                !expandBefore && "max-h-[160px]",
+                              )}
+                            >
                               {Object.entries(selectedEvent.beforeData).map(([k, v]) => (
                                 <div key={k} className="truncate leading-snug">
                                   <span className="text-rose-600 dark:text-rose-400 font-semibold">"{k}"</span>:{" "}
@@ -1045,7 +1012,12 @@ export function LaporanJaringDetailClient({
                             Sesudah
                           </span>
                           {selectedEvent.afterData ? (
-                            <div className={cn("font-mono text-[11px] space-y-1 overflow-hidden transition-all", !expandAfter && "max-h-[160px]")}>
+                            <div
+                              className={cn(
+                                "font-mono text-[11px] space-y-1 overflow-hidden transition-all",
+                                !expandAfter && "max-h-[160px]",
+                              )}
+                            >
                               {Object.entries(selectedEvent.afterData).map(([k, v]) => (
                                 <div key={k} className="truncate leading-snug">
                                   <span className="text-emerald-600 dark:text-emerald-400 font-semibold">"{k}"</span>:{" "}
@@ -1079,19 +1051,17 @@ export function LaporanJaringDetailClient({
                   <div className="p-4 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-slate-900/30 space-y-2">
                     <div className="flex items-center gap-2">
                       <FileText className="size-4 text-sky-600 dark:text-[#38BDF8]" />
-                      <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
-                        Catatan Sistem
-                      </h4>
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">Catatan Sistem</h4>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {getSystemNoteText(selectedEvent)}
-                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{getSystemNoteText(selectedEvent)}</p>
                   </div>
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8 text-center space-y-2">
                   <History className="size-8 opacity-40 text-sky-600" />
-                  <p className="text-xs font-medium">Pilih event dari daftar sebelah kiri untuk melihat detail riwayat.</p>
+                  <p className="text-xs font-medium">
+                    Pilih event dari daftar sebelah kiri untuk melihat detail riwayat.
+                  </p>
                 </div>
               )}
             </div>
@@ -1120,7 +1090,8 @@ export function LaporanJaringDetailClient({
               Konfirmasi Verifikasi Laporan
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground pt-1">
-              Apakah Anda yakin ingin memverifikasi dan menyetujui laporan Jaring ini? Setelah diverifikasi, laporan dapat dilanjutkan ke tahap pengisian Informasi Lanjutan & pembuatan Baket.
+              Apakah Anda yakin ingin memverifikasi dan menyetujui laporan Jaring ini? Setelah diverifikasi, laporan
+              dapat dilanjutkan ke tahap pengisian Informasi Lanjutan & pembuatan Baket.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="pt-2">
@@ -1144,7 +1115,8 @@ export function LaporanJaringDetailClient({
               Konfirmasi Pembuatan Baket
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground pt-1">
-              Apakah Anda yakin ingin menyimpan Informasi Lanjutan dan menerbitkan Baket Intelijen ini? Data yang tersimpan akan secara resmi terdaftar sebagai Baket.
+              Apakah Anda yakin ingin menyimpan Informasi Lanjutan dan menerbitkan Baket Intelijen ini? Data yang
+              tersimpan akan secara resmi terdaftar sebagai Baket.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="pt-2">

@@ -3,6 +3,10 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  ApplicationCacheService,
+  authorizationScopeIdentity,
+} from '../cache/application-cache.service.js';
 
 export type DomainScope = {
   organizationUnitId: string;
@@ -23,9 +27,29 @@ export type AreaScopeTreeNode = {
 
 @Injectable()
 export class DomainScopeService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly resolvedScopes = new WeakMap<
+    AuthorizationContext,
+    Promise<DomainScope>
+  >();
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: ApplicationCacheService,
+  ) {}
 
   async resolve(context: AuthorizationContext): Promise<DomainScope> {
+    const existing = this.resolvedScopes.get(context);
+    if (existing) return existing;
+
+    const pending = this.loadScope(context).catch((error) => {
+      this.resolvedScopes.delete(context);
+      throw error;
+    });
+    this.resolvedScopes.set(context, pending);
+    return pending;
+  }
+
+  private async loadScope(context: AuthorizationContext): Promise<DomainScope> {
     const areaRootIds = [
       ...new Set(context.areaScopes.map((scope) => scope.areaId)),
     ];
@@ -104,6 +128,17 @@ export class DomainScopeService {
   }
 
   async areaTree(context: AuthorizationContext) {
+    return this.cache.getOrSet(
+      {
+        namespace: 'administrative-area-tree',
+        identity: authorizationScopeIdentity(context),
+        ttlMs: 30 * 60_000,
+      },
+      () => this.loadAreaTree(context),
+    );
+  }
+
+  private async loadAreaTree(context: AuthorizationContext) {
     const scope = await this.resolve(context);
     const areas = await this.prisma.administrativeArea.findMany({
       where: {

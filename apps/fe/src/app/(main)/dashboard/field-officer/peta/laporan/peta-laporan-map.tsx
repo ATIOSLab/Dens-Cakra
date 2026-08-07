@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AlertTriangle, ChevronsUpDown, ExternalLink, FileText, FilterX, RefreshCw } from "lucide-react";
 
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,27 +72,27 @@ function SearchableFilter({
       </Button>
       {open ? (
         <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-popover text-popover-foreground shadow-sm">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
-          <CommandList className="max-h-52">
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  data-checked={value === option.value}
-                  value={`${option.label} ${option.value}`}
-                  onSelect={() => {
-                    onValueChange(option.value);
-                    setOpen(false);
-                  }}
-                >
-                  {option.label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+          <Command>
+            <CommandInput placeholder={searchPlaceholder} />
+            <CommandList className="max-h-52">
+              <CommandEmpty>{emptyMessage}</CommandEmpty>
+              <CommandGroup>
+                {options.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    data-checked={value === option.value}
+                    value={`${option.label} ${option.value}`}
+                    onSelect={() => {
+                      onValueChange(option.value);
+                      setOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
         </div>
       ) : null}
     </div>
@@ -113,6 +114,10 @@ export function PetaLaporanMap() {
   const [urgency, setUrgency] = useState("all");
 
   const reports = useMemo(() => workspace?.jaringReports ?? [], [workspace]);
+  const jaringById = useMemo(
+    () => new Map((workspace?.jaring ?? []).map((jaring) => [jaring.id, jaring])),
+    [workspace],
+  );
   const filteredReports = useMemo(() => {
     const from = periodFrom ? new Date(`${periodFrom}T00:00:00`).getTime() : null;
     const to = periodTo ? new Date(`${periodTo}T23:59:59.999`).getTime() : null;
@@ -238,10 +243,17 @@ export function PetaLaporanMap() {
           title: urgency === "UNASSIGNED" ? "Urgensi belum ditentukan" : `Urgensi ${urgency}`,
         });
 
+        const jaring = jaringById.get(report.jaringId);
+        const photoUrl = jaring?.profilePhotoUrl ||
+          (jaring?.profilePhotoFileId ? `/api/files/${jaring.profilePhotoFileId}` : null);
         marker.bindPopup(`
+          ${photoUrl ? `<img src="${photoUrl}" alt="Foto Jaring" width="44" height="44" style="border-radius:9999px;object-fit:cover;margin-bottom:8px" />` : ""}
           <strong>${report.displayTitle ?? "Laporan Jaring"}</strong><br />
-          Jaring: ${report.jaringAlias} (${report.jaringCode})<br />
-          Area: ${report.areaName ?? "-"}<br />
+          Nama Jaring: ${jaring?.fullName ?? report.jaringAlias ?? "Belum tersedia"}<br />
+          Kode Jaring: ${report.jaringCode ?? report.jaringAlias ?? "Belum tersedia"}<br />
+          Nomor WhatsApp: ${jaring?.whatsappNumber ?? report.senderPhone ?? "Belum tersedia"}<br />
+          Wilayah Penempatan: ${jaring?.areaNames.join(", ") || "Belum ditetapkan"}<br />
+          Petugas Wilayah (Gaswil): ${workspace?.profile.name ?? "Belum ditetapkan"}<br />
           Kategori: ${report.categoryName ?? "-"}<br />
           Urgensi: ${report.urgency ?? "-"}<br />
           Sumber koordinat: Live Location Jaring<br />
@@ -260,7 +272,7 @@ export function PetaLaporanMap() {
     }
 
     void renderMarkers();
-  }, [locatedReports]);
+  }, [jaringById, locatedReports, workspace?.profile.name]);
 
   const focusReport = (report: FieldOfficerIncoming) => {
     if (report.latitude === null || report.longitude === null || !mapRef.current) {
@@ -296,7 +308,7 @@ export function PetaLaporanMap() {
                 {locatedReports.length} laporan dengan Live Location
               </span>
               <span className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-black/20 px-2 py-1">
-                Scope: {workspace?.profile.name ?? "Field Officer"}
+                Cakupan: {workspace?.profile.name ?? "Petugas Wilayah (Gaswil)"}
               </span>
             </div>
             <div
@@ -418,6 +430,7 @@ export function PetaLaporanMap() {
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredReports.map((report) => {
                 const hasLocation = report.latitude !== null && report.longitude !== null;
+                const jaring = jaringById.get(report.jaringId);
 
                 return (
                   <div
@@ -432,10 +445,23 @@ export function PetaLaporanMap() {
                     >
                       <div>
                         <p className="font-semibold text-white">{report.displayTitle || "Laporan Jaring"}</p>
-                        <p className="text-xs text-white/55">
-                          {report.jaringAlias} ({report.jaringCode})
-                        </p>
                       </div>
+                      <JaringIdentitySummary
+                        compact
+                        className="mt-3 rounded-md border border-white/10 bg-black/20 p-3"
+                        source={{
+                          id: report.jaringId,
+                          fullName: jaring?.fullName,
+                          jaringAlias: report.jaringAlias,
+                          jaringCode: report.jaringCode,
+                          whatsappNumber: jaring?.whatsappNumber ?? report.senderPhone,
+                          profilePhotoUrl: jaring?.profilePhotoUrl,
+                          profilePhotoFileId: jaring?.profilePhotoFileId,
+                          gaswilName: workspace?.profile.name,
+                          gaswilHref: "/dashboard/profil",
+                          villageName: jaring?.areaNames.join(", ") || report.areaName,
+                        }}
+                      />
                       <p className="mt-2 line-clamp-2 text-xs text-white/60">{report.content || "-"}</p>
                       <p className="mt-2 text-xs text-white/55">Area: {report.areaName || "-"}</p>
                       <p className="mt-1 text-xs text-white/55">Kategori: {report.categoryName || "-"}</p>

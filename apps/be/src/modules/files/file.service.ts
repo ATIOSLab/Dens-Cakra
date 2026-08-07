@@ -218,6 +218,10 @@ export class FileService implements OnModuleInit {
       url: `/api/storage/files/${token}`,
       expiresAt: new Date(Date.now() + ttlSeconds * 1000),
       disposition,
+      originalName: file.originalName,
+      mimeType: file.mimeType,
+      sizeBytes: file.sizeBytes.toString(),
+      checksumSha256: file.checksumSha256,
     };
   }
   async remove(id: string, actor: AuthorizationContext) {

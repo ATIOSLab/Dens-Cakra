@@ -1,7 +1,8 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -25,13 +26,22 @@ export enum UukSortField {
 }
 
 export class UukQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(UukStrStatus) status?: UukStrStatus;
   @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsOptional() @IsUUID() directiveId?: string;
+  @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : String(value).split(',').filter(Boolean),
+  )
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  directiveVersionIds?: string[];
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsEnum(UukSortField) sortBy?: UukSortField;
   @IsOptional() @IsEnum(SortOrder) sortOrder?: SortOrder;
+  @IsOptional() @Type(() => Boolean) @IsBoolean() paginated?: boolean;
 }
 
 export class SectionItemDto {

@@ -9,6 +9,7 @@ import { requireSession } from "@/lib/auth/server-session";
 import { cn } from "@/lib/utils";
 import { getPreference } from "@/server/server-actions";
 
+import { LiveOperationsIndicator } from "./_components/live-operations-indicator";
 import { SessionHeartbeat } from "./_components/session-heartbeat";
 import { AccountSwitcher } from "./_components/sidebar/account-switcher";
 import { ClientNetworkBadge, ClientNetworkProvider } from "./_components/sidebar/client-network";
@@ -56,12 +57,12 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           >
             <header
               className={cn(
-                "flex h-14 shrink-0 items-center gap-2 border-[var(--dc-divider)] border-b bg-[color-mix(in_srgb,var(--dc-card)_86%,transparent)] shadow-[0_1px_0_var(--dc-divider)] backdrop-blur-xl transition-[width,height] ease-linear md:h-[var(--dc-topbar-height)] group-has-data-[collapsible=icon]/sidebar-wrapper:md:h-[var(--dc-topbar-height)]",
+                "flex h-[var(--dc-topbar-height)] shrink-0 items-center gap-2 border-[var(--dc-divider)] border-b bg-[color-mix(in_srgb,var(--dc-card)_94%,transparent)] shadow-[0_1px_0_var(--dc-divider)] backdrop-blur-xl transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-[var(--dc-topbar-height)]",
                 "[html[data-navbar-style=sticky]_&]:sticky [html[data-navbar-style=sticky]_&]:top-0 [html[data-navbar-style=sticky]_&]:z-50 [html[data-navbar-style=sticky]_&]:overflow-hidden [html[data-navbar-style=sticky]_&]:rounded-t-[inherit]",
               )}
             >
-              <div className="flex w-full items-center justify-between px-4 lg:px-6">
-                <div className="flex items-center gap-1 lg:gap-2">
+              <div className="flex w-full min-w-0 items-center justify-between gap-2 px-[var(--dc-page-gutter)] lg:gap-3">
+                <div className="flex min-w-0 items-center gap-1 lg:gap-2">
                   <SidebarTrigger className="-ml-1" />
                   <Separator
                     orientation="vertical"
@@ -69,7 +70,8 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
                   />
                   <SearchDialog />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 shrink-0 items-center gap-1 sm:gap-1.5 lg:gap-2">
+                  <LiveOperationsIndicator />
                   <UserAreaBadge />
                   <ClientNetworkBadge />
                   <LayoutControls />
@@ -79,8 +81,8 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
                 </div>
               </div>
             </header>
-            <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-3 has-data-[content-padding=false]:p-0 md:p-4 md:has-data-[content-padding=false]:p-0 xl:p-5 xl:has-data-[content-padding=false]:p-0">
-              {children}
+            <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-[var(--dc-page-gutter)] has-data-[content-padding=false]:p-0">
+              <div className="dc-dashboard-stage">{children}</div>
             </div>
           </SidebarInset>
         </ClientNetworkProvider>

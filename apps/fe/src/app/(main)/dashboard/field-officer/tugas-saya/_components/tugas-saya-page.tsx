@@ -4,7 +4,7 @@ export function TugasSayaPage() {
   return (
     <DensModulePage
       title="Tugas Saya"
-      role="Petugas Lapangan"
+      role="Petugas Wilayah"
       description="Halaman ini menyiapkan daftar tugas aktif petugas, detail sasaran, dan progres pelaksanaan lapangan."
       highlights={[
         "Daftar tugas, deadline, prioritas, dan wilayah tugas.",

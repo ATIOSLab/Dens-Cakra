@@ -73,7 +73,7 @@ export function NavUser({
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/account" prefetch={false}>
                   <CircleUser />
-                  Account
+                  Akun Saya
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

@@ -221,7 +221,7 @@ export async function OimTaskDetailPage({ taskId }: { taskId: string }) {
       task={task}
       assignmentHref={`/dashboard/oim/direktif-tugas/${task.id}/penugasan`}
       hideTargetAreas
-      assignmentTitle="Daftar Field Coordinator"
+      assignmentTitle="Daftar Koordinator Lapangan"
     />
   );
 }
@@ -242,15 +242,11 @@ export async function OimTaskAssignmentPage({ taskId }: { taskId: string }) {
 
   return (
     <div className="space-y-6">
-      <TaskDetailClient
-        task={task}
-        hideTargetAreas
-        assignmentTitle="Daftar Field Coordinator"
-      />
+      <TaskDetailClient task={task} hideTargetAreas assignmentTitle="Daftar Koordinator Lapangan" />
       <AssignmentBoardClient
         task={task}
         candidates={candidates}
-        submitLabel="Distribusikan ke Field Coordinator"
+        submitLabel="Distribusikan ke Koordinator Lapangan"
         mode="assign"
       />
     </div>
@@ -295,7 +291,7 @@ export async function FieldCoordinatorTaskDetailPage({ taskId }: { taskId: strin
       }
       hideTargetAreas
       hideAssignments
-      assignmentTitle="Distribusi Field Officer"
+      assignmentTitle="Distribusi Petugas Wilayah (Gaswil)"
     />
   );
 }
@@ -320,12 +316,12 @@ export async function FieldCoordinatorAssignmentPage({
 
   return (
     <div className="space-y-6">
-      <TaskDetailClient task={task} hideTargetAreas hideAssignments assignmentTitle="Distribusi Field Officer" />
+      <TaskDetailClient task={task} hideTargetAreas hideAssignments assignmentTitle="Distribusi Petugas Wilayah (Gaswil)" />
       {isCoordinatorOwned ? (
         <AssignmentBoardClient
           task={task}
           candidates={candidates}
-          submitLabel="Distribusikan ke Field Officer"
+          submitLabel="Distribusikan ke Petugas Wilayah (Gaswil)"
           mode="assign"
         />
       ) : null}
@@ -333,7 +329,7 @@ export async function FieldCoordinatorAssignmentPage({
         <AssignmentBoardClient
           task={task}
           candidates={candidates}
-          submitLabel="Reassign ke Field Officer"
+          submitLabel="Alihkan ke Petugas Wilayah (Gaswil)"
           mode="reassign"
           existingAssignmentId={assignment.id}
         />
@@ -358,7 +354,12 @@ export async function FieldCoordinatorFieldOfficerAssignmentListPage({
   });
   const distributedTasks = buildCoordinatorTaskViews(tasks, access.authorizationContext.primaryAssignmentId);
 
-  return <FieldCoordinatorAssignmentsClient tasks={distributedTasks} />;
+  return (
+    <FieldCoordinatorAssignmentsClient
+      tasks={distributedTasks}
+      primaryAssignmentId={access.authorizationContext.primaryAssignmentId}
+    />
+  );
 }
 
 export async function FieldCoordinatorFieldOfficerAssignmentDetailPage({ taskId }: { taskId: string }) {
@@ -391,7 +392,9 @@ export async function FieldCoordinatorFieldOfficerAssignmentDetailPage({ taskId 
           task={task}
           candidates={candidates}
           submitLabel={
-            subordinateAssignments.length ? "Tambah Instruksi Field Officer" : "Buat Instruksi ke Field Officer"
+            subordinateAssignments.length
+              ? "Tambah Instruksi Petugas Wilayah (Gaswil)"
+              : "Buat Instruksi ke Petugas Wilayah (Gaswil)"
           }
           mode="assign"
         />
@@ -408,7 +411,12 @@ export async function FieldCoordinatorMonitoringPage() {
   });
   const distributedTasks = buildCoordinatorTaskViews(tasks, access.authorizationContext.primaryAssignmentId);
 
-  return <FieldCoordinatorMonitoringClient tasks={distributedTasks} />;
+  return (
+    <FieldCoordinatorMonitoringClient
+      tasks={distributedTasks}
+      primaryAssignmentId={access.authorizationContext.primaryAssignmentId}
+    />
+  );
 }
 
 export async function FieldCoordinatorMonitoringDetailPage({ taskId }: { taskId: string }) {
@@ -454,7 +462,12 @@ export async function FieldOfficerTaskListPage() {
       })),
   );
 
-  return <FieldOfficerAssignmentsClient assignments={assignments} />;
+  return (
+    <FieldOfficerAssignmentsClient
+      assignments={assignments}
+      primaryAssignmentId={access.authorizationContext.primaryAssignmentId}
+    />
+  );
 }
 
 export async function FieldOfficerAssignmentPage({ assignmentId }: { assignmentId: string }) {

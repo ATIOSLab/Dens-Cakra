@@ -130,6 +130,8 @@ export type JaringReportSessionDetail = {
   currentState?: string | null;
   verificationStatus: VerificationStatus;
   displayStatus: VerificationStatus;
+  completenessStatus?: "COMPLETE" | "INCOMPLETE" | "NOT_DETERMINED";
+  completenessIssues?: string[];
   canFillMetadata: boolean;
   displayTitle: string;
   content?: string | null;
@@ -151,14 +153,29 @@ export type JaringReportSessionDetail = {
   location?: JaringReportLocation | null;
   reportCategory?: ReportCategoryOption | null;
   urgency?: PriorityLevel | null;
+  locationSuitabilityStatus?:
+    | "NOT_CHECKED"
+    | "WITHIN_SCOPE"
+    | "OUTSIDE_JARING_SCOPE"
+    | "OUTSIDE_FIELD_OFFICER_SCOPE"
+    | "OUTSIDE_FIELD_COORDINATOR_SCOPE"
+    | "OUTSIDE_UNIT_SCOPE"
+    | "BORDER_AMBIGUOUS";
   fieldOfficerNote?: string | null;
   resolvedArea?: ResolvedAreaDetail | null;
   media?: ReportMediaItem[];
   submittedMessage?: SubmittedMessageInfo | null;
   baket?: BaketInfo | null;
   jaringAlias?: string | null;
+  jaringFullName?: string | null;
   jaringCode?: string | null;
+  jaringWhatsAppNumber?: string | null;
+  jaringProfilePhotoFileId?: string | null;
+  jaringProfilePhotoUrl?: string | null;
   gaswilName?: string | null;
+  gaswilAssignmentId?: string | null;
+  gaswilUserProfileId?: string | null;
+  placementArea?: ResolvedAreaDetail | null;
   counts?: {
     contentParts?: number;
     media?: number;

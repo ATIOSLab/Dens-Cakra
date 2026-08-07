@@ -22,8 +22,8 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn("flex flex-col gap-4 border-b border-border pb-5 relative z-20", className)}>
-      {breadcrumb && <div className="text-xs text-muted-foreground">{breadcrumb}</div>}
+    <header className={cn("relative z-20 flex min-w-0 flex-col gap-3 border-b border-border pb-[var(--dc-card-padding)]", className)}>
+      {breadcrumb && <div className="text-xs leading-5 text-muted-foreground">{breadcrumb}</div>}
       
       {backButton && (
         <div className="flex items-center">
@@ -35,27 +35,27 @@ export function PageHeader({
         </div>
       )}
 
-      <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+      <div className="flex min-w-0 flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-semibold text-foreground text-xl tracking-tight sm:text-2xl">
+            <h1 className="font-heading text-[clamp(1.5rem,1.35rem+0.6vw,1.75rem)] leading-tight font-semibold tracking-tight text-foreground">
               {title}
             </h1>
             {badge && <div className="flex items-center">{badge}</div>}
           </div>
           {description && (
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-3xl">
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
               {description}
             </p>
           )}
         </div>
 
         {actions && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex min-h-9 w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:[&>[data-slot=button]]:flex-none max-sm:[&>[data-slot=button]]:flex-1 lg:shrink-0">
             {actions}
           </div>
         )}
       </div>
-    </div>
+    </header>
   );
 }

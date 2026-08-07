@@ -5,11 +5,11 @@ export function MonitoringTugasPage() {
     <DensModulePage
       title="Monitoring Tugas"
       role="Koordinator Lapangan"
-      description="Halaman ini disiapkan untuk memantau acknowledgement, progres, hambatan, deadline, dan reassignment tugas lapangan."
+      description="Halaman ini disiapkan untuk memantau konfirmasi penerimaan, progres, hambatan, batas waktu, dan pengalihan tugas lapangan."
       highlights={[
         "Status tugas aktif, overdue, dan hambatan operasional lapangan.",
-        "Monitoring progres per Field Officer dan per wilayah tugas.",
-        "Kontrol supervisi dan perubahan assignment bila diperlukan.",
+        "Monitoring progres per Petugas Wilayah (Gaswil) dan per wilayah tugas.",
+        "Kontrol supervisi dan perubahan penugasan bila diperlukan.",
       ]}
     />
   );

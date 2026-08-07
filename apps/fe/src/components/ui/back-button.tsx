@@ -26,11 +26,12 @@ export function BackButton({
   const router = useRouter();
 
   const handleClick = () => {
-    if (href) {
-      router.push(href, { scroll: !preserveScroll });
-    } else {
+    if (window.history.length > 1) {
       router.back();
+      return;
     }
+
+    router.push(href ?? "/dashboard", { scroll: !preserveScroll });
   };
 
   return (

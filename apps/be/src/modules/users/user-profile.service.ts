@@ -7,7 +7,10 @@ import {
   type AuthRole,
 } from '../../common/constants/auth-role.js';
 import { ApiException } from '../../common/api/api-exception.js';
-import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
+import {
+  getIndonesianPhoneSearchVariants,
+  normalizeIndonesianPhoneNumber,
+} from '../../common/utils/phone-normalizer.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   AdministrativeLevel,
@@ -746,19 +749,27 @@ export class UserProfileService {
     query: UserProfileListQueryDto,
     areaIds: string[] | null,
   ): Prisma.UserProfileWhereInput {
+    const search = query.search?.trim();
+    const phoneSearchVariants = search
+      ? getIndonesianPhoneSearchVariants(search)
+      : [];
+
     return {
       ...(query.includeArchived ? {} : { deletedAt: null }),
       ...(query.status ? { status: query.status } : {}),
-      ...(query.search
+      ...(search
         ? {
             OR: [
-              { username: { contains: query.search, mode: 'insensitive' } },
-              { fullName: { contains: query.search, mode: 'insensitive' } },
+              { username: { contains: search, mode: 'insensitive' } },
+              { fullName: { contains: search, mode: 'insensitive' } },
               {
                 authUser: {
-                  email: { contains: query.search, mode: 'insensitive' },
+                  email: { contains: search, mode: 'insensitive' },
                 },
               },
+              ...phoneSearchVariants.map((phone) => ({
+                phone: { contains: phone },
+              })),
             ],
           }
         : {}),

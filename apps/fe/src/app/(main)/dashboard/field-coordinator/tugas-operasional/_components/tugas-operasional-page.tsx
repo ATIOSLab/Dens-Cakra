@@ -9,7 +9,7 @@ export function TugasOperasionalPage() {
       highlights={[
         "Daftar tugas diterima dari OIM lengkap dengan prioritas dan target.",
         "Rangkuman wilayah operasi, sasaran, dan kebutuhan tindak lanjut lapangan.",
-        "Status acknowledgement dan kesiapan distribusi ke Field Officer.",
+        "Status konfirmasi penerimaan dan kesiapan distribusi ke Petugas Wilayah (Gaswil).",
       ]}
     />
   );

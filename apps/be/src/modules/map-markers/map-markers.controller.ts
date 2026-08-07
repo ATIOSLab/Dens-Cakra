@@ -19,13 +19,11 @@ export class MapMarkersController {
   @ApiContract({
     operationId: 'apiMapMarkers001',
     contractId: 'API-MAP-MARKERS-001',
-    summary: 'Marker GeoJSON BAKET dan lokasi personel sesuai scope',
+    summary:
+      'Marker GeoJSON Laporan Jaring, BAKET, dan lokasi personel sesuai scope',
     roles: [
       'executive',
       'regional_commander',
-      'operational_intelligence_manager',
-      'field_coordinator',
-      'field_officer',
     ],
   })
   async list(
@@ -34,7 +32,7 @@ export class MapMarkersController {
   ) {
     return apiResult(await this.service.list(query, context), undefined, {
       appliedFilters: query,
-      availableActions: ['baket.open', 'personnel.open'],
+      availableActions: ['report.open', 'baket.open', 'personnel.open'],
     });
   }
 }

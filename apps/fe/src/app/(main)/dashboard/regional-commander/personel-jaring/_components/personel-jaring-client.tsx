@@ -21,17 +21,19 @@ import {
   ShieldCheck,
   Star,
   User,
-  UserRoundCheck,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Map as BaseMap, MapControls, MapMarker, type MapRef } from "@/components/ui/map";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { JaringIdentityArea, JaringIdentitySource } from "@/lib/domain/jaring-identity";
+import { matchesPhoneSearch } from "@/lib/search/phone-search";
 import { cn } from "@/lib/utils";
 
 type DataRecord = Record<string, unknown>;
@@ -51,6 +53,38 @@ function list(value: unknown) {
 
 function text(value: unknown, fallback = "Belum tersedia") {
   return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function identityArea(value: unknown): JaringIdentityArea | null {
+  const area = record(value);
+  const name = text(area.name, "");
+  if (!name) return null;
+  return {
+    id: text(area.id, "") || undefined,
+    name,
+    level: text(area.level, "") || undefined,
+    parent: identityArea(area.parent),
+  };
+}
+
+function jaringIdentitySource(item: DataRecord): JaringIdentitySource {
+  const coverages = list(item.areaCoverages);
+  const primaryCoverage = coverages.find((coverage) => coverage.isPrimary === true) ?? coverages[0];
+  const caretakers = list(item.caretakerAssignments);
+  const assignment = record(record(caretakers[0]).fieldOfficerAssignment);
+  const officer = record(assignment.userProfile);
+
+  return {
+    id: text(item.id, "") || null,
+    fullName: text(item.fullName, "") || null,
+    aliasName: text(item.aliasName, "") || null,
+    whatsappNumber: text(item.whatsappNumber, "") || null,
+    profilePhotoFileId: text(item.profilePhotoFileId, "") || null,
+    gaswilName: text(officer.fullName ?? officer.username, "") || null,
+    gaswilAssignmentId: text(assignment.id, "") || null,
+    gaswilUserProfileId: text(officer.id ?? assignment.userProfileId, "") || null,
+    assignedArea: identityArea(record(primaryCoverage).area),
+  };
 }
 
 function locationByAssignment(value: unknown) {
@@ -289,7 +323,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
         unitName: text(unit.name),
         status,
         coords,
-        email: text(profile.email, "-"),
+        email: text(profile.email ?? record(profile.authUser).email, "-"),
         phone: text(profile.phoneNumber || profile.phone, "-"),
         location,
         kind,
@@ -588,6 +622,21 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
   const [jaringPage, setJaringPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  const jaringByAssignment = useMemo(() => {
+    const index = new Map<string, DataRecord[]>();
+    for (const item of jaring) {
+      for (const caretaker of list(item.caretakerAssignments)) {
+        const assignmentId = text(
+          caretaker.fieldOfficerAssignmentId ?? record(caretaker.fieldOfficerAssignment).id,
+          "",
+        );
+        if (!assignmentId) continue;
+        index.set(assignmentId, [...(index.get(assignmentId) ?? []), item]);
+      }
+    }
+    return index;
+  }, [jaring]);
+
   // Dynamic responsive page size listener
   useEffect(() => {
     const handleResize = () => {
@@ -609,20 +658,33 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
       const profile = record(assignment.userProfile);
       const position = record(assignment.position);
       const unit = record(position.organizationUnit);
-      return [profile.fullName, profile.username, position.title, unit.name, areaLabels(assignment)]
-        .map((value) => text(value, "").toLocaleLowerCase("id-ID"))
-        .some((value) => value.includes(normalizedSearch));
+      const attachedJaring = jaringByAssignment.get(text(assignment.id, "")) ?? [];
+      return (
+        [
+          profile.fullName,
+          profile.username,
+          position.title,
+          unit.name,
+          areaLabels(assignment),
+          ...attachedJaring.flatMap((item) => [item.aliasName, item.fullName, item.whatsappNumber]),
+        ]
+          .map((value) => text(value, "").toLocaleLowerCase("id-ID"))
+          .some((value) => value.includes(normalizedSearch)) ||
+        matchesPhoneSearch(profile.phoneNumber ?? profile.phone, search)
+      );
     });
-  }, [assignments, normalizedSearch]);
+  }, [assignments, jaringByAssignment, normalizedSearch, search]);
 
   const visibleJaring = useMemo(() => {
     return jaring.filter((item) => {
       const cluster = record(item.cluster);
-      return [item.aliasName, item.fullName, item.id, cluster.name]
-        .map((value) => text(value, "").toLocaleLowerCase("id-ID"))
-        .some((value) => value.includes(normalizedSearch));
+      return (
+        [item.aliasName, item.fullName, item.id, cluster.name]
+          .map((value) => text(value, "").toLocaleLowerCase("id-ID"))
+          .some((value) => value.includes(normalizedSearch)) || matchesPhoneSearch(item.whatsappNumber, search)
+      );
     });
-  }, [jaring, normalizedSearch]);
+  }, [jaring, normalizedSearch, search]);
 
   // Reset page numbers on search query adjustments
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reset pagination whenever the filtered result set changes.
@@ -706,13 +768,14 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
     return "Online";
   };
 
-  const unitCount = new Set(assignments.map((item) => text(record(record(item.position).organizationUnit).id, "")))
-    .size;
-  const liveCount = assignments.filter((item) => {
+  const unitCount = new Set(
+    visibleAssignments.map((item) => text(record(record(item.position).organizationUnit).id, "")),
+  ).size;
+  const liveCount = visibleAssignments.filter((item) => {
     const loc = locationMap.get(text(item.id, ""));
     return Boolean(loc?.hasLiveLocation);
   }).length;
-  const activeJaring = jaring.filter((item) => item.status === "ACTIVE").length;
+  const activeJaring = visibleJaring.filter((item) => item.status === "ACTIVE").length;
 
   // Selected object references
   const selectedAssignment = useMemo(() => {
@@ -734,7 +797,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
   const jaringEndIdx = Math.min(jaringPage * pageSize, visibleJaring.length);
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] space-y-4 p-4 sm:p-6 lg:p-8">
+    <main className="mx-auto w-full max-w-[1600px] space-y-4">
       {/* Header */}
       <header className="border-b pb-4">
         <h1 className="mt-1 font-heading text-2xl font-semibold">Personel, Organisasi & Jaring</h1>
@@ -766,7 +829,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
           {/* Stats row */}
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan command network">
             {[
-              { label: "Personel bawahan", value: assignments.length, icon: Users },
+              { label: "Personel bawahan", value: visibleAssignments.length, icon: Users },
               { label: "Unit organisasi", value: unitCount, icon: Building2 },
               { label: "Lokasi aktual tersedia", value: liveCount, icon: Radio },
               { label: "Jaring aktif", value: activeJaring, icon: Network },
@@ -790,7 +853,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
               className="pl-9 h-9 text-xs rounded-[4px] border-border"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari personel, unit, wilayah, atau jaring"
+              placeholder="Cari personel, nomor HP, unit, wilayah, atau jaring"
               aria-label="Cari command network"
             />
           </div>
@@ -825,6 +888,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                         const location = locationMap.get(text(assignment.id, ""));
                         const status = deriveStatus(assignment, location);
                         const isSelected = selectedAssignmentId === text(assignment.id);
+                        const attachedJaring = jaringByAssignment.get(text(assignment.id, "")) ?? [];
 
                         return (
                           <button
@@ -851,8 +915,16 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                               </span>
                             </div>
                             <div className="text-[10px] truncate opacity-85 leading-tight">{text(position.title)}</div>
-                            <div className="flex items-center justify-between text-[9px] font-mono opacity-65 mt-1 border-t border-border/10 pt-1">
-                              <span>{areaLabels(assignment)}</span>
+                            <div className="flex items-center justify-between gap-2 text-[9px] font-mono opacity-65 mt-1 border-t border-border/10 pt-1">
+                              <span className="truncate">{areaLabels(assignment)}</span>
+                              <span className="shrink-0 text-primary">{attachedJaring.length} Jaring</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[9px] font-mono opacity-65">
+                              <span className="truncate">
+                                {attachedJaring
+                                  .map((item) => text(item.aliasName ?? item.fullName ?? item.id, ""))
+                                  .join(", ") || "Belum ada Jaring binaan"}
+                              </span>
                               <span>Ping: {formatTimeAgo(location?.capturedAt)}</span>
                             </div>
                           </button>
@@ -938,6 +1010,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                       const coords = getCoords(location);
                       const reportsTo = record(position.reportsTo);
                       const supervisorName = text(reportsTo.title, "");
+                      const attachedJaring = jaringByAssignment.get(text(assignment.id, "")) ?? [];
 
                       return (
                         <Card className="border border-border/80 bg-card rounded-[8px] overflow-hidden shadow-sm">
@@ -988,7 +1061,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                                 <span className="text-muted-foreground/60 block text-[9px] uppercase">Email</span>
                                 <span className="text-foreground font-bold mt-0.5 block leading-tight truncate flex items-center gap-1">
                                   <Mail className="size-3 text-muted-foreground/60" />
-                                  {text(profile.email, "-")}
+                                  {text(profile.email ?? record(profile.authUser).email, "-")}
                                 </span>
                               </div>
                               <div>
@@ -1019,6 +1092,39 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                                   {formatTime(location?.capturedAt)}
                                 </span>
                               </div>
+                            </div>
+
+                            <div className="space-y-2 border-t border-border/20 pt-3">
+                              <span className="flex items-center gap-1 text-muted-foreground/60 block font-mono text-[9px] uppercase">
+                                <Network className="size-3" /> Jaring Binaan ({attachedJaring.length})
+                              </span>
+                              {attachedJaring.length ? (
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                  {attachedJaring.map((item) => (
+                                    <div
+                                      key={text(item.id)}
+                                      className="space-y-2 border border-border/40 bg-secondary/10 px-3 py-3 transition-colors hover:border-primary/40 hover:bg-primary/5"
+                                    >
+                                      <JaringIdentitySummary compact source={jaringIdentitySource(item)} />
+                                      <div className="flex items-center justify-between gap-2">
+                                        <Badge variant="outline" className="shrink-0 rounded-none text-[8px]">
+                                          {text(item.registrationStatus ?? item.status, "-")}
+                                        </Badge>
+                                        <Link
+                                          href={`/dashboard/daftar-jaring/${text(item.id)}`}
+                                          className="font-mono font-semibold text-[9px] text-primary hover:underline"
+                                        >
+                                          Detail Jaring
+                                        </Link>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="border border-dashed border-border/40 bg-secondary/5 px-3 py-4 text-center text-[10px] text-muted-foreground">
+                                  Belum ada Jaring yang melekat pada Petugas Wilayah (Gaswil) ini.
+                                </div>
+                              )}
                             </div>
 
                             {/* 3. Organizational hierarchy visual tree */}
@@ -1187,10 +1293,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                             )}
                             style={{ contentVisibility: "auto", containIntrinsicSize: "80px" }}
                           >
-                            <div className="flex items-center justify-between gap-2 min-w-0">
-                              <span className="font-sans font-bold text-[11px] text-foreground truncate max-w-[170px]">
-                                {text(item.aliasName, "Alias Terlindung")}
-                              </span>
+                            <div className="flex items-center justify-end gap-2 min-w-0">
                               <Badge
                                 variant={item.status === "ACTIVE" ? "default" : "secondary"}
                                 className="scale-90 text-[8px] font-mono tracking-wider font-bold"
@@ -1198,9 +1301,12 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                                 {text(item.status)}
                               </Badge>
                             </div>
-                            <div className="text-[9px] font-mono truncate opacity-70">
-                              {text(item.aliasName || item.fullName || item.id)} / {text(cluster.name)}
-                            </div>
+                            <JaringIdentitySummary
+                              compact
+                              linkWhatsApp={false}
+                              source={jaringIdentitySource(item)}
+                            />
+                            <div className="text-[9px] font-mono truncate opacity-70">Cluster: {text(cluster.name)}</div>
                           </button>
                         );
                       })
@@ -1277,9 +1383,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                       const item = selectedJaring;
                       const cluster = record(item.cluster);
                       const caretakers = list(item.caretakerAssignments);
-                      const coverage = list(item.areaCoverages);
                       const counts = record(item._count);
-                      const officer = record(record(record(caretakers[0]).fieldOfficerAssignment).userProfile);
 
                       return (
                         <Card className="border border-border/80 bg-card rounded-[8px] overflow-hidden shadow-sm">
@@ -1306,16 +1410,10 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                           </CardHeader>
 
                           <CardContent className="p-4 space-y-4 text-xs font-mono">
+                            <JaringIdentitySummary source={jaringIdentitySource(item)} />
+
                             {/* 1. Gaswil & HUMINT proofs */}
-                            <div className="grid gap-3 sm:grid-cols-2 border-b border-border/20 pb-3">
-                              <div className="space-y-1">
-                                <span className="text-muted-foreground/60 block text-[9px] uppercase flex items-center gap-1">
-                                  <UserRoundCheck className="size-3" /> Gaswil Aktif
-                                </span>
-                                <span className="text-foreground font-sans font-bold text-xs mt-0.5 block leading-tight">
-                                  {text(officer.fullName, "Belum ditetapkan")}
-                                </span>
-                              </div>
+                            <div className="grid gap-3 border-b border-border/20 pb-3">
                               <div className="space-y-1">
                                 <span className="text-muted-foreground/60 block text-[9px] uppercase flex items-center gap-1">
                                   <ShieldCheck className="size-3" /> Bukti HUMINT Terkumpul
@@ -1326,32 +1424,10 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                               </div>
                             </div>
 
-                            {/* 2. Coverage areas */}
-                            <div className="space-y-1 border-b border-border/20 pb-3">
-                              <span className="text-muted-foreground/60 block text-[9px] uppercase">
-                                Wilayah Coverage Aktif
-                              </span>
-                              <div className="flex flex-wrap gap-1.5 mt-1 font-sans">
-                                {coverage.length > 0 ? (
-                                  coverage.map((entry) => (
-                                    <Badge
-                                      key={text(entry.id)}
-                                      variant="outline"
-                                      className="text-[9px] border-border/60 bg-secondary/20 px-2 py-0"
-                                    >
-                                      {text(record(entry.area).name, "")}
-                                    </Badge>
-                                  ))
-                                ) : (
-                                  <span className="text-muted-foreground italic text-xs">Belum ditetapkan</span>
-                                )}
-                              </div>
-                            </div>
-
                             {/* 3. Caretaker assignment logs */}
                             <div className="space-y-2">
                               <span className="text-muted-foreground/60 block text-[9px] uppercase">
-                                Daftar Caretaker / Riwayat Gaswil
+                                Riwayat Petugas Wilayah (Gaswil)
                               </span>
                               <div className="space-y-1.5">
                                 {caretakers.length > 0 ? (
@@ -1363,7 +1439,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                                         className="flex justify-between items-center bg-secondary/15 border border-border/30 rounded px-2.5 py-1.5"
                                       >
                                         <span className="font-sans font-medium text-[11px] text-foreground truncate max-w-[200px]">
-                                          {text(off.fullName, "Gaswil")}
+                                          {text(off.fullName, "Petugas Wilayah (Gaswil)")}
                                         </span>
                                         <Badge
                                           variant="outline"

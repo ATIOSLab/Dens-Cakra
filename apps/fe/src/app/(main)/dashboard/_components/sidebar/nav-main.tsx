@@ -34,6 +34,7 @@ import type {
   NavMainLinkItem,
   NavMainParentItem,
 } from "@/navigation/sidebar/sidebar-items";
+import { SYSTEM_ROLE_HOME_ROUTES } from "@/navigation/sidebar/system-roles";
 
 interface NavMainProps {
   readonly items: readonly NavGroup[];
@@ -81,28 +82,29 @@ function hasSubItems(item: NavMainItem): item is NavMainParentItem {
   return Boolean(item.subItems?.length);
 }
 
+const exactHomeRoutes = new Set(Object.values(SYSTEM_ROLE_HOME_ROUTES));
+
+function isRouteActive(path: string, url: string) {
+  if (path === url) return true;
+  if (url === "/" || exactHomeRoutes.has(url)) return false;
+  return path.startsWith(`${url}/`);
+}
+
 export function NavMain({ items }: NavMainProps) {
   const path = usePathname();
 
   const isItemActive = (item: NavMainItem) => {
     if (hasSubItems(item)) {
-      return item.subItems.some((sub) => path.startsWith(sub.url));
+      return item.subItems.some((sub) => isRouteActive(path, sub.url));
     }
 
-    return path === item.url;
+    return isRouteActive(path, item.url);
   };
 
-  const isSubItemActive = (url: string) => {
-    if (path === url) return true;
-    const isDashboardHome = /^\/dashboard\/[^/]+$/.test(url);
-    if (isDashboardHome) {
-      return path === url;
-    }
-    return url !== "/" && path.startsWith(url + "/");
-  };
+  const isSubItemActive = (url: string) => isRouteActive(path, url);
 
   const isSubmenuOpen = (item: NavMainParentItem) => {
-    return item.subItems.some((sub) => path.startsWith(sub.url));
+    return item.subItems.some((sub) => isRouteActive(path, sub.url));
   };
 
   return items.map((group) => (
@@ -155,7 +157,7 @@ function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
   const content = (
     <>
       <NavLinkIcon item={item} showFallback={showIconFallback} />
-      <span>{item.title}</span>
+      <span className="truncate">{item.title}</span>
     </>
   );
 
@@ -175,6 +177,7 @@ function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
           <Link
             prefetch={false}
             href={item.url}
+            aria-current={isActive ? "page" : undefined}
             target={item.newTab ? "_blank" : undefined}
             rel={item.newTab ? "noreferrer" : undefined}
           >
@@ -210,7 +213,7 @@ function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemPro
         <DropdownMenuTrigger asChild>
           <SidebarMenuButton tooltip={item.title} isActive={isActive}>
             {Icon ? <Icon /> : <CollapsedIconFallback title={item.title} />}
-            <span>{item.title}</span>
+            <span className="truncate">{item.title}</span>
           </SidebarMenuButton>
         </DropdownMenuTrigger>
 
@@ -230,7 +233,7 @@ function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemPro
                     className="flex items-center gap-2"
                   >
                     {SubIcon && <SubIcon />}
-                    <span>{subItem.title}</span>
+                    <span className="truncate">{subItem.title}</span>
                   </Link>
                 </DropdownMenuItem>
               );
@@ -251,7 +254,7 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: Na
         <CollapsibleTrigger asChild>
           <SidebarMenuButton tooltip={item.title} isActive={isActive}>
             {Icon && <Icon />}
-            <span>{item.title}</span>
+            <span className="truncate">{item.title}</span>
             <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
@@ -278,11 +281,12 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: Na
                       <Link
                         prefetch={false}
                         href={subItem.url}
+                        aria-current={isSubItemActive(subItem.url) ? "page" : undefined}
                         target={subItem.newTab ? "_blank" : undefined}
                         rel={subItem.newTab ? "noreferrer" : undefined}
                       >
                         {SubIcon && <SubIcon />}
-                        <span>{subItem.title}</span>
+                        <span className="truncate">{subItem.title}</span>
                       </Link>
                     </SidebarMenuSubButton>
                   )}

@@ -43,9 +43,28 @@ function PaginationLink({
   className,
   isActive,
   size = "icon",
-  href = "#",
+  href,
   ...props
 }: PaginationLinkProps) {
+  const commonProps = {
+    "aria-current": isActive ? ("page" as const) : undefined,
+    "data-slot": "pagination-link",
+    "data-active": isActive,
+    ...props,
+  }
+
+  if (!href) {
+    return (
+      <Button
+        type="button"
+        variant={isActive ? "outline" : "ghost"}
+        size={size}
+        className={cn(className)}
+        {...(commonProps as React.ComponentProps<"button">)}
+      />
+    )
+  }
+
   return (
     <Button
       asChild
@@ -54,11 +73,8 @@ function PaginationLink({
       className={cn(className)}
     >
       <Link
-        aria-current={isActive ? "page" : undefined}
-        data-slot="pagination-link"
-        data-active={isActive}
         href={href}
-        {...(props as any)}
+        {...commonProps}
       />
     </Button>
   )

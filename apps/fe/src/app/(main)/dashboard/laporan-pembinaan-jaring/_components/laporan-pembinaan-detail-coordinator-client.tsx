@@ -1,23 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+
 import { useSearchParams } from "next/navigation";
-import {
-  ArrowLeft,
-  Calendar,
-  Clock,
-  FileText,
-  Phone,
-  RefreshCw,
-  User,
-  Users,
-} from "lucide-react";
+
+import { Calendar, Clock, FileText, Phone, RefreshCw, User, Users } from "lucide-react";
 import { toast } from "sonner";
 
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
+import { BackButton } from "@/components/ui/back-button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
@@ -44,6 +46,8 @@ interface RawJaringItem {
   aliasName?: string | null;
   fullName?: string | null;
   profilePhotoUrl?: string | null;
+  profilePhotoFileId?: string | null;
+  profilePhotoFile?: { id: string } | null;
   whatsappNumber?: string | null;
   registrationStatus?: string | null;
 }
@@ -122,7 +126,7 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/laporan-pembinaan-jaring">History Pembinaan Jaring</BreadcrumbLink>
+            <BreadcrumbLink href="/dashboard/laporan-pembinaan-jaring">Riwayat Pembinaan Jaring</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -133,16 +137,7 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
 
       {/* HEADER BAR */}
       <div className="flex items-center justify-between gap-4">
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="gap-2 text-xs"
-        >
-          <Link href="/dashboard/laporan-pembinaan-jaring">
-            <ArrowLeft className="size-4" /> Kembali ke Daftar
-          </Link>
-        </Button>
+        <BackButton href="/dashboard/laporan-pembinaan-jaring" label="Kembali ke Daftar" />
 
         <Button
           variant="outline"
@@ -152,7 +147,7 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
           className="h-8 gap-2 text-xs"
         >
           <RefreshCw className={cn("size-3.5 text-emerald-500", loading && "animate-spin")} />
-          Refresh Data
+          Muat Ulang
         </Button>
       </div>
 
@@ -165,9 +160,6 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
         <div className="flex flex-col items-center justify-center p-12 text-center border rounded-xl bg-card border-slate-200 dark:border-white/10">
           <FileText className="size-10 text-muted-foreground/50 mb-3" />
           <p className="text-base font-semibold text-foreground">Detail Laporan Tidak Ditemukan</p>
-          <Button asChild variant="outline" size="sm" className="mt-4 text-xs">
-            <Link href="/dashboard/laporan-pembinaan-jaring">Kembali ke Daftar</Link>
-          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -176,9 +168,6 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
             <Card className="border-slate-200/80 dark:border-white/10 shadow-xs">
               <CardHeader className="border-b border-slate-100 dark:border-white/5 pb-4">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-xs">
-                    Sandi: {jaringInfo?.aliasName || jaringInfo?.fullName || report.jaringAlias || report.jaringCode || "-"}
-                  </Badge>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="size-3.5" /> Dilaporkan: {formatDateTime(report.reportedAt)}
                   </span>
@@ -206,21 +195,23 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
             <Card className="border-slate-200/80 dark:border-white/10 shadow-xs">
               <CardHeader className="pb-3 border-b border-slate-100 dark:border-white/5">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <User className="size-4 text-sky-500" /> Petugas Field Officer
+                  <User className="size-4 text-sky-500" /> Petugas Wilayah (Gaswil)
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3 text-xs">
                 <div>
                   <p className="text-muted-foreground text-[11px]">Nama Lengkap</p>
                   <p className="font-semibold text-foreground text-sm">
-                    {report.fieldOfficer?.userProfile?.fullName || "-"}
+                    <GaswilEntityLink
+                      name={report.fieldOfficer?.userProfile?.fullName || "-"}
+                      assignmentId={report.fieldOfficer?.assignmentId}
+                      userProfileId={report.fieldOfficer?.userProfile?.id}
+                    />
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-[11px]">Username</p>
-                  <p className="font-mono text-foreground">
-                    @{report.fieldOfficer?.userProfile?.username || "-"}
-                  </p>
+                  <p className="font-mono text-foreground">@{report.fieldOfficer?.userProfile?.username || "-"}</p>
                 </div>
                 {report.fieldOfficer?.userProfile?.phone && (
                   <div>
@@ -241,50 +232,24 @@ export function LaporanPembinaanDetailCoordinatorClient({ reportId }: { reportId
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3 text-xs">
-                {jaringInfo?.profilePhotoUrl && (
-                  <div>
-                    <p className="text-muted-foreground text-[11px] mb-1.5">Foto Jaring</p>
-                    <div className="size-16 overflow-hidden rounded-md border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-900/50">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={jaringInfo.profilePhotoUrl}
-                        alt={`Foto ${jaringInfo.aliasName || jaringInfo.fullName || jaringInfo.id}`}
-                        className="size-full object-cover"
-                      />
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <p className="text-muted-foreground text-[11px]">Sandi / Alias</p>
-                  <p className="font-semibold text-foreground text-sm">
-                    {jaringInfo?.aliasName || report.jaringAlias || "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[11px]">Alias Jaring</p>
-                  <p className="font-mono text-foreground">
-                    {jaringInfo?.aliasName || report.jaringAlias || "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[11px]">Nama Lengkap Personel Jaring</p>
-                  <p className="font-medium text-foreground">
-                    {jaringInfo?.fullName || report.jaringName || "-"}
-                  </p>
-                </div>
-                {jaringInfo?.whatsappNumber && (
-                  <div>
-                    <p className="text-muted-foreground text-[11px]">WhatsApp</p>
-                    <a
-                      href={`https://wa.me/${jaringInfo.whatsappNumber.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-                    >
-                      <Phone className="size-3" /> {jaringInfo.whatsappNumber}
-                    </a>
-                  </div>
-                )}
+                <JaringIdentitySummary
+                  source={{
+                    id: report.jaringId,
+                    fullName: jaringInfo?.fullName,
+                    jaringName: report.jaringName,
+                    aliasName: jaringInfo?.aliasName,
+                    jaringAlias: report.jaringAlias,
+                    jaringCode: report.jaringCode,
+                    whatsappNumber: jaringInfo?.whatsappNumber,
+                    jaringWhatsAppNumber: report.jaringWhatsAppNumber,
+                    profilePhotoFileId: jaringInfo?.profilePhotoFileId ?? jaringInfo?.profilePhotoFile?.id,
+                    jaringProfilePhotoFileId: report.jaringProfilePhotoFileId,
+                    gaswilName: report.fieldOfficer?.userProfile?.fullName,
+                    gaswilAssignmentId: report.fieldOfficer?.assignmentId,
+                    gaswilUserProfileId: report.fieldOfficer?.userProfile?.id,
+                    assignedArea: report.assignedArea,
+                  }}
+                />
               </CardContent>
             </Card>
           </div>

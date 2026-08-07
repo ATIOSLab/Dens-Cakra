@@ -87,7 +87,7 @@ const ROLE_AREA_CONFIG: Record<ProvisionRoleCode, { label: string; levels: AreaL
     scopeLabel: "Kabupaten/Kota",
   },
   FIELD_OFFICER: {
-    label: "Petugas Lapangan",
+    label: "Petugas Wilayah (Gaswil)",
     levels: ["DISTRICT"],
     scopeLabel: "Kecamatan",
   },

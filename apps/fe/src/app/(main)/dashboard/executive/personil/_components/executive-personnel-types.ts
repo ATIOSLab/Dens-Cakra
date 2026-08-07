@@ -56,6 +56,8 @@ export type PersonnelListItem = {
   assignment: PersonnelAssignment | null;
   lastLocation: PersonnelLocation | null;
   reportCount: number;
+  jaringCount: number;
+  jaringPreview: PersonnelJaringItem[];
 };
 
 export type PersonnelMapFeature = {
@@ -167,6 +169,12 @@ export type PersonnelDetail = {
     note: string;
   };
   jaring?: PersonnelJaringItem[];
+  summary?: {
+    jaringCount: number;
+    baketCount: number;
+    assignmentCount: number;
+    activeAreaCount: number;
+  };
 };
 
 export type PersonnelListQueryState = {

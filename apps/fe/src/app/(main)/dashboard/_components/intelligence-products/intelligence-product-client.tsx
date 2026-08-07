@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { CheckCircle2, ChevronLeft, FileText, Grid2X2, List, Printer, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -31,8 +31,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { classificationBadgeClass, isClassification } from "@/lib/classification";
+import { jakartaBoundaryIso, jakartaDateKey } from "@/lib/domain/date-time";
 import { cn } from "@/lib/utils";
 
 type DataRecord = Record<string, unknown>;
@@ -129,7 +130,7 @@ type ProductViewMode = "card" | "table";
 function dateInputValue(value: unknown) {
   if (typeof value !== "string" || !value) return "";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+  return Number.isNaN(date.getTime()) ? "" : jakartaDateKey(date);
 }
 
 function productTypeLabel(product: DataRecord) {
@@ -158,23 +159,37 @@ function paginationNumbers(currentPage: number, totalPages: number) {
 
 function ProductBrowser({
   items,
+  initialTotal,
   basePath,
-  approvalSteps = [],
+  approvalSteps: initialApprovalSteps = [],
 }: {
   items: DataRecord[];
+  initialTotal: number;
   basePath: string;
   approvalSteps?: DataRecord[];
 }) {
+  const searchParams = useSearchParams();
+  const [currentItems, setCurrentItems] = useState(items);
+  const [approvalSteps, setApprovalSteps] = useState(initialApprovalSteps);
   const [viewMode, setViewMode] = useState<ProductViewMode>("card");
   const [search, setSearch] = useState("");
-  const [periodFrom, setPeriodFrom] = useState("");
-  const [periodTo, setPeriodTo] = useState("");
-  const [productTypeId, setProductTypeId] = useState(ALL_VALUE);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [periodFrom, setPeriodFrom] = useState(() => dateInputValue(searchParams.get("from")));
+  const [periodTo, setPeriodTo] = useState(() => dateInputValue(searchParams.get("to")));
+  const [productTypeId, setProductTypeId] = useState(() => searchParams.get("productTypeId") ?? ALL_VALUE);
   const [classification, setClassification] = useState(ALL_VALUE);
   const [ownerUnitId, setOwnerUnitId] = useState(ALL_VALUE);
-  const [decisionFilter, setDecisionFilter] = useState(approvalSteps && approvalSteps.length > 0 ? "approval" : "all");
+  const [decisionFilter, setDecisionFilter] = useState(initialApprovalSteps.length > 0 ? "approval" : "all");
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(initialTotal);
+  const [loading, setLoading] = useState(false);
+  const requestSequence = useRef(0);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   const productTypeOptions = useMemo(
     () =>
@@ -190,7 +205,10 @@ function ProductBrowser({
     () =>
       uniqueOptions(items, (product) => {
         const ownerUnit = record(product.ownerUnit);
-        return { value: text(product.ownerUnitId, text(ownerUnit.id, "")), label: ownerUnitLabel(product) };
+        return {
+          value: text(product.ownerAssignmentId, text(product.ownerUnitId, text(ownerUnit.id, ""))),
+          label: ownerUnitLabel(product),
+        };
       }),
     [items],
   );
@@ -200,59 +218,67 @@ function ProductBrowser({
     setPage(1);
   };
 
-  const filteredItems = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    const fromTime = periodFrom ? new Date(`${periodFrom}T00:00:00.000Z`).getTime() : null;
-    const toTime = periodTo ? new Date(`${periodTo}T23:59:59.999Z`).getTime() : null;
+  const fetchProducts = useCallback(async () => {
+    const requestId = ++requestSequence.current;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(page), limit: String(rowsPerPage) });
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (periodFrom) params.set("periodFrom", jakartaBoundaryIso(periodFrom));
+      if (periodTo) params.set("periodTo", jakartaBoundaryIso(periodTo, true));
+      if (productTypeId !== ALL_VALUE) params.set("productTypeId", productTypeId);
+      if (classification !== ALL_VALUE) params.set("classification", classification);
+      if (ownerUnitId !== ALL_VALUE) params.set("ownerAssignmentId", ownerUnitId);
+      const sortBy = searchParams.get("sortBy");
+      const sortOrder = searchParams.get("sortOrder");
+      if (decisionFilter !== "approval" && sortBy) params.set("sortBy", sortBy);
+      if (decisionFilter !== "approval" && sortOrder) params.set("sortOrder", sortOrder);
 
-    return items.filter((product) => {
-      const haystack = [
-        product.title,
-        product.productNumber,
-        productTypeLabel(product),
-        ownerUnitLabel(product),
-        product.status,
-        product.classification,
-      ]
-        .map((value) => text(value, "").toLowerCase())
-        .join(" ");
-      if (normalizedSearch && !haystack.includes(normalizedSearch)) return false;
-
-      if (
-        productTypeId !== ALL_VALUE &&
-        text(product.productTypeId, text(record(product.productType).id, "")) !== productTypeId
-      ) {
-        return false;
+      if (decisionFilter === "approval") {
+        params.set("stage", "REGIONAL");
+        params.set("status", "ACTIVE");
       }
-      if (classification !== ALL_VALUE && text(product.classification, "") !== classification) return false;
-      if (
-        ownerUnitId !== ALL_VALUE &&
-        text(product.ownerUnitId, text(record(product.ownerUnit).id, "")) !== ownerUnitId
-      ) {
-        return false;
+      const endpoint = decisionFilter === "approval" ? "/approval-inbox" : "/products";
+      const result = await apiBrowserFetch<unknown>(`${endpoint}?${params.toString()}`);
+      if (requestId !== requestSequence.current) return;
+      if (decisionFilter === "approval") {
+        setApprovalSteps(rows(result));
+      } else {
+        setCurrentItems(rows(result));
       }
-
-      if (approvalSteps && decisionFilter === "approval") {
-        const hasApproval = approvalSteps.some((step) => text(approvalProduct(step).id, "") === text(product.id, ""));
-        if (!hasApproval) return false;
+      setTotalItems(Number(record(record(result).pagination).total ?? 0));
+    } catch (error) {
+      if (requestId === requestSequence.current) {
+        console.error("Gagal memuat produk intelijen:", error);
+        toast.error("Gagal memperbarui daftar produk intelijen");
       }
+    } finally {
+      if (requestId === requestSequence.current) setLoading(false);
+    }
+  }, [
+    classification,
+    debouncedSearch,
+    decisionFilter,
+    ownerUnitId,
+    page,
+    periodFrom,
+    periodTo,
+    productTypeId,
+    rowsPerPage,
+    searchParams,
+  ]);
 
-      const start = dateInputValue(product.periodStart);
-      const end = dateInputValue(product.periodEnd) || start;
-      const startTime = start ? new Date(`${start}T00:00:00.000Z`).getTime() : null;
-      const endTime = end ? new Date(`${end}T23:59:59.999Z`).getTime() : startTime;
-      if (fromTime !== null && endTime !== null && endTime < fromTime) return false;
-      if (toTime !== null && startTime !== null && startTime > toTime) return false;
+  useEffect(() => {
+    void fetchProducts();
+  }, [fetchProducts]);
 
-      return true;
-    });
-  }, [classification, items, ownerUnitId, periodFrom, periodTo, productTypeId, search, decisionFilter, approvalSteps]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / rowsPerPage));
+  const filteredItems = decisionFilter === "approval" ? approvalSteps.map(approvalProduct) : currentItems;
+  const activeTotal = totalItems;
+  const totalPages = Math.max(1, Math.ceil(activeTotal / rowsPerPage));
   const safePage = Math.min(page, totalPages);
-  const pageItems = filteredItems.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
-  const startRow = filteredItems.length ? (safePage - 1) * rowsPerPage + 1 : 0;
-  const endRow = Math.min(safePage * rowsPerPage, filteredItems.length);
+  const pageItems = filteredItems;
+  const startRow = activeTotal ? (safePage - 1) * rowsPerPage + 1 : 0;
+  const endRow = Math.min(safePage * rowsPerPage, activeTotal);
 
   const renderAction = (product: DataRecord) => {
     const approvalStep = approvalSteps.find((step) => text(approvalProduct(step).id, "") === text(product.id, ""));
@@ -422,7 +448,13 @@ function ProductBrowser({
         </CardContent>
       </Card>
 
-      {pageItems.length ? (
+      {loading ? (
+        <Card>
+          <CardContent className="py-14 text-center text-muted-foreground text-sm">
+            Memuat produk intelijen...
+          </CardContent>
+        </Card>
+      ) : pageItems.length ? (
         viewMode === "card" ? (
           <div className="grid gap-3">
             {pageItems.map((product) => {
@@ -517,7 +549,7 @@ function ProductBrowser({
             <span className="font-semibold text-foreground">
               {startRow}-{endRow}
             </span>{" "}
-            dari <span className="font-semibold text-foreground">{filteredItems.length}</span> produk.
+            dari <span className="font-semibold text-foreground">{activeTotal}</span> produk.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
@@ -645,7 +677,7 @@ export function IntelligenceProductList({
   const products = rows(data);
   const approvalSteps = rows(approvalData);
   return (
-    <main className="mx-auto w-full max-w-[1500px] space-y-5 p-4 sm:p-6 lg:p-8">
+    <main className="mx-auto w-full max-w-[1500px] space-y-5">
       <div className="border-b pb-5">
         <p className="font-semibold text-muted-foreground text-xs uppercase tracking-[0.18em]">Produk Intelijen</p>
         <h1 className="mt-1 font-heading font-semibold text-2xl">{title}</h1>
@@ -653,6 +685,7 @@ export function IntelligenceProductList({
       </div>
       <ProductBrowser
         items={products}
+        initialTotal={Number(record(record(data).pagination).total ?? products.length)}
         basePath={basePath}
         approvalSteps={approvalData !== undefined ? approvalSteps : undefined}
       />
@@ -939,7 +972,7 @@ export function IntelligenceProductDetail({
   const product = record(productValue);
   const version = currentVersion(product);
   return (
-    <main className="mx-auto w-full max-w-[1600px] space-y-5 p-4 sm:p-6 lg:p-8">
+    <main className="mx-auto w-full max-w-[1600px] space-y-5">
       <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <BackButton className="print:hidden mb-2.5" />

@@ -17,7 +17,13 @@ import { apiBrowserMutation } from "@/lib/api/browser-client";
 
 import { type EditUserFormValues, editUserSchema } from "./pengguna-schemas";
 import type { UserDetail } from "./pengguna-types";
-import { formatDateTime, getAssignmentUnitSummary, getPrimaryAssignment, getRoleLabel, isUserLocked } from "./pengguna-types";
+import {
+  formatDateTime,
+  getAssignmentUnitSummary,
+  getPrimaryAssignment,
+  getRoleLabel,
+  isUserLocked,
+} from "./pengguna-types";
 
 type PenggunaEditClientProps = {
   user: UserDetail;
@@ -79,10 +85,7 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
       </div>
 
       {/* Main Form Grid */}
-      <form
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="grid gap-6 lg:grid-cols-[1fr_340px]"
-      >
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Left Form Panel */}
         <Card className="border border-border/60 shadow-sm">
           <CardHeader className="pb-4 border-b border-border/40">
@@ -97,7 +100,10 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
           <CardContent className="space-y-4 pt-5">
             <FieldGroup className="space-y-4">
               <Field>
-                <FieldLabel htmlFor="edit-username" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <FieldLabel
+                  htmlFor="edit-username"
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
                   Username
                 </FieldLabel>
                 <FieldContent>
@@ -107,7 +113,10 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="edit-fullname" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <FieldLabel
+                  htmlFor="edit-fullname"
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
                   Nama Lengkap
                 </FieldLabel>
                 <FieldContent>
@@ -117,7 +126,10 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="edit-phone" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <FieldLabel
+                  htmlFor="edit-phone"
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
                   Nomor Telepon Operasional
                 </FieldLabel>
                 <FieldContent>
@@ -171,19 +183,33 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
                 </div>
                 <div className="text-xs text-muted-foreground">{user.authUser.email}</div>
                 <div className="flex flex-wrap gap-1 pt-1">
-                  <Badge variant="outline" className="text-[10px]">{getRoleLabel(user.authUser.role)}</Badge>
-                  <Badge variant="secondary" className="text-[10px]">{user.status}</Badge>
-                  {isUserLocked(user) && <Badge variant="destructive" className="text-[10px]">Locked</Badge>}
+                  <Badge variant="outline" className="text-[10px]">
+                    {getRoleLabel(user.authUser.role)}
+                  </Badge>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {user.status}
+                  </Badge>
+                  {isUserLocked(user) && (
+                    <Badge variant="destructive" className="text-[10px]">
+                      Locked
+                    </Badge>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-1 pt-2 border-t border-border/40">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Unit Utama</span>
-                <div className="font-medium text-foreground">{primaryUnit?.name || primaryAssignment?.branch || "-"}</div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Unit Utama
+                </span>
+                <div className="font-medium text-foreground">
+                  {primaryUnit?.name || primaryAssignment?.branch || "-"}
+                </div>
               </div>
 
               <div className="space-y-1 pt-2 border-t border-border/40 text-muted-foreground">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Audit Informasi</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Audit Informasi
+                </span>
                 <div className="space-y-0.5 text-[11px] pt-0.5">
                   <div>Dibuat: {formatDateTime(user.createdAt)}</div>
                   <div>Update terakhir: {formatDateTime(user.updatedAt)}</div>

@@ -1873,7 +1873,9 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
         <CardContent
           className={cn(
             "relative bg-slate-50/20 p-0 dark:bg-black/5",
-            variant === "compact" ? "h-[420px] min-h-[380px]" : "h-[70vh] min-h-[560px] max-h-[900px]",
+            variant === "compact"
+              ? "h-[min(26rem,60svh)] min-h-[22rem]"
+              : "h-[min(70svh,56rem)] min-h-[30rem] sm:min-h-[35rem]",
           )}
         >
           <ReactFlow<TrackingReactFlowNode, Edge>

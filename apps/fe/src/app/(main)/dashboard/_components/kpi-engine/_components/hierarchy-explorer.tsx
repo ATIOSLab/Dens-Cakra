@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
 import { ChevronRight } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
@@ -413,13 +414,16 @@ export function HierarchyExplorer({
                     sortDirection={sortOrder.endsWith("ASC") ? "asc" : "desc"}
                     onSortChange={(field) => {
                       if (field === "name") setSortOrder(sortOrder === "NAME_ASC" ? "NAME_DESC" : "NAME_ASC");
-                      else if (field === "score")
-                        setSortOrder(sortOrder === "SCORE_DESC" ? "SCORE_ASC" : "SCORE_DESC");
+                      else if (field === "score") setSortOrder(sortOrder === "SCORE_DESC" ? "SCORE_ASC" : "SCORE_DESC");
                     }}
                     onSelectRow={(item) => onSelectRow("unit", item)}
                   />
                 ) : (
-                  <KpiRecordCardGrid type="unit" data={paginatedUnits} onSelectRow={(item) => onSelectRow("unit", item)} />
+                  <KpiRecordCardGrid
+                    type="unit"
+                    data={paginatedUnits}
+                    onSelectRow={(item) => onSelectRow("unit", item)}
+                  />
                 )}
 
                 <Pagination
@@ -480,8 +484,7 @@ export function HierarchyExplorer({
                     sortDirection={sortOrder.endsWith("ASC") ? "asc" : "desc"}
                     onSortChange={(field) => {
                       if (field === "name") setSortOrder(sortOrder === "NAME_ASC" ? "NAME_DESC" : "NAME_ASC");
-                      else if (field === "score")
-                        setSortOrder(sortOrder === "SCORE_DESC" ? "SCORE_ASC" : "SCORE_DESC");
+                      else if (field === "score") setSortOrder(sortOrder === "SCORE_DESC" ? "SCORE_ASC" : "SCORE_DESC");
                     }}
                     onSelectRow={(item) => onSelectRow("personnel", item)}
                   />

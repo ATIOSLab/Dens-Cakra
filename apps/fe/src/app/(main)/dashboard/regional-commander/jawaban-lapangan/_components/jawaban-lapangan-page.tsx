@@ -81,7 +81,7 @@ const initialAnswers: FieldAnswer[] = [
       "Jawaban memuat waktu, lokasi, aktor, estimasi massa, dan bukti visual. Perlu penajaman pada indikasi penggerak dan dampak terhadap agenda daerah.",
     developmentNote: "Minta pemetaan aktor lapangan dan jalur mobilisasi.",
     lastActivity: [
-      "Baket dikirim dari aplikasi oleh petugas lapangan.",
+      "Baket dikirim dari aplikasi oleh petugas wilayah.",
       "Lampiran foto dan GPS tervalidasi.",
       "Menunggu keputusan tindak lanjut regional.",
     ],
@@ -127,7 +127,7 @@ const initialAnswers: FieldAnswer[] = [
     lastActivity: [
       "OIM meminta pengembangan bukti.",
       "Regional memberi catatan penguatan sasaran.",
-      "Petugas lapangan menunggu instruksi lanjutan.",
+      "Petugas wilayah menunggu instruksi lanjutan.",
     ],
   },
   {

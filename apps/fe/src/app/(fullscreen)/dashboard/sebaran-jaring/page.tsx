@@ -12,8 +12,8 @@ import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 import {
   type JaringDistributionCity,
-  type JaringDistributionEntry,
   JaringDistributionClient,
+  type JaringDistributionEntry,
 } from "./_components/sebaran-jaring-client";
 import type { AdminLevel, AgentOperationalStatus } from "./_components/sebaran-jaring-types";
 
@@ -104,57 +104,69 @@ function deriveOperationalStatus(item: RegistrationJaring): AgentOperationalStat
   return "REJECTED";
 }
 
-function distributionEntry(item: RegistrationJaring, index: number, districtLat: number, districtLng: number): JaringDistributionEntry {
+function distributionEntry(
+  item: RegistrationJaring,
+  index: number,
+  districtLat: number,
+  districtLng: number,
+): JaringDistributionEntry {
   const district = jaringDistrict(item);
   const village = jaringVillage(item);
   const fallbackProfilePhotoFileId = item.profilePhotoFile ? item.profilePhotoFile.id : null;
   const profilePhotoFileId = item.profilePhotoFileId ?? fallbackProfilePhotoFileId;
 
   // Scatter offset for map visualization
-  const latOffset = ((index * 17) % 31 - 15) * 0.0035;
-  const lngOffset = ((index * 23) % 37 - 18) * 0.0035;
+  const latOffset = (((index * 17) % 31) - 15) * 0.0035;
+  const lngOffset = (((index * 23) % 37) - 18) * 0.0035;
 
   const rawItem = item as unknown as {
     latitude?: number;
     longitude?: number;
-    _count?: { messages?: number; reportSessions?: number; coachingReports?: number };
-    messages?: Array<{ latitude?: number; longitude?: number; receivedAt?: string }>;
+    _count?: { reportSessions?: number; primaryBakets?: number };
     reportSessions?: Array<{ latitude?: number; longitude?: number; submittedAt?: string }>;
   };
 
-  const latestMsg = rawItem.messages?.[0];
   const latestSession = rawItem.reportSessions?.[0];
-  const realReportCount = (rawItem._count?.messages ?? 0) + (rawItem._count?.reportSessions ?? 0) + (rawItem._count?.coachingReports ?? 0);
+  const realReportCount = rawItem._count?.reportSessions ?? 0;
 
-  const domicileLat = rawItem.latitude ?? (districtLat + latOffset);
-  const domicileLng = rawItem.longitude ?? (districtLng + lngOffset);
+  const hasRegisteredCoordinates =
+    rawItem.latitude != null &&
+    rawItem.longitude != null &&
+    Number.isFinite(Number(rawItem.latitude)) &&
+    Number.isFinite(Number(rawItem.longitude));
+  const domicileLat = hasRegisteredCoordinates ? Number(rawItem.latitude) : districtLat + latOffset;
+  const domicileLng = hasRegisteredCoordinates ? Number(rawItem.longitude) : districtLng + lngOffset;
 
-  const hasReport = Boolean(
-    latestSession?.submittedAt ||
-    latestMsg?.receivedAt ||
-    realReportCount > 0
-  );
+  const hasReport = Boolean(latestSession?.submittedAt || realReportCount > 0);
 
-  const latestReportLat = latestMsg?.latitude ? Number(latestMsg.latitude) : latestSession?.latitude ? Number(latestSession.latitude) : (hasReport ? domicileLat : null);
-  const latestReportLng = latestMsg?.longitude ? Number(latestMsg.longitude) : latestSession?.longitude ? Number(latestSession.longitude) : (hasReport ? domicileLng : null);
+  const reportLatitude = latestSession?.latitude;
+  const reportLongitude = latestSession?.longitude;
+  const hasReportCoordinates =
+    reportLatitude != null &&
+    reportLongitude != null &&
+    Number.isFinite(Number(reportLatitude)) &&
+    Number.isFinite(Number(reportLongitude));
+  const latestReportLat = hasReportCoordinates ? Number(reportLatitude) : null;
+  const latestReportLng = hasReportCoordinates ? Number(reportLongitude) : null;
 
   const status = deriveOperationalStatus(item);
   const reportCount = realReportCount;
 
-  const latestActivityDate = (item as unknown as { lastReportAt?: string | null }).lastReportAt ?? latestSession?.submittedAt ?? latestMsg?.receivedAt ?? null;
+  const latestActivityDate = latestSession?.submittedAt ?? null;
   const lastReportDate = latestActivityDate ? formatRelativeDate(latestActivityDate) : "Belum ada laporan";
 
   const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
   const isActive = Boolean(
     item.registrationStatus === "APPROVED" &&
       latestActivityDate &&
-      new Date(latestActivityDate).getTime() >= threeMonthsAgo
+      new Date(latestActivityDate).getTime() >= threeMonthsAgo,
   );
 
   return {
     id: item.id,
     aliasName: item.aliasName,
     fullName: item.fullName,
+    whatsappNumber: item.whatsappNumber,
     gender: item.gender,
     address: item.address,
     profilePhotoFileId,
@@ -171,12 +183,15 @@ function distributionEntry(item: RegistrationJaring, index: number, districtLat:
     longitude: domicileLng,
     domicileLat,
     domicileLng,
+    domicileCoordinateSource: hasRegisteredCoordinates ? "REGISTERED" : "AREA_APPROXIMATION",
     hasReport,
     latestReportLat,
     latestReportLng,
+    lastReportAt: latestActivityDate,
     lastReportDate,
     lastActivityTime: lastReportDate,
     reportCount,
+    baketCount: rawItem._count?.primaryBakets ?? 0,
   };
 }
 
@@ -185,8 +200,7 @@ async function getScopedRegionData(sessionRole: string) {
   const userAreaScopes = access?.authorizationContext?.areaScopes ?? [];
   const userRoleCode = access?.authorizationContext?.roleCode ?? sessionRole;
 
-  const isExecutiveOrAdmin =
-    userRoleCode === SYSTEM_ROLES.EXECUTIVE || userRoleCode === SYSTEM_ROLES.ADMIN_SYSTEM;
+  const isExecutiveOrAdmin = userRoleCode === SYSTEM_ROLES.EXECUTIVE || userRoleCode === SYSTEM_ROLES.ADMIN_SYSTEM;
 
   let scopedCities: JaringAdministrativeArea[] = [];
   let allowedDistrictIds: Set<string> | null = null;
@@ -246,7 +260,10 @@ async function getScopedRegionData(sessionRole: string) {
 
   if (scopedCities.length === 0) {
     if (!isExecutiveOrAdmin) {
-      if (userRoleCode === SYSTEM_ROLES.REGIONAL_COMMANDER || userRoleCode === SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER) {
+      if (
+        userRoleCode === SYSTEM_ROLES.REGIONAL_COMMANDER ||
+        userRoleCode === SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER
+      ) {
         allowedAdminLevels = ["CITY", "DISTRICT", "VILLAGE"];
       } else if (userRoleCode === SYSTEM_ROLES.FIELD_COORDINATOR) {
         allowedAdminLevels = ["DISTRICT", "VILLAGE"];
@@ -280,9 +297,7 @@ async function buildCityDistribution(
     }).catch(() => null),
   ]);
 
-  const districts = allowedDistrictIds
-    ? allDistricts.filter((d) => allowedDistrictIds.has(d.id))
-    : allDistricts;
+  const districts = allowedDistrictIds ? allDistricts.filter((d) => allowedDistrictIds.has(d.id)) : allDistricts;
 
   const districtRows = await Promise.all(
     districts.map(async (district) => {
@@ -305,12 +320,14 @@ async function buildCityDistribution(
         boundary = null;
       }
 
-      const cLat = district.centroidLatitude === null || district.centroidLatitude === undefined
-        ? -6.2
-        : Number(district.centroidLatitude);
-      const cLng = district.centroidLongitude === null || district.centroidLongitude === undefined
-        ? 106.8166
-        : Number(district.centroidLongitude);
+      const cLat =
+        district.centroidLatitude === null || district.centroidLatitude === undefined
+          ? -6.2
+          : Number(district.centroidLatitude);
+      const cLng =
+        district.centroidLongitude === null || district.centroidLongitude === undefined
+          ? 106.8166
+          : Number(district.centroidLongitude);
 
       const villageMap = new Map<string, { id: string; name: string; items: RegistrationJaring[] }>();
       for (const item of districtItems) {
@@ -325,14 +342,16 @@ async function buildCityDistribution(
         }
       }
 
-      const villageRows = Array.from(villageMap.values()).map((v) => ({
-        id: v.id,
-        name: v.name,
-        total: v.items.length,
-        approved: v.items.filter((item) => item.registrationStatus === "APPROVED").length,
-        pending: v.items.filter((item) => item.registrationStatus === "PENDING").length,
-        rejected: v.items.filter((item) => item.registrationStatus === "REJECTED").length,
-      })).sort((a, b) => a.name.localeCompare(b.name));
+      const villageRows = Array.from(villageMap.values())
+        .map((v) => ({
+          id: v.id,
+          name: v.name,
+          total: v.items.length,
+          approved: v.items.filter((item) => item.registrationStatus === "APPROVED").length,
+          pending: v.items.filter((item) => item.registrationStatus === "PENDING").length,
+          rejected: v.items.filter((item) => item.registrationStatus === "REJECTED").length,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
       return {
         id: district.id,

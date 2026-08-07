@@ -8,8 +8,8 @@ type UniversalDensRoutePageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
 };
 
-function buildDescription(routePattern: string) {
-  return `Halaman ${routePattern} sedang dinonaktifkan sementara dan akan digantikan pada implementasi berikutnya.`;
+function buildDescription() {
+  return "Modul ini belum diaktifkan untuk ruang kerja Anda. Gunakan menu yang tersedia atau hubungi administrator sistem.";
 }
 
 function resolveOimView(route: string): OimView | null {
@@ -50,7 +50,7 @@ export function UniversalDensRoutePage({ routePattern, params = {}, searchParams
   if (oimView) {
     return <OimWorkspacePage view={oimView} params={params} searchParams={searchParams} />;
   }
-  return <ComingSoonPage title="Coming Soon" description={buildDescription(routePattern)} />;
+  return <ComingSoonPage title="Modul Belum Tersedia" description={buildDescription()} />;
 }
 
 export default UniversalDensRoutePage;

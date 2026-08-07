@@ -32,9 +32,7 @@ function readPositiveInt(value: string, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function buildQueryState(
-  searchParams?: RouteSearchParams,
-): PersonnelListQueryState {
+function buildQueryState(searchParams?: RouteSearchParams): PersonnelListQueryState {
   return {
     q: readFirst(searchParams?.q),
     provinceId: "",
@@ -64,9 +62,7 @@ async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
     latestPagination = envelope.meta?.pagination;
 
     const totalPages = latestPagination?.totalPages;
-    if (
-      totalPages ? page >= totalPages : envelope.data.length < BACKEND_MAX_LIMIT
-    ) {
+    if (totalPages ? page >= totalPages : envelope.data.length < BACKEND_MAX_LIMIT) {
       hasMore = false;
     } else {
       page += 1;
@@ -84,11 +80,7 @@ async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
   };
 }
 
-export async function PersonelLapanganPage({
-  searchParams,
-}: {
-  searchParams?: Promise<RouteSearchParams>;
-}) {
+export async function PersonelLapanganPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
   const session = await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
   const isRegional = session.role === SYSTEM_ROLES.REGIONAL_COMMANDER;
   const apiPath = isRegional ? "/regional-commander/personnel" : "/field-coordinator/personnel";
@@ -101,20 +93,11 @@ export async function PersonelLapanganPage({
     ...(queryState.districtId ? { districtId: queryState.districtId } : {}),
   };
   const [listResult, map, areaFilters] = await Promise.all([
-    fetchAllPages<PersonnelListItem>(
-      apiPath,
-      commonQuery,
-    ),
-    apiServerGet<PersonnelMapPayload>(
-      `${apiPath}/map`,
-      commonQuery,
-    ),
-    apiServerGet<PersonnelAreaFilters>(
-      `${apiPath}/area-filters`,
-      {
-        ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
-      },
-    ),
+    fetchAllPages<PersonnelListItem>(apiPath, commonQuery),
+    apiServerGet<PersonnelMapPayload>(`${apiPath}/map`, commonQuery),
+    apiServerGet<PersonnelAreaFilters>(`${apiPath}/area-filters`, {
+      ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
+    }),
   ]);
 
   return (
@@ -128,8 +111,8 @@ export async function PersonelLapanganPage({
         basePath,
         title: "Petugas Wilayah (Gaswil)",
         description: isRegional
-          ? "Daftar petugas lapangan dalam hierarki Regional Commander, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional."
-          : "Daftar petugas lapangan dalam hierarki Koordinator Lapangan, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional.",
+          ? "Daftar Petugas Wilayah (Gaswil) dalam hierarki Komandan Regional, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional."
+          : "Daftar petugas wilayah dalam hierarki Koordinator Lapangan, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional.",
         tableTabLabel: "DAFTAR PERSONIL",
         mapTabLabel: "PETA",
         detailTarget: "assignment",
@@ -140,50 +123,17 @@ export async function PersonelLapanganPage({
   );
 }
 
-export async function PersonelLapanganDetailPage({
-  assignmentId,
-}: {
-  assignmentId: string;
-}) {
+export async function PersonelLapanganDetailPage({ assignmentId }: { assignmentId: string }) {
   const session = await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
   const isRegional = session.role === SYSTEM_ROLES.REGIONAL_COMMANDER;
   const apiPath = isRegional ? "/regional-commander/personnel" : "/field-coordinator/personnel";
   const basePath = "/dashboard/personel-lapangan";
 
-  const [detail, allJaring] = await Promise.all([
-    apiServerGet<PersonnelDetail>(`${apiPath}/${assignmentId}`).catch(() => null),
-    apiServerGet<any[]>("/jaring", { limit: 100 }).catch(() => []),
-  ]);
+  const detail = await apiServerGet<PersonnelDetail>(`${apiPath}/${assignmentId}`).catch(() => null);
 
   if (!detail) {
     notFound();
   }
 
-  const rawJaring = Array.isArray(allJaring) ? allJaring : [];
-  const profileId = detail.profile?.id;
-  const profileName = detail.profile?.fullName?.toLowerCase();
-
-  const officerJaring = (detail.jaring && detail.jaring.length > 0)
-    ? detail.jaring
-    : rawJaring.filter((item) => {
-        const caretakers = item.caretakerAssignments ?? [];
-        return caretakers.some((c: any) => {
-          const fo = c.fieldOfficerAssignment;
-          if (!fo) return false;
-          if (fo.id === assignmentId) return true;
-          if (profileId && (fo.userProfileId === profileId || fo.userProfile?.id === profileId)) return true;
-          if (profileName && fo.userProfile?.fullName?.toLowerCase() === profileName) return true;
-          return false;
-        });
-      });
-
-  return (
-    <ExecutivePersonnelDetailClient
-      detail={{
-        ...detail,
-        jaring: officerJaring,
-      }}
-      backHref={basePath}
-    />
-  );
+  return <ExecutivePersonnelDetailClient detail={detail} backHref={basePath} />;
 }

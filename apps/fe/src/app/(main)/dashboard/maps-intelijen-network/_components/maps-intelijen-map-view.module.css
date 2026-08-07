@@ -1,0 +1,50 @@
+.root :global(.maplibregl-popup) {
+  z-index: 40;
+  max-width: none !important;
+}
+
+.root :global(.maplibregl-popup-content) {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: #020617;
+  box-shadow: 0 20px 45px rgb(2 6 23 / 45%);
+}
+
+.root :global(.maplibregl-popup-tip) {
+  display: none;
+}
+
+.root :global(.dc-map-marker)::before {
+  inset: -4px;
+  border-width: 1px;
+}
+
+.tickerViewport:hover .tickerTrack,
+.tickerViewport:focus-within .tickerTrack {
+  animation-play-state: paused;
+}
+
+.tickerTrack {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  animation: ticker-scroll 52s linear infinite;
+  will-change: transform;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tickerTrack {
+    animation: none;
+  }
+}

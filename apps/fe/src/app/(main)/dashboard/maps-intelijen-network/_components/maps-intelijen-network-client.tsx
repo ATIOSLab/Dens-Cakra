@@ -1,712 +1,532 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import type {
-  JaringReportSessionDetail,
-  PriorityLevel,
-  ReportCategoryOption,
-} from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
-import { type JaringOption } from "@/components/ui/jaring-select-popover";
-import { apiBrowserFetch } from "@/lib/api/browser-client";
-import { TriangleAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { MapsIntelijenDetailModal } from "./maps-intelijen-detail-modal";
+import { AlertTriangle, Info, MapPinOff } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { apiBrowserFetch } from "@/lib/api/browser-client";
+
+import { normalizeMapAreas } from "./maps-intelijen-area-hierarchy";
+import { MapsIntelijenDataList } from "./maps-intelijen-data-list";
+import { MapsIntelijenDetailSheet } from "./maps-intelijen-detail-sheet";
 import { MapsIntelijenHeader } from "./maps-intelijen-header";
+import { MapsIntelijenLeadershipBrief } from "./maps-intelijen-leadership-brief";
 import { MapsIntelijenMapView } from "./maps-intelijen-map-view";
 import { MapsIntelijenStats } from "./maps-intelijen-stats";
-import { MapsIntelijenTableView } from "./maps-intelijen-table-view";
+import { MapsIntelijenToolbar } from "./maps-intelijen-toolbar";
 import {
+  EMPTY_MAP_RESPONSE,
   type AdministrativeAreaScope,
-
-  formatFullAreaName,
-  formatRelativeTime,
-  isReadByFieldOfficer,
-  isRegencyLevel,
-  type MapIntelItem,
-  type PaginatedJaringResponse,
-  type PaginatedReportResponse,
-  type PeriodPreset,
-  type RawJaringItem,
-  type ReportCategoryResponse,
-  resolveCoordinates,
-  SAMPLE_MOCK_REPORTS,
+  type HeatmapWeight,
+  type MapArea,
+  type MapAreaFilterOptions,
+  type MapEntityFilterOption,
+  type MapNetworkFeature,
+  type MapNetworkFilters,
+  type MapNetworkResponse,
+  type MarkerColorMode,
+  type SummaryCardFilter,
+  type VisualizationMode,
 } from "./maps-intelijen-types";
 
-export function MapsIntelijenNetworkClient() {
-  const [reports, setReports] = useState<JaringReportSessionDetail[]>([]);
-  const [jaringList, setJaringList] = useState<RawJaringItem[]>([]);
-  const [categories, setCategories] = useState<ReportCategoryOption[]>([]);
-  const [areaScopes, setAreaScopes] = useState<AdministrativeAreaScope[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const dataRequestInFlight = useRef(false);
+type MapAreaAncestorLink = {
+  ancestor: MapArea;
+};
 
-  // OSIRIS Zulu Live Clock
-  const [zuluTime, setZuluTime] = useState<string>("");
-  const [wibTime, setWibTime] = useState<string>("");
+function scopeAreaToMapArea(area: AdministrativeAreaScope): MapArea {
+  return {
+    id: area.areaId,
+    code: area.code,
+    name: area.name,
+    level: area.level,
+    parentId: area.parentAreaId ?? null,
+  };
+}
 
-  // Map Card Ref & Fullscreen State
-  const mapCardRef = useRef<HTMLDivElement>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+const INITIAL_FILTERS: MapNetworkFilters = {
+  search: "",
+  period: "LAST_30_DAYS",
+  startDate: "",
+  endDate: "",
+  dataType: "ALL",
+  completeness: "ALL",
+  urgency: "ALL",
+  categoryId: "ALL",
+  fieldOfficerAssignmentId: "ALL",
+  jaringId: "ALL",
+  provinceId: "ALL",
+  regencyId: "ALL",
+  districtId: "ALL",
+  villageId: "ALL",
+  suitability: "ALL",
+  agentState: "ALL",
+  activeWithinMinutes: 15,
+  lastKnownWithinHours: 168,
+};
 
-  // Map Navigation & Pitch/3D State
-  const [mapCenter, setMapCenter] = useState<[number, number]>([106.8456, -6.2088]);
-  const [mapZoom, setMapZoom] = useState<number>(10);
-  const [mapPitch, setMapPitch] = useState<number>(0);
-
-  // Marker Hover & Active Popup State
-  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-
-  // OSIRIS Floating Panel & Drawers State
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [tickerOpen, setTickerOpen] = useState(true);
-
-  // Map Layer State
-  const [mapLayer, setMapLayer] = useState<"dark" | "satellite" | "terrain" | "light" | "osm">("dark");
-
-  // Unified Filter State
-  const [activeTab, setActiveTab] = useState<"ALL" | "LAPORAN" | "BAKET">("ALL");
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
-  const [search, setSearch] = useState("");
-  const [urgencyFilter, setUrgencyFilter] = useState<string>("ALL");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [readFilter, setReadFilter] = useState<"ALL" | "READ" | "UNREAD">("ALL");
-  const [jaringFilter, setJaringFilter] = useState<string>("ALL");
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
-
-  // Hierarchical Area Filters
-  const [regencyFilter, setRegencyFilter] = useState<string>("ALL");
-  const [districtFilter, setDistrictFilter] = useState<string>("ALL");
-  const [villageFilter, setVillageFilter] = useState<string>("ALL");
-
-  // Period / Date Range Filter State
-  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("ALL");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-
-  // Pagination State
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-
-  // Detail Modal State
-  const [selectedItem, setSelectedItem] = useState<MapIntelItem | null>(null);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
-
-  const matchingJaring = useMemo(() => {
-    if (!selectedItem) return null;
-    return jaringList.find(
-      (j) => j.id === selectedItem.report.jaringId,
-    );
-  }, [selectedItem, jaringList]);
-
-  const jaringPhotoUrl = useMemo(() => {
-    if (!selectedItem) return null;
-    const rep = selectedItem.report as any;
-    const directPhoto =
-      rep.jaringProfilePhotoUrl ||
-      rep.jaringPhotoUrl ||
-      (rep.jaringProfilePhotoFileId ? `/api/files/${rep.jaringProfilePhotoFileId}` : null);
-    if (directPhoto) return directPhoto;
-
-    if (matchingJaring) {
-      if ((matchingJaring as any).profilePhotoUrl) return (matchingJaring as any).profilePhotoUrl;
-      if ((matchingJaring as any).profilePhotoFileId)
-        return `/api/files/${(matchingJaring as any).profilePhotoFileId}`;
-    }
-
-    return null;
-  }, [selectedItem, matchingJaring]);
-
-  const gaswilName = selectedItem?.report.gaswilName || "Petugas Gaswil (Wilayah)";
-
-  const gaswilPhotoUrl = useMemo(() => {
-    if (!selectedItem) return null;
-    const rep = selectedItem.report as any;
-    const directPhoto =
-      rep.gaswilProfilePhotoUrl ||
-      rep.gaswilPhotoUrl ||
-      (rep.gaswilProfilePhotoFileId ? `/api/files/${rep.gaswilProfilePhotoFileId}` : null);
-    if (directPhoto) return directPhoto;
-
-    return null;
-  }, [selectedItem]);
-
-  // Live UTC+7 (WIB) Live Clock effect
-  useEffect(() => {
-    function updateClock() {
-      const d = new Date();
-      const formattedWib = new Intl.DateTimeFormat("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZone: "Asia/Jakarta",
-      }).format(d);
-
-      setZuluTime(`UTC+7 ${formattedWib}`);
-      setWibTime(`${formattedWib} WIB`);
-    }
-    updateClock();
-    const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fullscreen Change Listener
-  useEffect(() => {
-    function handleFullscreenChange() {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    }
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
-  function toggleMapFullscreen() {
-    if (!document.fullscreenElement) {
-      void mapCardRef.current?.requestFullscreen();
-    } else {
-      void document.exitFullscreen();
-    }
+function periodRange(filters: MapNetworkFilters) {
+  const now = new Date();
+  const end = now.toISOString();
+  if (filters.period === "ALL") return {};
+  if (filters.period === "TODAY") {
+    const value = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    return { from: new Date(`${value}T00:00:00+07:00`).toISOString(), to: end };
   }
+  if (filters.period === "LAST_7_DAYS")
+    return { from: new Date(now.getTime() - 7 * 86_400_000).toISOString(), to: end };
+  if (filters.period === "LAST_30_DAYS")
+    return { from: new Date(now.getTime() - 30 * 86_400_000).toISOString(), to: end };
+  if (filters.period === "THIS_MONTH") {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+    }).format(now);
+    return { from: new Date(`${parts}-01T00:00:00+07:00`).toISOString(), to: end };
+  }
+  return {
+    ...(filters.startDate ? { from: new Date(`${filters.startDate}T00:00:00+07:00`).toISOString() } : {}),
+    ...(filters.endDate ? { to: new Date(`${filters.endDate}T23:59:59.999+07:00`).toISOString() } : {}),
+  };
+}
 
-  // Fetch Data
-  async function fetchAllData(silent = false) {
-    if (dataRequestInFlight.current) return;
-    dataRequestInFlight.current = true;
-    if (!silent) setLoading(true);
-    setLoadError(null);
-    try {
-      const [reportsRes, jaringRes, categoryRes, areaScopesRes] = await Promise.allSettled([
-        apiBrowserFetch<PaginatedReportResponse | JaringReportSessionDetail[]>("/jaring/reports?limit=100"),
-        apiBrowserFetch<PaginatedJaringResponse | RawJaringItem[]>("/jaring?limit=100"),
-        apiBrowserFetch<ReportCategoryResponse>("/jaring/report-categories"),
-        apiBrowserFetch<AdministrativeAreaScope[]>("/me/area-scopes", { query: { includeDescendants: true } }),
-      ]);
+function periodLabel(filters: MapNetworkFilters) {
+  const labels = {
+    ALL: "Semua waktu",
+    TODAY: "Hari ini",
+    LAST_7_DAYS: "7 hari terakhir",
+    LAST_30_DAYS: "30 hari terakhir",
+    THIS_MONTH: "Bulan berjalan",
+    CUSTOM: "Rentang kustom",
+  };
+  if (filters.period !== "CUSTOM") return labels[filters.period];
+  return filters.startDate || filters.endDate
+    ? `${filters.startDate || "awal"} – ${filters.endDate || "sekarang"}`
+    : "Rentang kustom";
+}
 
-      let fetchedReports: JaringReportSessionDetail[] = [];
-      if (reportsRes.status === "fulfilled" && reportsRes.value) {
-        const val = reportsRes.value;
-        fetchedReports = Array.isArray(val) ? val : val.items || [];
-      }
+function buildQuery(filters: MapNetworkFilters, card: SummaryCardFilter, debouncedSearch: string) {
+  const reportSpecific =
+    card === "REPORT" ||
+    card === "COMPLETE" ||
+    card === "INCOMPLETE" ||
+    filters.completeness !== "ALL";
+  let types = "report,baket,agent";
+  if (filters.dataType === "REPORT") types = "report";
+  if (filters.dataType === "BAKET") types = "baket";
+  if (filters.dataType === "AGENT") types = "agent";
+  if (card === "BAKET") types = "baket";
+  else if (card !== "ALL" || (filters.dataType === "ALL" && reportSpecific)) types = "report";
+  let completeness = filters.completeness;
+  if (card === "COMPLETE") completeness = "COMPLETE";
+  if (card === "INCOMPLETE") completeness = "INCOMPLETE";
+  const selectedAreaId = [filters.villageId, filters.districtId, filters.regencyId, filters.provinceId].find(
+    (areaId) => areaId !== "ALL",
+  );
+  return {
+    types,
+    limitPerType: 5000,
+    includeAreaHierarchy: true,
+    ...(debouncedSearch ? { q: debouncedSearch } : {}),
+    ...periodRange(filters),
+    ...(completeness !== "ALL" ? { completeness } : {}),
+    ...(filters.urgency !== "ALL" ? { urgencies: filters.urgency } : {}),
+    ...(filters.categoryId !== "ALL" ? { categoryIds: filters.categoryId } : {}),
+    ...(filters.fieldOfficerAssignmentId !== "ALL"
+      ? { fieldOfficerAssignmentIds: filters.fieldOfficerAssignmentId }
+      : {}),
+    ...(filters.jaringId !== "ALL" ? { jaringIds: filters.jaringId } : {}),
+    ...(selectedAreaId ? { areaIds: selectedAreaId } : {}),
+    ...(filters.suitability !== "ALL" ? { locationSuitability: filters.suitability } : {}),
+    ...(filters.agentState !== "ALL" ? { agentStates: filters.agentState } : {}),
+    activeWithinMinutes: filters.activeWithinMinutes,
+    lastKnownWithinHours: filters.lastKnownWithinHours,
+  };
+}
 
-      let fetchedJaring: RawJaringItem[] = [];
-      if (jaringRes.status === "fulfilled" && jaringRes.value) {
-        const val = jaringRes.value;
-        fetchedJaring = Array.isArray(val) ? val : val.items || [];
-      }
+type MapEntityFilterOptions = {
+  fieldOfficers: MapEntityFilterOption[];
+  jarings: MapEntityFilterOption[];
+};
 
-      let fetchedCategories: ReportCategoryOption[] = [];
-      if (categoryRes.status === "fulfilled" && categoryRes.value) {
-        const val = categoryRes.value;
-        if (Array.isArray(val)) {
-          fetchedCategories = val;
-        } else if (val && "items" in val && Array.isArray(val.items)) {
-          fetchedCategories = val.items;
+function mergeEntityFilterOptions(
+  current: MapEntityFilterOptions,
+  response: MapNetworkResponse,
+): MapEntityFilterOptions {
+  const fieldOfficers = new Map(current.fieldOfficers.map((item) => [item.id, item]));
+  const jarings = new Map(current.jarings.map((item) => [item.id, item]));
+
+  const addFieldOfficer = (id?: string | null, name?: string | null) => {
+    if (!id || !name) return;
+    fieldOfficers.set(id, { id, label: name });
+  };
+  const addJaring = (jaring?: MapNetworkFeature["properties"]["jaring"]) => {
+    if (!jaring?.id) return;
+    const label = jaring.code ? `${jaring.name} - ${jaring.code}` : jaring.name;
+    jarings.set(jaring.id, {
+      id: jaring.id,
+      label,
+      fieldOfficerAssignmentId: jaring.gaswilAssignmentId ?? null,
+    });
+    addFieldOfficer(jaring.gaswilAssignmentId, jaring.gaswilName);
+  };
+
+  for (const feature of response.features) {
+    const properties = feature.properties;
+    addFieldOfficer(properties.fieldOfficer?.assignmentId, properties.fieldOfficer?.name);
+    addFieldOfficer(properties.assignmentId, properties.userName);
+    addJaring(properties.jaring);
+    for (const jaring of properties.jarings ?? []) addJaring(jaring);
+  }
+  for (const item of response.meta.unlocatedItems) addJaring(item.jaring);
+
+  const sortByLabel = (left: MapEntityFilterOption, right: MapEntityFilterOption) =>
+    left.label.localeCompare(right.label, "id-ID");
+  return {
+    fieldOfficers: [...fieldOfficers.values()].sort(sortByLabel),
+    jarings: [...jarings.values()].sort(sortByLabel),
+  };
+}
+
+export function MapsIntelijenNetworkClient() {
+  const [response, setResponse] = useState<MapNetworkResponse>(EMPTY_MAP_RESPONSE);
+  const [summaryMeta, setSummaryMeta] = useState<MapNetworkResponse["meta"]>(EMPTY_MAP_RESPONSE.meta);
+  const [filters, setFilters] = useState<MapNetworkFilters>(INITIAL_FILTERS);
+  const [entityFilterOptions, setEntityFilterOptions] = useState<MapEntityFilterOptions>({
+    fieldOfficers: [],
+    jarings: [],
+  });
+  const [areaOptions, setAreaOptions] = useState<MapAreaFilterOptions>({
+    provinces: [],
+    regencies: [],
+    districts: [],
+    villages: [],
+    loading: true,
+    loadingLevel: "province",
+  });
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [cardFilter, setCardFilter] = useState<SummaryCardFilter>("ALL");
+  const [visualization, setVisualization] = useState<VisualizationMode>("marker");
+  const [colorMode, setColorMode] = useState<MarkerColorMode>("completeness");
+  const [heatmapWeight, setHeatmapWeight] = useState<HeatmapWeight>("count");
+  const [mapLayer, setMapLayer] = useState<"dark" | "satellite" | "terrain" | "light" | "osm">("dark");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [selected, setSelected] = useState<MapNetworkFeature | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const mapCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(filters.search.trim()), 350);
+    return () => window.clearTimeout(timeout);
+  }, [filters.search]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadScopedAreaHierarchy = async () => {
+      setAreaOptions((current) => ({ ...current, loading: true, loadingLevel: "province" }));
+      try {
+        const [directScopes, scopedAreas] = await Promise.all([
+          apiBrowserFetch<AdministrativeAreaScope[]>("/me/area-scopes", {
+            init: { signal: controller.signal },
+          }),
+          apiBrowserFetch<AdministrativeAreaScope[]>("/me/area-scopes", {
+            query: { includeDescendants: true },
+            init: { signal: controller.signal },
+          }),
+        ]);
+
+        const ancestorGroups = await Promise.all(
+          (directScopes ?? [])
+            .filter((scope) => scope.level !== "PROVINCE")
+            .map((scope) =>
+              apiBrowserFetch<MapAreaAncestorLink[]>(
+                `/administrative-areas/${scope.areaId}/ancestors`,
+                {
+                  query: { limit: 20 },
+                  init: { signal: controller.signal },
+                },
+              ),
+            ),
+        );
+
+        if (!controller.signal.aborted) {
+          const hierarchy = new Map<string, MapArea>();
+          for (const area of scopedAreas ?? []) {
+            const mappedArea = scopeAreaToMapArea(area);
+            hierarchy.set(mappedArea.id, mappedArea);
+          }
+          for (const links of ancestorGroups) {
+            for (const link of links ?? []) {
+              hierarchy.set(link.ancestor.id, link.ancestor);
+            }
+          }
+          const accessibleAreas = [...hierarchy.values()];
+
+          setAreaOptions((current) => ({
+            ...current,
+            provinces: normalizeMapAreas(accessibleAreas, ["PROVINCE"]),
+            regencies: normalizeMapAreas(accessibleAreas, ["CITY", "REGENCY"]),
+            districts: normalizeMapAreas(accessibleAreas, ["DISTRICT"]),
+            villages: normalizeMapAreas(accessibleAreas, ["VILLAGE", "URBAN_VILLAGE"]),
+            loading: false,
+            loadingLevel: null,
+          }));
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setAreaOptions((current) => ({ ...current, loading: false, loadingLevel: null }));
         }
       }
+    };
+    void loadScopedAreaHierarchy();
+    return () => controller.abort();
+  }, []);
 
-      let fetchedScopes: AdministrativeAreaScope[] = [];
-      if (areaScopesRes.status === "fulfilled" && Array.isArray(areaScopesRes.value)) {
-        fetchedScopes = areaScopesRes.value;
-      }
+  const query = useMemo(() => buildQuery(filters, cardFilter, debouncedSearch), [cardFilter, debouncedSearch, filters]);
+  const summaryQuery = useMemo(
+    () => ({ ...buildQuery(filters, "ALL", debouncedSearch), limitPerType: 1 }),
+    [debouncedSearch, filters],
+  );
 
-      setReports(fetchedReports);
-      setJaringList(fetchedJaring);
-      setCategories(fetchedCategories);
-      setAreaScopes(fetchedScopes);
-    } catch (err) {
-      console.error("Gagal memuat data maps intelijen network:", err);
-      setLoadError("Terjadi kendala memuat data server.");
-      setReports([]);
-    } finally {
-      dataRequestInFlight.current = false;
-      if (!silent) setLoading(false);
-    }
-  }
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: initial mount fetch
   useEffect(() => {
-    void fetchAllData();
+    const controller = new AbortController();
+    const timeout = window.setTimeout(
+      async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const [data, summaryData] = await Promise.all([
+            apiBrowserFetch<MapNetworkResponse>("/map/markers", {
+              query,
+              init: { signal: controller.signal },
+            }),
+            cardFilter === "ALL"
+              ? Promise.resolve(null)
+              : apiBrowserFetch<MapNetworkResponse>("/map/markers", {
+                  query: summaryQuery,
+                  init: { signal: controller.signal },
+                }),
+          ]);
+          if (!controller.signal.aborted) {
+            setResponse(data);
+            setSummaryMeta((summaryData ?? data).meta);
+            setEntityFilterOptions((current) => mergeEntityFilterOptions(current, data));
+          }
+        } catch (cause) {
+          if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Data peta gagal dimuat.");
+        } finally {
+          if (!controller.signal.aborted) setLoading(false);
+        }
+      },
+      reloadKey === 0 ? 120 : 0,
+    );
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [cardFilter, query, reloadKey, summaryQuery]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFullscreen]);
+
+  useEffect(() => {
     const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") void fetchAllData(true);
-    }, 5_000);
+      if (document.visibilityState === "visible") setReloadKey((value) => value + 1);
+    }, 60_000);
     return () => window.clearInterval(interval);
   }, []);
 
-  // Compute unified MapIntelItem list
-  const allIntelItems = useMemo<MapIntelItem[]>(() => {
-    return reports.map((r) => {
-      const isBaket = r.verificationStatus === "METADATA_RECORDED";
-      const coords = resolveCoordinates(r);
-      const urgency: PriorityLevel = (r.urgency as PriorityLevel) || "NORMAL";
-      const jaringName = r.jaringAlias || r.jaringId || "Jaring Sembunyi";
-      const jaringCode = r.jaringAlias || r.jaringId || "-";
-      const locationName = formatFullAreaName(r.resolvedArea);
-      const submittedAt = r.reportedAt || r.submittedAt || r.createdAt;
-      const displayTitle = r.displayTitle || r.content?.slice(0, 60) || (isBaket ? "Baket" : "Laporan Jaring");
-      const content = r.content || r.normalizedContent || "-";
-      const hasBeenRead = isReadByFieldOfficer(r);
+  const toggleFullscreen = useCallback(() => {
+    if (!isFullscreen) setVisualization((mode) => (mode === "marker" ? "cluster" : mode));
+    setIsFullscreen(!isFullscreen);
+  }, [isFullscreen]);
 
-      return {
-        id: r.id,
-        report: r,
-        isBaket,
-        coordinates: coords,
-        displayTitle,
-        content,
-        urgency,
-        verificationStatus: r.verificationStatus,
-        jaringName,
-        jaringCode,
-        locationName,
-        submittedAt,
-        categoryId: r.reportCategory?.id ?? null,
-        hasBeenRead,
-      };
+  const activeFilterCount = useMemo(
+    () =>
+      Object.entries(filters).filter(([key, value]) => {
+        if (key === "search") return Boolean(value);
+        if (key === "period") return value !== "LAST_30_DAYS";
+        if (key === "startDate" || key === "endDate") return Boolean(value);
+        if (key === "activeWithinMinutes") return value !== INITIAL_FILTERS.activeWithinMinutes;
+        if (key === "lastKnownWithinHours") return value !== INITIAL_FILTERS.lastKnownWithinHours;
+        return value !== "ALL";
+      }).length + (cardFilter === "ALL" ? 0 : 1),
+    [cardFilter, filters],
+  );
+
+  const handleFilterChange = useCallback((patch: Partial<MapNetworkFilters>) => {
+    setFilters((current) => {
+      const next = { ...current, ...patch };
+
+      if (patch.provinceId !== undefined && patch.provinceId !== current.provinceId) {
+        next.regencyId = "ALL";
+        next.districtId = "ALL";
+        next.villageId = "ALL";
+      } else if (patch.regencyId !== undefined && patch.regencyId !== current.regencyId) {
+        next.districtId = "ALL";
+        next.villageId = "ALL";
+      } else if (patch.districtId !== undefined && patch.districtId !== current.districtId) {
+        next.villageId = "ALL";
+      }
+
+      return next;
     });
-  }, [reports]);
+    if (patch.dataType) setCardFilter("ALL");
+  }, []);
 
-  // Options for Jaring Popover
-  const popoverJaringOptions: JaringOption[] = useMemo(() => {
-    return jaringList.map((j) => ({
-      id: j.id,
-      code: j.aliasName || j.fullName || j.id,
-      aliasName: j.aliasName || j.fullName || j.id,
-      fullName: j.fullName,
-      registrationStatus: j.registrationStatus,
-    }));
-  }, [jaringList]);
+  const openDetail = useCallback((feature: MapNetworkFeature) => {
+    setSelected(feature);
+    setDetailOpen(true);
+  }, []);
 
-  // Options for Regency / District / Village filters
-  const regencyOptions = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    for (const area of areaScopes) {
-      if (isRegencyLevel(area.level)) {
-        map.set(area.areaId, { id: area.areaId, name: area.name });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id"));
-  }, [areaScopes]);
+  const resetFilters = useCallback(() => {
+    setFilters(INITIAL_FILTERS);
+    setCardFilter("ALL");
+  }, []);
 
-  const districtOptions = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-
-    if (regencyFilter !== "ALL") {
-      const selectedRegency = areaScopes.find((a) => a.areaId === regencyFilter);
-      const selectedCode = selectedRegency?.officialCode || selectedRegency?.code;
-
-      for (const area of areaScopes) {
-        if (area.level === "DISTRICT" || area.level === "KECAMATAN") {
-          if (area.parentAreaId === regencyFilter || (selectedCode && area.code.startsWith(`${selectedCode}.`))) {
-            map.set(area.areaId, { id: area.areaId, name: area.name });
-          }
-        }
-      }
-    } else {
-      for (const area of areaScopes) {
-        if (area.level === "DISTRICT" || area.level === "KECAMATAN") {
-          map.set(area.areaId, { id: area.areaId, name: area.name });
-        }
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id"));
-  }, [areaScopes, regencyFilter]);
-
-  const villageOptions = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-
-    if (districtFilter !== "ALL") {
-      const selectedDistrict = areaScopes.find((a) => a.areaId === districtFilter);
-      const selectedCode = selectedDistrict?.officialCode || selectedDistrict?.code;
-
-      for (const area of areaScopes) {
-        if (area.level === "VILLAGE" || area.level === "URBAN_VILLAGE" || area.level === "DESA" || area.level === "KELURAHAN") {
-          if (area.parentAreaId === districtFilter || (selectedCode && area.code.startsWith(`${selectedCode}.`))) {
-            map.set(area.areaId, { id: area.areaId, name: area.name });
-          }
-        }
-      }
-    } else {
-      for (const area of areaScopes) {
-        if (area.level === "VILLAGE" || area.level === "URBAN_VILLAGE" || area.level === "DESA" || area.level === "KELURAHAN") {
-          map.set(area.areaId, { id: area.areaId, name: area.name });
-        }
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id"));
-  }, [areaScopes, districtFilter]);
-
-  // Base filtered items
-  const baseFilteredItems = useMemo(() => {
-    const now = new Date();
-
-    return allIntelItems.filter((item) => {
-      if (search.trim()) {
-        const q = search.toLowerCase().trim();
-        const refNum = (item.report.referenceNumber || "").toLowerCase();
-        const matchTitle = item.displayTitle.toLowerCase().includes(q);
-        const matchContent = item.content.toLowerCase().includes(q);
-        const matchJaring = item.jaringName.toLowerCase().includes(q) || item.jaringCode.toLowerCase().includes(q);
-        const matchLocation = item.locationName.toLowerCase().includes(q);
-        const matchRef = refNum.includes(q);
-
-        if (!matchTitle && !matchContent && !matchJaring && !matchLocation && !matchRef) {
-          return false;
-        }
-      }
-
-      if (urgencyFilter !== "ALL" && item.urgency !== urgencyFilter) return false;
-      if (statusFilter !== "ALL" && item.verificationStatus !== statusFilter) return false;
-      if (readFilter === "READ" && !item.hasBeenRead) return false;
-      if (readFilter === "UNREAD" && item.hasBeenRead) return false;
-      if (jaringFilter !== "ALL" && item.report.jaringId !== jaringFilter) return false;
-      if (categoryFilter !== "ALL" && item.categoryId !== categoryFilter) return false;
-
-      if (regencyFilter !== "ALL") {
-        const selectedRegency = regencyOptions.find((r) => r.id === regencyFilter);
-        if (selectedRegency) {
-          const regName = selectedRegency.name.toLowerCase();
-          const locStr = item.locationName.toLowerCase();
-          if (!locStr.includes(regName)) {
-            let areaObj = item.report.resolvedArea;
-            let matched = false;
-            while (areaObj) {
-              if (areaObj.id === regencyFilter || areaObj.name?.toLowerCase().includes(regName)) {
-                matched = true;
-                break;
-              }
-              areaObj = areaObj.parent ?? null;
-            }
-            if (!matched) return false;
-          }
-        }
-      }
-
-      if (districtFilter !== "ALL") {
-        const selectedDistrict = districtOptions.find((d) => d.id === districtFilter);
-        if (selectedDistrict) {
-          const distName = selectedDistrict.name.toLowerCase();
-          const locStr = item.locationName.toLowerCase();
-          if (!locStr.includes(distName)) {
-            let areaObj = item.report.resolvedArea;
-            let matched = false;
-            while (areaObj) {
-              if (areaObj.id === districtFilter || areaObj.name?.toLowerCase().includes(distName)) {
-                matched = true;
-                break;
-              }
-              areaObj = areaObj.parent ?? null;
-            }
-            if (!matched) return false;
-          }
-        }
-      }
-
-      if (villageFilter !== "ALL") {
-        const selectedVillage = villageOptions.find((v) => v.id === villageFilter);
-        if (selectedVillage) {
-          const villName = selectedVillage.name.toLowerCase();
-          const locStr = item.locationName.toLowerCase();
-          if (!locStr.includes(villName)) {
-            let areaObj = item.report.resolvedArea;
-            let matched = false;
-            while (areaObj) {
-              if (areaObj.id === villageFilter || areaObj.name?.toLowerCase().includes(villName)) {
-                matched = true;
-                break;
-              }
-              areaObj = areaObj.parent ?? null;
-            }
-            if (!matched) return false;
-          }
-        }
-      }
-
-      const itemTime = new Date(item.submittedAt).getTime();
-      if (periodPreset === "TODAY") {
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        if (itemTime < startOfDay) return false;
-      } else if (periodPreset === "LAST_7_DAYS") {
-        const sevenDaysAgo = now.getTime() - 7 * 24 * 3600 * 1000;
-        if (itemTime < sevenDaysAgo) return false;
-      } else if (periodPreset === "LAST_30_DAYS") {
-        const thirtyDaysAgo = now.getTime() - 30 * 24 * 3600 * 1000;
-        if (itemTime < thirtyDaysAgo) return false;
-      } else if (periodPreset === "THIS_MONTH") {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-        if (itemTime < startOfMonth) return false;
-      } else if (periodPreset === "CUSTOM") {
-        if (startDate) {
-          const startTimestamp = new Date(`${startDate}T00:00:00`).getTime();
-          if (itemTime < startTimestamp) return false;
-        }
-        if (endDate) {
-          const endTimestamp = new Date(`${endDate}T23:59:59`).getTime();
-          if (itemTime > endTimestamp) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [
-    allIntelItems,
-    search,
-    urgencyFilter,
-    statusFilter,
-    readFilter,
-    jaringFilter,
-    categoryFilter,
-    regencyFilter,
-    regencyOptions,
-    districtFilter,
-    districtOptions,
-    villageFilter,
-    villageOptions,
-    periodPreset,
-    startDate,
-    endDate,
-  ]);
-
-  const filteredItems = useMemo(() => {
-    return baseFilteredItems.filter((item) => {
-      if (activeTab === "LAPORAN" && item.isBaket) return false;
-      if (activeTab === "BAKET" && !item.isBaket) return false;
-      return true;
-    });
-  }, [baseFilteredItems, activeTab]);
-
-  const paginatedItems = useMemo(() => {
-    const startIndex = (page - 1) * limit;
-    return filteredItems.slice(startIndex, startIndex + limit);
-  }, [filteredItems, page, limit]);
-
-  const metrics = useMemo(() => {
-    const total = baseFilteredItems.length;
-    const totalLaporan = baseFilteredItems.filter((i) => !i.isBaket).length;
-    const totalBaket = baseFilteredItems.filter((i) => i.isBaket).length;
-    const unverifiedCount = baseFilteredItems.filter(
-      (i) => !i.isBaket && i.verificationStatus !== "VERIFIED_BY_FIELD_OFFICER"
-    ).length;
-    return { total, totalLaporan, totalBaket, unverifiedCount };
-  }, [baseFilteredItems]);
-
-  const tickerItems = useMemo(() => {
-    if (filteredItems.length === 0) return [];
-    const sorted = [...filteredItems].sort(
-      (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime(),
-    );
-    const newestList = sorted.slice(0, 10);
-
-    let list = [...newestList];
-    while (list.length < 6) {
-      list = [...list, ...newestList];
-    }
-    return list.map((item, idx) => ({
-      ...item,
-      tickerKey1: `tk1-${item.id}-${idx}`,
-      tickerKey2: `tk2-${item.id}-${idx}`,
-      relativeTime: formatRelativeTime(item.submittedAt),
-    }));
-  }, [filteredItems]);
-
-  function handleFocusOnMap(item: MapIntelItem) {
-    setMapCenter(item.coordinates);
-    setMapZoom(14);
-    setSelectedItemId(item.id);
-
-    const mapElement = document.getElementById("intel-map-section");
-    if (mapElement) {
-      mapElement.scrollIntoView({ behavior: "smooth" });
-    }
-  }
-
-  function handleOpenDetail(item: MapIntelItem) {
-    setSelectedItem(item);
-    setDetailModalOpen(true);
-  }
-
-  function resetAllFilters() {
-    setSearch("");
-    setUrgencyFilter("ALL");
-    setStatusFilter("ALL");
-    setReadFilter("ALL");
-    setJaringFilter("ALL");
-    setCategoryFilter("ALL");
-    setRegencyFilter("ALL");
-    setDistrictFilter("ALL");
-    setVillageFilter("ALL");
-    setPeriodPreset("ALL");
-    setStartDate("");
-    setEndDate("");
-    setActiveTab("ALL");
-    setPage(1);
-  }
+  const activePeriodLabel = periodLabel(filters);
+  const activeReportTotal =
+    response.meta.summary.reports.total ??
+    (response.meta.summary.reports.complete ?? 0) + (response.meta.summary.reports.incomplete ?? 0);
+  const activeBaketTotal = response.meta.summary.bakets.total ?? 0;
+  const activeMappableTotal =
+    (response.meta.summary.reports.mappable ?? 0) +
+    (response.meta.summary.bakets.mappable ?? 0) +
+    response.meta.counts.agent;
+  const activeUnlocatedTotal =
+    (response.meta.summary.reports.unlocated ?? 0) +
+    (response.meta.summary.bakets.unlocated ?? 0) +
+    response.meta.counts.unlocatedAgent;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 p-4 md:p-6 lg:p-8">
-      {/* Ticker Keyframes */}
-      <style>{`
-        @keyframes ticker-marquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-ticker-continuous {
-          display: inline-flex;
-          white-space: nowrap;
-          animation: ticker-marquee 75s linear infinite;
-        }
-        .animate-ticker-continuous:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
-
-      {/* 1. Header */}
-      <MapsIntelijenHeader loading={loading} onRefresh={() => void fetchAllData()} />
-
-      {loadError ? (
-        <div className="flex items-center justify-between rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-amber-700 text-sm dark:text-amber-300">
-          <div className="flex items-center gap-2">
-            <TriangleAlert className="size-5 text-amber-500" />
-            <span>{loadError}</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => void fetchAllData()}>
+    <main className="mx-auto flex w-full max-w-[1680px] flex-col gap-5 p-3 sm:p-5 lg:p-7">
+      <MapsIntelijenHeader
+        loading={loading}
+        onRefresh={() => setReloadKey((value) => value + 1)}
+        periodLabel={activePeriodLabel}
+        scopeLabel="Sesuai cakupan akses backend"
+        generatedAt={response.meta.freshness.generatedAt}
+      />
+      {error ? (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-700 sm:flex-row sm:items-center sm:justify-between dark:text-red-300"
+        >
+          <span className="inline-flex items-center gap-2">
+            <AlertTriangle className="size-5" />
+            {error}
+          </span>
+          <Button variant="outline" onClick={() => setReloadKey((value) => value + 1)}>
             Coba Lagi
           </Button>
         </div>
       ) : null}
-
-      {/* 2. Stats Bar */}
       <MapsIntelijenStats
-        total={metrics.total}
-        totalLaporan={metrics.totalLaporan}
-        totalBaket={metrics.totalBaket}
-        unverifiedCount={metrics.unverifiedCount}
+        meta={summaryMeta}
+        active={cardFilter}
+        onChange={setCardFilter}
+        loading={loading}
+        periodLabel={activePeriodLabel}
       />
-
-      {/* 3. Map View with Controls */}
+      <MapsIntelijenLeadershipBrief
+        features={response.features}
+        meta={response.meta}
+        periodLabel={activePeriodLabel}
+        loading={loading}
+        onFilterChange={handleFilterChange}
+        onCardFilterChange={setCardFilter}
+      />
+      <MapsIntelijenToolbar
+        filters={filters}
+        onChange={handleFilterChange}
+        visualization={visualization}
+        onVisualizationChange={setVisualization}
+        colorMode={colorMode}
+        onColorModeChange={setColorMode}
+        categories={response.meta.facets.categories}
+        fieldOfficerOptions={entityFilterOptions.fieldOfficers}
+        jaringOptions={entityFilterOptions.jarings}
+        areaOptions={areaOptions}
+        agentStates={response.meta.facets.agentStates}
+        activeFilterCount={activeFilterCount}
+        onReset={resetFilters}
+      />
+      <div className="flex flex-col gap-2 rounded-xl border bg-muted/20 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          <strong>{activeReportTotal.toLocaleString("id-ID")}</strong> Laporan Jaring dan{" "}
+          <strong>{activeBaketTotal.toLocaleString("id-ID")}</strong> Baket sesuai filter;{" "}
+          <strong>{response.meta.counts.agent.toLocaleString("id-ID")}</strong> personel termuat;{" "}
+          <strong>{activeMappableTotal.toLocaleString("id-ID")}</strong> data dapat dipetakan dan{" "}
+          <strong>{activeUnlocatedTotal.toLocaleString("id-ID")}</strong> tanpa koordinat.
+        </p>
+        <div className="flex shrink-0 flex-wrap gap-2 text-muted-foreground text-xs">
+          <span>{visibleCount.toLocaleString("id-ID")} titik pada viewport</span>
+          <span>·</span>
+          <span>{response.features.length.toLocaleString("id-ID")} marker dimuat</span>
+        </div>
+      </div>
+      {activeUnlocatedTotal > 0 ? (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-800 text-xs dark:text-amber-200">
+          <MapPinOff className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Sebagian data tidak ditampilkan sebagai marker karena tidak memiliki koordinat yang dapat digunakan.
+          </span>
+        </div>
+      ) : null}
       <MapsIntelijenMapView
         mapCardRef={mapCardRef}
         isFullscreen={isFullscreen}
-        onToggleFullscreen={toggleMapFullscreen}
-        zuluTime={zuluTime}
-        wibTime={wibTime}
-        filteredItems={filteredItems}
-        panelOpen={panelOpen}
-        setPanelOpen={setPanelOpen}
-        rightPanelOpen={rightPanelOpen}
-        setRightPanelOpen={setRightPanelOpen}
-        tickerOpen={tickerOpen}
-        setTickerOpen={setTickerOpen}
+        onToggleFullscreen={toggleFullscreen}
+        features={response.features}
+        meta={response.meta}
+        loading={loading}
+        periodLabel={activePeriodLabel}
+        activeFilterCount={activeFilterCount}
+        visibleCount={visibleCount}
+        onRefresh={() => setReloadKey((value) => value + 1)}
+        mode={visualization}
+        onVisualizationChange={setVisualization}
+        colorMode={colorMode}
+        heatmapWeight={heatmapWeight}
+        onHeatmapWeightChange={setHeatmapWeight}
         mapLayer={mapLayer}
-        setMapLayer={setMapLayer}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        mapCenter={mapCenter}
-        mapZoom={mapZoom}
-        setMapZoom={setMapZoom}
-        mapPitch={mapPitch}
-        setMapPitch={setMapPitch}
-        hoveredItemId={hoveredItemId}
-        setHoveredItemId={setHoveredItemId}
-        selectedItemId={selectedItemId}
-        setSelectedItemId={setSelectedItemId}
-        search={search}
-        setSearch={setSearch}
-        urgencyFilter={urgencyFilter}
-        setUrgencyFilter={setUrgencyFilter}
-        periodPreset={periodPreset}
-        setPeriodPreset={setPeriodPreset}
-        startDate={startDate}
-        setStartDate={setStartDate}
-        endDate={endDate}
-        setEndDate={setEndDate}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        readFilter={readFilter}
-        setReadFilter={setReadFilter}
-        jaringFilter={jaringFilter}
-        setJaringFilter={setJaringFilter}
-        popoverJaringOptions={popoverJaringOptions}
-        categoryFilter={categoryFilter}
-        setCategoryFilter={setCategoryFilter}
-        categories={categories}
-        regencyFilter={regencyFilter}
-        setRegencyFilter={setRegencyFilter}
-        regencyOptions={regencyOptions}
-        districtFilter={districtFilter}
-        setDistrictFilter={setDistrictFilter}
-        districtOptions={districtOptions}
-        villageFilter={villageFilter}
-        setVillageFilter={setVillageFilter}
-        villageOptions={villageOptions}
-        onResetFilters={resetAllFilters}
-        setPage={setPage}
-        tickerItems={tickerItems}
-        onFocusOnMap={handleFocusOnMap}
-        onOpenDetail={handleOpenDetail}
+        onMapLayerChange={setMapLayer}
+        onOpenDetail={openDetail}
+        onVisibleCountChange={setVisibleCount}
+        filters={filters}
+        fieldOfficerOptions={entityFilterOptions.fieldOfficers}
+        jaringOptions={entityFilterOptions.jarings}
+        areaOptions={areaOptions}
+        onFilterChange={handleFilterChange}
+        onResetFilters={resetFilters}
       />
-
-      {/* 4. Table / Card Grid View */}
-      {!isFullscreen && (
-        <MapsIntelijenTableView
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          filteredItems={filteredItems}
-          paginatedItems={paginatedItems}
-          metrics={metrics}
-          page={page}
-          setPage={setPage}
-          limit={limit}
-          setLimit={setLimit}
-          onFocusOnMap={handleFocusOnMap}
-          onOpenDetail={handleOpenDetail}
-          onResetFilters={resetAllFilters}
-          search={search}
-          setSearch={setSearch}
-          urgencyFilter={urgencyFilter}
-          setUrgencyFilter={setUrgencyFilter}
-          periodPreset={periodPreset}
-          setPeriodPreset={setPeriodPreset}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          readFilter={readFilter}
-          setReadFilter={setReadFilter}
-          jaringFilter={jaringFilter}
-          setJaringFilter={setJaringFilter}
-          popoverJaringOptions={popoverJaringOptions}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
-          categories={categories}
-          regencyFilter={regencyFilter}
-          setRegencyFilter={setRegencyFilter}
-          regencyOptions={regencyOptions}
-          districtFilter={districtFilter}
-          setDistrictFilter={setDistrictFilter}
-          districtOptions={districtOptions}
-          villageFilter={villageFilter}
-          setVillageFilter={setVillageFilter}
-          villageOptions={villageOptions}
-          startDate={startDate}
-          setStartDate={setStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
-        />
-      )}
-
-      {/* 5. Detail Inspection Modal */}
-      <MapsIntelijenDetailModal
-        open={detailModalOpen}
-        onOpenChange={setDetailModalOpen}
-        selectedItem={selectedItem}
-        jaringPhotoUrl={jaringPhotoUrl}
-        matchingJaring={matchingJaring}
-        gaswilName={gaswilName}
-        gaswilPhotoUrl={gaswilPhotoUrl}
-        onFocusOnMap={handleFocusOnMap}
-      />
-    </div>
+      <div className="flex items-start gap-2 rounded-lg border bg-card p-3 text-muted-foreground text-xs">
+        <Info className="mt-0.5 size-4 shrink-0 text-sky-500" />
+        <p>
+          Marker dan heatmap hanya memakai latitude/longitude aktual. Heatmap mengabaikan data tanpa koordinat; mode
+          bobot “Jumlah Data” memberi bobot setara untuk setiap titik Laporan Jaring maupun Baket.
+        </p>
+      </div>
+      {!isFullscreen ? (
+        <MapsIntelijenDataList features={response.features} meta={response.meta} onDetail={openDetail} />
+      ) : null}
+      <MapsIntelijenDetailSheet feature={selected} open={detailOpen} onOpenChange={setDetailOpen} />
+    </main>
   );
 }

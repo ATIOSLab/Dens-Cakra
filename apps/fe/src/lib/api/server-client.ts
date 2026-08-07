@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { headers } from "next/headers";
 
 import { getBackendInternalUrl } from "@/lib/auth/backend-url";
@@ -102,8 +104,18 @@ export async function apiServerFetch<T>(path: string, options: ServerRequestOpti
   return payload.data;
 }
 
+const cachedApiServerGet = cache(async (path: string, queryKey: string) => {
+  const query = Object.fromEntries(JSON.parse(queryKey) as [string, unknown][]);
+  return apiServerFetch<unknown>(path, { query: query as QueryParams });
+});
+
 export async function apiServerGet<T>(path: string, query?: QueryParams) {
-  return apiServerFetch<T>(path, { query });
+  const queryKey = JSON.stringify(
+    Object.entries(query ?? {}).sort(([left], [right]) =>
+      left.localeCompare(right),
+    ),
+  );
+  return cachedApiServerGet(path, queryKey) as Promise<T>;
 }
 
 export async function apiServerMutation<T>(

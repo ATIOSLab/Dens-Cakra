@@ -1,3 +1,5 @@
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+
 export const SYSTEM_ROLES = {
   EXECUTIVE: "executive",
   REGIONAL_COMMANDER: "regional_commander",
@@ -14,7 +16,7 @@ export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
   [SYSTEM_ROLES.REGIONAL_COMMANDER]: "Komandan Regional",
   [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: "Manajer Intelijen Operasional",
   [SYSTEM_ROLES.FIELD_COORDINATOR]: "Koordinator Lapangan",
-  [SYSTEM_ROLES.FIELD_OFFICER]: "Petugas Wilayah",
+  [SYSTEM_ROLES.FIELD_OFFICER]: DOMAIN_TERMS.fieldOfficer,
   [SYSTEM_ROLES.ADMIN_SYSTEM]: "Admin Sistem",
 };
 

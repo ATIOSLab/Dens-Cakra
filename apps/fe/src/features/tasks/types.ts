@@ -9,6 +9,7 @@ import type { UukDetail } from "@/features/uuk-str/types";
 export type TaskAssignmentPerson = {
   id: string;
   userProfile?: {
+    id?: string;
     fullName?: string | null;
     username?: string | null;
   } | null;
@@ -129,6 +130,7 @@ export type TaskDetail = TaskSummary & {
 export type AssignmentCandidate = {
   id: string;
   userProfile?: {
+    id?: string;
     fullName?: string | null;
   } | null;
   position?: PositionOption | null;

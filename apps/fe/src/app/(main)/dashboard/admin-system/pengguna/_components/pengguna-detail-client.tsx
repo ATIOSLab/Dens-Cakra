@@ -213,7 +213,7 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               )}
               {user.status === "PENDING" && (
                 <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/20 text-xs">
-                  Pending
+                  Menunggu
                 </Badge>
               )}
               {user.status === "SUSPENDED" && (

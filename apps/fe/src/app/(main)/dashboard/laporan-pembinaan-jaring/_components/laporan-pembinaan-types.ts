@@ -26,7 +26,17 @@ export interface CoachingReportItem {
   jaringCode?: string;
   jaringAlias?: string;
   jaringName?: string;
+  jaringWhatsAppNumber?: string | null;
+  jaringProfilePhotoFileId?: string | null;
   villageName?: string;
+  assignedArea?: {
+    id: string;
+    name: string;
+    level: string;
+    code?: string | null;
+    officialCode?: string | null;
+    parent?: CoachingReportItem["assignedArea"] | null;
+  } | null;
 }
 
 export interface CreateCoachingReportPayload {

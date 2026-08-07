@@ -40,6 +40,7 @@ import { toast } from "sonner";
 
 import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
+import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -56,6 +57,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
@@ -69,6 +71,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { administrativeAreaLabel } from "@/features/baket/administrative-area";
 import { BaketAdministrativeArea } from "@/features/baket/components/baket-administrative-area";
+import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
@@ -77,7 +80,7 @@ import type { OimPageData, OimView } from "./oim-types";
 
 const SituationMap = dynamic(() => import("./oim-situation-map").then((module) => module.OimSituationMap), {
   ssr: false,
-  loading: () => <div className="h-[560px] animate-pulse rounded-xl bg-muted" />,
+  loading: () => <div className="h-[min(35rem,65svh)] min-h-[28rem] animate-pulse rounded-[var(--dc-radius-lg)] bg-muted" />,
 });
 
 const BaketLocationMap = dynamic(
@@ -194,8 +197,38 @@ function baketStatusLabel(value?: string) {
 function StatusBadge({ value }: { value?: string }) {
   const danger = value === "REJECTED" || value === "URGENT";
   const success = value === "VERIFIED" || value === "VALIDATED" || value?.startsWith("APPROVED");
+  const warning = value === "UNDER_VERIFICATION" || value === "IN_PROGRESS" || value === "NEEDS_DEVELOPMENT";
   const label = value === "VALIDATED" ? "FINAL" : baketStatusLabel(value);
-  return <Badge variant={danger ? "destructive" : success ? "default" : "secondary"}>{label}</Badge>;
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "rounded-full px-2.5 py-1 font-semibold text-[11px]",
+        danger && "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300",
+        success &&
+          "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+        warning &&
+          "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300",
+        !danger &&
+          !success &&
+          !warning &&
+          "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-300",
+      )}
+    >
+      {label}
+    </Badge>
+  );
+}
+
+const URGENCY_BADGE_STYLES: Record<string, React.CSSProperties> = {
+  URGENT: { color: "#EF4444", backgroundColor: "#EF444415", borderColor: "#EF444430" },
+  HIGH: { color: "#F59E0B", backgroundColor: "#F59E0B15", borderColor: "#F59E0B30" },
+  NORMAL: { color: "#3B82F6", backgroundColor: "#3B82F615", borderColor: "#3B82F630" },
+  LOW: { color: "#64748B", backgroundColor: "#64748B15", borderColor: "#64748B30" },
+};
+
+function urgencyBadgeStyle(value?: string) {
+  return URGENCY_BADGE_STYLES[value ?? "NORMAL"] ?? URGENCY_BADGE_STYLES.NORMAL;
 }
 
 function Header({ view, data }: { view: OimView; data?: OimPageData }) {
@@ -368,7 +401,7 @@ function Kpis({ data }: { data: OimPageData }) {
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {cards.map((card) => {
         const Icon = card.icon;
         return (
@@ -376,29 +409,33 @@ function Kpis({ data }: { data: OimPageData }) {
             key={card.label}
             size="sm"
             className={cn(
-              "border-t-2 rounded-[8px] bg-card overflow-hidden shadow-sm transition-all duration-200 hover:translate-y-[-2px] hover:shadow-md",
+              "min-h-[152px] overflow-hidden rounded-[8px] border border-border border-t-2 bg-card shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-primary/25 hover:shadow-md",
               card.colorClass,
             )}
           >
-            <CardHeader className="p-4 pb-2 flex flex-row items-start justify-between space-y-0">
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 p-4 pb-2">
               <div className="space-y-1">
-                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/80">{card.label}</p>
-                <p className="text-3xl font-heading font-extrabold tracking-tight text-foreground">{card.value}</p>
+                <p className="font-mono text-[11px] text-muted-foreground/80 uppercase tracking-[0.08em]">
+                  {card.label}
+                </p>
+                <p className="font-heading text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
+                  {card.value}
+                </p>
               </div>
               <div className={cn("p-1.5 rounded-lg", card.bgTint)}>
                 <Icon className="size-4 shrink-0" />
               </div>
             </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0 flex flex-col gap-1.5">
+            <CardContent className="flex flex-col gap-2 px-4 pt-0 pb-4">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-medium text-muted-foreground/80">{card.hint}</span>
               </div>
               {card.value > 0 ? (
-                <span className="inline-flex self-start items-center rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-mono font-semibold text-primary uppercase tracking-wide">
+                <span className="inline-flex self-start items-center rounded-full bg-primary/10 px-2 py-0.5 font-mono font-semibold text-[10px] text-primary">
                   {card.badge}
                 </span>
               ) : (
-                <span className="inline-flex self-start items-center rounded bg-secondary/80 px-1.5 py-0.5 text-[9px] font-mono font-semibold text-muted-foreground/60 uppercase tracking-wide">
+                <span className="inline-flex self-start items-center rounded-full bg-secondary/80 px-2 py-0.5 font-mono font-semibold text-[10px] text-muted-foreground/70">
                   Bersih
                 </span>
               )}
@@ -630,174 +667,195 @@ function Filters({
     e.preventDefault();
   };
 
+  const activeFilterCount = [
+    search,
+    regencyId,
+    districtId,
+    status,
+    urgency,
+    classification,
+    categoryId,
+    periodStart,
+    periodEnd,
+  ].filter(Boolean).length;
+
+  const resetFilters = () => {
+    setSearch("");
+    setRegencyId("");
+    setDistrictId("");
+    setStatus("");
+    setUrgency("");
+    setClassification("");
+    setCategoryId("");
+    setPeriodStart("");
+    setPeriodEnd("");
+  };
+
   return (
-    <form
-      className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-2 xl:grid-cols-4 animate-in fade-in"
-      onSubmit={handleSubmit}
-    >
-      <Input
-        name="search"
-        placeholder="Cari judul, isi, nomor produk…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="h-9 text-sm bg-background border-border text-foreground"
-      />
-
-      {/* Kabupaten/Kota Select */}
-      <Select
-        value={regencyId || "ALL"}
-        onValueChange={(val) => {
-          setRegencyId(val === "ALL" ? "" : val);
-          setDistrictId("");
-        }}
+    <form className="animate-in fade-in" onSubmit={handleSubmit}>
+      <FilterPanel
+        title={
+          mode === "product"
+            ? "Filter produk intelijen"
+            : mode === "verification"
+              ? "Filter verifikasi"
+              : "Filter laporan"
+        }
+        description="Filter diterapkan pada seluruh dataset sesuai scope akses Anda."
+        activeFilterCount={activeFilterCount}
+        onReset={resetFilters}
       >
-        <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
-          <SelectValue placeholder="Seluruh kabupaten/kota" />
-        </SelectTrigger>
-        <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
-          <SelectItem value="ALL">Seluruh kabupaten/kota</SelectItem>
-          {regencies.map((area) => (
-            <SelectItem key={area.id} value={area.id}>
-              {area.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <Input
+          name="search"
+          aria-label="Cari laporan"
+          placeholder="Cari judul, isi, nomor produk…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-10 border-border bg-background text-sm text-foreground"
+        />
 
-      {/* Kecamatan Select */}
-      <Select value={districtId || "ALL"} onValueChange={(val) => setDistrictId(val === "ALL" ? "" : val)}>
-        <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
-          <SelectValue placeholder="Seluruh kecamatan" />
-        </SelectTrigger>
-        <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
-          <SelectItem value="ALL">Seluruh kecamatan</SelectItem>
-          {districts.map((area) => (
-            <SelectItem key={area.id} value={area.id}>
-              {area.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Status Select */}
-      <Select value={status || "ALL"} onValueChange={(val) => setStatus(val === "ALL" ? "" : val)}>
-        <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
-          <SelectValue placeholder="Seluruh status" />
-        </SelectTrigger>
-        <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
-          <SelectItem value="ALL">Seluruh status</SelectItem>
-          {statusOptions.map((opt) => (
-            <SelectItem key={opt} value={opt}>
-              {statusLabelIndo(opt)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Urgensi Select */}
-      <Select value={urgency || "ALL"} onValueChange={(val) => setUrgency(val === "ALL" ? "" : val)}>
-        <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
-          <SelectValue placeholder="Semua urgensi" />
-        </SelectTrigger>
-        <SelectContent position="popper">
-          <SelectItem value="ALL">Semua urgensi</SelectItem>
-          <SelectItem value="NORMAL">NORMAL</SelectItem>
-          <SelectItem value="HIGH">HIGH</SelectItem>
-          <SelectItem value="URGENT">URGENT</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {/* Classification Select (for Product mode) */}
-      {mode === "product" ? (
-        <Select value={classification || "ALL"} onValueChange={(val) => setClassification(val === "ALL" ? "" : val)}>
-          <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
-            <SelectValue placeholder="Semua klasifikasi" />
-          </SelectTrigger>
-          <SelectContent position="popper">
-            <SelectItem value="ALL">Semua klasifikasi</SelectItem>
-            <SelectItem value="BIASA">BIASA</SelectItem>
-            <SelectItem value="TERBATAS">TERBATAS</SelectItem>
-            <SelectItem value="RAHASIA">RAHASIA</SelectItem>
-            <SelectItem value="SANGAT_RAHASIA">SANGAT RAHASIA</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : null}
-
-      {/* Kategori Select (for Baket mode) */}
-      {mode === "baket" ? (
-        <Select value={categoryId || "ALL"} onValueChange={(val) => setCategoryId(val === "ALL" ? "" : val)}>
-          <SelectTrigger className="h-9 text-xs bg-background border-border text-foreground">
-            <SelectValue placeholder="Semua kategori" />
+        {/* Kabupaten/Kota Select */}
+        <Select
+          value={regencyId || "ALL"}
+          onValueChange={(val) => {
+            setRegencyId(val === "ALL" ? "" : val);
+            setDistrictId("");
+          }}
+        >
+          <SelectTrigger
+            aria-label="Filter kabupaten atau kota"
+            className="h-10 border-border bg-background text-sm text-foreground"
+          >
+            <SelectValue placeholder="Seluruh kabupaten/kota" />
           </SelectTrigger>
           <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
-            <SelectItem value="ALL">Semua kategori</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
+            <SelectItem value="ALL">Seluruh kabupaten/kota</SelectItem>
+            {regencies.map((area) => (
+              <SelectItem key={area.id} value={area.id}>
+                {area.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      ) : null}
 
-      <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
-        <label className="space-y-1">
-          <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
-            Periode Mulai
-          </span>
-          <Input
-            type="date"
-            name="periodStart"
-            aria-label="Periode mulai"
-            value={periodStart}
-            onChange={(e) => setPeriodStart(e.target.value)}
-            className="h-9 text-sm bg-background border-border text-foreground"
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
-            Periode Selesai
-          </span>
-          <Input
-            type="date"
-            name="periodEnd"
-            aria-label="Periode selesai"
-            value={periodEnd}
-            onChange={(e) => setPeriodEnd(e.target.value)}
-            className="h-9 text-sm bg-background border-border text-foreground"
-          />
-        </label>
-      </div>
-      {!!(
-        search ||
-        regencyId ||
-        districtId ||
-        status ||
-        urgency ||
-        classification ||
-        categoryId ||
-        periodStart ||
-        periodEnd
-      ) && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setSearch("");
-            setRegencyId("");
-            setDistrictId("");
-            setStatus("");
-            setUrgency("");
-            setClassification("");
-            setCategoryId("");
-            setPeriodStart("");
-            setPeriodEnd("");
-          }}
-          className="h-9 font-mono text-xs uppercase border-dashed border-border text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center gap-1.5"
-        >
-          Reset Filter
-        </Button>
-      )}
+        {/* Kecamatan Select */}
+        <Select value={districtId || "ALL"} onValueChange={(val) => setDistrictId(val === "ALL" ? "" : val)}>
+          <SelectTrigger
+            aria-label="Filter kecamatan"
+            className="h-10 border-border bg-background text-sm text-foreground"
+          >
+            <SelectValue placeholder="Seluruh kecamatan" />
+          </SelectTrigger>
+          <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
+            <SelectItem value="ALL">Seluruh kecamatan</SelectItem>
+            {districts.map((area) => (
+              <SelectItem key={area.id} value={area.id}>
+                {area.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Status Select */}
+        <Select value={status || "ALL"} onValueChange={(val) => setStatus(val === "ALL" ? "" : val)}>
+          <SelectTrigger
+            aria-label="Filter status"
+            className="h-10 border-border bg-background text-sm text-foreground"
+          >
+            <SelectValue placeholder="Seluruh status" />
+          </SelectTrigger>
+          <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
+            <SelectItem value="ALL">Seluruh status</SelectItem>
+            {statusOptions.map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                {statusLabelIndo(opt)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Urgensi Select */}
+        <Select value={urgency || "ALL"} onValueChange={(val) => setUrgency(val === "ALL" ? "" : val)}>
+          <SelectTrigger
+            aria-label="Filter urgensi"
+            className="h-10 border-border bg-background text-sm text-foreground"
+          >
+            <SelectValue placeholder="Semua urgensi" />
+          </SelectTrigger>
+          <SelectContent position="popper">
+            <SelectItem value="ALL">Semua urgensi</SelectItem>
+            <SelectItem value="NORMAL">NORMAL</SelectItem>
+            <SelectItem value="HIGH">HIGH</SelectItem>
+            <SelectItem value="URGENT">URGENT</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Classification Select (for Product mode) */}
+        {mode === "product" ? (
+          <Select value={classification || "ALL"} onValueChange={(val) => setClassification(val === "ALL" ? "" : val)}>
+            <SelectTrigger
+              aria-label="Filter klasifikasi"
+              className="h-10 border-border bg-background text-sm text-foreground"
+            >
+              <SelectValue placeholder="Semua klasifikasi" />
+            </SelectTrigger>
+            <SelectContent position="popper">
+              <SelectItem value="ALL">Semua klasifikasi</SelectItem>
+              <SelectItem value="BIASA">BIASA</SelectItem>
+              <SelectItem value="TERBATAS">TERBATAS</SelectItem>
+              <SelectItem value="RAHASIA">RAHASIA</SelectItem>
+              <SelectItem value="SANGAT_RAHASIA">SANGAT RAHASIA</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null}
+
+        {/* Kategori Select (for Baket mode) */}
+        {mode === "baket" ? (
+          <Select value={categoryId || "ALL"} onValueChange={(val) => setCategoryId(val === "ALL" ? "" : val)}>
+            <SelectTrigger
+              aria-label="Filter kategori"
+              className="h-10 border-border bg-background text-sm text-foreground"
+            >
+              <SelectValue placeholder="Semua kategori" />
+            </SelectTrigger>
+            <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
+              <SelectItem value="ALL">Semua kategori</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+
+        <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
+          <label htmlFor="oim-period-start" className="space-y-1">
+            <span className="block text-xs font-medium text-muted-foreground">Periode Mulai</span>
+            <Input
+              id="oim-period-start"
+              type="date"
+              name="periodStart"
+              aria-label="Periode mulai"
+              value={periodStart}
+              onChange={(e) => setPeriodStart(e.target.value)}
+              className="h-10 border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label htmlFor="oim-period-end" className="space-y-1">
+            <span className="block text-xs font-medium text-muted-foreground">Periode Selesai</span>
+            <Input
+              id="oim-period-end"
+              type="date"
+              name="periodEnd"
+              aria-label="Periode selesai"
+              value={periodEnd}
+              onChange={(e) => setPeriodEnd(e.target.value)}
+              className="h-10 border-border bg-background text-sm text-foreground"
+            />
+          </label>
+        </div>
+      </FilterPanel>
     </form>
   );
 }
@@ -879,8 +937,8 @@ function BaketList({ data }: { data: OimPageData }) {
 
   return (
     <div className="min-w-0 space-y-4">
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
-        <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
+      <div className="flex items-center justify-between border-slate-200 border-b pb-3 dark:border-white/5">
+        <h3 className="text-sm font-semibold tracking-tight text-slate-700 dark:text-slate-200">
           Daftar Laporan ({items.length})
         </h3>
         <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
@@ -888,10 +946,10 @@ function BaketList({ data }: { data: OimPageData }) {
 
       {items.length ? (
         viewMode === "table" ? (
-          <div className="min-w-0 rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+          <div className="min-w-0 overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm dark:border-white/5 dark:bg-[#131A26] dark:shadow-none">
             <div className="overflow-x-auto">
               <Table className="min-w-[1180px]">
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur dark:bg-[#131A26]/95">
                   <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pl-6 py-3.5">
                       Status & Urgensi
@@ -918,7 +976,7 @@ function BaketList({ data }: { data: OimPageData }) {
                     >
                       Tanggal
                     </SortableTableHeader>
-                    <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] pr-6 py-3.5 text-right">
+                    <TableHead className="w-24 py-3.5 pr-6 text-right font-mono text-[10px] font-bold text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
                       Aksi
                     </TableHead>
                   </TableRow>
@@ -935,7 +993,7 @@ function BaketList({ data }: { data: OimPageData }) {
                         <TableCell className="pl-6 py-4">
                           <div className="flex flex-col gap-1 items-start">
                             <span
-                              className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
+                              className="rounded-full border px-2 py-0.5 font-mono font-bold text-[10px] tracking-wide"
                               style={{
                                 color: item.status === "SENT_TO_OIM" ? "#06B6D4" : "#10B981",
                                 backgroundColor: item.status === "SENT_TO_OIM" ? "#06B6D415" : "#10B98115",
@@ -945,27 +1003,8 @@ function BaketList({ data }: { data: OimPageData }) {
                               {baketStatusLabel(item.status)}
                             </span>
                             <span
-                              className="px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider border rounded"
-                              style={{
-                                color:
-                                  version.urgency === "URGENT"
-                                    ? "#EF4444"
-                                    : version.urgency === "HIGH"
-                                      ? "#F59E0B"
-                                      : "#3B82F6",
-                                backgroundColor:
-                                  version.urgency === "URGENT"
-                                    ? "#EF444415"
-                                    : version.urgency === "HIGH"
-                                      ? "#F59E0B15"
-                                      : "#3B82F615",
-                                borderColor:
-                                  version.urgency === "URGENT"
-                                    ? "#EF444430"
-                                    : version.urgency === "HIGH"
-                                      ? "#F59E0B30"
-                                      : "#3B82F630",
-                              }}
+                              className="rounded-full border px-2 py-0.5 font-mono font-bold text-[10px] tracking-wide"
+                              style={urgencyBadgeStyle(version.urgency)}
                             >
                               {version.urgency ?? "NORMAL"}
                             </span>
@@ -979,12 +1018,16 @@ function BaketList({ data }: { data: OimPageData }) {
                         <TableCell className="py-4">
                           <div className="flex flex-col gap-1 items-start">
                             <span className="text-[10.5px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                              {item.reportCategory?.name ?? "KATEGORI SECURE"}
+                              {item.reportCategory?.name ?? "Tidak tersedia"}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
-                          {fieldOfficerUserName(fieldOfficer)}
+                          <GaswilEntityLink
+                            name={fieldOfficerUserName(fieldOfficer)}
+                            assignmentId={fieldOfficer.id}
+                            userProfileId={fieldOfficer.userProfile?.id}
+                          />
                         </TableCell>
                         <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
                           {administrativeAreaLabel(version.eventArea)}
@@ -1018,13 +1061,13 @@ function BaketList({ data }: { data: OimPageData }) {
                 return (
                   <div
                     key={item.id}
-                    className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-6 transition-all duration-[150ms] ease-out hover:translate-y-[-2px] hover:border-slate-300 dark:hover:border-white/15 cursor-pointer flex flex-col group shadow-sm dark:shadow-none"
+                    className="group flex flex-col rounded-[8px] border border-slate-200 bg-white p-5 shadow-sm transition-[border-color,box-shadow] duration-150 ease-out hover:border-slate-300 hover:shadow-md dark:border-white/5 dark:bg-[#131A26] dark:shadow-none dark:hover:border-white/15"
                   >
                     <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
                       <div className="space-y-2.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
+                            className="rounded-full border px-2 py-0.5 font-mono font-bold text-[10px] tracking-wide"
                             style={{
                               color: item.status === "SENT_TO_OIM" ? "#06B6D4" : "#10B981",
                               backgroundColor: item.status === "SENT_TO_OIM" ? "#06B6D415" : "#10B98115",
@@ -1034,33 +1077,14 @@ function BaketList({ data }: { data: OimPageData }) {
                             {baketStatusLabel(item.status)}
                           </span>
                           <span
-                            className="px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider border rounded"
-                            style={{
-                              color:
-                                version.urgency === "URGENT"
-                                  ? "#EF4444"
-                                  : version.urgency === "HIGH"
-                                    ? "#F59E0B"
-                                    : "#3B82F6",
-                              backgroundColor:
-                                version.urgency === "URGENT"
-                                  ? "#EF444415"
-                                  : version.urgency === "HIGH"
-                                    ? "#F59E0B15"
-                                    : "#3B82F615",
-                              borderColor:
-                                version.urgency === "URGENT"
-                                  ? "#EF444430"
-                                  : version.urgency === "HIGH"
-                                    ? "#F59E0B30"
-                                    : "#3B82F630",
-                            }}
+                            className="rounded-full border px-2 py-0.5 font-mono font-bold text-[10px] tracking-wide"
+                            style={urgencyBadgeStyle(version.urgency)}
                           >
                             {version.urgency ?? "NORMAL"}
                           </span>
 
                           <span className="text-[12px] font-mono text-slate-600 dark:text-[#7C8798] border border-slate-200 dark:border-white/10 px-2 py-0.5 rounded bg-slate-50 dark:bg-white/5 uppercase">
-                            KATEGORI: {item.reportCategory?.name ?? "KATEGORI SECURE"}
+                            Kategori: {item.reportCategory?.name ?? "Tidak tersedia"}
                           </span>
 
                           <span className="text-xs text-muted-foreground/60 font-mono">
@@ -1068,7 +1092,7 @@ function BaketList({ data }: { data: OimPageData }) {
                           </span>
                         </div>
 
-                        <h2 className="text-[18px] font-bold text-slate-900 dark:text-white tracking-tight">
+                        <h2 className="line-clamp-2 text-lg font-bold tracking-tight text-slate-900 dark:text-white">
                           {version.displayTitle ?? "Baket tanpa isi"}
                         </h2>
 
@@ -1076,10 +1100,15 @@ function BaketList({ data }: { data: OimPageData }) {
                           {version.normalizedContent ?? version.originalContent ?? "Belum ada ringkasan."}
                         </p>
 
-                        <p className="text-[12px] font-mono text-slate-500 dark:text-[#7C8798] pt-1">
-                          PETUGAS: {fieldOfficerUserName(fieldOfficer).toUpperCase()} ·{" "}
-                          {administrativeAreaLabel(version.eventArea).toUpperCase()} ·{" "}
-                          {fmtDate(item.updatedAt).toUpperCase()}
+                        <p className="pt-1 font-mono text-xs text-slate-500 dark:text-[#7C8798]">
+                          Petugas:{" "}
+                          <GaswilEntityLink
+                            name={fieldOfficerUserName(fieldOfficer)}
+                            assignmentId={fieldOfficer.id}
+                            userProfileId={fieldOfficer.userProfile?.id}
+                          />{" "}
+                          · {administrativeAreaLabel(version.eventArea)} ·{" "}
+                          {fmtDate(item.updatedAt)}
                         </p>
                       </div>
 
@@ -1089,7 +1118,7 @@ function BaketList({ data }: { data: OimPageData }) {
                         className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-lg h-10 px-4 transition-all duration-[150ms] ease-out shrink-0 cursor-pointer"
                       >
                         <Link href={`/dashboard/oim/laporan-masuk/${item.id}`} className="flex items-center gap-2">
-                          <span>TINJAU</span>
+                          <span>Tinjau</span>
                           <ArrowRight className="size-4" style={{ strokeWidth: "2px" }} />
                         </Link>
                       </Button>
@@ -1098,19 +1127,19 @@ function BaketList({ data }: { data: OimPageData }) {
                 );
               })}
             </div>
-            <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm dark:shadow-none">
+            <div className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm dark:border-white/5 dark:bg-[#131A26] dark:shadow-none">
               {paginationControls}
             </div>
           </div>
         )
       ) : (
-        <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-8 flex flex-col items-center justify-center text-center space-y-4 select-none min-h-[220px] shadow-sm dark:shadow-none">
+        <div className="flex min-h-[220px] select-none flex-col items-center justify-center space-y-4 rounded-[8px] border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/5 dark:bg-[#131A26] dark:shadow-none">
           <div className="size-12 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-muted-foreground/60 border border-slate-200 dark:border-white/10">
             <Inbox className="size-6" style={{ strokeWidth: "2px" }} />
           </div>
           <div className="space-y-1">
-            <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              TIDAK ADA INTAKE AKTIF
+            <h3 className="text-[15px] font-bold text-slate-900 tracking-tight dark:text-white">
+              Tidak ada intake aktif
             </h3>
             <p className="text-[13px] text-slate-600 dark:text-[#94A3B8]">
               Semua laporan intelijen telah selesai diproses.
@@ -1122,7 +1151,7 @@ function BaketList({ data }: { data: OimPageData }) {
             className="border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-[#06B6D4]/50 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-xs text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white rounded-md h-8 px-3 flex items-center gap-1.5 transition-all duration-[150ms] cursor-pointer"
           >
             <RefreshCw className="size-3.5" style={{ strokeWidth: "2px" }} />
-            <span>SINKRONKAN</span>
+            <span>Sinkronkan</span>
           </Button>
         </div>
       )}
@@ -1208,10 +1237,14 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
             <Separator />
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-muted-foreground">Field Officer pengirim</dt>
+                <dt className="text-muted-foreground">Petugas Wilayah (Gaswil) Pengirim</dt>
                 <dd className="mt-1 flex items-center gap-2 font-medium">
                   <UserRound className="size-4" />
-                  {fieldOfficerUserName(fieldOfficer)}
+                  <GaswilEntityLink
+                    name={fieldOfficerUserName(fieldOfficer)}
+                    assignmentId={fieldOfficer.id}
+                    userProfileId={fieldOfficer.userProfile?.id}
+                  />
                 </dd>
                 <dd className="text-xs text-muted-foreground">{fieldOfficer.position?.title ?? "Petugas Organik"}</dd>
               </div>
@@ -1299,24 +1332,14 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
                 {evidence.map((entry) => {
                   const file = (entry.file ?? {}) as Row;
                   const fileId = entry.fileId ?? file.id;
-                  const isImage = String(file.mimeType ?? "").startsWith("image/");
                   return (
-                    <div key={fileId} className="overflow-hidden rounded-lg border">
-                      {isImage ? (
-                        <EvidenceImageViewer
-                          src={`/api/files/${fileId}`}
-                          alt={file.originalName ?? "Foto bukti Baket"}
-                          fileName={file.originalName ?? fileId}
-                          caption={entry.caption ?? file.mimeType}
-                        />
-                      ) : null}
-                      <div className="p-3">
-                        <p className="font-medium">{file.originalName ?? fileId}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {entry.caption ?? file.mimeType ?? "Bukti Baket"}
-                        </p>
-                      </div>
-                    </div>
+                    <EvidenceAttachmentViewer
+                      key={fileId}
+                      src={`/api/files/${fileId}`}
+                      fileName={String(file.originalName ?? fileId)}
+                      mimeType={String(file.mimeType ?? "application/octet-stream")}
+                      caption={String(entry.caption ?? file.mimeType ?? "Bukti Baket")}
+                    />
                   );
                 })}
               </div>
@@ -1326,7 +1349,11 @@ function BaketDetail({ item, activeTab }: { item?: unknown; activeTab?: string }
             {sourceMessages.map((source) => (
               <div key={source.messageId} className="rounded-lg border p-3">
                 <p className="font-medium">
-                  Pesan sumber · {source.message?.jaring?.aliasName ?? source.message?.jaring?.fullName ?? source.message?.jaring?.id ?? "Jaring"}
+                  Pesan sumber ·{" "}
+                  {source.message?.jaring?.aliasName ??
+                    source.message?.jaring?.fullName ??
+                    source.message?.jaring?.id ??
+                    "Jaring"}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {source.message?.content ?? "Isi sumber tidak tersedia"}
@@ -2016,7 +2043,12 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
                     {index + 1}. {baketVersion.title ?? "Baket"}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {administrativeAreaLabel(baketVersion.eventArea)} · {fieldOfficerUserName(fieldOfficer)}
+                    {administrativeAreaLabel(baketVersion.eventArea)} ·{" "}
+                    <GaswilEntityLink
+                      name={fieldOfficerUserName(fieldOfficer)}
+                      assignmentId={fieldOfficer?.id}
+                      userProfileId={fieldOfficer?.userProfile?.id}
+                    />
                   </p>
                 </div>
               );
@@ -2569,7 +2601,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
           </div>
 
           {/* Form container */}
-          <Card className="flex h-[680px] flex-col overflow-hidden rounded-lg border-border/80 bg-card/85 shadow-lg">
+          <Card className="flex h-[min(42rem,72svh)] min-h-[30rem] flex-col overflow-hidden border-border/80 bg-card/85 shadow-lg">
             <div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-secondary/10 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
               <span>Editor Laporan Intelijen</span>
               <span className="text-[8px] font-bold text-sky-400 bg-sky-950/40 border border-sky-800/40 px-1 py-0.2">
@@ -2792,7 +2824,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
         </div>
 
         {/* KANAN: Document Workspace Preview */}
-        <div className="flex h-[680px] min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 dark:border-[#2c3747] bg-[#f1f5f9] dark:bg-[#1B2230] shadow-[0_24px_60px_rgba(0,0,0,0.08)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+        <div className="flex h-[min(42rem,72svh)] min-h-[30rem] min-w-0 flex-col overflow-hidden rounded-[var(--dc-radius-lg)] border border-slate-200 bg-[#f1f5f9] shadow-[0_24px_60px_rgba(0,0,0,0.08)] dark:border-[#2c3747] dark:bg-[#1B2230] dark:shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
           {/* Toolbar Preview */}
           <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-slate-200 dark:border-white/8 bg-slate-100 dark:bg-[#131C2B] px-3 font-mono text-[10px] select-none">
             <div className="flex min-w-0 items-center gap-2 text-slate-600 dark:text-[#8F9FB4]">
@@ -3251,7 +3283,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
         }}
       />
 
-      <main className="mx-auto w-full max-w-[1600px] space-y-6 p-6 md:p-8 relative z-10">
+      <main className="relative z-10 mx-auto w-full max-w-[1600px] space-y-5 sm:space-y-6">
         <Header view={view} data={data} />
         <ErrorBanner errors={data.errors} />
         {view === "dashboard" && (
@@ -3462,19 +3494,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
             item={view === "analysis-version" ? { versions: [data.version], status: "VALIDATED" } : data.analysis}
           />
         )}
-        {view === "products" && (
-          <>
-            <div className="flex justify-end">
-              <Button asChild>
-                <Link href="/dashboard/oim/produk-intelijen/buat-produk">
-                  <Plus />
-                  Buat Laporan Intelijen
-                </Link>
-              </Button>
-            </div>
-            <ProductList data={data} />
-          </>
-        )}
+        {view === "products" && <ProductList data={data} />}
         {view === "product-list" && (
           <>
             <Filters areas={data.areas} mode="product" />

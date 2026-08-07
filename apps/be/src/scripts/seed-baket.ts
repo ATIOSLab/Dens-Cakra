@@ -178,10 +178,6 @@ function addHours(base: Date, hours: number) {
   return new Date(base.getTime() + hours * 60 * 60 * 1000);
 }
 
-function compactCode(value: string) {
-  return value.replace(/[^A-Z0-9]+/gi, '').toUpperCase();
-}
-
 async function upsertMasterData() {
   const categories = [];
 
@@ -391,15 +387,12 @@ async function upsertVerifiedBaket(params: {
   const coordinateOffset = ((sequence % 7) - 3) * 0.001;
   const latitude = area.centroidLatitude + coordinateOffset;
   const longitude = area.centroidLongitude - coordinateOffset;
-  const areaCode = compactCode(area.officialCode ?? area.name).slice(0, 20);
-  const jaringCode = `SEED-JARING-${areaCode}-${String(sequence + 1).padStart(3, '0')}`;
   const title = `${topic.title} di ${area.name}`;
 
   await prisma.$transaction(async (tx) => {
     await tx.jaring.upsert({
       where: { id: jaringId },
       update: {
-        code: jaringCode,
         aliasName: `Jaring ${area.name} ${String(sequence + 1).padStart(2, '0')}`,
         whatsappNumber: `+62870${String(sequence + 1).padStart(8, '0')}`,
         status: JaringStatus.ACTIVE,
@@ -410,7 +403,6 @@ async function upsertVerifiedBaket(params: {
       },
       create: {
         id: jaringId,
-        code: jaringCode,
         aliasName: `Jaring ${area.name} ${String(sequence + 1).padStart(2, '0')}`,
         whatsappNumber: `+62870${String(sequence + 1).padStart(8, '0')}`,
         status: JaringStatus.ACTIVE,
@@ -483,10 +475,8 @@ async function upsertVerifiedBaket(params: {
       update: {
         baketId,
         versionNumber: 1,
-        title,
         originalContent: `${SEED_TAG}\nFakta: ${topic.finding}\nLokasi: ${area.name}.\nSumber memperoleh informasi melalui pemantauan langsung dan konfirmasi lapangan.`,
         normalizedContent: `Pada ${eventTime.toISOString()}, Field Officer melaporkan ${topic.finding.toLowerCase()} ${topic.implication}`,
-        eventTime,
         eventAreaId: area.id,
         latitude,
         longitude,
@@ -507,10 +497,8 @@ async function upsertVerifiedBaket(params: {
         id: versionId,
         baketId,
         versionNumber: 1,
-        title,
         originalContent: `${SEED_TAG}\nFakta: ${topic.finding}\nLokasi: ${area.name}.\nSumber memperoleh informasi melalui pemantauan langsung dan konfirmasi lapangan.`,
         normalizedContent: `Pada ${eventTime.toISOString()}, Field Officer melaporkan ${topic.finding.toLowerCase()} ${topic.implication}`,
-        eventTime,
         eventAreaId: area.id,
         latitude,
         longitude,

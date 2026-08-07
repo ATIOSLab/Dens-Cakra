@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import {
   Calendar,
   ChevronRight,
@@ -10,30 +12,39 @@ import {
   FileText,
   Filter,
   LayoutGrid,
-  MapPin,
   Plus,
   RefreshCw,
-  Search,
   ScrollText,
+  Search,
   Table as TableIcon,
   User,
   Users,
 } from "lucide-react";
 
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { JaringSelectPopover } from "@/components/ui/jaring-select-popover";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { jakartaBoundaryIso, resolveJakartaPeriodRange } from "@/lib/domain/date-time";
 import { cn } from "@/lib/utils";
-import { JaringSelectPopover } from "@/components/ui/jaring-select-popover";
-import type { CoachingReportItem, PeriodeFilterOption } from "./laporan-pembinaan-types";
 import type { FieldOfficerJaring, FieldOfficerWorkspace } from "@/server/field-ops/types";
+
+import type { CoachingReportItem, PeriodeFilterOption } from "./laporan-pembinaan-types";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
@@ -69,14 +80,14 @@ export function LaporanPembinaanClient() {
   const [villageAreas, setVillageAreas] = useState<Array<{ areaId: string; name: string }>>([]);
   const [loadingWorkspace, setLoadingWorkspace] = useState(true);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [totalReports, setTotalReports] = useState(0);
 
   // View mode state
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
 
-
-
   // Filter states
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [periodeFilter, setPeriodeFilter] = useState<PeriodeFilterOption>("ALL");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -84,11 +95,20 @@ export function LaporanPembinaanClient() {
   const [villageFilter, setVillageFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const requestSequence = useRef(0);
 
-  // Load workspace & coaching reports in a single unified flow to avoid UI flickering
-  async function loadAllData() {
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const periodRange = useMemo(
+    () => resolveJakartaPeriodRange(periodeFilter, startDate, endDate),
+    [endDate, periodeFilter, startDate],
+  );
+
+  const loadWorkspace = useCallback(async () => {
     setLoadingWorkspace(true);
-    setLoadingReports(true);
     try {
       const res = await fetch("/api/field-officer/workspace");
       if (res.ok) {
@@ -98,141 +118,71 @@ export function LaporanPembinaanClient() {
         if (Array.isArray(data?.villageAreas)) {
           setVillageAreas(data.villageAreas);
         }
-        await fetchCoachingReports(jarings);
       }
     } catch (err) {
-      console.error("Gagal memuat data workspace Field Officer:", err);
+      console.error("Gagal memuat data ruang kerja Petugas Wilayah:", err);
     } finally {
       setLoadingWorkspace(false);
-      setLoadingReports(false);
     }
-  }
-
-  async function fetchCoachingReports(jaringsToFetch: FieldOfficerJaring[]) {
-    const verifiedJarings = jaringsToFetch.filter((j) => j.registrationStatus === "APPROVED");
-    if (verifiedJarings.length === 0) {
-      setReports([]);
-      return;
-    }
-
-    try {
-      const jaringMap = new Map<string, FieldOfficerJaring>();
-      verifiedJarings.forEach((j) => jaringMap.set(j.id, j));
-
-      const fetchPromises = verifiedJarings.map(async (jaring) => {
-        try {
-          const res = await apiBrowserFetch<{ items?: CoachingReportItem[] } | CoachingReportItem[]>(
-            `/jaring/${jaring.id}/coaching-reports?limit=100`,
-          );
-          const items = Array.isArray(res) ? res : res?.items || [];
-          return items.map((report) => ({
-            ...report,
-            jaringCode: jaring.aliasName || jaring.id,
-            jaringAlias: jaring.aliasName || jaring.fullName || jaring.id,
-            jaringName: jaring.fullName || jaring.aliasName || jaring.id,
-            villageName: jaring.areaNames && jaring.areaNames.length > 0 ? jaring.areaNames.join(", ") : "-",
-          }));
-        } catch {
-          return [];
-        }
-      });
-
-      const results = await Promise.all(fetchPromises);
-      const allReports = results.flat();
-
-      // Sort by reportedAt descending
-      allReports.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
-
-      setReports(allReports);
-    } catch (err) {
-      console.error("Gagal memuat laporan pembinaan:", err);
-    }
-  }
-
-  useEffect(() => {
-    void loadAllData();
   }, []);
 
+  const fetchCoachingReports = useCallback(async () => {
+    const requestId = ++requestSequence.current;
+    setLoadingReports(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        sortBy: "reportedAt",
+        sortOrder: "desc",
+      });
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (jaringFilter !== "ALL") params.set("jaringId", jaringFilter);
+      if (villageFilter !== "ALL") params.set("areaId", villageFilter);
+      if (periodRange.from) params.set("from", jakartaBoundaryIso(periodRange.from));
+      if (periodRange.to) params.set("to", jakartaBoundaryIso(periodRange.to, true));
+
+      const result = await apiBrowserFetch<{
+        items?: CoachingReportItem[];
+        pagination?: { total: number };
+      }>(`/jaring/coaching-reports?${params.toString()}`);
+      if (requestId !== requestSequence.current) return;
+      setReports(result.items ?? []);
+      setTotalReports(result.pagination?.total ?? 0);
+    } catch (err) {
+      if (requestId === requestSequence.current) {
+        console.error("Gagal memuat laporan pembinaan:", err);
+      }
+    } finally {
+      if (requestId === requestSequence.current) setLoadingReports(false);
+    }
+  }, [debouncedSearch, jaringFilter, limit, page, periodRange, villageFilter]);
+
+  useEffect(() => {
+    void loadWorkspace();
+  }, [loadWorkspace]);
+
+  useEffect(() => {
+    void fetchCoachingReports();
+  }, [fetchCoachingReports]);
+
   function handleRefresh() {
-    void loadAllData();
+    void Promise.all([loadWorkspace(), fetchCoachingReports()]);
   }
 
-  // Filter logic
-  const filteredReports = useMemo(() => {
-    return reports.filter((item) => {
-      // 1. Search Query Filter
-      if (search.trim()) {
-        const q = search.toLowerCase().trim();
-        const matchTitle = item.title.toLowerCase().includes(q);
-        const matchContent = item.content.toLowerCase().includes(q);
-        const matchAlias = (item.jaringAlias || "").toLowerCase().includes(q);
-        const matchName = (item.jaringName || "").toLowerCase().includes(q);
-        if (!matchTitle && !matchContent && !matchAlias && !matchName) {
-          return false;
-        }
-      }
-
-      // 2. Jaring Filter
-      if (jaringFilter !== "ALL" && item.jaringId !== jaringFilter) {
-        return false;
-      }
-
-      // 3. Kelurahan/Desa Filter
-      if (villageFilter !== "ALL") {
-        const selectedVillage = villageAreas.find((v) => v.areaId === villageFilter);
-        if (selectedVillage && !item.villageName?.toLowerCase().includes(selectedVillage.name.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // 4. Date / Period Filter
-      const reportDateStr = item.reportedAt || item.createdAt;
-      if (reportDateStr) {
-        const itemTime = new Date(reportDateStr).getTime();
-        const now = new Date();
-
-        if (periodeFilter === "TODAY") {
-          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-          if (itemTime < startOfDay) return false;
-        } else if (periodeFilter === "LAST_7_DAYS") {
-          const sevenDaysAgo = now.getTime() - 7 * 24 * 3600 * 1000;
-          if (itemTime < sevenDaysAgo) return false;
-        } else if (periodeFilter === "LAST_30_DAYS") {
-          const thirtyDaysAgo = now.getTime() - 30 * 24 * 3600 * 1000;
-          if (itemTime < thirtyDaysAgo) return false;
-        } else if (periodeFilter === "CUSTOM") {
-          if (startDate && startDate.length === 10) {
-            const start = new Date(`${startDate}T00:00:00`).getTime();
-            if (itemTime < start) return false;
-          }
-          if (endDate && endDate.length === 10) {
-            const end = new Date(`${endDate}T23:59:59.999`).getTime();
-            if (itemTime > end) return false;
-          }
-        }
-      }
-
-      return true;
-    });
-  }, [reports, search, jaringFilter, villageFilter, startDate, endDate, periodeFilter, villageAreas]);
-
-  // Pagination logic
-  const totalItems = filteredReports.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / limit));
-  const currentPage = Math.min(page, totalPages);
-  const pagedReports = useMemo(() => {
-    const start = (currentPage - 1) * limit;
-    return filteredReports.slice(start, start + limit);
-  }, [filteredReports, currentPage, limit]);
+  const filteredReports = reports;
+  const totalItems = totalReports;
+  const currentPage = page;
+  const pagedReports = reports;
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div className="dc-page">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
             <ScrollText className="h-6 w-6 text-primary" />
-            History Pembinaan Jaring
+            Riwayat Pembinaan Jaring
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Kelola dan tinjau seluruh rekaman pembinaan, pengarahan, dan bimbingan Jaring di wilayah tugas Anda.
@@ -248,15 +198,15 @@ export function LaporanPembinaanClient() {
             className="h-9 gap-1.5 text-xs"
           >
             <RefreshCw className={cn("h-3.5 w-3.5", (loadingWorkspace || loadingReports) && "animate-spin")} />
-            Refresh
+            Muat Ulang
           </Button>
 
-          <Link href="/dashboard/laporan-pembinaan-jaring/baru">
-            <Button size="sm" className="h-9 gap-1.5 text-xs">
+          <Button asChild size="sm" className="h-9 gap-1.5 text-xs">
+            <Link href="/dashboard/laporan-pembinaan-jaring/baru">
               <Plus className="h-4 w-4" />
               Buat Laporan Pembinaan
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -329,6 +279,7 @@ export function LaporanPembinaanClient() {
               <option value="TODAY">Hari Ini</option>
               <option value="LAST_7_DAYS">7 Hari Terakhir</option>
               <option value="LAST_30_DAYS">30 Hari Terakhir</option>
+              <option value="THIS_MONTH">Bulan Ini</option>
               <option value="CUSTOM">Kustom (Pilih Tanggal)</option>
             </NativeSelect>
           </div>
@@ -369,7 +320,12 @@ export function LaporanPembinaanClient() {
 
         {/* Right Side: Reset Button & View Mode Toggle */}
         <div className="flex items-center gap-2">
-          {(search || jaringFilter !== "ALL" || villageFilter !== "ALL" || periodeFilter !== "ALL" || startDate || endDate) && (
+          {(search ||
+            jaringFilter !== "ALL" ||
+            villageFilter !== "ALL" ||
+            periodeFilter !== "ALL" ||
+            startDate ||
+            endDate) && (
             <Button
               variant="ghost"
               size="sm"
@@ -377,6 +333,7 @@ export function LaporanPembinaanClient() {
                 setSearch("");
                 setJaringFilter("ALL");
                 setVillageFilter("ALL");
+                setPeriodeFilter("ALL");
                 setStartDate("");
                 setEndDate("");
                 setPage(1);
@@ -404,17 +361,10 @@ export function LaporanPembinaanClient() {
           <h3 className="text-sm font-semibold text-foreground mb-1">Belum Ada Laporan Pembinaan</h3>
           <p className="text-xs text-muted-foreground max-w-md mb-4">
             {reports.length === 0
-              ? "Belum ada laporan pembinaan Jaring yang dibuat. Tekan tombol di bawah untuk membuat laporan pembinaan pertama."
+              ? "Belum ada laporan pembinaan Jaring. Gunakan tombol Buat Laporan Pembinaan pada bagian atas halaman."
               : "Tidak ada laporan pembinaan yang cocok dengan kriteria filter atau kata kunci pencarian Anda."}
           </p>
-          {reports.length === 0 ? (
-            <Link href="/dashboard/laporan-pembinaan-jaring/baru">
-              <Button size="sm" className="gap-1.5 text-xs">
-                <Plus className="h-4 w-4" />
-                Buat Laporan Pembinaan
-              </Button>
-            </Link>
-          ) : (
+          {reports.length > 0 ? (
             <Button
               variant="outline"
               size="sm"
@@ -429,26 +379,35 @@ export function LaporanPembinaanClient() {
             >
               Reset Filter
             </Button>
-          )}
+          ) : null}
         </div>
       ) : viewMode === "card" ? (
         /* CARD VIEW */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {pagedReports.map((report) => (
-            <Card key={report.id} className="hover:shadow-md transition-shadow flex flex-col justify-between border-border/80">
+            <Card
+              key={report.id}
+              className="hover:shadow-md transition-shadow flex flex-col justify-between border-border/80"
+            >
               <CardHeader className="p-4 pb-2 space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-mono text-[11px]">
-                      {report.jaringAlias}
-                    </Badge>
-                    {report.villageName && report.villageName !== "-" && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 py-0">
-                        <MapPin className="h-2.5 w-2.5 text-muted-foreground" />
-                        {report.villageName}
-                      </Badge>
-                    )}
-                  </div>
+                  <JaringIdentitySummary
+                    compact
+                    source={{
+                      id: report.jaringId,
+                      jaringName: report.jaringName,
+                      jaringAlias: report.jaringAlias,
+                      jaringCode: report.jaringCode,
+                      jaringWhatsAppNumber: report.jaringWhatsAppNumber,
+                      jaringProfilePhotoFileId: report.jaringProfilePhotoFileId,
+                      gaswilName: report.fieldOfficer?.userProfile?.fullName,
+                      gaswilAssignmentId: report.fieldOfficer?.assignmentId,
+                      gaswilUserProfileId: report.fieldOfficer?.userProfile?.id,
+                      assignedArea: report.assignedArea,
+                      villageName: report.villageName,
+                    }}
+                    className="flex-1"
+                  />
                   <span className="text-[11px] text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                     <Calendar className="h-3 w-3" />
                     {formatDateOnly(report.reportedAt)}
@@ -466,12 +425,17 @@ export function LaporanPembinaanClient() {
                 </p>
 
                 <div className="pt-2 border-t flex items-center justify-end text-xs">
-                  <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
-                    <Button variant="ghost" size="sm" className="h-7 px-2.5 text-xs text-primary hover:text-primary/90 gap-1">
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 px-2.5 text-primary text-xs hover:text-primary/90"
+                  >
+                    <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
                       Lihat Detail
                       <ChevronRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -479,59 +443,107 @@ export function LaporanPembinaanClient() {
         </div>
       ) : (
         /* TABLE VIEW */
-        <Card className="shadow-xs border border-border/80">
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-[50px] text-center text-xs">No</TableHead>
-                  <TableHead className="w-[140px] text-xs">Waktu Pembinaan</TableHead>
-                  <TableHead className="w-[170px] text-xs">Daftar Jaring</TableHead>
-                  <TableHead className="w-[180px] text-xs">Judul Laporan</TableHead>
-                  <TableHead className="min-w-[220px] text-xs">Isi Laporan</TableHead>
-                  <TableHead className="w-[140px] text-xs">Kelurahan / Desa</TableHead>
-                  <TableHead className="w-[90px] text-right text-xs">Aksi</TableHead>
+        <Card className="shadow-xs border border-border/80 overflow-hidden">
+          <CardContent className="p-0 overflow-x-auto select-none">
+            <Table className="w-full min-w-[1100px]">
+              <TableHeader className="bg-slate-50 dark:bg-white/5">
+                <TableRow className="border-b border-slate-200 dark:border-slate-800">
+                  <TableHead className="w-[45px] text-center font-bold text-xs uppercase tracking-wider">No</TableHead>
+                  <TableHead className="w-12 text-center font-bold text-xs uppercase tracking-wider">Foto</TableHead>
+                  <TableHead className="font-bold text-xs uppercase tracking-wider">Nama Jaring</TableHead>
+                  <TableHead className="font-bold text-xs uppercase tracking-wider">Kode Jaring</TableHead>
+                  <TableHead className="font-bold text-xs uppercase tracking-wider">Wilayah Penempatan</TableHead>
+                  <TableHead className="font-bold text-xs uppercase tracking-wider">Nomor WhatsApp</TableHead>
+                  <TableHead className="min-w-[220px] font-bold text-xs uppercase tracking-wider">
+                    Judul & Ringkasan Laporan
+                  </TableHead>
+                  <TableHead className="font-bold text-xs uppercase tracking-wider whitespace-nowrap">
+                    Waktu Pembinaan
+                  </TableHead>
+                  <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagedReports.map((report, idx) => (
-                  <TableRow key={report.id} className="hover:bg-muted/30 text-xs">
-                    <TableCell className="text-center font-mono text-muted-foreground">
-                      {(currentPage - 1) * limit + idx + 1}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap font-medium text-foreground">
-                      {formatDateTime(report.reportedAt)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-semibold text-foreground">{report.jaringName || report.jaringCode || report.jaringAlias}</div>
-                      {report.jaringAlias && (
-                        <Badge
+                {pagedReports.map((report, idx) => {
+                  const identity = resolveJaringIdentity({
+                    id: report.jaringId,
+                    jaringName: report.jaringName,
+                    jaringAlias: report.jaringAlias,
+                    jaringCode: report.jaringCode,
+                    jaringWhatsAppNumber: report.jaringWhatsAppNumber,
+                    jaringProfilePhotoFileId: report.jaringProfilePhotoFileId,
+                    assignedArea: report.assignedArea,
+                    villageName: report.villageName,
+                  });
+
+                  return (
+                    <TableRow key={report.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800">
+                      <TableCell className="text-center font-mono text-muted-foreground align-middle">
+                        {(currentPage - 1) * limit + idx + 1}
+                      </TableCell>
+
+                      <TableCell className="align-middle">
+                        <div className="size-8 overflow-hidden rounded-none border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center">
+                          {identity.avatarUrl ? (
+                            <img src={identity.avatarUrl} alt={identity.name} className="size-full object-cover" />
+                          ) : (
+                            <User className="size-4 text-slate-400 dark:text-slate-600" />
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="align-middle font-mono font-bold text-xs text-foreground">
+                        {identity.name}
+                      </TableCell>
+
+                      <TableCell className="align-middle font-mono text-xs text-violet-600 dark:text-violet-400">
+                        {identity.code}
+                      </TableCell>
+
+                      <TableCell className="align-middle font-mono text-xs text-foreground">
+                        {identity.placementArea}
+                      </TableCell>
+
+                      <TableCell className="align-middle font-mono text-xs">
+                        {identity.whatsappNumber && identity.whatsappNumber !== "Belum tersedia" ? (
+                          <a
+                            href={`https://wa.me/${identity.whatsappNumber.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-600 hover:underline dark:text-emerald-400 font-mono"
+                          >
+                            {identity.whatsappNumber}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">Belum tersedia</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="align-middle max-w-[280px]">
+                        <p className="line-clamp-1 font-semibold text-foreground text-xs">{report.title}</p>
+                        <p className="line-clamp-1 text-[11px] text-muted-foreground">{report.content || "-"}</p>
+                      </TableCell>
+
+                      <TableCell className="align-middle whitespace-nowrap font-mono text-muted-foreground text-xs">
+                        {formatDateTime(report.reportedAt)}
+                      </TableCell>
+
+                      <TableCell className="align-middle text-right">
+                        <Button
+                          asChild
                           variant="outline"
-                          className="mt-1 text-[10px] font-medium py-0 px-1.5 h-4 border-slate-300 dark:border-white/20 bg-muted/50 text-muted-foreground inline-flex items-center"
+                          size="sm"
+                          className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
                         >
-                          {report.jaringAlias}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-semibold text-foreground">
-                      {report.title}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground max-w-[300px]">
-                      <div className="line-clamp-2 text-xs">{report.content || "-"}</div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">
-                      {report.villageName || "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
-                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1">
-                          <Eye className="h-3.5 w-3.5" />
-                          Detail
+                          <Link href={`/dashboard/laporan-pembinaan-jaring/${report.id}?jaringId=${report.jaringId}`}>
+                            <Eye className="size-3.5" />
+                            Detail
+                          </Link>
                         </Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
@@ -553,7 +565,6 @@ export function LaporanPembinaanClient() {
           />
         </div>
       )}
-
     </div>
   );
 }

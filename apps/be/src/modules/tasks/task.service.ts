@@ -507,7 +507,20 @@ export class TaskService {
 
   async list(query: TaskQuery, context: AuthorizationContext) {
     const now = new Date();
+    const search = query.search?.trim();
+    const effectiveDueRange =
+      query.effectiveDueBefore || query.effectiveDueAfter
+        ? {
+            ...(query.effectiveDueBefore
+              ? { lte: new Date(query.effectiveDueBefore) }
+              : {}),
+            ...(query.effectiveDueAfter
+              ? { gte: new Date(query.effectiveDueAfter) }
+              : {}),
+          }
+        : undefined;
     const assignmentWhere: Prisma.TaskAssignmentWhereInput = {
+      ...(query.assignmentStatus ? { status: query.assignmentStatus } : {}),
       ...(query.assigneeAssignmentId
         ? { assigneeAssignmentId: query.assigneeAssignmentId }
         : {}),
@@ -521,9 +534,166 @@ export class TaskService {
             status: { in: [...OPEN_ASSIGNMENT_STATUSES] },
           }
         : {}),
+      ...(query.relatedAssignmentId
+        ? {
+            OR: [
+              { assigneeAssignmentId: query.relatedAssignmentId },
+              { assignerAssignmentId: query.relatedAssignmentId },
+            ],
+          }
+        : {}),
     };
 
     const where = this.taskAccessWhere(context, {
+      AND: ([
+        ...(search
+          ? [
+              {
+                OR: [
+              { title: { contains: search, mode: 'insensitive' } },
+              { description: { contains: search, mode: 'insensitive' } },
+              {
+                directiveVersion: {
+                  is: {
+                    OR: [
+                      {
+                        commandDescription: {
+                          contains: search,
+                          mode: 'insensitive',
+                        },
+                      },
+                      {
+                        directive: {
+                          commandNumber: {
+                            contains: search,
+                            mode: 'insensitive',
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                uukStrVersion: {
+                  is: {
+                    OR: [
+                      { title: { contains: search, mode: 'insensitive' } },
+                      {
+                        uukStr: {
+                          directiveVersion: {
+                            directive: {
+                              commandNumber: {
+                                contains: search,
+                                mode: 'insensitive',
+                              },
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                assignments: {
+                  some: {
+                    OR: [
+                      {
+                        assignmentNote: {
+                          contains: search,
+                          mode: 'insensitive',
+                        },
+                      },
+                      {
+                        assignee: {
+                          userProfile: {
+                            fullName: {
+                              contains: search,
+                              mode: 'insensitive',
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+                ],
+              },
+            ]
+          : []),
+        ...(query.classification
+          ? [
+              {
+                OR: [
+                  {
+                    directiveVersion: {
+                      is: { classification: query.classification },
+                    },
+                  },
+                  {
+                    uukStrVersion: {
+                      is: {
+                        uukStr: {
+                          directiveVersion: {
+                            classification: query.classification,
+                          },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+        ...(query.sourceUrgency
+          ? [
+              {
+                OR: [
+                  {
+                    directiveVersion: {
+                      is: { urgency: query.sourceUrgency },
+                    },
+                  },
+                  {
+                    uukStrVersion: {
+                      is: {
+                        uukStr: {
+                          directiveVersion: { urgency: query.sourceUrgency },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+        ...(effectiveDueRange
+          ? [
+              {
+                OR: [
+                  { directiveVersion: { is: { dueDate: effectiveDueRange } } },
+                  {
+                    directiveVersion: { is: null },
+                    uukStrVersion: {
+                      is: {
+                        uukStr: {
+                          directiveVersion: { dueDate: effectiveDueRange },
+                        },
+                      },
+                    },
+                  },
+                  {
+                    directiveVersion: { is: null },
+                    uukStrVersion: { is: null },
+                    dueDate: effectiveDueRange,
+                  },
+                ],
+              },
+            ]
+          : []),
+      ] as Prisma.TaskWhereInput[]),
       ...(query.status ? { status: query.status } : {}),
       ...(query.priority ? { priority: query.priority } : {}),
       ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
@@ -582,6 +752,13 @@ export class TaskService {
           }
         : {}),
       ...(query.assigneeAssignmentId
+        ? {
+            assignments: {
+              some: assignmentWhere,
+            },
+          }
+        : {}),
+      ...(query.relatedAssignmentId
         ? {
             assignments: {
               some: assignmentWhere,
@@ -660,7 +837,29 @@ export class TaskService {
       });
 
       const start = (query.page - 1) * query.limit;
-      return tasks.slice(start, start + query.limit);
+      const items = tasks.slice(start, start + query.limit);
+      if (!query.paginated) return items;
+
+      const completed = tasks.filter((task) => task.status === TaskStatus.COMPLETED).length;
+      const inProgress = tasks.filter((task) =>
+        [TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS].includes(task.status),
+      ).length;
+      return {
+        items,
+        pagination: {
+          page: query.page,
+          limit: query.limit,
+          total: tasks.length,
+          totalPages: Math.max(1, Math.ceil(tasks.length / query.limit)),
+        },
+        summary: {
+          total: tasks.length,
+          completed,
+          inProgress,
+          completionRate:
+            tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0,
+        },
+      };
     }
 
     const orderBy: Prisma.TaskOrderByWithRelationInput[] = query.sortBy
@@ -672,13 +871,50 @@ export class TaskService {
         ]
       : [{ dueDate: 'asc' }, { createdAt: 'desc' }];
 
-    return this.prisma.task.findMany({
-      where,
-      skip: (query.page - 1) * query.limit,
-      take: query.limit,
-      orderBy,
-      include,
-    });
+    if (!query.paginated) {
+      return this.prisma.task.findMany({
+        where,
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy,
+        include,
+      });
+    }
+
+    const [items, total, statuses] = await Promise.all([
+      this.prisma.task.findMany({
+        where,
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy,
+        include,
+      }),
+      this.prisma.task.count({ where }),
+      this.prisma.task.groupBy({ by: ['status'], where, _count: { _all: true } }),
+    ]);
+    const statusCount = new Map<TaskStatus, number>(
+      statuses.map((item) => [item.status, Number(item._count._all)]),
+    );
+    const completed = statusCount.get(TaskStatus.COMPLETED) ?? 0;
+    const inProgress =
+      (statusCount.get(TaskStatus.ASSIGNED) ?? 0) +
+      (statusCount.get(TaskStatus.IN_PROGRESS) ?? 0);
+
+    return {
+      items,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / query.limit)),
+      },
+      summary: {
+        total,
+        completed,
+        inProgress,
+        completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+      },
+    };
   }
 
   async create(body: CreateTaskDto, context: AuthorizationContext) {

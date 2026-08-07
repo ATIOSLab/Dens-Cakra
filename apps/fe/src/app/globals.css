@@ -89,8 +89,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
+  --font-heading: var(--font-inter);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-ibm-plex-mono);
 }
 
 /* Default theme styles (used when no data-theme-preset is set or when 'default' is selected).
@@ -100,13 +101,29 @@ These serve as the fallback; there is no separate default.css file. */
 
   /* fonts */
   --font-sans: var(--font-inter);
+  --font-heading: var(--font-inter);
   --font-mono: var(--font-ibm-plex-mono);
+  --dc-font-ui:
+    var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --dc-font-metadata: var(--font-ibm-plex-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --dc-text-xs: 0.75rem;
+  --dc-text-micro: 0.6875rem;
+  --dc-text-sm: 0.875rem;
+  --dc-text-base: 1rem;
+  --dc-leading-tight: 1.25;
+  --dc-leading-normal: 1.5;
+  --dc-control-sm: 2rem;
+  --dc-control-md: 2.25rem;
+  --dc-control-lg: 2.5rem;
+  --dc-card-padding: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
+  --dc-card-padding-sm: clamp(0.625rem, 0.55rem + 0.25vw, 0.75rem);
+  --dc-page-gap: clamp(1rem, 0.85rem + 0.5vw, 1.25rem);
+  --dc-section-gap: clamp(0.875rem, 0.75rem + 0.5vw, 1rem);
 
   /* DENS CAKRA command-center tokens: light mode */
   color-scheme: light;
   --dc-canvas: #f6f8fb;
-  --dc-sidebar: #ffffff;
+  --dc-sidebar: #0f1b2d;
   --dc-surface: #ffffff;
   --dc-card: #ffffff;
   --dc-surface-raised: #f9fafb;
@@ -133,19 +150,19 @@ These serve as the fallback; there is no separate default.css file. */
   --dc-warning-soft: rgba(217, 119, 6, 0.12);
   --dc-danger-soft: rgba(220, 38, 38, 0.12);
   --dc-info-soft: rgba(14, 165, 233, 0.12);
-  --sidebar-bg: #ffffff;
-  --sidebar-surface: #f8fafc;
-  --sidebar-hover: #f1f5f9;
-  --sidebar-active: rgba(20, 184, 255, 0.08);
-  --sidebar-active-border: rgba(20, 184, 255, 0.18);
-  --sidebar-border: #e5e7eb;
-  --sidebar-text: #111827;
-  --sidebar-text-muted: #64748b;
-  --sidebar-icon: #64748b;
+  --sidebar-bg: #0f1b2d;
+  --sidebar-surface: #16243a;
+  --sidebar-hover: rgba(255, 255, 255, 0.07);
+  --sidebar-active: rgba(14, 165, 233, 0.16);
+  --sidebar-active-border: rgba(125, 211, 252, 0.28);
+  --sidebar-border: rgba(148, 163, 184, 0.16);
+  --sidebar-text: #e2e8f0;
+  --sidebar-text-muted: #94a3b8;
+  --sidebar-icon: #94a3b8;
   --sidebar-accent: #14b8ff;
-  --sidebar-active-text: #14b8ff;
-  --sidebar-active-icon: #14b8ff;
-  --sidebar-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --sidebar-active-text: #7dd3fc;
+  --sidebar-active-icon: #7dd3fc;
+  --sidebar-shadow: 0 12px 30px rgba(2, 6, 23, 0.2);
   --dc-radius-sm: 3px;
   --dc-radius-md: 4px;
   --dc-radius-lg: 6px;
@@ -156,9 +173,9 @@ These serve as the fallback; there is no separate default.css file. */
   --dc-shadow-soft: 0 1px 3px rgba(15, 23, 42, 0.08);
   --dc-sidebar-width: 16.5rem;
   --dc-sidebar-collapsed: 4.5rem;
-  --dc-topbar-height: 3.75rem;
-  --dc-content-max: 112rem;
-  --dc-page-gutter: 1.5rem;
+  --dc-topbar-height: 4rem;
+  --dc-content-max: 100rem;
+  --dc-page-gutter: clamp(1rem, 0.7rem + 1vw, 1.5rem);
 
   --background: var(--dc-canvas);
   --foreground: var(--dc-text-primary);
@@ -189,6 +206,41 @@ These serve as the fallback; there is no separate default.css file. */
   --sidebar-primary-foreground: var(--dc-text-inverse);
   --sidebar-accent-foreground: var(--sidebar-text);
   --sidebar-ring: var(--sidebar-accent);
+}
+
+.dc-dashboard-stage {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: var(--dc-content-max);
+  margin-inline: auto;
+}
+
+.dc-dashboard-stage::before {
+  position: fixed;
+  z-index: -1;
+  inset: var(--dc-topbar-height) 0 0 var(--sidebar-width, 0);
+  pointer-events: none;
+  content: "";
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--dc-primary) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--dc-primary) 4%, transparent) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 45%), transparent 72%);
+  opacity: 0.45;
+}
+
+@media (max-width: 1023px) {
+  .dc-dashboard-stage::before {
+    inset-inline-start: 0;
+    opacity: 0.3;
+  }
+}
+
+@media (max-width: 639px) {
+  :root {
+    --dc-topbar-height: 3.75rem;
+  }
 }
 
 .dark {
@@ -278,7 +330,29 @@ These serve as the fallback; there is no separate default.css file. */
       radial-gradient(circle at 18% -8%, color-mix(in srgb, var(--dc-primary) 18%, transparent) 0, transparent 32rem),
       radial-gradient(circle at 88% 4%, color-mix(in srgb, var(--dc-info) 12%, transparent) 0, transparent 28rem),
       linear-gradient(180deg, color-mix(in srgb, var(--dc-canvas) 94%, var(--dc-surface) 6%), var(--dc-canvas));
-    font-family: var(--font-sans), system-ui, sans-serif;
+    font-family: var(--dc-font-ui);
+    font-feature-settings:
+      "cv02" 1,
+      "cv03" 1,
+      "cv04" 1,
+      "cv11" 1;
+    font-synthesis: none;
+    font-size: var(--dc-text-base);
+    line-height: var(--dc-leading-normal);
+    text-rendering: optimizeLegibility;
+  }
+
+  :where(button, input, select, textarea) {
+    font: inherit;
+  }
+
+  :where(h1, h2, h3, h4, h5, h6, [data-slot="card-title"], [data-slot="dialog-title"]) {
+    font-family: var(--dc-font-ui);
+    letter-spacing: -0.015em;
+  }
+
+  :where([data-slot="table"], .tabular-nums) {
+    font-variant-numeric: tabular-nums;
   }
 
   body::before {
@@ -440,6 +514,40 @@ These serve as the fallback; there is no separate default.css file. */
 }
 
 @layer components {
+  .dc-dashboard-stage > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dc-dashboard-stage :where(h1, h2, h3, [data-slot="card-title"]) {
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+
+  .dc-dashboard-stage :where([data-slot="card"], [data-slot="table-container"]) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .dc-page {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    max-width: var(--dc-content-max);
+    margin-inline: auto;
+    flex-direction: column;
+    gap: var(--dc-page-gap);
+  }
+
+  .dc-section-grid {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: var(--dc-section-gap);
+  }
+
   .dc-card {
     background: var(--dc-card);
     border: 1px solid var(--dc-border-subtle);
@@ -522,7 +630,9 @@ These serve as the fallback; there is no separate default.css file. */
   .dc-eyebrow {
     color: var(--dc-text-muted);
     font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 0.75rem;
+    font-size: var(--dc-text-xs);
+    font-weight: 600;
+    line-height: var(--dc-leading-tight);
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
@@ -534,6 +644,12 @@ These serve as the fallback; there is no separate default.css file. */
     border: 1px solid var(--dc-border);
     border-radius: var(--dc-radius-lg);
     background: var(--dc-surface);
+  }
+
+  @media (max-width: 639px) {
+    .dc-map-shell {
+      min-height: 24rem;
+    }
   }
 
   .executive-command-page {
@@ -660,59 +776,10 @@ These serve as the fallback; there is no separate default.css file. */
     box-shadow: var(--shadow-2xl);
   }
 
-  html[data-font="inter"] body {
+  html[data-font] body {
+    --font-heading: var(--font-inter);
+    --font-mono: var(--font-ibm-plex-mono);
     --font-sans: var(--font-inter);
-  }
-  html[data-font="notoSans"] body {
-    --font-sans: var(--font-noto-sans);
-  }
-  html[data-font="nunitoSans"] body {
-    --font-sans: var(--font-nunito-sans);
-  }
-  html[data-font="figtree"] body {
-    --font-sans: var(--font-figtree);
-  }
-  html[data-font="roboto"] body {
-    --font-sans: var(--font-roboto);
-  }
-  html[data-font="geist"] body {
-    --font-sans: var(--font-geist);
-  }
-  html[data-font="raleway"] body {
-    --font-sans: var(--font-raleway);
-  }
-  html[data-font="dmSans"] body {
-    --font-sans: var(--font-dm-sans);
-  }
-  html[data-font="publicSans"] body {
-    --font-sans: var(--font-public-sans);
-  }
-  html[data-font="outfit"] body {
-    --font-sans: var(--font-outfit);
-  }
-  html[data-font="geistMono"] body {
-    --font-sans: var(--font-geist-mono);
-  }
-  html[data-font="geistPixelSquare"] body {
-    --font-sans: var(--font-geist-pixel-square);
-  }
-  html[data-font="jetBrainsMono"] body {
-    --font-sans: var(--font-jetbrains-mono);
-  }
-  html[data-font="notoSerif"] body {
-    --font-sans: var(--font-noto-serif);
-  }
-  html[data-font="robotoSlab"] body {
-    --font-sans: var(--font-roboto-slab);
-  }
-  html[data-font="merriweather"] body {
-    --font-sans: var(--font-merriweather);
-  }
-  html[data-font="lora"] body {
-    --font-sans: var(--font-lora);
-  }
-  html[data-font="playfairDisplay"] body {
-    --font-sans: var(--font-playfair-display);
   }
 }
 
@@ -946,7 +1013,8 @@ html {
   position: relative !important;
   cursor: pointer !important;
   border: 1px solid transparent !important;
-  border-radius: 4px !important;
+  min-height: 2.5rem !important;
+  border-radius: 8px !important;
   background-color: transparent !important;
   color: var(--sidebar-text) !important;
   font-weight: 400 !important;
@@ -976,8 +1044,7 @@ html {
   box-shadow: 0 0 12px rgba(20, 184, 255, 0.05) !important;
   color: var(--sidebar-active-text) !important;
   font-weight: 600 !important;
-  padding-left: 18px !important;
-  border-radius: 4px !important;
+  border-radius: 8px !important;
   transition:
     background-color 200ms ease-out,
     border-color 200ms ease-out,
@@ -988,11 +1055,11 @@ html {
 [data-sidebar="menu-button"][data-active="true"]::before,
 [data-sidebar="menu-sub-button"][data-active="true"]::before {
   position: absolute !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  width: 4px !important;
-  border-radius: 0px !important;
+  top: 7px !important;
+  bottom: 7px !important;
+  left: 5px !important;
+  width: 3px !important;
+  border-radius: 999px !important;
   background-color: var(--sidebar-accent) !important;
   content: "" !important;
 }
@@ -1014,6 +1081,12 @@ html {
 [data-sidebar="menu-sub-button"]:not([data-active="true"]):hover svg {
   color: var(--sidebar-text) !important;
   opacity: 1 !important;
+}
+
+[data-sidebar="menu-button"]:focus-visible,
+[data-sidebar="menu-sub-button"]:focus-visible {
+  outline: 2px solid var(--sidebar-accent) !important;
+  outline-offset: 2px !important;
 }
 
 [data-sidebar="footer"] [data-sidebar="menu-button"] {
@@ -1188,16 +1261,12 @@ html {
 }
 
 /* Select Option Dark Mode Fix */
-select option,
 option {
   background-color: #ffffff;
   color: #0f172a;
 }
 
-.dark select option,
 .dark option {
   background-color: #0f172a !important;
   color: #f8fafc !important;
 }
-
-

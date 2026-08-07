@@ -551,7 +551,6 @@ async function seedAreaJaring(area: DemoArea) {
     await prisma.jaring.upsert({
       where: { id: jaringId },
       update: {
-        code: `DEMO-JKT-${compactCode(area.officialCode)}-${index + 1}`,
         aliasName: `Jaring ${trimAreaName(area.name)} ${index + 1}`,
         whatsappNumber: `+62888${compactCode(area.officialCode).padEnd(4, '0')}${String(index + 1).padStart(4, '0')}`,
         status: JaringStatus.ACTIVE,
@@ -562,7 +561,6 @@ async function seedAreaJaring(area: DemoArea) {
       },
       create: {
         id: jaringId,
-        code: `DEMO-JKT-${compactCode(area.officialCode)}-${index + 1}`,
         aliasName: `Jaring ${trimAreaName(area.name)} ${index + 1}`,
         whatsappNumber: `+62888${compactCode(area.officialCode).padEnd(4, '0')}${String(index + 1).padStart(4, '0')}`,
         status: JaringStatus.ACTIVE,
@@ -679,10 +677,8 @@ async function seedAreaBakets(params: {
       update: {
         baketId,
         versionNumber: 1,
-        title,
         originalContent,
         normalizedContent: `${topic.fact} ${topic.implication}`,
-        eventTime,
         eventAreaId: area.id,
         latitude: area.centroidLatitude + offset,
         longitude: area.centroidLongitude - offset,
@@ -704,10 +700,8 @@ async function seedAreaBakets(params: {
         id: versionId,
         baketId,
         versionNumber: 1,
-        title,
         originalContent,
         normalizedContent: `${topic.fact} ${topic.implication}`,
-        eventTime,
         eventAreaId: area.id,
         latitude: area.centroidLatitude + offset,
         longitude: area.centroidLongitude - offset,

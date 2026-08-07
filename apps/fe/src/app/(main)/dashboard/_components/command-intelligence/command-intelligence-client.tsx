@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import Image from "next/image";
-
 import {
   BarChart3,
   ChevronLeft,
@@ -29,11 +27,13 @@ import {
 } from "lucide-react";
 
 import { REPORT_URGENCY_COLORS, REPORT_URGENCY_LABELS } from "@/components/map/MapLegend";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -80,7 +80,7 @@ const ROLE_LABELS: Record<SystemRole, string> = {
   [SYSTEM_ROLES.ADMIN_SYSTEM]: "Administrator Sistem",
   [SYSTEM_ROLES.EXECUTIVE]: "Executive",
   [SYSTEM_ROLES.FIELD_COORDINATOR]: "Koordinator Lapangan",
-  [SYSTEM_ROLES.FIELD_OFFICER]: "Petugas Lapangan",
+  [SYSTEM_ROLES.FIELD_OFFICER]: "Petugas Wilayah (Gaswil)",
   [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: "OIM",
   [SYSTEM_ROLES.REGIONAL_COMMANDER]: "Komandan Regional",
 };
@@ -131,13 +131,6 @@ function formatBytes(value?: number | null) {
       maximumFractionDigits: value >= 1024 * 1024 ? 1 : 0,
     }).format(value >= 1024 * 1024 ? value / (1024 * 1024) : value / 1024) + (value >= 1024 * 1024 ? " MB" : " KB")
   );
-}
-
-function initials(value?: string | null) {
-  if (!value) return "JR";
-  const words = value.trim().split(/\s+/);
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return `${words[0][0]}${words.at(-1)?.[0] ?? ""}`.toUpperCase();
 }
 
 function scopeLabel(data: FieldIntelligenceDashboard) {
@@ -286,7 +279,23 @@ function ReportDetailDialog({
                 Metadata Laporan
               </h3>
               <div className="mt-3">
-                <ReportInfoRow label="Jaring" value={item.jaring?.aliasName ?? item.jaring?.fullName ?? "-"} />
+                {item.jaring ? (
+                  <JaringIdentitySummary
+                    compact
+                    className="border-border/60 border-b pb-3"
+                    source={{
+                      id: item.jaring.id,
+                      fullName: item.jaring.fullName,
+                      aliasName: item.jaring.aliasName,
+                      whatsappNumber: item.jaring.whatsappNumber,
+                      profilePhotoFileId: item.jaring.profilePhotoFileId,
+                      gaswilName: item.jaring.gaswilName,
+                      gaswilAssignmentId: item.jaring.gaswilAssignmentId,
+                      gaswilUserProfileId: item.jaring.gaswilUserProfileId,
+                      villageName: item.jaring.areaPathLabel,
+                    }}
+                  />
+                ) : null}
                 <ReportInfoRow label="Kategori" value={item.category?.name} />
                 <ReportInfoRow label="Urgensi" value={REPORT_URGENCY_LABELS[reportUrgency(item.urgency)]} />
                 <ReportInfoRow label="Waktu pelaporan" value={formatDateTime(item.reportedAt)} />
@@ -340,23 +349,18 @@ function ReportDetailDialog({
                   <Badge variant="secondary">{formatNumber(item.attachments.length)}</Badge>
                 </div>
                 {item.attachments.length > 0 ? (
-                  <div className="mt-3 grid gap-2">
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {item.attachments.map((attachment) => (
-                      <a
+                      <EvidenceAttachmentViewer
                         key={attachment.fileId}
-                        href={`/api/files/${attachment.fileId}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-xl border border-border/70 bg-background/70 p-3 transition-colors hover:bg-accent/40"
-                      >
-                        <p className="font-medium text-sm">{attachment.fileName ?? attachment.fileId}</p>
-                        <p className="mt-1 text-muted-foreground text-xs">
-                          {attachment.mimeType} · {formatBytes(attachment.sizeBytes)}
-                        </p>
-                        {attachment.caption ? (
-                          <p className="mt-2 text-muted-foreground text-xs">{attachment.caption}</p>
-                        ) : null}
-                      </a>
+                        src={`/api/files/${attachment.fileId}`}
+                        fileName={attachment.fileName ?? attachment.fileId}
+                        mimeType={attachment.mimeType}
+                        caption={
+                          attachment.caption ||
+                          `${attachment.mimeType ?? "Berkas"} · ${formatBytes(attachment.sizeBytes)}`
+                        }
+                      />
                     ))}
                   </div>
                 ) : (
@@ -395,11 +399,24 @@ function ReportHoverCard({ hover }: { hover: { item: MapBaket; x: number; y: num
       <div className="mt-3 flex flex-wrap gap-2">
         <UrgencyBadge urgency={hover.item.urgency} />
       </div>
+      {hover.item.jaring ? (
+        <JaringIdentitySummary
+          compact
+          className="mt-3 border-border/60 border-b pb-3"
+          source={{
+            id: hover.item.jaring.id,
+            fullName: hover.item.jaring.fullName,
+            aliasName: hover.item.jaring.aliasName,
+            whatsappNumber: hover.item.jaring.whatsappNumber,
+            profilePhotoFileId: hover.item.jaring.profilePhotoFileId,
+            gaswilName: hover.item.jaring.gaswilName,
+            gaswilAssignmentId: hover.item.jaring.gaswilAssignmentId,
+            gaswilUserProfileId: hover.item.jaring.gaswilUserProfileId,
+            villageName: hover.item.jaring.areaPathLabel,
+          }}
+        />
+      ) : null}
       <div className="mt-3 grid grid-cols-[86px_1fr] gap-x-3 gap-y-1.5 text-xs">
-        <span className="text-muted-foreground">Jaring</span>
-        <span className="truncate">
-          {hover.item.jaring?.aliasName ?? hover.item.jaring?.fullName ?? "Jaring belum tertaut"}
-        </span>
         <span className="text-muted-foreground">Wilayah</span>
         <span className="truncate">{hover.item.areaName ?? "Belum terpetakan"}</span>
         <span className="text-muted-foreground">Kategori</span>
@@ -430,26 +447,23 @@ function JaringDossier({
         {item ? (
           <ScrollArea className="min-h-0 flex-1 px-4 pb-6">
             <div className="flex flex-col gap-5">
-              <div className="flex items-center gap-4 rounded-lg border bg-muted/45 p-4">
-                <div className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-md border bg-background font-mono font-semibold text-primary">
-                  {item.profilePhotoFileId ? (
-                    <Image
-                      src={`/api/files/${item.profilePhotoFileId}`}
-                      alt={item.aliasName ?? item.fullName ?? item.id}
-                      fill
-                      className="object-cover"
-                      sizes="64px"
-                    />
-                  ) : (
-                    initials(item.aliasName ?? item.fullName ?? item.id)
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-lg">{item.aliasName ?? item.fullName ?? item.id}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <RegistrationBadge status={item.registrationStatus} />
-                    <ActivityBadge level={item.activity.level} />
-                  </div>
+              <div className="rounded-lg border bg-muted/45 p-4">
+                <JaringIdentitySummary
+                  source={{
+                    id: item.id,
+                    fullName: item.fullName,
+                    aliasName: item.aliasName,
+                    whatsappNumber: item.whatsappNumber,
+                    profilePhotoFileId: item.profilePhotoFileId,
+                    gaswilName: item.handler?.name,
+                    gaswilAssignmentId: item.handler?.assignmentId,
+                    gaswilUserProfileId: item.handler?.userProfileId,
+                    villageName: item.area?.pathLabel,
+                  }}
+                />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <RegistrationBadge status={item.registrationStatus} />
+                  <ActivityBadge level={item.activity.level} />
                 </div>
               </div>
 
@@ -477,17 +491,13 @@ function JaringDossier({
                   Identitas & cakupan
                 </h3>
                 <div className="mt-2">
-                  <ProfileField label="Nama lengkap" value={item.fullName} />
                   <ProfileField label="Nomor identitas" value={item.nationalIdNumber} />
-                  <ProfileField label="WhatsApp" value={item.whatsappNumber} />
                   <ProfileField label="Alamat" value={item.address} />
-                  <ProfileField label="Wilayah" value={item.area?.pathLabel} />
                   <ProfileField label="Pekerjaan" value={item.occupation?.name} />
                   <ProfileField label="Tempat kerja" value={item.workplace} />
                   <ProfileField label="Jabatan" value={item.jobTitle} />
                   <ProfileField label="Organisasi" value={item.organizationName} />
                   <ProfileField label="Afiliasi politik" value={item.politicalAffiliation} />
-                  <ProfileField label="Pengampu" value={item.handler?.name} />
                   <ProfileField label="Posisi pengampu" value={item.handler?.positionTitle} />
                   <ProfileField label="Laporan terakhir" value={formatDateTime(item.activity.lastReportAt)} />
                   <ProfileField label="Catatan" value={item.notes} />
@@ -883,14 +893,27 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
             </Button>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <JaringIdentitySummary
+              compact
+              className="col-span-2 border-b border-border/60 pb-3"
+              source={{
+                id: selectedMapJaring.id,
+                fullName: selectedMapJaring.fullName,
+                aliasName: selectedMapJaring.aliasName,
+                whatsappNumber: selectedMapJaring.whatsappNumber,
+                profilePhotoFileId: selectedMapJaring.profilePhotoFileId,
+                gaswilName: selectedMapJaring.gaswilName,
+                gaswilAssignmentId: selectedMapJaring.gaswilAssignmentId,
+                gaswilUserProfileId: selectedMapJaring.gaswilUserProfileId,
+                villageName: selectedMapJaring.areaPathLabel,
+              }}
+            />
             <span className="text-muted-foreground">Status</span>
             <span className="text-right">{REGISTRATION_LABELS[selectedMapJaring.registrationStatus]}</span>
             <span className="text-muted-foreground">Aktivitas</span>
             <span className="text-right">{ACTIVITY_LABELS[selectedMapJaring.activityLevel]}</span>
             <span className="text-muted-foreground">Laporan periode</span>
             <span className="text-right font-mono">{formatNumber(selectedMapJaring.periodReports)}</span>
-            <span className="text-muted-foreground">Wilayah</span>
-            <span className="truncate text-right">{selectedMapJaring.areaName}</span>
           </div>
           <Button
             variant="outline"
@@ -1214,8 +1237,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Jaring</TableHead>
-                        <TableHead>Wilayah</TableHead>
+                        <TableHead className="min-w-[300px]">Identitas Jaring</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Keaktifan</TableHead>
                         <TableHead className="text-right">Laporan</TableHead>
@@ -1233,10 +1255,20 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                           }}
                         >
                           <TableCell>
-                            <p className="font-medium">{item.aliasName ?? item.fullName ?? item.id}</p>
-                          </TableCell>
-                          <TableCell className="max-w-64 truncate">
-                            {item.area?.pathLabel ?? "Belum dipetakan"}
+                            <JaringIdentitySummary
+                              compact
+                              source={{
+                                id: item.id,
+                                fullName: item.fullName,
+                                aliasName: item.aliasName,
+                                whatsappNumber: item.whatsappNumber,
+                                profilePhotoFileId: item.profilePhotoFileId,
+                                gaswilName: item.handler?.name,
+                                gaswilAssignmentId: item.handler?.assignmentId,
+                                gaswilUserProfileId: item.handler?.userProfileId,
+                                villageName: item.area?.pathLabel,
+                              }}
+                            />
                           </TableCell>
                           <TableCell>
                             <RegistrationBadge status={item.registrationStatus} />

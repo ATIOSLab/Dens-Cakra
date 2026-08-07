@@ -1,29 +1,31 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { ChevronRight, MapPin, User, X } from "lucide-react";
+
+import { ChevronRight, MapPin, X } from "lucide-react";
 import type { Map as MapLibreMap, StyleSpecification } from "maplibre-gl";
 
 import { Badge } from "@/components/ui/badge";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Map as BaseMap, MapControls, MapGeoJSON, MapMarker, MapPopup } from "@/components/ui/map";
 import { cn } from "@/lib/utils";
 
 import {
   type AdminLevel,
+  CALLOUT_COLORS,
   type CoordinateSourceMode,
+  cityCoordinate,
   DEFAULT_CENTER,
   type DisplayMode,
   type DistrictFeatureProperties,
   districtCoordinate,
-  cityCoordinate,
-  villageCoordinate,
   type JaringDistributionCity,
   type JaringDistributionEntry,
-  STATUS_COLORS,
-  CALLOUT_COLORS,
-  STREET_TILES,
-  SATELLITE_TILES,
   type MapStyleMode,
+  SATELLITE_TILES,
+  STATUS_COLORS,
+  STREET_TILES,
+  villageCoordinate,
 } from "./sebaran-jaring-types";
 
 export const MAP_TILE_STYLES: Record<MapStyleMode, StyleSpecification> = {
@@ -107,6 +109,14 @@ export const MAP_TILE_STYLES: Record<MapStyleMode, StyleSpecification> = {
   },
 };
 
+function agentCoordinate(agent: JaringDistributionEntry, source: CoordinateSourceMode): [number, number] | null {
+  if (source === "laporan") {
+    if (agent.latestReportLng == null || agent.latestReportLat == null) return null;
+    return [agent.latestReportLng, agent.latestReportLat];
+  }
+  return [agent.longitude, agent.latitude];
+}
+
 type Props = {
   adminLevel?: AdminLevel;
   cities?: JaringDistributionCity[];
@@ -114,7 +124,6 @@ type Props = {
   selectedDistrictId?: string | null;
   selectedVillageId?: string | null;
   filteredAgents: JaringDistributionEntry[];
-  totalAgentsCount: number;
   selectedJaring: JaringDistributionEntry | null;
   onSelectAgent: (agent: JaringDistributionEntry) => void;
   onSelectDistrict: (districtId: string) => void;
@@ -122,7 +131,6 @@ type Props = {
   onSelectCity?: (cityId: string) => void;
   onSelectAdminLevel?: (level: AdminLevel) => void;
   onClosePopup: () => void;
-  onOpenRightPanel: () => void;
   displayMode?: DisplayMode;
   isClusterMode: boolean;
   onToggleClusterMode: (val: boolean) => void;
@@ -139,7 +147,6 @@ export function SebaranJaringMapView({
   selectedDistrictId,
   selectedVillageId,
   filteredAgents,
-  totalAgentsCount,
   selectedJaring,
   onSelectAgent,
   onSelectDistrict,
@@ -147,7 +154,6 @@ export function SebaranJaringMapView({
   onSelectCity,
   onSelectAdminLevel,
   onClosePopup,
-  onOpenRightPanel,
   displayMode = "marker",
   isClusterMode,
   onToggleClusterMode,
@@ -159,6 +165,11 @@ export function SebaranJaringMapView({
   const canvasRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
   const activeStyle = MAP_TILE_STYLES[mapStyleMode] || MAP_TILE_STYLES.dark;
+  const agentsWithCoordinates = useMemo(
+    () => filteredAgents.filter((agent) => agentCoordinate(agent, coordinateSourceMode) !== null),
+    [coordinateSourceMode, filteredAgents],
+  );
+  const selectedCoordinate = selectedJaring ? agentCoordinate(selectedJaring, coordinateSourceMode) : null;
 
   const districtCollection = useMemo<GeoJSON.FeatureCollection<GeoJSON.Geometry, DistrictFeatureProperties>>(() => {
     return {
@@ -208,22 +219,20 @@ export function SebaranJaringMapView({
 
     const pointsGeoJSON: GeoJSON.FeatureCollection<GeoJSON.Point> = {
       type: "FeatureCollection",
-      features: filteredAgents
-        .filter((a) => a.hasReport && a.latestReportLat !== null && a.latestReportLng !== null)
-        .map((a) => ({
+      features: agentsWithCoordinates.map((a) => {
+        const coordinates = agentCoordinate(a, coordinateSourceMode) ?? [a.longitude, a.latitude];
+        return {
           type: "Feature",
           geometry: {
             type: "Point",
-            coordinates: [
-              coordinateSourceMode === "laporan" && a.latestReportLng ? a.latestReportLng : (a.latestReportLng ?? a.longitude),
-              coordinateSourceMode === "laporan" && a.latestReportLat ? a.latestReportLat : (a.latestReportLat ?? a.latitude),
-            ],
+            coordinates,
           },
           properties: {
             id: a.id,
             weight: a.reportCount > 0 ? a.reportCount : 1,
           },
-        })),
+        };
+      }),
     };
 
     try {
@@ -247,12 +256,18 @@ export function SebaranJaringMapView({
               "interpolate",
               ["linear"],
               ["heatmap-density"],
-              0, "rgba(0,0,0,0)",
-              0.2, "rgb(6, 182, 212)",
-              0.4, "rgb(59, 130, 246)",
-              0.6, "rgb(234, 179, 8)",
-              0.8, "rgb(249, 115, 22)",
-              1, "rgb(239, 68, 68)"
+              0,
+              "rgba(0,0,0,0)",
+              0.2,
+              "rgb(6, 182, 212)",
+              0.4,
+              "rgb(59, 130, 246)",
+              0.6,
+              "rgb(234, 179, 8)",
+              0.8,
+              "rgb(249, 115, 22)",
+              1,
+              "rgb(239, 68, 68)",
             ],
             "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 4, 15, 25],
             "heatmap-opacity": 0.85,
@@ -262,7 +277,7 @@ export function SebaranJaringMapView({
     } catch {
       // ignore style loading race
     }
-  }, [displayMode, filteredAgents, coordinateSourceMode]);
+  }, [agentsWithCoordinates, coordinateSourceMode, displayMode]);
 
   return (
     <main className="relative flex-1 h-full w-full bg-slate-950 overflow-hidden">
@@ -299,149 +314,164 @@ export function SebaranJaringMapView({
           />
 
           {/* Cluster Badges on Map (Aggregated according to adminLevel or displayMode === 'cluster') */}
-          {(displayMode === "cluster" || isClusterMode) && (() => {
-            if (adminLevel === "CITY") {
-              if (!selectedCity) return null;
-              const coord = cityCoordinate(selectedCity);
-              if (!coord) return null;
-              return (
-                <MapMarker key={`cluster-city-${selectedCity.id}`} longitude={coord[0]} latitude={coord[1]}>
-                  <button
-                    onClick={() => onSelectAdminLevel?.("DISTRICT")}
-                    className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
-                    title={`Kota ${selectedCity.name}: ${selectedCity.total} Jaring`}
-                  >
-                    <div className="h-7 px-3 rounded-full border border-cyan-500/80 font-mono font-bold text-xs text-white flex items-center justify-center shadow-md bg-slate-900/95 backdrop-blur-md gap-2">
-                      <span className="text-cyan-300 font-extrabold uppercase tracking-wide">{selectedCity.name}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-cyan-600 text-white font-bold text-xs">
-                        {selectedCity.total} Jaring
-                      </span>
-                    </div>
-                  </button>
-                </MapMarker>
-              );
-            }
-
-            if (adminLevel === "PROVINCE") {
-              return cities.map((city) => {
-                const coord = cityCoordinate(city);
+          {(displayMode === "cluster" || (displayMode === "marker" && isClusterMode)) &&
+            (() => {
+              if (adminLevel === "CITY") {
+                if (!selectedCity) return null;
+                const coord = cityCoordinate(selectedCity);
                 if (!coord) return null;
-                const isSelected = selectedCity?.id === city.id;
                 return (
-                  <MapMarker key={`cluster-prov-city-${city.id}`} longitude={coord[0]} latitude={coord[1]}>
+                  <MapMarker key={`cluster-city-${selectedCity.id}`} longitude={coord[0]} latitude={coord[1]}>
                     <button
-                      onClick={() => {
-                        onSelectCity?.(city.id);
-                        onSelectAdminLevel?.("CITY");
-                      }}
+                      type="button"
+                      onClick={() => onSelectAdminLevel?.("DISTRICT")}
                       className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
-                      title={`Kota ${city.name}: ${city.total} Jaring`}
+                      title={`Kota ${selectedCity.name}: ${selectedCity.total} Jaring`}
                     >
-                      <div className={cn(
-                        "h-7 px-3 rounded-full border font-mono font-bold text-xs text-white flex items-center justify-center shadow-md backdrop-blur-md gap-1.5",
-                        isSelected ? "border-cyan-400 bg-cyan-950/95 text-cyan-200" : "border-slate-700 bg-slate-900/90 hover:border-cyan-500"
-                      )}>
-                        <span>{city.name}</span>
-                        <span className="px-1.5 py-0.2 rounded-full bg-cyan-600 text-white font-bold text-[11px]">{city.total}</span>
+                      <div className="h-7 px-3 rounded-full border border-cyan-500/80 font-mono font-bold text-xs text-white flex items-center justify-center shadow-md bg-slate-900/95 backdrop-blur-md gap-2">
+                        <span className="text-cyan-300 font-extrabold uppercase tracking-wide">
+                          {selectedCity.name}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-cyan-600 text-white font-bold text-xs">
+                          {selectedCity.total} Jaring
+                        </span>
                       </div>
                     </button>
                   </MapMarker>
                 );
-              });
-            }
+              }
 
-            if (adminLevel === "VILLAGE") {
-              const districtForVillages = selectedDistrictId
-                ? selectedCity?.districts.filter((d) => d.id === selectedDistrictId)
-                : selectedCity?.districts;
-
-              const villagesToRender = (districtForVillages ?? []).flatMap((d) =>
-                d.villages.map((v) => ({ ...v, districtId: d.id, districtName: d.name }))
-              );
-
-              return villagesToRender.map((village, idx) => {
-                const parentDistrict = selectedCity?.districts.find((d) => d.id === village.districtId);
-                const fallbackCoord = parentDistrict ? districtCoordinate(parentDistrict) : null;
-                const coord = villageCoordinate(village.name, filteredAgents, fallbackCoord, idx);
-                if (!coord) return null;
-
-                const isSelected = selectedVillageId === village.id;
-
-                return (
-                  <MapMarker key={`cluster-village-${village.id}`} longitude={coord[0]} latitude={coord[1]}>
-                    <button
-                      onClick={() => {
-                        onSelectVillage?.(village.id);
-                      }}
-                      className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
-                      title={`Kelurahan ${village.name}: ${village.total} Jaring`}
-                    >
-                      <div
-                        className={cn(
-                          "h-6 px-2.5 rounded-full border font-mono font-semibold text-[10px] text-slate-100 flex items-center justify-center shadow-md backdrop-blur-md gap-1.5 transition-all",
-                          isSelected
-                            ? "border-cyan-400 bg-cyan-950/95 text-cyan-200 ring-2 ring-cyan-500/50"
-                            : "border-slate-700/80 bg-slate-900/90 hover:border-cyan-500 hover:text-white"
-                        )}
+              if (adminLevel === "PROVINCE") {
+                return cities.map((city) => {
+                  const coord = cityCoordinate(city);
+                  if (!coord) return null;
+                  const isSelected = selectedCity?.id === city.id;
+                  return (
+                    <MapMarker key={`cluster-prov-city-${city.id}`} longitude={coord[0]} latitude={coord[1]}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectCity?.(city.id);
+                          onSelectAdminLevel?.("CITY");
+                        }}
+                        className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
+                        title={`Kota ${city.name}: ${city.total} Jaring`}
                       >
-                        <span>{village.name}</span>
-                        <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-200 text-[9px] font-bold border border-slate-700">{village.total}</span>
+                        <div
+                          className={cn(
+                            "h-7 px-3 rounded-full border font-mono font-bold text-xs text-white flex items-center justify-center shadow-md backdrop-blur-md gap-1.5",
+                            isSelected
+                              ? "border-cyan-400 bg-cyan-950/95 text-cyan-200"
+                              : "border-slate-700 bg-slate-900/90 hover:border-cyan-500",
+                          )}
+                        >
+                          <span>{city.name}</span>
+                          <span className="px-1.5 py-0.2 rounded-full bg-cyan-600 text-white font-bold text-[11px]">
+                            {city.total}
+                          </span>
+                        </div>
+                      </button>
+                    </MapMarker>
+                  );
+                });
+              }
+
+              if (adminLevel === "VILLAGE") {
+                const districtForVillages = selectedDistrictId
+                  ? selectedCity?.districts.filter((d) => d.id === selectedDistrictId)
+                  : selectedCity?.districts;
+
+                const villagesToRender = (districtForVillages ?? []).flatMap((d) =>
+                  d.villages.map((v) => ({ ...v, districtId: d.id, districtName: d.name })),
+                );
+
+                return villagesToRender.map((village, idx) => {
+                  const parentDistrict = selectedCity?.districts.find((d) => d.id === village.districtId);
+                  const fallbackCoord = parentDistrict ? districtCoordinate(parentDistrict) : null;
+                  const coord = villageCoordinate(village.name, filteredAgents, fallbackCoord, idx);
+                  if (!coord) return null;
+
+                  const isSelected = selectedVillageId === village.id;
+
+                  return (
+                    <MapMarker key={`cluster-village-${village.id}`} longitude={coord[0]} latitude={coord[1]}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectVillage?.(village.id);
+                        }}
+                        className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
+                        title={`Kelurahan ${village.name}: ${village.total} Jaring`}
+                      >
+                        <div
+                          className={cn(
+                            "h-6 px-2.5 rounded-full border font-mono font-semibold text-[10px] text-slate-100 flex items-center justify-center shadow-md backdrop-blur-md gap-1.5 transition-all",
+                            isSelected
+                              ? "border-cyan-400 bg-cyan-950/95 text-cyan-200 ring-2 ring-cyan-500/50"
+                              : "border-slate-700/80 bg-slate-900/90 hover:border-cyan-500 hover:text-white",
+                          )}
+                        >
+                          <span>{village.name}</span>
+                          <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-200 text-[9px] font-bold border border-slate-700">
+                            {village.total}
+                          </span>
+                        </div>
+                      </button>
+                    </MapMarker>
+                  );
+                });
+              }
+
+              // DISTRICT level
+              return selectedCity?.districts.map((district) => {
+                const coord = districtCoordinate(district);
+                if (!coord) return null;
+
+                return (
+                  <MapMarker key={`cluster-${district.id}`} longitude={coord[0]} latitude={coord[1]}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectDistrict(district.id);
+                        onSelectAdminLevel?.("VILLAGE");
+                      }}
+                      className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
+                      title={`Kecamatan ${district.name}: ${district.total} Jaring`}
+                    >
+                      <div className="h-6 px-2.5 rounded-full border border-slate-700/80 bg-slate-900/90 text-slate-100 font-mono font-semibold text-[11px] flex items-center justify-center shadow-md backdrop-blur-md hover:border-cyan-500 hover:text-white transition-all">
+                        <span>{district.name}</span>
+                        <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-slate-800 text-cyan-300 border border-slate-700 text-[10px] font-bold">
+                          {district.total}
+                        </span>
                       </div>
                     </button>
                   </MapMarker>
                 );
               });
-            }
+            })()}
 
-            // DISTRICT level
-            return selectedCity?.districts.map((district) => {
-              const coord = districtCoordinate(district);
-              if (!coord) return null;
-
-              return (
-                <MapMarker key={`cluster-${district.id}`} longitude={coord[0]} latitude={coord[1]}>
-                  <button
-                    onClick={() => {
-                      onSelectDistrict(district.id);
-                      onSelectAdminLevel?.("VILLAGE");
-                    }}
-                    className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
-                    title={`Kecamatan ${district.name}: ${district.total} Jaring`}
-                  >
-                    <div className="h-6 px-2.5 rounded-full border border-slate-700/80 bg-slate-900/90 text-slate-100 font-mono font-semibold text-[11px] flex items-center justify-center shadow-md backdrop-blur-md hover:border-cyan-500 hover:text-white transition-all">
-                      <span>{district.name}</span>
-                      <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-slate-800 text-cyan-300 border border-slate-700 text-[10px] font-bold">{district.total}</span>
-                    </div>
-                  </button>
-                </MapMarker>
-              );
-            });
-          })()}
-
-          {/* Individual Agent Small Dot Markers (ONLY for Agents with actual reports) */}
-          {filteredAgents
-            .filter((agent) => agent.hasReport && agent.latestReportLat !== null && agent.latestReportLng !== null)
-            .map((agent) => {
+          {/* Individual Jaring markers according to the selected coordinate source. */}
+          {displayMode === "marker" &&
+            agentsWithCoordinates.map((agent) => {
               const isSelected = selectedJaring?.id === agent.id;
               const statusMeta = STATUS_COLORS[agent.status] || STATUS_COLORS.PENDING;
-
-              const lng = (coordinateSourceMode === "laporan" && agent.latestReportLng) ? agent.latestReportLng : (agent.latestReportLng ?? agent.longitude);
-              const lat = (coordinateSourceMode === "laporan" && agent.latestReportLat) ? agent.latestReportLat : (agent.latestReportLat ?? agent.latitude);
+              const [lng, lat] = agentCoordinate(agent, coordinateSourceMode) ?? [agent.longitude, agent.latitude];
 
               return (
                 <MapMarker key={`agent-${agent.id}`} longitude={lng} latitude={lat}>
                   <button
+                    type="button"
                     onClick={() => onSelectAgent(agent)}
                     className={cn(
                       "group relative flex items-center justify-center transition-all duration-150 cursor-pointer p-1",
-                      isSelected ? "z-50 scale-125" : "z-10 hover:scale-125"
+                      isSelected ? "z-50 scale-125" : "z-10 hover:scale-125",
                     )}
                     title={`${agent.aliasName || agent.fullName || agent.id} - ${agent.fullName || "Tanpa Nama"}`}
                   >
                     <div
                       className={cn(
                         "size-2.5 rounded-full border border-slate-950 shadow-[0_0_6px_rgba(0,0,0,0.8)] transition-all",
-                        isSelected && "size-3.5 ring-2 ring-cyan-400 ring-offset-1 ring-offset-slate-950"
+                        isSelected && "size-3.5 ring-2 ring-cyan-400 ring-offset-1 ring-offset-slate-950",
                       )}
                       style={{ backgroundColor: statusMeta.bg }}
                     />
@@ -451,42 +481,30 @@ export function SebaranJaringMapView({
             })}
 
           {/* Interactive Popup for Selected Agent */}
-          {selectedJaring && (
+          {selectedJaring && selectedCoordinate && (
             <MapPopup
-              longitude={(coordinateSourceMode === "laporan" && selectedJaring.latestReportLng) ? selectedJaring.latestReportLng : (selectedJaring.latestReportLng ?? selectedJaring.longitude)}
-              latitude={(coordinateSourceMode === "laporan" && selectedJaring.latestReportLat) ? selectedJaring.latestReportLat : (selectedJaring.latestReportLat ?? selectedJaring.latitude)}
+              longitude={selectedCoordinate[0]}
+              latitude={selectedCoordinate[1]}
               onClose={onClosePopup}
               className="z-50"
             >
               <div className="p-3.5 bg-slate-900/95 border border-slate-800 rounded-xl text-slate-100 min-w-[270px] space-y-2.5 shadow-2xl backdrop-blur-md">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-                  <div className="flex items-center gap-2.5">
-                    {/* Profile Photo */}
-                    <div className="size-10 rounded-full overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center shrink-0">
-                      {selectedJaring.profilePhotoFileId ? (
-                        <img
-                          src={`/api/files/${selectedJaring.profilePhotoFileId}`}
-                          alt={selectedJaring.fullName || selectedJaring.aliasName || "Jaring"}
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <User className="size-5 text-slate-400" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-mono font-bold text-sm text-cyan-400 leading-none mb-1">
-                        {selectedJaring.aliasName || selectedJaring.fullName || selectedJaring.id}
-                      </div>
-                      <div className="text-xs font-semibold text-slate-100 line-clamp-1">
-                        {selectedJaring.aliasName || selectedJaring.fullName || "Tanpa Nama"}
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-end border-b border-slate-800 pb-2.5">
                   <div className="flex items-center gap-1.5 self-start flex-wrap">
-                    <Badge className={cn("text-[10px] px-1.5 py-0 border-none font-semibold text-slate-950", STATUS_COLORS[selectedJaring.status]?.dotClass || "bg-emerald-500")}>
+                    <Badge
+                      className={cn(
+                        "text-[10px] px-1.5 py-0 border-none font-semibold text-slate-950",
+                        STATUS_COLORS[selectedJaring.status]?.dotClass || "bg-emerald-500",
+                      )}
+                    >
                       {STATUS_COLORS[selectedJaring.status]?.label || "Terverifikasi"}
                     </Badge>
-                    <Badge className={cn("text-[10px] px-1.5 py-0 border-none font-semibold text-white", selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600")}>
+                    <Badge
+                      className={cn(
+                        "text-[10px] px-1.5 py-0 border-none font-semibold text-white",
+                        selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
+                      )}
+                    >
                       {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
                     </Badge>
                     <button
@@ -505,23 +523,29 @@ export function SebaranJaringMapView({
                 </div>
 
                 <div className="text-[11px] space-y-1 text-slate-300 pt-0.5">
-                  {selectedJaring.fullName && selectedJaring.aliasName && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400 font-mono">Nama Jaring</span>
-                      <span className="font-medium text-slate-200">{selectedJaring.fullName}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-mono">Domisili</span>
-                    <span className="font-medium text-slate-200">{selectedJaring.villageName}, {selectedJaring.districtName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-mono">Gaswil</span>
-                    <span className="font-semibold text-amber-300">{selectedJaring.fieldOfficerName || "Belum ada petugas"}</span>
-                  </div>
+                  <JaringIdentitySummary
+                    compact
+                    source={{
+                      id: selectedJaring.id,
+                      fullName: selectedJaring.fullName,
+                      aliasName: selectedJaring.aliasName,
+                      whatsappNumber: selectedJaring.whatsappNumber,
+                      profilePhotoFileId: selectedJaring.profilePhotoFileId,
+                      fieldOfficerName: selectedJaring.fieldOfficerName,
+                      villageName: selectedJaring.villageName,
+                      districtName: selectedJaring.districtName,
+                      cityName: selectedJaring.cityName,
+                      provinceName: selectedJaring.provinceName,
+                    }}
+                  />
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-mono">Kinerja</span>
-                    <span className={cn("font-bold text-[11px]", selectedJaring.isActive ? "text-emerald-400" : "text-red-400")}>
+                    <span
+                      className={cn(
+                        "font-bold text-[11px]",
+                        selectedJaring.isActive ? "text-emerald-400" : "text-red-400",
+                      )}
+                    >
                       {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
                     </span>
                   </div>
@@ -530,8 +554,16 @@ export function SebaranJaringMapView({
                     <span className="text-slate-200">{selectedJaring.lastReportDate}</span>
                   </div>
                   <div className="flex justify-between font-mono">
-                    <span className="text-slate-400">Koordinat</span>
-                    <span className="text-cyan-300 text-[10px]">{selectedJaring.latitude.toFixed(4)}, {selectedJaring.longitude.toFixed(4)}</span>
+                    <span className="text-slate-400">
+                      {coordinateSourceMode === "laporan"
+                        ? "Lokasi laporan"
+                        : selectedJaring.domicileCoordinateSource === "REGISTERED"
+                          ? "Lokasi terdaftar"
+                          : "Perkiraan wilayah"}
+                    </span>
+                    <span className="text-cyan-300 text-[10px]">
+                      {selectedCoordinate[1].toFixed(4)}, {selectedCoordinate[0].toFixed(4)}
+                    </span>
                   </div>
                 </div>
 
@@ -549,18 +581,11 @@ export function SebaranJaringMapView({
           )}
         </BaseMap>
 
-        {/* Region Counter Banner at Top Center */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-slate-900/90 border border-slate-800/90 backdrop-blur-md px-4 py-1.5 rounded-full flex items-center gap-2 text-xs font-mono shadow-xl text-slate-200">
-          <span className="text-slate-400">Aktifitas Laporan:</span>
-          <span className="font-bold text-cyan-400">
-            {filteredAgents.filter((a) => a.hasReport).length}
-          </span>
-          <span className="text-slate-400">dari {filteredAgents.length} jaring terdaftar</span>
-        </div>
-
         {/* Map Floating Legend Box */}
         <div className="absolute bottom-20 left-4 z-10 hidden sm:block p-3 bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800/90 backdrop-blur-md rounded-xl space-y-2 shadow-2xl text-xs w-48 transition-colors">
-          <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">LEGENDA</div>
+          <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
+            LEGENDA
+          </div>
           <div className="space-y-1.5">
             {Object.entries(STATUS_COLORS).map(([key, val]) => (
               <div key={key} className="flex items-center gap-2 text-[11px]">
@@ -570,15 +595,17 @@ export function SebaranJaringMapView({
             ))}
           </div>
 
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
-            <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">CLUSTER MODE</span>
-            <input
-              type="checkbox"
-              checked={isClusterMode}
-              onChange={(e) => onToggleClusterMode(e.target.checked)}
-              className="accent-cyan-500 size-3.5 cursor-pointer"
-            />
-          </div>
+          {displayMode === "marker" ? (
+            <label className="flex items-center justify-between border-slate-200 border-t pt-2 dark:border-slate-800/80">
+              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">TAMPILKAN KELOMPOK</span>
+              <input
+                type="checkbox"
+                checked={isClusterMode}
+                onChange={(e) => onToggleClusterMode(e.target.checked)}
+                className="size-3.5 cursor-pointer accent-cyan-500"
+              />
+            </label>
+          ) : null}
         </div>
       </section>
     </main>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Eye, ImageIcon, Minus, Plus, RotateCcw } from "lucide-react";
+
+import { Download, Eye, ImageIcon, LoaderCircle, Minus, Plus, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,6 +21,10 @@ const ZOOM_STEP = 0.25;
 
 export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceImageViewerProps) {
   const [open, setOpen] = useState(false);
+  const [thumbnailLoading, setThumbnailLoading] = useState(true);
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(true);
+  const [previewFailed, setPreviewFailed] = useState(false);
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{
@@ -43,11 +48,17 @@ export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceIma
     }
   };
 
+  const thumbnailSrc = `${src}${src.includes("?") ? "&" : "?"}thumbnail=1`;
+
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
+        if (nextOpen) {
+          setPreviewLoading(true);
+          setPreviewFailed(false);
+        }
         if (!nextOpen) {
           resetView();
         }
@@ -56,20 +67,48 @@ export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceIma
       <DialogTrigger asChild>
         <button
           type="button"
-          className="group relative grid h-36 w-full place-items-center overflow-hidden rounded-t-md border-b bg-muted/30 text-left transition-colors hover:bg-muted/50"
+          className="group relative grid aspect-[3/2] min-h-36 w-full place-items-center overflow-hidden rounded-t-md border-b bg-muted/30 text-left transition-colors hover:bg-muted/50"
           aria-label={`Buka pratinjau ${fileName}`}
         >
-          <span className="flex max-w-[88%] flex-col items-center gap-2 text-center">
-            <span className="grid size-9 place-items-center rounded-md border border-border bg-background/70 text-muted-foreground shadow-sm">
-              <ImageIcon className="size-5" />
+          {thumbnailFailed ? (
+            <span className="flex max-w-[88%] flex-col items-center gap-2 text-center">
+              <span className="grid size-10 place-items-center rounded-md border border-border bg-background/70 text-muted-foreground shadow-sm">
+                <ImageIcon className="size-5" />
+              </span>
+              <span className="text-xs font-medium text-muted-foreground">Thumbnail tidak tersedia</span>
             </span>
-            <span className="space-y-1">
-              <span className="block text-[11px] font-semibold text-foreground">Preview disembunyikan</span>
-              <span className="block line-clamp-1 text-[10px] text-muted-foreground">{fileName}</span>
+          ) : (
+            <img
+              src={thumbnailSrc}
+              alt={alt}
+              loading="lazy"
+              decoding="async"
+              width={480}
+              height={320}
+              onLoad={() => setThumbnailLoading(false)}
+              onError={() => {
+                setThumbnailLoading(false);
+                setThumbnailFailed(true);
+              }}
+              className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            />
+          )}
+          {thumbnailLoading && !thumbnailFailed ? (
+            <span
+              role="status"
+              aria-label="Memuat thumbnail"
+              className="pointer-events-none absolute inset-0 grid place-items-center bg-muted/70 text-muted-foreground backdrop-blur-[1px]"
+            >
+              <span className="inline-flex items-center gap-2 rounded-md border border-border/70 bg-background/80 px-2.5 py-1.5 text-[11px] shadow-sm">
+                <LoaderCircle className="size-3.5 animate-spin" /> Memuat
+              </span>
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-2 py-0.5 text-[10px] font-semibold text-foreground transition-colors group-hover:border-primary/40 group-hover:text-primary">
+          ) : null}
+          <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent p-3 pt-10 text-white">
+            <span className="min-w-0 truncate text-xs font-medium">{fileName}</span>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/20 bg-black/35 px-2 py-1 text-[10px] font-semibold backdrop-blur-sm">
               <Eye className="size-3" />
-              Tampilkan
+              Lihat
             </span>
           </span>
         </button>
@@ -83,6 +122,17 @@ export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceIma
               {caption ? <p className="mt-1 truncate text-xs text-white/60">{caption}</p> : null}
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                asChild
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mr-2 border-white/20 bg-white/5 text-white hover:bg-white/10"
+              >
+                <a href={`${src}${src.includes("?") ? "&" : "?"}download=1`} download={fileName}>
+                  <Download className="size-4" /> Unduh
+                </a>
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -124,6 +174,8 @@ export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceIma
         </DialogHeader>
 
         <div
+          role="application"
+          aria-label={`Area pratinjau ${fileName}; gunakan roda mouse atau gestur untuk zoom dan geser gambar.`}
           className={`relative grid min-h-0 touch-none place-items-center overflow-hidden rounded-[4px] border border-white/10 bg-black ${zoom > INITIAL_ZOOM ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"}`}
           onDoubleClick={() => changeZoom(zoom === INITIAL_ZOOM ? 2 : INITIAL_ZOOM)}
           onWheel={(event) => {
@@ -163,13 +215,36 @@ export function EvidenceImageViewer({ src, alt, fileName, caption }: EvidenceIma
             dragRef.current = null;
           }}
         >
-          <img
-            src={src}
-            alt={alt}
-            draggable={false}
-            className="max-h-full max-w-full select-none object-contain will-change-transform"
-            style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
-          />
+          {previewFailed ? (
+            <span className="inline-flex items-center gap-2 text-sm text-white/65">
+              <ImageIcon className="size-4" /> Pratinjau tidak dapat dimuat
+            </span>
+          ) : (
+            <img
+              src={src}
+              alt={alt}
+              decoding="async"
+              draggable={false}
+              onLoad={() => setPreviewLoading(false)}
+              onError={() => {
+                setPreviewLoading(false);
+                setPreviewFailed(true);
+              }}
+              className="max-h-full max-w-full select-none object-contain will-change-transform"
+              style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
+            />
+          )}
+          {previewLoading && !previewFailed ? (
+            <span
+              role="status"
+              aria-label="Memuat pratinjau gambar"
+              className="pointer-events-none absolute inset-0 grid place-items-center bg-black/45 text-white/75"
+            >
+              <span className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-black/55 px-3 py-2 text-xs backdrop-blur-sm">
+                <LoaderCircle className="size-4 animate-spin" /> Memuat pratinjau
+              </span>
+            </span>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

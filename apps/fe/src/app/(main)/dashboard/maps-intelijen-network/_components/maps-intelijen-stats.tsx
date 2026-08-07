@@ -1,74 +1,115 @@
 "use client";
 
-import { Activity, Clock, Database, Inbox } from "lucide-react";
+import { CircleHelp } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+import { SUMMARY_CARD_PRESENTATION } from "./maps-intelijen-presentation";
+import type { MapNetworkResponse, SummaryCardFilter } from "./maps-intelijen-types";
 
 interface MapsIntelijenStatsProps {
-  total: number;
-  totalLaporan: number;
-  totalBaket: number;
-  unverifiedCount: number;
+  meta: MapNetworkResponse["meta"];
+  active: SummaryCardFilter;
+  onChange: (value: SummaryCardFilter) => void;
+  loading: boolean;
+  periodLabel: string;
 }
 
-export function MapsIntelijenStats({
-  total,
-  totalLaporan,
-  totalBaket,
-  unverifiedCount,
-}: MapsIntelijenStatsProps) {
+export function MapsIntelijenStats({ meta, active, onChange, loading, periodLabel }: MapsIntelijenStatsProps) {
+  const reports = meta.summary.reports;
+  const complete = reports.complete ?? 0;
+  const incomplete = reports.incomplete ?? 0;
+  const total = reports.total ?? complete + incomplete;
+  const cards = [
+    {
+      key: "REPORT" as const,
+      label: "Total Laporan Jaring",
+      value: total,
+      percentage: 100,
+      definition: "Jumlah Laporan Jaring yang belum dikonversi menjadi Baket; terdiri dari lengkap dan tidak lengkap.",
+      presentation: SUMMARY_CARD_PRESENTATION.REPORT,
+    },
+    {
+      key: "COMPLETE" as const,
+      label: "Laporan Jaring Lengkap",
+      value: complete,
+      percentage: total ? Math.round((complete / total) * 100) : 0,
+      definition: "Laporan Jaring yang memenuhi field wajib dan bukti foto serta belum menjadi Baket.",
+      presentation: SUMMARY_CARD_PRESENTATION.COMPLETE,
+    },
+    {
+      key: "INCOMPLETE" as const,
+      label: "Laporan Jaring Tidak Lengkap",
+      value: incomplete,
+      percentage: total ? Math.round((incomplete / total) * 100) : 0,
+      definition: "Laporan Jaring yang telah dikirim tetapi belum memenuhi seluruh field wajib.",
+      presentation: SUMMARY_CARD_PRESENTATION.INCOMPLETE,
+    },
+    {
+      key: "BAKET" as const,
+      label: "Bahan Keterangan (Baket)",
+      value: meta.summary.bakets.total,
+      percentage: null,
+      definition: "Laporan Jaring terverifikasi yang telah dikonversi menjadi Bahan Keterangan (Baket).",
+      presentation: SUMMARY_CARD_PRESENTATION.BAKET,
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {/* 1. Total Seluruh Laporan */}
-      <Card className="border-border bg-card shadow-xs transition-colors dark:border-slate-800 dark:bg-slate-900/60">
-        <CardContent className="flex items-center gap-3 p-4">
-          <div className="grid size-10 place-items-center rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400">
-            <Database className="size-5" />
-          </div>
-          <div>
-            <div className="font-extrabold text-2xl text-foreground tracking-tight">{total}</div>
-            <div className="font-medium text-xs text-muted-foreground">Total Seluruh Laporan</div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 2. Laporan Jaring */}
-      <Card className="border-border bg-card shadow-xs transition-colors dark:border-slate-800 dark:bg-slate-900/60">
-        <CardContent className="flex items-center gap-3 p-4">
-          <div className="grid size-10 place-items-center rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-            <Activity className="size-5" />
-          </div>
-          <div>
-            <div className="font-extrabold text-2xl text-foreground tracking-tight">{totalLaporan}</div>
-            <div className="font-medium text-xs text-muted-foreground">Laporan Jaring</div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 3. Sudah Menjadi Baket */}
-      <Card className="border-border bg-card shadow-xs transition-colors dark:border-slate-800 dark:bg-slate-900/60">
-        <CardContent className="flex items-center gap-3 p-4">
-          <div className="grid size-10 place-items-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Inbox className="size-5" />
-          </div>
-          <div>
-            <div className="font-extrabold text-2xl text-foreground tracking-tight">{totalBaket}</div>
-            <div className="font-medium text-xs text-muted-foreground">Sudah Menjadi Baket</div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 4. Belum Diverifikasi */}
-      <Card className="border-border bg-card shadow-xs transition-colors dark:border-slate-800 dark:bg-slate-900/60">
-        <CardContent className="flex items-center gap-3 p-4">
-          <div className="grid size-10 place-items-center rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Clock className="size-5" />
-          </div>
-          <div>
-            <div className="font-extrabold text-2xl text-foreground tracking-tight">{unverifiedCount}</div>
-            <div className="font-medium text-xs text-muted-foreground">Belum Diverifikasi</div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <section aria-label="Ringkasan data peta" className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map(({ key, label, value, percentage, definition, presentation }) => {
+          const selected = active === key;
+          const Icon = presentation.icon;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onChange(selected ? "ALL" : key)}
+              aria-pressed={selected}
+              className="h-full text-left"
+            >
+              <Card
+                className={cn(
+                  "h-full border transition hover:-translate-y-0.5 hover:shadow-md",
+                  presentation.surfaceClass,
+                  selected && "ring-2 ring-primary/20",
+                )}
+              >
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <span
+                      className={cn(
+                        "grid size-9 place-items-center rounded-lg bg-background/70",
+                        presentation.iconClass,
+                      )}
+                    >
+                      <Icon className="size-5" aria-hidden />
+                    </span>
+                    <CircleHelp className="size-3.5 text-muted-foreground" aria-label={definition} />
+                  </div>
+                  <div className="font-extrabold text-2xl tabular-nums">
+                    {loading ? "—" : value.toLocaleString("id-ID")}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-xs sm:text-sm">{label}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {percentage === null ? periodLabel : `${percentage}% · ${periodLabel}`}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </button>
+          );
+        })}
+      </div>
+      {active !== "ALL" ? (
+        <Button variant="ghost" size="sm" onClick={() => onChange("ALL")}>
+          Tampilkan Semua
+        </Button>
+      ) : null}
+    </section>
   );
 }

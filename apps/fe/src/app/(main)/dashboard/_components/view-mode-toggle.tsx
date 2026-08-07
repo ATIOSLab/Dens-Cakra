@@ -34,7 +34,11 @@ export function ViewModeToggle({ value, onValueChange, className, buttonClassNam
         size="icon"
         type="button"
         onClick={() => onValueChange("card")}
-        className={cn("size-8 cursor-pointer rounded-md", value === "card" ? activeClass : inactiveClass, buttonClassName)}
+        className={cn(
+          "size-8 cursor-pointer rounded-md",
+          value === "card" ? activeClass : inactiveClass,
+          buttonClassName,
+        )}
       >
         <LayoutGrid className="size-4" />
       </Button>

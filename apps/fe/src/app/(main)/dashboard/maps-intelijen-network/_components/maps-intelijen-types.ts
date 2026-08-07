@@ -5,7 +5,13 @@ import {
   type ReportCategoryOption,
   type VerificationStatus,
 } from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
+import type { LocationMatchStatus } from "@/lib/domain/spatial-location-matcher";
+import {
+  getVerificationStatusBadgeClass,
+  getVerificationStatusLabel,
+} from "@/lib/domain/operational-presentation";
 
+export type { LocationMatchStatus };
 export { formatFullAreaName };
 
 // ==========================================
@@ -28,20 +34,7 @@ export function formatDateTime(value?: string | null) {
 }
 
 export function verificationStatusLabel(status: VerificationStatus) {
-  switch (status) {
-    case "IN_PROGRESS_BY_JARING":
-    case "NOT_SUBMITTED":
-    case "WAITING_FIELD_OFFICER_VERIFICATION":
-      return "Belum Diverifikasi";
-    case "NEEDS_FIELD_OFFICER_REVIEW":
-      return "Perlu Review";
-    case "VERIFIED_BY_FIELD_OFFICER":
-      return "Terverifikasi";
-    case "METADATA_RECORDED":
-      return "Baket Dibuat";
-    default:
-      return status;
-  }
+  return getVerificationStatusLabel(status);
 }
 
 export function getMediaUrl(m: any) {
@@ -62,18 +55,7 @@ export function getInitials(name?: string | null) {
 }
 
 export function verificationStatusBadgeVariant(status: VerificationStatus) {
-  switch (status) {
-    case "WAITING_FIELD_OFFICER_VERIFICATION":
-      return "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400";
-    case "NEEDS_FIELD_OFFICER_REVIEW":
-      return "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400";
-    case "VERIFIED_BY_FIELD_OFFICER":
-      return "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-[#38BDF8]";
-    case "METADATA_RECORDED":
-      return "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
-    default:
-      return "border-slate-500/40 bg-slate-500/10 text-slate-600 dark:text-slate-400";
-  }
+  return getVerificationStatusBadgeClass(status);
 }
 
 export function getUrgencyCardStyle(urgency?: PriorityLevel | string | null) {
@@ -151,6 +133,11 @@ export interface RawJaringItem {
   id: string;
   aliasName?: string | null;
   fullName?: string | null;
+  profilePhotoFileId?: string | null;
+  profilePhotoFile?: {
+    id: string;
+  } | null;
+  profilePhotoUrl?: string | null;
   registrationStatus?: string | null;
   areaCoverages?: Array<{
     isPrimary?: boolean;
@@ -173,6 +160,14 @@ export type PaginatedReportResponse = {
     total: number;
     totalPages: number;
   };
+  summary?: JaringReportSummary;
+};
+
+export type JaringReportSummary = {
+  totalJaringReports: number;
+  completeJaringReports: number;
+  incompleteJaringReports: number;
+  baketReports: number;
 };
 
 export type PaginatedJaringResponse = {
@@ -198,16 +193,7 @@ export type AdministrativeAreaScope = {
 
 export type PeriodPreset = "ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "THIS_MONTH" | "CUSTOM";
 
-export function hashInt(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-export function resolveCoordinates(report: JaringReportSessionDetail): [number, number] {
+export function resolveCoordinates(report: JaringReportSessionDetail): [number, number] | null {
   if (
     report.location &&
     typeof report.location.latitude === "number" &&
@@ -218,14 +204,7 @@ export function resolveCoordinates(report: JaringReportSessionDetail): [number, 
     return [report.location.longitude, report.location.latitude];
   }
 
-  const hash = hashInt(report.id);
-  const latOffset = ((hash % 140) - 70) * 0.007;
-  const lngOffset = (((hash >> 3) % 180) - 90) * 0.008;
-
-  const baseLat = -6.2088;
-  const baseLng = 106.8456;
-
-  return [baseLng + lngOffset, baseLat + latOffset];
+  return null;
 }
 
 export function isRegencyLevel(level: string) {
@@ -247,6 +226,8 @@ export type MapIntelItem = {
   verificationStatus: VerificationStatus;
   jaringName: string;
   jaringCode: string;
+  jaringPhotoUrl: string | null;
+  gaswilName: string;
   locationName: string;
   submittedAt: string;
   regencyId?: string | null;
@@ -254,6 +235,293 @@ export type MapIntelItem = {
   villageId?: string | null;
   categoryId?: string | null;
   hasBeenRead: boolean;
+  locationMatchStatus: LocationMatchStatus;
 };
 
 export const SAMPLE_MOCK_REPORTS: JaringReportSessionDetail[] = [];
+
+export type MapMarkerType = "report" | "baket" | "agent";
+export type VisualizationMode = "marker" | "cluster" | "heatmap";
+export type BaseMapLayer = "dark" | "satellite" | "terrain" | "light" | "osm";
+export type CommandLayerKey = "report" | "baket" | "agent_active" | "agent_last_known";
+export type MarkerColorMode = "completeness" | "validity" | "urgency" | "category";
+export type HeatmapWeight = "count" | "urgency" | "valid" | "complete" | "incomplete" | "baket";
+export type SummaryCardFilter = "ALL" | "REPORT" | "COMPLETE" | "INCOMPLETE" | "BAKET";
+export type DataTypeFilter = "ALL" | "REPORT" | "BAKET" | "AGENT";
+export type AgentStateFilter = "ALL" | "active" | "last_known";
+
+export type MapNetworkFilters = {
+  search: string;
+  period: PeriodPreset;
+  startDate: string;
+  endDate: string;
+  dataType: DataTypeFilter;
+  completeness: "ALL" | "COMPLETE" | "INCOMPLETE";
+  urgency: "ALL" | PriorityLevel;
+  categoryId: string;
+  fieldOfficerAssignmentId: string;
+  jaringId: string;
+  provinceId: string;
+  regencyId: string;
+  districtId: string;
+  villageId: string;
+  suitability: string;
+  agentState: AgentStateFilter;
+  activeWithinMinutes: number;
+  lastKnownWithinHours: number;
+};
+
+export type MapEntityFilterOption = {
+  id: string;
+  label: string;
+  fieldOfficerAssignmentId?: string | null;
+};
+
+export type MapArea = {
+  id: string;
+  code: string;
+  name: string;
+  level: string;
+  parentId?: string | null;
+  boundaryQualityStatus?: string | null;
+  parent?: MapArea | null;
+};
+
+export type MapAreaLoadingLevel = "province" | "regency" | "district" | "village";
+
+export type MapAreaFilterOptions = {
+  provinces: MapArea[];
+  regencies: MapArea[];
+  districts: MapArea[];
+  villages: MapArea[];
+  loading: boolean;
+  loadingLevel: MapAreaLoadingLevel | null;
+};
+
+export type MapJaringIdentity = {
+  id: string;
+  name: string;
+  code?: string | null;
+  whatsappNumber?: string | null;
+  profilePhotoFileId?: string | null;
+  placementArea?: MapArea | null;
+  gaswilName?: string | null;
+  gaswilAssignmentId?: string | null;
+  gaswilUserProfileId?: string | null;
+};
+
+export type MapReportAttachment = {
+  id: string;
+  fileId: string;
+  mediaType?: string | null;
+  caption?: string | null;
+  orderNo?: number;
+  createdAt?: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+};
+
+export type MapNetworkProperties = {
+  markerType: MapMarkerType;
+  markerKey: string;
+  suggestedColor: string;
+  reportId?: string;
+  baketId?: string;
+  versionId?: string;
+  referenceNumber?: string | null;
+  displayTitle?: string;
+  excerpt?: string;
+  reportStatus?: string;
+  verificationStatus?: VerificationStatus;
+  status?: string;
+  validity?: "VALID" | "NEEDS_REVIEW" | "WAITING";
+  completeness?: "COMPLETE" | "INCOMPLETE";
+  urgency?: PriorityLevel | null;
+  category?: ReportCategoryOption | null;
+  reportedAt?: string;
+  receivedAt?: string | null;
+  locationCapturedAt?: string | null;
+  coordinateSource?: string | null;
+  gpsAccuracyMeters?: number | null;
+  locationSuitability?: string;
+  primaryArea?: MapArea | null;
+  matchedAreas?: MapArea[];
+  jaring?: MapJaringIdentity | null;
+  jarings?: MapJaringIdentity[];
+  jaringCount?: number;
+  fieldOfficer?: {
+    assignmentId: string;
+    userProfileId?: string;
+    name: string;
+    positionTitle?: string;
+    unitId?: string;
+    unitName?: string;
+  } | null;
+  attachments?: {
+    total: number;
+    images: number;
+    videos: number;
+    items?: MapReportAttachment[];
+  };
+  baket?: { id: string; status: string; currentVersionNumber: number } | null;
+  sourceReports?: {
+    total: number;
+    preview: Array<{ messageId: string; reportId?: string | null; referenceNumber?: string | null }>;
+  };
+  assignmentId?: string;
+  userProfileId?: string;
+  userName?: string;
+  positionTitle?: string;
+  positionCode?: string;
+  unitId?: string;
+  unitName?: string;
+  capturedAt?: string;
+  ageMinutes?: number;
+  agentState?: "active" | "last_known";
+  areaResolutionMethod?: string | null;
+};
+
+export type MapNetworkFeature = {
+  type: "Feature";
+  id: string;
+  geometry: { type: "Point"; coordinates: [number, number] };
+  properties: MapNetworkProperties;
+};
+
+export function getMapFeatureTitle(feature: MapNetworkFeature) {
+  return feature.properties.displayTitle ?? feature.properties.userName ?? "Entitas tanpa nama";
+}
+
+export function getMapFeatureReference(feature: MapNetworkFeature) {
+  const properties = feature.properties;
+  return (
+    properties.referenceNumber ??
+    properties.baketId ??
+    properties.assignmentId ??
+    properties.reportId ??
+    "Tanpa referensi"
+  );
+}
+
+export function getMapFeatureTimestamp(feature: MapNetworkFeature) {
+  const properties = feature.properties;
+  return properties.capturedAt ?? properties.receivedAt ?? properties.reportedAt ?? properties.locationCapturedAt ?? null;
+}
+
+export function getMapFeatureDetailHref(feature: MapNetworkFeature) {
+  const properties = feature.properties;
+  if (properties.markerType === "agent") return null;
+  const reportId =
+    properties.reportId ?? properties.sourceReports?.preview.find((source) => source.reportId)?.reportId ?? null;
+
+  if (reportId) {
+    return `/dashboard/laporan-jaring/${reportId}${properties.markerType === "baket" ? "?from=baket" : ""}`;
+  }
+
+  return "/dashboard/baket";
+}
+
+export type MapNetworkResponse = {
+  type: "FeatureCollection";
+  features: MapNetworkFeature[];
+  meta: {
+    counts: {
+      total: number;
+      report: number;
+      baket: number;
+      agent: number;
+      totalReports: number;
+      totalBakets: number;
+      mappableReports: number;
+      mappableBakets: number;
+      unlocatedReport: number;
+      unlocatedBaket: number;
+      unlocatedAgent: number;
+      activeAgents: number;
+      lastKnownAgents: number;
+      byBaketCategory: Record<string, number>;
+      byBaketStatus: Record<string, number>;
+    };
+    summary: {
+      reports: {
+        total?: number;
+        valid?: number;
+        complete?: number;
+        incomplete?: number;
+        mappable?: number;
+        unlocated?: number;
+      };
+      bakets: { total: number; mappable: number; unlocated: number };
+      visible: { total: number; reports: number; bakets: number; agents: number };
+    };
+    facets: {
+      categories: ReportCategoryOption[];
+      areas: MapArea[];
+      urgencies: PriorityLevel[];
+      markerTypes: MapMarkerType[];
+      baketStatuses: string[];
+      agentStates: Array<"active" | "last_known">;
+      administrativeLevels: string[];
+    };
+    freshness: { generatedAt: string; activeWithinMinutes: number; lastKnownWithinHours: number };
+    unlocatedItems: Array<{
+      id: string;
+      referenceNumber: string;
+      title: string;
+      reportedAt: string;
+      jaring: {
+        id: string;
+        name: string;
+        code?: string | null;
+        whatsappNumber?: string | null;
+        profilePhotoFileId?: string | null;
+        placementArea?: MapArea | null;
+        gaswilName?: string | null;
+        gaswilAssignmentId?: string | null;
+        gaswilUserProfileId?: string | null;
+      };
+    }>;
+    security: { stealthLocationsExcluded: boolean };
+  };
+};
+
+export const EMPTY_MAP_RESPONSE: MapNetworkResponse = {
+  type: "FeatureCollection",
+  features: [],
+  meta: {
+    counts: {
+      total: 0,
+      report: 0,
+      baket: 0,
+      agent: 0,
+      totalReports: 0,
+      totalBakets: 0,
+      mappableReports: 0,
+      mappableBakets: 0,
+      unlocatedReport: 0,
+      unlocatedBaket: 0,
+      unlocatedAgent: 0,
+      activeAgents: 0,
+      lastKnownAgents: 0,
+      byBaketCategory: {},
+      byBaketStatus: {},
+    },
+    summary: {
+      reports: {},
+      bakets: { total: 0, mappable: 0, unlocated: 0 },
+      visible: { total: 0, reports: 0, bakets: 0, agents: 0 },
+    },
+    facets: {
+      markerTypes: ["report", "baket", "agent"],
+      categories: [],
+      areas: [],
+      baketStatuses: [],
+      urgencies: ["LOW", "NORMAL", "HIGH", "URGENT"],
+      agentStates: ["active", "last_known"],
+      administrativeLevels: [],
+    },
+    freshness: { generatedAt: "", activeWithinMinutes: 15, lastKnownWithinHours: 168 },
+    unlocatedItems: [],
+    security: { stealthLocationsExcluded: true },
+  },
+};

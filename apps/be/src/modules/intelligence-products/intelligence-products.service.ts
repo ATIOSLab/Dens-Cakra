@@ -20,7 +20,9 @@ import {
   Prisma,
   ProductStatus,
   RoleCode,
+  TaskAssignmentStatus,
   TaskStatus,
+  WhatsAppMessageStatus,
   Classification,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
@@ -29,6 +31,10 @@ import type { AuthorizationContext } from '../../common/types/authorization-cont
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
+import {
+  ApplicationCacheService,
+  authorizationScopeIdentity,
+} from '../cache/application-cache.service.js';
 import { formatProductNumber } from './product-number.util.js';
 import type {
   ActivateTemplateDto,
@@ -164,6 +170,7 @@ export class IntelligenceProductsService {
     private readonly prisma: PrismaService,
     private readonly spatial: SpatialRepository,
     private readonly scope: DomainScopeService,
+    private readonly cache: ApplicationCacheService,
   ) {}
 
   private assertProductClassification(classification: Classification) {
@@ -1464,57 +1471,61 @@ export class IntelligenceProductsService {
     const where: Prisma.IntelligenceProductWhereInput = {
       ...(await this.scope.productWhere(context)),
       deletedAt: null,
+      AND: [
+        ...(query.periodFrom
+          ? [
+              {
+                OR: [
+                  { periodEnd: { gte: new Date(query.periodFrom) } },
+                  {
+                    periodEnd: null,
+                    periodStart: { gte: new Date(query.periodFrom) },
+                  },
+                ],
+              } satisfies Prisma.IntelligenceProductWhereInput,
+            ]
+          : []),
+        ...(query.periodTo
+          ? [
+              {
+                periodStart: { lte: new Date(query.periodTo) },
+              } satisfies Prisma.IntelligenceProductWhereInput,
+            ]
+          : []),
+        ...(query.search
+          ? [
+              {
+                OR: [
+                  {
+                    title: { contains: query.search, mode: 'insensitive' },
+                  },
+                  {
+                    productNumber: {
+                      contains: query.search,
+                      mode: 'insensitive',
+                    },
+                  },
+                  {
+                    versions: {
+                      some: {
+                        subject: {
+                          contains: query.search,
+                          mode: 'insensitive',
+                        },
+                      },
+                    },
+                  },
+                ],
+              } satisfies Prisma.IntelligenceProductWhereInput,
+            ]
+          : []),
+      ],
       ...(query.status ? { status: query.status } : {}),
       ...(query.classification ? { classification: query.classification } : {}),
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
       ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
       ...(query.createdByAssignmentId
         ? { createdByAssignmentId: query.createdByAssignmentId }
-        : {}),
-      ...(query.periodFrom || query.periodTo
-        ? {
-            OR: [
-              {
-                periodStart: {
-                  ...(query.periodFrom
-                    ? { gte: new Date(query.periodFrom) }
-                    : {}),
-                  ...(query.periodTo ? { lte: new Date(query.periodTo) } : {}),
-                },
-              },
-              {
-                periodEnd: {
-                  ...(query.periodFrom
-                    ? { gte: new Date(query.periodFrom) }
-                    : {}),
-                  ...(query.periodTo ? { lte: new Date(query.periodTo) } : {}),
-                },
-              },
-            ],
-          }
-        : {}),
-      ...(query.search
-        ? {
-            OR: [
-              { title: { contains: query.search, mode: 'insensitive' } },
-              {
-                productNumber: {
-                  contains: query.search,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                versions: {
-                  some: {
-                    subject: {
-                      contains: query.search,
-                      mode: 'insensitive',
-                    },
-                  },
-                },
-              },
-            ],
-          }
         : {}),
     };
 
@@ -2214,23 +2225,70 @@ export class IntelligenceProductsService {
     query: ApprovalInboxQuery,
     context: AuthorizationContext,
   ) {
-    const where: Prisma.ProductApprovalStepWhereInput = {
-      targetAssignmentId: context.primaryAssignmentId,
-      status: query.status
-        ? query.status
-        : { in: [ApprovalStepStatus.ACTIVE, ApprovalStepStatus.WAITING] },
-      ...(query.stage ? { stage: query.stage } : {}),
-      ...(query.from || query.to
+    const search = query.search?.trim();
+    const productWhere: Prisma.IntelligenceProductWhereInput = {
+      ...(search
         ? {
-            workflow: {
-              startedAt: {
-                ...(query.from ? { gte: new Date(query.from) } : {}),
-                ...(query.to ? { lte: new Date(query.to) } : {}),
-              },
-            },
+            OR: [
+              { title: { contains: search, mode: 'insensitive' } },
+              { productNumber: { contains: search, mode: 'insensitive' } },
+            ],
           }
         : {}),
-      ...(query.routeType ? { workflow: { routeType: query.routeType } } : {}),
+      ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
+      ...(query.classification ? { classification: query.classification } : {}),
+      ...(query.ownerAssignmentId
+        ? { ownerAssignmentId: query.ownerAssignmentId }
+        : {}),
+      ...(query.periodFrom || query.periodTo
+        ? {
+            AND: [
+              ...(query.periodFrom
+                ? [{ periodEnd: { gte: new Date(query.periodFrom) } }]
+                : []),
+              ...(query.periodTo
+                ? [{ periodStart: { lte: new Date(query.periodTo) } }]
+                : []),
+            ],
+          }
+        : {}),
+    };
+    const where: Prisma.ProductApprovalStepWhereInput = {
+      AND: [
+        { targetAssignmentId: context.primaryAssignmentId },
+        {
+          status: query.status
+            ? query.status
+            : { in: [ApprovalStepStatus.ACTIVE, ApprovalStepStatus.WAITING] },
+        },
+        ...(query.stage ? [{ stage: query.stage }] : []),
+        ...(query.from || query.to || query.routeType || Object.keys(productWhere).length
+          ? [
+              {
+                workflow: {
+                  is: {
+                    ...(query.from || query.to
+                      ? {
+                          startedAt: {
+                            ...(query.from ? { gte: new Date(query.from) } : {}),
+                            ...(query.to ? { lte: new Date(query.to) } : {}),
+                          },
+                        }
+                      : {}),
+                    ...(query.routeType ? { routeType: query.routeType } : {}),
+                    ...(Object.keys(productWhere).length
+                      ? {
+                          productVersion: {
+                            is: { product: { is: productWhere } },
+                          },
+                        }
+                      : {}),
+                  },
+                },
+              },
+            ]
+          : []),
+      ],
     };
     const [items, total] = await Promise.all([
       this.prisma.productApprovalStep.findMany({
@@ -3628,6 +3686,24 @@ export class IntelligenceProductsService {
       trendBuckets.set(bucket, value);
     }
 
+    const jaringIdentityById = new Map(
+      baseItems.map((item) => [
+        item.id,
+        {
+          id: item.id,
+          aliasName: item.aliasName,
+          fullName: item.fullName,
+          whatsappNumber: item.whatsappNumber,
+          profilePhotoFileId: item.profilePhotoFileId,
+          registrationStatus: item.registrationStatus,
+          gaswilName: item.handler?.name ?? null,
+          gaswilAssignmentId: item.handler?.assignmentId ?? null,
+          gaswilUserProfileId: item.handler?.userProfileId ?? null,
+          areaPathLabel: item.area?.pathLabel ?? null,
+        },
+      ]),
+    );
+
     return {
       generatedAt: new Date().toISOString(),
       period: {
@@ -3679,7 +3755,9 @@ export class IntelligenceProductsService {
         createdAt: report.createdAt,
         currentVersionNumber: report.currentVersionNumber,
         category: report.reportCategory,
-        jaring: report.primaryJaring,
+        jaring: report.primaryJaringId
+          ? (jaringIdentityById.get(report.primaryJaringId) ?? report.primaryJaring)
+          : report.primaryJaring,
         version: report.versions[0]
           ? {
               ...report.versions[0],
@@ -3716,6 +3794,11 @@ export class IntelligenceProductsService {
                   id: item.id,
                   aliasName: item.aliasName,
                   fullName: item.fullName,
+                  whatsappNumber: item.whatsappNumber,
+                  profilePhotoFileId: item.profilePhotoFileId,
+                  gaswilName: item.handler?.name ?? null,
+                  gaswilAssignmentId: item.handler?.assignmentId ?? null,
+                  gaswilUserProfileId: item.handler?.userProfileId ?? null,
                   registrationStatus: item.registrationStatus,
                   operationalStatus: item.status,
                   activityLevel: item.activity.level,
@@ -3771,7 +3854,9 @@ export class IntelligenceProductsService {
               locationCapturedAt: version?.locationCapturedAt ?? null,
               coordinateSource: version?.coordinateSource ?? null,
               category: report.reportCategory,
-              jaring: report.primaryJaring,
+              jaring: report.primaryJaringId
+                ? (jaringIdentityById.get(report.primaryJaringId) ?? report.primaryJaring)
+                : report.primaryJaring,
               areaName: version?.eventArea?.name ?? null,
               areaLevel: version?.eventArea?.level ?? null,
               attachments:
@@ -3865,7 +3950,13 @@ export class IntelligenceProductsService {
           where: {
             OR: [
               { ownerAssignmentId: context.primaryAssignmentId },
-              { assignments: { some: { assigneeId: context.primaryAssignmentId } } },
+              {
+                assignments: {
+                  some: {
+                    assigneeAssignmentId: context.primaryAssignmentId,
+                  },
+                },
+              },
             ],
             deletedAt: null,
             ...this.buildCommonDateWhere('createdAt', query.from, query.to),
@@ -4696,6 +4787,17 @@ export class IntelligenceProductsService {
   }
 
   async fieldOfficerDashboard(context: AuthorizationContext) {
+    return this.cache.getOrSet(
+      {
+        namespace: 'field-officer-summary',
+        identity: authorizationScopeIdentity(context),
+        ttlMs: 10_000,
+      },
+      () => this.loadFieldOfficerDashboard(context),
+    );
+  }
+
+  private async loadFieldOfficerDashboard(context: AuthorizationContext) {
     const assignmentId = context.primaryAssignmentId;
 
     const [
@@ -4717,12 +4819,19 @@ export class IntelligenceProductsService {
       // Daftar Tugas Aktif yang ditugaskan ke Field Officer
       this.prisma.taskAssignment.findMany({
         where: {
-          assigneeId: assignmentId,
-          status: { in: ['ASSIGNED', 'IN_PROGRESS', 'PENDING_ACK'] },
+          assigneeAssignmentId: assignmentId,
+          status: {
+            in: [
+              TaskAssignmentStatus.SENT,
+              TaskAssignmentStatus.READ,
+              TaskAssignmentStatus.ACKNOWLEDGED,
+              TaskAssignmentStatus.IN_PROGRESS,
+            ],
+          },
           task: { deletedAt: null },
         },
         take: 10,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { assignedAt: 'desc' },
         include: {
           task: {
             select: {
@@ -4753,7 +4862,7 @@ export class IntelligenceProductsService {
         orderBy: { receivedAt: 'desc' },
         select: {
           id: true,
-          messageText: true,
+          content: true,
           receivedAt: true,
           status: true,
           jaring: {
@@ -4769,18 +4878,25 @@ export class IntelligenceProductsService {
       // Laporan Informasi / Baket yang Dibuat Field Officer
       this.prisma.baket.findMany({
         where: {
-          createdByAssignmentId: assignmentId,
+          createdByFieldOfficerAssignmentId: assignmentId,
           deletedAt: null,
         },
         take: 10,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
-          title: true,
           status: true,
           createdAt: true,
-          category: {
+          reportCategory: {
             select: { id: true, name: true },
+          },
+          versions: {
+            take: 1,
+            orderBy: { versionNumber: 'desc' },
+            select: {
+              originalContent: true,
+              normalizedContent: true,
+            },
           },
         },
       }),
@@ -4788,7 +4904,7 @@ export class IntelligenceProductsService {
       // Scope Wilayah Tugas Field Officer
       this.prisma.userAreaScope.findMany({
         where: {
-          userAssignmentId: assignmentId,
+          operationalAssignmentId: assignmentId,
         },
         select: {
           area: {
@@ -4806,7 +4922,11 @@ export class IntelligenceProductsService {
 
     const activeTaskCount = activeTasks.length;
     const pendingMessageCount = recentMessages.filter(
-      (m) => m.status === 'RECEIVED' || m.status === 'PENDING',
+      (m) =>
+        m.status === WhatsAppMessageStatus.RECEIVED ||
+        m.status === WhatsAppMessageStatus.ROUTED ||
+        m.status === WhatsAppMessageStatus.UNDER_REVIEW ||
+        m.status === WhatsAppMessageStatus.READY_FOR_BAKET,
     ).length;
     const draftBaketCount = recentBakets.filter(
       (b) => b.status === 'DRAFT',
@@ -4832,15 +4952,19 @@ export class IntelligenceProductsService {
       recentIncomingMessages: recentMessages.map((msg) => ({
         id: msg.id,
         jaring: msg.jaring,
-        messageText: msg.messageText,
+        messageText: msg.content,
         receivedAt: msg.receivedAt,
         status: msg.status,
       })),
       recentBakets: recentBakets.map((b) => ({
         id: b.id,
-        title: b.title,
+        title: (
+          b.versions[0]?.normalizedContent?.trim() ||
+          b.versions[0]?.originalContent.trim() ||
+          'Laporan Baket'
+        ).slice(0, 160),
         status: b.status,
-        category: b.category?.name ?? null,
+        category: b.reportCategory?.name ?? null,
         createdAt: b.createdAt,
       })),
       assignedAreas: assignedAreas.map((uas) => uas.area),
@@ -4848,6 +4972,23 @@ export class IntelligenceProductsService {
   }
 
   async dashboardBriefing(
+    query: DashboardQuery,
+    context: AuthorizationContext,
+  ) {
+    return this.cache.getOrSet(
+      {
+        namespace: 'dashboard-briefing',
+        identity: {
+          scope: authorizationScopeIdentity(context),
+          query,
+        },
+        ttlMs: 15_000,
+      },
+      () => this.loadDashboardBriefing(query, context),
+    );
+  }
+
+  private async loadDashboardBriefing(
     query: DashboardQuery,
     context: AuthorizationContext,
   ) {
@@ -4919,17 +5060,34 @@ export class IntelligenceProductsService {
     const versionIds = await this.prisma.$queryRaw<
       Array<{ id: string }>
     >(Prisma.sql`
-      SELECT bv.id
-      FROM "BaketVersion" bv
-      JOIN "Baket" b ON b.id = bv."baketId" AND b."currentVersionNumber" = bv."versionNumber"
-      WHERE b."deletedAt" IS NULL
-        AND b.status IN (${Prisma.join(requestedStatuses.map((status) => Prisma.sql`${status}::"BaketStatus"`))})
-        AND bv.latitude IS NOT NULL
-        AND bv.longitude IS NOT NULL
-        AND ST_Intersects(
-          COALESCE(bv."locationPoint", ST_SetSRID(ST_MakePoint(bv.longitude::double precision, bv.latitude::double precision), 4326)),
-          ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)
-        )
+      WITH matched_versions AS (
+        SELECT bv.id
+        FROM "BaketVersion" bv
+        JOIN "Baket" b ON b.id = bv."baketId" AND b."currentVersionNumber" = bv."versionNumber"
+        WHERE b."deletedAt" IS NULL
+          AND b.status IN (${Prisma.join(requestedStatuses.map((status) => Prisma.sql`${status}::"BaketStatus"`))})
+          AND bv."locationPoint" IS NOT NULL
+          AND ST_Intersects(
+            bv."locationPoint",
+            ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)
+          )
+
+        UNION ALL
+
+        SELECT bv.id
+        FROM "BaketVersion" bv
+        JOIN "Baket" b ON b.id = bv."baketId" AND b."currentVersionNumber" = bv."versionNumber"
+        WHERE b."deletedAt" IS NULL
+          AND b.status IN (${Prisma.join(requestedStatuses.map((status) => Prisma.sql`${status}::"BaketStatus"`))})
+          AND bv."locationPoint" IS NULL
+          AND bv.latitude IS NOT NULL
+          AND bv.longitude IS NOT NULL
+          AND ST_Intersects(
+            ST_SetSRID(ST_MakePoint(bv.longitude::double precision, bv.latitude::double precision), 4326),
+            ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)
+          )
+      )
+      SELECT id FROM matched_versions
       LIMIT ${query.limit}
     `);
     const bakets = await this.prisma.baket.findMany({
@@ -5036,6 +5194,26 @@ export class IntelligenceProductsService {
   }
 
   async mapBoundaries(query: MapReportQuery, context: AuthorizationContext) {
+    return this.cache.getOrSet(
+      {
+        namespace: 'administrative-boundaries',
+        identity: {
+          scope: authorizationScopeIdentity(context),
+          bbox: query.bbox,
+          zoom: query.zoom,
+          areaId: query.areaId ?? null,
+          limit: query.limit,
+        },
+        ttlMs: 15 * 60_000,
+      },
+      () => this.loadMapBoundaries(query, context),
+    );
+  }
+
+  private async loadMapBoundaries(
+    query: MapReportQuery,
+    context: AuthorizationContext,
+  ) {
     const bbox = this.parseBbox(query.bbox);
     let areaRootIds = context.areaScopes.map((scope) => scope.areaId);
     if (query.areaId) {

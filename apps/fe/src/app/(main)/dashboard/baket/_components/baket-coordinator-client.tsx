@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+
 import Link from "next/link";
+
 import {
   Activity,
   ArrowDown,
@@ -11,17 +13,27 @@ import {
   Eye,
   FileText,
   ImageIcon,
-  Mail,
-  MailOpen,
   MapPin,
   MessageSquare,
   RefreshCw,
   Search,
   ShieldAlert,
   TriangleAlert,
+  User,
   X,
 } from "lucide-react";
 
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
+import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
+import {
+  formatFullAreaName,
+  type JaringReportSessionDetail,
+  type PriorityLevel,
+} from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
+import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -31,22 +43,14 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { type JaringOption, JaringSelectPopover } from "@/components/ui/jaring-select-popover";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
-import { JaringOption, JaringSelectPopover } from "@/components/ui/jaring-select-popover";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { cn } from "@/lib/utils";
-
-import {
-  formatFullAreaName,
-  type JaringReportSessionDetail,
-  type PriorityLevel,
-} from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
@@ -129,7 +133,8 @@ function getUrgencyCardStyle(urgency?: PriorityLevel | string | null) {
       return {
         border: "border-emerald-500/50 dark:border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
         badge: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40",
-        button: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-500",
+        button:
+          "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-500",
         label: "NORMAL",
       };
     case "LOW":
@@ -143,7 +148,8 @@ function getUrgencyCardStyle(urgency?: PriorityLevel | string | null) {
       return {
         border: "border-emerald-500/50 dark:border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
         badge: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40",
-        button: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-500",
+        button:
+          "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-500",
         label: "NORMAL",
       };
   }
@@ -244,13 +250,25 @@ type PaginatedJaringResponse = {
   };
 };
 
-type ReportCategoryResponse = {
-  items?: ReportCategoryItem[];
-} | ReportCategoryItem[];
+type ReportCategoryResponse =
+  | {
+      items?: ReportCategoryItem[];
+    }
+  | ReportCategoryItem[];
 
-function isReadByFieldOfficer(report: JaringReportSessionDetail) {
-  return report.isReadByFieldOfficer ?? report.isRead ?? Boolean(report.fieldOfficerReadAt ?? report.readAt);
-}
+const BAKET_COLUMNS: ColumnOption[] = [
+  { id: "refNum", label: "No. Ref / Sandi" },
+  { id: "foto", label: "Foto Jaring" },
+  { id: "namaJaring", label: "Nama Jaring", alwaysVisible: true },
+  { id: "kodeJaring", label: "Kode Jaring" },
+  { id: "gaswil", label: "Petugas Wilayah (Gaswil)" },
+  { id: "whatsapp", label: "Nomor WhatsApp" },
+  { id: "judulIsi", label: "Judul & Isi Laporan", alwaysVisible: true },
+  { id: "wilayahSumber", label: "Lokasi Aktual Laporan" },
+  { id: "wilayahPenempatan", label: "Wilayah Penempatan Jaring" },
+  { id: "urgensi", label: "Urgensi" },
+  { id: "waktuMasuk", label: "Waktu Masuk" },
+];
 
 export function BaketCoordinatorClient() {
   const [reports, setReports] = useState<JaringReportSessionDetail[]>([]);
@@ -260,6 +278,10 @@ export function BaketCoordinatorClient() {
   const [loadingList, setLoadingList] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+  const isColVisible = (id: string) => visibleColumns[id] !== false;
+
   // View Mode: Card vs Table
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
@@ -267,7 +289,6 @@ export function BaketCoordinatorClient() {
   const [search, setSearch] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
-  const [readFilter, setReadFilter] = useState<"ALL" | "READ" | "UNREAD">("ALL");
   const [jaringFilter, setJaringFilter] = useState<string>("ALL");
   const [regencyFilter, setRegencyFilter] = useState<string>("ALL");
   const [districtFilter, setDistrictFilter] = useState<string>("ALL");
@@ -476,13 +497,9 @@ export function BaketCoordinatorClient() {
 
       // Category filter
       if (categoryFilter !== "ALL") {
-        const itemCatId = (item as any).categoryId || (item as any).category?.id || (item as any).convertedBaket?.reportCategoryId;
+        const itemCatId =
+          (item as any).categoryId || (item as any).category?.id || (item as any).convertedBaket?.reportCategoryId;
         if (itemCatId !== categoryFilter) return false;
-      }
-
-      if (readFilter !== "ALL") {
-        const hasBeenRead = isReadByFieldOfficer(item);
-        if (readFilter === "READ" ? !hasBeenRead : hasBeenRead) return false;
       }
 
       // Jaring filter
@@ -563,7 +580,6 @@ export function BaketCoordinatorClient() {
     baketReports,
     urgencyFilter,
     categoryFilter,
-    readFilter,
     jaringFilter,
     regencyFilter,
     districtFilter,
@@ -593,7 +609,6 @@ export function BaketCoordinatorClient() {
     setSearch("");
     setUrgencyFilter("ALL");
     setCategoryFilter("ALL");
-    setReadFilter("ALL");
     setJaringFilter("ALL");
     setRegencyFilter("ALL");
     setDistrictFilter("ALL");
@@ -610,7 +625,7 @@ export function BaketCoordinatorClient() {
 
     const headers = [
       "No Ref",
-      "Sandi Jaring",
+      "Kode Jaring",
       "Judul Laporan",
       "Status Verifikasi",
       "Wilayah",
@@ -645,10 +660,13 @@ export function BaketCoordinatorClient() {
       description: "Mendesak",
       icon: ShieldAlert,
       styles: {
-        activeCard: "border-rose-500 bg-rose-50/80 dark:bg-rose-950/40 ring-2 ring-rose-500/40 shadow-sm shadow-rose-500/10",
-        inactiveCard: "border-rose-200/80 dark:border-rose-900/30 bg-card hover:border-rose-300 dark:hover:border-rose-800 hover:bg-rose-50/30 dark:hover:bg-rose-950/20",
+        activeCard:
+          "border-rose-500 bg-rose-50/80 dark:bg-rose-950/40 ring-2 ring-rose-500/40 shadow-sm shadow-rose-500/10",
+        inactiveCard:
+          "border-rose-200/80 dark:border-rose-900/30 bg-card hover:border-rose-300 dark:hover:border-rose-800 hover:bg-rose-50/30 dark:hover:bg-rose-950/20",
         activeBadge: "bg-rose-600 text-white border-rose-600 font-semibold shadow-xs",
-        inactiveBadge: "border-rose-200 bg-rose-100/80 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-400",
+        inactiveBadge:
+          "border-rose-200 bg-rose-100/80 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-400",
         activeIcon: "bg-rose-600 text-white shadow-md shadow-rose-500/30",
         inactiveIcon: "bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400",
         countText: "text-rose-700 dark:text-rose-400",
@@ -660,10 +678,13 @@ export function BaketCoordinatorClient() {
       description: "Tinggi",
       icon: TriangleAlert,
       styles: {
-        activeCard: "border-amber-500 bg-amber-50/80 dark:bg-amber-950/40 ring-2 ring-amber-500/40 shadow-sm shadow-amber-500/10",
-        inactiveCard: "border-amber-200/80 dark:border-amber-900/30 bg-card hover:border-amber-300 dark:hover:border-amber-800 hover:bg-amber-50/30 dark:hover:bg-amber-950/20",
+        activeCard:
+          "border-amber-500 bg-amber-50/80 dark:bg-amber-950/40 ring-2 ring-amber-500/40 shadow-sm shadow-amber-500/10",
+        inactiveCard:
+          "border-amber-200/80 dark:border-amber-900/30 bg-card hover:border-amber-300 dark:hover:border-amber-800 hover:bg-amber-50/30 dark:hover:bg-amber-950/20",
         activeBadge: "bg-amber-600 text-white border-amber-600 font-semibold shadow-xs",
-        inactiveBadge: "border-amber-200 bg-amber-100/80 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/50 dark:text-amber-400",
+        inactiveBadge:
+          "border-amber-200 bg-amber-100/80 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/50 dark:text-amber-400",
         activeIcon: "bg-amber-600 text-white shadow-md shadow-amber-500/30",
         inactiveIcon: "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400",
         countText: "text-amber-700 dark:text-amber-400",
@@ -675,10 +696,13 @@ export function BaketCoordinatorClient() {
       description: "Normal",
       icon: Activity,
       styles: {
-        activeCard: "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 ring-2 ring-emerald-500/40 shadow-sm shadow-emerald-500/10",
-        inactiveCard: "border-emerald-200/80 dark:border-emerald-900/30 bg-card hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20",
+        activeCard:
+          "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 ring-2 ring-emerald-500/40 shadow-sm shadow-emerald-500/10",
+        inactiveCard:
+          "border-emerald-200/80 dark:border-emerald-900/30 bg-card hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20",
         activeBadge: "bg-emerald-600 text-white border-emerald-600 font-semibold shadow-xs",
-        inactiveBadge: "border-emerald-200 bg-emerald-100/80 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400",
+        inactiveBadge:
+          "border-emerald-200 bg-emerald-100/80 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400",
         activeIcon: "bg-emerald-600 text-white shadow-md shadow-emerald-500/30",
         inactiveIcon: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",
         countText: "text-emerald-700 dark:text-emerald-400",
@@ -691,9 +715,11 @@ export function BaketCoordinatorClient() {
       icon: ArrowDown,
       styles: {
         activeCard: "border-sky-500 bg-sky-50/80 dark:bg-sky-950/40 ring-2 ring-sky-500/40 shadow-sm shadow-sky-500/10",
-        inactiveCard: "border-sky-200/80 dark:border-sky-900/30 bg-card hover:border-sky-300 dark:hover:border-sky-800 hover:bg-sky-50/30 dark:hover:bg-sky-950/20",
+        inactiveCard:
+          "border-sky-200/80 dark:border-sky-900/30 bg-card hover:border-sky-300 dark:hover:border-sky-800 hover:bg-sky-50/30 dark:hover:bg-sky-950/20",
         activeBadge: "bg-sky-600 text-white border-sky-600 font-semibold shadow-xs",
-        inactiveBadge: "border-sky-200 bg-sky-100/80 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/50 dark:text-sky-400",
+        inactiveBadge:
+          "border-sky-200 bg-sky-100/80 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/50 dark:text-sky-400",
         activeIcon: "bg-sky-600 text-white shadow-md shadow-sky-500/30",
         inactiveIcon: "bg-sky-100 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400",
         countText: "text-sky-700 dark:text-sky-400",
@@ -702,16 +728,16 @@ export function BaketCoordinatorClient() {
   ];
 
   return (
-    <main className="space-y-6 p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto transition-colors duration-150">
+    <main className="mx-auto w-full max-w-[1600px] space-y-5 transition-colors duration-150 sm:space-y-6">
       {/* BREADCRUMB */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/field-coordinator">Field Coordinator</BreadcrumbLink>
+            <BreadcrumbLink href="/dashboard/field-coordinator">Koordinator Lapangan</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Baket</BreadcrumbPage>
+            <BreadcrumbPage>Bahan Keterangan (Baket)</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -719,7 +745,7 @@ export function BaketCoordinatorClient() {
       {/* HEADER */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Baket (Bahan Keterangan)</h1>
+          <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Bahan Keterangan (Baket)</h1>
           <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
             Daftar laporan Jaring yang telah diverifikasi dan dikonversikan menjadi Baket Intelijen.
           </p>
@@ -734,7 +760,7 @@ export function BaketCoordinatorClient() {
             className="h-9 gap-2"
           >
             <RefreshCw className={cn("size-4 text-emerald-500 dark:text-emerald-400", loadingList && "animate-spin")} />
-            Refresh
+            Muat Ulang
           </Button>
 
           <Button
@@ -768,7 +794,7 @@ export function BaketCoordinatorClient() {
               }}
               className={cn(
                 "flex items-center justify-between rounded-xl border p-4 text-left transition-all duration-200 cursor-pointer",
-                isActive ? item.styles.activeCard : item.styles.inactiveCard
+                isActive ? item.styles.activeCard : item.styles.inactiveCard,
               )}
             >
               <div className="flex flex-col gap-2">
@@ -776,13 +802,18 @@ export function BaketCoordinatorClient() {
                   variant="outline"
                   className={cn(
                     "w-fit uppercase tracking-wider text-[10px] px-2 py-0.5 font-semibold",
-                    isActive ? item.styles.activeBadge : item.styles.inactiveBadge
+                    isActive ? item.styles.activeBadge : item.styles.inactiveBadge,
                   )}
                 >
                   {item.label}
                 </Badge>
                 <div>
-                  <p className={cn("text-3xl font-extrabold tracking-tight transition-colors", isActive ? item.styles.countText : "text-foreground")}>
+                  <p
+                    className={cn(
+                      "text-3xl font-extrabold tracking-tight transition-colors",
+                      isActive ? item.styles.countText : "text-foreground",
+                    )}
+                  >
                     {urgencySummary[item.value]}
                   </p>
                   <p className="text-xs text-muted-foreground font-medium">Urgensi {item.description}</p>
@@ -791,7 +822,7 @@ export function BaketCoordinatorClient() {
               <div
                 className={cn(
                   "flex size-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
-                  isActive ? item.styles.activeIcon : item.styles.inactiveIcon
+                  isActive ? item.styles.activeIcon : item.styles.inactiveIcon,
                 )}
               >
                 <Icon className="size-5" />
@@ -831,12 +862,22 @@ export function BaketCoordinatorClient() {
 
             {/* View Mode Toggle Switcher */}
             <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <ColumnVisibilityToggle
+                columns={BAKET_COLUMNS}
+                visibleColumns={visibleColumns}
+                onChange={setVisibleColumns}
+              />
               <ViewModeToggle value={viewMode} onValueChange={setViewMode} className="h-9" />
             </div>
           </div>
 
           {/* MIDDLE ROW: Structured Grid of 8 Filter Dropdowns */}
-          <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-2.5", regencyOptions.length > 0 ? "md:grid-cols-4 xl:grid-cols-8" : "md:grid-cols-3 xl:grid-cols-7")}>
+          <div
+            className={cn(
+              "grid grid-cols-1 sm:grid-cols-2 gap-2.5",
+              regencyOptions.length > 0 ? "md:grid-cols-4 xl:grid-cols-8" : "md:grid-cols-3 xl:grid-cols-7",
+            )}
+          >
             {/* 1. Filter Urgensi */}
             <NativeSelect
               aria-label="Filter Urgensi"
@@ -870,21 +911,6 @@ export function BaketCoordinatorClient() {
                   {cat.name} ({cat.code})
                 </option>
               ))}
-            </NativeSelect>
-
-            {/* 3. Status Baca Filter */}
-            <NativeSelect
-              aria-label="Filter Status Baca"
-              value={readFilter}
-              onChange={(event) => {
-                setReadFilter(event.target.value as "ALL" | "READ" | "UNREAD");
-                setPage(1);
-              }}
-              className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
-            >
-              <option value="ALL">Semua Status Baca</option>
-              <option value="UNREAD">Belum Dibaca Petugas</option>
-              <option value="READ">Sudah Dibaca Petugas</option>
             </NativeSelect>
 
             {/* 4. Filter Kota/Kabupaten */}
@@ -1082,7 +1108,6 @@ export function BaketCoordinatorClient() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginatedReports.map((item) => {
-              const hasBeenRead = isReadByFieldOfficer(item);
               const refNum =
                 item.referenceNumber ||
                 item.submittedMessage?.referenceNumber ||
@@ -1126,6 +1151,23 @@ export function BaketCoordinatorClient() {
                       </h3>
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.content || "-"}</p>
                     </div>
+
+                    <JaringIdentitySummary
+                      compact
+                      source={{
+                        id: item.jaringId,
+                        jaringFullName: item.jaringFullName,
+                        jaringAlias: item.jaringAlias,
+                        jaringCode: item.jaringCode,
+                        jaringWhatsAppNumber: item.jaringWhatsAppNumber,
+                        jaringProfilePhotoFileId: item.jaringProfilePhotoFileId,
+                        profilePhotoUrl: item.jaringProfilePhotoUrl,
+                        gaswilName: item.gaswilName,
+                        gaswilAssignmentId: item.gaswilAssignmentId,
+                        gaswilUserProfileId: item.gaswilUserProfileId,
+                        placementArea: item.placementArea,
+                      }}
+                    />
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/10 space-y-3">
@@ -1147,15 +1189,7 @@ export function BaketCoordinatorClient() {
                       <span className="flex items-center gap-1">
                         <Clock className="size-3" /> {formatDateTime(item.submittedAt || item.createdAt)}
                       </span>
-                      <span className="font-semibold text-foreground/80">
-                        Jaring: {item.jaringAlias || item.jaringCode || "-"}
-                      </span>
                     </div>
-
-                    <Badge variant={hasBeenRead ? "secondary" : "outline"} className="w-fit text-[10px]">
-                      {hasBeenRead ? <MailOpen /> : <Mail />}
-                      {hasBeenRead ? "Sudah dibaca petugas" : "Belum dibaca petugas"}
-                    </Badge>
 
                     <Button
                       asChild
@@ -1189,79 +1223,158 @@ export function BaketCoordinatorClient() {
       ) : (
         /* TABLE VIEW LAYOUT */
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-card overflow-hidden shadow-xs">
-            <Table>
+          <div className="overflow-x-auto select-none rounded-xl border border-slate-200 dark:border-white/10 bg-card shadow-xs">
+            <Table className="w-full min-w-[1300px]">
               <TableHeader className="bg-slate-50 dark:bg-white/5">
-                <TableRow>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider">No. Ref / Sandi</TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider">Judul & Isi Laporan</TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider">Wilayah</TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider text-center">
-                    Urgensi
-                  </TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider text-center">
-                    Status Baca Petugas
-                  </TableHead>
-                  <TableHead className="text-xs font-bold uppercase tracking-wider">Waktu Masuk</TableHead>
+                <TableRow className="border-b border-slate-200 dark:border-slate-800">
+                  {isColVisible("refNum") && <TableHead className="text-xs font-bold uppercase tracking-wider">No. Ref / Sandi</TableHead>}
+                  {isColVisible("foto") && <TableHead className="w-12 text-center text-xs font-bold uppercase tracking-wider">Foto</TableHead>}
+                  {isColVisible("namaJaring") && <TableHead className="text-xs font-bold uppercase tracking-wider">Nama Jaring</TableHead>}
+                  {isColVisible("kodeJaring") && <TableHead className="text-xs font-bold uppercase tracking-wider">Kode Jaring</TableHead>}
+                  {isColVisible("gaswil") && <TableHead className="text-xs font-bold uppercase tracking-wider">Petugas Wilayah (Gaswil)</TableHead>}
+                  {isColVisible("whatsapp") && <TableHead className="text-xs font-bold uppercase tracking-wider">Nomor WhatsApp</TableHead>}
+                  {isColVisible("judulIsi") && (
+                    <TableHead className="min-w-[200px] text-xs font-bold uppercase tracking-wider">
+                      Judul & Isi Laporan
+                    </TableHead>
+                  )}
+                  {isColVisible("wilayahSumber") && <TableHead className="text-xs font-bold uppercase tracking-wider">Lokasi Aktual Laporan</TableHead>}
+                  {isColVisible("wilayahPenempatan") && <TableHead className="text-xs font-bold uppercase tracking-wider">Wilayah Penempatan Jaring</TableHead>}
+                  {isColVisible("urgensi") && <TableHead className="text-xs font-bold uppercase tracking-wider text-center">Urgensi</TableHead>}
+                  {isColVisible("waktuMasuk") && <TableHead className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Waktu Masuk</TableHead>}
                   <TableHead className="text-xs font-bold uppercase tracking-wider text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedReports.map((item) => {
-                  const hasBeenRead = isReadByFieldOfficer(item);
                   const refNum = item.referenceNumber || item.jaringAlias || item.jaringCode || item.id.slice(0, 8);
                   const urgencyStyle = getUrgencyCardStyle(item.urgency);
 
+                  const identity = resolveJaringIdentity({
+                    id: item.jaringId,
+                    jaringFullName: item.jaringFullName,
+                    jaringAlias: item.jaringAlias,
+                    jaringCode: item.jaringCode,
+                    jaringWhatsAppNumber: item.jaringWhatsAppNumber,
+                    jaringProfilePhotoFileId: item.jaringProfilePhotoFileId,
+                    profilePhotoUrl: item.jaringProfilePhotoUrl,
+                    gaswilName: item.gaswilName,
+                    gaswilAssignmentId: item.gaswilAssignmentId,
+                    gaswilUserProfileId: item.gaswilUserProfileId,
+                    placementArea: item.placementArea,
+                  });
+
                   return (
-                    <TableRow key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5">
-                      <TableCell className="font-mono text-xs font-medium text-foreground">
-                        <div>{refNum}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          Jaring: {item.jaringAlias || item.jaringCode || "-"}
-                        </div>
-                      </TableCell>
+                    <TableRow key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800">
+                      {isColVisible("refNum") && (
+                        <TableCell className="font-mono text-xs font-medium text-foreground align-middle">
+                          {refNum}
+                        </TableCell>
+                      )}
 
-                      <TableCell className="max-w-[320px]">
-                        <p className="font-semibold text-xs text-foreground line-clamp-1">
-                          {item.displayTitle || item.content || "Baket Intelijen"}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{item.content || "-"}</p>
-                      </TableCell>
+                      {isColVisible("foto") && (
+                        <TableCell className="align-middle">
+                          <div className="size-8 overflow-hidden rounded-none border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center">
+                            {identity.avatarUrl ? (
+                              <img src={identity.avatarUrl} alt={identity.name} className="size-full object-cover" />
+                            ) : (
+                              <User className="size-4 text-slate-400 dark:text-slate-600" />
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
 
-                      <TableCell className="text-xs text-muted-foreground">{formatFullAreaName(item.resolvedArea)}</TableCell>
+                      {isColVisible("namaJaring") && (
+                        <TableCell className="align-middle font-mono font-bold text-xs text-foreground">
+                          {identity.name}
+                        </TableCell>
+                      )}
 
-                      <TableCell className="text-center">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px] px-2.5 py-0.5 font-bold shrink-0 border uppercase tracking-wider",
-                            urgencyStyle.badge,
+                      {isColVisible("kodeJaring") && (
+                        <TableCell className="align-middle font-mono text-xs text-violet-600 dark:text-violet-400">
+                          {identity.code}
+                        </TableCell>
+                      )}
+
+                      {isColVisible("gaswil") && (
+                        <TableCell className="align-middle font-mono text-xs">
+                          <GaswilEntityLink
+                            name={identity.gaswilName}
+                            assignmentId={identity.gaswilAssignmentId}
+                            userProfileId={identity.gaswilUserProfileId}
+                            href={identity.gaswilHref}
+                          />
+                        </TableCell>
+                      )}
+
+                      {isColVisible("whatsapp") && (
+                        <TableCell className="align-middle font-mono text-xs">
+                          {identity.whatsappNumber && identity.whatsappNumber !== "Belum tersedia" ? (
+                            <a
+                              href={`https://wa.me/${identity.whatsappNumber.replace(/\D/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-emerald-600 hover:underline dark:text-emerald-400 font-mono"
+                            >
+                              {identity.whatsappNumber}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">Belum tersedia</span>
                           )}
-                        >
-                          {urgencyStyle.label}
-                        </Badge>
-                      </TableCell>
+                        </TableCell>
+                      )}
 
-                      <TableCell className="text-center">
-                        <Badge variant={hasBeenRead ? "secondary" : "outline"} className="text-[10px]">
-                          {hasBeenRead ? <MailOpen /> : <Mail />}
-                          {hasBeenRead ? "Sudah dibaca" : "Belum dibaca"}
-                        </Badge>
-                      </TableCell>
+                      {isColVisible("judulIsi") && (
+                        <TableCell className="align-middle max-w-[280px]">
+                          <p className="font-semibold text-xs text-foreground line-clamp-1">
+                            {item.displayTitle || item.content || "Baket Intelijen"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{item.content || "-"}</p>
+                        </TableCell>
+                      )}
 
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDateTime(item.submittedAt || item.createdAt)}
-                      </TableCell>
+                      {isColVisible("wilayahSumber") && (
+                        <TableCell className="align-middle text-xs font-mono text-foreground">
+                          {formatFullAreaName(item.resolvedArea)}
+                        </TableCell>
+                      )}
 
-                      <TableCell className="text-right">
+                      {isColVisible("wilayahPenempatan") && (
+                        <TableCell className="align-middle text-xs font-mono text-foreground">
+                          {identity.placementArea}
+                        </TableCell>
+                      )}
+
+                      {isColVisible("urgensi") && (
+                        <TableCell className="align-middle text-center">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] px-2.5 py-0.5 font-bold shrink-0 border uppercase tracking-wider",
+                              urgencyStyle.badge,
+                            )}
+                          >
+                            {urgencyStyle.label}
+                          </Badge>
+                        </TableCell>
+                      )}
+
+                      {isColVisible("waktuMasuk") && (
+                        <TableCell className="align-middle text-xs font-mono text-muted-foreground whitespace-nowrap">
+                          {formatDateTime(item.submittedAt || item.createdAt)}
+                        </TableCell>
+                      )}
+
+                      <TableCell className="align-middle text-right">
                         <Button
-                          asChild
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className={cn("h-8 text-xs gap-1.5 font-semibold", urgencyStyle.button)}
+                          asChild
+                          className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
                         >
                           <Link href={`/dashboard/laporan-jaring/${item.id}?from=baket`}>
-                            <Eye className="size-3.5" /> Detail
+                            <Eye className="size-3.5" />
+                            Detail
                           </Link>
                         </Button>
                       </TableCell>

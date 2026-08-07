@@ -2,7 +2,7 @@
 
 import { ExternalLink, MapPin } from "lucide-react";
 
-import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
+import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 
 import type { ReportMediaItem, ReportMessageItem } from "./laporan-jaring-types";
 
@@ -18,12 +18,8 @@ function formatMessageTime(value?: string | null) {
   }
 }
 
-function legacyMessages(
-  content?: string,
-  mediaList: ReportMediaItem[] = [],
-  sentAt?: string,
-): ReportMessageItem[] {
-  const fallbackTime = sentAt || new Date(0).toISOString();
+function legacyMessages(content?: string, mediaList: ReportMediaItem[] = [], sentAt?: string): ReportMessageItem[] {
+  const fallbackTime = sentAt ?? new Date(0).toISOString();
   const result: ReportMessageItem[] = [];
   if (content?.trim()) {
     result.push({ id: "legacy-content", kind: "TEXT", text: content, sentAt: fallbackTime });
@@ -55,9 +51,7 @@ export function WhatsAppReportThread({
   fallbackMedia?: ReportMediaItem[];
   fallbackSentAt?: string;
 }) {
-  const timeline = messages?.length
-    ? messages
-    : legacyMessages(fallbackContent, fallbackMedia, fallbackSentAt);
+  const timeline = messages?.length ? messages : legacyMessages(fallbackContent, fallbackMedia, fallbackSentAt);
 
   return (
     <div className="space-y-3 rounded-xl border bg-emerald-50/70 p-4 shadow-xs dark:bg-emerald-950/20">
@@ -77,38 +71,20 @@ export function WhatsAppReportThread({
           {timeline.map((message) => (
             <div key={message.id} className="flex justify-start">
               <article className="max-w-[92%] rounded-2xl rounded-tl-sm border bg-background p-3 shadow-xs sm:max-w-[82%]">
-                <p className="mb-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-                  {senderAlias}
-                </p>
+                <p className="mb-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">{senderAlias}</p>
 
                 {message.kind === "TEXT" ? (
                   <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{message.text}</p>
                 ) : null}
 
-                {message.kind === "IMAGE" ? (
+                {message.kind === "IMAGE" || message.kind === "VIDEO" ? (
                   <div className="space-y-2">
-                    <EvidenceImageViewer
+                    <EvidenceAttachmentViewer
                       src={`/api/files/${message.fileId}`}
-                      alt={message.fileName || "Foto laporan Jaring"}
-                      fileName={message.fileName || "Foto laporan"}
+                      fileName={message.fileName || "Lampiran laporan Jaring"}
+                      mimeType={message.mimeType}
                       caption={message.caption}
                     />
-                    {message.caption ? (
-                      <p className="whitespace-pre-wrap text-sm text-foreground">{message.caption}</p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {message.kind === "VIDEO" ? (
-                  <div className="space-y-2">
-                    <video
-                      controls
-                      preload="metadata"
-                      className="max-h-96 w-full rounded-lg bg-black"
-                      src={`/api/files/${message.fileId}`}
-                    >
-                      Browser tidak mendukung pemutaran video.
-                    </video>
                     {message.caption ? (
                       <p className="whitespace-pre-wrap text-sm text-foreground">{message.caption}</p>
                     ) : null}

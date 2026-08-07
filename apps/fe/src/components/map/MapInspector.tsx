@@ -73,7 +73,7 @@ function coordinateSourceLabel(value: unknown, hasLiveLocation: boolean) {
     DEVICE_GPS: "GPS perangkat",
     MANUAL_PIN: "Pin manual",
     MANUAL_COORDINATE: "Koordinat manual",
-    CORRECTED_BY_FIELD_OFFICER: "Koreksi Field Officer",
+    CORRECTED_BY_FIELD_OFFICER: "Koreksi Petugas Wilayah (Gaswil)",
     SYSTEM_DERIVED: "Hasil sistem",
   };
   return labels[String(value)] ?? String(value);
@@ -258,7 +258,7 @@ function ReportInspector({ selection }: { selection: Extract<SelectionType, { ki
       </div>
 
       {properties.fieldOfficerNote ? (
-        <DataField label="Catatan Petugas Lapangan" value={properties.fieldOfficerNote} breakWords bordered />
+        <DataField label="Catatan Petugas Wilayah (Gaswil)" value={properties.fieldOfficerNote} breakWords bordered />
       ) : null}
 
       <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">

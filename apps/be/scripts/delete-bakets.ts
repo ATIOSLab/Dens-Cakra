@@ -22,12 +22,12 @@ async function main() {
     select: {
       id: true,
       status: true,
-      primaryJaring: { select: { code: true, aliasName: true } },
+      primaryJaring: { select: { id: true, aliasName: true, fullName: true } },
     },
   });
   console.log(`Bakets to delete: ${bakets.length}`);
   for (const b of bakets) {
-    console.log(`  ${b.id} | status=${b.status} | jaring=${b.primaryJaring?.code}/${b.primaryJaring?.aliasName}`);
+    console.log(`  ${b.id} | status=${b.status} | jaring=${b.primaryJaring?.aliasName ?? b.primaryJaring?.fullName ?? b.primaryJaring?.id}`);
   }
 
   // 2. Get all baket version IDs

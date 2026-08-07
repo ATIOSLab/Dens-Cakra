@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -38,8 +38,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
+import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
+import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -88,8 +89,10 @@ import type {
   TaskDetail,
   TaskSummary,
 } from "@/features/tasks/types";
-import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { classificationBadgeClass } from "@/lib/classification";
+import { jakartaBoundaryIso } from "@/lib/domain/date-time";
+import { getUrgencyLabel } from "@/lib/domain/operational-presentation";
 
 function formatDate(value?: string | null) {
   if (!value) {
@@ -283,18 +286,7 @@ function formatEnumLabel(value?: string | null) {
 }
 
 function urgencyLabel(value?: string | null) {
-  switch (value) {
-    case "URGENT":
-      return "MENDESAK";
-    case "HIGH":
-      return "TINGGI";
-    case "NORMAL":
-      return "NORMAL";
-    case "LOW":
-      return "RENDAH";
-    default:
-      return "-";
-  }
+  return value ? getUrgencyLabel(value).toUpperCase() : "-";
 }
 
 function deadlineCountdown(value: string) {
@@ -390,13 +382,32 @@ type TaskListClientProps = {
   detailBasePath: string;
 };
 
+type TaskListResponse = {
+  items: TaskSummary[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  summary: { total: number; completed: number; inProgress: number; completionRate: number };
+};
+
 type FieldCoordinatorTaskWithAssignments = TaskSummary & {
   subordinateAssignments: TaskAssignmentDetail[];
   coordinatorAssignmentId?: string | null;
 };
 
+function toFieldCoordinatorTask(task: TaskSummary, primaryAssignmentId: string): FieldCoordinatorTaskWithAssignments {
+  return {
+    ...task,
+    subordinateAssignments: task.assignments.filter(
+      (assignment) => assignment.assignerAssignmentId === primaryAssignmentId,
+    ),
+    coordinatorAssignmentId:
+      task.assignments.find((assignment) => assignment.assigneeAssignmentId === primaryAssignmentId)?.id ?? null,
+  };
+}
+
 export function TaskListClient({ title, description, tasks, createHref, detailBasePath }: TaskListClientProps) {
+  const [displayTasks, setDisplayTasks] = useState(tasks);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [periodFrom, setPeriodFrom] = useState("");
   const [periodTo, setPeriodTo] = useState("");
@@ -407,101 +418,79 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
   const [pageSize, setPageSize] = useState(5);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [totalItems, setTotalItems] = useState(tasks.length);
+  const [stats, setStats] = useState(() => {
+    const completed = tasks.filter((task) => task.status === "COMPLETED").length;
+    const inProgress = tasks.filter((task) => ["IN_PROGRESS", "ASSIGNED"].includes(task.status)).length;
+    return {
+      total: tasks.length,
+      completed,
+      inProgress,
+      completionRate: tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0,
+    };
+  });
+  const requestSequence = useRef(0);
 
-  // Simulated refresh handler
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast.success("Data berhasil diperbarui");
-    }, 600);
-  };
-
-  // Filter and Sort logic
-  const filteredTasks = useMemo(() => {
-    const normalizedSearch = searchQuery.trim().toLowerCase();
-    const fromTime = periodFrom ? new Date(`${periodFrom}T00:00:00`).getTime() : null;
-    const toTime = periodTo ? new Date(`${periodTo}T23:59:59.999`).getTime() : null;
-
-    return tasks
-      .filter((task) => {
-        const directive = taskDirectiveVersion(task);
-        const searchableText = [
-          task.title,
-          task.description,
-          task.uukStrVersion?.title,
-          directive?.directive?.commandNumber,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
-        const matchesStatus = statusFilter === "ALL" || task.status === statusFilter;
-        const matchesClassification =
-          classificationFilter === "ALL" || taskClassificationLabel(task) === classificationFilter;
-        const matchesUrgency = urgencyFilter === "ALL" || taskStrUrgency(task) === urgencyFilter;
-        const strDueDate = taskStrDueDate(task);
-        const dueTime = strDueDate ? new Date(strDueDate).getTime() : null;
-        const matchesPeriod =
-          (fromTime === null || (dueTime !== null && dueTime >= fromTime)) &&
-          (toTime === null || (dueTime !== null && dueTime <= toTime));
-
-        return matchesSearch && matchesStatus && matchesClassification && matchesUrgency && matchesPeriod;
-      })
-      .sort((a, b) => {
-        if (sortBy === "latest") {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        }
-        if (sortBy === "oldest") {
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        }
-        if (sortBy === "due_soon") {
-          const aDueTime = taskStrDueDate(a)
-            ? new Date(taskStrDueDate(a) as string).getTime()
-            : Number.POSITIVE_INFINITY;
-          const bDueTime = taskStrDueDate(b)
-            ? new Date(taskStrDueDate(b) as string).getTime()
-            : Number.POSITIVE_INFINITY;
-
-          return aDueTime - bDueTime;
-        }
-        if (sortBy === "due_late") {
-          const aDueTime = taskStrDueDate(a)
-            ? new Date(taskStrDueDate(a) as string).getTime()
-            : Number.NEGATIVE_INFINITY;
-          const bDueTime = taskStrDueDate(b)
-            ? new Date(taskStrDueDate(b) as string).getTime()
-            : Number.NEGATIVE_INFINITY;
-
-          return bDueTime - aDueTime;
-        }
-        return 0;
-      });
-  }, [tasks, searchQuery, statusFilter, periodFrom, periodTo, classificationFilter, urgencyFilter, sortBy]);
-
-  // Pagination logic
-  const totalItems = filteredTasks.length;
-  const totalPages = Math.ceil(totalItems / pageSize) || 1;
-  const paginatedTasks = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return filteredTasks.slice(startIndex, startIndex + pageSize);
-  }, [filteredTasks, currentPage, pageSize]);
-
-  // Adjust page number if filters change total pages
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [totalPages, currentPage]);
+    const timer = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
-  // KPI Calculations
-  const stats = useMemo(() => {
-    const total = tasks.length;
-    const completed = tasks.filter((t) => t.status === "COMPLETED").length;
-    const inProgress = tasks.filter((t) => ["IN_PROGRESS", "ASSIGNED", "ACKNOWLEDGED"].includes(t.status)).length;
-    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { total, completed, inProgress, completionRate };
-  }, [tasks]);
+  const fetchTasks = useCallback(async () => {
+    const requestId = ++requestSequence.current;
+    setIsRefreshing(true);
+    try {
+      const params = new URLSearchParams({
+        paginated: "true",
+        page: String(currentPage),
+        limit: String(pageSize),
+      });
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (statusFilter !== "ALL") params.set("status", statusFilter);
+      if (classificationFilter !== "ALL") params.set("classification", classificationFilter);
+      if (urgencyFilter !== "ALL") params.set("sourceUrgency", urgencyFilter);
+      if (periodFrom) params.set("effectiveDueAfter", jakartaBoundaryIso(periodFrom));
+      if (periodTo) params.set("effectiveDueBefore", jakartaBoundaryIso(periodTo, true));
+
+      if (sortBy === "latest" || sortBy === "oldest") {
+        params.set("sortBy", "createdAt");
+        params.set("sortOrder", sortBy === "latest" ? "desc" : "asc");
+      } else {
+        params.set("sortBy", "effectiveDueDate");
+        params.set("sortOrder", sortBy === "due_late" ? "desc" : "asc");
+      }
+
+      const result = await apiBrowserFetch<TaskListResponse>(`/tasks?${params.toString()}`);
+      if (requestId !== requestSequence.current) return;
+      setDisplayTasks(result.items ?? []);
+      setTotalItems(result.pagination?.total ?? 0);
+      setStats(result.summary ?? { total: 0, completed: 0, inProgress: 0, completionRate: 0 });
+    } catch (error) {
+      if (requestId === requestSequence.current) {
+        console.error("Gagal memuat daftar tugas:", error);
+        toast.error("Gagal memperbarui daftar tugas");
+      }
+    } finally {
+      if (requestId === requestSequence.current) setIsRefreshing(false);
+    }
+  }, [
+    classificationFilter,
+    currentPage,
+    debouncedSearch,
+    pageSize,
+    periodFrom,
+    periodTo,
+    sortBy,
+    statusFilter,
+    urgencyFilter,
+  ]);
+
+  useEffect(() => {
+    void fetchTasks();
+  }, [fetchTasks]);
+
+  const handleRefresh = () => void fetchTasks();
+  const paginatedTasks = displayTasks;
 
   const deadlineStrs = useMemo(() => {
     const urgencyRank: Record<string, number> = { LOW: 1, NORMAL: 2, HIGH: 3, URGENT: 4 };
@@ -517,7 +506,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
       }
     >();
 
-    for (const task of tasks) {
+    for (const task of displayTasks) {
       if (["COMPLETED", "CANCELLED"].includes(task.status)) {
         continue;
       }
@@ -560,7 +549,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
         return urgencyOrder !== 0 ? urgencyOrder : a.title.localeCompare(b.title, "id");
       })
       .slice(0, 5);
-  }, [tasks]);
+  }, [displayTasks]);
 
   return (
     <div className="space-y-6">
@@ -758,9 +747,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                 <span>PERIODE STR</span>
               </div>
               <label className="flex items-center gap-1.5">
-                <span className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">
-                  Mulai
-                </span>
+                <span className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">Mulai</span>
                 <Input
                   aria-label="Periode STR mulai"
                   type="date"
@@ -775,9 +762,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
               </label>
               <span className="font-mono text-[9px] text-muted-foreground/50">S.D.</span>
               <label className="flex items-center gap-1.5">
-                <span className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">
-                  Selesai
-                </span>
+                <span className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">Selesai</span>
                 <Input
                   aria-label="Periode STR selesai"
                   type="date"
@@ -1141,55 +1126,67 @@ function latestProgressLog(assignment: TaskAssignmentDetail) {
 
 type FieldCoordinatorAssignmentsClientProps = {
   tasks: FieldCoordinatorTaskWithAssignments[];
+  primaryAssignmentId: string;
 };
 
-export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAssignmentsClientProps) {
+export function FieldCoordinatorAssignmentsClient({
+  tasks,
+  primaryAssignmentId,
+}: FieldCoordinatorAssignmentsClientProps) {
+  const [displayTasks, setDisplayTasks] = useState(tasks);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("latest");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(9);
+  const [totalItems, setTotalItems] = useState(tasks.length);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const requestId = useRef(0);
 
   const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast.success("Data penugasan diperbarui");
-    }, 600);
+    setRefreshKey((value) => value + 1);
   };
 
-  const filteredTasks = useMemo(() => {
-    return tasks
-      .filter((task) => {
-        const matchesSearch =
-          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.subordinateAssignments.some(
-            (a) =>
-              (a.assignee?.userProfile?.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (a.assignmentNote || "").toLowerCase().includes(searchQuery.toLowerCase()),
-          );
-        const matchesStatus = statusFilter === "ALL" || task.status === statusFilter;
-        return matchesSearch && matchesStatus;
-      })
-      .sort((a, b) => {
-        if (sortBy === "latest") {
-          return new Date(b.dueDate || 0).getTime() - new Date(a.dueDate || 0).getTime();
-        }
-        if (sortBy === "oldest") {
-          return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
-        }
-        return 0;
-      });
-  }, [tasks, searchQuery, statusFilter, sortBy]);
-
-  const totalItems = filteredTasks.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
-  const paginatedTasks = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return filteredTasks.slice(startIndex, startIndex + pageSize);
-  }, [filteredTasks, currentPage, pageSize]);
+  const paginatedTasks = displayTasks;
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const currentRequestId = ++requestId.current;
+    setIsRefreshing(true);
+    apiBrowserFetch<TaskListResponse>("/tasks", {
+      query: {
+        paginated: true,
+        relatedAssignmentId: primaryAssignmentId,
+        search: debouncedSearch || undefined,
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        sortBy: "dueDate",
+        sortOrder: sortBy === "latest" ? "desc" : "asc",
+        page: currentPage,
+        limit: pageSize,
+      },
+    })
+      .then((response) => {
+        if (currentRequestId !== requestId.current) return;
+        setDisplayTasks(response.items.map((task) => toFieldCoordinatorTask(task, primaryAssignmentId)));
+        setTotalItems(response.pagination.total);
+        if (refreshKey > 0) toast.success("Data penugasan diperbarui");
+      })
+      .catch((error) => {
+        if (currentRequestId !== requestId.current) return;
+        toast.error(error instanceof Error ? error.message : "Data penugasan gagal dimuat.");
+      })
+      .finally(() => {
+        if (currentRequestId === requestId.current) setIsRefreshing(false);
+      });
+  }, [primaryAssignmentId, debouncedSearch, statusFilter, sortBy, currentPage, pageSize, refreshKey]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -1202,7 +1199,7 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
     let inProgress = 0;
     let completed = 0;
 
-    tasks.forEach((t) => {
+    displayTasks.forEach((t) => {
       const summary = countAssignmentStatuses(t.subordinateAssignments);
       totalAssignments += t.subordinateAssignments.length;
       inProgress += summary.inProgress;
@@ -1210,8 +1207,8 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
     });
 
     const completionRate = totalAssignments > 0 ? Math.round((completed / totalAssignments) * 100) : 0;
-    return { totalTasks: tasks.length, totalAssignments, inProgress, completed, completionRate };
-  }, [tasks]);
+    return { totalTasks: totalItems, totalAssignments, inProgress, completed, completionRate };
+  }, [displayTasks, totalItems]);
 
   return (
     <div className="space-y-6">
@@ -1219,7 +1216,7 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
       <div className="flex flex-col gap-3 border-white/[0.08] border-b pb-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="mt-1 font-bold font-sans text-2xl text-[var(--dc-text-primary)] tracking-tight">
-            Penugasan Field Officer
+            Penugasan Petugas Wilayah (Gaswil)
           </h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -1245,7 +1242,10 @@ export function FieldCoordinatorAssignmentsClient({ tasks }: FieldCoordinatorAss
             <Input
               placeholder="Cari tugas, FO, instruksi..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setCurrentPage(1);
+              }}
               className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 font-mono text-xs placeholder:text-muted-foreground/60"
             />
           </div>
@@ -1517,11 +1517,14 @@ function SubordinateAssignmentsList({ assignments }: { assignments: TaskAssignme
           >
             <div className="min-w-0 flex-1 space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="font-bold font-sans text-[var(--dc-text-primary)]">
-                  {assignment.assignee?.userProfile?.fullName ?? "Field Officer"}
-                </span>
+                <GaswilEntityLink
+                  name={assignment.assignee?.userProfile?.fullName ?? "Petugas Wilayah (Gaswil)"}
+                  assignmentId={assignment.assignee?.id ?? assignment.assigneeAssignmentId}
+                  userProfileId={assignment.assignee?.userProfile?.id}
+                  className="font-bold font-sans text-[var(--dc-text-primary)]"
+                />
                 <span className="font-mono text-[10px] text-muted-foreground/50">
-                  ({assignment.assignee?.position?.title ?? "Petugas Lapangan"})
+                  ({assignment.assignee?.position?.title ?? "Petugas Wilayah"})
                 </span>
               </div>
               <div className="text-[11px] text-muted-foreground leading-relaxed">
@@ -1621,7 +1624,7 @@ export function FieldCoordinatorAssignmentDetailClient({
   const filteredAssignments = useMemo(() => {
     return subordinateAssignments
       .filter((a) => {
-        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Field Officer";
+        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
         const location = a.assignee?.position?.organizationUnit?.name ?? "";
         const matchesSearch =
           name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1642,8 +1645,8 @@ export function FieldCoordinatorAssignmentDetailClient({
       })
       .sort((a, b) => {
         if (sortBy === "nama") {
-          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Field Officer";
-          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.position?.title ?? "Field Officer";
+          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
+          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
           return nameA.localeCompare(nameB);
         }
         if (sortBy === "deadline") {
@@ -1715,7 +1718,7 @@ export function FieldCoordinatorAssignmentDetailClient({
           <div className="relative min-w-[200px] flex-1">
             <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
             <Input
-              placeholder="Cari Field Officer..."
+              placeholder="Cari Petugas Wilayah (Gaswil)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 font-mono text-xs placeholder:text-muted-foreground/60"
@@ -1760,10 +1763,10 @@ export function FieldCoordinatorAssignmentDetailClient({
               <Send className="size-4" />
             </div>
             <div className="font-sans font-semibold text-[var(--dc-text-primary)] text-sm">
-              Belum ada instruksi ke Field Officer.
+              Belum ada instruksi ke Petugas Wilayah (Gaswil).
             </div>
             <p className="mx-auto mt-1 max-w-xl leading-relaxed">
-              Gunakan form distribusi di bawah halaman ini untuk memilih Field Officer, mengatur batas waktu, dan
+              Gunakan formulir distribusi di bawah halaman ini untuk memilih Petugas Wilayah (Gaswil), mengatur batas waktu, dan
               menulis instruksi operasional.
             </p>
             {manageHref ? (
@@ -1775,8 +1778,8 @@ export function FieldCoordinatorAssignmentDetailClient({
         ) : (
           <div className="divide-y divide-white/[0.04] overflow-hidden rounded-[6px] border border-white/[0.08] bg-white/[0.005]">
             {paginatedAssignments.map((assignment) => {
-              const name = assignment.assignee?.userProfile?.fullName ?? "Field Officer";
-              const position = assignment.assignee?.position?.title ?? "Field Officer";
+              const name = assignment.assignee?.userProfile?.fullName ?? "Petugas Wilayah (Gaswil)";
+              const position = assignment.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
               const region = assignment.assignee?.position?.organizationUnit?.name ?? "Aceh";
               const isOverdue = isAssignmentOverdue(assignment);
 
@@ -1790,7 +1793,12 @@ export function FieldCoordinatorAssignmentDetailClient({
                       {name.charAt(0)}
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate font-bold font-sans text-[var(--dc-text-primary)] text-xs">{name}</div>
+                      <GaswilEntityLink
+                        name={name}
+                        assignmentId={assignment.assignee?.id ?? assignment.assigneeAssignmentId}
+                        userProfileId={assignment.assignee?.userProfile?.id}
+                        className="font-bold font-sans text-[var(--dc-text-primary)] text-xs"
+                      />
                       <div className="truncate font-mono text-[10px] text-muted-foreground/60">{position}</div>
                     </div>
                   </div>
@@ -1875,7 +1883,7 @@ export function FieldCoordinatorAssignmentDetailClient({
         {totalPages > 1 && (
           <div className="flex items-center justify-between pt-4 font-mono text-[10px] text-muted-foreground">
             <div>
-              Menampilkan {startIdx}–{endIdx} dari {totalItems} Field Officer.
+              Menampilkan {startIdx}–{endIdx} dari {totalItems} Petugas Wilayah (Gaswil).
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -1909,55 +1917,67 @@ export function FieldCoordinatorAssignmentDetailClient({
 
 type FieldCoordinatorMonitoringClientProps = {
   tasks: FieldCoordinatorTaskWithAssignments[];
+  primaryAssignmentId: string;
 };
 
-export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMonitoringClientProps) {
+export function FieldCoordinatorMonitoringClient({
+  tasks,
+  primaryAssignmentId,
+}: FieldCoordinatorMonitoringClientProps) {
+  const [displayTasks, setDisplayTasks] = useState(tasks);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("latest");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(9);
+  const [totalItems, setTotalItems] = useState(tasks.length);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const requestId = useRef(0);
 
   const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast.success("Data monitoring diperbarui");
-    }, 600);
+    setRefreshKey((value) => value + 1);
   };
 
-  const filteredTasks = useMemo(() => {
-    return tasks
-      .filter((task) => {
-        const matchesSearch =
-          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.subordinateAssignments.some(
-            (a) =>
-              (a.assignee?.userProfile?.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (a.assignmentNote || "").toLowerCase().includes(searchQuery.toLowerCase()),
-          );
-        const matchesStatus = statusFilter === "ALL" || task.status === statusFilter;
-        return matchesSearch && matchesStatus;
-      })
-      .sort((a, b) => {
-        if (sortBy === "latest") {
-          return new Date(b.dueDate || 0).getTime() - new Date(a.dueDate || 0).getTime();
-        }
-        if (sortBy === "oldest") {
-          return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime();
-        }
-        return 0;
-      });
-  }, [tasks, searchQuery, statusFilter, sortBy]);
-
-  const totalItems = filteredTasks.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
-  const paginatedTasks = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return filteredTasks.slice(startIndex, startIndex + pageSize);
-  }, [filteredTasks, currentPage, pageSize]);
+  const paginatedTasks = displayTasks;
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const currentRequestId = ++requestId.current;
+    setIsRefreshing(true);
+    apiBrowserFetch<TaskListResponse>("/tasks", {
+      query: {
+        paginated: true,
+        relatedAssignmentId: primaryAssignmentId,
+        search: debouncedSearch || undefined,
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        sortBy: "dueDate",
+        sortOrder: sortBy === "latest" ? "desc" : "asc",
+        page: currentPage,
+        limit: pageSize,
+      },
+    })
+      .then((response) => {
+        if (currentRequestId !== requestId.current) return;
+        setDisplayTasks(response.items.map((task) => toFieldCoordinatorTask(task, primaryAssignmentId)));
+        setTotalItems(response.pagination.total);
+        if (refreshKey > 0) toast.success("Data monitoring diperbarui");
+      })
+      .catch((error) => {
+        if (currentRequestId !== requestId.current) return;
+        toast.error(error instanceof Error ? error.message : "Data monitoring gagal dimuat.");
+      })
+      .finally(() => {
+        if (currentRequestId === requestId.current) setIsRefreshing(false);
+      });
+  }, [primaryAssignmentId, debouncedSearch, statusFilter, sortBy, currentPage, pageSize, refreshKey]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -1972,7 +1992,7 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
     let inProgress = 0;
     let overdue = 0;
 
-    tasks.forEach((t) => {
+    displayTasks.forEach((t) => {
       const summary = countAssignmentStatuses(t.subordinateAssignments);
       const overdueCount = t.subordinateAssignments.filter(isAssignmentOverdue).length;
       totalAssignments += t.subordinateAssignments.length;
@@ -1983,8 +2003,8 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
     });
 
     const complianceRate = totalAssignments > 0 ? Math.round((acknowledged / totalAssignments) * 100) : 0;
-    return { totalTasks: tasks.length, totalAssignments, acknowledged, sent, inProgress, overdue, complianceRate };
-  }, [tasks]);
+    return { totalTasks: totalItems, totalAssignments, acknowledged, sent, inProgress, overdue, complianceRate };
+  }, [displayTasks, totalItems]);
 
   return (
     <div className="space-y-6">
@@ -2002,7 +2022,7 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
             Monitoring Tugas
           </h1>
           <p className="mt-1 max-w-2xl text-muted-foreground text-xs leading-relaxed">
-            Pantau progres, acknowledgement, dan potensi keterlambatan assignment Field Officer.
+            Pantau progres, konfirmasi penerimaan, dan potensi keterlambatan penugasan Petugas Wilayah (Gaswil).
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -2274,9 +2294,14 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
                           <div key={assignment.id} className="flex items-center justify-between gap-3 p-3 text-xs">
                             <div className="min-w-0 flex-1 space-y-0.5">
                               <div className="flex items-center gap-1.5">
-                                <span className="truncate font-bold font-sans text-[var(--dc-text-primary)]">
-                                  {assignment.assignee?.userProfile?.fullName ?? "Field Officer"}
-                                </span>
+                                <GaswilEntityLink
+                                  name={
+                                    assignment.assignee?.userProfile?.fullName ?? "Petugas Wilayah (Gaswil)"
+                                  }
+                                  assignmentId={assignment.assignee?.id ?? assignment.assigneeAssignmentId}
+                                  userProfileId={assignment.assignee?.userProfile?.id}
+                                  className="font-bold font-sans text-[var(--dc-text-primary)]"
+                                />
                                 <span className="truncate font-mono text-[9px] text-muted-foreground/40">
                                   ({assignment.assignee?.position?.title ?? "FO"})
                                 </span>
@@ -2352,13 +2377,13 @@ export function FieldCoordinatorMonitoringClient({ tasks }: FieldCoordinatorMoni
                   <span className="font-bold font-mono text-xs">{stats.overdue} PENUGASAN MELEBIHI BATAS WAKTU</span>
                 </div>
                 <p className="font-sans text-[10px] text-muted-foreground/60 leading-relaxed">
-                  Segera hubungi personel bersangkutan atau lakukan re-assignment untuk mencegah keterlambatan data
+                  Segera hubungi personel bersangkutan atau alihkan penugasan untuk mencegah keterlambatan data
                   intelijen.
                 </p>
               </div>
             ) : (
               <div className="rounded-[4px] border border-white/[0.04] bg-white/[0.01] p-3 font-sans text-muted-foreground/80 text-xs leading-normal">
-                Seluruh Field Officer bertugas sesuai limit operasional. Tingkat risiko keterlambatan:{" "}
+                Seluruh Petugas Wilayah (Gaswil) bertugas sesuai batas operasional. Tingkat risiko keterlambatan:{" "}
                 <strong className="text-[var(--dc-success)]">SANGAT RENDAH</strong>
               </div>
             )}
@@ -2450,7 +2475,7 @@ export function FieldCoordinatorMonitoringDetailClient({
   const filteredAssignments = useMemo(() => {
     return subordinateAssignments
       .filter((a) => {
-        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Field Officer";
+        const name = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
         const location = a.assignee?.position?.organizationUnit?.name ?? "";
         const matchesSearch =
           name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -2471,8 +2496,8 @@ export function FieldCoordinatorMonitoringDetailClient({
       })
       .sort((a, b) => {
         if (sortBy === "nama") {
-          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Field Officer";
-          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.position?.title ?? "Field Officer";
+          const nameA = a.assignee?.userProfile?.fullName ?? a.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
+          const nameB = b.assignee?.userProfile?.fullName ?? b.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
           return nameA.localeCompare(nameB);
         }
         if (sortBy === "deadline") {
@@ -2507,7 +2532,7 @@ export function FieldCoordinatorMonitoringDetailClient({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <div className="space-y-1 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5">
           <div className="font-mono text-[8px] text-muted-foreground/60 uppercase tracking-wider">
-            TOTAL PETUGAS LAPANGAN
+            TOTAL PETUGAS WILAYAH
           </div>
           <div className="font-bold font-mono text-[var(--dc-text-primary)] text-xl">{stats.total}</div>
         </div>
@@ -2544,7 +2569,7 @@ export function FieldCoordinatorMonitoringDetailClient({
           <div className="relative min-w-[200px] flex-1">
             <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
             <Input
-              placeholder="Cari Field Officer..."
+              placeholder="Cari Petugas Wilayah (Gaswil)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-8 rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 pl-8 font-mono text-xs placeholder:text-muted-foreground/60"
@@ -2574,7 +2599,7 @@ export function FieldCoordinatorMonitoringDetailClient({
                   <SelectValue placeholder="Urutkan" />
                 </SelectTrigger>
                 <SelectContent className="border-[var(--dc-border-subtle)] bg-popover font-mono text-popover-foreground text-xs">
-                  <SelectItem value="nama">NAMA PETUGAS LAPANGAN</SelectItem>
+                  <SelectItem value="nama">NAMA PETUGAS WILAYAH</SelectItem>
                   <SelectItem value="deadline">BATAS WAKTU PENUGASAN</SelectItem>
                 </SelectContent>
               </Select>
@@ -2590,8 +2615,8 @@ export function FieldCoordinatorMonitoringDetailClient({
         ) : (
           <div className="divide-y divide-white/[0.04] overflow-hidden rounded-[6px] border border-white/[0.08] bg-white/[0.005]">
             {paginatedAssignments.map((assignment) => {
-              const name = assignment.assignee?.userProfile?.fullName ?? "Field Officer";
-              const position = assignment.assignee?.position?.title ?? "Field Officer";
+              const name = assignment.assignee?.userProfile?.fullName ?? "Petugas Wilayah (Gaswil)";
+              const position = assignment.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)";
               const region = assignment.assignee?.position?.organizationUnit?.name ?? "Aceh";
               const isOverdue = isAssignmentOverdue(assignment);
               const latestLog = latestProgressLog(assignment);
@@ -2606,7 +2631,12 @@ export function FieldCoordinatorMonitoringDetailClient({
                       {name.charAt(0)}
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate font-bold font-sans text-[var(--dc-text-primary)] text-xs">{name}</div>
+                      <GaswilEntityLink
+                        name={name}
+                        assignmentId={assignment.assignee?.id ?? assignment.assigneeAssignmentId}
+                        userProfileId={assignment.assignee?.userProfile?.id}
+                        className="font-bold font-sans text-[var(--dc-text-primary)] text-xs"
+                      />
                       <div className="truncate font-mono text-[10px] text-muted-foreground/60">{position}</div>
                     </div>
                   </div>
@@ -2723,7 +2753,7 @@ export function FieldCoordinatorMonitoringDetailClient({
         {totalPages > 1 && (
           <div className="flex items-center justify-between pt-4 font-mono text-[10px] text-muted-foreground">
             <div>
-              Menampilkan {startIdx}–{endIdx} dari {totalItems} Petugas Lapangan.
+              Menampilkan {startIdx}–{endIdx} dari {totalItems} Petugas Wilayah.
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -3313,7 +3343,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
 
   async function handleForward() {
     if (!selectedAssigneeIds.length) {
-      toast.error("Pilih minimal satu Field Coordinator tujuan distribusi.");
+      toast.error("Pilih minimal satu Koordinator Lapangan tujuan distribusi.");
       return;
     }
 
@@ -3341,14 +3371,14 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
         });
 
         await apiBrowserMutation("POST", `/tasks/${created.id}/assignments`, parsedAssignments);
-        toast.success("STR berhasil diteruskan OIM ke Field Coordinator.");
+        toast.success("STR berhasil diteruskan OIM ke Koordinator Lapangan.");
         router.push(`/dashboard/oim/direktif-tugas/${created.id}`);
         router.refresh();
       } catch (assignmentError) {
         const assignmentMessage =
           assignmentError instanceof Error
             ? assignmentError.message
-            : "Distribusi ke Field Coordinator gagal diproses.";
+            : "Distribusi ke Koordinator Lapangan gagal diproses.";
         toast.error(`${assignmentMessage} Task sumber sudah dibuat dan bisa dilanjutkan dari halaman detail.`);
         router.push(`/dashboard/oim/direktif-tugas/${created.id}`);
         router.refresh();
@@ -3384,7 +3414,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-bold text-[var(--dc-text-primary)] text-xl tracking-tight">
-              Baca dan Teruskan STR ke Field Coordinator
+              Baca dan Teruskan STR ke Koordinator Lapangan
             </h1>
             <Badge
               variant="outline"
@@ -3539,7 +3569,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                 <Clock className="size-3.5" /> BACA STR DULU SEBELUM DISTRIBUSI
               </div>
               <div>
-                Penerusan ke Field Coordinator hanya dapat diakses setelah Anda mengonfirmasi bahwa Anda telah membaca
+                Penerusan ke Koordinator Lapangan hanya dapat diakses setelah Anda mengonfirmasi bahwa Anda telah membaca
                 STR pada checklist konfirmasi di atas.
               </div>
             </div>
@@ -3675,7 +3705,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                               </div>
                               <div className="min-w-0 flex-1 space-y-0.5">
                                 <div className="truncate font-bold text-foreground text-sm">
-                                  {candidate.userProfile?.fullName || candidate.position?.title || "Field Coordinator"}
+                                  {candidate.userProfile?.fullName || candidate.position?.title || "Koordinator Lapangan"}
                                 </div>
                                 <div className="truncate font-mono text-[11px] text-muted-foreground/60 uppercase">
                                   {candidate.position?.title || "-"}
@@ -3708,7 +3738,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                                 <span
                                   className={`font-mono text-[10px] uppercase ${checked ? "font-bold text-primary" : "text-muted-foreground/60"}`}
                                 >
-                                  {checked ? "Terpilih" : "Pilih Field Coordinator"}
+                                  {checked ? "Terpilih" : "Pilih Koordinator Lapangan"}
                                 </span>
                               </div>
                             </div>
@@ -3767,7 +3797,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                                   />
                                 </td>
                                 <td className="p-3 font-bold text-foreground">
-                                  {candidate.userProfile?.fullName || candidate.position?.title || "Field Coordinator"}
+                                  {candidate.userProfile?.fullName || candidate.position?.title || "Koordinator Lapangan"}
                                 </td>
                                 <td className="p-3 text-[11px] uppercase">
                                   {candidate.areaScopes?.[0]?.area.name || "-"}
@@ -3789,7 +3819,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                       Menampilkan{" "}
                       <span className="font-bold text-foreground">{totalCandidatesCount > 0 ? startIndex + 1 : 0}</span>
                       –<span className="font-bold text-foreground">{endIndex}</span> dari{" "}
-                      <span className="font-bold text-foreground">{totalCandidatesCount}</span> Field Coordinator
+                      <span className="font-bold text-foreground">{totalCandidatesCount}</span> Koordinator Lapangan
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -3849,7 +3879,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                 </div>
               ) : (
                 <div className="rounded-[6px] border border-white/5 border-dashed p-8 text-center font-mono text-muted-foreground text-xs italic">
-                  Tidak ada Field Coordinator yang cocok dengan pencarian / filter.
+                  Tidak ada Koordinator Lapangan yang cocok dengan pencarian atau filter.
                 </div>
               )}
             </div>
@@ -3862,7 +3892,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
         <div className="font-mono text-muted-foreground text-xs">
           DIPILIH:{" "}
           <span className="font-bold text-[var(--dc-primary)]">
-            {selectedAssigneeIds.length} Field Coordinator dipilih
+            {selectedAssigneeIds.length} Koordinator Lapangan dipilih
           </span>
           {assignmentNote.trim() && <span className="ml-2 text-muted-foreground/60">(Catatan terlampir)</span>}
         </div>
@@ -3906,7 +3936,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
               <AlertDialogHeader>
                 <AlertDialogTitle>Teruskan STR?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Apakah Anda yakin ingin meneruskan STR ini ke {selectedAssigneeIds.length} Field Coordinator yang
+                  Apakah Anda yakin ingin meneruskan STR ini ke {selectedAssigneeIds.length} Koordinator Lapangan yang
                   dipilih?
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -4004,7 +4034,7 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
           {mode === "create" ? "Builder Tugas Operasional" : "Edit Draft Task"}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Task OIM hanya bisa didistribusikan ke Field Coordinator sebelum diteruskan ke Field Officer.
+          Tugas OIM hanya dapat didistribusikan ke Koordinator Lapangan sebelum diteruskan ke Petugas Wilayah (Gaswil).
         </p>
       </div>
 
@@ -4253,8 +4283,8 @@ function OperationalTimeline({ status, hasAssignments }: { status: string; hasAs
   const stages = [
     { key: "created", label: "Dibuat", desc: "Dokumen STR diterbitkan di pusat" },
     { key: "forwarded", label: "Diteruskan", desc: "STR diteruskan ke regional komando" },
-    { key: "assigned", label: "Didistribusikan", desc: "Tugas dibagikan ke Field Coordinator" },
-    { key: "accepted", label: "Diterima", desc: "Petugas lapangan menerima penugasan" },
+    { key: "assigned", label: "Didistribusikan", desc: "Tugas dibagikan ke Koordinator Lapangan" },
+    { key: "accepted", label: "Diterima", desc: "Petugas wilayah menerima penugasan" },
     { key: "completed", label: "Selesai", desc: "Seluruh target operasi diselesaikan" },
   ];
 
@@ -4304,7 +4334,7 @@ function CommandHierarchyFlow() {
     { label: "REGIONAL (Regional Commander)", desc: "Pengarah & supervisor wilayah" },
     { label: "KABAGOPS (Intelligence Manager)", desc: "OIM pengelola penugasan lapangan" },
     { label: "FIELD COORDINATOR (Koordinator)", desc: "Pengawas taktis lapangan" },
-    { label: "FIELD OFFICER (Petugas Lapangan)", desc: "Pelaksana operasi langsung" },
+    { label: "FIELD OFFICER (Petugas Wilayah)", desc: "Pelaksana operasi langsung" },
   ];
 
   return (
@@ -4359,7 +4389,7 @@ export function TaskDetailClient({
   assignmentHref,
   hideTargetAreas = false,
   hideAssignments = false,
-  assignmentTitle = "Assignments",
+  assignmentTitle = "Penugasan",
 }: TaskDetailClientProps) {
   const router = useRouter();
   const showStructuredUuk = hasStructuredUukSections(task);
@@ -4632,9 +4662,9 @@ export function AssignmentBoardClient({
           {!candidates.length ? (
             <Alert>
               <AlertTriangle className="size-4" />
-              <AlertTitle>Field Officer belum tersedia</AlertTitle>
+              <AlertTitle>Petugas Wilayah (Gaswil) belum tersedia</AlertTitle>
               <AlertDescription>
-                Tidak ada Field Officer aktif di bawah reporting line Field Coordinator ini.
+                Tidak ada Petugas Wilayah (Gaswil) aktif di bawah garis pelaporan Koordinator Lapangan ini.
               </AlertDescription>
             </Alert>
           ) : null}
@@ -4778,9 +4808,63 @@ export function AssignmentBoardClient({
 
 type FieldOfficerAssignmentsClientProps = {
   assignments: TaskAssignmentDetail[];
+  primaryAssignmentId: string;
 };
 
-export function FieldOfficerAssignmentsClient({ assignments }: FieldOfficerAssignmentsClientProps) {
+export function FieldOfficerAssignmentsClient({
+  assignments,
+  primaryAssignmentId,
+}: FieldOfficerAssignmentsClientProps) {
+  const [displayAssignments, setDisplayAssignments] = useState(assignments);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [status, setStatus] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(assignments.length);
+  const [loading, setLoading] = useState(false);
+  const requestId = useRef(0);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  useEffect(() => {
+    const currentRequestId = ++requestId.current;
+    setLoading(true);
+    apiBrowserFetch<TaskListResponse>("/tasks", {
+      query: {
+        paginated: true,
+        assigneeAssignmentId: primaryAssignmentId,
+        assignmentStatus: status === "ALL" ? undefined : status,
+        search: debouncedSearch || undefined,
+        sortBy: "dueDate",
+        sortOrder: "asc",
+        page,
+        limit,
+      },
+    })
+      .then((response) => {
+        if (currentRequestId !== requestId.current) return;
+        setDisplayAssignments(
+          response.items.flatMap((task) =>
+            task.assignments
+              .filter((assignment) => assignment.assigneeAssignmentId === primaryAssignmentId)
+              .map((assignment) => ({ ...assignment, task })),
+          ),
+        );
+        setTotal(response.pagination.total);
+      })
+      .catch((error) => {
+        if (currentRequestId !== requestId.current) return;
+        toast.error(error instanceof Error ? error.message : "Tugas pribadi gagal dimuat.");
+      })
+      .finally(() => {
+        if (currentRequestId === requestId.current) setLoading(false);
+      });
+  }, [primaryAssignmentId, debouncedSearch, status, page, limit]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -4790,15 +4874,49 @@ export function FieldOfficerAssignmentsClient({ assignments }: FieldOfficerAssig
         </p>
       </div>
 
+      <div className="grid gap-3 rounded-xl border border-border/70 bg-card p-4 md:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="relative">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Cari judul, isi tugas, atau nomor direktif..."
+            className="pl-9"
+          />
+        </div>
+        <Select
+          value={status}
+          onValueChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger aria-label="Filter status tugas saya">
+            <SelectValue placeholder="Semua status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Semua Status</SelectItem>
+            <SelectItem value="SENT">Terkirim</SelectItem>
+            <SelectItem value="READ">Dibaca</SelectItem>
+            <SelectItem value="ACKNOWLEDGED">Diterima</SelectItem>
+            <SelectItem value="IN_PROGRESS">Berjalan</SelectItem>
+            <SelectItem value="COMPLETED">Selesai</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-2">
-        {assignments.map((assignment) => (
+        {displayAssignments.map((assignment) => (
           <Card key={assignment.id} className="border border-border/70">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span>{assignment.task?.title ?? "Task"}</span>
                 <Badge variant={badgeVariant(assignment.status)}>{assignmentStatusLabel(assignment.status)}</Badge>
               </CardTitle>
-              <CardDescription>{assignment.assignee?.position?.title ?? "Field Officer"}</CardDescription>
+              <CardDescription>{assignment.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)"}</CardDescription>
               <CardAction>
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/dashboard/field-officer/tugas-saya/${assignment.id}`}>Buka</Link>
@@ -4823,6 +4941,24 @@ export function FieldOfficerAssignmentsClient({ assignments }: FieldOfficerAssig
           </Card>
         ))}
       </div>
+
+      {!loading && displayAssignments.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm">
+          Tidak ada tugas yang sesuai dengan filter.
+        </div>
+      ) : null}
+
+      <TablePagination
+        page={page}
+        limit={limit}
+        total={total}
+        loading={loading}
+        onPageChange={setPage}
+        onLimitChange={(value) => {
+          setLimit(value);
+          setPage(1);
+        }}
+      />
     </div>
   );
 }
@@ -4884,7 +5020,10 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
         {descriptionSections.length > 0 ? (
           <div className="mt-4 space-y-3">
             {descriptionSections.map((section, index) => (
-              <div key={`${section.number ?? "description"}-${index}`} className="rounded-md border border-border/70 bg-card/60 p-4">
+              <div
+                key={`${section.number ?? "description"}-${index}`}
+                className="rounded-md border border-border/70 bg-card/60 p-4"
+              >
                 <div className="flex items-start gap-3">
                   {section.number ? (
                     <span className="mt-0.5 shrink-0 rounded-[4px] border border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-[11px] font-semibold text-primary">
@@ -4893,9 +5032,7 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
                   ) : null}
                   <div className="min-w-0 space-y-1">
                     {section.title ? (
-                      <h2 className="font-semibold text-sm uppercase tracking-wide text-foreground">
-                        {section.title}
-                      </h2>
+                      <h2 className="font-semibold text-sm uppercase tracking-wide text-foreground">{section.title}</h2>
                     ) : null}
                     <p className="whitespace-pre-line text-muted-foreground text-sm leading-6">{section.body}</p>
                   </div>

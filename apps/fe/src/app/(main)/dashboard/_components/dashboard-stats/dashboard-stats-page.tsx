@@ -2,6 +2,7 @@ import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import type { SystemRole } from "@/navigation/sidebar/system-roles";
 
+import { ExecutiveDashboardPage } from "../executive-dashboard/executive-dashboard-page";
 import { DashboardStatsClient } from "./dashboard-stats-client";
 import type { DashboardBriefingData } from "./dashboard-stats-types";
 
@@ -10,6 +11,15 @@ type DashboardStatsPageProps = {
 };
 
 export async function DashboardStatsPage({ role }: DashboardStatsPageProps) {
+  if (
+    role === "executive" ||
+    role === "regional_commander" ||
+    role === "operational_intelligence_manager" ||
+    role === "field_coordinator"
+  ) {
+    return <ExecutiveDashboardPage role={role} />;
+  }
+
   await requireRole(role);
 
   let initialData: DashboardBriefingData | null = null;
@@ -18,15 +28,8 @@ export async function DashboardStatsPage({ role }: DashboardStatsPageProps) {
   try {
     initialData = await apiServerGet<DashboardBriefingData>("/dashboard/briefing");
   } catch {
-    initialError =
-      "Data dashboard belum dapat dimuat. Gunakan tombol refresh setelah layanan backend tersedia.";
+    initialError = "Data dashboard belum dapat dimuat. Gunakan tombol refresh setelah layanan backend tersedia.";
   }
 
-  return (
-    <DashboardStatsClient
-      initialData={initialData}
-      initialError={initialError}
-      role={role}
-    />
-  );
+  return <DashboardStatsClient initialData={initialData} initialError={initialError} role={role} />;
 }

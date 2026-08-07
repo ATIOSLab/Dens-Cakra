@@ -4,7 +4,7 @@ export function LaporanSayaPage() {
   return (
     <DensModulePage
       title="Laporan Saya"
-      role="Petugas Lapangan"
+      role="Petugas Wilayah"
       description="Halaman ini menyiapkan tracking status laporan, feedback revisi, dan arsip laporan yang pernah dikirim."
       highlights={[
         "Daftar draft, terkirim, dalam review, dan perlu revisi.",

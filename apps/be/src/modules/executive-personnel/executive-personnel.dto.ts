@@ -55,6 +55,10 @@ export class ExecutivePersonnelListQuery {
 
 export class ExecutivePersonnelMapQuery {
   @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

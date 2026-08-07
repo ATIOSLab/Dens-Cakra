@@ -446,6 +446,128 @@ export class DirectiveService {
     context: AuthorizationContext,
   ): Prisma.DirectiveWhereInput {
     return this.directiveAccessWhere(context, {
+      AND: [
+        ...(query.from || query.to
+          ? [
+              {
+                versions: {
+                  some: {
+                    commandDate: {
+                      ...(query.from ? { gte: new Date(query.from) } : {}),
+                      ...(query.to ? { lte: new Date(query.to) } : {}),
+                    },
+                  },
+                },
+              } satisfies Prisma.DirectiveWhereInput,
+            ]
+          : []),
+        ...(query.classification || query.urgency
+          ? [
+              {
+                versions: {
+                  some: {
+                    ...(query.classification
+                      ? { classification: query.classification }
+                      : {}),
+                    ...(query.urgency ? { urgency: query.urgency } : {}),
+                  },
+                },
+              } satisfies Prisma.DirectiveWhereInput,
+            ]
+          : []),
+        ...(query.deadlineFrom || query.deadlineTo
+          ? [
+              {
+                versions: {
+                  some: {
+                    OR: [
+                      {
+                        dueDate: {
+                          ...(query.deadlineFrom
+                            ? { gte: new Date(query.deadlineFrom) }
+                            : {}),
+                          ...(query.deadlineTo
+                            ? { lte: new Date(query.deadlineTo) }
+                            : {}),
+                        },
+                      },
+                      {
+                        dueDate: null,
+                        commandDate: {
+                          ...(query.deadlineFrom
+                            ? { gte: new Date(query.deadlineFrom) }
+                            : {}),
+                          ...(query.deadlineTo
+                            ? { lte: new Date(query.deadlineTo) }
+                            : {}),
+                        },
+                      },
+                    ],
+                  },
+                },
+              } satisfies Prisma.DirectiveWhereInput,
+            ]
+          : []),
+        ...(query.areaId
+          ? [
+              {
+                versions: {
+                  some: {
+                    targetAreas: {
+                      some: {
+                        area: {
+                          OR: [
+                            { id: query.areaId },
+                            {
+                              ancestorLinks: {
+                                some: { ancestorId: query.areaId },
+                              },
+                            },
+                            {
+                              descendantLinks: {
+                                some: { descendantId: query.areaId },
+                              },
+                            },
+                          ],
+                        },
+                      },
+                    },
+                  },
+                },
+              } satisfies Prisma.DirectiveWhereInput,
+            ]
+          : []),
+        ...(query.assignedToMe
+          ? [
+              {
+                versions: {
+                  some: {
+                    recipients: {
+                      some: this.recipientScopeWhere(context),
+                    },
+                  },
+                },
+              } satisfies Prisma.DirectiveWhereInput,
+            ]
+          : []),
+        ...(query.recipientBranch
+          ? [
+              {
+                versions: {
+                  some: {
+                    recipients: {
+                      some: {
+                        targetAssignment: {
+                          branch: query.recipientBranch,
+                        },
+                      },
+                    },
+                  },
+                },
+              } satisfies Prisma.DirectiveWhereInput,
+            ]
+          : []),
+      ],
       ...(query.status ? { status: query.status } : {}),
       ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
       ...(query.search
@@ -483,56 +605,6 @@ export class DirectiveService {
             ],
           }
         : {}),
-      ...(query.from || query.to
-        ? {
-            versions: {
-              some: {
-                ...(query.from
-                  ? { commandDate: { gte: new Date(query.from) } }
-                  : {}),
-                ...(query.to
-                  ? { commandDate: { lte: new Date(query.to) } }
-                  : {}),
-              },
-            },
-          }
-        : {}),
-      ...(query.areaId
-        ? {
-            versions: {
-              some: {
-                targetAreas: {
-                  some: {
-                    area: {
-                      OR: [
-                        { id: query.areaId },
-                        {
-                          ancestorLinks: { some: { ancestorId: query.areaId } },
-                        },
-                        {
-                          descendantLinks: {
-                            some: { descendantId: query.areaId },
-                          },
-                        },
-                      ],
-                    },
-                  },
-                },
-              },
-            },
-          }
-        : {}),
-      ...(query.assignedToMe
-        ? {
-            versions: {
-              some: {
-                recipients: {
-                  some: this.recipientScopeWhere(context),
-                },
-              },
-            },
-          }
-        : {}),
     });
   }
 
@@ -563,8 +635,10 @@ export class DirectiveService {
       sortBy === DirectiveSortField.DUE_DATE ||
       sortBy === DirectiveSortField.EFFECTIVE_DEADLINE;
 
+    const where = this.directiveListWhere(query, context);
     const directives = await this.prisma.directive.findMany({
-      where: this.directiveListWhere(query, context),
+      where,
+      skip: requiresVersionSort ? undefined : (query.page - 1) * query.limit,
       take: requiresVersionSort ? undefined : query.limit,
       orderBy: requiresVersionSort
         ? { id: 'asc' }
@@ -572,7 +646,7 @@ export class DirectiveService {
       include,
     });
 
-    if (!requiresVersionSort) {
+    if (!requiresVersionSort && !query.paginated) {
       return directives;
     }
 
@@ -599,7 +673,41 @@ export class DirectiveService {
       return compared || left.id.localeCompare(right.id);
     });
 
-    return directives.slice(0, query.limit);
+    const items = requiresVersionSort
+      ? directives.slice(
+          (query.page - 1) * query.limit,
+          query.page * query.limit,
+        )
+      : directives;
+    if (!query.paginated) return items;
+
+    const [total, statuses] = await Promise.all([
+      this.prisma.directive.count({ where }),
+      this.prisma.directive.groupBy({
+        by: ['status'],
+        where,
+        _count: { _all: true },
+      }),
+    ]);
+    const statusCount = new Map<DirectiveStatus, number>(
+      statuses.map((item) => [item.status, Number(item._count._all)]),
+    );
+    const published =
+      (statusCount.get(DirectiveStatus.PUBLISHED) ?? 0) +
+      (statusCount.get(DirectiveStatus.DISTRIBUTED) ?? 0) +
+      (statusCount.get(DirectiveStatus.COMPLETED) ?? 0);
+    const draft = statusCount.get(DirectiveStatus.DRAFT) ?? 0;
+
+    return {
+      items,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / query.limit)),
+      },
+      summary: { total, published, draft },
+    };
   }
 
   async create(body: CreateDirectiveDto, context: AuthorizationContext) {

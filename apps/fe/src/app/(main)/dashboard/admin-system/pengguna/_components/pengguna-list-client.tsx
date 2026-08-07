@@ -6,25 +6,13 @@ import { useDeferredValue, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import {
-  ArrowRight,
-  BadgeCheck,
-  ChevronRight,
-  Filter,
-  Globe,
-  Lock,
-  Plus,
-  RotateCcw,
-  Search,
-  ShieldAlert,
-  Users,
-  X,
-} from "lucide-react";
+import { ArrowRight, BadgeCheck, ChevronRight, Globe, Lock, Plus, Search, ShieldAlert, Users, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
@@ -40,13 +28,7 @@ import { apiBrowserFetch, apiBrowserFetchEnvelope } from "@/lib/api/browser-clie
 import type { PaginationMeta } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-import type {
-  AreaSearchResult,
-  UserDetail,
-  UserListFacets,
-  UserListItem,
-  UserListQueryState,
-} from "./pengguna-types";
+import type { AreaSearchResult, UserDetail, UserListFacets, UserListItem, UserListQueryState } from "./pengguna-types";
 import {
   formatDateTime,
   getAssignmentUnitSummary,
@@ -134,9 +116,7 @@ function StatCard({
       <CardContent className="p-4 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</span>
-          <div className={cn("rounded-lg p-2 text-muted-foreground bg-muted/50", accentColor)}>
-            {icon}
-          </div>
+          <div className={cn("rounded-lg p-2 text-muted-foreground bg-muted/50", accentColor)}>{icon}</div>
         </div>
         <div className="flex items-baseline justify-between">
           <span className="text-2xl font-bold font-mono tracking-tight text-foreground">{value}</span>
@@ -188,14 +168,7 @@ export function PenggunaListClient({
     setRoleCode(queryState.roleCode);
     setLimit(String(queryState.limit));
     setActiveArea(selectedArea);
-  }, [
-    queryState.limit,
-    queryState.q,
-    queryState.roleCode,
-    queryState.status,
-    queryState.unitId,
-    selectedArea,
-  ]);
+  }, [queryState.limit, queryState.q, queryState.roleCode, queryState.status, queryState.unitId, selectedArea]);
 
   useEffect(() => {
     let cancelled = false;
@@ -309,16 +282,11 @@ export function PenggunaListClient({
   const suspendedCount = facets?.status?.SUSPENDED ?? 0;
   const lockedCount = facets?.security?.locked ?? 0;
   const totalPages = clientPagination?.totalPages ?? 1;
-  const hasActiveFilters = Boolean(q || status || unitId || roleCode || activeArea);
+  const activeFilterCount = [q, status, unitId, roleCode, activeArea?.id].filter(Boolean).length;
 
-  // Client-side display filtering for unit enum filter
-  const displayItems = clientItems.filter((user) => {
-    if (!unitId) return true;
-    const label = getUnitTypeLabel(user);
-    if (unitId === "BINDA") return label === "Binda";
-    if (unitId === "DIRECTORATE") return label === "Direktorat";
-    return true;
-  });
+  // The backend applies branch filtering to the complete result set.
+  // Do not filter the current page again because that would desynchronise totals and pagination.
+  const displayItems = clientItems;
 
   return (
     <div className="space-y-6">
@@ -354,7 +322,7 @@ export function PenggunaListClient({
           accentColor="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
         />
         <StatCard
-          title="Pending"
+          title="Menunggu"
           value={pendingCount}
           description="Provisioning baru butuh konfirmasi"
           icon={<Users className="size-4" />}
@@ -377,140 +345,153 @@ export function PenggunaListClient({
       </div>
 
       {/* Filter Section */}
-      <Card className="border border-border/60 shadow-sm">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search Input */}
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="user-search"
-                value={q}
-                onChange={(event) => setQ(event.target.value)}
-                className="pl-9 h-9 text-sm"
-                placeholder="Cari nama, username, atau email..."
-              />
-            </div>
-
-            {/* Status Select */}
-            <NativeSelect
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-              className="h-9 w-[140px] text-sm"
-            >
-              <NativeSelectOption value="">Semua status</NativeSelectOption>
-              {USER_STATUS_OPTIONS.map((option) => (
-                <NativeSelectOption key={option.value} value={option.value}>
-                  {option.label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-
-            {/* Unit Select (Enum: Binda / Direktorat) */}
-            <NativeSelect
-              value={unitId}
-              onChange={(event) => setUnitId(event.target.value)}
-              className="h-9 w-[130px] text-sm"
-            >
-              <NativeSelectOption value="">Semua unit</NativeSelectOption>
-              {UNIT_ENUM_OPTIONS.map((option) => (
-                <NativeSelectOption key={option.value} value={option.value}>
-                  {option.label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-
-            {/* Role Select */}
-            <NativeSelect
-              value={roleCode}
-              onChange={(event) => setRoleCode(event.target.value)}
-              className="h-9 w-[160px] text-sm"
-            >
-              <NativeSelectOption value="">Semua role</NativeSelectOption>
-              {ROLE_CODE_OPTIONS.map((option) => (
-                <NativeSelectOption key={option.value} value={option.value}>
-                  {option.label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-
-            {/* Toggle Wilayah Filter */}
-            <Button
-              type="button"
-              variant={showAreaFilter ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setShowAreaFilter(!showAreaFilter)}
-              className="h-9 gap-1.5 text-xs"
-            >
-              <Globe className="size-3.5" />
-              Wilayah
-              {activeArea && (
-                <Badge variant="default" className="ml-1 px-1.5 py-0 text-[10px] rounded-full">
-                  1
-                </Badge>
-              )}
-            </Button>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 ml-auto">
-              {hasActiveFilters && (
-                <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs gap-1">
-                  <RotateCcw className="size-3.5" /> Reset
-                </Button>
-              )}
-              <Button type="button" size="sm" onClick={applyFilters} className="h-9 text-xs">
-                Terapkan
-              </Button>
-            </div>
+      <FilterPanel
+        title="Filter pengguna"
+        description="Pencarian dan pilihan filter diterapkan ke seluruh data sesuai scope akses Anda."
+        activeFilterCount={activeFilterCount}
+        onReset={clearFilters}
+        resultSummary={`${clientPagination?.total ?? clientItems.length} pengguna`}
+        contentClassName="block space-y-4"
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="user-search"
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              className="h-10 pl-9 text-sm"
+              placeholder="Cari nama, username, email, atau nomor HP..."
+            />
           </div>
 
-          {/* Wilayah Filter Drawer */}
-          {showAreaFilter && (
-            <div className="pt-3 border-t border-border/40 max-w-md">
-              <div className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filter Wilayah Operasional</span>
-                <Input
-                  id="area-search"
-                  value={areaQuery}
-                  onChange={(event) => setAreaQuery(event.target.value)}
-                  placeholder="Ketik nama atau kode area..."
-                  className="h-9 text-sm"
-                />
-                {activeArea && (
-                  <div className="flex items-center justify-between rounded-md bg-muted/60 px-3 py-1.5 text-xs">
-                    <span className="font-medium text-foreground">{activeArea.code} • {activeArea.name}</span>
-                    <button type="button" onClick={() => setActiveArea(null)} className="text-muted-foreground hover:text-foreground">
-                      <X className="size-3.5" />
-                    </button>
-                  </div>
-                )}
-                {areaResults.length > 0 && (
-                  <div className="rounded-lg border border-border/60 bg-popover max-h-[160px] overflow-y-auto">
-                    {areaResults.map((area) => (
-                      <button
-                        key={area.id}
-                        type="button"
-                        onClick={() => {
-                          setActiveArea(area);
-                          setAreaQuery("");
-                          setAreaResults([]);
-                        }}
-                        className="flex w-full items-center justify-between px-3 py-2 text-xs text-left hover:bg-muted/50 border-b border-border/30 last:border-0"
-                      >
-                        <div>
-                          <div className="font-medium text-foreground">{area.name}</div>
-                          <div className="text-[11px] text-muted-foreground">{area.code} • {area.level}</div>
+          {/* Status Select */}
+          <NativeSelect
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            aria-label="Filter status pengguna"
+            className="h-10 w-full text-sm sm:w-[150px]"
+          >
+            <NativeSelectOption value="">Semua status</NativeSelectOption>
+            {USER_STATUS_OPTIONS.map((option) => (
+              <NativeSelectOption key={option.value} value={option.value}>
+                {option.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+
+          {/* Unit Select (Enum: Binda / Direktorat) */}
+          <NativeSelect
+            value={unitId}
+            onChange={(event) => setUnitId(event.target.value)}
+            aria-label="Filter unit pengguna"
+            className="h-10 w-full text-sm sm:w-[150px]"
+          >
+            <NativeSelectOption value="">Semua unit</NativeSelectOption>
+            {UNIT_ENUM_OPTIONS.map((option) => (
+              <NativeSelectOption key={option.value} value={option.value}>
+                {option.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+
+          {/* Role Select */}
+          <NativeSelect
+            value={roleCode}
+            onChange={(event) => setRoleCode(event.target.value)}
+            aria-label="Filter role pengguna"
+            className="h-10 w-full text-sm sm:w-[170px]"
+          >
+            <NativeSelectOption value="">Semua role</NativeSelectOption>
+            {ROLE_CODE_OPTIONS.map((option) => (
+              <NativeSelectOption key={option.value} value={option.value}>
+                {option.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+
+          {/* Toggle Wilayah Filter */}
+          <Button
+            type="button"
+            variant={showAreaFilter ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setShowAreaFilter(!showAreaFilter)}
+            className="h-10 gap-1.5 text-sm"
+          >
+            <Globe className="size-3.5" />
+            Wilayah
+            {activeArea && (
+              <Badge variant="default" className="ml-1 px-1.5 py-0 text-[10px] rounded-full">
+                1
+              </Badge>
+            )}
+          </Button>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 ml-auto">
+            <Button type="button" size="sm" onClick={applyFilters} className="h-10 px-4 text-sm">
+              Terapkan
+            </Button>
+          </div>
+        </div>
+
+        {/* Wilayah Filter Drawer */}
+        {showAreaFilter && (
+          <div className="pt-3 border-t border-border/40 max-w-md">
+            <div className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Filter Wilayah Operasional
+              </span>
+              <Input
+                id="area-search"
+                value={areaQuery}
+                onChange={(event) => setAreaQuery(event.target.value)}
+                placeholder="Ketik nama atau kode area..."
+                className="h-10 text-sm"
+              />
+              {activeArea && (
+                <div className="flex items-center justify-between rounded-md bg-muted/60 px-3 py-1.5 text-xs">
+                  <span className="font-medium text-foreground">
+                    {activeArea.code} • {activeArea.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveArea(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              )}
+              {areaResults.length > 0 && (
+                <div className="rounded-lg border border-border/60 bg-popover max-h-[160px] overflow-y-auto">
+                  {areaResults.map((area) => (
+                    <button
+                      key={area.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveArea(area);
+                        setAreaQuery("");
+                        setAreaResults([]);
+                      }}
+                      className="flex w-full items-center justify-between px-3 py-2 text-xs text-left hover:bg-muted/50 border-b border-border/30 last:border-0"
+                    >
+                      <div>
+                        <div className="font-medium text-foreground">{area.name}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {area.code} • {area.level}
                         </div>
-                        <ArrowRight className="size-3.5 text-muted-foreground" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      </div>
+                      <ArrowRight className="size-3.5 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </FilterPanel>
 
       {/* Main Table */}
       <Card className="border border-border/60 shadow-sm overflow-hidden">
@@ -526,12 +507,24 @@ export function PenggunaListClient({
               <Table>
                 <TableHeader className="bg-muted/40">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pengguna</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unit</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Scope Wilayah</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Login Terakhir</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Pengguna
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Unit
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Scope Wilayah
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Login Terakhir
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">
+                      Aksi
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className={cn(loading && "opacity-50 transition-opacity duration-200")}>
@@ -542,7 +535,10 @@ export function PenggunaListClient({
                     const isSelected = selectedUser?.id === user.id;
 
                     return (
-                      <TableRow key={user.id} className={cn("hover:bg-muted/30 transition-colors", isSelected && "bg-muted/40")}>
+                      <TableRow
+                        key={user.id}
+                        className={cn("hover:bg-muted/30 transition-colors", isSelected && "bg-muted/40")}
+                      >
                         <TableCell className="py-3">
                           <Link
                             href={`/dashboard/admin-system/pengguna/${user.id}`}
@@ -558,9 +554,7 @@ export function PenggunaListClient({
                         </TableCell>
 
                         <TableCell className="py-3">
-                          <div className="text-xs font-semibold text-foreground">
-                            {getUnitTypeLabel(user)}
-                          </div>
+                          <div className="text-xs font-semibold text-foreground">{getUnitTypeLabel(user)}</div>
                         </TableCell>
 
                         <TableCell className="py-3">
@@ -597,7 +591,7 @@ export function PenggunaListClient({
                             )}
                             {user.status === "PENDING" && (
                               <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 border-amber-500/20 text-[11px]">
-                                Pending
+                                Menunggu
                               </Badge>
                             )}
                             {user.status === "SUSPENDED" && (
@@ -610,7 +604,11 @@ export function PenggunaListClient({
                                 {user.status}
                               </Badge>
                             )}
-                            {locked && <Badge variant="destructive" className="text-[11px]">Locked</Badge>}
+                            {locked && (
+                              <Badge variant="destructive" className="text-[11px]">
+                                Locked
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
 
@@ -688,7 +686,6 @@ export function PenggunaListClient({
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
-                          href="#"
                           aria-disabled={currentPage <= 1}
                           className={currentPage <= 1 ? "pointer-events-none opacity-50" : undefined}
                           text="Sebelumnya"
@@ -706,7 +703,6 @@ export function PenggunaListClient({
                         .map((pageNumber) => (
                           <PaginationItem key={pageNumber}>
                             <PaginationLink
-                              href="#"
                               isActive={pageNumber === currentPage}
                               onClick={(e) => {
                                 e.preventDefault();
@@ -719,7 +715,6 @@ export function PenggunaListClient({
                         ))}
                       <PaginationItem>
                         <PaginationNext
-                          href="#"
                           aria-disabled={currentPage >= totalPages}
                           className={currentPage >= totalPages ? "pointer-events-none opacity-50" : undefined}
                           text="Berikutnya"

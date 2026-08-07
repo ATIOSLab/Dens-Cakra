@@ -12,6 +12,12 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3001}
+      CACHE_ENABLED: ${CACHE_ENABLED:-false}
+      CACHE_PREFIX: ${CACHE_PREFIX:-dens-cakra}
+      CACHE_DEFAULT_TTL_MS: ${CACHE_DEFAULT_TTL_MS:-60000}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_CONNECT_TIMEOUT_MS: ${REDIS_CONNECT_TIMEOUT_MS:-1500}
+      REDIS_OPERATION_TIMEOUT_MS: ${REDIS_OPERATION_TIMEOUT_MS:-250}
       # Keep container storage paths absolute so Dokploy volume mounts never
       # break when UI/.env values use local relative paths like ./storage.
       LOCAL_STORAGE_ROOT: /app/storage
@@ -33,6 +39,27 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+
+  dens-cakra-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in Dokploy}
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server --save "" --appendonly no
+        --maxmemory 256mb --maxmemory-policy allkeys-lru
+        --requirepass "$${REDIS_PASSWORD}"
+    expose:
+      - '6379'
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" ping | grep PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   dens_cakra_storage:

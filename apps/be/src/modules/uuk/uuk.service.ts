@@ -456,8 +456,7 @@ export class UukService {
           ]
         : [{ updatedAt: sortOrder }, { id: 'asc' }];
 
-    return this.prisma.uukStr.findMany({
-      where: this.uukAccessWhere(context, {
+    const where = this.uukAccessWhere(context, {
         ...(query.status ? { status: query.status } : {}),
         ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
         ...(query.directiveId
@@ -466,6 +465,9 @@ export class UukService {
                 directiveId: query.directiveId,
               },
             }
+          : {}),
+        ...(query.directiveVersionIds?.length
+          ? { directiveVersionId: { in: query.directiveVersionIds } }
           : {}),
         ...(query.search
           ? {
@@ -490,10 +492,8 @@ export class UukService {
               ],
             }
           : {}),
-      }),
-      take: query.limit,
-      orderBy,
-      include: {
+      });
+    const include = {
         ownerAssignment: true,
         directiveVersion: {
           include: {
@@ -515,8 +515,26 @@ export class UukService {
             },
           },
         },
-      },
+      } satisfies Prisma.UukStrInclude;
+    const items = await this.prisma.uukStr.findMany({
+      where,
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+      orderBy,
+      include,
     });
+    if (!query.paginated) return items;
+
+    const total = await this.prisma.uukStr.count({ where });
+    return {
+      items,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / query.limit)),
+      },
+    };
   }
 
   async create(body: CreateUukDto, context: AuthorizationContext) {

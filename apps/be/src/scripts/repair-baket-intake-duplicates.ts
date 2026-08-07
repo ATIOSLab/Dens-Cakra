@@ -49,11 +49,9 @@ async function main() {
       initialVersion?.versionNumber === 1 &&
       !initialVersion.revisionReason &&
       !initialVersion.fieldOfficerNote &&
-      initialVersion.title === (message.title ?? 'Laporan Jaring') &&
       initialVersion.originalContent === (message.content ?? '') &&
       initialVersion.normalizedContent === null &&
       initialVersion.urgency === PriorityLevel.NORMAL &&
-      initialVersion.eventTime === null &&
       Number(initialVersion.latitude) === Number(message.latitude) &&
       Number(initialVersion.longitude) === Number(message.longitude);
     return (

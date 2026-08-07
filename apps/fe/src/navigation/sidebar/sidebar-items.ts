@@ -15,10 +15,10 @@ import {
   ScrollText,
   Send,
   ShieldCheck,
-  Siren,
-  TriangleAlert,
   Users,
 } from "lucide-react";
+
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
 import { SYSTEM_ROLE_HOME_ROUTES, SYSTEM_ROLES, type SystemRole } from "./system-roles";
 
@@ -131,6 +131,13 @@ export const sidebarItems: NavGroup[] = [
         roles: EXECUTIVE_ROLE,
       },
       {
+        id: "executive-intelligence-network-map",
+        title: DOMAIN_TERMS.intelligenceNetworkMap,
+        url: "/dashboard/maps-intelijen-network",
+        icon: MapPinned,
+        roles: EXECUTIVE_ROLE,
+      },
+      {
         id: "executive-intelligence-products",
         title: "Produk Intelijen",
         url: "/dashboard/executive/produk-intelijen",
@@ -139,7 +146,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "executive-personnel",
-        title: "Personil",
+        title: DOMAIN_TERMS.personnel,
         url: "/dashboard/executive/personil",
         icon: Users,
         roles: EXECUTIVE_ROLE,
@@ -242,25 +249,25 @@ export const sidebarItems: NavGroup[] = [
         subItems: [
           {
             id: "monitoring-intelijen-network",
-            title: "Maps Intelijen Network",
+            title: DOMAIN_TERMS.intelligenceNetworkMap,
             url: "/dashboard/maps-intelijen-network",
-            roles: COORDINATOR_AND_REGIONAL_ROLES,
+            roles: REGIONAL_COMMANDER_ROLE,
           },
           {
             id: "field-coordinator-tasks-monitoring",
-            title: "Laporan Jaring",
+            title: DOMAIN_TERMS.jaringReport,
             url: "/dashboard/laporan-jaring",
             roles: COORDINATOR_AND_REGIONAL_ROLES,
           },
           {
             id: "field-coordinator-baket",
-            title: "Baket",
+            title: DOMAIN_TERMS.baket,
             url: "/dashboard/baket",
             roles: COORDINATOR_AND_REGIONAL_ROLES,
           },
           {
             id: "field-coordinator-laporan-pembinaan-jaring",
-            title: "History Pembinaan Jaring",
+            title: DOMAIN_TERMS.jaringCoachingHistory,
             url: "/dashboard/laporan-pembinaan-jaring",
             roles: COORDINATOR_AND_REGIONAL_ROLES,
           },
@@ -268,7 +275,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "field-coordinator-personnel",
-        title: "Petugas Wilayah",
+        title: DOMAIN_TERMS.fieldOfficer,
         url: "/dashboard/personel-lapangan",
         icon: Users,
         roles: COORDINATOR_AND_REGIONAL_ROLES,
@@ -296,7 +303,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "admin-system-home",
-        title: "Dashboard Sistem",
+        title: "Beranda Sistem",
         url: SYSTEM_ROLE_HOME_ROUTES[SYSTEM_ROLES.ADMIN_SYSTEM],
         icon: ShieldCheck,
         roles: ADMIN_SYSTEM_ROLE,
@@ -310,7 +317,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "admin-system-wa-center",
-        title: "Integrasi WA Center",
+        title: DOMAIN_TERMS.whatsappIntegration,
         url: "/dashboard/admin-system/integrasi-wa-center",
         icon: Inbox,
         roles: ADMIN_SYSTEM_ROLE,
@@ -324,28 +331,28 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "field-officer-jaring",
-        title: "Jaring",
+        title: "Daftar Jaring",
         url: "/dashboard/daftar-jaring",
         icon: Users,
         roles: FIELD_OFFICER_ROLE,
       },
       {
         id: "field-officer-laporan-jaring",
-        title: "Laporan Jaring",
+        title: DOMAIN_TERMS.jaringReport,
         url: "/dashboard/laporan-jaring",
         icon: Send,
         roles: FIELD_OFFICER_ROLE,
       },
       {
         id: "field-officer-baket",
-        title: "Baket",
+        title: DOMAIN_TERMS.baket,
         url: "/dashboard/baket",
         icon: FileText,
         roles: FIELD_OFFICER_ROLE,
       },
       {
         id: "field-officer-laporan-pembinaan",
-        title: "History Pembinaan",
+        title: DOMAIN_TERMS.jaringCoachingHistory,
         url: "/dashboard/laporan-pembinaan-jaring",
         icon: ScrollText,
         roles: FIELD_OFFICER_ROLE,
@@ -384,11 +391,10 @@ function hasRoleAccess(roles: SystemRole[] | undefined, role: SystemRole) {
 }
 
 export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
-  return sidebarItems
+  const accessibleItems = sidebarItems
     .filter((group) => hasRoleAccess(group.roles, role))
-    .map((group) => ({
-      ...group,
-      items: group.items
+    .flatMap((group) =>
+      group.items
         .filter((item) => hasRoleAccess(item.roles, role))
         .map((item) => {
           if (!item.subItems) {
@@ -401,6 +407,61 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
           };
         })
         .filter((item) => !item.subItems || item.subItems.length > 0),
+    );
+
+  if (role === SYSTEM_ROLES.ADMIN_SYSTEM) {
+    const adminOrder = [
+      "admin-system-home",
+      "admin-system-users",
+      "admin-system-master-data",
+      "admin-system-wa-center",
+      "admin-system-security",
+      "admin-system-configuration",
+    ];
+    accessibleItems.sort((left, right) => adminOrder.indexOf(left.id) - adminOrder.indexOf(right.id));
+  }
+
+  const homeIds = new Set([
+    "executive-home",
+    "regional-home",
+    "oim-home",
+    "field-coordinator-home",
+    "beranda-field-officer",
+    "admin-system-home",
+  ]);
+  const administrationIds = new Set([
+    "admin-system-users",
+    "admin-system-wa-center",
+    "admin-system-master-data",
+    "admin-system-security",
+    "admin-system-configuration",
+  ]);
+  const entityIds = new Set([
+    "executive-personnel",
+    "executive-intelligence-products",
+    "oim-products",
+    "field-coordinator-personnel",
+    "field-coordinator-jaring",
+    "field-officer-jaring",
+  ]);
+
+  const sections = [
+    { id: 1, label: "Ringkasan", matches: (item: NavMainItem) => homeIds.has(item.id) },
+    {
+      id: 2,
+      label: "Operasi & Monitoring",
+      matches: (item: NavMainItem) =>
+        !homeIds.has(item.id) && !entityIds.has(item.id) && !administrationIds.has(item.id),
+    },
+    { id: 3, label: "Data & Produk Intelijen", matches: (item: NavMainItem) => entityIds.has(item.id) },
+    { id: 4, label: "Administrasi Sistem", matches: (item: NavMainItem) => administrationIds.has(item.id) },
+  ];
+
+  return sections
+    .map((section) => ({
+      id: section.id,
+      label: section.label,
+      items: accessibleItems.filter(section.matches),
     }))
-    .filter((group) => group.items.length > 0);
+    .filter((section) => section.items.length > 0);
 }

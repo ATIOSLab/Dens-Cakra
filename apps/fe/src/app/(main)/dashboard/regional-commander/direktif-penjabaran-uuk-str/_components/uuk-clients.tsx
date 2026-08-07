@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -52,8 +52,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { parseDirectiveCommandDescription } from "@/features/directives/structured-uuk";
 import { uukCreateSchema } from "@/features/uuk-str/schemas";
 import type { UukDetail, UukDirectiveOption, UukSummary } from "@/features/uuk-str/types";
-import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { classificationBadgeClass } from "@/lib/classification";
+import { jakartaBoundaryIso } from "@/lib/domain/date-time";
 
 const UUK_SECTION_BLUEPRINT = [
   ["BASIS_BACKGROUND", "Basis dan Latar Belakang"],
@@ -162,8 +163,20 @@ type UukListClientProps = {
   uuks: UukSummary[];
 };
 
+type DirectiveListResponse = {
+  items: UukDirectiveOption[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+};
+
+type UukListResponse = {
+  items: UukSummary[];
+};
+
 export function UukListClient({ directives, uuks }: UukListClientProps) {
+  const [currentDirectives, setCurrentDirectives] = useState(directives);
+  const [currentUuks, setCurrentUuks] = useState(uuks);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [periodFrom, setPeriodFrom] = useState("");
   const [periodTo, setPeriodTo] = useState("");
   const [classificationFilter, setClassificationFilter] = useState("__all__");
@@ -171,68 +184,80 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const [deadlineSortOrder, setDeadlineSortOrder] = useState<"asc" | "desc">("asc");
+  const [totalDirectives, setTotalDirectives] = useState(directives.length);
+  const [loading, setLoading] = useState(false);
+  const requestSequence = useRef(0);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   const uukByDirectiveVersionId = useMemo(
-    () => new Map(uuks.map((uuk) => [uuk.directiveVersion?.id ?? "", uuk])),
-    [uuks],
+    () => new Map(currentUuks.map((uuk) => [uuk.directiveVersion?.id ?? "", uuk])),
+    [currentUuks],
   );
 
-  const filteredDirectives = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    const fromTime = periodFrom ? new Date(`${periodFrom}T00:00:00.000Z`).getTime() : null;
-    const toTime = periodTo ? new Date(`${periodTo}T23:59:59.999Z`).getTime() : null;
+  const fetchDirectives = useCallback(async () => {
+    const requestId = ++requestSequence.current;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        assignedToMe: "true",
+        paginated: "true",
+        page: String(page),
+        limit: String(rowsPerPage),
+        sortBy: "effectiveDeadline",
+        sortOrder: deadlineSortOrder,
+      });
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (classificationFilter !== "__all__") params.set("classification", classificationFilter);
+      if (periodFrom) params.set("deadlineFrom", jakartaBoundaryIso(periodFrom));
+      if (periodTo) params.set("deadlineTo", jakartaBoundaryIso(periodTo, true));
 
-    const filtered = directives.filter((directive) => {
-      const currentVersion =
-        directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
-        directive.versions[0];
-      const parsedTitle = parseDirectiveCommandDescription(currentVersion?.commandDescription);
+      const result = await apiBrowserFetch<DirectiveListResponse>(`/directives?${params.toString()}`);
+      if (requestId !== requestSequence.current) return;
+      const nextDirectives = result.items ?? [];
+      setCurrentDirectives(nextDirectives);
+      setTotalDirectives(result.pagination?.total ?? 0);
 
-      const searchHaystack = [
-        directive.commandNumber,
-        parsedTitle.uukTitle || "STR Eksekutif",
-        currentVersion?.commandIssuer ?? directive.ownerUnit?.name ?? "",
-        currentVersion?.classification ?? "RAHASIA",
-      ]
-        .map((v) => v.toLowerCase())
-        .join(" ");
-
-      if (normalizedSearch && !searchHaystack.includes(normalizedSearch)) {
-        return false;
+      const versionIds = nextDirectives
+        .map(
+          (directive) =>
+            directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber)?.id ??
+            directive.versions[0]?.id,
+        )
+        .filter((id): id is string => Boolean(id));
+      if (versionIds.length === 0) {
+        setCurrentUuks([]);
+      } else {
+        const uukResult = await apiBrowserFetch<UukListResponse>(
+          `/uuk-strs?paginated=true&page=1&limit=100&directiveVersionIds=${versionIds.join(",")}`,
+        );
+        if (requestId === requestSequence.current) setCurrentUuks(uukResult.items ?? []);
       }
+    } catch (error) {
+      if (requestId === requestSequence.current) console.error("Gagal memuat STR masuk:", error);
+    } finally {
+      if (requestId === requestSequence.current) setLoading(false);
+    }
+  }, [
+    classificationFilter,
+    deadlineSortOrder,
+    debouncedSearch,
+    page,
+    periodFrom,
+    periodTo,
+    rowsPerPage,
+  ]);
 
-      if (classificationFilter !== "__all__") {
-        const cls = (currentVersion?.classification || "RAHASIA").toUpperCase();
-        if (cls !== classificationFilter.toUpperCase()) {
-          return false;
-        }
-      }
+  useEffect(() => {
+    void fetchDirectives();
+  }, [fetchDirectives]);
 
-      const checkDate = currentVersion?.dueDate || currentVersion?.commandDate;
-      if (checkDate) {
-        const checkTime = new Date(checkDate).getTime();
-        if (fromTime !== null && checkTime < fromTime) return false;
-        if (toTime !== null && checkTime > toTime) return false;
-      }
-
-      return true;
-    });
-
-    return [...filtered].sort((a, b) => {
-      const aVersion = a.versions.find((item) => item.versionNumber === a.currentVersionNumber) ?? a.versions[0];
-      const bVersion = b.versions.find((item) => item.versionNumber === b.currentVersionNumber) ?? b.versions[0];
-      const aDate = aVersion?.dueDate ?? aVersion?.commandDate;
-      const bDate = bVersion?.dueDate ?? bVersion?.commandDate;
-      const aTime = aDate ? new Date(aDate).getTime() : Number.MAX_SAFE_INTEGER;
-      const bTime = bDate ? new Date(bDate).getTime() : Number.MAX_SAFE_INTEGER;
-
-      return deadlineSortOrder === "asc" ? aTime - bTime : bTime - aTime;
-    });
-  }, [directives, search, periodFrom, periodTo, classificationFilter, deadlineSortOrder]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredDirectives.length / rowsPerPage));
+  const totalPages = Math.max(1, Math.ceil(totalDirectives / rowsPerPage));
   const safePage = Math.min(page, totalPages);
-  const paginatedDirectives = filteredDirectives.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+  const paginatedDirectives = currentDirectives;
 
   const pageNumbers = useMemo(() => {
     const pages = new Set([1, totalPages, safePage, safePage - 1, safePage + 1]);
@@ -335,8 +360,8 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
             <div>
               <CardTitle>STR Diterima dari Eksekutif</CardTitle>
               <CardDescription>
-                Pilih STR yang sudah masuk untuk dibaca, lalu lanjutkan sebagai penerusan regional tanpa membuat STR akar
-                baru.
+                Pilih STR yang sudah masuk untuk dibaca, lalu lanjutkan sebagai penerusan regional tanpa membuat STR
+                akar baru.
               </CardDescription>
             </div>
             <div className="flex items-center gap-3">
@@ -376,7 +401,13 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedDirectives.length ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                      Memuat STR masuk...
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedDirectives.length ? (
                   paginatedDirectives.map((directive) => {
                     const currentVersion =
                       directive.versions.find((item) => item.versionNumber === directive.currentVersionNumber) ??
@@ -419,7 +450,9 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                           <div className="flex justify-end gap-2">
                             {relatedUuk ? (
                               <Button asChild size="sm">
-                                <Link href={`/dashboard/regional-commander/direktif-penjabaran-uuk-str/${relatedUuk.id}`}>
+                                <Link
+                                  href={`/dashboard/regional-commander/direktif-penjabaran-uuk-str/${relatedUuk.id}`}
+                                >
                                   Lihat Penerusan
                                 </Link>
                               </Button>
@@ -519,8 +552,8 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-[var(--dc-border-subtle)]/70 border-t bg-muted/5 p-3">
             <div className="pl-5 text-muted-foreground text-xs">
-              Menampilkan {filteredDirectives.length ? (safePage - 1) * rowsPerPage + 1 : 0}-
-              {Math.min(safePage * rowsPerPage, filteredDirectives.length)} dari {filteredDirectives.length} target.
+              Menampilkan {totalDirectives ? (safePage - 1) * rowsPerPage + 1 : 0}-
+              {Math.min(safePage * rowsPerPage, totalDirectives)} dari {totalDirectives} target.
             </div>
             <div className="flex items-center gap-4 pr-5">
               <div className="flex items-center gap-2">

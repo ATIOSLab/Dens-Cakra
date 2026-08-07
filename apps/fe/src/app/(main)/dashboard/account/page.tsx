@@ -13,7 +13,7 @@ import { getSystemRoleLabel } from "@/navigation/sidebar/system-roles";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Account",
+  title: "Akun",
 };
 
 function formatDateTime(value: string | null | undefined) {
@@ -69,7 +69,7 @@ export default async function AccountPage() {
             <AvatarFallback>{getInitials(principal.user.name)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <h1 className="truncate font-heading font-semibold text-foreground text-xl tracking-normal">Account</h1>
+            <h1 className="truncate font-heading font-semibold text-foreground text-xl tracking-normal">Akun Saya</h1>
             <p className="truncate text-muted-foreground text-sm">
               {principal.user.name} {principal.user.username ? `(@${principal.user.username})` : ""}
             </p>
@@ -134,9 +134,9 @@ export default async function AccountPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShieldCheck className="size-4 text-cyan-600 dark:text-[#14B8FF]" />
-                Ubah Password
+                Ubah Kata Sandi
               </CardTitle>
-              <CardDescription>Password diganti untuk akun yang sedang login.</CardDescription>
+              <CardDescription>Kata sandi diganti untuk akun yang sedang aktif.</CardDescription>
             </CardHeader>
             <CardContent>
               <AccountPasswordForm />

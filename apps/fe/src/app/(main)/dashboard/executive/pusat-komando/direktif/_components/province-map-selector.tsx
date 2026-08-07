@@ -820,7 +820,6 @@ export function ProvinceMapSelector({
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      href="#"
                       text="Sebelumnya"
                       aria-disabled={targetPage <= 1}
                       onClick={(event) => {
@@ -843,7 +842,6 @@ export function ProvinceMapSelector({
                   ))}
                   <PaginationItem>
                     <PaginationNext
-                      href="#"
                       text="Berikutnya"
                       aria-disabled={targetPage >= totalTargetPages}
                       onClick={(event) => {

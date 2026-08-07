@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapPin, UserCheck } from "lucide-react";
+
+import { apiBrowserFetch } from "@/lib/api/browser-client";
 
 import { useRoleWorkspace } from "./role-workspace-provider";
-import { apiBrowserFetch } from "@/lib/api/browser-client";
 
 type AreaScopeItem = {
   areaId?: string;
@@ -31,9 +31,7 @@ export function UserAreaBadge() {
 
         if (isMounted) {
           if (scopeList.length > 0) {
-            const names = scopeList
-              .map((item) => item.name || item.area?.name || "")
-              .filter(Boolean);
+            const names = scopeList.map((item) => item.name || item.area?.name || "").filter(Boolean);
 
             if (names.length > 0) {
               setAreaLabel(names.slice(0, 2).join(", "));
@@ -59,19 +57,13 @@ export function UserAreaBadge() {
 
   return (
     <div
-      className="hidden min-w-0 items-center gap-2 rounded-full border border-[var(--dc-divider)] bg-background/80 px-3 py-1.5 text-xs shadow-sm backdrop-blur md:flex"
+      className="hidden min-w-0 items-center gap-2 rounded-md border border-[var(--dc-divider)] bg-background/80 px-2.5 py-1 text-xs shadow-[var(--dc-shadow-card)] backdrop-blur lg:flex"
       aria-live="polite"
       title={`Pengguna: ${activeUser.name} - Wilayah: ${areaLabel}`}
     >
-      <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
-        <UserCheck className="size-3.5" />
-      </div>
-      <div className="grid max-w-52 leading-tight">
+      <div className="grid max-w-44 leading-tight xl:max-w-52">
         <span className="truncate font-bold text-foreground text-xs">{activeUser.name}</span>
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground truncate mt-0.5">
-          <MapPin className="size-3 text-emerald-500 shrink-0" />
-          <span className="truncate font-medium">{areaLabel}</span>
-        </div>
+        <span className="truncate font-medium text-[10px] text-muted-foreground">{areaLabel}</span>
       </div>
     </div>
   );

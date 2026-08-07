@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, MapPin } from "lucide-react";
 
 import { MapControls, MapMarker, MapMarkerPopup, type MapRef, Map as MapView } from "@/components/ui/map";
+import { getUrgencyLabel, getUrgencyPresentation, OPERATIONAL_TONES } from "@/lib/domain/operational-presentation";
 
 const MAP_STYLES = {
   default: undefined,
@@ -22,25 +23,13 @@ type BaketLocationMapProps = {
   urgency?: string | null;
 };
 
-const urgencyMarkerTone: Record<string, string> = {
-  LOW: "bg-blue-600",
-  NORMAL: "bg-green-600",
-  HIGH: "bg-yellow-500 text-slate-950",
-  URGENT: "bg-red-600",
-};
-
-const urgencyLabel: Record<string, string> = {
-  LOW: "Rendah",
-  NORMAL: "Normal",
-  HIGH: "Tinggi",
-  URGENT: "Darurat",
-};
-
 export function BaketLocationMap({ latitude, longitude, title, areaLabel, urgency }: BaketLocationMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [style, setStyle] = useState<StyleKey>("default");
   const normalizedUrgency = (urgency ?? "NORMAL").toUpperCase();
-  const markerTone = urgencyMarkerTone[normalizedUrgency] ?? urgencyMarkerTone.NORMAL;
+  const urgencyPresentation = getUrgencyPresentation(normalizedUrgency);
+  const markerTone = OPERATIONAL_TONES[urgencyPresentation.tone].markerClass;
+  const urgencyText = getUrgencyLabel(normalizedUrgency);
   const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
   const center = useMemo<[number, number]>(() => [longitude, latitude], [latitude, longitude]);
   const selectedStyle = MAP_STYLES[style];
@@ -55,14 +44,17 @@ export function BaketLocationMap({ latitude, longitude, title, areaLabel, urgenc
   }, [is3D]);
 
   return (
-    <section className="relative h-[420px] w-full" aria-label={`Peta lokasi ${title} di ${areaLabel}`}>
+    <section
+      className="relative h-[min(26rem,58svh)] min-h-80 w-full"
+      aria-label={`Peta lokasi ${title} di ${areaLabel}`}
+    >
       <MapView ref={mapRef} center={center} zoom={15} pitch={is3D ? 60 : 0} styles={styles}>
         <MapControls showZoom showCompass showFullscreen position="top-left" />
         <MapMarker longitude={longitude} latitude={latitude}>
           <button
             type="button"
             className={`grid size-10 place-items-center rounded-full border-[3px] border-white text-white shadow-[0_5px_16px_rgba(15,23,42,0.45)] ${markerTone}`}
-            aria-label={`Lokasi ${title}, urgensi ${urgencyLabel[normalizedUrgency] ?? normalizedUrgency}`}
+            aria-label={`Lokasi ${title}, urgensi ${urgencyText}`}
           >
             <MapPin className="size-5" />
           </button>
@@ -73,7 +65,7 @@ export function BaketLocationMap({ latitude, longitude, title, areaLabel, urgenc
                 <p className="font-semibold leading-snug">{title}</p>
                 <p className="mt-1 text-muted-foreground text-xs">{areaLabel}</p>
                 <p className="mt-2 font-semibold text-[10px] text-muted-foreground uppercase tracking-wide">
-                  Urgensi: {urgencyLabel[normalizedUrgency] ?? normalizedUrgency}
+                  Urgensi: {urgencyText}
                 </p>
               </div>
             </div>

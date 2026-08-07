@@ -45,7 +45,7 @@ const JAKARTA_CITY_ALIAS_CODES: Record<string, string> = {
 
 const registrationSchema = z
   .object({
-    aliasName: z.string().trim().min(1, "Alias / Nama Sandi wajib diisi.").max(150, "Maksimal 150 karakter."),
+    aliasName: z.string().trim().min(1, "Kode Jaring wajib diisi.").max(150, "Maksimal 150 karakter."),
     whatsappNumber: z
       .string()
       .min(1, "Nomor WhatsApp wajib diisi.")
@@ -67,7 +67,10 @@ const registrationSchema = z
     nationalIdNumber: z
       .string()
       .trim()
-      .refine((value) => value === "" || /^\d{16}$/.test(value), "NIK harus kosong atau terdiri dari tepat 16 digit angka."),
+      .refine(
+        (value) => value === "" || /^\d{16}$/.test(value),
+        "NIK harus kosong atau terdiri dari tepat 16 digit angka.",
+      ),
     address: z.string().trim().min(1, "Alamat wajib diisi.").max(1000, "Maksimal 1.000 karakter."),
     birthPlace: z.string().trim().min(1, "Tempat Lahir wajib diisi.").max(120, "Maksimal 120 karakter."),
     birthDate: z
@@ -519,11 +522,13 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
         storageKey: presign.storageKey,
       }),
     });
-    const completePayload = (await completeResponse.json().catch(() => null)) as
-      | ApiEnvelope<CompleteUploadResponse>
-      | null;
+    const completePayload = (await completeResponse
+      .json()
+      .catch(() => null)) as ApiEnvelope<CompleteUploadResponse> | null;
     if (!completeResponse.ok || !completePayload) {
-      throw new Error(completePayload?.error?.message ?? completePayload?.message ?? "Gagal menyelesaikan upload foto.");
+      throw new Error(
+        completePayload?.error?.message ?? completePayload?.message ?? "Gagal menyelesaikan upload foto.",
+      );
     }
 
     return envelopeData(completePayload).id;
@@ -635,16 +640,14 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
             Pengajuan Ulang Verifikasi Jaring
           </AlertTitle>
           <AlertDescription>
-            Jaring ini saat ini berstatus <strong>Terverifikasi (APPROVED)</strong>. Menyimpan perubahan data ini akan mengajukan ulang data Jaring sehingga statusnya kembali menjadi <strong>Belum Terverifikasi (PENDING)</strong> dan memerlukan verifikasi ulang.
+            Jaring ini saat ini berstatus <strong>Terverifikasi (APPROVED)</strong>. Menyimpan perubahan data ini akan
+            mengajukan ulang data Jaring sehingga statusnya kembali menjadi{" "}
+            <strong>Belum Terverifikasi (PENDING)</strong> dan memerlukan verifikasi ulang.
           </AlertDescription>
         </Alert>
       ) : null}
 
-      <form
-        className="flex flex-col gap-5"
-        onSubmit={form.handleSubmit(() => setShowConfirmation(true))}
-        noValidate
-      >
+      <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(() => setShowConfirmation(true))} noValidate>
         <Card className="order-2">
           <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
@@ -656,19 +659,19 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
             <FieldGroup>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field data-invalid={Boolean(form.formState.errors.aliasName)}>
-                  <RequiredLabel htmlFor="alias-name">Alias / Nama Sandi</RequiredLabel>
+                  <RequiredLabel htmlFor="alias-name">Kode Jaring</RequiredLabel>
                   <FieldContent>
                     <Input
                       id="alias-name"
                       className="font-mono uppercase tracking-wide"
-                      placeholder={isEditMode ? "Alias / Nama Sandi Jaring" : "Kecamatan menentukan alias otomatis"}
+                      placeholder={isEditMode ? "Kode Jaring" : "Kecamatan menentukan kode otomatis"}
                       readOnly
                       aria-readonly="true"
                       {...form.register("aliasName")}
                     />
                     <p className="text-xs text-muted-foreground">
                       {isEditMode
-                        ? "Alias / Nama Sandi tetap mengikuti identitas Jaring yang sudah terdaftar."
+                        ? "Kode Jaring tetap mengikuti identitas Jaring yang sudah terdaftar."
                         : "Otomatis dari kode kota + nomor kecamatan + urutan input, contoh Z01001. " +
                           "Sistem menghitung ulang saat disimpan."}
                     </p>
@@ -773,7 +776,11 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
                               htmlFor={inputId}
                               className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                             >
-                              <RadioGroupItem id={inputId} value={area.areaId} disabled={!selectedDistrictId || isSubmitting} />
+                              <RadioGroupItem
+                                id={inputId}
+                                value={area.areaId}
+                                disabled={!selectedDistrictId || isSubmitting}
+                              />
                               <span>{area.name}</span>
                             </label>
                           );

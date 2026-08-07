@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 
-import { ArrowLeft, MapPin, Pencil, Users } from "lucide-react";
+import { MapPin, Pencil, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -46,12 +47,7 @@ export function JabatanDetailClient({ position }: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href="/dashboard/admin-system/jabatan-reporting-line">
-              <ArrowLeft className="size-4" />
-              Daftar
-            </Link>
-          </Button>
+          <BackButton href="/dashboard/admin-system/jabatan-reporting-line" label="Kembali" />
           <Button asChild>
             <Link href={`/dashboard/admin-system/jabatan-reporting-line/${position.id}/edit`}>
               <Pencil className="size-4" />

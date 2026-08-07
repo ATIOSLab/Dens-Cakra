@@ -149,7 +149,7 @@ export function JaringSelectPopover({
               setSearch(e.target.value);
               setVisibleCount(30);
             }}
-            className="pl-8 pr-8 h-8 text-xs bg-background"
+            className="bg-background pr-8 pl-8"
           />
           {search && (
             <button

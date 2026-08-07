@@ -1,10 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+
+import { useRouter } from "next/navigation";
+
 import type { Map as MapLibreMap } from "maplibre-gl";
 
+import { useIsMobile } from "@/hooks/use-mobile";
+
+import { SebaranJaringBottomBar } from "./sebaran-jaring-bottom-bar";
+import { SebaranJaringHeader } from "./sebaran-jaring-header";
+import { SebaranJaringLeftPanel } from "./sebaran-jaring-left-panel";
+import { SebaranJaringLeadershipStrip } from "./sebaran-jaring-leadership-strip";
+import { SebaranJaringMapView } from "./sebaran-jaring-map-view";
+import { SebaranJaringRightPanel } from "./sebaran-jaring-right-panel";
 import {
-  type AdminLayersState,
   type AdminLevel,
   type AgentOperationalStatus,
   type CoordinateSourceMode,
@@ -18,12 +28,6 @@ import {
   type JaringDistributionEntry,
   type MapStyleMode,
 } from "./sebaran-jaring-types";
-
-import { SebaranJaringHeader } from "./sebaran-jaring-header";
-import { SebaranJaringLeftPanel } from "./sebaran-jaring-left-panel";
-import { SebaranJaringMapView } from "./sebaran-jaring-map-view";
-import { SebaranJaringBottomBar } from "./sebaran-jaring-bottom-bar";
-import { SebaranJaringRightPanel } from "./sebaran-jaring-right-panel";
 
 export type { JaringDistributionCity, JaringDistributionDistrict, JaringDistributionEntry };
 
@@ -82,7 +86,9 @@ function outsideCityMask(city: JaringDistributionCity): GeoJSON.Feature<GeoJSON.
 
 function fitCity(map: MapLibreMap, city: JaringDistributionCity, offsetForPanel = false) {
   const cityBounds = city.geometry ? geoJsonBounds(city.geometry) : null;
-  const districtBoundsList = city.districts.flatMap((district) => (district.geometry ? [geoJsonBounds(district.geometry)] : []));
+  const districtBoundsList = city.districts.flatMap((district) =>
+    district.geometry ? [geoJsonBounds(district.geometry)] : [],
+  );
   const fallbackBounds = districtBoundsList.reduce<[[number, number], [number, number]] | null>((acc, current) => {
     if (!current) return acc;
     if (!acc) return current;
@@ -105,6 +111,21 @@ function fitCity(map: MapLibreMap, city: JaringDistributionCity, offsetForPanel 
     maxZoom: 13,
     duration: 1200,
   });
+}
+
+function fitAllCities(map: MapLibreMap, cities: JaringDistributionCity[]) {
+  const bounds = cities.reduce<[[number, number], [number, number]] | null>((combined, city) => {
+    const current = city.geometry ? geoJsonBounds(city.geometry) : null;
+    if (!current) return combined;
+    if (!combined) return current;
+    return [
+      [Math.min(combined[0][0], current[0][0]), Math.min(combined[0][1], current[0][1])],
+      [Math.max(combined[1][0], current[1][0]), Math.max(combined[1][1], current[1][1])],
+    ];
+  }, null);
+
+  if (bounds) map.fitBounds(bounds, { padding: { top: 120, right: 80, bottom: 180, left: 80 }, maxZoom: 11.5 });
+  else map.flyTo({ center: DEFAULT_CENTER, zoom: 9.5 });
 }
 
 function focusDistrict(map: MapLibreMap, district: JaringDistributionDistrict, offsetForPanel = false) {
@@ -140,29 +161,39 @@ export function JaringDistributionClient({
   cities,
   allowedAdminLevels = ["PROVINCE", "CITY", "DISTRICT", "VILLAGE"],
 }: Props) {
+  const router = useRouter();
+  const isMobile = useIsMobile();
   const firstCity = cities[0] ?? null;
   const mapRef = useRef<MapLibreMap | null>(null);
+  const [isRefreshing, startRefreshTransition] = useTransition();
 
   // Core State
-  const [selectedCityId, setSelectedCityId] = useState<string>(firstCity?.id ?? "");
+  const [selectedCityId, setSelectedCityId] = useState<string>(
+    allowedAdminLevels.includes("PROVINCE") ? "" : (firstCity?.id ?? ""),
+  );
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
   const [selectedVillageId, setSelectedVillageId] = useState<string | null>(null);
   const [selectedJaringId, setSelectedJaringId] = useState<string | null>(null);
 
   const [adminLevel, setAdminLevel] = useState<AdminLevel>(
-    allowedAdminLevels.includes("PROVINCE")
-      ? "PROVINCE"
-      : (allowedAdminLevels[0] ?? "CITY"),
+    allowedAdminLevels.includes("PROVINCE") ? "PROVINCE" : (allowedAdminLevels[0] ?? "CITY"),
   );
   const [displayMode, setDisplayMode] = useState<DisplayMode>("marker");
   const [mapStyleMode, setMapStyleMode] = useState<MapStyleMode>("dark");
-  const [dateRange, setDateRange] = useState<DateRangeOption>("7D");
+  const [dateRange, setDateRange] = useState<DateRangeOption>("ALL");
   const [isClusterMode, setIsClusterMode] = useState<boolean>(true);
   const [coordinateSourceMode, setCoordinateSourceMode] = useState<CoordinateSourceMode>("domisili");
 
   // Panel Visibilities
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (isMobile) {
+      setIsLeftPanelOpen(false);
+      setIsRightPanelOpen(false);
+    }
+  }, [isMobile]);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -173,29 +204,34 @@ export function JaringDistributionClient({
     PENDING: true,
     REJECTED: true,
   });
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [rightPanelTab, setRightPanelTab] = useState<"ALL" | "VERIFIED" | "PENDING">("ALL");
-
-  const [adminLayers, setAdminLayers] = useState<AdminLayersState>({
-    province: true,
-    city: true,
-    district: true,
-    village: false,
-  });
 
   // Clock Telemetry State
   const [currentTime, setCurrentTime] = useState<string>("");
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date>(() => new Date());
+  const [mapTelemetry, setMapTelemetry] = useState({ center: DEFAULT_CENTER, zoom: 10 });
+
+  const refreshData = useCallback(() => {
+    startRefreshTransition(() => {
+      router.refresh();
+      setLastSyncedAt(new Date());
+    });
+  }, [router]);
 
   useEffect(() => {
     const updateClock = () => {
-      const now = new Date();
-      const year = now.getFullYear().toString().substring(2);
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const day = String(now.getDate()).padStart(2, "0");
-      const hours = String(now.getHours()).padStart(2, "0");
-      const minutes = String(now.getMinutes()).padStart(2, "0");
-      const seconds = String(now.getSeconds()).padStart(2, "0");
-      setCurrentTime(`UTC+7 ${year}.${month}.${day} ${hours}:${minutes}:${seconds} WIB`);
+      setCurrentTime(
+        `${new Intl.DateTimeFormat("id-ID", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+          timeZone: "Asia/Jakarta",
+        }).format(new Date())} WIB`,
+      );
     };
 
     updateClock();
@@ -203,7 +239,15 @@ export function JaringDistributionClient({
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") refreshData();
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [refreshData]);
+
   const selectedCity = useMemo(() => {
+    if (!selectedCityId) return null;
     return cities.find((c) => c.id === selectedCityId) ?? firstCity ?? null;
   }, [cities, selectedCityId, firstCity]);
 
@@ -218,8 +262,8 @@ export function JaringDistributionClient({
     if (selectedCity) {
       return selectedCity.districts.flatMap((d) => d.villages);
     }
-    return cities.flatMap((c) => c.districts.flatMap((d) => d.villages));
-  }, [selectedDistrict, selectedCity, cities]);
+    return [];
+  }, [selectedDistrict, selectedCity]);
 
   const selectedVillage = useMemo(() => {
     if (!selectedVillageId) return null;
@@ -231,8 +275,14 @@ export function JaringDistributionClient({
   }, [cities]);
 
   const filteredAgents = useMemo(() => {
-    const source = selectedCity ? selectedCity.jaring : allAgents;
-    const query = searchQuery.trim().toLowerCase() || agentSearchQuery.trim().toLowerCase();
+    const source = adminLevel === "PROVINCE" ? allAgents : selectedCity ? selectedCity.jaring : allAgents;
+    const generalQuery = searchQuery.trim().toLowerCase();
+    const listQuery = agentSearchQuery.trim().toLowerCase();
+    const dateRangeMilliseconds: Record<Exclude<DateRangeOption, "ALL">, number> = {
+      "24H": 86_400_000,
+      "7D": 7 * 86_400_000,
+      "30D": 30 * 86_400_000,
+    };
 
     return source.filter((agent) => {
       if (selectedDistrictId && agent.districtId !== selectedDistrictId) return false;
@@ -245,9 +295,27 @@ export function JaringDistributionClient({
         if (!statusFilter[agent.status]) return false;
       }
 
-      if (query) {
-        const text = `${agent.fullName || ""} ${agent.aliasName || ""} ${agent.villageName} ${agent.districtName}`.toLowerCase();
-        if (!text.includes(query)) return false;
+      const searchableText = [
+        agent.fullName,
+        agent.whatsappNumber,
+        agent.aliasName,
+        agent.fieldOfficerName,
+        agent.villageName,
+        agent.districtName,
+        agent.cityName,
+        agent.provinceName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      if (generalQuery && !searchableText.includes(generalQuery)) return false;
+      if (listQuery && !searchableText.includes(listQuery)) return false;
+
+      if (dateRange !== "ALL") {
+        if (!agent.lastReportAt) return false;
+        const reportedAt = new Date(agent.lastReportAt).getTime();
+        if (!Number.isFinite(reportedAt) || reportedAt < Date.now() - dateRangeMilliseconds[dateRange]) return false;
       }
 
       if (rightPanelTab === "VERIFIED" && agent.status !== "VERIFIED") return false;
@@ -255,7 +323,18 @@ export function JaringDistributionClient({
 
       return true;
     });
-  }, [selectedCity, allAgents, searchQuery, agentSearchQuery, selectedDistrictId, selectedVillage, statusFilter, rightPanelTab]);
+  }, [
+    selectedCity,
+    allAgents,
+    adminLevel,
+    searchQuery,
+    agentSearchQuery,
+    selectedDistrictId,
+    selectedVillage,
+    statusFilter,
+    rightPanelTab,
+    dateRange,
+  ]);
 
   const selectedJaring = useMemo(() => {
     if (!selectedJaringId) return null;
@@ -266,7 +345,9 @@ export function JaringDistributionClient({
   const summaryStats = useMemo(() => {
     let agents = selectedDistrict
       ? (selectedCity?.jaring.filter((a) => a.districtId === selectedDistrict.id) ?? [])
-      : selectedCity
+      : adminLevel === "PROVINCE"
+        ? allAgents
+        : selectedCity
         ? selectedCity.jaring
         : allAgents;
 
@@ -282,13 +363,17 @@ export function JaringDistributionClient({
       ? selectedVillage.name
       : selectedDistrict
         ? selectedDistrict.name
-        : selectedCity?.name || "DKI Jakarta";
+        : adminLevel === "PROVINCE"
+          ? cities[0]?.provinceName || "Seluruh wilayah"
+          : selectedCity?.name || "Seluruh wilayah";
 
     const levelName = selectedVillage
       ? "Kelurahan"
       : selectedDistrict
         ? "Kecamatan"
-        : selectedCity
+        : adminLevel === "PROVINCE"
+          ? "Provinsi"
+          : selectedCity
           ? "Kota / Kab"
           : "Provinsi";
 
@@ -300,43 +385,71 @@ export function JaringDistributionClient({
       pending,
       rejected,
     };
-  }, [selectedVillage, selectedDistrict, selectedCity, allAgents]);
+  }, [selectedVillage, selectedDistrict, selectedCity, allAgents, adminLevel, cities]);
 
-  const mask = useMemo(() => (selectedCity ? outsideCityMask(selectedCity) : null), [selectedCity]);
+  const mask = useMemo(
+    () => (selectedCity && adminLevel !== "PROVINCE" ? outsideCityMask(selectedCity) : null),
+    [adminLevel, selectedCity],
+  );
 
-  const handleSelectAgent = useCallback((agent: JaringDistributionEntry) => {
-    setSelectedJaringId(agent.id);
-    const map = mapRef.current;
-    if (map) {
-      map.flyTo({
-        center: [agent.longitude, agent.latitude],
-        zoom: 14.5,
-        duration: 1000,
-      });
-    }
-  }, []);
+  const handleSelectAgent = useCallback(
+    (agent: JaringDistributionEntry) => {
+      setSelectedJaringId(agent.id);
+      setIsRightPanelOpen(true);
+      const map = mapRef.current;
+      const longitude = coordinateSourceMode === "laporan" ? agent.latestReportLng : agent.longitude;
+      const latitude = coordinateSourceMode === "laporan" ? agent.latestReportLat : agent.latitude;
+      if (map && longitude != null && latitude != null) {
+        map.flyTo({
+          center: [longitude, latitude],
+          zoom: 14.5,
+          duration: 1000,
+        });
+      }
+    },
+    [coordinateSourceMode],
+  );
 
-  const handleSelectCity = useCallback((cityId: string) => {
-    setSelectedCityId(cityId);
-    setSelectedDistrictId(null);
-    setSelectedVillageId(null);
-    const city = cities.find((c) => c.id === cityId);
-    if (mapRef.current && city) {
-      fitCity(mapRef.current, city, isRightPanelOpen);
-    }
-  }, [cities, isRightPanelOpen]);
+  const handleSelectCity = useCallback(
+    (cityId: string) => {
+      setSelectedCityId(cityId);
+      setSelectedDistrictId(null);
+      setSelectedVillageId(null);
+      const city = cities.find((c) => c.id === cityId);
+      if (mapRef.current && city) {
+        fitCity(mapRef.current, city, isRightPanelOpen);
+      } else if (mapRef.current && !cityId) {
+        setAdminLevel("PROVINCE");
+        fitAllCities(mapRef.current, cities);
+      }
+    },
+    [cities, isRightPanelOpen],
+  );
 
-  const handleSelectDistrict = useCallback((districtId: string) => {
-    setSelectedDistrictId(districtId || null);
-    setSelectedVillageId(null);
-    const district = selectedCity?.districts.find((d) => d.id === districtId);
-    if (mapRef.current && district) {
-      focusDistrict(mapRef.current, district, isRightPanelOpen);
-    }
-  }, [selectedCity, isRightPanelOpen]);
+  const handleSelectDistrict = useCallback(
+    (districtId: string) => {
+      setSelectedDistrictId(districtId || null);
+      setSelectedVillageId(null);
+      const district = selectedCity?.districts.find((d) => d.id === districtId);
+      if (mapRef.current && district) {
+        focusDistrict(mapRef.current, district, isRightPanelOpen);
+      }
+    },
+    [selectedCity, isRightPanelOpen],
+  );
 
   const handleSelectVillage = useCallback((villageId: string) => {
     setSelectedVillageId(villageId || null);
+  }, []);
+
+  const handleStatusTabChange = useCallback((tab: "ALL" | "VERIFIED" | "PENDING") => {
+    setRightPanelTab(tab);
+    setStatusFilter({
+      ALL: tab === "ALL",
+      VERIFIED: tab === "ALL" || tab === "VERIFIED",
+      PENDING: tab === "ALL" || tab === "PENDING",
+      REJECTED: tab === "ALL",
+    });
   }, []);
 
   return (
@@ -348,8 +461,12 @@ export function JaringDistributionClient({
         onSelectCity={handleSelectCity}
         totalEntities={summaryStats.total}
         currentTime={currentTime}
+        lastSyncedAt={lastSyncedAt}
+        loading={isRefreshing}
+        onRefresh={refreshData}
         isLeftPanelOpen={isLeftPanelOpen}
         onToggleLeftPanel={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
+        showAllCities={allowedAdminLevels.includes("PROVINCE")}
       />
 
       {/* 2. Main Workspace Layout */}
@@ -365,22 +482,27 @@ export function JaringDistributionClient({
           availableVillages={availableVillages}
           adminLevel={adminLevel}
           allowedAdminLevels={allowedAdminLevels}
-          onSelectAdminLevel={setAdminLevel}
+          onSelectAdminLevel={(level) => {
+            setAdminLevel(level);
+            if (level === "PROVINCE") handleSelectCity("");
+            else if (!selectedCityId && firstCity) handleSelectCity(firstCity.id);
+          }}
           onSelectCity={handleSelectCity}
           onSelectDistrict={handleSelectDistrict}
           onSelectVillage={handleSelectVillage}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
           statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          categoryFilter={categoryFilter}
-          onCategoryFilterChange={setCategoryFilter}
+          onStatusFilterChange={(value) => {
+            setStatusFilter(value);
+            setRightPanelTab("ALL");
+          }}
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
           onResetFilters={() => {
             setSearchQuery("");
             setStatusFilter({ ALL: true, VERIFIED: true, PENDING: true, REJECTED: true });
-            setCategoryFilter("ALL");
+            setDateRange("ALL");
             setSelectedDistrictId(null);
             setSelectedVillageId(null);
           }}
@@ -389,6 +511,19 @@ export function JaringDistributionClient({
 
         {/* Center GIS Map Workspace & Floating Telemetry Bar */}
         <div className="flex-1 relative h-full w-full overflow-hidden">
+          <SebaranJaringLeadershipStrip
+            agents={filteredAgents}
+            regionLabel={summaryStats.regionName}
+            coordinateSourceMode={coordinateSourceMode}
+            onShowPending={() => {
+              handleStatusTabChange("PENDING");
+              setIsRightPanelOpen(true);
+            }}
+            onShowAll={() => {
+              handleStatusTabChange("ALL");
+              setIsRightPanelOpen(true);
+            }}
+          />
           <SebaranJaringMapView
             adminLevel={adminLevel}
             cities={cities}
@@ -396,7 +531,6 @@ export function JaringDistributionClient({
             selectedDistrictId={selectedDistrictId}
             selectedVillageId={selectedVillageId}
             filteredAgents={filteredAgents}
-            totalAgentsCount={allAgents.length}
             selectedJaring={selectedJaring}
             onSelectAgent={handleSelectAgent}
             onSelectDistrict={handleSelectDistrict}
@@ -404,7 +538,6 @@ export function JaringDistributionClient({
             onSelectCity={handleSelectCity}
             onSelectAdminLevel={setAdminLevel}
             onClosePopup={() => setSelectedJaringId(null)}
-            onOpenRightPanel={() => setIsRightPanelOpen(true)}
             displayMode={displayMode}
             isClusterMode={isClusterMode}
             onToggleClusterMode={setIsClusterMode}
@@ -422,7 +555,15 @@ export function JaringDistributionClient({
               map.touchZoomRotate.enable();
               if (selectedCity) {
                 fitCity(map, selectedCity, isRightPanelOpen);
+              } else {
+                fitAllCities(map, cities);
               }
+              const updateTelemetry = () => {
+                const center = map.getCenter();
+                setMapTelemetry({ center: [center.lng, center.lat], zoom: map.getZoom() });
+              };
+              updateTelemetry();
+              map.on("moveend", updateTelemetry);
             }}
           />
 
@@ -432,12 +573,12 @@ export function JaringDistributionClient({
             onDisplayModeChange={setDisplayMode}
             mapStyle={mapStyleMode}
             onMapStyleChange={setMapStyleMode}
-            adminLayers={adminLayers}
-            onAdminLayersChange={setAdminLayers}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            centerCoords="-6.1754, 106.8272"
-            zoomLevel="10.2"
+            coordinateSourceMode={coordinateSourceMode}
+            onCoordinateSourceModeChange={setCoordinateSourceMode}
+            centerCoords={`${mapTelemetry.center[1].toFixed(4)}, ${mapTelemetry.center[0].toFixed(4)}`}
+            zoomLevel={mapTelemetry.zoom.toFixed(1)}
             adminLevelLabel={summaryStats.levelName}
           />
         </div>
@@ -453,7 +594,8 @@ export function JaringDistributionClient({
           searchQuery={agentSearchQuery}
           onSearchQueryChange={setAgentSearchQuery}
           activeTab={rightPanelTab}
-          onTabChange={setRightPanelTab}
+          onTabChange={handleStatusTabChange}
+          coordinateSourceMode={coordinateSourceMode}
         />
       </div>
     </div>

@@ -1,11 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { AlertCircle, Calendar, FileText, Loader2, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -15,7 +24,12 @@ import { apiBrowserMutation } from "@/lib/api/browser-client";
 interface JaringOption {
   id: string;
   aliasName: string;
+  whatsappNumber?: string | null;
   fullName?: string | null;
+  profilePhotoFileId?: string | null;
+  profilePhotoUrl?: string | null;
+  gaswilName?: string | null;
+  areaNames?: string[];
 }
 
 interface CreateCoachingReportDialogProps {
@@ -49,6 +63,7 @@ export function CreateCoachingReportDialog({
   const [reportedAt, setReportedAt] = useState(getCurrentDateTimeLocal());
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const selectedJaring = jarings.find((jaring) => jaring.id === jaringId);
 
   useEffect(() => {
     if (open) {
@@ -134,7 +149,7 @@ export function CreateCoachingReportDialog({
           <div className="space-y-1.5">
             <Label htmlFor="jaring-select" className="text-xs font-semibold flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />
-              Pilih Daftar Jaring <span className="text-destructive">*</span>
+              Pilih Jaring <span className="text-destructive">*</span>
             </Label>
             <NativeSelect
               id="jaring-select"
@@ -147,9 +162,11 @@ export function CreateCoachingReportDialog({
                 <option value="">-- Tidak ada Jaring tersedia --</option>
               ) : (
                 jarings.map((j) => {
-                  const label = j.fullName && j.fullName !== j.aliasName
-                    ? `${j.aliasName || j.id} (${j.fullName})`
-                    : j.aliasName || j.fullName || j.id;
+                  const label = [
+                    j.fullName || "Nama belum tersedia",
+                    j.whatsappNumber || "WhatsApp belum tersedia",
+                    j.aliasName || j.id,
+                  ].join(" — ");
                   return (
                     <option key={j.id} value={j.id}>
                       {label}
@@ -158,6 +175,16 @@ export function CreateCoachingReportDialog({
                 })
               )}
             </NativeSelect>
+            {selectedJaring ? (
+              <JaringIdentitySummary
+                compact
+                className="rounded-lg border bg-muted/20 p-3"
+                source={{
+                  ...selectedJaring,
+                  villageName: selectedJaring.areaNames?.join(", "),
+                }}
+              />
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -213,13 +240,7 @@ export function CreateCoachingReportDialog({
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-              size="sm"
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting} size="sm">
               Batal
             </Button>
             <Button type="submit" disabled={submitting || jarings.length === 0} size="sm">

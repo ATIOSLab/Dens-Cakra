@@ -1385,6 +1385,8 @@ model WhatsAppReportSession {
   @@index([senderPhone, status, updatedAt])
   @@index([integrationChannelId, status, updatedAt])
   @@index([jaringId, status, updatedAt])
+  @@index([submittedAt, id])
+  @@index([fieldOfficerAssignmentId, submittedAt])
   @@index([expiresAt, status])
 }
 
@@ -2100,6 +2102,9 @@ model AuditLog {
   actorUserProfileId String?  @db.Uuid
   actorAssignmentId  String?  @db.Uuid
   action             String   @db.VarChar(120)
+  category           String   @default("ACTIVITY") @db.VarChar(40)
+  severity           String   @default("INFO") @db.VarChar(20)
+  outcome            String   @default("SUCCESS") @db.VarChar(20)
   entityType         String   @db.VarChar(120)
   entityId           String?  @db.VarChar(100)
   beforeData         Json?
@@ -2107,6 +2112,21 @@ model AuditLog {
   metadata           Json?
   ipAddress          String?  @db.VarChar(64)
   deviceInfo         String?  @db.Text
+  deviceType         String?  @db.VarChar(40)
+  browser             String?  @db.VarChar(80)
+  operatingSystem    String?  @db.VarChar(80)
+  locationLabel      String?  @db.VarChar(255)
+  requestId          String?  @db.VarChar(120)
+  sessionId          String?  @db.VarChar(255)
+  httpMethod         String?  @db.VarChar(12)
+  requestPath        String?  @db.VarChar(500)
+  statusCode         Int?
+  durationMs         Int?
+  source             String?  @db.VarChar(80)
+  riskScore          Int      @default(0)
+  isAnomaly          Boolean  @default(false)
+  isIncident         Boolean  @default(false)
+  riskIndicators     Json?
   createdAt          DateTime @default(now())
 
   actorUser       UserProfile?               @relation("AuditActor", fields: [actorUserProfileId], references: [id], onDelete: SetNull)
@@ -2114,6 +2134,14 @@ model AuditLog {
 
   @@index([entityType, entityId, createdAt])
   @@index([actorUserProfileId, createdAt])
+  @@index([createdAt, id])
+  @@index([category, createdAt])
+  @@index([severity, createdAt])
+  @@index([outcome, createdAt])
+  @@index([isIncident, isAnomaly, createdAt])
+  @@index([requestId])
+  @@index([ipAddress, createdAt])
+  @@index([source, createdAt])
 }
 
 model IntegrationChannel {

@@ -13,13 +13,12 @@ async function main() {
   const allJaring = await prisma.jaring.findMany({
     select: {
       id: true,
-      code: true,
       aliasName: true,
       fullName: true,
       status: true,
       whatsappNumber: true,
     },
-    orderBy: { code: 'asc' },
+    orderBy: [{ aliasName: 'asc' }, { id: 'asc' }],
   });
 
   console.log('\n=== ALL JARING IN DATABASE ===');
@@ -35,7 +34,7 @@ async function main() {
       createdAt: true,
       primaryJaringId: true,
       primaryJaring: {
-        select: { code: true, aliasName: true },
+        select: { id: true, aliasName: true, fullName: true },
       },
     },
     orderBy: { createdAt: 'desc' },

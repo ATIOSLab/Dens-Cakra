@@ -103,7 +103,7 @@ export function OimSituationMap({ reports, boundaries }: { reports?: unknown; bo
   }, []);
 
   return (
-    <div className="h-[560px] overflow-hidden rounded-xl border bg-muted/30">
+    <div className="h-[min(35rem,65svh)] min-h-[28rem] overflow-hidden rounded-[var(--dc-radius-lg)] border bg-muted/30">
       <SituationMapCanvas
         center={DEFAULT_CENTER}
         zoom={4.5}

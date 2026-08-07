@@ -18,6 +18,7 @@ import {
 } from 'class-validator';
 import {
   Classification,
+  CommandRouteType,
   DirectiveStatus,
   PriorityLevel,
 } from '../../generated/prisma/client.js';
@@ -30,16 +31,23 @@ export enum DirectiveSortField {
 }
 
 export class DirectiveQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsEnum(DirectiveStatus) status?: DirectiveStatus;
   @IsOptional() @IsUUID() ownerAssignmentId?: string;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
+  @IsOptional() @IsDateString() deadlineFrom?: string;
+  @IsOptional() @IsDateString() deadlineTo?: string;
   @IsOptional() @IsString() search?: string;
+  @IsOptional() @IsEnum(Classification) classification?: Classification;
+  @IsOptional() @IsEnum(PriorityLevel) urgency?: PriorityLevel;
+  @IsOptional() @IsEnum(CommandRouteType) recipientBranch?: CommandRouteType;
   @IsOptional() @Type(() => Boolean) @IsBoolean() assignedToMe?: boolean;
   @IsOptional() @IsEnum(DirectiveSortField) sortBy?: DirectiveSortField;
   @IsOptional() @IsEnum(SortOrder) sortOrder?: SortOrder;
+  @IsOptional() @Type(() => Boolean) @IsBoolean() paginated?: boolean;
 }
 
 export enum DirectiveAiScope {

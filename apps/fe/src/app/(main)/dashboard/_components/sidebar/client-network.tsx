@@ -2,8 +2,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-import { MapPinned } from "lucide-react";
-
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { detectPublicIp } from "@/lib/network/public-ip";
 
@@ -49,11 +47,10 @@ export function ClientNetworkBadge() {
 
   return (
     <div
-      className="hidden min-w-0 items-center gap-2 rounded-full border border-[var(--dc-divider)] bg-background/80 px-3 py-1.5 text-xs shadow-sm backdrop-blur md:flex"
+      className="hidden min-w-0 items-center gap-2 rounded-md border border-[var(--dc-divider)] bg-background/80 px-2.5 py-1 text-xs shadow-[var(--dc-shadow-card)] backdrop-blur 2xl:flex"
       aria-live="polite"
     >
-      <MapPinned className="size-3.5 text-cyan-600 dark:text-[#14B8FF]" />
-      <div className="grid max-w-56 leading-tight">
+      <div className="grid max-w-48 leading-tight">
         <span className="truncate font-medium text-foreground">{network.ipAddress}</span>
         <span className="truncate text-[10px] text-muted-foreground">{network.locationLabel}</span>
       </div>

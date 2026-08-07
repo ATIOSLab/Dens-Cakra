@@ -42,13 +42,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { JaringOccupation, ReportCategory } from "@/server/field-ops/types";
@@ -717,7 +711,7 @@ export default function AdminMasterDataPage() {
               onClick={() => void handleRefresh()}
               disabled={busyKey === "load" || busyKey === "load-categories" || busyKey === "load-occupations"}
             >
-              <RefreshCw className="mr-2 size-3.5" /> Refresh
+              <RefreshCw className="mr-2 size-3.5" /> Muat Ulang
             </Button>
 
             <Button
@@ -903,11 +897,11 @@ export default function AdminMasterDataPage() {
 
               <div className="flex items-center gap-2 border-l border-border/50 pl-4">
                 <span>Rows per page:</span>
-                <Select
-                  value={String(rowsPerPage)}
-                  onValueChange={(val) => setRowsPerPage(Number(val))}
-                >
-                  <SelectTrigger size="sm" className="w-[65px] border-border bg-background dark:bg-slate-900/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#14B8FF]/20">
+                <Select value={String(rowsPerPage)} onValueChange={(val) => setRowsPerPage(Number(val))}>
+                  <SelectTrigger
+                    size="sm"
+                    className="w-[65px] border-border bg-background dark:bg-slate-900/40 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-[#14B8FF]/20"
+                  >
                     <SelectValue placeholder={String(rowsPerPage)} />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border text-foreground min-w-[65px]">

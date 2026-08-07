@@ -7,7 +7,7 @@ export function MonitoringLapanganPage() {
       role="Manajer Intelijen Operasional"
       description="Halaman ini menyiapkan kontrol progres tugas lapangan, status personel, dan supervisi keterlambatan."
       highlights={[
-        "Status Korwil, Petugas Lapangan, dan deadline.",
+        "Status Korwil, Petugas Wilayah, dan deadline.",
         "Coverage, beban kerja, dan kebutuhan dukungan.",
         "Eskalasi keterlambatan dan tindak supervisi.",
       ]}

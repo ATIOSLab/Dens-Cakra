@@ -10,6 +10,11 @@ function getString(name: string, fallback?: string): string {
   return value;
 }
 
+function getOptionalString(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value || undefined;
+}
+
 function getBoolean(name: string, fallback: boolean): boolean {
   const value = process.env[name];
 
@@ -61,6 +66,22 @@ export const env = {
     'API_DOCS_ENABLED',
     process.env.NODE_ENV !== 'production',
   ),
+  cache: {
+    enabled: getBoolean('CACHE_ENABLED', false),
+    redisUrl: getOptionalString('REDIS_URL'),
+    prefix: getString('CACHE_PREFIX', 'dens-cakra'),
+    defaultTtlMs: getNumber('CACHE_DEFAULT_TTL_MS', 60_000),
+    connectTimeoutMs: getNumber('REDIS_CONNECT_TIMEOUT_MS', 1_500),
+    operationTimeoutMs: getNumber('REDIS_OPERATION_TIMEOUT_MS', 250),
+  },
+  performance: {
+    slowRequestMs: getNumber('PERF_SLOW_REQUEST_MS', 500),
+    slowQueryMs: getNumber('PRISMA_SLOW_QUERY_MS', 300),
+    logSampleRate: Math.min(
+      1,
+      Math.max(0, getNumber('PERF_LOG_SAMPLE_RATE', 0.01)),
+    ),
+  },
   worker: {
     enabled: getBoolean('WORKER_ENABLED', true),
     id: getString('WORKER_ID', `api-${process.pid}`),

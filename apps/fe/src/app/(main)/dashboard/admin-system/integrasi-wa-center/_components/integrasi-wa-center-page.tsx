@@ -38,9 +38,9 @@ import { cn } from "@/lib/utils";
 import type { WhatsappControlChannel } from "@/server/field-ops/types";
 
 import {
-  getUserAssignments,
   type AreaSearchResult,
   type CommandRouteType,
+  getUserAssignments,
   type UserListItem,
 } from "../../pengguna/_components/pengguna-types";
 
@@ -214,7 +214,7 @@ export function AdminWaCenterPage() {
       }
 
       if (!selectedUser) {
-        throw new Error(`Tidak ada Field Coordinator di wilayah ${selectedArea.name}.`);
+        throw new Error(`Tidak ada Koordinator Lapangan di wilayah ${selectedArea.name}.`);
       }
 
       const codeBase = (selectedUser.username || selectedUser.id.split("-")[0]).toUpperCase();
@@ -380,17 +380,17 @@ export function AdminWaCenterPage() {
       <Card className="border-slate-200 dark:border-white/10 bg-card text-card-foreground">
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge className="bg-cyan-500/15 text-cyan-700 dark:text-cyan-100">Admin WA Control</Badge>
+            <Badge className="bg-cyan-500/15 text-cyan-700 dark:text-cyan-100">Kontrol WhatsApp Admin</Badge>
             <Badge
               variant="outline"
               className="border-slate-200 dark:border-white/15 text-slate-700 dark:text-white/70"
             >
-              Integrasi WA Center
+              Integrasi WhatsApp
             </Badge>
           </div>
           <CardTitle>Bot Pusat & Nomor Pengirim</CardTitle>
           <CardDescription>
-            Admin mengelola koneksi bot pusat, health check, dan sender numbers untuk berbagai keperluan wilayah.
+            Admin mengelola koneksi bot pusat, status koneksi, dan nomor pengirim untuk kebutuhan operasional wilayah.
           </CardDescription>
           <div className="pt-4">
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -409,7 +409,7 @@ export function AdminWaCenterPage() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label>Wilayah (Field Coordinator)</Label>
+                    <Label>Wilayah Koordinator Lapangan</Label>
                     <Popover open={comboOpen} onOpenChange={setComboOpen}>
                       <PopoverTrigger asChild>
                         <Button

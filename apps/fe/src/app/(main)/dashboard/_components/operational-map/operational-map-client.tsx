@@ -166,7 +166,7 @@ export function OperationalMapClient({ mode }: { mode: "regional" | "national" }
   ).length;
 
   return (
-    <main className="mx-auto w-full max-w-[1800px] space-y-4 p-4 sm:p-6 lg:p-8">
+    <main className="mx-auto w-full max-w-[1800px] space-y-4">
       <header className="flex flex-col gap-3 border-b pb-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="mt-1 font-heading font-semibold text-2xl">
@@ -231,7 +231,7 @@ export function OperationalMapClient({ mode }: { mode: "regional" | "national" }
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="h-[68vh] max-h-[900px] min-h-[560px]">
+            <div className="h-[min(68svh,56rem)] min-h-[28rem] sm:min-h-[34rem]">
               <BaseMap
                 ref={mapRef}
                 center={INDONESIA_CENTER}

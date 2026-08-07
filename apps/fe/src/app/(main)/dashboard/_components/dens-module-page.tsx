@@ -11,9 +11,9 @@ type DensModulePageProps = {
 };
 
 const defaultNextSteps = [
-  "Slicing layout detail per halaman.",
-  "Hubungkan state, filter, dan komponen bisnis utama.",
-  "Integrasikan data backend dan kontrol permission per role.",
+  "Lengkapi penyajian data utama modul.",
+  "Aktifkan filter dan tindakan operasional.",
+  "Hubungkan data sesuai kewenangan pengguna.",
 ];
 
 export function DensModulePage({
@@ -24,7 +24,7 @@ export function DensModulePage({
   nextSteps = defaultNextSteps,
 }: DensModulePageProps) {
   return (
-    <div className="@container/main flex flex-col gap-3 md:gap-4">
+    <div className="dc-page @container/main">
       {/* Back Button */}
       <div className="flex items-center">
         <BackButton />
@@ -35,7 +35,7 @@ export function DensModulePage({
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">{role}</Badge>
-              <Badge>Disiapkan</Badge>
+              <Badge>Belum Aktif</Badge>
             </div>
             <CardTitle>{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
@@ -43,8 +43,8 @@ export function DensModulePage({
         </Card>
         {[
           ["Cakupan", highlights.length],
-          ["Selanjutnya", nextSteps.length],
-          ["Status", "Siap"],
+          ["Tahapan", nextSteps.length],
+          ["Status", "Disiapkan"],
         ].map(([label, value]) => (
           <Card key={label} size="sm">
             <CardHeader>
@@ -60,9 +60,9 @@ export function DensModulePage({
       <Card>
         <CardContent>
           <div className="border border-dashed bg-muted/25 px-3 py-3">
-            <p className="font-medium text-sm">Route dan slot modul sudah tersedia.</p>
+            <p className="font-medium text-sm">Modul belum diaktifkan pada ruang kerja ini.</p>
             <p className="mt-1 text-muted-foreground text-sm">
-              Implementasi detail modul akan mengikuti prioritas slicing UI DENS CAKRA berikutnya.
+              Gunakan menu aktif yang tersedia atau hubungi administrator sistem untuk informasi akses.
             </p>
           </div>
         </CardContent>
@@ -73,7 +73,7 @@ export function DensModulePage({
           <CardHeader>
             <CardTitle>Cakupan Modul</CardTitle>
             <CardDescription>
-              Referensi awal ini diambil dari spesifikasi navigasi dan workflow role terkait.
+              Ringkasan fungsi yang direncanakan untuk modul ini.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -89,9 +89,9 @@ export function DensModulePage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Tahap Selanjutnya</CardTitle>
+            <CardTitle>Tahapan Aktivasi</CardTitle>
             <CardDescription>
-              Folder `_components` lokal sudah siap untuk diisi implementasi halaman sebenarnya.
+              Tahapan yang perlu diselesaikan sebelum modul dapat digunakan.
             </CardDescription>
           </CardHeader>
           <CardContent>

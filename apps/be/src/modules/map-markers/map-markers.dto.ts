@@ -13,12 +13,32 @@ import {
 import {
   AdministrativeLevel,
   BaketStatus,
+  CoordinateSource,
   PriorityLevel,
 } from '../../generated/prisma/client.js';
 
 export enum MapMarkerType {
+  REPORT = 'report',
   BAKET = 'baket',
   AGENT = 'agent',
+}
+
+export enum ReportValidityFilter {
+  VALID = 'VALID',
+  NEEDS_REVIEW = 'NEEDS_REVIEW',
+  WAITING = 'WAITING',
+}
+
+export enum ReportCompletenessFilter {
+  COMPLETE = 'COMPLETE',
+  INCOMPLETE = 'INCOMPLETE',
+}
+
+export enum ReportLocationSuitabilityFilter {
+  WITHIN_SCOPE = 'WITHIN_SCOPE',
+  OUTSIDE_SCOPE = 'OUTSIDE_SCOPE',
+  BORDER_AMBIGUOUS = 'BORDER_AMBIGUOUS',
+  NOT_DETERMINED = 'NOT_DETERMINED',
 }
 
 export enum AgentLocationState {
@@ -62,7 +82,7 @@ export class MapMarkersQuery {
 
   @IsOptional()
   @List()
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   areaIds?: string[];
 
   @IsOptional() @List() @IsString({ each: true }) areaCodes?: string[];
@@ -78,6 +98,46 @@ export class MapMarkersQuery {
   categoryIds?: string[];
 
   @IsOptional() @List() @IsString({ each: true }) categoryCodes?: string[];
+
+  @IsOptional()
+  @List()
+  @IsUUID('4', { each: true })
+  jaringIds?: string[];
+
+  @IsOptional()
+  @List()
+  @IsUUID('4', { each: true })
+  fieldOfficerAssignmentIds?: string[];
+
+  @IsOptional()
+  @List()
+  @IsEnum(ReportValidityFilter, { each: true })
+  reportValidity?: ReportValidityFilter[];
+
+  @IsOptional()
+  @List()
+  @IsEnum(ReportCompletenessFilter, { each: true })
+  completeness?: ReportCompletenessFilter[];
+
+  @IsOptional()
+  @BooleanValue()
+  @IsBoolean()
+  hasCoordinates?: boolean;
+
+  @IsOptional()
+  @BooleanValue()
+  @IsBoolean()
+  hasAttachments?: boolean;
+
+  @IsOptional()
+  @List()
+  @IsEnum(CoordinateSource, { each: true })
+  coordinateSources?: CoordinateSource[];
+
+  @IsOptional()
+  @List()
+  @IsEnum(ReportLocationSuitabilityFilter, { each: true })
+  locationSuitability?: ReportLocationSuitabilityFilter[];
 
   @IsOptional()
   @List()

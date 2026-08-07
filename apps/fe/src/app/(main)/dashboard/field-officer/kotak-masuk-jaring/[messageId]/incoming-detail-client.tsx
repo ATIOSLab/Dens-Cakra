@@ -6,9 +6,11 @@ import Link from "next/link";
 
 import { Calendar, CheckCircle2, Inbox, MapPin, Phone, ShieldAlert, Tag, User } from "lucide-react";
 
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { BackButton } from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import type { FieldOfficerIncoming, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
@@ -103,6 +105,8 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
     );
   }
 
+  const jaring = workspace?.jaring.find((item) => item.id === message.jaringId);
+
   return (
     <div className="space-y-4 p-6">
       <div>
@@ -119,15 +123,29 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
               <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
                 VAL: {validationLabel(message.validationSummary)}
               </span>
-              <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                JARING: {message.jaringCode}
-              </span>
             </div>
             <h1 className="font-semibold text-[var(--tactical-text-primary)] text-2xl tracking-tight">
               {message.displayTitle || message.jaringAlias}
             </h1>
           </div>
         </div>
+
+        <section className="rounded-lg border border-[var(--tactical-border)] bg-black/5 p-4 dark:bg-white/[0.01]">
+          <JaringIdentitySummary
+            source={{
+              id: message.jaringId,
+              fullName: jaring?.fullName,
+              jaringAlias: message.jaringAlias,
+              jaringCode: message.jaringCode,
+              whatsappNumber: jaring?.whatsappNumber ?? message.senderPhone,
+              profilePhotoUrl: jaring?.profilePhotoUrl,
+              profilePhotoFileId: jaring?.profilePhotoFileId,
+              gaswilName: workspace?.profile.name,
+              gaswilHref: "/dashboard/profil",
+              villageName: jaring?.areaNames.join(", ") || message.areaName,
+            }}
+          />
+        </section>
 
         <div className="space-y-4">
           <h2 className="font-mono font-semibold text-xs text-[var(--tactical-text-secondary)] uppercase tracking-wider">
@@ -145,18 +163,6 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
               Informasi Pengiriman & Waktu
             </h2>
             <div className="rounded-lg border border-[var(--tactical-border)] p-4 space-y-3 font-mono text-sm">
-              <div className="flex justify-between py-1 border-b border-[var(--tactical-border)]/50">
-                <span className="text-[var(--tactical-text-secondary)]">PENGIRIM</span>
-                <span className="font-semibold">{message.senderPhone}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[var(--tactical-border)]/50">
-                <span className="text-[var(--tactical-text-secondary)]">JARING ALIAS</span>
-                <span className="font-semibold">{message.jaringAlias}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[var(--tactical-border)]/50">
-                <span className="text-[var(--tactical-text-secondary)]">WILAYAH / AREA</span>
-                <span className="font-semibold">{message.areaName || "-"}</span>
-              </div>
               <div className="flex justify-between py-1 border-b border-[var(--tactical-border)]/50">
                 <span className="text-[var(--tactical-text-secondary)]">DITERIMA SISTEM</span>
                 <span>{formatDateTime(message.receivedAt)}</span>
@@ -190,10 +196,10 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
                         key={file.fileId}
                         className="overflow-hidden rounded-lg border border-[var(--tactical-border)] shadow-sm"
                       >
-                        <EvidenceImageViewer
+                        <EvidenceAttachmentViewer
                           src={file.url}
-                          alt={`Dokumentasi ${index + 1} ${message.displayTitle || message.jaringAlias}`}
                           fileName={file.originalName || file.fileId}
+                          mimeType={file.mimeType}
                           caption={file.caption || `Dokumentasi ${index + 1} · Jaring ${message.jaringCode}`}
                         />
                       </div>

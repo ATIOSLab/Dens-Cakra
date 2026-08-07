@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AdministrativeLevel, Prisma } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
+import { ApplicationCacheService } from '../cache/application-cache.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
 import type {
@@ -26,6 +27,7 @@ export class AreaQueryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly spatial: SpatialRepository,
+    private readonly cache: ApplicationCacheService,
   ) {}
 
   async list(query: AreaListQueryDto) {
@@ -152,6 +154,17 @@ export class AreaQueryService {
   }
 
   async tree(query: AreaTreeQueryDto) {
+    return this.cache.getOrSet(
+      {
+        namespace: 'administrative-area-tree',
+        identity: query,
+        ttlMs: 30 * 60_000,
+      },
+      () => this.loadTree(query),
+    );
+  }
+
+  private async loadTree(query: AreaTreeQueryDto) {
     const root =
       query.rootId ??
       (
@@ -239,15 +252,28 @@ export class AreaQueryService {
     if (minLongitude >= maxLongitude || minLatitude >= maxLatitude) {
       throw new ApiException('BBOX_INVALID', 'bbox bounds are invalid.', 422);
     }
-    const features = await this.spatial.findBoundariesInViewport({
-      minLongitude,
-      minLatitude,
-      maxLongitude,
-      maxLatitude,
-      level: query.level,
-      limit: query.limit,
-    });
-    return { type: 'FeatureCollection', features };
+    return this.cache.getOrSet(
+      {
+        namespace: 'administrative-boundaries',
+        identity: {
+          bbox: values.map((value) => Number(value.toFixed(5))),
+          level: query.level,
+          limit: query.limit,
+        },
+        ttlMs: 15 * 60_000,
+      },
+      async () => {
+        const features = await this.spatial.findBoundariesInViewport({
+          minLongitude,
+          minLatitude,
+          maxLongitude,
+          maxLatitude,
+          level: query.level,
+          limit: query.limit,
+        });
+        return { type: 'FeatureCollection' as const, features };
+      },
+    );
   }
 
   boundary(id: string, simplifyMeters: number) {

@@ -32,17 +32,22 @@ export function AccountSwitcher() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-none transition hover:bg-slate-50"
+          className="flex size-9 items-center justify-center rounded-full border border-[var(--dc-border-subtle)] bg-card text-foreground shadow-[var(--dc-shadow-card)] transition-colors hover:bg-muted md:size-8"
           aria-label={`Open account menu for ${activeUser.name}`}
         >
-          <Avatar className="size-8 rounded-full">
+          <Avatar className="size-7 rounded-full md:size-6">
             <AvatarImage src={activeUser.avatar || undefined} alt={activeUser.name} />
             <AvatarFallback>{getInitials(activeUser.name)}</AvatarFallback>
           </Avatar>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="min-w-72 space-y-1 rounded-2xl p-1" side="bottom" align="end" sideOffset={8}>
-        <div className="flex items-center gap-3 rounded-xl px-2 py-2">
+      <DropdownMenuContent
+        className="min-w-72 space-y-1 rounded-[var(--dc-radius-lg)] p-1"
+        side="bottom"
+        align="end"
+        sideOffset={8}
+      >
+        <div className="flex items-center gap-3 rounded-md px-2 py-2">
           <Avatar className="size-11 rounded-full">
             <AvatarImage src={activeUser.avatar || undefined} alt={activeUser.name} />
             <AvatarFallback>{getInitials(activeUser.name)}</AvatarFallback>

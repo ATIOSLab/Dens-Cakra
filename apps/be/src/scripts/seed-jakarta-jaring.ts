@@ -404,7 +404,6 @@ async function importRecord(
     await tx.jaring.upsert({
       where: { id: jaringId },
       update: {
-        code: record.code,
         aliasName: record.aliasName,
         whatsappNumber: record.profile.whatsappNumber,
         fullName: text(record.profile.fullName, 180),
@@ -433,7 +432,6 @@ async function importRecord(
       },
       create: {
         id: jaringId,
-        code: record.code,
         aliasName: record.aliasName,
         whatsappNumber: record.profile.whatsappNumber,
         fullName: text(record.profile.fullName, 180),
@@ -538,14 +536,17 @@ async function seedJakartaJaring() {
       );
     }
   }
+  const importedJaringIds = manifest.records.map((record) =>
+    deterministicUuid(`${SEED_TAG}:jaring:${record.code}`),
+  );
   const [jaringTotal, activeTotal, pendingTotal, coverageTotal, photoTotal] =
     await Promise.all([
       prisma.jaring.count({
-        where: { code: { startsWith: 'JKT-SEL-' }, deletedAt: null },
+        where: { id: { in: importedJaringIds }, deletedAt: null },
       }),
       prisma.jaring.count({
         where: {
-          code: { startsWith: 'JKT-SEL-' },
+          id: { in: importedJaringIds },
           status: JaringStatus.ACTIVE,
           registrationStatus: JaringRegistrationStatus.APPROVED,
           deletedAt: null,
@@ -553,14 +554,14 @@ async function seedJakartaJaring() {
       }),
       prisma.jaring.count({
         where: {
-          code: { startsWith: 'JKT-SEL-' },
+          id: { in: importedJaringIds },
           registrationStatus: JaringRegistrationStatus.PENDING,
           deletedAt: null,
         },
       }),
       prisma.jaringAreaCoverage.count({
         where: {
-          jaring: { code: { startsWith: 'JKT-SEL-' }, deletedAt: null },
+          jaring: { id: { in: importedJaringIds }, deletedAt: null },
         },
       }),
       prisma.fileAsset.count({

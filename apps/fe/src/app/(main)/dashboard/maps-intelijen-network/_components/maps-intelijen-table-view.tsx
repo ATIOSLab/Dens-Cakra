@@ -1,6 +1,7 @@
 "use client";
 
 import { Clock, Eye, Inbox, Mail, MailOpen, MapPin, RotateCcw, Search } from "lucide-react";
+
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -202,9 +203,7 @@ export function MapsIntelijenTableView({
 
           {/* Reset Filters Button & Results Count */}
           <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
-            <span className="text-xs text-muted-foreground font-mono">
-              {filteredItems.length} hasil
-            </span>
+            <span className="text-xs text-muted-foreground font-mono">{filteredItems.length} hasil</span>
             <Button
               variant="outline"
               size="sm"
@@ -246,7 +245,7 @@ export function MapsIntelijenTableView({
           >
             <option value="ALL">Semua Status Verifikasi</option>
             <option value="NOT_SUBMITTED">Belum Diverifikasi</option>
-            <option value="NEEDS_FIELD_OFFICER_REVIEW">Perlu Review</option>
+            <option value="NEEDS_FIELD_OFFICER_REVIEW">Perlu Ditinjau</option>
             <option value="VERIFIED_BY_FIELD_OFFICER">Terverifikasi</option>
             <option value="METADATA_RECORDED">Baket Dibuat</option>
           </NativeSelect>
@@ -541,7 +540,7 @@ export function MapsIntelijenTableView({
                   <TableHead className="text-center font-bold text-xs uppercase tracking-wider">
                     Status Verifikasi
                   </TableHead>
-                  <TableHead className="font-bold text-xs uppercase tracking-wider">Wilayah</TableHead>
+                  <TableHead className="font-bold text-xs uppercase tracking-wider">Lokasi Aktual Laporan</TableHead>
                   <TableHead className="font-bold text-xs uppercase tracking-wider">Waktu Masuk</TableHead>
                   <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Aksi</TableHead>
                 </TableRow>

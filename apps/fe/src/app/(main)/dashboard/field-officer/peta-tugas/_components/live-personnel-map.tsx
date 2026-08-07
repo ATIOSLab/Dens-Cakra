@@ -239,7 +239,7 @@ export function LivePersonnelMap() {
           <CardHeader>
             <CardTitle>Peta Tugas Live</CardTitle>
             <CardDescription className="text-white/65">
-              Lokasi terbaru Field Officer dari ping GPS perangkat.
+              Lokasi terbaru Petugas Wilayah (Gaswil) dari sinyal GPS perangkat.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -341,7 +341,7 @@ export function LivePersonnelMap() {
 
               {!isLoading && features.length === 0 ? (
                 <div className="rounded-lg border border-white/10 bg-black/15 p-4 text-sm text-white/60">
-                  Belum ada ping lokasi Field Officer dalam 24 jam terakhir.
+                  Belum ada sinyal lokasi Petugas Wilayah (Gaswil) dalam 24 jam terakhir.
                 </div>
               ) : null}
             </div>

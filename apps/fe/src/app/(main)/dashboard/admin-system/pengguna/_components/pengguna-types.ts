@@ -1,4 +1,5 @@
 import type { PaginationMeta } from "@/lib/api/types";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { SYSTEM_ROLE_LABELS, SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
 export type UserProfileStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
@@ -194,7 +195,7 @@ export const USER_STATUS_OPTIONS: Array<{
   label: string;
 }> = [
   { value: "ACTIVE", label: "Aktif" },
-  { value: "PENDING", label: "Pending" },
+  { value: "PENDING", label: "Menunggu" },
   { value: "SUSPENDED", label: "Suspended" },
   { value: "ARCHIVED", label: "Archived" },
 ];
@@ -211,7 +212,7 @@ export const ROLE_CODE_OPTIONS: Array<{
     label: "Manajer Intelijen Operasional",
   },
   { value: "FIELD_COORDINATOR", label: "Koordinator Lapangan" },
-  { value: "FIELD_OFFICER", label: "Petugas Lapangan" },
+  { value: "FIELD_OFFICER", label: DOMAIN_TERMS.fieldOfficer },
 ];
 
 export const POSITION_CODE_OPTIONS: Array<{
@@ -226,7 +227,7 @@ export const POSITION_CODE_OPTIONS: Array<{
   { value: "KABAGOPS", label: "Kabagops" },
   { value: "STAF_SUBDIT", label: "Staf Subdit" },
   { value: "KORWIL", label: "Korwil" },
-  { value: "PETUGAS_ORGANIK", label: "Petugas Organik" },
+  { value: "PETUGAS_ORGANIK", label: DOMAIN_TERMS.fieldOfficer },
 ];
 
 export const ROLE_CODE_TO_AUTH_ROLE: Record<RoleCode, SystemRole> = {

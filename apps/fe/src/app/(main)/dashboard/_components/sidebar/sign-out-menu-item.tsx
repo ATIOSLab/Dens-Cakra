@@ -34,7 +34,7 @@ export function SignOutMenuItem() {
       }}
     >
       <LogOut />
-      {isPending ? "Keluar..." : "Log out"}
+      {isPending ? "Keluar..." : "Keluar"}
     </DropdownMenuItem>
   );
 }

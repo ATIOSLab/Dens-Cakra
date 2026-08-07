@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { BriefcaseBusiness, MapPin, Plus, Search, Users } from "lucide-react";
+import { BriefcaseBusiness, MapPin, Plus, Users } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FilterPanel } from "@/components/ui/filter-panel";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -119,6 +121,10 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
     router.push(`/dashboard/admin-system/jabatan-reporting-line?${params.toString()}`);
   }
 
+  const activeFilterCount = [queryState.q, queryState.roleCode, queryState.positionCode, queryState.unitId].filter(
+    Boolean,
+  ).length;
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -138,59 +144,60 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
         </Button>
       </div>
 
-      <Card className="border border-border/70">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Search className="size-4" />
-            Filter jabatan
-          </CardTitle>
-          <CardDescription>Gunakan role dan tipe jabatan untuk mempersempit master position.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-[minmax(0,1.2fr)_220px_220px_auto]">
-          <Input
-            defaultValue={queryState.q}
-            placeholder="Cari seat code atau nama jabatan"
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                applyFilter({ q: event.currentTarget.value.trim() });
-              }
-            }}
-          />
-          <NativeSelect value={queryState.roleCode} onChange={(event) => applyFilter({ roleCode: event.target.value })}>
-            <NativeSelectOption value="">Semua role</NativeSelectOption>
-            {ROLE_CODE_OPTIONS.map((option) => (
-              <NativeSelectOption key={option.value} value={option.value}>
-                {option.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-          <NativeSelect
-            value={queryState.positionCode}
-            onChange={(event) => applyFilter({ positionCode: event.target.value })}
-          >
-            <NativeSelectOption value="">Semua tipe</NativeSelectOption>
-            {POSITION_CODE_OPTIONS.map((option) => (
-              <NativeSelectOption key={option.value} value={option.value}>
-                {option.label}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => applyFilter({ q: "", roleCode: "", positionCode: "" })}
-          >
-            Reset
-          </Button>
-        </CardContent>
-      </Card>
+      <FilterPanel
+        title="Filter jabatan"
+        description="Gunakan pencarian, role, dan tipe jabatan untuk mempersempit seluruh master jabatan."
+        activeFilterCount={activeFilterCount}
+        onReset={() => applyFilter({ q: "", roleCode: "", positionCode: "", unitId: "" })}
+        resultSummary={`${clientPagination?.total ?? clientItems.length} jabatan`}
+        contentClassName="md:grid-cols-[minmax(0,1.2fr)_220px_220px]"
+      >
+        <Input
+          aria-label="Cari jabatan"
+          defaultValue={queryState.q}
+          className="h-10"
+          placeholder="Cari seat code atau nama jabatan"
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              applyFilter({ q: event.currentTarget.value.trim() });
+            }
+          }}
+        />
+        <NativeSelect
+          aria-label="Filter role jabatan"
+          className="h-10"
+          value={queryState.roleCode}
+          onChange={(event) => applyFilter({ roleCode: event.target.value })}
+        >
+          <NativeSelectOption value="">Semua role</NativeSelectOption>
+          {ROLE_CODE_OPTIONS.map((option) => (
+            <NativeSelectOption key={option.value} value={option.value}>
+              {option.label}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+        <NativeSelect
+          aria-label="Filter tipe jabatan"
+          className="h-10"
+          value={queryState.positionCode}
+          onChange={(event) => applyFilter({ positionCode: event.target.value })}
+        >
+          <NativeSelectOption value="">Semua tipe</NativeSelectOption>
+          {POSITION_CODE_OPTIONS.map((option) => (
+            <NativeSelectOption key={option.value} value={option.value}>
+              {option.label}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      </FilterPanel>
 
       <Card className="border border-border/70">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div>
             <CardTitle>Daftar jabatan</CardTitle>
             <CardDescription>
-              {clientPagination?.total ?? clientItems.length} jabatan aktif terdaftar sebagai master penempatan personel.
+              {clientPagination?.total ?? clientItems.length} jabatan aktif terdaftar sebagai master penempatan
+              personel.
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
@@ -233,8 +240,12 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
                       </div>
                     </div>
                     <div className="min-w-0 pr-2">
-                      <div className="truncate font-semibold text-foreground">{position.organizationUnit?.name ?? "-"}</div>
-                      <div className="text-xs text-muted-foreground font-mono">{position.organizationUnit?.code ?? "-"}</div>
+                      <div className="truncate font-semibold text-foreground">
+                        {position.organizationUnit?.name ?? "-"}
+                      </div>
+                      <div className="text-xs text-muted-foreground font-mono">
+                        {position.organizationUnit?.code ?? "-"}
+                      </div>
                     </div>
                     <div className="min-w-0 pr-2">
                       <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium">
@@ -243,7 +254,10 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
                       </div>
                     </div>
                     <div>
-                      <Badge variant={assignmentCount ? "default" : "outline"} className={`gap-1 rounded-[4px] text-[10px] uppercase font-mono ${assignmentCount ? "bg-emerald-500/10 text-emerald-600 dark:text-[#22C55E] dark:bg-emerald-950/40 border-emerald-500/20" : ""}`}>
+                      <Badge
+                        variant={assignmentCount ? "default" : "outline"}
+                        className={`gap-1 rounded-[4px] text-[10px] uppercase font-mono ${assignmentCount ? "bg-emerald-500/10 text-emerald-600 dark:text-[#22C55E] dark:bg-emerald-950/40 border-emerald-500/20" : ""}`}
+                      >
                         <Users className="size-3 stroke-[1.5]" />
                         {assignmentCount ? "Terisi" : "Kosong"}
                       </Badge>
@@ -271,10 +285,12 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2 font-semibold text-foreground">
                           <BriefcaseBusiness className="size-4.5 text-sky-500 shrink-0 stroke-[1.5]" />
-                          <span className="text-[13px] line-clamp-1 group-hover:text-sky-500 transition-colors font-semibold">{position.title}</span>
+                          <span className="text-[13px] line-clamp-1 group-hover:text-sky-500 transition-colors font-semibold">
+                            {position.title}
+                          </span>
                         </div>
                       </div>
-                      
+
                       <div className="text-[11px] text-muted-foreground font-mono space-y-0.5 border-t dark:border-blue-400/8 border-slate-100 pt-2">
                         <div className="flex justify-between">
                           <span>Seat Code:</span>
@@ -285,25 +301,36 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
                           <span className="font-semibold text-foreground">{branchLabel(position.branch)}</span>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-1.5 pt-1.5 text-xs">
                         <div className="flex flex-col">
-                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Unit Organisasi</span>
-                          <span className="truncate font-semibold text-foreground">{position.organizationUnit?.name ?? "-"}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-medium">
+                            Unit Organisasi
+                          </span>
+                          <span className="truncate font-semibold text-foreground">
+                            {position.organizationUnit?.name ?? "-"}
+                          </span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[10px] text-muted-foreground uppercase font-medium">Cakupan Wilayah</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-medium">
+                            Cakupan Wilayah
+                          </span>
                           <span className="truncate font-semibold text-foreground">{coverageLabel(position)}</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between border-t dark:border-blue-400/8 border-slate-100 pt-2 mt-1">
-                      <Badge variant={assignmentCount ? "default" : "outline"} className={`gap-1 rounded-[4px] text-[10px] uppercase font-mono ${assignmentCount ? "bg-emerald-500/10 text-emerald-600 dark:text-[#22C55E] dark:bg-emerald-950/40 border-emerald-500/20" : ""}`}>
+                      <Badge
+                        variant={assignmentCount ? "default" : "outline"}
+                        className={`gap-1 rounded-[4px] text-[10px] uppercase font-mono ${assignmentCount ? "bg-emerald-500/10 text-emerald-600 dark:text-[#22C55E] dark:bg-emerald-950/40 border-emerald-500/20" : ""}`}
+                      >
                         <Users className="size-3 stroke-[1.5]" />
                         {assignmentCount ? "Terisi" : "Kosong"}
                       </Badge>
-                      <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wide group-hover:text-sky-500 transition-colors">Detail →</span>
+                      <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wide group-hover:text-sky-500 transition-colors">
+                        Detail →
+                      </span>
                     </div>
                   </Link>
                 );

@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+
 import {
-  ArrowLeft,
   CalendarClock,
   CheckCircle2,
   CircleDashed,
@@ -12,20 +11,13 @@ import {
   FileCheck2,
   FileText,
   ImageIcon,
-  Mail,
-  MailOpen,
   MapPin,
   RefreshCw,
-  UserCheck,
-  UserRound,
 } from "lucide-react";
 
-import {
-  formatFullAreaName,
-  type JaringReportSessionDetail,
-  type VerificationStatus,
-} from "./laporan-jaring-types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { BackButton } from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -39,42 +31,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
+import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 
 import { LaporanJaringLocationMap } from "./laporan-jaring-location-map";
+import {
+  formatDateTime,
+  urgencyBadgeClass,
+  urgencyLabel,
+  verificationStatusBadgeVariant,
+  verificationStatusLabel,
+} from "./laporan-jaring-presentation";
+import { formatFullAreaName, type JaringReportSessionDetail, type VerificationStatus } from "./laporan-jaring-types";
 import { WhatsAppReportThread } from "./whatsapp-report-thread";
-
-function formatDateTime(value?: string | null) {
-  if (!value) return "Belum tercatat";
-  try {
-    return new Intl.DateTimeFormat("id-ID", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return "Belum tercatat";
-  }
-}
-
-function verificationStatusLabel(status: VerificationStatus) {
-  switch (status) {
-    case "IN_PROGRESS_BY_JARING":
-      return "Sedang disusun Jaring";
-    case "NOT_SUBMITTED":
-    case "WAITING_FIELD_OFFICER_VERIFICATION":
-      return "Belum Diverifikasi";
-    case "NEEDS_FIELD_OFFICER_REVIEW":
-      return "Perlu Review Petugas";
-    case "VERIFIED_BY_FIELD_OFFICER":
-      return "Terverifikasi Petugas";
-    case "METADATA_RECORDED":
-      return "Baket Dibuat";
-  }
-}
 
 function isVerifiedReport(status: VerificationStatus) {
   return status === "VERIFIED_BY_FIELD_OFFICER" || status === "METADATA_RECORDED";
@@ -109,10 +78,11 @@ export function LaporanJaringLeadershipDetailClient({
   const [error, setError] = useState<string | null>(null);
   const requestInFlight = useRef(false);
 
-  const loadReport = useCallback(async (silent = false) => {
-    if (requestInFlight.current) return;
-    requestInFlight.current = true;
-    if (!silent) setLoading(true);
+  const loadReport = useCallback(
+    async (silent = false) => {
+      if (requestInFlight.current) return;
+      requestInFlight.current = true;
+      if (!silent) setLoading(true);
       setError(null);
       try {
         const detail = await apiBrowserFetch<JaringReportSessionDetail>(`/jaring/reports/${reportSessionId}`);
@@ -123,7 +93,9 @@ export function LaporanJaringLeadershipDetailClient({
         requestInFlight.current = false;
         if (!silent) setLoading(false);
       }
-  }, [reportSessionId]);
+    },
+    [reportSessionId],
+  );
 
   useEffect(() => {
     void loadReport();
@@ -134,8 +106,6 @@ export function LaporanJaringLeadershipDetailClient({
   }, [loadReport]);
 
   const reportTitle = report?.displayTitle || "Laporan Informasi Jaring";
-  const readAt = report?.fieldOfficerReadAt ?? report?.readAt ?? null;
-  const hasBeenRead = report?.isReadByFieldOfficer ?? report?.isRead ?? Boolean(readAt);
   const reportIsVerified = report ? isVerifiedReport(report.verificationStatus) : false;
   const areaLabel = formatFullAreaName(report?.resolvedArea);
   const media = report?.media || [];
@@ -147,7 +117,7 @@ export function LaporanJaringLeadershipDetailClient({
   const isFromBaket = backHref.includes("/baket");
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 p-4 md:p-6 lg:p-8">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 sm:gap-6">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -155,9 +125,7 @@ export function LaporanJaringLeadershipDetailClient({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href={backHref}>
-              {isFromBaket ? "Baket" : "Monitoring Laporan Jaring"}
-            </BreadcrumbLink>
+            <BreadcrumbLink href={backHref}>{isFromBaket ? "Baket" : "Monitoring Laporan Jaring"}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -168,24 +136,12 @@ export function LaporanJaringLeadershipDetailClient({
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Button asChild variant="outline" size="icon" aria-label="Kembali ke daftar">
-            <Link href={backHref}>
-              <ArrowLeft />
-            </Link>
-          </Button>
+          <BackButton href={backHref} label="Kembali" />
           <div className="flex flex-col gap-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Telaah Pimpinan</p>
             <h1 className="text-2xl font-bold tracking-tight">Detail Laporan Jaring</h1>
           </div>
         </div>
-        {googleMapsUrl ? (
-          <Button asChild variant="outline" size="sm">
-            <a href={googleMapsUrl} target="_blank" rel="noreferrer">
-              <ExternalLink data-icon="inline-start" />
-              Buka Lokasi
-            </a>
-          </Button>
-        ) : null}
         <Button variant="outline" size="sm" onClick={() => void loadReport()} disabled={loading}>
           <RefreshCw className={loading ? "animate-spin" : undefined} />
           Refresh
@@ -200,14 +156,7 @@ export function LaporanJaringLeadershipDetailClient({
             <CardTitle>Detail laporan tidak dapat ditampilkan</CardTitle>
             <CardDescription>{error || "Laporan Jaring tidak ditemukan."}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/dashboard/laporan-jaring">
-                <ArrowLeft data-icon="inline-start" />
-                Kembali ke Daftar
-              </Link>
-            </Button>
-          </CardContent>
+          <CardContent />
         </Card>
       ) : (
         <Card>
@@ -218,20 +167,20 @@ export function LaporanJaringLeadershipDetailClient({
                   <Badge variant="outline" className="font-mono">
                     {report.referenceNumber || report.id}
                   </Badge>
-                  <Badge variant={reportIsVerified ? "secondary" : "outline"}>
+                  <Badge variant="outline" className={verificationStatusBadgeVariant(report.verificationStatus)}>
                     {reportIsVerified ? <CheckCircle2 /> : <CircleDashed />}
                     {verificationStatusLabel(report.verificationStatus)}
                   </Badge>
-                  <Badge variant={hasBeenRead ? "secondary" : "outline"}>
-                    {hasBeenRead ? <MailOpen /> : <Mail />}
-                    {hasBeenRead ? "Sudah dibaca petugas" : "Belum dibaca petugas"}
-                  </Badge>
-                  {reportIsVerified && report.urgency ? <Badge>{report.urgency}</Badge> : null}
+                  {reportIsVerified && report.urgency ? (
+                    <Badge variant="outline" className={urgencyBadgeClass(report.urgency)}>
+                      {urgencyLabel(report.urgency)}
+                    </Badge>
+                  ) : null}
                 </div>
                 <CardTitle className="text-2xl leading-tight md:text-3xl">{reportTitle}</CardTitle>
                 <CardDescription>
-                  Informasi utuh untuk telaah pimpinan, bersumber dari laporan Jaring dan hasil penanganan Field
-                  Officer.
+                  Informasi utuh untuk telaah pimpinan, bersumber dari laporan Jaring dan hasil penanganan Petugas
+                  Wilayah (Gaswil).
                 </CardDescription>
               </div>
             </div>
@@ -239,32 +188,32 @@ export function LaporanJaringLeadershipDetailClient({
 
           <CardContent className="flex flex-col gap-6">
             <Alert>
-              {hasBeenRead ? <MailOpen /> : <Mail />}
-              <AlertTitle>
-                {hasBeenRead ? "Sudah dibaca oleh Field Officer" : "Belum dibaca oleh Field Officer"}
-              </AlertTitle>
+              {reportIsVerified ? <FileCheck2 /> : <CircleDashed />}
+              <AlertTitle>{reportIsVerified ? "Terverifikasi" : "Belum Diverifikasi"}</AlertTitle>
               <AlertDescription>
-                {hasBeenRead
-                  ? `Petugas membuka laporan ini pada ${formatDateTime(readAt)}.`
-                  : "Belum ada aktivitas baca dari Field Officer yang menangani laporan ini."}
+                Status baca khusus petugas tidak ditampilkan karena laporan belum mempunyai receipt per-petugas yang
+                dapat diverifikasi. Status verifikasi tetap ditampilkan terpisah.
               </AlertDescription>
             </Alert>
 
-            <dl className="grid grid-cols-1 gap-4 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2 lg:grid-cols-5">
-              <div className="flex gap-3">
-                <UserRound className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <div>
-                  <dt className="text-xs text-muted-foreground">Sumber Jaring</dt>
-                  <dd className="font-semibold">{report.jaringAlias || report.jaringCode || report.jaringId}</dd>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <UserCheck className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                <div>
-                  <dt className="text-xs text-muted-foreground">Gaswil (Petugas Lapangan)</dt>
-                  <dd className="font-semibold">{report.gaswilName || "-"}</dd>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 gap-4 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2 lg:grid-cols-5">
+              <JaringIdentitySummary
+                compact
+                source={{
+                  id: report.jaringId,
+                  jaringFullName: report.jaringFullName,
+                  jaringAlias: report.jaringAlias,
+                  jaringCode: report.jaringCode,
+                  jaringWhatsAppNumber: report.jaringWhatsAppNumber,
+                  jaringProfilePhotoFileId: report.jaringProfilePhotoFileId,
+                  profilePhotoUrl: report.jaringProfilePhotoUrl,
+                  gaswilName: report.gaswilName,
+                  gaswilAssignmentId: report.gaswilAssignmentId,
+                  gaswilUserProfileId: report.gaswilUserProfileId,
+                  placementArea: report.placementArea,
+                }}
+                className="sm:col-span-2 lg:col-span-2"
+              />
               <div className="flex gap-3">
                 <Clock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <div>
@@ -282,11 +231,26 @@ export function LaporanJaringLeadershipDetailClient({
               <div className="flex gap-3">
                 <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <div>
-                  <dt className="text-xs text-muted-foreground">Wilayah</dt>
-                  <dd className="font-semibold">{areaLabel}</dd>
+                  <dt className="text-xs text-muted-foreground">Lokasi Aktual Laporan</dt>
+                  <dd className="font-semibold">
+                    {googleMapsUrl ? (
+                      <a
+                        href={googleMapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sky-600 hover:underline dark:text-sky-400 inline-flex items-center gap-1 font-semibold"
+                        title="Buka lokasi koordinat di Google Maps"
+                      >
+                        {areaLabel}
+                        <ExternalLink className="size-3.5 shrink-0 opacity-70" />
+                      </a>
+                    ) : (
+                      areaLabel
+                    )}
+                  </dd>
                 </div>
               </div>
-            </dl>
+            </div>
 
             <Separator />
 
@@ -335,7 +299,7 @@ export function LaporanJaringLeadershipDetailClient({
                   ) : null}
                   {report.fieldOfficerNote ? (
                     <div className="md:col-span-2">
-                      <dt className="text-xs text-muted-foreground">Catatan Field Officer</dt>
+                      <dt className="text-xs text-muted-foreground">Catatan Petugas Wilayah (Gaswil)</dt>
                       <dd className="mt-1 whitespace-pre-wrap leading-7">{report.fieldOfficerNote}</dd>
                     </div>
                   ) : null}
@@ -356,11 +320,11 @@ export function LaporanJaringLeadershipDetailClient({
               {media.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {media.map((item: any) => (
-                    <EvidenceImageViewer
+                    <EvidenceAttachmentViewer
                       key={item.id}
                       src={`/api/files/${item.fileId}`}
-                      alt={item.fileName || "Lampiran laporan Jaring"}
                       fileName={item.fileName || "Lampiran"}
+                      mimeType={item.mimeType}
                       caption={item.caption}
                     />
                   ))}
