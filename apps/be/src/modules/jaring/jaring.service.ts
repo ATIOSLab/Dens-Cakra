@@ -2,7 +2,6 @@ import {
   OrganizationType,
   PositionCode,
 } from '../../common/constants/legacy-operational-code.js';
-import { crc32 } from 'node:zlib';
 import { Injectable } from '@nestjs/common';
 import {
   AdministrativeLevel,
@@ -49,19 +48,14 @@ import type {
   VerifyJaringReportDto,
 } from './jaring.dto.js';
 
-export function computeCrc32Alias(
-  areaCode: string,
-  gender: 'MALE' | 'FEMALE' | string | null | undefined,
-  sequence: number,
-): string {
-  const areaHash = crc32(areaCode.trim())
-    .toString(16)
-    .toUpperCase()
-    .padStart(8, '0');
-  const genderCode = gender === 'FEMALE' ? '08' : '01';
-  const sequenceStr = String(sequence).padStart(4, '0');
-  return `${areaHash}${genderCode}${sequenceStr}`;
-}
+const JAKARTA_CITY_ALIAS_CODES: Record<string, string> = {
+  '31.74': 'Z', // Jakarta Selatan
+  '31.73': 'Y', // Jakarta Barat
+  '31.75': 'X', // Jakarta Timur
+  '31.71': 'W', // Jakarta Pusat
+  '31.72': 'V', // Jakarta Utara
+  '31.01': 'V', // Kepulauan Seribu
+};
 
 type AliasAdministrativeArea = {
   id: string;
@@ -429,7 +423,21 @@ export class JaringService {
     return area.officialCode?.trim() || area.code.trim();
   }
 
-  private async generateAliasName(areaIds: string[], gender?: string | null) {
+  private districtNumber(area: AdministrativeCodeArea) {
+    const lastSegment = this.administrativeCode(area).split('.').at(-1) ?? '';
+    const digits = lastSegment.replace(/\D/g, '');
+    return digits.padStart(2, '0');
+  }
+
+  private cityAliasCodeForDistrict(districtArea: AdministrativeCodeArea) {
+    const cityCode = this.administrativeCode(districtArea)
+      .split('.')
+      .slice(0, -1)
+      .join('.');
+    return cityCode ? (JAKARTA_CITY_ALIAS_CODES[cityCode] ?? null) : null;
+  }
+
+  private async generateAliasName(areaIds: string[]) {
     const areas = await this.prisma.administrativeArea.findMany({
       where: {
         id: { in: areaIds },
@@ -442,6 +450,15 @@ export class JaringService {
         officialCode: true,
         name: true,
         level: true,
+        parent: {
+          select: {
+            id: true,
+            code: true,
+            officialCode: true,
+            name: true,
+            level: true,
+          },
+        },
       },
     });
 
@@ -451,42 +468,47 @@ export class JaringService {
     const primaryArea = areaIds
       .map((areaId) => areaById.get(areaId))
       .find(Boolean);
+    const district =
+      primaryArea?.level === AdministrativeLevel.DISTRICT
+        ? primaryArea
+        : primaryArea?.parent?.level === AdministrativeLevel.DISTRICT
+          ? primaryArea.parent
+          : null;
+    const cityCode = district ? this.cityAliasCodeForDistrict(district) : null;
 
-    if (!primaryArea) {
+    if (!district || !cityCode) {
       throw new ApiException(
         'JARING_ALIAS_AREA_UNSUPPORTED',
-        'Wilayah Jaring tidak ditemukan untuk pembuatan alias.',
+        'Alias otomatis hanya dapat dibuat untuk kecamatan di cakupan Jakarta yang sudah memiliki kode kota.',
         422,
       );
     }
 
-    const areaCode = this.administrativeCode(primaryArea);
-
-    const existingCount = await this.prisma.jaringAreaCoverage.count({
+    const aliasPrefix = `${cityCode}${this.districtNumber(district)}`;
+    const existingAliases = await this.prisma.jaring.findMany({
       where: {
-        areaId: primaryArea.id,
+        aliasName: { startsWith: aliasPrefix },
       },
+      select: { aliasName: true },
     });
-
-    let sequence = existingCount + 1;
-    let aliasName = computeCrc32Alias(areaCode, gender, sequence);
-
-    let attempts = 0;
-    while (
-      await this.prisma.jaring.findFirst({
-        where: { aliasName },
-        select: { id: true },
-      })
-    ) {
-      sequence++;
-      attempts++;
-      aliasName = computeCrc32Alias(areaCode, gender, sequence);
-      if (attempts > 100) {
-        break;
+    const maxSequence = existingAliases.reduce((max, item) => {
+      const sequence = item.aliasName?.slice(aliasPrefix.length);
+      if (!sequence || !/^\d{3}$/.test(sequence)) {
+        return max;
       }
+      return Math.max(max, Number(sequence));
+    }, 0);
+    const nextSequence = maxSequence + 1;
+
+    if (nextSequence > 999) {
+      throw new ApiException(
+        'JARING_ALIAS_SEQUENCE_EXHAUSTED',
+        'Urutan alias Jaring untuk kecamatan ini sudah mencapai batas 999.',
+        422,
+      );
     }
 
-    return aliasName;
+    return `${aliasPrefix}${String(nextSequence).padStart(3, '0')}`;
   }
 
   private formatJaringIdentityConflict(jaring: JaringIdentityConflict) {
@@ -1876,7 +1898,7 @@ export class JaringService {
       );
     }
     await this.ensureProfilePhoto(body.profilePhotoFileId, context);
-    const aliasName = await this.generateAliasName(areaIds, body.gender);
+    const aliasName = await this.generateAliasName(areaIds);
     const jaring = await this.prisma.jaring.create({
       data: {
         aliasName,

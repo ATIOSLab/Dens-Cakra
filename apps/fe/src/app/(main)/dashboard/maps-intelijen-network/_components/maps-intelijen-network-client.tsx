@@ -131,7 +131,7 @@ function buildQuery(filters: MapNetworkFilters, card: SummaryCardFilter, debounc
   );
   return {
     types,
-    limitPerType: 5000,
+    limitPerType: 1000,
     includeAreaHierarchy: true,
     ...(debouncedSearch ? { q: debouncedSearch } : {}),
     ...periodRange(filters),
@@ -224,6 +224,8 @@ export function MapsIntelijenNetworkClient() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const mapCardRef = useRef<HTMLDivElement>(null);
+  const activeMapRequestRef = useRef<AbortController | null>(null);
+  const loadedSummaryQueryRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearch(filters.search.trim()), 350);
@@ -297,35 +299,45 @@ export function MapsIntelijenNetworkClient() {
     () => ({ ...buildQuery(filters, "ALL", debouncedSearch), limitPerType: 1 }),
     [debouncedSearch, filters],
   );
+  const summaryQueryKey = useMemo(() => JSON.stringify(summaryQuery), [summaryQuery]);
 
   useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(
       async () => {
+        activeMapRequestRef.current = controller;
         setLoading(true);
         setError(null);
         try {
+          const shouldLoadSummary =
+            cardFilter !== "ALL" && loadedSummaryQueryRef.current !== summaryQueryKey;
           const [data, summaryData] = await Promise.all([
             apiBrowserFetch<MapNetworkResponse>("/map/markers", {
               query,
               init: { signal: controller.signal },
             }),
-            cardFilter === "ALL"
-              ? Promise.resolve(null)
-              : apiBrowserFetch<MapNetworkResponse>("/map/markers", {
+            shouldLoadSummary
+              ? apiBrowserFetch<MapNetworkResponse>("/map/markers", {
                   query: summaryQuery,
                   init: { signal: controller.signal },
-                }),
+                })
+              : Promise.resolve(null),
           ]);
           if (!controller.signal.aborted) {
             setResponse(data);
-            setSummaryMeta((summaryData ?? data).meta);
+            if (summaryData || cardFilter === "ALL") {
+              setSummaryMeta((summaryData ?? data).meta);
+              loadedSummaryQueryRef.current = summaryQueryKey;
+            }
             setEntityFilterOptions((current) => mergeEntityFilterOptions(current, data));
           }
         } catch (cause) {
           if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Data peta gagal dimuat.");
         } finally {
-          if (!controller.signal.aborted) setLoading(false);
+          if (activeMapRequestRef.current === controller) {
+            activeMapRequestRef.current = null;
+            if (!controller.signal.aborted) setLoading(false);
+          }
         }
       },
       reloadKey === 0 ? 120 : 0,
@@ -333,8 +345,9 @@ export function MapsIntelijenNetworkClient() {
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
+      if (activeMapRequestRef.current === controller) activeMapRequestRef.current = null;
     };
-  }, [cardFilter, query, reloadKey, summaryQuery]);
+  }, [cardFilter, query, reloadKey, summaryQuery, summaryQueryKey]);
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -347,7 +360,9 @@ export function MapsIntelijenNetworkClient() {
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") setReloadKey((value) => value + 1);
+      if (document.visibilityState === "visible" && !activeMapRequestRef.current) {
+        setReloadKey((value) => value + 1);
+      }
     }, 60_000);
     return () => window.clearInterval(interval);
   }, []);

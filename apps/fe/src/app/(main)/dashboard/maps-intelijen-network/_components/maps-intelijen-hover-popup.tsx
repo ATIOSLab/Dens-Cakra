@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, MapPin } from "lucide-react";
+import { Eye, MapPin, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { MapPopup } from "@/components/ui/map";
@@ -22,11 +22,13 @@ export function MapsIntelijenHoverPopup({
   feature,
   onPointerEnter,
   onPointerLeave,
+  onClose,
   onDetail,
 }: {
   feature: MapNetworkFeature;
   onPointerEnter: () => void;
   onPointerLeave: () => void;
+  onClose: () => void;
   onDetail: () => void;
 }) {
   const properties = feature.properties;
@@ -54,6 +56,15 @@ export function MapsIntelijenHoverPopup({
           <span className="ml-auto max-w-20 truncate font-mono text-[9px] text-slate-500">
             {getMapFeatureReference(feature)}
           </span>
+          <button
+            type="button"
+            aria-label="Tutup popup peta"
+            title="Tutup"
+            onClick={onClose}
+            className="grid size-6 shrink-0 place-items-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-500/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          >
+            <X className="size-3.5" aria-hidden />
+          </button>
         </div>
 
         <div className="min-w-0">

@@ -4,7 +4,11 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { GeoJSONSource, MapLayerMouseEvent, Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
 
-import { DATA_TYPE_PRESENTATION, getMarkerPresentation } from "./maps-intelijen-presentation";
+import {
+  DATA_TYPE_PRESENTATION,
+  getMarkerPresentation,
+  getUrgencyPresentation,
+} from "./maps-intelijen-presentation";
 import type { HeatmapWeight, MapNetworkFeature, MarkerColorMode, VisualizationMode } from "./maps-intelijen-types";
 
 const SOURCE_ID = "dc-intelligent-network";
@@ -61,6 +65,7 @@ function categoryColor(code?: string | null) {
 export function markerColor(feature: MapNetworkFeature, mode: MarkerColorMode) {
   const properties = feature.properties;
   if (properties.markerType === "agent") return properties.suggestedColor || DATA_TYPE_PRESENTATION.agent.mapColor;
+  if (properties.markerType === "baket") return getUrgencyPresentation(properties.urgency).mapColor;
   if (mode === "category") return categoryColor(properties.category?.code ?? properties.category?.id);
   return getMarkerPresentation(properties, mode).mapColor;
 }
@@ -200,7 +205,7 @@ export function MapsIntelijenDataLayers({
           "text-allow-overlap": true,
         },
         paint: {
-          "text-color": DATA_TYPE_PRESENTATION.baket.mapColor,
+          "text-color": ["get", "renderColor"],
           "text-halo-color": "#ffffff",
           "text-halo-width": 1.25,
         },

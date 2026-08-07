@@ -24,6 +24,97 @@ const BANDUNG = {
 };
 
 describe('MapMarkersService', () => {
+  it('caches marker collections by authorization scope and query', async () => {
+    const cached = {
+      type: 'FeatureCollection',
+      features: [],
+      meta: { counts: { total: 0 } },
+    };
+    const cache = {
+      getOrSet: jest.fn().mockResolvedValue(cached as never),
+    };
+    const service = new MapMarkersService(
+      {} as never,
+      {} as never,
+      {} as never,
+      cache as never,
+    );
+    const query = new MapMarkersQuery();
+    const context = {
+      authRole: 'executive',
+      roleCode: RoleCode.EXECUTIVE,
+      primaryAssignmentId: 'assignment-1',
+      organizationUnitId: 'unit-1',
+      areaScopes: [{ areaId: BANDUNG.id }],
+    };
+
+    await expect(service.list(query, context as never)).resolves.toBe(cached);
+    expect(cache.getOrSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        namespace: 'map-markers',
+        identity: expect.objectContaining({
+          scope: expect.objectContaining({
+            primaryAssignmentId: 'assignment-1',
+            areaIds: [BANDUNG.id],
+          }),
+          query,
+        }),
+        ttlMs: 75_000,
+      }),
+      expect.any(Function),
+    );
+  });
+
+  it('pushes the effective report date range into the Prisma query', async () => {
+    const prisma = {
+      reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
+      whatsAppReportSession: {
+        findMany: jest.fn().mockResolvedValue([] as never),
+      },
+    };
+    const scope = { jaringWhere: jest.fn().mockResolvedValue({} as never) };
+    const spatial = {
+      matchCoordinates: jest.fn().mockResolvedValue(new Map() as never),
+    };
+    const service = new MapMarkersService(
+      prisma as never,
+      scope as never,
+      spatial as never,
+    );
+    const query = new MapMarkersQuery();
+    query.types = [MapMarkerType.REPORT];
+    query.from = '2026-07-01T00:00:00.000Z';
+    query.to = '2026-07-31T23:59:59.999Z';
+
+    await service.list(query, {} as never);
+
+    expect(prisma.whatsAppReportSession.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            {
+              OR: [
+                {
+                  submittedAt: {
+                    gte: new Date(query.from),
+                    lte: new Date(query.to),
+                  },
+                },
+                {
+                  submittedAt: null,
+                  startedAt: {
+                    gte: new Date(query.from),
+                    lte: new Date(query.to),
+                  },
+                },
+              ],
+            },
+          ]),
+        }),
+      }),
+    );
+  });
+
   it('combines categorized BAKET and scoped personnel into one GeoJSON collection', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-07-13T10:00:00.000Z'));
     const prisma = {
@@ -80,6 +171,9 @@ describe('MapMarkersService', () => {
             ],
           },
         ] as never),
+      },
+      jaringCaretakerAssignment: {
+        findMany: jest.fn().mockResolvedValue([] as never),
       },
     };
     const scope = {
@@ -173,6 +267,9 @@ describe('MapMarkersService', () => {
   it('intersects an explicitly requested assignment with reporting-line scope', async () => {
     const prisma = {
       reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
+      jaringCaretakerAssignment: {
+        findMany: jest.fn().mockResolvedValue([] as never),
+      },
     };
     const scope = {
       resolve: jest.fn().mockResolvedValue({

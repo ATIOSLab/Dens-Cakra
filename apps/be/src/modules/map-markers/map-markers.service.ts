@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   AdministrativeLevel,
   BaketStatus,
   CoverageValidationStatus,
+  Prisma,
   PriorityLevel,
   WhatsAppMessageStatus,
   WhatsAppValidationSummary,
@@ -11,6 +12,10 @@ import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { getIndonesianPhoneSearchVariants } from '../../common/utils/phone-normalizer.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
+import {
+  ApplicationCacheService,
+  authorizationScopeIdentity,
+} from '../cache/application-cache.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   AgentLocationState,
@@ -72,9 +77,27 @@ export class MapMarkersService {
     private readonly prisma: PrismaService,
     private readonly scope: DomainScopeService,
     private readonly spatial: MapMarkersSpatialRepository,
+    @Optional() private readonly cache?: ApplicationCacheService,
   ) {}
 
   async list(query: MapMarkersQuery, context: AuthorizationContext) {
+    const loader = () => this.load(query, context);
+    if (!this.cache) return loader();
+
+    return this.cache.getOrSet(
+      {
+        namespace: 'map-markers',
+        identity: {
+          scope: authorizationScopeIdentity(context),
+          query,
+        },
+        ttlMs: 75_000,
+      },
+      loader,
+    );
+  }
+
+  private async load(query: MapMarkersQuery, context: AuthorizationContext) {
     const filters = this.normalizeFilters(query);
     const emptyResult: MarkerResult = {
       features: [],
@@ -224,6 +247,7 @@ export class MapMarkersService {
                 ],
               }
             : {},
+          this.reportDateWhere(filters.from, filters.to),
           filters.search
             ? {
                 OR: [
@@ -1508,6 +1532,24 @@ export class MapMarkersService {
       now: new Date(),
       search: query.q?.trim().toLowerCase() || null,
       types: new Set(query.types ?? [MapMarkerType.BAKET, MapMarkerType.AGENT]),
+    };
+  }
+
+  private reportDateWhere(
+    from: Date | null,
+    to: Date | null,
+  ): Prisma.WhatsAppReportSessionWhereInput {
+    if (!from && !to) return {};
+
+    const range: Prisma.DateTimeFilter = {
+      ...(from ? { gte: from } : {}),
+      ...(to ? { lte: to } : {}),
+    };
+    return {
+      OR: [
+        { submittedAt: range },
+        { submittedAt: null, startedAt: range },
+      ],
     };
   }
 

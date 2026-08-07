@@ -27,6 +27,7 @@ export class CacheInvalidationInterceptor implements NestInterceptor {
         await this.cache.invalidate(
           'dashboard-briefing',
           'field-officer-summary',
+          'map-markers',
         );
         return value;
       }),

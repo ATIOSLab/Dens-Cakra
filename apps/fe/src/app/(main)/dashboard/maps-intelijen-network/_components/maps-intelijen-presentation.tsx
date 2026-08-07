@@ -275,7 +275,7 @@ export const getCoordinateSourcePresentation = (value?: string | null) =>
 export const getDataTypePresentation = (value: MapMarkerType) => DATA_TYPE_PRESENTATION[value];
 
 export function getMarkerPresentation(properties: MapNetworkProperties, mode: "completeness" | "validity" | "urgency") {
-  if (properties.markerType === "baket") return DATA_TYPE_PRESENTATION.baket;
+  if (properties.markerType === "baket") return getUrgencyPresentation(properties.urgency);
   if (properties.markerType === "agent") return DATA_TYPE_PRESENTATION.agent;
   if (mode === "validity") return getValidityPresentation(properties.validity);
   if (mode === "urgency") return getUrgencyPresentation(properties.urgency);

@@ -13,6 +13,7 @@ export type CacheNamespace =
   | 'executive-dashboard-v1'
   | 'field-officer-summary'
   | 'jaring-occupations'
+  | 'map-markers'
   | 'report-categories';
 
 type CacheLoadOptions = {

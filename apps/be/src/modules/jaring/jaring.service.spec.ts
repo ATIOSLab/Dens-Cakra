@@ -500,9 +500,6 @@ describe('JaringService registration security', () => {
         ),
         findFirstOrThrow: jest.fn(() => Promise.resolve(createdJaring)),
       },
-      jaringAreaCoverage: {
-        count: jest.fn(() => Promise.resolve(0)),
-      },
       jaringOccupation: {
         findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
       },
@@ -559,11 +556,11 @@ describe('JaringService registration security', () => {
 
     const createInput = prisma.jaring.create.mock.calls[0]?.[0];
     expect(createInput.data).not.toHaveProperty('code');
-    expect(createInput.data.aliasName).toMatch(/^[0-9A-F]{8}(01|08)\d{4}$/);
+    expect(createInput.data.aliasName).toBe('Z01005');
     expect(createInput.data.address).toBe(
       'Jl. Tebet Timur Dalam No. 10, Jakarta Selatan',
     );
-    expect(prisma.jaring.findFirst).toHaveBeenCalledTimes(3);
+    expect(prisma.jaring.findFirst).toHaveBeenCalledTimes(2);
   });
 
   it('mengembalikan status Jaring APPROVED ke PENDING dan INACTIVE saat di-update oleh Field Officer', async () => {

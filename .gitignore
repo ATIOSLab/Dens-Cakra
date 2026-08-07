@@ -36,6 +36,10 @@ apps/be/storage/jaring/
 apps/be/storage/jaring-profile-photo/
 apps/be/storage/whatsapp-evidence/
 
+# Local diagnostic scripts (may contain environment-specific credentials)
+apps/be/src/scripts/check-fo-list.ts
+apps/be/src/scripts/test-briefing.ts
+
 # Local migration drafts / generated docs
 apps/be/prisma/migrations/20260715170500_enforce_single_device_sessions/
 apps/be/prisma/migrations/20260715232000_normalize_local_session_ips/

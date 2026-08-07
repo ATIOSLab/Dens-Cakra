@@ -202,6 +202,14 @@ export function MapsIntelijenMapView({
   }, [isFullscreen, onToggleFullscreen]);
 
   useEffect(() => {
+    if (!map || mode !== "marker") return;
+    map.on("click", handleMapClick);
+    return () => {
+      map.off("click", handleMapClick);
+    };
+  }, [handleMapClick, map, mode]);
+
+  useEffect(() => {
     if (!map) return;
     const resize = () => {
       try {
@@ -329,6 +337,7 @@ export function MapsIntelijenMapView({
               feature={selectedPopup}
               onPointerEnter={clearCloseTimer}
               onPointerLeave={() => handleHover(null)}
+              onClose={handleMapClick}
               onDetail={() => {
                 onOpenDetail(selectedPopup);
                 setHovered(null);

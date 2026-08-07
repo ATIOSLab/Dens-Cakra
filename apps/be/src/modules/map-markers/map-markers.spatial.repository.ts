@@ -92,6 +92,7 @@ export class MapMarkersSpatialRepository {
         ON boundary."isActive" = true
         AND boundary."effectiveUntil" IS NULL
         AND boundary."qualityStatus" <> 'INVALID'
+        AND boundary."boundary" && points.geometry
         AND ST_Covers(boundary."boundary", points.geometry)
       LEFT JOIN "AdministrativeArea" area
         ON area."id" = boundary."areaId"
