@@ -36,7 +36,7 @@ async function forwardAuthRequest(request: NextRequest) {
         success: false,
         error: {
           code: "BACKEND_UNAVAILABLE",
-          message: "Layanan autentikasi belum tersedia. Pastikan backend berjalan pada port 3001.",
+          message: "Layanan autentikasi belum tersedia. Periksa koneksi backend dan konfigurasi URL internal frontend.",
         },
         requestId: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
