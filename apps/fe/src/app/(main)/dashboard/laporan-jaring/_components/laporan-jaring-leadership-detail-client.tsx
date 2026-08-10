@@ -5,18 +5,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarClock,
   CheckCircle2,
-  CircleDashed,
   Clock,
   ExternalLink,
   FileCheck2,
-  FileText,
   ImageIcon,
   MapPin,
   RefreshCw,
 } from "lucide-react";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BackButton } from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,6 +31,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 
 import { LaporanJaringLocationMap } from "./laporan-jaring-location-map";
 import {
@@ -45,8 +44,8 @@ import {
 import { formatFullAreaName, type JaringReportSessionDetail, type VerificationStatus } from "./laporan-jaring-types";
 import { WhatsAppReportThread } from "./whatsapp-report-thread";
 
-function isVerifiedReport(status: VerificationStatus) {
-  return status === "VERIFIED_BY_FIELD_OFFICER" || status === "METADATA_RECORDED";
+function getReportDisplayStatus(report: JaringReportSessionDetail): VerificationStatus {
+  return (report.processStatus ?? report.displayStatus ?? report.verificationStatus) as VerificationStatus;
 }
 
 function DetailSkeleton() {
@@ -106,7 +105,8 @@ export function LaporanJaringLeadershipDetailClient({
   }, [loadReport]);
 
   const reportTitle = report?.displayTitle || "Laporan Informasi Jaring";
-  const reportIsVerified = report ? isVerifiedReport(report.verificationStatus) : false;
+  const reportDisplayStatus = report ? getReportDisplayStatus(report) : "NOT_SUBMITTED";
+  const reportHasBaket = Boolean(report?.baket);
   const areaLabel = formatFullAreaName(report?.resolvedArea);
   const media = report?.media || [];
   const googleMapsUrl = useMemo(() => {
@@ -144,7 +144,7 @@ export function LaporanJaringLeadershipDetailClient({
         </div>
         <Button variant="outline" size="sm" onClick={() => void loadReport()} disabled={loading}>
           <RefreshCw className={loading ? "animate-spin" : undefined} />
-          Refresh
+          Muat Ulang
         </Button>
       </div>
 
@@ -167,11 +167,11 @@ export function LaporanJaringLeadershipDetailClient({
                   <Badge variant="outline" className="font-mono">
                     {report.referenceNumber || report.id}
                   </Badge>
-                  <Badge variant="outline" className={verificationStatusBadgeVariant(report.verificationStatus)}>
-                    {reportIsVerified ? <CheckCircle2 /> : <CircleDashed />}
-                    {verificationStatusLabel(report.verificationStatus)}
+                  <Badge variant="outline" className={verificationStatusBadgeVariant(reportDisplayStatus)}>
+                    <CheckCircle2 />
+                    {verificationStatusLabel(reportDisplayStatus)}
                   </Badge>
-                  {reportIsVerified && report.urgency ? (
+                  {reportHasBaket && report.urgency ? (
                     <Badge variant="outline" className={urgencyBadgeClass(report.urgency)}>
                       {urgencyLabel(report.urgency)}
                     </Badge>
@@ -188,11 +188,10 @@ export function LaporanJaringLeadershipDetailClient({
 
           <CardContent className="flex flex-col gap-6">
             <Alert>
-              {reportIsVerified ? <FileCheck2 /> : <CircleDashed />}
-              <AlertTitle>{reportIsVerified ? "Terverifikasi" : "Belum Diverifikasi"}</AlertTitle>
+              <FileCheck2 />
+              <AlertTitle>{reportHasBaket ? "Baket Sudah Dibuat" : "Siap Dibuat Baket"}</AlertTitle>
               <AlertDescription>
-                Status baca khusus petugas tidak ditampilkan karena laporan belum mempunyai receipt per-petugas yang
-                dapat diverifikasi. Status verifikasi tetap ditampilkan terpisah.
+                Laporan Jaring dapat langsung dijadikan Baket sesuai cakupan wilayah, hierarki, dan hak akses pengguna.
               </AlertDescription>
             </Alert>
 
@@ -256,9 +255,9 @@ export function LaporanJaringLeadershipDetailClient({
 
             <section className="flex flex-col gap-3" aria-labelledby="isi-laporan-title">
               <div className="flex items-center gap-2">
-                <FileText className="size-5 text-muted-foreground" />
+                <DOMAIN_VISUALS.jaringReport.Icon className={`size-5 ${DOMAIN_VISUALS.jaringReport.iconClass}`} />
                 <h2 id="isi-laporan-title" className="text-lg font-semibold">
-                  Isi Laporan Jaring (WhatsApp View)
+                  Isi Laporan Jaring (Tampilan WhatsApp)
                 </h2>
               </div>
               <WhatsAppReportThread
@@ -270,7 +269,7 @@ export function LaporanJaringLeadershipDetailClient({
               />
             </section>
 
-            {reportIsVerified &&
+            {reportHasBaket &&
             (report.reportCategory ||
               report.normalizedContent ||
               report.fieldOfficerNote ||
@@ -279,12 +278,12 @@ export function LaporanJaringLeadershipDetailClient({
                 <div className="flex items-center gap-2">
                   <FileCheck2 className="size-5 text-muted-foreground" />
                   <h2 id="hasil-telaah-title" className="text-lg font-semibold">
-                    Hasil Telaah Petugas
+                    Baket dari Laporan Jaring
                   </h2>
                 </div>
                 <dl className="grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-2">
                   <div>
-                    <dt className="text-xs text-muted-foreground">Kategori</dt>
+                    <dt className="text-xs text-muted-foreground">Kategori Baket</dt>
                     <dd className="font-semibold">{report.reportCategory?.name || "Belum ditentukan"}</dd>
                   </div>
                   <div>

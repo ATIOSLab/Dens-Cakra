@@ -1,13 +1,14 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckCircle2, Eye, EyeOff, LoaderCircle, Lock, LogIn, User } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { CheckCircle2, Eye, EyeOff, LoaderCircle, Lock, LogIn, ShieldCheck, User } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { authClient } from "@/lib/auth/auth-client";
 import { detectPublicIp } from "@/lib/network/public-ip";
-import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   identifier: z.string().min(1, { message: "Masukkan alamat email atau username Anda." }),
@@ -66,7 +66,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
     },
   });
 
-  const requestLoginLocation = async () => {
+  const requestLoginLocation = useCallback(async () => {
     if (!("geolocation" in navigator)) {
       setLocationMessage("Browser ini tidak mendukung GPS. Anda tetap dapat login tanpa lokasi.");
       setLocationGate("unsupported");
@@ -92,7 +92,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
       setLocationGate("blocked");
       return null;
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!officerOnly || hasRequestedLocation.current) {
@@ -101,7 +101,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
 
     hasRequestedLocation.current = true;
     void requestLoginLocation();
-  }, [officerOnly]);
+  }, [officerOnly, requestLoginLocation]);
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setFormError(null);
@@ -138,7 +138,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
       const isFieldOfficer = data?.user.role === "field_officer";
       if (officerOnly && !isFieldOfficer) {
         await authClient.signOut();
-        setFormError("Halaman ini khusus akun Petugas Wilayah (Gaswil). Gunakan login utama untuk peran lainnya.");
+        setFormError("Akun ini tidak dapat digunakan di halaman ini. Gunakan halaman login Supervisi/Pimpinan.");
         return;
       }
 
@@ -176,7 +176,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
   return (
     <form noValidate onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-4">
       {officerOnly && locationGate === "requesting" ? (
-        <Alert className="rounded-xl border-cyan-500/20 bg-cyan-500/5 text-cyan-800 dark:text-cyan-300">
+        <Alert className="rounded-xl border-border bg-muted/40 text-foreground">
           <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
           <AlertDescription className="text-xs">{locationMessage}</AlertDescription>
         </Alert>
@@ -224,7 +224,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
                   autoComplete="username"
                   aria-invalid={fieldState.invalid}
                   disabled={isFormDisabled}
-                  className="h-12 rounded-[9px] border-border bg-background pl-9 text-sm placeholder:text-muted-foreground/40 focus-visible:border-cyan-500/50 focus-visible:ring-2 focus-visible:ring-cyan-500/15 dark:bg-slate-900/35 dark:focus-visible:ring-cyan-400/20"
+                  className="h-12 rounded-[9px] border-border bg-background pl-9 text-sm placeholder:text-muted-foreground/40 focus-visible:border-ring/50 focus-visible:ring-2 focus-visible:ring-ring/15 dark:bg-zinc-950/35"
                 />
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -250,17 +250,17 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
                   {...field}
                   id="login-password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="********"
                   autoComplete="current-password"
                   aria-invalid={fieldState.invalid}
                   disabled={isFormDisabled}
-                  className="h-12 rounded-[9px] border-border bg-background pl-9 pr-10 text-sm placeholder:text-muted-foreground/40 focus-visible:border-cyan-500/50 focus-visible:ring-2 focus-visible:ring-cyan-500/15 dark:bg-slate-900/35 dark:focus-visible:ring-cyan-400/20"
+                  className="h-12 rounded-[9px] border-border bg-background pl-9 pr-10 text-sm placeholder:text-muted-foreground/40 focus-visible:border-ring/50 focus-visible:ring-2 focus-visible:ring-ring/15 dark:bg-zinc-950/35"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
                   aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-                  className="absolute right-2.5 top-2.5 grid size-7 cursor-pointer place-items-center rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/30"
+                  className="absolute right-2.5 top-2.5 grid size-7 cursor-pointer place-items-center rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
@@ -270,7 +270,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
           )}
         />
 
-        {/* Remember me & Forgot Password link row */}
+        {/* Baris ingat saya dan lupa kata sandi */}
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
           <Controller
             control={form.control}
@@ -301,7 +301,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
           <Link
             prefetch={false}
             href="/auth/forgot-password"
-            className="ml-auto font-mono text-xs text-cyan-600 hover:underline dark:text-[#14B8FF]"
+            className="ml-auto text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
           >
             Lupa kata sandi?
           </Link>
@@ -310,7 +310,7 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
 
       {/* Primary Submit Button */}
       <Button
-        className="mt-2 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[9px] bg-gradient-to-r from-cyan-700 to-cyan-600 font-sans font-bold text-white shadow-[0_10px_25px_rgba(8,145,178,0.22)] transition-all duration-200 hover:from-cyan-600 hover:to-cyan-500 hover:shadow-[0_12px_30px_rgba(8,145,178,0.3)] active:scale-[0.99] dark:from-cyan-400 dark:to-sky-400 dark:text-slate-950"
+        className="mt-2 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[9px] bg-zinc-900 font-sans font-semibold text-white shadow-sm transition-all duration-200 hover:bg-zinc-800 active:scale-[0.99] dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
         type="submit"
         disabled={isFormDisabled}
       >
@@ -322,28 +322,10 @@ export function LoginForm({ officerOnly = false }: LoginFormProps) {
         ) : (
           <>
             <LogIn className="size-4" />
-            <span>{officerOnly ? "Masuk ke Ruang Operasi" : "Masuk ke Pusat Komando"}</span>
+            <span>Masuk</span>
           </>
         )}
       </Button>
-
-      {/* SECURITY METADATA FOOTER BLOCK */}
-      <div className="mt-2 grid grid-cols-3 divide-x divide-border/70 rounded-xl border border-border/70 bg-muted/30 p-3 text-center font-mono text-xs text-muted-foreground select-none">
-        <div className="px-1">
-          <span className="block text-[9px] uppercase tracking-wide opacity-75">Lingkungan</span>
-          <span className="font-semibold text-foreground">Produksi</span>
-        </div>
-        <div className="px-1">
-          <span className="block text-[9px] uppercase tracking-wide opacity-75">Enkripsi TLS</span>
-          <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-            <ShieldCheck className="size-3" /> Aktif
-          </span>
-        </div>
-        <div className="px-1">
-          <span className="block text-[9px] uppercase tracking-wide opacity-75">Versi</span>
-          <span className="font-semibold text-foreground">v2.4.0</span>
-        </div>
-      </div>
     </form>
   );
 }

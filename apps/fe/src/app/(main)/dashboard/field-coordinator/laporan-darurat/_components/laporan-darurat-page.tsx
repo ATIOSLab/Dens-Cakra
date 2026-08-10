@@ -4,7 +4,7 @@ export function LaporanDaruratPage() {
   return (
     <DensModulePage
       title="Laporan Darurat"
-      role="Koordinator Lapangan"
+      roleLabel="Koordinator Wilayah (Korwil)"
       description="Halaman ini menyiapkan koordinasi insiden darurat, kebutuhan bantuan, dan timeline penanganan lapangan."
       highlights={[
         "Alert masuk dan pembuatan laporan darurat.",

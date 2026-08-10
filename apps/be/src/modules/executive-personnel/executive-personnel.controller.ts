@@ -20,7 +20,7 @@ import {
 } from './executive-personnel.dto.js';
 import { ExecutivePersonnelService } from './executive-personnel.service.js';
 
-@ApiTags('Executive Personnel')
+@ApiTags('Personel Deputi II')
 @UseGuards(SessionGuard, DomainAccessGuard)
 @Controller('executive/personnel')
 export class ExecutivePersonnelController {
@@ -63,7 +63,7 @@ export class ExecutivePersonnelController {
   }
 }
 
-@ApiTags('Field Coordinator Personnel')
+@ApiTags('Personel Koordinator Wilayah (Korwil)')
 @UseGuards(SessionGuard, DomainAccessGuard)
 @Controller('field-coordinator/personnel')
 export class FieldCoordinatorPersonnelController {
@@ -73,7 +73,7 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel001',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-001',
-    summary: 'Daftar petugas wilayah dalam hierarki Field Coordinator',
+    summary: 'Daftar petugas wilayah dalam hierarki Koordinator Wilayah (Korwil)',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async list(
@@ -91,7 +91,7 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel002',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-002',
-    summary: 'Peta petugas wilayah dalam hierarki Field Coordinator',
+    summary: 'Peta petugas wilayah dalam hierarki Koordinator Wilayah (Korwil)',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async map(
@@ -109,7 +109,7 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel003',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-003',
-    summary: 'Filter wilayah bertingkat sesuai scope Field Coordinator',
+    summary: 'Filter wilayah bertingkat sesuai cakupan Koordinator Wilayah (Korwil)',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async areaFilters(
@@ -125,7 +125,7 @@ export class FieldCoordinatorPersonnelController {
   @ApiContract({
     operationId: 'apiFieldCoordinatorPersonnel004',
     contractId: 'API-FIELD-COORDINATOR-PERSONNEL-004',
-    summary: 'Detail petugas wilayah dalam hierarki Field Coordinator',
+    summary: 'Detail petugas wilayah dalam hierarki Koordinator Wilayah (Korwil)',
     roles: ['field_coordinator', 'regional_commander'],
   })
   async detail(
@@ -138,7 +138,7 @@ export class FieldCoordinatorPersonnelController {
   }
 }
 
-@ApiTags('Regional Commander Personnel')
+@ApiTags('Personel Komandan Regional')
 @UseGuards(SessionGuard, DomainAccessGuard)
 @Controller('regional-commander/personnel')
 export class RegionalCommanderPersonnelController {
@@ -148,7 +148,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel001',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-001',
-    summary: 'Daftar petugas wilayah dalam hierarki Regional Commander',
+    summary: 'Daftar petugas wilayah dalam hierarki Komandan Regional',
     roles: ['regional_commander'],
   })
   async list(
@@ -166,7 +166,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel002',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-002',
-    summary: 'Peta petugas wilayah dalam hierarki Regional Commander',
+    summary: 'Peta petugas wilayah dalam hierarki Komandan Regional',
     roles: ['regional_commander'],
   })
   async map(
@@ -184,7 +184,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel003',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-003',
-    summary: 'Filter wilayah bertingkat sesuai scope Regional Commander',
+    summary: 'Filter wilayah bertingkat sesuai cakupan Komandan Regional',
     roles: ['regional_commander'],
   })
   async areaFilters(
@@ -200,7 +200,7 @@ export class RegionalCommanderPersonnelController {
   @ApiContract({
     operationId: 'apiRegionalCommanderPersonnel004',
     contractId: 'API-REGIONAL-COMMANDER-PERSONNEL-004',
-    summary: 'Detail petugas wilayah dalam hierarki Regional Commander',
+    summary: 'Detail petugas wilayah dalam hierarki Komandan Regional',
     roles: ['regional_commander'],
   })
   async detail(

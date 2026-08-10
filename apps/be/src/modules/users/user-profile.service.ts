@@ -16,8 +16,18 @@ import {
   AdministrativeLevel,
   CommandRouteType,
   Prisma,
+  RoleCode,
   UserProfileStatus,
 } from '../../generated/prisma/client.js';
+import {
+  type AreaWithDkiAncestry,
+  DKI_JAKARTA_PROVINCE_CODE,
+  DKI_JAKARTA_PROVINCE_NAME_MATCHERS,
+  DKI_SUPERVISION_RBAC_POLICY,
+  isDirectorateSupervisionRole,
+  isDkiJakartaProvince,
+  isDkiJakartaRegencyCity,
+} from '../../common/administrative/dki-supervision.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   ArchiveUserDto,
@@ -26,6 +36,7 @@ import type {
   ProvisionUserDto,
   ResetUserPasswordDto,
   SuspendUserDto,
+  UpdateDkiSupervisionScopeDto,
   UpdateUserProfileDto,
   UserProfileListQueryDto,
 } from './dto/user-profile.dto.js';
@@ -33,6 +44,159 @@ import type {
 @Injectable()
 export class UserProfileService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async dkiSupervisionMappings() {
+    const [cities, assignments] = await Promise.all([
+      this.dkiRegencyCities(),
+      this.prisma.userOperationalAssignment.findMany({
+        where: {
+          branch: CommandRouteType.DIRECTORATE,
+          isActive: true,
+          validUntil: null,
+          role: {
+            code: {
+              in: [
+                RoleCode.REGIONAL_COMMANDER,
+                RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+              ],
+            },
+          },
+          userProfile: { deletedAt: null },
+        },
+        orderBy: [
+          { role: { code: 'asc' } },
+          { userProfile: { fullName: 'asc' } },
+          { createdAt: 'asc' },
+        ],
+        include: {
+          role: true,
+          userProfile: {
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              status: true,
+              authUser: { select: { role: true, email: true, banned: true } },
+            },
+          },
+          areaScopes: {
+            where: { validUntil: null },
+            orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+            include: { area: true },
+          },
+        },
+      }),
+    ]);
+    const dkiCityIds = new Set(cities.map((city: { id: string }) => city.id));
+    const assignmentItems = assignments.map((assignment: any) => {
+      const dkiScopes = assignment.areaScopes.filter((scope: any) =>
+        dkiCityIds.has(scope.areaId),
+      );
+      return {
+        id: assignment.id,
+        userProfileId: assignment.userProfileId,
+        user: assignment.userProfile,
+        role: assignment.role,
+        branch: assignment.branch,
+        validFrom: assignment.validFrom,
+        areas: assignment.areaScopes.map((scope: any) => ({
+          id: scope.area.id,
+          code: scope.area.code,
+          officialCode: scope.area.officialCode,
+          name: scope.area.name,
+          level: scope.area.level,
+          isPrimary: scope.isPrimary,
+          isDkiJakarta: dkiCityIds.has(scope.areaId),
+        })),
+        dkiAreaIds: dkiScopes.map((scope: any) => scope.areaId),
+      };
+    });
+    const assignedCityIds = new Set(
+      assignmentItems.flatMap(
+        (assignment: { dkiAreaIds: string[] }) => assignment.dkiAreaIds,
+      ),
+    );
+
+    return {
+      policyId: DKI_SUPERVISION_RBAC_POLICY.policyId,
+      storageModel: DKI_SUPERVISION_RBAC_POLICY.storageModel,
+      supervisionMode: 'DKI_REGENCY_CITY',
+      supervisionLabel: 'Supervisi DKI berbasis Kota/Kabupaten',
+      scopeDescription:
+        'Admin dapat mengatur cakupan supervisi Direktorat/Ditwil di DKI Jakarta sampai level Kota/Kabupaten tanpa mengubah source code.',
+      rules: {
+        allowsMultipleRegencyCitiesPerDirectorate:
+          DKI_SUPERVISION_RBAC_POLICY.allowsMultipleRegencyCitiesPerDirectorate,
+        forbidsHardcodedDirectorateCityAssignment:
+          DKI_SUPERVISION_RBAC_POLICY.forbidsHardcodedDirectorateCityAssignment,
+        commandLineUnchanged: DKI_SUPERVISION_RBAC_POLICY.commandLineUnchanged,
+      },
+      cities: cities.map((city: any) => ({
+        id: city.id,
+        code: city.code,
+        officialCode: city.officialCode,
+        name: city.name,
+        level: city.level,
+      })),
+      assignments: assignmentItems,
+      summary: {
+        totalCities: cities.length,
+        assignedCities: assignedCityIds.size,
+        unassignedCities: Math.max(0, cities.length - assignedCityIds.size),
+        directorateUsers: assignmentItems.length,
+      },
+    };
+  }
+
+  async updateDkiSupervisionScope(
+    id: string,
+    input: UpdateDkiSupervisionScopeDto,
+    actor: AuthorizationContext,
+  ) {
+    const profile = await this.ensureExists(id);
+    const current = await this.prisma.userOperationalAssignment.findFirst({
+      where: {
+        userProfileId: id,
+        isPrimary: true,
+        isActive: true,
+        validUntil: null,
+      },
+      include: { role: true },
+    });
+    if (
+      !current ||
+      current.branch !== CommandRouteType.DIRECTORATE ||
+      !isDirectorateSupervisionRole(current.role.code)
+    ) {
+      throw new ApiException(
+        'DKI_SUPERVISION_ASSIGNMENT_INVALID',
+        'Mapping supervisi DKI hanya dapat diberikan kepada pengguna Direktorat/Ditwil aktif.',
+        422,
+      );
+    }
+
+    const areaScopeIds = [...new Set(input.areaScopeIds)];
+    const cities = await this.dkiRegencyCities({ ids: areaScopeIds });
+    if (cities.length !== areaScopeIds.length) {
+      throw new ApiException(
+        'DKI_SUPERVISION_CITY_INVALID',
+        'Cakupan supervisi DKI harus memilih Kota/Kabupaten administratif DKI Jakarta.',
+        422,
+      );
+    }
+
+    return this.changePrimaryAssignment(
+      id,
+      {
+        roleCode: current.role.code,
+        branch: CommandRouteType.DIRECTORATE,
+        areaScopeIds,
+        effectiveAt: input.effectiveAt ?? new Date().toISOString(),
+        reason: input.reason,
+      },
+      actor,
+    );
+  }
 
   async list(query: UserProfileListQueryDto) {
     const accessibleAreaIds = query.areaId
@@ -102,8 +266,10 @@ export class UserProfileService {
     >(
       (accumulator, status) => {
         accumulator[status] =
-          statusCounts.find((entry) => entry.status === status)?._count._all ??
-          0;
+          statusCounts.find(
+            (entry: { status: UserProfileStatus; _count: { _all: number } }) =>
+              entry.status === status,
+          )?._count._all ?? 0;
         return accumulator;
       },
       {
@@ -652,7 +818,11 @@ export class UserProfileService {
         422,
       );
     }
-    await this.assertAreaScopesForRole(authRole as AuthRole, areaScopeIds);
+    await this.assertAreaScopesForRole(
+      authRole as AuthRole,
+      input.branch,
+      areaScopeIds,
+    );
     const effectiveAt = new Date(input.effectiveAt);
     const assignment = await this.prisma.$transaction(async (tx) => {
       const old = await tx.userOperationalAssignment.findFirst({
@@ -732,6 +902,32 @@ export class UserProfileService {
     });
   }
 
+  private dkiRegencyCities(input: { ids?: string[] } = {}) {
+    return this.prisma.administrativeArea.findMany({
+      where: {
+        ...(input.ids?.length ? { id: { in: input.ids } } : {}),
+        deletedAt: null,
+        isActive: true,
+        level: { in: [AdministrativeLevel.CITY, AdministrativeLevel.REGENCY] },
+        ancestorLinks: {
+          some: {
+            ancestor: {
+              level: AdministrativeLevel.PROVINCE,
+              OR: [
+                { code: DKI_JAKARTA_PROVINCE_CODE },
+                { officialCode: DKI_JAKARTA_PROVINCE_CODE },
+                ...DKI_JAKARTA_PROVINCE_NAME_MATCHERS.map((matcher) => ({
+                  name: { contains: matcher, mode: 'insensitive' as const },
+                })),
+              ],
+            },
+          },
+        },
+      },
+      orderBy: [{ name: 'asc' }, { code: 'asc' }],
+    });
+  }
+
   private async ensureExists(id: string) {
     const profile = await this.prisma.userProfile.findFirst({
       where: { id, deletedAt: null },
@@ -806,7 +1002,10 @@ export class UserProfileService {
     });
 
     return [
-      ...new Set([areaId, ...descendants.map((entry) => entry.descendantId)]),
+      ...new Set([
+        areaId,
+        ...descendants.map((entry: { descendantId: string }) => entry.descendantId),
+      ]),
     ];
   }
 
@@ -830,7 +1029,11 @@ export class UserProfileService {
     const areaScopeIds = input.requestedAreaScopeIds?.length
       ? [...new Set(input.requestedAreaScopeIds)]
       : [];
-    await this.assertAreaScopesForRole(input.authRole, areaScopeIds);
+    await this.assertAreaScopesForRole(
+      input.authRole,
+      input.branch,
+      areaScopeIds,
+    );
     return {
       role,
       areaScopeIds,
@@ -839,12 +1042,21 @@ export class UserProfileService {
 
   private resolveProvisionAreaLevels(
     authRole: AuthRole,
+    branch?: CommandRouteType,
   ): AdministrativeLevel[] {
     switch (authRole) {
       case 'executive':
         return [AdministrativeLevel.COUNTRY];
       case 'regional_commander':
       case 'operational_intelligence_manager':
+        if (branch === CommandRouteType.DIRECTORATE) {
+          return [
+            AdministrativeLevel.PROVINCE,
+            AdministrativeLevel.REGENCY,
+            AdministrativeLevel.CITY,
+          ];
+        }
+
         return [AdministrativeLevel.PROVINCE];
       case 'field_coordinator':
         return [AdministrativeLevel.REGENCY, AdministrativeLevel.CITY];
@@ -863,7 +1075,7 @@ export class UserProfileService {
       if (branch !== CommandRouteType.PUSAT) {
         throw new ApiException(
           'EXECUTIVE_BRANCH_REQUIRED',
-          'Executive user provisioning must use PUSAT unit type.',
+          'Provisioning pengguna Deputi II harus menggunakan unit PUSAT.',
           422,
         );
       }
@@ -874,7 +1086,7 @@ export class UserProfileService {
     if (branch === CommandRouteType.PUSAT) {
       throw new ApiException(
         'PUSAT_ROLE_NOT_SUPPORTED',
-        'PUSAT user provisioning is only supported for Executive role.',
+        'Provisioning pengguna PUSAT hanya didukung untuk role Deputi II.',
         422,
       );
     }
@@ -885,7 +1097,7 @@ export class UserProfileService {
     ) {
       throw new ApiException(
         'BRANCH_NOT_SUPPORTED',
-        'User provisioning only supports PUSAT Executive, BINDA, or DIRECTORATE unit type.',
+        'Provisioning pengguna hanya mendukung Deputi II PUSAT, unit BINDA, atau unit DIRECTORATE.',
         422,
       );
     }
@@ -893,9 +1105,10 @@ export class UserProfileService {
 
   private async assertAreaScopesForRole(
     authRole: AuthRole,
+    branch: CommandRouteType,
     areaScopeIds: string[],
   ) {
-    const allowedLevels = this.resolveProvisionAreaLevels(authRole);
+    const allowedLevels = this.resolveProvisionAreaLevels(authRole, branch);
     if (!allowedLevels.length) {
       throw new ApiException(
         'ROLE_NOT_SUPPORTED',
@@ -905,7 +1118,34 @@ export class UserProfileService {
     }
     const requestedAreas = await this.prisma.administrativeArea.findMany({
       where: { id: { in: areaScopeIds }, isActive: true },
-      select: { id: true, level: true },
+      select: {
+        id: true,
+        code: true,
+        officialCode: true,
+        name: true,
+        level: true,
+        parent: {
+          select: {
+            code: true,
+            officialCode: true,
+            name: true,
+            level: true,
+          },
+        },
+        ancestorLinks: {
+          where: { ancestor: { level: AdministrativeLevel.PROVINCE } },
+          select: {
+            ancestor: {
+              select: {
+                code: true,
+                officialCode: true,
+                name: true,
+                level: true,
+              },
+            },
+          },
+        },
+      },
     });
     if (requestedAreas.length !== areaScopeIds.length) {
       throw new ApiException(
@@ -922,6 +1162,39 @@ export class UserProfileService {
           422,
         );
       }
+    }
+
+    if (
+      branch === CommandRouteType.DIRECTORATE &&
+      isDirectorateSupervisionRole(AUTH_ROLE_TO_DOMAIN_ROLE[authRole])
+    ) {
+      this.assertDirectorateSupervisionScopes(requestedAreas);
+    }
+  }
+
+  private assertDirectorateSupervisionScopes(areas: AreaWithDkiAncestry[]) {
+    for (const area of areas) {
+      if (isDkiJakartaProvince(area)) {
+        throw new ApiException(
+          'DKI_DIRECTORATE_PROVINCE_SCOPE_INVALID',
+          'Supervisi Direktorat/Ditwil untuk DKI Jakarta harus memakai cakupan Kota/Kabupaten, bukan Provinsi.',
+          422,
+        );
+      }
+
+      if (area.level === AdministrativeLevel.PROVINCE) {
+        continue;
+      }
+
+      if (isDkiJakartaRegencyCity(area)) {
+        continue;
+      }
+
+      throw new ApiException(
+        'DIRECTORATE_SUPERVISION_SCOPE_INVALID',
+        'Supervisi Direktorat/Ditwil memakai cakupan Provinsi, kecuali DKI Jakarta yang memakai cakupan Kota/Kabupaten.',
+        422,
+      );
     }
   }
 

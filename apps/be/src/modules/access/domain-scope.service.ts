@@ -25,6 +25,8 @@ export type AreaScopeTreeNode = {
   children: AreaScopeTreeNode[];
 };
 
+const DKI_JAKARTA_CODE_PREFIX = '31';
+
 @Injectable()
 export class DomainScopeService {
   private readonly resolvedScopes = new WeakMap<
@@ -175,9 +177,87 @@ export class DomainScopeService {
     }
     return {
       id: 'scope-root',
-      name: 'Cakupan OIM',
+      name: this.scopeTreeLabel(context),
       level: 'COUNTRY',
       children: roots,
+    };
+  }
+
+  private scopeTreeLabel(context: AuthorizationContext) {
+    if (context.commandRouteType === 'DIRECTORATE') {
+      return 'Cakupan Supervisi Direktorat/Ditwil';
+    }
+
+    if (context.commandRouteType === 'BINDA') {
+      return 'Cakupan Komando Kewilayahan';
+    }
+
+    return 'Cakupan Nasional';
+  }
+
+  scopeSummary(context: AuthorizationContext) {
+    const areas = context.areaScopes.map((area) => {
+      const name = area.name.toLocaleLowerCase('id-ID');
+      const isDkiJakarta =
+        area.code === DKI_JAKARTA_CODE_PREFIX ||
+        area.code.startsWith(`${DKI_JAKARTA_CODE_PREFIX}.`) ||
+        name.includes('dki jakarta') ||
+        name.includes('daerah khusus ibukota jakarta');
+
+      return {
+        id: area.areaId,
+        code: area.code,
+        name: area.name,
+        level: area.level,
+        isDkiJakarta,
+      };
+    });
+    const isDirectorateScope = context.commandRouteType === 'DIRECTORATE';
+    const hasDkiRegencyCityScope =
+      isDirectorateScope &&
+      areas.some(
+        (area) =>
+          area.isDkiJakarta &&
+          (area.level === 'REGENCY' || area.level === 'CITY'),
+      );
+    const hasProvinceScope = areas.some((area) => area.level === 'PROVINCE');
+    const supervisionMode = hasDkiRegencyCityScope
+      ? 'DKI_REGENCY_CITY'
+      : isDirectorateScope && hasProvinceScope
+        ? 'PROVINCE'
+        : context.commandRouteType === 'PUSAT'
+          ? 'NATIONAL'
+          : 'COMMAND_AREA';
+    const scopeDescription =
+      supervisionMode === 'DKI_REGENCY_CITY'
+        ? 'Provinsi DKI Jakarta ditampilkan berdasarkan kota/kabupaten administratif yang ditetapkan admin untuk supervisi Direktorat/Ditwil.'
+        : supervisionMode === 'PROVINCE'
+          ? 'Supervisi Direktorat/Ditwil mengikuti provinsi atau Binda yang ditetapkan admin.'
+          : supervisionMode === 'NATIONAL'
+            ? 'Data ditampilkan sesuai cakupan nasional dan kewenangan hak akses pengguna.'
+            : 'Data ditampilkan sesuai garis komando kewilayahan dan wilayah penugasan pengguna.';
+
+    return {
+      role: context.authRole,
+      roleCode: context.roleCode,
+      commandRouteType: context.commandRouteType,
+      organizationUnitId: context.organizationUnitId,
+      organizationUnitName: context.organizationUnitName,
+      supervisionMode,
+      supervisionLabel:
+        supervisionMode === 'DKI_REGENCY_CITY'
+          ? 'Supervisi DKI berbasis Kota/Kabupaten'
+          : supervisionMode === 'PROVINCE'
+            ? 'Supervisi berbasis Provinsi'
+            : supervisionMode === 'NATIONAL'
+              ? 'Cakupan Nasional'
+              : 'Cakupan Komando Kewilayahan',
+      scopeDescription,
+      areas,
+      label:
+        areas.length > 0
+          ? areas.map((area) => area.name).join(', ')
+          : context.organizationUnitName,
     };
   }
 

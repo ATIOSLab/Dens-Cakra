@@ -53,14 +53,6 @@ export class ExecutiveDashboardQueryDto {
   @IsOptional() @IsEnum(CoordinateSource) coordinateSource?: CoordinateSource;
   @IsOptional() @IsIn(['WHATSAPP']) source?: 'WHATSAPP';
 
-  @IsOptional()
-  @IsIn(['COMPLETE', 'INCOMPLETE'])
-  completeness?: 'COMPLETE' | 'INCOMPLETE';
-
-  @IsOptional()
-  @IsIn(['WAITING', 'NEEDS_REVIEW', 'VERIFIED'])
-  verificationStatus?: 'WAITING' | 'NEEDS_REVIEW' | 'VERIFIED';
-
   @IsOptional() @IsIn(['true', 'false']) hasAttachment?: 'true' | 'false';
 
   @IsOptional()

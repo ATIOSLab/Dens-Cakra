@@ -86,10 +86,10 @@ export function buildMapAreaHierarchyOptions(
         "ALL",
         loadingOrAllLabel(
           areaOptions.loadingLevel === "regency",
-          "Memuat kabupaten/kota...",
+          "Memuat Kota/Kabupaten...",
           selectedProvince,
           "Pilih provinsi terlebih dahulu",
-          "Seluruh kabupaten/kota",
+          "Seluruh Kota/Kabupaten",
         ),
       ],
       ...regencies.map(
@@ -104,7 +104,7 @@ export function buildMapAreaHierarchyOptions(
           areaOptions.loadingLevel === "district",
           "Memuat kecamatan...",
           selectedRegency,
-          "Pilih kabupaten/kota terlebih dahulu",
+          "Pilih Kota/Kabupaten terlebih dahulu",
           "Seluruh kecamatan",
         ),
       ],

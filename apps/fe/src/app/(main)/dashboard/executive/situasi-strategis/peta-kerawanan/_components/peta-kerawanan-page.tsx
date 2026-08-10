@@ -5,11 +5,10 @@ import {
   ArrowUpRight,
   BarChart3,
   EyeOff,
-  FileText,
   Flame,
   Layers3,
+  type LucideIcon,
   MapPinned,
-  Network,
   ShieldAlert,
 } from "lucide-react";
 
@@ -17,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import { PetaKerawananMap } from "./peta-kerawanan-map";
@@ -55,11 +55,11 @@ const metrics = [
     url: "/dashboard/executive/situasi-strategis/peta-kerawanan",
   },
   {
-    label: "Sebaran Laporan",
+    label: "Sebaran Laporan Jaring",
     value: "112",
-    detail: "72 terverifikasi, 40 perlu pendalaman",
+    detail: "Titik laporan yang menjadi indikator situasi",
     tone: "medium",
-    icon: FileText,
+    icon: DOMAIN_VISUALS.jaringReport.Icon,
     url: "/dashboard/executive/produk-intelijen",
   },
   {
@@ -75,7 +75,7 @@ const metrics = [
   value: string;
   detail: string;
   tone: Tone;
-  icon: typeof ShieldAlert;
+  icon: LucideIcon;
   url: string;
 }>;
 
@@ -113,9 +113,9 @@ const priorityAreas = [
 ] satisfies Array<{ area: string; issue: string; level: string; score: number; tone: Tone }>;
 
 const blindSpots = [
-  "Pesisir Utara memiliki koordinat laporan yang belum lengkap pada 4 titik.",
+  "Pesisir Utara memiliki 4 titik laporan yang perlu pembaruan koordinat.",
   "Kecamatan penyangga industri belum memiliki sumber pembanding 48 jam terakhir.",
-  "Kanal komunitas lokal bergerak cepat, tetapi coverage sumber organik masih tipis.",
+  "Kanal komunitas lokal bergerak cepat, tetapi cakupan sumber organik masih tipis.",
 ];
 
 const correlations = [
@@ -237,7 +237,7 @@ export function PetaKerawananPage() {
             <CardDescription>Keterhubungan laporan lintas wilayah, isu, dan aktor.</CardDescription>
             <CardAction>
               <span className="flex items-center justify-center rounded-lg border border-sky-500/25 bg-sky-500/10 p-2 text-sky-500">
-                <Network className="size-4" />
+                <Layers3 className="size-4" />
               </span>
             </CardAction>
           </CardHeader>

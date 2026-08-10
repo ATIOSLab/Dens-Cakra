@@ -27,12 +27,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { cn } from "@/lib/utils";
 
 import {
-  getCompletenessPresentation,
   getCoordinateSourcePresentation,
-  getDataTypePresentation,
+  getFeatureTypePresentation,
   getUrgencyPresentation,
   MapSemanticBadge,
   type MapSemanticPresentation,
@@ -47,18 +47,18 @@ import {
   type MapNetworkFeature,
 } from "./maps-intelijen-types";
 
-const REPORT_VERIFICATION_PRESENTATION: Record<
-  "VERIFIED" | "UNVERIFIED",
+const REPORT_PROCESS_PRESENTATION: Record<
+  "BAKET_CREATED" | "READY_FOR_BAKET",
   MapSemanticPresentation
 > = {
-  VERIFIED: {
-    ...getCompletenessPresentation("COMPLETE"),
-    label: "Terverifikasi",
+  BAKET_CREATED: {
+    ...getCoordinateSourcePresentation("SYSTEM_DERIVED"),
+    label: "Baket Dibuat",
     icon: BadgeCheck,
   },
-  UNVERIFIED: {
-    ...getCompletenessPresentation("INCOMPLETE"),
-    label: "Belum Terverifikasi",
+  READY_FOR_BAKET: {
+    ...getCoordinateSourcePresentation("WHATSAPP_LOCATION"),
+    label: "Siap Dibuat Baket",
     icon: Clock3,
   },
 };
@@ -87,24 +87,26 @@ export function MapsIntelijenDetailSheet({
           userProfileId: properties.userProfileId,
         })
       : null);
-  const dataTypePresentation = getDataTypePresentation(properties.markerType);
+  const dataTypePresentation = getFeatureTypePresentation(properties);
   const urgencyPresentation = getUrgencyPresentation(properties.urgency);
   const coordinatePresentation = getCoordinateSourcePresentation(
     properties.coordinateSource,
   );
-  const relatedBaketPresentation = getDataTypePresentation("baket");
+  const relatedBaketPresentation = getFeatureTypePresentation({
+    markerType: "baket",
+    urgency: properties.urgency,
+  });
   const RelatedBaketIcon = relatedBaketPresentation.icon;
   const jarings = properties.jarings?.length
     ? properties.jarings
     : properties.jaring
       ? [properties.jaring]
       : [];
-  const reportVerificationPresentation =
-    REPORT_VERIFICATION_PRESENTATION[
-      properties.verificationStatus === "VERIFIED_BY_FIELD_OFFICER" ||
-      properties.verificationStatus === "METADATA_RECORDED"
-        ? "VERIFIED"
-        : "UNVERIFIED"
+  const reportProcessPresentation =
+    REPORT_PROCESS_PRESENTATION[
+      properties.verificationStatus === "BAKET_CREATED" || properties.verificationStatus === "METADATA_RECORDED"
+        ? "BAKET_CREATED"
+        : "READY_FOR_BAKET"
     ];
   const actualLocation =
     properties.matchedAreas?.length
@@ -194,9 +196,9 @@ export function MapsIntelijenDetailSheet({
           <section>
             <SectionTitle>Ringkasan</SectionTitle>
             <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
-              {properties.excerpt ||
+              {properties.excerpt ??
                 (isAgent
-                  ? `${properties.positionTitle ?? "Personel lapangan"}${properties.unitName ? ` · ${properties.unitName}` : ""}`
+                  ? `${properties.positionTitle ?? DOMAIN_TERMS.fieldOfficer}${properties.unitName ? ` · ${properties.unitName}` : ""}`
                   : "Ringkasan belum tersedia pada payload peta.")}
             </p>
           </section>
@@ -215,8 +217,8 @@ export function MapsIntelijenDetailSheet({
             ) : null}
             {isReport ? (
               <SemanticFact
-                label="Verifikasi Laporan"
-                presentation={reportVerificationPresentation}
+                label="Status Proses"
+                presentation={reportProcessPresentation}
               />
             ) : null}
             {isAgent ? (
@@ -233,14 +235,6 @@ export function MapsIntelijenDetailSheet({
               <Fact
                 label="Usia Lokasi"
                 value={`${properties.ageMinutes ?? 0} menit`}
-              />
-            ) : null}
-            {isReport ? (
-              <SemanticFact
-                label="Kelengkapan"
-                presentation={getCompletenessPresentation(
-                  properties.completeness,
-                )}
               />
             ) : null}
             <SemanticFact

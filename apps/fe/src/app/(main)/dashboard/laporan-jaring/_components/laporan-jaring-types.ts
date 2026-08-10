@@ -4,7 +4,15 @@ export type VerificationStatus =
   | "WAITING_FIELD_OFFICER_VERIFICATION"
   | "NEEDS_FIELD_OFFICER_REVIEW"
   | "VERIFIED_BY_FIELD_OFFICER"
-  | "METADATA_RECORDED";
+  | "READY_FOR_BAKET"
+  | "METADATA_RECORDED"
+  | "BAKET_CREATED";
+
+export type JaringReportProcessStatus =
+  | "IN_PROGRESS_BY_JARING"
+  | "NOT_SUBMITTED"
+  | "READY_FOR_BAKET"
+  | "BAKET_CREATED";
 
 export type PriorityLevel = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 
@@ -128,10 +136,9 @@ export type JaringReportSessionDetail = {
   }>;
   status: string;
   currentState?: string | null;
+  processStatus?: JaringReportProcessStatus;
   verificationStatus: VerificationStatus;
   displayStatus: VerificationStatus;
-  completenessStatus?: "COMPLETE" | "INCOMPLETE" | "NOT_DETERMINED";
-  completenessIssues?: string[];
   canFillMetadata: boolean;
   displayTitle: string;
   content?: string | null;

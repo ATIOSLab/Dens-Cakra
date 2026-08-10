@@ -92,7 +92,7 @@ const initialAnswers: FieldAnswer[] = [
     source: "WA Center",
     status: "Diproses",
     completeness: 72,
-    verification: "Incoming information sudah dikonversi menjadi BAKET oleh Field Officer",
+    verification: "Informasi masuk sudah dikonversi menjadi Bahan Keterangan (Baket) oleh Petugas Wilayah (Gaswil)",
     evidence: { photos: 2, videos: 0, documents: 2, gps: true },
     sourceCode: "JRG-M29",
     uukPir: "UUK-04 / PIR-01",
@@ -103,8 +103,8 @@ const initialAnswers: FieldAnswer[] = [
       "Informasi menunjukkan pola distribusi yang berulang. Bukti dokumen tersedia, tetapi kronologi dan pembanding lapangan masih perlu dipertegas.",
     developmentNote: "Lengkapi kronologi per titik dan validasi ulang sumber pembanding.",
     lastActivity: [
-      "WA Center menerima incoming information dari jaring.",
-      "Field Officer memvalidasi dan membuat BAKET.",
+      "WA Center menerima informasi masuk dari Jaring.",
+      "Petugas Wilayah (Gaswil) memvalidasi dan membuat Bahan Keterangan (Baket).",
       "OIM sedang menelaah kelengkapan awal.",
     ],
   },
@@ -147,9 +147,9 @@ const initialAnswers: FieldAnswer[] = [
       "Jawaban lengkap dan konsisten dengan bukti. Informasi layak menjadi sumber kompilasi draft laporan intelijen.",
     developmentNote: "Siap masuk kompilasi OIM.",
     lastActivity: [
-      "Incoming information divalidasi Field Officer.",
-      "BAKET terverifikasi oleh OIM.",
-      "Siap digunakan sebagai sumber draft report.",
+      "Informasi masuk divalidasi Petugas Wilayah (Gaswil).",
+      "Bahan Keterangan (Baket) terverifikasi oleh OIM.",
+      "Siap digunakan sebagai sumber draf laporan.",
     ],
   },
   {
@@ -459,12 +459,12 @@ export function JawabanLapanganPage() {
           <div className="flex items-center gap-2">
             <Badge variant="outline">Komandan Regional</Badge>
             <Badge className="border-primary/20 bg-primary/10 text-primary hover:bg-primary/15" variant="outline">
-              Review Jawaban Lapangan (BAKET)
+              Tinjau Jawaban Lapangan (Baket)
             </Badge>
           </div>
           <h1 className="mt-1.5 font-bold text-2xl tracking-tight">Jawaban Lapangan</h1>
           <p className="mt-1 max-w-4xl text-muted-foreground text-sm">
-            Tinjau seluruh jawaban lapangan (BAKET) dari Aplikasi, WA Center, dan Laporan Cepat. Validasi kelengkapan
+            Tinjau seluruh jawaban lapangan (Baket) dari Aplikasi, WA Center, dan Laporan Cepat. Validasi kelengkapan
             bukti, tautan UUK/PIR, serta lakukan tindak verifikasi, eskalasi ke OIM, atau minta pengembangan.
           </p>
         </div>
@@ -746,7 +746,7 @@ export function JawabanLapanganPage() {
             {/* Completeness Bar */}
             <div className="space-y-1">
               <div className="flex items-center justify-between font-semibold text-xs">
-                <span className="text-muted-foreground">Kualitas Kelengkapan BAKET</span>
+                <span className="text-muted-foreground">Kualitas Kelengkapan Baket</span>
                 <span className="text-neutral-200">{selectedAnswer.completeness}%</span>
               </div>
               <Progress className="h-1.5" value={selectedAnswer.completeness} />
@@ -820,7 +820,7 @@ export function JawabanLapanganPage() {
                 <TabsContent value="verify" className="space-y-3 pt-2">
                   <div className="space-y-2.5 rounded-lg border border-border/40 bg-muted/10 p-3">
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Komandan dapat menandai BAKET sebagai terverifikasi atau langsung meneruskan laporan ini
+                      Komandan dapat menandai Baket sebagai terverifikasi atau langsung meneruskan laporan ini
                       (eskalasi) ke Manajer Intelijen Operasional (OIM) untuk kompilasi.
                     </p>
                     <div className="grid grid-cols-2 gap-2">
@@ -856,7 +856,7 @@ export function JawabanLapanganPage() {
                     <Textarea
                       className="max-h-24 min-h-16 resize-none border-border/60 bg-background/50 text-xs focus:bg-background"
                       onChange={(event) => setNoteInput(event.target.value)}
-                      placeholder="Masukkan poin/unsur yang harus dilengkapi oleh Field Officer..."
+                      placeholder="Masukkan poin/unsur yang harus dilengkapi oleh Petugas Wilayah (Gaswil)..."
                       value={noteInput}
                     />
                     <Button
@@ -872,7 +872,7 @@ export function JawabanLapanganPage() {
                 {/* Tab: Tolak Laporan */}
                 <TabsContent value="reject" className="space-y-2.5 pt-2">
                   <div className="space-y-2 rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
-                    <span className="block font-bold text-[11px] text-rose-400">Batalkan / Tolak BAKET</span>
+                    <span className="block font-bold text-[11px] text-rose-400">Batalkan / Tolak Baket</span>
                     <Textarea
                       className="max-h-24 min-h-16 resize-none border-rose-500/20 bg-background text-xs focus:border-rose-500/40"
                       onChange={(event) => setRejectReason(event.target.value)}

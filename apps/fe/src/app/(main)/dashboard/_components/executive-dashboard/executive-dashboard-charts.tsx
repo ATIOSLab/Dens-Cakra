@@ -17,8 +17,7 @@ import type { DashboardQueryState, DistributionItem, ExecutiveDashboardData } fr
 
 const trendConfig = {
   total: { label: "Total Laporan", color: "var(--chart-1)" },
-  complete: { label: "Lengkap", color: "var(--dc-success)" },
-  verified: { label: "Terverifikasi", color: "var(--chart-2)" },
+  verified: { label: "Baket Dibuat", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
 const distributionConfig = {
@@ -58,11 +57,10 @@ function attachmentFilterValue(value: string) {
 }
 
 export function ReportTrendPanel({ trend }: { trend: ExecutiveDashboardData["analytics"]["trend"] }) {
-  const [visibleSeries, setVisibleSeries] = useState({ total: true, complete: true, verified: true });
+  const [visibleSeries, setVisibleSeries] = useState({ total: true, verified: true });
   const series = [
     { key: "total", label: "Total Laporan", color: "var(--chart-1)" },
-    { key: "complete", label: "Lengkap", color: "var(--dc-success)" },
-    { key: "verified", label: "Terverifikasi", color: "var(--chart-2)" },
+    { key: "verified", label: "Baket Dibuat", color: "var(--chart-2)" },
   ] as const;
 
   const toggleSeries = (key: keyof typeof visibleSeries) => {
@@ -77,7 +75,7 @@ export function ReportTrendPanel({ trend }: { trend: ExecutiveDashboardData["ana
     <Card className="border-[var(--dc-border-subtle)] xl:col-span-2">
       <CardHeader>
         <CardTitle>Tren Laporan Jaring</CardTitle>
-        <CardDescription>Volume, kelengkapan, dan verifikasi menurut periode penerimaan.</CardDescription>
+        <CardDescription>Volume Laporan Jaring dan pembuatan Baket menurut periode penerimaan.</CardDescription>
       </CardHeader>
       <CardContent>
         {trend.points.length === 0 ? (
@@ -129,15 +127,6 @@ export function ReportTrendPanel({ trend }: { trend: ExecutiveDashboardData["ana
                     strokeWidth={2.5}
                   />
                 ) : null}
-                {visibleSeries.complete ? (
-                  <Area
-                    dataKey="complete"
-                    type="monotone"
-                    fill="transparent"
-                    stroke="var(--color-complete)"
-                    strokeWidth={2}
-                  />
-                ) : null}
                 {visibleSeries.verified ? (
                   <Area
                     dataKey="verified"
@@ -172,8 +161,8 @@ export function WorkflowPanel({
   return (
     <Card className="border-[var(--dc-border-subtle)]">
       <CardHeader>
-        <CardTitle>Komposisi Workflow</CardTitle>
-        <CardDescription>Status Laporan Jaring hingga Baket Tervalidasi.</CardDescription>
+        <CardTitle>Komposisi Alur Kerja</CardTitle>
+        <CardDescription>Status Laporan Jaring hingga pembuatan Baket.</CardDescription>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
@@ -184,7 +173,7 @@ export function WorkflowPanel({
               <ChartContainer
                 config={distributionConfig}
                 className="h-48 w-full"
-                aria-label="Diagram komposisi workflow"
+                aria-label="Diagram komposisi alur kerja"
               >
                 <PieChart accessibilityLayer>
                   <ChartTooltip content={<ChartTooltipContent nameKey="label" />} />
@@ -251,15 +240,15 @@ export function CategoryPanel({
   return (
     <Card className="border-[var(--dc-border-subtle)] xl:col-span-2">
       <CardHeader>
-        <CardTitle>Kategori dan Isu Dominan</CardTitle>
-        <CardDescription>Urutan berdasarkan jumlah Laporan Jaring unik, bukan jumlah relasi.</CardDescription>
+        <CardTitle>Kategori Baket dan Isu Dominan</CardTitle>
+        <CardDescription>Kategori ditetapkan saat Laporan Jaring dijadikan Baket.</CardDescription>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
           <EmptyChart />
         ) : (
           <div>
-            <ChartContainer config={distributionConfig} className="h-72 w-full" aria-label="Grafik kategori laporan">
+            <ChartContainer config={distributionConfig} className="h-72 w-full" aria-label="Grafik kategori Baket">
               <BarChart accessibilityLayer data={items} layout="vertical" margin={{ left: 12, right: 20 }}>
                 <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                 <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} />
@@ -284,15 +273,15 @@ export function CategoryPanel({
               </BarChart>
             </ChartContainer>
             {onSelect ? (
-              <fieldset className="mt-3 flex flex-wrap gap-2" aria-label="Filter cepat kategori laporan">
+              <fieldset className="mt-3 flex flex-wrap gap-2" aria-label="Filter cepat kategori Baket">
                 {items.map((item) => {
                   const selectable = item.key !== "uncategorized";
                   return (
                     <button
                       key={item.key}
                       type="button"
-                      disabled={!selectable}
-                      onClick={() => onSelect(item.key)}
+                      disabled={!onSelect || !selectable}
+                      onClick={() => onSelect?.(item.key)}
                       aria-pressed={selectedKey === item.key}
                       className="rounded-full border border-[var(--dc-border-subtle)] px-2.5 py-1 text-[0.65rem] text-muted-foreground transition-colors enabled:hover:border-[var(--dc-primary)] enabled:hover:text-foreground enabled:focus-visible:outline-none enabled:focus-visible:ring-2 enabled:focus-visible:ring-ring disabled:cursor-default disabled:opacity-55 aria-pressed:border-[var(--dc-primary)] aria-pressed:bg-[var(--dc-primary-soft)] aria-pressed:text-foreground"
                     >
@@ -347,7 +336,7 @@ function ProgressDistribution({
                   {dashboardStatusLabel(item.label)}
                 </span>
                 <span className="font-mono tabular-nums">
-                  {formatDashboardNumber(item.value)} · {formatDashboardPercent(percentage)}
+                  {formatDashboardNumber(item.value)} - {formatDashboardPercent(percentage)}
                 </span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -368,15 +357,13 @@ export function CompositionPanel({
 }: {
   analytics: ExecutiveDashboardData["analytics"];
   query: DashboardQueryState;
-  onChange: (key: keyof DashboardQueryState, value: string) => void;
+  onChange?: (key: keyof DashboardQueryState, value: string) => void;
 }) {
   const panels: Array<{
     title: string;
     items: DistributionItem[];
     queryKey: keyof DashboardQueryState;
   }> = [
-    { title: "Kelengkapan", items: analytics.completeness, queryKey: "completeness" },
-    { title: "Verifikasi", items: analytics.verification, queryKey: "verificationStatus" },
     { title: "Urgensi", items: analytics.urgency, queryKey: "urgency" },
     { title: "Lampiran", items: analytics.attachments, queryKey: "hasAttachment" },
     { title: "Kesesuaian Lokasi", items: analytics.locationSuitability, queryKey: "locationSuitability" },
@@ -387,7 +374,7 @@ export function CompositionPanel({
     <Card className="border-[var(--dc-border-subtle)]">
       <CardHeader>
         <CardTitle>Kualitas dan Distribusi</CardTitle>
-        <CardDescription>Dimensi kelengkapan, verifikasi, urgensi, media, dan lokasi dipisahkan.</CardDescription>
+        <CardDescription>Dimensi urgensi, media, dan lokasi dipisahkan.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {panels.map((panel) => (
@@ -403,18 +390,22 @@ export function CompositionPanel({
             isSelectable={(value) =>
               !(value === "NOT_DETERMINED" && (panel.queryKey === "urgency" || panel.queryKey === "coordinateSource"))
             }
-            onSelect={(value) => {
-              const currentValue =
-                panel.queryKey === "hasAttachment"
-                  ? attachmentDistributionKey(query.hasAttachment)
-                  : query[panel.queryKey];
-              const nextValue = currentValue === value ? "" : value;
-              if (panel.queryKey === "hasAttachment") {
-                onChange(panel.queryKey, attachmentFilterValue(nextValue));
-                return;
-              }
-              onChange(panel.queryKey, nextValue);
-            }}
+            onSelect={
+              onChange
+                ? (value) => {
+                    const currentValue =
+                      panel.queryKey === "hasAttachment"
+                        ? attachmentDistributionKey(query.hasAttachment)
+                        : query[panel.queryKey];
+                    const nextValue = currentValue === value ? "" : value;
+                    if (panel.queryKey === "hasAttachment") {
+                      onChange(panel.queryKey, attachmentFilterValue(nextValue));
+                      return;
+                    }
+                    onChange(panel.queryKey, nextValue);
+                  }
+                : undefined
+            }
           />
         ))}
       </CardContent>

@@ -3,6 +3,10 @@ import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 export const dynamic = "force-dynamic";
 
-export default function Page() {
-  return <DashboardStatsPage role={SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER} />;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  return <DashboardStatsPage role={SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER} searchParams={await searchParams} />;
 }

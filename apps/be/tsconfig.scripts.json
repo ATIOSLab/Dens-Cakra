@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "rootDir": "./src",
+    "outDir": "./dist/src"
+  },
+  "include": [
+    "src/scripts/seed-baket.ts",
+    "src/scripts/seed-jakarta-demo.ts",
+    "src/scripts/seed-jakarta-jaring.ts",
+    "src/scripts/seed-str-hierarchy.ts",
+    "src/scripts/seed-role-accounts.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts"
+  ]
+}

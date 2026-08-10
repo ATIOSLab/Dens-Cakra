@@ -348,7 +348,20 @@ These serve as the fallback; there is no separate default.css file. */
 
   :where(h1, h2, h3, h4, h5, h6, [data-slot="card-title"], [data-slot="dialog-title"]) {
     font-family: var(--dc-font-ui);
-    letter-spacing: -0.015em;
+    letter-spacing: 0;
+  }
+
+  :where([data-slot="select-trigger"], [data-slot="native-select"], [role="combobox"]) {
+    min-height: var(--dc-control-md);
+    font-family: var(--dc-font-ui);
+    font-size: var(--dc-text-sm);
+    letter-spacing: 0;
+  }
+
+  :where([data-slot="select-item"], [data-slot="native-select-option"]) {
+    font-family: var(--dc-font-ui);
+    font-size: var(--dc-text-sm);
+    letter-spacing: 0;
   }
 
   :where([data-slot="table"], .tabular-nums) {
@@ -624,7 +637,11 @@ These serve as the fallback; there is no separate default.css file. */
     font-size: clamp(1.35rem, 2vw, 2rem);
     font-weight: 700;
     line-height: 1;
-    letter-spacing: -0.04em;
+    letter-spacing: 0;
+  }
+
+  .tracking-tight {
+    letter-spacing: 0 !important;
   }
 
   .dc-eyebrow {

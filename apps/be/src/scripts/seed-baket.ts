@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import {
+  AdministrativeLevel,
   AreaResolutionMethod,
   BaketStatus,
+  CommandRouteType,
   CoordinateSource,
   CoverageScopeType,
   CoverageValidationStatus,
@@ -103,7 +105,7 @@ const reportTopics = [
   {
     title: 'Sebaran informasi digital lokal',
     finding:
-      'Narasi yang belum terverifikasi menyebar pada kanal media sosial komunitas wilayah.',
+      'Narasi yang belum dikonfirmasi menyebar pada kanal media sosial komunitas wilayah.',
     implication:
       'Klarifikasi berbasis fakta diperlukan sebelum narasi memengaruhi persepsi masyarakat.',
   },
@@ -136,15 +138,16 @@ const verificationChecks = [
 
 type AssignmentNode = {
   id: string;
-  positionId: string;
-  reportsToPositionId: string | null;
   roleCode: RoleCode;
+  branch: CommandRouteType;
   fullName: string | null;
   organizationUnitName: string;
   area: {
     id: string;
     officialCode: string | null;
     name: string;
+    level: AdministrativeLevel;
+    parentId: string | null;
     centroidLatitude: number;
     centroidLongitude: number;
   } | null;
@@ -179,7 +182,7 @@ function addHours(base: Date, hours: number) {
 }
 
 async function upsertMasterData() {
-  const categories = [];
+  const categories: Array<{ id: string }> = [];
 
   for (const seed of categorySeeds) {
     categories.push(
@@ -204,36 +207,28 @@ async function upsertMasterData() {
 }
 
 async function loadSeedChains(): Promise<SeedChain[]> {
-  const rows = await prisma.userSeatAssignment.findMany({
+  const rows = await prisma.userOperationalAssignment.findMany({
     where: {
       isPrimary: true,
       isActive: true,
       validUntil: null,
       userProfile: { isActive: true, deletedAt: null },
-      position: {
+      role: {
         isActive: true,
-        role: {
-          code: {
-            in: [
-              RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
-              RoleCode.FIELD_COORDINATOR,
-              RoleCode.FIELD_OFFICER,
-            ],
-          },
+        code: {
+          in: [
+            RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+            RoleCode.FIELD_COORDINATOR,
+            RoleCode.FIELD_OFFICER,
+          ],
         },
       },
     },
     select: {
       id: true,
+      branch: true,
       userProfile: { select: { fullName: true } },
-      position: {
-        select: {
-          id: true,
-          reportsToPositionId: true,
-          role: { select: { code: true } },
-          organizationUnit: { select: { name: true } },
-        },
-      },
+      role: { select: { code: true, name: true } },
       areaScopes: {
         where: { validUntil: null, area: { deletedAt: null, isActive: true } },
         orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
@@ -244,6 +239,8 @@ async function loadSeedChains(): Promise<SeedChain[]> {
               id: true,
               officialCode: true,
               name: true,
+              level: true,
+              parentId: true,
               centroidLatitude: true,
               centroidLongitude: true,
             },
@@ -267,6 +264,8 @@ async function loadSeedChains(): Promise<SeedChain[]> {
             id: rawArea.id,
             officialCode: rawArea.officialCode,
             name: rawArea.name,
+            level: rawArea.level,
+            parentId: rawArea.parentId,
             centroidLatitude: Number(rawArea.centroidLatitude),
             centroidLongitude: Number(rawArea.centroidLongitude),
           }
@@ -274,60 +273,69 @@ async function loadSeedChains(): Promise<SeedChain[]> {
 
     return {
       id: row.id,
-      positionId: row.position.id,
-      reportsToPositionId: row.position.reportsToPositionId,
-      roleCode: row.position.role.code,
+      roleCode: row.role.code,
+      branch: row.branch,
       fullName: row.userProfile.fullName,
-      organizationUnitName: row.position.organizationUnit.name,
+      organizationUnitName: row.areaScopes[0]?.area.name ?? row.role.name,
       area,
       taskAssignmentId: row.taskAssignmentsReceived[0]?.id ?? null,
     };
   });
 
-  const byReportsTo = new Map<string, AssignmentNode[]>();
-  for (const assignment of assignments) {
-    if (!assignment.reportsToPositionId) {
-      continue;
-    }
-    const entries = byReportsTo.get(assignment.reportsToPositionId) ?? [];
-    entries.push(assignment);
-    byReportsTo.set(assignment.reportsToPositionId, entries);
+  const coordinators = assignments
+    .filter(
+      (assignment) =>
+        assignment.roleCode === RoleCode.FIELD_COORDINATOR &&
+        assignment.branch === CommandRouteType.BINDA &&
+        assignment.area !== null,
+    )
+    .sort((left, right) =>
+      (left.area?.officialCode ?? '').localeCompare(
+        right.area?.officialCode ?? '',
+      ),
+    );
+  const fieldOfficers = assignments
+    .filter(
+      (assignment) =>
+        assignment.roleCode === RoleCode.FIELD_OFFICER &&
+        assignment.branch === CommandRouteType.BINDA &&
+        assignment.area !== null,
+    )
+    .sort((left, right) =>
+      (left.area?.officialCode ?? '').localeCompare(
+        right.area?.officialCode ?? '',
+      ),
+    );
+  const fieldOfficersByParentAreaId = new Map<string, AssignmentNode[]>();
+  for (const fieldOfficer of fieldOfficers) {
+    const parentId = fieldOfficer.area?.parentId;
+    if (!parentId) continue;
+    const entries = fieldOfficersByParentAreaId.get(parentId) ?? [];
+    entries.push(fieldOfficer);
+    fieldOfficersByParentAreaId.set(parentId, entries);
   }
 
   return assignments
     .filter(
       (assignment) =>
-        assignment.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+        assignment.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER &&
+        assignment.branch === CommandRouteType.BINDA &&
+        assignment.area !== null,
     )
     .sort((left, right) =>
       left.organizationUnitName.localeCompare(right.organizationUnitName),
     )
     .map((operationalManager) => {
-      const coordinators = (
-        byReportsTo.get(operationalManager.positionId) ?? []
-      )
-        .filter(
-          (assignment) => assignment.roleCode === RoleCode.FIELD_COORDINATOR,
-        )
-        .sort((left, right) =>
-          left.organizationUnitName.localeCompare(right.organizationUnitName),
-        );
-      const primaryReports = coordinators
+      const scopedCoordinators = coordinators.filter(
+        (coordinator) =>
+          coordinator.area?.parentId === operationalManager.area?.id,
+      );
+      const primaryReports = scopedCoordinators
         .map((fieldCoordinator) => {
           const fieldOfficer = (
-            byReportsTo.get(fieldCoordinator.positionId) ?? []
-          )
-            .filter(
-              (assignment) =>
-                assignment.roleCode === RoleCode.FIELD_OFFICER &&
-                assignment.area !== null &&
-                assignment.taskAssignmentId !== null,
-            )
-            .sort((left, right) =>
-              (left.area?.officialCode ?? left.area?.name ?? '').localeCompare(
-                right.area?.officialCode ?? right.area?.name ?? '',
-              ),
-            )[0];
+            fieldOfficersByParentAreaId.get(fieldCoordinator.area?.id ?? '') ??
+            []
+          )[0];
           return fieldOfficer ? { fieldCoordinator, fieldOfficer } : null;
         })
         .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
@@ -336,14 +344,8 @@ async function loadSeedChains(): Promise<SeedChain[]> {
         return { operationalManager, reports: primaryReports.slice(0, 2) };
       }
 
-      const fallbackReports = coordinators.flatMap((fieldCoordinator) =>
-        (byReportsTo.get(fieldCoordinator.positionId) ?? [])
-          .filter(
-            (assignment) =>
-              assignment.roleCode === RoleCode.FIELD_OFFICER &&
-              assignment.area !== null &&
-              assignment.taskAssignmentId !== null,
-          )
+      const fallbackReports = scopedCoordinators.flatMap((fieldCoordinator) =>
+        (fieldOfficersByParentAreaId.get(fieldCoordinator.area?.id ?? '') ?? [])
           .map((fieldOfficer) => ({ fieldCoordinator, fieldOfficer })),
       );
 
@@ -366,10 +368,8 @@ async function upsertVerifiedBaket(params: {
     params;
   const area = fieldOfficer.area;
   const taskAssignmentId = fieldOfficer.taskAssignmentId;
-  if (!area || !taskAssignmentId) {
-    throw new Error(
-      'Seed report requires a scoped area and STR task assignment.',
-    );
+  if (!area) {
+    throw new Error('Seed report requires a scoped area.');
   }
 
   const seedKey = `${fieldOfficer.id}:${sequence}`;
@@ -397,7 +397,7 @@ async function upsertVerifiedBaket(params: {
         whatsappNumber: `+62870${String(sequence + 1).padStart(8, '0')}`,
         status: JaringStatus.ACTIVE,
         createdByAssignmentId: fieldOfficer.id,
-        notes: `${SEED_TAG} Jaring sumber untuk laporan terverifikasi.`,
+        notes: `${SEED_TAG} Jaring sumber untuk Laporan Jaring.`,
         deactivatedAt: null,
         deletedAt: null,
       },
@@ -407,7 +407,7 @@ async function upsertVerifiedBaket(params: {
         whatsappNumber: `+62870${String(sequence + 1).padStart(8, '0')}`,
         status: JaringStatus.ACTIVE,
         createdByAssignmentId: fieldOfficer.id,
-        notes: `${SEED_TAG} Jaring sumber untuk laporan terverifikasi.`,
+        notes: `${SEED_TAG} Jaring sumber untuk Laporan Jaring.`,
         registeredAt: addHours(eventTime, -48),
       },
     });
@@ -476,7 +476,7 @@ async function upsertVerifiedBaket(params: {
         baketId,
         versionNumber: 1,
         originalContent: `${SEED_TAG}\nFakta: ${topic.finding}\nLokasi: ${area.name}.\nSumber memperoleh informasi melalui pemantauan langsung dan konfirmasi lapangan.`,
-        normalizedContent: `Pada ${eventTime.toISOString()}, Field Officer melaporkan ${topic.finding.toLowerCase()} ${topic.implication}`,
+        normalizedContent: `Pada ${eventTime.toISOString()}, Petugas Wilayah (Gaswil) melaporkan ${topic.finding.toLowerCase()} ${topic.implication}`,
         eventAreaId: area.id,
         latitude,
         longitude,
@@ -487,7 +487,7 @@ async function upsertVerifiedBaket(params: {
         areaResolutionConfidence: 98,
         areaResolvedAt: addHours(eventTime, 1),
         coverageValidationStatus: CoverageValidationStatus.WITHIN_SCOPE,
-        coverageValidationNote: `${SEED_TAG} Area berada dalam scope Jaring dan Field Officer.`,
+        coverageValidationNote: `${SEED_TAG} Area berada dalam cakupan Jaring dan Petugas Wilayah (Gaswil).`,
         coverageValidatedAt: addHours(eventTime, 1),
         urgency: sequence % 6 === 0 ? PriorityLevel.HIGH : PriorityLevel.NORMAL,
         fieldOfficerNote: `${SEED_TAG} Mohon verifikasi OIM dan korelasikan dengan perkembangan wilayah sekitar.`,
@@ -498,7 +498,7 @@ async function upsertVerifiedBaket(params: {
         baketId,
         versionNumber: 1,
         originalContent: `${SEED_TAG}\nFakta: ${topic.finding}\nLokasi: ${area.name}.\nSumber memperoleh informasi melalui pemantauan langsung dan konfirmasi lapangan.`,
-        normalizedContent: `Pada ${eventTime.toISOString()}, Field Officer melaporkan ${topic.finding.toLowerCase()} ${topic.implication}`,
+        normalizedContent: `Pada ${eventTime.toISOString()}, Petugas Wilayah (Gaswil) melaporkan ${topic.finding.toLowerCase()} ${topic.implication}`,
         eventAreaId: area.id,
         latitude,
         longitude,
@@ -509,7 +509,7 @@ async function upsertVerifiedBaket(params: {
         areaResolutionConfidence: 98,
         areaResolvedAt: addHours(eventTime, 1),
         coverageValidationStatus: CoverageValidationStatus.WITHIN_SCOPE,
-        coverageValidationNote: `${SEED_TAG} Area berada dalam scope Jaring dan Field Officer.`,
+        coverageValidationNote: `${SEED_TAG} Area berada dalam cakupan Jaring dan Petugas Wilayah (Gaswil).`,
         coverageValidatedAt: addHours(eventTime, 1),
         urgency: sequence % 6 === 0 ? PriorityLevel.HIGH : PriorityLevel.NORMAL,
         fieldOfficerNote: `${SEED_TAG} Mohon verifikasi OIM dan korelasikan dengan perkembangan wilayah sekitar.`,
@@ -519,18 +519,18 @@ async function upsertVerifiedBaket(params: {
     });
 
     const coverageChecks = [
-      { scopeType: CoverageScopeType.JARING, positionAssignmentId: null },
+      { scopeType: CoverageScopeType.JARING, operationalAssignmentId: null },
       {
         scopeType: CoverageScopeType.FIELD_OFFICER,
-        positionAssignmentId: fieldOfficer.id,
+        operationalAssignmentId: fieldOfficer.id,
       },
       {
         scopeType: CoverageScopeType.FIELD_COORDINATOR,
-        positionAssignmentId: fieldCoordinator.id,
+        operationalAssignmentId: fieldCoordinator.id,
       },
       {
         scopeType: CoverageScopeType.ORGANIZATION_UNIT,
-        positionAssignmentId: operationalManager.id,
+        operationalAssignmentId: operationalManager.id,
       },
     ] as const;
 
@@ -544,7 +544,7 @@ async function upsertVerifiedBaket(params: {
           baketVersionId: versionId,
           scopeType: check.scopeType,
           areaId: area.id,
-          positionAssignmentId: check.positionAssignmentId,
+          operationalAssignmentId: check.operationalAssignmentId,
           isWithinScope: true,
           note: `${SEED_TAG} Cakupan ${check.scopeType} tervalidasi.`,
           checkedAt: addHours(eventTime, 1),
@@ -554,7 +554,7 @@ async function upsertVerifiedBaket(params: {
           baketVersionId: versionId,
           scopeType: check.scopeType,
           areaId: area.id,
-          positionAssignmentId: check.positionAssignmentId,
+          operationalAssignmentId: check.operationalAssignmentId,
           isWithinScope: true,
           note: `${SEED_TAG} Cakupan ${check.scopeType} tervalidasi.`,
           checkedAt: addHours(eventTime, 1),
@@ -633,7 +633,7 @@ async function seedBaket() {
   const chains = await loadSeedChains();
   if (chains.length === 0) {
     throw new Error(
-      'No complete OIM -> Field Coordinator -> Field Officer chain found. Run seed-role-accounts and seed-str-hierarchy first.',
+      'Rantai lengkap Manajer Intelijen Operasional (OIM) -> Koordinator Wilayah (Korwil) -> Petugas Wilayah (Gaswil) tidak ditemukan. Jalankan seed-role-accounts dan seed-str-hierarchy terlebih dahulu.',
     );
   }
 

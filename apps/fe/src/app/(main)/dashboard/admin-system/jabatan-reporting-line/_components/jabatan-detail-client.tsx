@@ -4,8 +4,8 @@ import Link from "next/link";
 
 import { MapPin, Pencil, Users } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { BackButton } from "@/components/ui/back-button";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -77,7 +77,7 @@ export function JabatanDetailClient({ position }: Props) {
               <Users className="size-4" />
               Pengisian jabatan
             </CardTitle>
-            <CardDescription>Satu jabatan hanya boleh ditempati satu assignment aktif.</CardDescription>
+            <CardDescription>Satu jabatan hanya boleh ditempati satu penugasan aktif.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {assignments.length ? (
@@ -91,7 +91,7 @@ export function JabatanDetailClient({ position }: Props) {
               ))
             ) : (
               <div className="rounded-lg border border-dashed border-border/70 p-4 text-sm text-muted-foreground">
-                Belum ada user aktif yang menempati jabatan ini.
+                Belum ada pengguna aktif yang menempati jabatan ini.
               </div>
             )}
           </CardContent>
@@ -104,7 +104,7 @@ export function JabatanDetailClient({ position }: Props) {
             <MapPin className="size-4" />
             Wilayah tanggung jawab
           </CardTitle>
-          <CardDescription>Coverage ini menjadi sumber scope saat user ditempatkan ke jabatan.</CardDescription>
+          <CardDescription>Cakupan ini menjadi sumber akses saat pengguna ditempatkan ke jabatan.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">

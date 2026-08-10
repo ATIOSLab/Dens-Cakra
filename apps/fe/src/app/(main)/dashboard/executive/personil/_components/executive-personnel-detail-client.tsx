@@ -1,24 +1,36 @@
 "use client";
 
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import { motion } from "framer-motion";
-import { Activity, BarChart3, ChevronLeft, ClipboardList, Cpu, Eye, FileText, MapPin, Network, User } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  ClipboardList,
+  Cpu,
+  Eye,
+  type LucideIcon,
+  MapPin,
+  ShieldCheck,
+  Signal,
+  User,
+} from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
-import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
+import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import type { PersonnelAssignment, PersonnelDetail, PersonnelJaringItem } from "./executive-personnel-types";
@@ -33,7 +45,21 @@ function formatDate(value?: string | null) {
 
 function areaText(assignment?: PersonnelAssignment | null) {
   const area = assignment?.areas.find((item) => item.isPrimary) ?? assignment?.areas[0];
-  return area ? `${area.name} - ${area.level}` : "-";
+  return area ? `${areaLevelLabel(area.level)} ${area.name}` : "-";
+}
+
+function areaLevelLabel(level?: string | null) {
+  const labels: Record<string, string> = {
+    COUNTRY: "Negara",
+    PROVINCE: "Provinsi",
+    REGENCY: "Kabupaten",
+    CITY: "Kota",
+    DISTRICT: "Kecamatan",
+    VILLAGE: "Desa",
+    URBAN_VILLAGE: "Kelurahan",
+  };
+
+  return level ? (labels[level] ?? level) : "Wilayah";
 }
 
 function activityActionLabel(action: string) {
@@ -169,7 +195,7 @@ function getJaringKinerjaBadge(rawStatus?: string | null) {
   const status = (rawStatus ?? "ACTIVE").toUpperCase();
   if (status === "ACTIVE") {
     return {
-      label: "Aktif",
+      label: DOMAIN_TERMS.jaringActive90Days,
       className:
         "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-950/20",
       dotColor: "bg-emerald-500 animate-pulse",
@@ -190,36 +216,91 @@ function getJaringKinerjaBadge(rawStatus?: string | null) {
     };
   }
   return {
-    label: "Tidak Aktif",
+    label: DOMAIN_TERMS.jaringInactive90Days,
     className: "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400 dark:bg-rose-950/20",
     dotColor: "bg-rose-500",
   };
 }
 
 function getPhotoUrl(jaring: PersonnelJaringItem) {
-  const fileId = jaring.profilePhotoFileId || jaring.profilePhotoFile?.id;
+  const fileId = jaring.profilePhotoFileId ?? jaring.profilePhotoFile?.id;
   return fileId ? `/api/files/${fileId}` : null;
+}
+
+function percentage(value: number, total: number) {
+  if (total <= 0) return 0;
+  return Math.round((value / total) * 100);
+}
+
+function formatPercent(value: number) {
+  return `${value}%`;
+}
+
+function isJaringActive(jaring: PersonnelJaringItem) {
+  if (jaring.lastReportAt) {
+    const lastReportTime = new Date(jaring.lastReportAt).getTime();
+    if (!Number.isNaN(lastReportTime)) {
+      return lastReportTime >= Date.now() - 90 * 24 * 60 * 60 * 1000;
+    }
+  }
+  return false;
+}
+
+function isJaringVerified(jaring: PersonnelJaringItem) {
+  const status = (jaring.registrationStatus ?? jaring.status ?? "").toUpperCase();
+  return status === "APPROVED" || status === "VERIFIED";
+}
+
+function profileStatusLabel(status?: string | null, isActive?: boolean) {
+  if (!isActive) return "Tidak Aktif";
+
+  const labels: Record<string, string> = {
+    ACTIVE: "Aktif",
+    INACTIVE: "Tidak Aktif",
+    SUSPENDED: "Ditangguhkan",
+    ARCHIVED: "Diarsipkan",
+  };
+
+  return status ? (labels[status.toUpperCase()] ?? status) : "Aktif";
+}
+
+function reportStatusLabel(status?: string | null) {
+  const labels: Record<string, string> = {
+    DRAFT: "Draf Baket",
+    SUBMITTED: "Dikirim",
+    VERIFIED: "Terverifikasi",
+    VALIDATED: DOMAIN_TERMS.validatedBaket,
+    REJECTED: "Ditolak",
+    NEEDS_REVISION: "Perlu Revisi",
+  };
+
+  return status ? (labels[status.toUpperCase()] ?? status.replace(/[_-]+/g, " ")) : "-";
+}
+
+function latestAssignmentLocation(assignments: PersonnelAssignment[]) {
+  return assignments.find((assignment) => assignment.lastLocation)?.lastLocation ?? null;
 }
 
 /* -------------------------------------------------------------------------- */
 /* MAIN EXPORT CLIENT COMPONENT                                               */
 /* -------------------------------------------------------------------------- */
 
-const PERSONIL_JARING_COLUMNS: ColumnOption[] = [
-  { id: "foto", label: "Foto Jaring" },
-  { id: "namaJaring", label: "Nama Jaring", alwaysVisible: true },
-  { id: "kodeJaring", label: "Kode Jaring" },
-  { id: "gaswil", label: "Petugas Wilayah (Gaswil)" },
-  { id: "wilayahPenempatan", label: "Wilayah Penempatan" },
-  { id: "whatsapp", label: "Nomor WhatsApp" },
+const PERSONEL_JARING_COLUMNS: ColumnOption[] = [
+  { id: "foto", label: DOMAIN_TERMS.jaringAvatar },
+  { id: "namaJaring", label: DOMAIN_TERMS.jaringName, alwaysVisible: true },
+  { id: "kodeJaring", label: DOMAIN_TERMS.jaringCode },
+  { id: "gaswil", label: DOMAIN_TERMS.fieldOfficer },
+  { id: "wilayahPenempatan", label: DOMAIN_TERMS.jaringPlacementArea },
+  { id: "whatsapp", label: DOMAIN_TERMS.jaringWhatsApp },
   { id: "pekerjaan", label: "Pekerjaan" },
-  { id: "kinerja", label: "Kinerja Jaring" },
+  { id: "kinerja", label: DOMAIN_TERMS.jaringActivity90Days },
   { id: "status", label: "Status Verifikasi" },
+  { id: "aksi", label: "Aksi" },
 ];
 
 export function ExecutivePersonnelDetailClient({
   detail,
-  backHref = "/dashboard/executive/personil",
+  backHref = "/dashboard/personel-lapangan",
 }: {
   detail: PersonnelDetail;
   backHref?: string;
@@ -238,7 +319,10 @@ export function ExecutivePersonnelDetailClient({
       const displayArea =
         jaring.areaNames && jaring.areaNames.length > 0
           ? jaring.areaNames.join(", ")
-          : (jaring.areaCoverages ?? []).map((cov) => cov.area?.name).filter(Boolean).join(", ");
+          : (jaring.areaCoverages ?? [])
+              .map((cov) => cov.area?.name)
+              .filter(Boolean)
+              .join(", ");
 
       const identity = resolveJaringIdentity({
         id: jaring.id,
@@ -261,7 +345,10 @@ export function ExecutivePersonnelDetailClient({
       const displayArea =
         jaring.areaNames && jaring.areaNames.length > 0
           ? jaring.areaNames.join(", ")
-          : (jaring.areaCoverages ?? []).map((cov) => cov.area?.name).filter(Boolean).join(", ");
+          : (jaring.areaCoverages ?? [])
+              .map((cov) => cov.area?.name)
+              .filter(Boolean)
+              .join(", ");
 
       const identity = resolveJaringIdentity({
         id: jaring.id,
@@ -271,6 +358,10 @@ export function ExecutivePersonnelDetailClient({
       return identity.placementArea.toLowerCase().includes(jaringKelurahanFilter.toLowerCase());
     });
   }, [jaringList, jaringKelurahanFilter]);
+  const jaringAreaSubtitle =
+    jaringKelurahanFilter === "ALL"
+      ? `Jumlah Jaring semua ${DOMAIN_TERMS.jaringPlacementArea}`
+      : `Jumlah Jaring pada ${DOMAIN_TERMS.jaringPlacementArea} ${jaringKelurahanFilter}`;
   const [activityViewMode, setActivityViewMode] = useState<"card" | "table">("card");
   const [activityPeriodFrom, setActivityPeriodFrom] = useState("");
   const [activityPeriodTo, setActivityPeriodTo] = useState("");
@@ -292,75 +383,178 @@ export function ExecutivePersonnelDetailClient({
     (safeActivityPage - 1) * activityLimit,
     safeActivityPage * activityLimit,
   );
+  const activeAssignmentCount = detail.assignments.filter((assignment) => assignment.isActive).length;
+  const historicalAssignmentCount = Math.max(0, detail.assignments.length - activeAssignmentCount);
+  const activeAreaCount = detail.summary?.activeAreaCount ?? detail.currentAssignment?.areas.length ?? 0;
+  const activeJaringCount = jaringList.filter(isJaringActive).length;
+  const inactiveJaringCount = Math.max(0, jaringList.length - activeJaringCount);
+  const verifiedJaringCount = jaringList.filter(isJaringVerified).length;
+  const unverifiedJaringCount = Math.max(0, jaringList.length - verifiedJaringCount);
+  const visibleBaketCount = detail.reports.length;
+  const hiddenBaketCount = Math.max(0, baketCount - visibleBaketCount);
+  const latestLocation = detail.currentAssignment?.lastLocation ?? latestAssignmentLocation(detail.assignments);
+  const assignmentWithLocationCount = detail.assignments.filter((assignment) => assignment.lastLocation).length;
+  const assignmentWithoutLocationCount = Math.max(0, detail.assignments.length - assignmentWithLocationCount);
+  const summaryMetrics = [
+    {
+      label: DOMAIN_TERMS.jaring,
+      value: jaringList.length,
+      helper: `${formatPercent(percentage(activeJaringCount, jaringList.length))} aktif`,
+      icon: DOMAIN_VISUALS.jaring.Icon,
+      tone: DOMAIN_VISUALS.jaring.iconClass,
+    },
+    {
+      label: DOMAIN_TERMS.baket,
+      value: baketCount,
+      helper: `${visibleBaketCount} data ditampilkan`,
+      icon: DOMAIN_VISUALS.baket.Icon,
+      tone: DOMAIN_VISUALS.baket.iconClass,
+    },
+    {
+      label: DOMAIN_TERMS.assignmentArea,
+      value: activeAreaCount,
+      helper: `${activeAssignmentCount} penugasan aktif`,
+      icon: MapPin,
+      tone: "text-amber-500",
+    },
+    {
+      label: "Status Petugas Wilayah",
+      value: profileStatusLabel(profile.status, profile.isActive),
+      helper: latestLocation ? `Sinyal ${formatDate(latestLocation.capturedAt)}` : "Belum ada sinyal lokasi",
+      icon: Activity,
+      tone: profile.isActive ? "text-emerald-500" : "text-rose-500",
+    },
+  ];
+  const statisticPairs = [
+    {
+      title: DOMAIN_TERMS.jaringActivity90Days,
+      description: `${activeJaringCount} aktif 90 hari dari ${jaringList.length} Jaring`,
+      primaryLabel: DOMAIN_TERMS.jaringActive90Days,
+      primaryValue: activeJaringCount,
+      secondaryLabel: DOMAIN_TERMS.jaringInactive90Days,
+      secondaryValue: inactiveJaringCount,
+      total: jaringList.length,
+      icon: Signal,
+      primaryClassName: "bg-emerald-500",
+      secondaryClassName: "bg-rose-500",
+    },
+    {
+      title: "Status Verifikasi Jaring",
+      description: `${verifiedJaringCount} terverifikasi dari ${jaringList.length} Jaring`,
+      primaryLabel: "Terverifikasi",
+      primaryValue: verifiedJaringCount,
+      secondaryLabel: "Belum terverifikasi",
+      secondaryValue: unverifiedJaringCount,
+      total: jaringList.length,
+      icon: ShieldCheck,
+      primaryClassName: "bg-sky-500",
+      secondaryClassName: "bg-amber-500",
+    },
+    {
+      title: "Cakupan Penugasan",
+      description: `${activeAssignmentCount} penugasan aktif dari ${detail.assignments.length} penugasan`,
+      primaryLabel: "Penugasan Aktif",
+      primaryValue: activeAssignmentCount,
+      secondaryLabel: "Riwayat Penugasan",
+      secondaryValue: historicalAssignmentCount,
+      total: detail.assignments.length,
+      icon: ClipboardList,
+      primaryClassName: "bg-violet-500",
+      secondaryClassName: "bg-slate-400",
+    },
+    {
+      title: "Sinyal Lokasi",
+      description: `${assignmentWithLocationCount} penugasan memiliki lokasi terakhir`,
+      primaryLabel: "Ada Lokasi",
+      primaryValue: assignmentWithLocationCount,
+      secondaryLabel: "Tanpa Lokasi",
+      secondaryValue: assignmentWithoutLocationCount,
+      total: detail.assignments.length,
+      icon: MapPin,
+      primaryClassName: "bg-cyan-500",
+      secondaryClassName: "bg-slate-400",
+    },
+  ];
 
   return (
-    <main className="space-y-6 p-6 relative min-h-screen">
-      {/* Background elements */}
+    <main className="relative min-h-screen space-y-6 p-6">
       <TacticalBackground />
 
       <div className="relative z-10 space-y-6 text-foreground">
-        {/* Header Section */}
-        <header className="relative overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-5 text-center select-none dark:border-slate-800 dark:bg-[#080d14]/80">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[var(--dc-primary)]/20 to-transparent" />
-          <div className="absolute top-0 left-0 w-[4px] h-full bg-[var(--dc-primary)]" />
-
-          <div className="mb-4">
-            <BackButton href={backHref} />
-          </div>
-
-          <div className="flex flex-col items-center gap-4">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-mono font-bold tracking-tight text-foreground uppercase mt-2">
-                {profile.fullName ?? profile.username ?? profile.email}
-              </h1>
-              <p className="max-w-3xl text-[11px] text-[var(--dc-text-secondary)] font-mono leading-relaxed">
-                {profile.email} · {detail.currentAssignment?.title ?? "Belum ada jabatan aktif"}
-              </p>
+        <header className="relative overflow-hidden border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/85 p-5 dark:border-slate-800 dark:bg-[#080d14]/85">
+          <div className="absolute top-0 left-0 h-full w-1 bg-[var(--dc-primary)]" />
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-3">
+              <BackButton href={backHref} />
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] px-2 py-1 font-semibold text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+                    Detail {DOMAIN_TERMS.fieldOfficer}
+                  </span>
+                  <span
+                    className={cn(
+                      "border px-2 py-1 font-semibold text-[10px] uppercase tracking-wider",
+                      profile.isActive
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+                    )}
+                  >
+                    {profileStatusLabel(profile.status, profile.isActive)}
+                  </span>
+                </div>
+                <h1 className="font-bold text-2xl tracking-tight text-foreground">
+                  {profile.fullName ?? profile.username ?? profile.email}
+                </h1>
+                <p className="max-w-4xl text-sm text-[var(--dc-text-secondary)]">
+                  {detail.currentAssignment?.title ?? "Belum ada jabatan aktif"} -{" "}
+                  {detail.currentAssignment?.unit.name ?? "Unit belum tercatat"}
+                </p>
+              </div>
             </div>
+            <dl className="grid min-w-0 gap-3 sm:grid-cols-2 lg:min-w-[360px]">
+              <Field label="Email" value={profile.email} />
+              <Field label="Nomor Telepon" value={profile.phone ?? "Belum tersedia"} />
+              <Field label={DOMAIN_TERMS.assignmentArea} value={areaText(detail.currentAssignment)} />
+              <Field
+                label="Lokasi Terakhir"
+                value={
+                  latestLocation
+                    ? `${latestLocation.area?.name ?? "Area belum terdeteksi"} - ${formatDate(latestLocation.capturedAt)}`
+                    : "Belum tersedia"
+                }
+              />
+            </dl>
           </div>
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            {
-              label: "Jaring Binaan",
-              value: jaringList.length,
-              icon: Network,
-            },
-            {
-              label: "Baket Dihasilkan",
-              value: baketCount,
-              icon: FileText,
-            },
-            {
-              label: "Wilayah Penugasan",
-              value: detail.currentAssignment?.areas.length ?? 0,
-              icon: MapPin,
-            },
-            {
-              label: "Status Petugas",
-              value: profile.isActive ? "Aktif" : "Tidak Aktif",
-              icon: Activity,
-            },
-          ].map((metric) => (
+          {summaryMetrics.map((metric) => (
             <div
               key={metric.label}
-              className="flex min-h-24 items-center justify-between border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 dark:border-slate-800 dark:bg-[#080d14]/80"
+              className="flex min-h-28 items-center justify-between gap-3 border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 dark:border-slate-800 dark:bg-[#080d14]/80"
             >
-              <div>
+              <div className="min-w-0">
                 <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-muted)]">
                   {metric.label}
                 </p>
-                <p className="mt-2 font-mono text-2xl font-bold text-[var(--dc-text-primary)]">{metric.value}</p>
+                <p className="mt-2 truncate font-mono font-bold text-2xl text-[var(--dc-text-primary)]">
+                  {metric.value}
+                </p>
+                <p className="mt-1 text-[11px] text-[var(--dc-text-secondary)]">{metric.helper}</p>
               </div>
-              <metric.icon className="size-5 text-[var(--dc-primary)]" aria-hidden="true" />
+              <metric.icon className={cn("size-5 shrink-0", metric.tone)} aria-hidden="true" />
             </div>
           ))}
         </section>
 
-        {/* Tab Selection */}
+        <section className="grid gap-3 lg:grid-cols-2">
+          {statisticPairs.map((item) => (
+            <StatisticPairCard key={item.title} {...item} />
+          ))}
+        </section>
+
         <Tabs defaultValue="profil" className="space-y-4">
-          <TabsList className="h-11 w-full justify-center rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 p-1 dark:border-slate-800 dark:bg-[#080d14]/60">
+          <TabsList className="scrollbar-none flex h-11 w-full justify-start overflow-x-auto rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 p-1 dark:border-slate-800 dark:bg-[#080d14]/60">
             <TabsTrigger
               value="profil"
               className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
@@ -379,7 +573,7 @@ export function ExecutivePersonnelDetailClient({
               value="jaring"
               className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
             >
-              <Network className="size-3.5 mr-2 text-[var(--dc-primary)]" />
+              <DOMAIN_VISUALS.jaring.Icon className={`size-3.5 mr-2 ${DOMAIN_VISUALS.jaring.iconClass}`} />
               Jaring ({jaringList.length})
             </TabsTrigger>
             <TabsTrigger
@@ -393,7 +587,7 @@ export function ExecutivePersonnelDetailClient({
               value="baket"
               className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
             >
-              <FileText className="size-3.5 mr-2 text-[var(--dc-primary)]" />
+              <DOMAIN_VISUALS.baket.Icon className={`size-3.5 mr-2 ${DOMAIN_VISUALS.baket.iconClass}`} />
               Baket ({baketCount})
             </TabsTrigger>
             <TabsTrigger
@@ -401,21 +595,31 @@ export function ExecutivePersonnelDetailClient({
               className="rounded-none px-6 font-mono text-[10px] uppercase tracking-wider border border-transparent data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] transition-all text-[var(--dc-text-muted)] hover:text-foreground cursor-pointer dark:data-[state=active]:border-slate-800"
             >
               <BarChart3 className="size-3.5 mr-2 text-[var(--dc-primary)]" />
-              KPI
+              Statistik
             </TabsTrigger>
           </TabsList>
 
           {/* Profil Node View */}
           <TabsContent value="profil" className="outline-none">
-            <section className="grid gap-4 lg:grid-cols-1 max-w-2xl">
+            <section className="grid gap-4 xl:grid-cols-2">
               <InfoPanel
-                title="Profil"
+                title="Identitas Petugas"
                 items={[
                   ["Nama", profile.fullName ?? "-"],
                   ["Username", profile.username ?? "-"],
                   ["Email", profile.email],
-                  ["Telepon", profile.phone ?? "-"],
-                  ["Status", profile.status],
+                  ["Nomor Telepon", profile.phone ?? "Belum tersedia"],
+                  ["Status Petugas Wilayah", profileStatusLabel(profile.status, profile.isActive)],
+                ]}
+              />
+              <InfoPanel
+                title="Konteks Penugasan"
+                items={[
+                  ["Jabatan Aktif", detail.currentAssignment?.title ?? "Belum ada jabatan aktif"],
+                  ["Unit", detail.currentAssignment?.unit.name ?? "Unit belum tercatat"],
+                  [DOMAIN_TERMS.assignmentArea, areaText(detail.currentAssignment)],
+                  ["Mulai Penugasan", formatDate(detail.currentAssignment?.validFrom)],
+                  ["Akhir Penugasan", formatDate(detail.currentAssignment?.validUntil)],
                 ]}
               />
             </section>
@@ -436,7 +640,7 @@ export function ExecutivePersonnelDetailClient({
                   <div>
                     <h2 className="font-mono text-sm font-bold text-[var(--dc-text-primary)]">{assignment.title}</h2>
                     <p className="text-[10px] font-mono text-[var(--dc-text-muted)] mt-1">
-                      {assignment.unit.name} · {assignment.seatCode}
+                      {assignment.unit.name} - {assignment.seatCode}
                     </p>
                   </div>
                   <span
@@ -451,7 +655,7 @@ export function ExecutivePersonnelDetailClient({
                   </span>
                 </div>
                 <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
-                  <Field label="Wilayah" value={areaText(assignment)} />
+                  <Field label={DOMAIN_TERMS.assignmentArea} value={areaText(assignment)} />
                   <Field label="Mulai" value={formatDate(assignment.validFrom)} />
                   <Field label="Selesai" value={formatDate(assignment.validUntil)} />
                 </dl>
@@ -460,22 +664,24 @@ export function ExecutivePersonnelDetailClient({
             {!detail.assignments.length ? <EmptyState title="Belum ada penugasan" /> : null}
           </TabsContent>
 
-          {/* Jaring Binaan Node View */}
+          {/* Jaring Node View */}
           <TabsContent value="jaring" className="space-y-4 outline-none">
-            {/* Header with Kelurahan Filter & Mode Switcher */}
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-3.5 dark:border-slate-800 dark:bg-[#080d14]/80">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="font-mono text-xs font-bold text-[var(--dc-text-primary)] uppercase tracking-wider">
-                  Daftar Jaring Binaan ({filteredJaringList.length})
-                </span>
+                <div className="grid gap-0.5">
+                  <span className="font-mono text-xs font-bold text-[var(--dc-text-primary)] uppercase tracking-wider">
+                    Daftar Jaring ({filteredJaringList.length})
+                  </span>
+                  <span className="text-xs font-medium text-foreground">{jaringAreaSubtitle}</span>
+                </div>
                 {jaringKelurahanOptions.length > 0 && (
                   <NativeSelect
-                    aria-label="Filter Kelurahan"
+                    aria-label={`Filter ${DOMAIN_TERMS.jaringPlacementArea}`}
                     value={jaringKelurahanFilter}
                     onChange={(e) => setJaringKelurahanFilter(e.target.value)}
                     className="h-8 text-xs border-slate-200 dark:border-white/10 max-w-[200px]"
                   >
-                    <option value="ALL">Semua Kelurahan</option>
+                    <option value="ALL">Semua {DOMAIN_TERMS.jaringPlacementArea}</option>
                     {jaringKelurahanOptions.map((kelName) => (
                       <option key={kelName} value={kelName}>
                         {kelName}
@@ -486,7 +692,7 @@ export function ExecutivePersonnelDetailClient({
               </div>
               <div className="flex items-center gap-2">
                 <ColumnVisibilityToggle
-                  columns={PERSONIL_JARING_COLUMNS}
+                  columns={PERSONEL_JARING_COLUMNS}
                   visibleColumns={jaringVisibleColumns}
                   onChange={setJaringVisibleColumns}
                 />
@@ -497,12 +703,10 @@ export function ExecutivePersonnelDetailClient({
             {jaringViewMode === "card" ? (
               filteredJaringList.map((jaring) => {
                 const photoUrl = getPhotoUrl(jaring);
-                const areas = (jaring.areaCoverages ?? []).map((cov) => cov.area?.name).filter(Boolean);
                 const displayName = jaring.fullName ?? jaring.aliasName ?? "Tanpa Nama";
                 const statusBadge = getJaringStatusBadge(jaring.registrationStatus ?? jaring.status);
                 const caretakerAssignment = jaring.caretakerAssignments?.[0]?.fieldOfficerAssignment;
-                const gaswilName =
-                  caretakerAssignment?.userProfile?.fullName ?? detail.profile.fullName;
+                const gaswilName = caretakerAssignment?.userProfile?.fullName ?? detail.profile.fullName;
 
                 return (
                   <div
@@ -514,7 +718,7 @@ export function ExecutivePersonnelDetailClient({
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between border-b border-[var(--dc-border-subtle)] pb-3.5 dark:border-slate-900/60">
                       <div className="flex items-center gap-3">
-                        {/* Profile Photo */}
+                        {/* Foto Profil */}
                         <div className="relative size-12 shrink-0 overflow-hidden rounded-none border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center">
                           {photoUrl ? (
                             <img src={photoUrl} alt={displayName} className="size-full object-cover" />
@@ -532,7 +736,7 @@ export function ExecutivePersonnelDetailClient({
                           </div>
                           <p className="text-[10px] font-mono text-[var(--dc-text-muted)] mt-1">
                             {jaring.occupation?.name ?? "Pekerjaan belum diisi"}{" "}
-                            {jaring.whatsappNumber ? `· ${jaring.whatsappNumber}` : ""}
+                            {jaring.whatsappNumber ? ` - ${jaring.whatsappNumber}` : ""}
                           </p>
                         </div>
                       </div>
@@ -554,7 +758,7 @@ export function ExecutivePersonnelDetailClient({
                         >
                           <Link href={`/dashboard/daftar-jaring/${jaring.id}`}>
                             <Eye className="size-3.5" />
-                            Detail
+                            Lihat Detail
                           </Link>
                         </Button>
                       </div>
@@ -570,12 +774,16 @@ export function ExecutivePersonnelDetailClient({
                         gaswilName,
                         gaswilAssignmentId: caretakerAssignment?.id ?? detail.currentAssignment?.id,
                         gaswilUserProfileId:
-                          caretakerAssignment?.userProfile?.id ?? caretakerAssignment?.userProfileId ?? detail.profile.id,
+                          caretakerAssignment?.userProfile?.id ??
+                          caretakerAssignment?.userProfileId ??
+                          detail.profile.id,
                         villageName:
                           jaring.areaNames && jaring.areaNames.length > 0
                             ? jaring.areaNames.join(", ")
-                            : (jaring.areaCoverages ?? []).map((cov) => cov.area?.name).filter(Boolean).join(", ") ||
-                              "Belum diset",
+                            : (jaring.areaCoverages ?? [])
+                                .map((cov) => cov.area?.name)
+                                .filter(Boolean)
+                                .join(", ") || "Belum diset",
                       }}
                       className="mt-4"
                     />
@@ -583,6 +791,14 @@ export function ExecutivePersonnelDetailClient({
                     <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
                       <Field label="Pekerjaan" value={jaring.occupation?.name ?? "Belum tersedia"} />
                       <Field label="Terdaftar" value={formatDate(jaring.registeredAt ?? jaring.createdAt)} />
+                      <Field
+                        label="Laporan Terakhir"
+                        value={jaring.lastReportAt ? formatDate(jaring.lastReportAt) : "Belum pernah melapor"}
+                      />
+                      <Field
+                        label={DOMAIN_TERMS.jaringActivity90Days}
+                        value={isJaringActive(jaring) ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days}
+                      />
                     </dl>
                   </div>
                 );
@@ -592,16 +808,56 @@ export function ExecutivePersonnelDetailClient({
                 <Table className="w-full min-w-[1100px]">
                   <TableHeader>
                     <TableRow className="border-b border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] dark:border-slate-800 dark:bg-slate-950/80">
-                      {isJaringColVisible("foto") && <TableHead className="w-12 text-center font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">Foto</TableHead>}
-                      {isJaringColVisible("namaJaring") && <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">Nama Jaring</TableHead>}
-                      {isJaringColVisible("kodeJaring") && <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">Kode Jaring</TableHead>}
-                      {isJaringColVisible("gaswil") && <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">Petugas Wilayah (Gaswil)</TableHead>}
-                      {isJaringColVisible("wilayahPenempatan") && <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">Wilayah Penempatan</TableHead>}
-                      {isJaringColVisible("whatsapp") && <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">Nomor WhatsApp</TableHead>}
-                      {isJaringColVisible("pekerjaan") && <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">Pekerjaan</TableHead>}
-                      {isJaringColVisible("kinerja") && <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)] text-center">Kinerja Jaring</TableHead>}
-                      {isJaringColVisible("status") && <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)] text-center">Status</TableHead>}
-                      {isJaringColVisible("aksi") && <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)] text-right">Aksi</TableHead>}
+                      {isJaringColVisible("foto") && (
+                        <TableHead className="w-12 text-center font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">
+                          {DOMAIN_TERMS.jaringAvatar}
+                        </TableHead>
+                      )}
+                      {isJaringColVisible("namaJaring") && (
+                        <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">
+                          {DOMAIN_TERMS.jaringName}
+                        </TableHead>
+                      )}
+                      {isJaringColVisible("kodeJaring") && (
+                        <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">
+                          {DOMAIN_TERMS.jaringCode}
+                        </TableHead>
+                      )}
+                      {isJaringColVisible("gaswil") && (
+                        <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">
+                          {DOMAIN_TERMS.fieldOfficer}
+                        </TableHead>
+                      )}
+                      {isJaringColVisible("wilayahPenempatan") && (
+                        <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">
+                          {DOMAIN_TERMS.jaringPlacementArea}
+                        </TableHead>
+                      )}
+                      {isJaringColVisible("whatsapp") && (
+                        <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">
+                          {DOMAIN_TERMS.jaringWhatsApp}
+                        </TableHead>
+                      )}
+                      {isJaringColVisible("pekerjaan") && (
+                        <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)]">
+                          Pekerjaan
+                        </TableHead>
+                      )}
+                      {isJaringColVisible("kinerja") && (
+                        <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)] text-center">
+                          {DOMAIN_TERMS.jaringActivity90Days}
+                        </TableHead>
+                      )}
+                      {isJaringColVisible("status") && (
+                        <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)] text-center">
+                          Status Verifikasi
+                        </TableHead>
+                      )}
+                      {isJaringColVisible("aksi") && (
+                        <TableHead className="font-mono text-[10px] uppercase tracking-wider text-[var(--dc-text-secondary)] text-right">
+                          Aksi
+                        </TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -616,8 +872,7 @@ export function ExecutivePersonnelDetailClient({
                             : "Belum diset";
                       const statusBadge = getJaringStatusBadge(jaring.registrationStatus ?? jaring.status);
                       const caretakerAssignment = jaring.caretakerAssignments?.[0]?.fieldOfficerAssignment;
-                      const gaswilName =
-                        caretakerAssignment?.userProfile?.fullName ?? detail.profile.fullName;
+                      const gaswilName = caretakerAssignment?.userProfile?.fullName ?? detail.profile.fullName;
 
                       const identity = resolveJaringIdentity({
                         id: jaring.id,
@@ -635,7 +890,10 @@ export function ExecutivePersonnelDetailClient({
                       });
 
                       return (
-                        <TableRow key={jaring.id} className="border-b border-[var(--dc-border-subtle)] hover:bg-[var(--dc-primary-soft)]/10 dark:border-slate-900">
+                        <TableRow
+                          key={jaring.id}
+                          className="border-b border-[var(--dc-border-subtle)] hover:bg-[var(--dc-primary-soft)]/10 dark:border-slate-900"
+                        >
                           {isJaringColVisible("foto") && (
                             <TableCell className="align-middle">
                               <div className="size-8 overflow-hidden rounded-none border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center">
@@ -703,7 +961,7 @@ export function ExecutivePersonnelDetailClient({
                           {isJaringColVisible("kinerja") && (
                             <TableCell className="align-middle text-center whitespace-nowrap">
                               {(() => {
-                                const kinerja = getJaringKinerjaBadge(jaring.status);
+                                const kinerja = getJaringKinerjaBadge(isJaringActive(jaring) ? "ACTIVE" : "INACTIVE");
                                 return (
                                   <span
                                     className={cn(
@@ -742,7 +1000,7 @@ export function ExecutivePersonnelDetailClient({
                               >
                                 <Link href={`/dashboard/daftar-jaring/${jaring.id}`}>
                                   <Eye className="size-3.5" />
-                                  Detail
+                                  Lihat Detail
                                 </Link>
                               </Button>
                             </TableCell>
@@ -754,18 +1012,20 @@ export function ExecutivePersonnelDetailClient({
                 </Table>
               </div>
             )}
-            {!jaringList.length ? (
-              <EmptyState title="Belum ada jaring binaan yang terdaftar untuk petugas ini" />
-            ) : null}
+            {!jaringList.length ? <EmptyState title="Belum ada Jaring yang terdaftar untuk petugas ini" /> : null}
           </TabsContent>
 
           {/* Aktivitas Node View */}
           <TabsContent value="aktivitas" className="space-y-4 outline-none">
             <div className="flex flex-col gap-3 border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 dark:border-slate-800 dark:bg-[#080d14]/80 lg:flex-row lg:items-end lg:justify-between">
               <div className="grid flex-1 gap-3 sm:grid-cols-2">
-                <label className="space-y-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase">
+                <label
+                  className="space-y-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase"
+                  htmlFor="activity-period-from"
+                >
                   <span>Periode mulai</span>
                   <Input
+                    id="activity-period-from"
                     className="h-9 bg-background/50"
                     max={activityPeriodTo || undefined}
                     onChange={(event) => {
@@ -776,9 +1036,13 @@ export function ExecutivePersonnelDetailClient({
                     value={activityPeriodFrom}
                   />
                 </label>
-                <label className="space-y-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase">
+                <label
+                  className="space-y-1.5 font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase"
+                  htmlFor="activity-period-to"
+                >
                   <span>Periode selesai</span>
                   <Input
+                    id="activity-period-to"
                     className="h-9 bg-background/50"
                     min={activityPeriodFrom || undefined}
                     onChange={(event) => {
@@ -820,7 +1084,8 @@ export function ExecutivePersonnelDetailClient({
                     {activityActionLabel(log.action)}
                   </p>
                   <p className="text-[10px] font-mono text-[var(--dc-text-secondary)] mt-1.5 leading-relaxed">
-                    {log.entityType} {log.entityId ? `· ${log.entityId}` : ""} · {formatDate(log.createdAt)}
+                    {entityTypeLabel(log.entityType)} {log.entityId ? `- ${log.entityId}` : ""} -{" "}
+                    {formatDate(log.createdAt)}
                   </p>
                 </div>
               ))
@@ -843,7 +1108,7 @@ export function ExecutivePersonnelDetailClient({
                       <TableCell className="whitespace-normal font-medium">{activityActionLabel(log.action)}</TableCell>
                       <TableCell className="font-mono text-xs text-[var(--dc-text-secondary)]">
                         {entityTypeLabel(log.entityType)}
-                        {log.entityId ? ` · ${log.entityId}` : ""}
+                        {log.entityId ? ` - ${log.entityId}` : ""}
                       </TableCell>
                       <TableCell className="font-mono text-xs text-[var(--dc-text-secondary)]">
                         {log.ipAddress ?? "-"}
@@ -873,7 +1138,7 @@ export function ExecutivePersonnelDetailClient({
           <TabsContent value="baket" className="space-y-3 outline-none">
             {baketCount > detail.reports.length ? (
               <div className="border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 px-4 py-3 font-mono text-[10px] text-[var(--dc-text-secondary)] dark:border-slate-800 dark:bg-[#080d14]/80">
-                Menampilkan {detail.reports.length} Baket terbaru dari total {baketCount} Baket.
+                Menampilkan {detail.reports.length} {DOMAIN_TERMS.baket} terbaru dari total {baketCount} data.
               </div>
             ) : null}
             {detail.reports.map((report) => (
@@ -887,21 +1152,69 @@ export function ExecutivePersonnelDetailClient({
                   <div>
                     <h2 className="font-mono text-xs font-bold text-[var(--dc-text-primary)]">{report.displayTitle}</h2>
                     <p className="text-[10px] font-mono text-[var(--dc-text-secondary)] mt-1.5 leading-relaxed">
-                      {report.category?.name ?? "Tanpa kategori"} · {report.eventArea?.name ?? "Area belum ada"}
+                      {report.category?.name ?? "Tanpa kategori"} - {report.eventArea?.name ?? "Area belum ada"}
                     </p>
                   </div>
                   <span className="border border-[var(--dc-border-subtle)] px-2 py-0.5 text-[9px] font-mono tracking-wider font-semibold rounded-none uppercase bg-[var(--dc-surface-raised)] text-foreground dark:border-slate-800 dark:bg-slate-950">
-                    {report.status}
+                    {reportStatusLabel(report.status)}
                   </span>
                 </div>
               </div>
             ))}
-            {!detail.reports.length ? <EmptyState title="Belum ada Baket yang dihasilkan petugas ini" /> : null}
+            {!detail.reports.length ? (
+              <EmptyState title={`Belum ada ${DOMAIN_TERMS.baket} yang dihasilkan petugas ini`} />
+            ) : null}
           </TabsContent>
 
-          {/* KPI Node View */}
-          <TabsContent value="kpi" className="outline-none">
-            <EmptyState title={detail.kpi.note} />
+          {/* Statistik Node View */}
+          <TabsContent value="kpi" className="space-y-4 outline-none">
+            <section className="grid gap-4 xl:grid-cols-2">
+              <InfoPanel
+                title="Ringkasan Statistik"
+                items={[
+        [DOMAIN_TERMS.jaring, `${jaringList.length} total`],
+        [
+          DOMAIN_TERMS.jaringActive90Days,
+          `${activeJaringCount} (${formatPercent(percentage(activeJaringCount, jaringList.length))})`,
+        ],
+        [
+          DOMAIN_TERMS.jaringInactive90Days,
+          `${inactiveJaringCount} (${formatPercent(percentage(inactiveJaringCount, jaringList.length))})`,
+        ],
+                  [DOMAIN_TERMS.baket, `${baketCount} total`],
+                  ["Data Baket Ditampilkan", `${visibleBaketCount} terbaru`],
+                ]}
+              />
+              <InfoPanel
+                title="Kelengkapan Operasional"
+                items={[
+                  [
+                    "Jaring Terverifikasi",
+                    `${verifiedJaringCount} (${formatPercent(percentage(verifiedJaringCount, jaringList.length))})`,
+                  ],
+                  [
+                    "Jaring Belum Terverifikasi",
+                    `${unverifiedJaringCount} (${formatPercent(percentage(unverifiedJaringCount, jaringList.length))})`,
+                  ],
+                  [DOMAIN_TERMS.assignmentArea, `${activeAreaCount} area aktif`],
+                  [
+                    "Penugasan dengan Lokasi",
+                    `${assignmentWithLocationCount} (${formatPercent(percentage(assignmentWithLocationCount, detail.assignments.length))})`,
+                  ],
+                  ["Baket Tidak Ditampilkan", `${hiddenBaketCount} data`],
+                ]}
+              />
+            </section>
+            <section className="grid gap-3 lg:grid-cols-2">
+              {statisticPairs.map((item) => (
+                <StatisticPairCard key={item.title} {...item} />
+              ))}
+            </section>
+            {detail.kpi.note ? (
+              <div className="border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 px-4 py-3 text-sm text-[var(--dc-text-secondary)] dark:border-slate-800 dark:bg-[#080d14]/80">
+                {detail.kpi.note}
+              </div>
+            ) : null}
           </TabsContent>
         </Tabs>
       </div>
@@ -912,6 +1225,67 @@ export function ExecutivePersonnelDetailClient({
 /* -------------------------------------------------------------------------- */
 /* INFORMATION & STRUCTURE PANEL HELPERS                                      */
 /* -------------------------------------------------------------------------- */
+
+function StatisticPairCard({
+  title,
+  description,
+  primaryLabel,
+  primaryValue,
+  secondaryLabel,
+  secondaryValue,
+  total,
+  icon: Icon,
+  primaryClassName,
+  secondaryClassName,
+}: {
+  title: string;
+  description: string;
+  primaryLabel: string;
+  primaryValue: number;
+  secondaryLabel: string;
+  secondaryValue: number;
+  total: number;
+  icon: LucideIcon;
+  primaryClassName: string;
+  secondaryClassName: string;
+}) {
+  const primaryPercent = percentage(primaryValue, total);
+  const secondaryPercent = percentage(secondaryValue, total);
+
+  return (
+    <section className="border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 dark:border-slate-800 dark:bg-[#080d14]/80">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="font-semibold text-sm text-[var(--dc-text-primary)]">{title}</h2>
+          <p className="mt-1 text-xs text-[var(--dc-text-secondary)]">{description}</p>
+        </div>
+        <Icon className="size-4 shrink-0 text-[var(--dc-primary)]" aria-hidden="true" />
+      </div>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--dc-surface-raised)]">
+        <div className="flex h-full">
+          <div className={cn("h-full", primaryClassName)} style={{ width: `${primaryPercent}%` }} />
+          <div className={cn("h-full", secondaryClassName)} style={{ width: `${secondaryPercent}%` }} />
+        </div>
+      </div>
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div>
+          <dt className="text-[10px] uppercase tracking-wider text-[var(--dc-text-muted)]">{primaryLabel}</dt>
+          <dd className="mt-1 font-mono font-bold text-lg text-[var(--dc-text-primary)]">
+            {primaryValue}{" "}
+            <span className="text-xs text-[var(--dc-text-secondary)]">({formatPercent(primaryPercent)})</span>
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[10px] uppercase tracking-wider text-[var(--dc-text-muted)]">{secondaryLabel}</dt>
+          <dd className="mt-1 font-mono font-bold text-lg text-[var(--dc-text-primary)]">
+            {secondaryValue}{" "}
+            <span className="text-xs text-[var(--dc-text-secondary)]">({formatPercent(secondaryPercent)})</span>
+          </dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
 
 function InfoPanel({ title, items }: { title: string; items: Array<[string, string]> }) {
   return (

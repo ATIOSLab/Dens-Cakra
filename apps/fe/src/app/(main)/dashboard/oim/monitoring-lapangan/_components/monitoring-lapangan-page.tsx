@@ -4,11 +4,11 @@ export function MonitoringLapanganPage() {
   return (
     <DensModulePage
       title="Monitoring Lapangan"
-      role="Manajer Intelijen Operasional"
+      roleLabel="Manajer Intelijen Operasional"
       description="Halaman ini menyiapkan kontrol progres tugas lapangan, status personel, dan supervisi keterlambatan."
       highlights={[
-        "Status Korwil, Petugas Wilayah, dan deadline.",
-        "Coverage, beban kerja, dan kebutuhan dukungan.",
+        "Status Korwil, Petugas Wilayah, dan tenggat.",
+        "Cakupan, beban kerja, dan kebutuhan dukungan.",
         "Eskalasi keterlambatan dan tindak supervisi.",
       ]}
     />

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { backendApi } from "@/server/backend-api";
 
 export async function GET(request: NextRequest) {
@@ -13,9 +14,6 @@ export async function GET(request: NextRequest) {
       }),
     );
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal membaca peta lokasi personel." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal membaca peta lokasi personel.");
   }
 }

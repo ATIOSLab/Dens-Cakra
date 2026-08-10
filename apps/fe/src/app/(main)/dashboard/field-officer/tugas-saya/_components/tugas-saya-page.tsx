@@ -4,10 +4,10 @@ export function TugasSayaPage() {
   return (
     <DensModulePage
       title="Tugas Saya"
-      role="Petugas Wilayah"
+      roleLabel="Petugas Wilayah (Gaswil)"
       description="Halaman ini menyiapkan daftar tugas aktif petugas, detail sasaran, dan progres pelaksanaan lapangan."
       highlights={[
-        "Daftar tugas, deadline, prioritas, dan wilayah tugas.",
+        "Daftar tugas, tenggat, prioritas, dan wilayah tugas.",
         "Catatan koordinator, lampiran panduan, dan status progres.",
         "Akses cepat menuju aksi Kirim Baket.",
       ]}

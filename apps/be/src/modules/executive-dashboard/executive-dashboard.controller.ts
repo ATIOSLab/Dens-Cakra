@@ -19,7 +19,7 @@ const DASHBOARD_ROLES = [
   'field_coordinator',
 ] as const;
 
-@ApiTags('Dashboard Eksekutif')
+@ApiTags('Dashboard Deputi II')
 @UseGuards(SessionGuard, DomainAccessGuard)
 @Controller('dashboard/executive')
 export class ExecutiveDashboardController {
@@ -43,7 +43,7 @@ export class ExecutiveDashboardController {
   @ApiContract({
     operationId: 'apiExecutiveDashboard002',
     contractId: 'API-EXECUTIVE-DASHBOARD-002',
-    summary: 'Pilihan filter dashboard sesuai scope pengguna',
+    summary: 'Pilihan filter dashboard sesuai cakupan pengguna',
     roles: [...DASHBOARD_ROLES],
   })
   async filters(

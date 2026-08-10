@@ -17,20 +17,20 @@ export const dashboardNotifications: DashboardNotification[] = [
   {
     id: "notif-2",
     title: "Produk intelijen diterima",
-    description: "Satu produk intelijen baru telah masuk ke antrean review pimpinan.",
+    description: "Satu produk intelijen baru telah masuk ke antrean peninjauan pimpinan.",
     timeLabel: "2 jam lalu",
     unread: true,
   },
   {
     id: "notif-3",
-    title: "Build dashboard selesai",
-    description: "Pembaruan frontend DENS CAKRA berhasil dibangun tanpa error.",
+    title: "Build Dashboard selesai",
+    description: "Pembaruan frontend DENS CAKRA berhasil dibangun tanpa galat.",
     timeLabel: "8 jam lalu",
   },
   {
     id: "notif-4",
     title: "Anggota tim baru ditambahkan",
-    description: "Pengguna operasional baru telah masuk ke workspace DENS CAKRA.",
+    description: "Pengguna operasional baru telah masuk ke ruang kerja DENS CAKRA.",
     timeLabel: "1 hari lalu",
   },
 ];

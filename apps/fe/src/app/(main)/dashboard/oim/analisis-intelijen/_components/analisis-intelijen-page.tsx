@@ -4,7 +4,7 @@ export function AnalisisIntelijenPage() {
   return (
     <DensModulePage
       title="Analisis Intelijen"
-      role="Manajer Intelijen Operasional"
+      roleLabel="Manajer Intelijen Operasional"
       description="Halaman ini menyiapkan analisis data terverifikasi, korelasi lintas laporan, dan validasi human-in-the-loop."
       highlights={[
         "Entity extraction, topic clustering, dan sentiment analysis.",

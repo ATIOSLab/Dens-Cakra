@@ -7,10 +7,8 @@ import {
   AlertTriangle,
   BarChart3,
   CheckCircle2,
-  FileText,
   Flame,
   Layers3,
-  Package,
   RadioTower,
   RefreshCw,
   ShieldAlert,
@@ -26,6 +24,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/lib/auth/auth-client";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
 
@@ -68,12 +68,12 @@ function relativeTime(value?: string | null) {
 }
 
 const ROLE_LABELS: Record<SystemRole, string> = {
-  [SYSTEM_ROLES.ADMIN_SYSTEM]: "Admin Sistem",
-  [SYSTEM_ROLES.EXECUTIVE]: "Eksekutif",
-  [SYSTEM_ROLES.FIELD_COORDINATOR]: "Koordinator Lapangan",
-  [SYSTEM_ROLES.FIELD_OFFICER]: "Petugas Wilayah (Gaswil)",
-  [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: "Manajer Intelijen Operasional",
-  [SYSTEM_ROLES.REGIONAL_COMMANDER]: "Komandan Regional",
+  [SYSTEM_ROLES.ADMIN_SYSTEM]: DOMAIN_TERMS.adminSystemRole,
+  [SYSTEM_ROLES.EXECUTIVE]: DOMAIN_TERMS.executiveRole,
+  [SYSTEM_ROLES.FIELD_COORDINATOR]: DOMAIN_TERMS.fieldCoordinatorRole,
+  [SYSTEM_ROLES.FIELD_OFFICER]: DOMAIN_TERMS.fieldOfficer,
+  [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: DOMAIN_TERMS.operationalIntelligenceManagerRole,
+  [SYSTEM_ROLES.REGIONAL_COMMANDER]: DOMAIN_TERMS.regionalCommanderRole,
 };
 
 const SEVERITY_CONFIG: Record<string, { color: string; bg: string }> = {
@@ -95,9 +95,9 @@ const TASK_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 const VERIFICATION_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  VERIFIED: { label: "Terverifikasi", color: "var(--dc-success)" },
+  VERIFIED: { label: "Disetujui", color: "var(--dc-success)" },
   IN_PROGRESS: { label: "Dalam Proses", color: "var(--dc-warning)" },
-  PENDING: { label: "Belum Diverifikasi", color: "var(--dc-warning)" },
+  PENDING: { label: "Menunggu Tinjauan", color: "var(--dc-warning)" },
   REJECTED: { label: "Ditolak", color: "var(--dc-danger)" },
 };
 
@@ -411,10 +411,10 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
   /* ── Build summary card data ── */
   const summaryCards = [
     {
-      icon: FileText,
-      label: "Total Baket",
+      icon: DOMAIN_VISUALS.baket.Icon,
+      label: "Bahan Keterangan (Baket)",
       value: cards.bakets,
-      description: "Bahan Keterangan dalam periode",
+      description: "Baket dalam periode aktif",
       accentColor: "var(--dc-primary)",
       section: "summaryCards" as DashboardSection,
     },
@@ -435,7 +435,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
       section: "summaryCards" as DashboardSection,
     },
     {
-      icon: Package,
+      icon: DOMAIN_VISUALS.intelligenceReport.Icon,
       label: "Produk Intelijen",
       value: cards.products,
       description: "Produk yang dihasilkan",
@@ -444,7 +444,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
     },
     {
       icon: AlertTriangle,
-      label: "Alert Aktif",
+      label: "Peringatan Aktif",
       value: cards.alerts,
       description: "Peringatan situasional",
       accentColor: "var(--dc-danger)",
@@ -650,11 +650,11 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
         <section
           className={cn("grid gap-4", hasSection("products") ? "md:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2")}
         >
-          {/* Priority Alerts */}
+          {/* Priority alerts */}
           {hasSection("alerts") && (
             <Card className="rounded-[8px] border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]">
               <CardHeader className="pb-2">
-                <SectionHeader icon={AlertTriangle} title="Alert Prioritas" />
+                <SectionHeader icon={AlertTriangle} title="Peringatan Prioritas" />
               </CardHeader>
               <CardContent>
                 {data.priorityAlerts.length > 0 ? (
@@ -668,7 +668,7 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
                     <div className="flex size-10 items-center justify-center rounded-full bg-[var(--dc-success-soft)]">
                       <CheckCircle2 className="size-5 text-[var(--dc-success)]" />
                     </div>
-                    <p className="text-sm text-muted-foreground">Tidak ada alert aktif</p>
+                    <p className="text-sm text-muted-foreground">Tidak ada peringatan aktif</p>
                   </div>
                 )}
               </CardContent>
@@ -741,9 +741,9 @@ export function DashboardStatsClient({ initialData, initialError, role }: Dashbo
                 ) : (
                   <div className="flex flex-col items-center gap-2 py-6 text-center">
                     <div className="flex size-10 items-center justify-center rounded-full bg-muted/30">
-                      <Package className="size-5 text-muted-foreground" />
+                      <DOMAIN_VISUALS.intelligenceReport.Icon className="size-5 text-muted-foreground" />
                     </div>
-                    <p className="text-sm text-muted-foreground">Belum ada produk intelijen</p>
+                    <p className="text-sm text-muted-foreground">Belum ada Produk Intelijen</p>
                   </div>
                 )}
               </CardContent>

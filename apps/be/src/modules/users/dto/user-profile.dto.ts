@@ -168,6 +168,14 @@ export class ChangePrimaryAssignmentDto extends ReasonDto {
   @IsDateString() effectiveAt!: string;
 }
 
+export class UpdateDkiSupervisionScopeDto extends ReasonDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('all', { each: true })
+  areaScopeIds!: string[];
+  @IsOptional() @IsDateString() effectiveAt?: string;
+}
+
 export class AssignmentHistoryQueryDto {
   @IsOptional() @Type(() => Boolean) @IsBoolean() activeOnly = false;
 }

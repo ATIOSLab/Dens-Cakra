@@ -75,13 +75,13 @@ export class OrganizationService {
 
     if (!routeType || routeType === CommandRouteType.PUSAT) {
       throw new ForbiddenException(
-        'FIELD_COORDINATOR position is missing a resolvable command route.',
+        'Jabatan Koordinator Wilayah (Korwil) belum memiliki jalur komando yang dapat dibaca.',
       );
     }
 
     if (!position.reportsTo) {
       throw new ForbiddenException(
-        'KORWIL position must define its supervisor in the reporting line.',
+        'Jabatan KORWIL harus memiliki atasan pada garis pelaporan.',
       );
     }
 
@@ -91,7 +91,7 @@ export class OrganizationService {
         position.reportsTo.code !== RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER)
     ) {
       throw new ForbiddenException(
-        'Field Coordinator on the Directorate route must use STAF_SUBDIT and report to KASUBDIT.',
+        'Koordinator Wilayah (Korwil) pada jalur Direktorat harus menggunakan STAF_SUBDIT dan melapor ke KASUBDIT.',
       );
     }
 
@@ -101,7 +101,7 @@ export class OrganizationService {
         position.reportsTo.code !== RoleCode.FIELD_COORDINATOR)
     ) {
       throw new ForbiddenException(
-        'Field Coordinator on the Binda route must use KORWIL and report to KABAGOPS.',
+        'Koordinator Wilayah (Korwil) pada jalur Binda harus menggunakan KORWIL dan melapor ke KABAGOPS.',
       );
     }
 

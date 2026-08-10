@@ -1,3 +1,5 @@
+import { DOMAIN_VISUALS, PERSONNEL_LOCATION_VISUALS } from "@/lib/domain/visual-system";
+
 export type AgentOperationalStatus = "VERIFIED" | "PENDING" | "REJECTED";
 
 export type AdminLevel = "PROVINCE" | "CITY" | "DISTRICT" | "VILLAGE";
@@ -9,6 +11,32 @@ export type MapStyleMode = "dark" | "street" | "satellite" | "terrain";
 export type DateRangeOption = "ALL" | "24H" | "7D" | "30D";
 
 export type CoordinateSourceMode = "domisili" | "laporan";
+
+export type DistributionEntityMode = "jaring" | "gaswil";
+
+export type DistributionEntityCopy = {
+  mode: DistributionEntityMode;
+  singular: string;
+  plural: string;
+  headerBadge: string;
+  rightPanelTitle: string;
+  searchPlaceholder: string;
+  rightSearchPlaceholder: string;
+  totalSummaryLabel: string;
+  allDateLabel: string;
+  sourceDomicileLabel: string;
+  sourceReportLabel: string;
+  situationLabel: string;
+  displayedMetricLabel: string;
+  verificationMetricLabel: string;
+  activeMetricLabel: string;
+  reportingMetricLabel: string;
+  coordinateMetricLabel: string;
+  denseAreaDetailLabel: string;
+  emptyListText: string;
+  detailLinkLabel: string;
+  statusLabels: Record<AgentOperationalStatus, string>;
+};
 
 export type JaringDistributionVillage = {
   id: string;
@@ -63,7 +91,12 @@ export type JaringDistributionEntry = {
   districtId: string | null;
   districtName: string;
   villageName: string;
+  fieldOfficerAssignmentId?: string | null;
+  fieldOfficerUserProfileId?: string | null;
   fieldOfficerName: string | null;
+  assignmentAreaNames?: string[];
+  detailHref?: string | null;
+  jaringCount?: number;
   registeredAt: string;
   status: AgentOperationalStatus;
   isActive: boolean;
@@ -101,9 +134,103 @@ export const STATUS_COLORS: Record<
   AgentOperationalStatus,
   { bg: string; border: string; label: string; dotClass: string }
 > = {
-  VERIFIED: { bg: "#22c55e", border: "#16a34a", label: "Terverifikasi", dotClass: "bg-emerald-500" },
-  PENDING: { bg: "#3b82f6", border: "#2563eb", label: "Belum Terverifikasi", dotClass: "bg-blue-500" },
-  REJECTED: { bg: "#ef4444", border: "#dc2626", label: "Ditolak", dotClass: "bg-red-500" },
+  VERIFIED: {
+    bg: DOMAIN_VISUALS.jaring.markerColor,
+    border: DOMAIN_VISUALS.jaring.markerColor,
+    label: "Disetujui",
+    dotClass: "bg-cyan-500",
+  },
+  PENDING: { bg: "#f59e0b", border: "#d97706", label: "Menunggu Tinjauan", dotClass: "bg-amber-500" },
+  REJECTED: { bg: "#e11d48", border: "#be123c", label: "Ditolak", dotClass: "bg-rose-500" },
+};
+
+export const GASWIL_SIGNAL_COLORS: Record<
+  AgentOperationalStatus,
+  { bg: string; border: string; label: string; dotClass: string }
+> = {
+  VERIFIED: {
+    bg: PERSONNEL_LOCATION_VISUALS.ONLINE.markerColor,
+    border: PERSONNEL_LOCATION_VISUALS.ONLINE.markerColor,
+    label: PERSONNEL_LOCATION_VISUALS.ONLINE.label,
+    dotClass: "bg-emerald-500",
+  },
+  PENDING: {
+    bg: PERSONNEL_LOCATION_VISUALS.OFFLINE.markerColor,
+    border: PERSONNEL_LOCATION_VISUALS.OFFLINE.markerColor,
+    label: PERSONNEL_LOCATION_VISUALS.OFFLINE.label,
+    dotClass: "bg-slate-500",
+  },
+  REJECTED: { bg: "#e11d48", border: "#be123c", label: "Akun Bermasalah", dotClass: "bg-rose-500" },
+};
+
+export function statusPresentationForMode(mode: DistributionEntityMode, status: AgentOperationalStatus) {
+  return mode === "gaswil"
+    ? (GASWIL_SIGNAL_COLORS[status] ?? GASWIL_SIGNAL_COLORS.PENDING)
+    : (STATUS_COLORS[status] ?? STATUS_COLORS.PENDING);
+}
+
+export function signalLabelForMode(mode: DistributionEntityMode, isActive: boolean) {
+  if (mode === "gaswil") {
+    return isActive ? PERSONNEL_LOCATION_VISUALS.ONLINE.label : PERSONNEL_LOCATION_VISUALS.OFFLINE.label;
+  }
+  return isActive ? "Aktif 90 Hari" : "Tidak Aktif 90 Hari";
+}
+
+export const DISTRIBUTION_ENTITY_COPY: Record<DistributionEntityMode, DistributionEntityCopy> = {
+  jaring: {
+    mode: "jaring",
+    singular: "Jaring",
+    plural: "Jaring",
+    headerBadge: "PETA SEBARAN JARING",
+    rightPanelTitle: "DAFTAR JARING",
+    searchPlaceholder: "Cari wilayah, Jaring, atau kode...",
+    rightSearchPlaceholder: "Cari Jaring atau kode...",
+    totalSummaryLabel: "Total Jaring",
+    allDateLabel: "Semua Aktivitas Laporan",
+    sourceDomicileLabel: "Lokasi Terdaftar Jaring",
+    sourceReportLabel: "Lokasi Aktual Laporan",
+    situationLabel: "Situasi Jaring",
+    displayedMetricLabel: "Jaring Ditampilkan",
+    verificationMetricLabel: "Status Registrasi",
+    activeMetricLabel: "Jaring Aktif 90 Hari",
+    reportingMetricLabel: "Pernah Melapor",
+    coordinateMetricLabel: "Titik Koordinat",
+    denseAreaDetailLabel: "Jaring",
+    emptyListText: "Tidak ada Jaring sesuai wilayah dan filter aktif.",
+    detailLinkLabel: "Lihat Detail Jaring",
+    statusLabels: {
+      VERIFIED: "Disetujui",
+      PENDING: "Menunggu Tinjauan",
+      REJECTED: "Ditolak",
+    },
+  },
+  gaswil: {
+    mode: "gaswil",
+    singular: "Gaswil",
+    plural: "Gaswil",
+    headerBadge: "PETA SEBARAN GASWIL",
+    rightPanelTitle: "DAFTAR GASWIL",
+    searchPlaceholder: "Cari wilayah, Gaswil, atau cakupan...",
+    rightSearchPlaceholder: "Cari Gaswil atau wilayah...",
+    totalSummaryLabel: "Total Gaswil",
+    allDateLabel: "Semua Sinyal Lokasi",
+    sourceDomicileLabel: "Lokasi Terakhir Gaswil",
+    sourceReportLabel: "Lokasi Aktual Laporan",
+    situationLabel: "Situasi Gaswil",
+    displayedMetricLabel: "Gaswil Ditampilkan",
+    verificationMetricLabel: "Lokasi Terekam",
+    activeMetricLabel: "Gaswil Aktif",
+    reportingMetricLabel: "Laporan Jaring Binaan",
+    coordinateMetricLabel: "Titik Lokasi Terakhir",
+    denseAreaDetailLabel: "Gaswil",
+    emptyListText: "Tidak ada Gaswil sesuai wilayah dan filter aktif.",
+    detailLinkLabel: "Lihat Detail Gaswil",
+    statusLabels: {
+      VERIFIED: PERSONNEL_LOCATION_VISUALS.ONLINE.label,
+      PENDING: PERSONNEL_LOCATION_VISUALS.OFFLINE.label,
+      REJECTED: "Akun Bermasalah",
+    },
+  },
 };
 
 export const CALLOUT_COLORS = [

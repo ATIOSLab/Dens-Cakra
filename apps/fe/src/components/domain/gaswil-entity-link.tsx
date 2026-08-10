@@ -17,7 +17,7 @@ export type GaswilEntityReference = {
 export function resolveGaswilDetailHref(role: SystemRole | undefined, reference: GaswilEntityReference) {
   if (reference.href) return reference.href;
   if (role === SYSTEM_ROLES.EXECUTIVE && reference.userProfileId) {
-    return `/dashboard/executive/personil/${reference.userProfileId}`;
+    return `/dashboard/personel-lapangan/${reference.userProfileId}`;
   }
   if (role === SYSTEM_ROLES.ADMIN_SYSTEM && reference.userProfileId) {
     return `/dashboard/admin-system/pengguna/${reference.userProfileId}`;

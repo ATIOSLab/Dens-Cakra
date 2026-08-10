@@ -17,8 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { BackButton } from "@/components/ui/back-button";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
+import { isDkiJakartaProvinceArea } from "@/features/baket/administrative-area";
 import type { RegionalMasterOverview } from "@/features/directives/types";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 
@@ -99,7 +100,69 @@ function requiredAreaLevelLabel(roleCode: RoleCode) {
 }
 
 function toAreaSearchResult(area: AreaSummary): AreaSearchResult {
-  return { id: area.id, code: area.code, name: area.name, level: area.level };
+  return { id: area.id, code: area.code, officialCode: area.officialCode, name: area.name, level: area.level };
+}
+
+function isDirectorateSupervisionRole(roleCode: RoleCode) {
+  return roleCode === "REGIONAL_COMMANDER" || roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER";
+}
+
+function isDirectorateDkiSupervision(branch: BranchValue, roleCode: RoleCode, province: AreaSearchResult | null) {
+  return branch === "DIRECTORATE" && isDirectorateSupervisionRole(roleCode) && isDkiJakartaProvinceArea(province);
+}
+
+function selectedAreasForAnchor(branch: BranchValue, roleCode: RoleCode, areas: AreaSearchResult[]) {
+  if (!isDirectorateSupervisionRole(roleCode)) return [];
+  if (branch !== "DIRECTORATE") return areas;
+  return areas.filter((area) => !isDkiJakartaProvinceArea(area));
+}
+
+function provinceCoverageDescription(branch: BranchValue, isProvinceScope: boolean) {
+  if (branch === "DIRECTORATE" && isProvinceScope) {
+    return "Pilih provinsi non-DKI sebagai cakupan provinsi. Untuk DKI Jakarta, pilih provinsinya lalu tentukan kota/kabupaten supervisi.";
+  }
+  if (isProvinceScope) return "Pilih provinsi dari cakupan unit terpilih.";
+  return "Pilih provinsi induk untuk menurunkan daftar kabupaten/kota atau kecamatan.";
+}
+
+function areaScopeContextLabel(
+  roleCode: RoleCode,
+  selectedRegencyCity: AreaSearchResult | null,
+  selectedProvince: AreaSearchResult | null,
+) {
+  if (roleCode === "FIELD_OFFICER" && selectedRegencyCity) return ` dari ${selectedRegencyCity.name}`;
+  if (selectedProvince) return ` dari ${selectedProvince.name}`;
+  return "";
+}
+
+function emptyAreaScopeMessage(
+  isPusat: boolean,
+  fieldOfficerNeedsRegency: boolean,
+  isDkiDirectorateSupervision: boolean,
+) {
+  if (isPusat) return "Cakupan pusat akan memakai negara Indonesia.";
+  if (fieldOfficerNeedsRegency)
+    return "Pilih kabupaten/kota induk dulu agar kecamatan terfilter dari wilayah tersebut.";
+  if (isDkiDirectorateSupervision) return "Pilih Kota/Kabupaten DKI Jakarta sebagai scope supervisi Direktorat.";
+  return "Pilih wilayah dari daftar yang tersedia.";
+}
+
+function regionalAnchorPlaceholder(loading: boolean, branch: BranchValue) {
+  if (loading) return "Memuat master wilayah...";
+  if (branch === "DIRECTORATE") return "Pilih dari daftar Direktorat";
+  return "Pilih dari daftar Binda";
+}
+
+function isProvinceCoverageSelected(input: {
+  isProvinceScope: boolean;
+  isDkiDirectorateProvince: boolean;
+  selectedProvinceId: string | null;
+  selectedAreas: AreaSearchResult[];
+  area: AreaSearchResult;
+}) {
+  if (!input.isProvinceScope) return input.selectedProvinceId === input.area.id;
+  if (input.isDkiDirectorateProvince) return input.selectedProvinceId === input.area.id;
+  return input.selectedAreas.some((item) => item.id === input.area.id);
 }
 
 function uniqueAreas(areas: AreaSearchResult[]) {
@@ -256,11 +319,13 @@ export function JabatanFormClient({ mode, position }: Props) {
 
     if (branch === "BINDA") {
       return regionalOverview.provinces
-        .filter((province) => province.binda)
+        .filter((province): province is typeof province & { binda: NonNullable<typeof province.binda> } =>
+          Boolean(province.binda),
+        )
         .map((province) => ({
-          unitId: province.binda!.unitId,
-          code: province.binda!.code,
-          name: province.binda!.name,
+          unitId: province.binda.unitId,
+          code: province.binda.code,
+          name: province.binda.name,
           type: "BINDA" as const,
           coverageAreas: [toAreaSearchResult(province.province)],
           primaryProvinceAreaId: province.province.id,
@@ -280,6 +345,7 @@ export function JabatanFormClient({ mode, position }: Props) {
               directorate.coverageAreas.map((area) => ({
                 id: area.areaId,
                 code: area.code,
+                officialCode: area.officialCode,
                 name: area.name,
                 level: area.level,
               })),
@@ -313,7 +379,7 @@ export function JabatanFormClient({ mode, position }: Props) {
     setRegencyCityAreas([]);
     setDrilldownAreas([]);
     setUnitQuery("");
-  }, [branch, isCreate]);
+  }, [isCreate]);
 
   useEffect(() => {
     if (!isCreate || !selectedAnchor) return;
@@ -324,17 +390,13 @@ export function JabatanFormClient({ mode, position }: Props) {
     );
     setSelectedRegencyCityId(null);
 
-    if (roleCode === "REGIONAL_COMMANDER" || roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER") {
-      setSelectedAreas(selectedAnchor.coverageAreas);
-    } else {
-      setSelectedAreas([]);
-    }
-  }, [isCreate, roleCode, selectedAnchor]);
+    setSelectedAreas(selectedAreasForAnchor(branch, roleCode, selectedAnchor.coverageAreas));
+  }, [branch, isCreate, roleCode, selectedAnchor]);
 
   useEffect(() => {
     if (!isCreate || roleCode !== "FIELD_OFFICER") return;
     setSelectedAreas([]);
-  }, [isCreate, roleCode, selectedRegencyCityId]);
+  }, [isCreate, roleCode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -343,7 +405,9 @@ export function JabatanFormClient({ mode, position }: Props) {
       if (
         !isCreate ||
         branch === "PUSAT" ||
-        (roleCode !== "FIELD_COORDINATOR" && roleCode !== "FIELD_OFFICER") ||
+        (roleCode !== "FIELD_COORDINATOR" &&
+          roleCode !== "FIELD_OFFICER" &&
+          !isDirectorateDkiSupervision(branch, roleCode, selectedProvince)) ||
         !selectedProvinceId
       ) {
         setRegencyCityAreas([]);
@@ -362,7 +426,11 @@ export function JabatanFormClient({ mode, position }: Props) {
       if (!cancelled) {
         const options = uniqueAreas([...regencies, ...cities]);
         setRegencyCityAreas(options);
-        setDrilldownAreas(roleCode === "FIELD_COORDINATOR" ? options : []);
+        setDrilldownAreas(
+          roleCode === "FIELD_COORDINATOR" || isDirectorateDkiSupervision(branch, roleCode, selectedProvince)
+            ? options
+            : [],
+        );
         setSelectedRegencyCityId((current) =>
           current && options.some((area) => area.id === current) ? current : null,
         );
@@ -380,7 +448,7 @@ export function JabatanFormClient({ mode, position }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [branch, isCreate, roleCode, selectedProvinceId]);
+  }, [branch, isCreate, roleCode, selectedProvince, selectedProvinceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -462,8 +530,8 @@ export function JabatanFormClient({ mode, position }: Props) {
           </h1>
           <p className="max-w-4xl text-sm text-muted-foreground">
             {isCreate
-              ? "Pilih tipe jabatan, unit, penempatan, dan wilayah agar jabatan siap dipakai saat provisioning pengguna."
-              : "Perubahan jabatan akan dipakai oleh flow provisioning dan mutasi user berikutnya."}
+              ? "Pilih tipe jabatan, unit, penempatan, dan wilayah agar jabatan siap dipakai saat penyediaan pengguna."
+              : "Perubahan jabatan akan dipakai oleh alur penyediaan dan mutasi pengguna berikutnya."}
           </p>
         </div>
         <BackButton
@@ -481,7 +549,7 @@ export function JabatanFormClient({ mode, position }: Props) {
             <Save className="size-4" />
             Data jabatan
           </CardTitle>
-          <CardDescription>Master jabatan menjadi sumber unit, penempatan, dan scope wilayah user.</CardDescription>
+          <CardDescription>Master jabatan menjadi sumber unit, penempatan, dan cakupan wilayah pengguna.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <FieldGroup>
@@ -572,6 +640,7 @@ export function JabatanFormClient({ mode, position }: Props) {
                     anchors={regionalAnchors}
                     selectedAnchor={selectedAnchor}
                     onSelect={(anchor) => {
+                      const firstProvinceId = anchor.primaryProvinceAreaId ?? anchor.coverageAreas[0]?.id ?? null;
                       setSelectedUnit({
                         id: anchor.unitId,
                         code: anchor.code,
@@ -579,12 +648,8 @@ export function JabatanFormClient({ mode, position }: Props) {
                         type: anchor.type,
                         branch,
                       });
-                      setSelectedProvinceId(anchor.primaryProvinceAreaId ?? anchor.coverageAreas[0]?.id ?? null);
-                      setSelectedAreas(
-                        roleCode === "REGIONAL_COMMANDER" || roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER"
-                          ? anchor.coverageAreas
-                          : [],
-                      );
+                      setSelectedProvinceId(firstProvinceId);
+                      setSelectedAreas(selectedAreasForAnchor(branch, roleCode, anchor.coverageAreas));
                     }}
                     onClear={() => {
                       setSelectedUnit(null);
@@ -595,15 +660,22 @@ export function JabatanFormClient({ mode, position }: Props) {
                 )}
                 {branch !== "PUSAT" && selectedAnchor ? (
                   <ProvinceCoverageSelector
+                    branch={branch}
                     roleCode={roleCode}
                     coverageAreas={selectedAnchor.coverageAreas}
                     selectedProvinceId={selectedProvinceId}
                     selectedAreas={selectedAreas}
                     onSelectProvince={(area) => {
                       setSelectedProvinceId(area.id);
-                      if (roleCode === "FIELD_COORDINATOR" || roleCode === "FIELD_OFFICER") {
+                      if (
+                        roleCode === "FIELD_COORDINATOR" ||
+                        roleCode === "FIELD_OFFICER" ||
+                        isDirectorateDkiSupervision(branch, roleCode, area)
+                      ) {
                         setSelectedRegencyCityId(null);
-                        setSelectedAreas([]);
+                        if (!isDirectorateDkiSupervision(branch, roleCode, area)) {
+                          setSelectedAreas([]);
+                        }
                       }
                     }}
                     onToggleProvinceScope={(area) => setSelectedAreas((current) => toggleArea(current, area))}
@@ -627,6 +699,7 @@ export function JabatanFormClient({ mode, position }: Props) {
                   selectedProvince={selectedProvince}
                   selectedRegencyCity={regencyCityAreas.find((area) => area.id === selectedRegencyCityId) ?? null}
                   isPusat={branch === "PUSAT"}
+                  isDkiDirectorateSupervision={isDirectorateDkiSupervision(branch, roleCode, selectedProvince)}
                   onToggleArea={(area) => setSelectedAreas((current) => toggleArea(current, area))}
                   onRemoveArea={(areaId) => setSelectedAreas((current) => current.filter((area) => area.id !== areaId))}
                 />
@@ -751,19 +824,13 @@ function RegionalAnchorSelector({
       <Label htmlFor="regional-anchor">{label}</Label>
       <NativeSelect
         id="regional-anchor"
-        value={selectedAnchor?.unitId ?? ""}
+        value={selectedAnchor ? selectedAnchor.unitId : ""}
         onChange={(event) => {
           const anchor = anchors.find((item) => item.unitId === event.target.value);
           if (anchor) onSelect(anchor);
         }}
       >
-        <NativeSelectOption value="">
-          {loading
-            ? "Memuat master wilayah..."
-            : branch === "DIRECTORATE"
-              ? "Pilih dari daftar Direktorat"
-              : "Pilih dari daftar Binda"}
-        </NativeSelectOption>
+        <NativeSelectOption value="">{regionalAnchorPlaceholder(loading, branch)}</NativeSelectOption>
         {anchors.map((anchor) => (
           <NativeSelectOption key={anchor.unitId} value={anchor.unitId}>
             {anchor.name} - {anchor.code}
@@ -786,6 +853,7 @@ function RegionalAnchorSelector({
 }
 
 function ProvinceCoverageSelector({
+  branch,
   roleCode,
   coverageAreas,
   selectedProvinceId,
@@ -793,6 +861,7 @@ function ProvinceCoverageSelector({
   onSelectProvince,
   onToggleProvinceScope,
 }: {
+  branch: BranchValue;
   roleCode: RoleCode;
   coverageAreas: AreaSearchResult[];
   selectedProvinceId: string | null;
@@ -800,23 +869,25 @@ function ProvinceCoverageSelector({
   onSelectProvince: (area: AreaSearchResult) => void;
   onToggleProvinceScope: (area: AreaSearchResult) => void;
 }) {
-  const isProvinceScope = roleCode === "REGIONAL_COMMANDER" || roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER";
+  const isProvinceScope = isDirectorateSupervisionRole(roleCode);
 
   return (
     <div className="space-y-3 rounded-lg border border-border/70 p-4">
       <div>
-        <Label>{isProvinceScope ? "Provinsi tanggung jawab" : "Provinsi induk coverage"}</Label>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isProvinceScope
-            ? "Pilih provinsi dari coverage unit terpilih."
-            : "Pilih provinsi induk untuk menurunkan daftar kabupaten/kota atau kecamatan."}
-        </p>
+        <Label>{isProvinceScope ? "Provinsi tanggung jawab" : "Provinsi induk cakupan"}</Label>
+        <p className="mt-1 text-sm text-muted-foreground">{provinceCoverageDescription(branch, isProvinceScope)}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {coverageAreas.map((area) => {
-          const selected = isProvinceScope
-            ? selectedAreas.some((item) => item.id === area.id)
-            : selectedProvinceId === area.id;
+          const isDkiDirectorateProvince =
+            branch === "DIRECTORATE" && isProvinceScope && isDkiJakartaProvinceArea(area);
+          const selected = isProvinceCoverageSelected({
+            isProvinceScope,
+            isDkiDirectorateProvince,
+            selectedProvinceId,
+            selectedAreas,
+            area,
+          });
 
           return (
             <Button
@@ -824,7 +895,15 @@ function ProvinceCoverageSelector({
               type="button"
               size="sm"
               variant={selected ? "default" : "outline"}
-              onClick={() => (isProvinceScope ? onToggleProvinceScope(area) : onSelectProvince(area))}
+              onClick={() => {
+                if (isDkiDirectorateProvince) {
+                  onSelectProvince(area);
+                } else if (isProvinceScope) {
+                  onToggleProvinceScope(area);
+                } else {
+                  onSelectProvince(area);
+                }
+              }}
             >
               {area.name}
             </Button>
@@ -874,6 +953,7 @@ function AreaScopeSelector({
   selectedProvince,
   selectedRegencyCity,
   isPusat,
+  isDkiDirectorateSupervision,
   onToggleArea,
   onRemoveArea,
 }: {
@@ -884,24 +964,22 @@ function AreaScopeSelector({
   selectedProvince: AreaSearchResult | null;
   selectedRegencyCity: AreaSearchResult | null;
   isPusat: boolean;
+  isDkiDirectorateSupervision: boolean;
   onToggleArea: (area: AreaSearchResult) => void;
   onRemoveArea: (areaId: string) => void;
 }) {
-  const needsDrilldown = roleCode === "FIELD_COORDINATOR" || roleCode === "FIELD_OFFICER";
+  const needsDrilldown =
+    roleCode === "FIELD_COORDINATOR" || roleCode === "FIELD_OFFICER" || isDkiDirectorateSupervision;
   const fieldOfficerNeedsRegency = roleCode === "FIELD_OFFICER" && !selectedRegencyCity;
+  const levelLabel = isDkiDirectorateSupervision ? "Kota/Kabupaten DKI Jakarta" : requiredAreaLevelLabel(roleCode);
 
   return (
     <div className="space-y-3 rounded-lg border border-border/70 p-4">
       <div>
         <Label>Wilayah tanggung jawab</Label>
         <p className="mt-1 text-sm text-muted-foreground">
-          Level jabatan ini: {requiredAreaLevelLabel(roleCode)}
-          {roleCode === "FIELD_OFFICER" && selectedRegencyCity
-            ? ` dari ${selectedRegencyCity.name}`
-            : selectedProvince
-              ? ` dari ${selectedProvince.name}`
-              : ""}
-          .
+          Level jabatan ini: {levelLabel}
+          {areaScopeContextLabel(roleCode, selectedRegencyCity, selectedProvince)}.
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -909,18 +987,14 @@ function AreaScopeSelector({
           selectedAreas.map((area, index) => areaChip(area, index === 0, () => onRemoveArea(area.id)))
         ) : (
           <p className="text-sm text-muted-foreground">
-            {isPusat
-              ? "Scope pusat akan memakai negara Indonesia."
-              : fieldOfficerNeedsRegency
-                ? "Pilih kabupaten/kota induk dulu agar kecamatan terfilter dari wilayah tersebut."
-                : "Pilih wilayah dari daftar yang tersedia."}
+            {emptyAreaScopeMessage(isPusat, fieldOfficerNeedsRegency, isDkiDirectorateSupervision)}
           </p>
         )}
       </div>
       {needsDrilldown ? (
         <div className="space-y-2">
           <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            {roleCode === "FIELD_COORDINATOR" ? "Kabupaten/Kota tersedia" : "Kecamatan tersedia"}
+            {roleCode === "FIELD_OFFICER" ? "Kecamatan tersedia" : "Kabupaten/Kota tersedia"}
           </div>
           {drilldownLoading ? <p className="text-sm text-muted-foreground">Memuat wilayah...</p> : null}
           {!drilldownLoading && drilldownAreas.length ? (

@@ -48,7 +48,7 @@ async function forwardApiRequest(request: NextRequest) {
         success: false,
         error: {
           code: "BACKEND_UNAVAILABLE",
-          message: "Layanan backend belum tersedia. Pastikan backend berjalan pada port 3001.",
+          message: "Layanan backend belum tersedia. Coba lagi beberapa saat lagi.",
         },
         requestId: crypto.randomUUID(),
         timestamp: new Date().toISOString(),

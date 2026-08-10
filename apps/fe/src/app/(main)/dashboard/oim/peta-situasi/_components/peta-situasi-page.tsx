@@ -4,10 +4,10 @@ export function PetaSituasiPage() {
   return (
     <DensModulePage
       title="Peta Situasi"
-      role="Manajer Intelijen Operasional"
+      roleLabel="Manajer Intelijen Operasional"
       description="Halaman ini disiapkan untuk peta laporan, tugas, personel, dan hotspot operasional."
       highlights={[
-        "Lokasi laporan, lokasi tugas, dan coverage gap.",
+        "Lokasi laporan, lokasi tugas, dan kesenjangan cakupan.",
         "Hotspot, aksi massa, dan layer ancaman.",
         "Detail Baket dan validasi koordinat dari peta.",
       ]}

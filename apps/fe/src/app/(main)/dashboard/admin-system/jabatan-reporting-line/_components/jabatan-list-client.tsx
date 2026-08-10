@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { BriefcaseBusiness, MapPin, Plus, Users } from "lucide-react";
+import { BriefcaseBusiness, Building2, GitBranch, MapPin, Plus, ShieldCheck, Users } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,147 @@ type Props = {
   queryState: JabatanListQueryState;
 };
 
+const COMMAND_LANE_STEPS = [
+  {
+    title: "BIN Pusat",
+    description: "Dipimpin Kepala BIN (KaBIN) - tingkat nasional",
+    relation: "komando",
+  },
+  {
+    title: "BIN Daerah (Binda)",
+    description: "Dipimpin Kepala BIN Daerah (Kabinda) - tingkat provinsi",
+    relation: "membawahi",
+    highlight: true,
+  },
+  {
+    title: "Koordinator Wilayah (Korwil)",
+    description: "Tingkat kabupaten/kota",
+    relation: "mengoordinasikan",
+  },
+  {
+    title: "Petugas Wilayah (Gaswil)",
+    description: "Tingkat kecamatan",
+    relation: "membina",
+  },
+  {
+    title: "Jaring",
+    description: "Mengirim laporan Jaring melalui WhatsApp Center",
+  },
+];
+
+const DIRECTORATE_SUPERVISION_STEPS = [
+  {
+    title: "Kedeputian II",
+    description: "Dipimpin Deputi II - cakupan nasional dalam domainnya",
+  },
+  {
+    title: "Direktorat 21",
+    description: "Direktur 21",
+  },
+  {
+    title: "Direktorat 22",
+    description: "Direktur 22",
+  },
+  {
+    title: "Direktorat 23",
+    description: "Direktur 23",
+  },
+  {
+    title: "Direktorat 24",
+    description: "Direktur 24",
+  },
+  {
+    title: "Direktorat 25",
+    description: "Direktur 25",
+  },
+];
+
+const HIERARCHY_REFERENCE_ROWS = [
+  ["Nasional", "Badan Intelijen Negara (BIN)", "Kepala BIN (KaBIN)", "Seluruh Indonesia"],
+  ["Kedeputian", "Kedeputian II", "Deputi II", "Seluruh wilayah dalam domain Deputi II"],
+  ["Direktorat", "Direktorat 21-25", "Direktur 21-25", "Beberapa provinsi sesuai supervisi"],
+  ["Provinsi", "BIN Daerah (Binda)", "Kepala BIN Daerah (Kabinda)", "Satu provinsi"],
+  ["Kabupaten/Kota", "Koordinator Wilayah Kabupaten/Kota", "Koordinator Wilayah (Korwil)", "Satu kabupaten/kota"],
+  ["Kecamatan", "Petugas Wilayah Kecamatan", "Petugas Wilayah (Gaswil)", "Satu atau beberapa kecamatan"],
+  ["Lapangan", "Jaring", "Jaring", "Wilayah atau penugasan tertentu"],
+];
+
+const ANEV_FUNCTION_ROWS = [
+  ["Anev Kabupaten/Kota", "Kabupaten/Kota", "Korwil atau personel yang ditunjuk"],
+  ["Anev Binda", "Provinsi", "Kabaops, Kasubdit, atau personel Binda"],
+  ["Anev Direktorat", "Pusat", "Personel Direktorat 21-25"],
+  ["Anev Kedeputian", "Pusat", "Personel Kedeputian II"],
+];
+
+const ACCESS_SCOPE_ROWS = [
+  ["KaBIN", "Seluruh data nasional"],
+  ["Deputi II", "Seluruh data nasional dalam domain Kedeputian II"],
+  ["Direktur/Anev Direktorat", "Provinsi non-DKI atau kota/kabupaten DKI yang disupervisi Direktoratnya"],
+  ["Kabinda/Anev Binda", "Seluruh data dalam satu provinsi"],
+  ["Korwil", "Seluruh data dalam satu kabupaten/kota"],
+  ["Gaswil", "Kecamatan penugasan dan jaring binaannya"],
+  ["Jaring", "Kiriman miliknya sendiri melalui WhatsApp Center"],
+];
+
+const INFORMATION_PRODUCT_ROWS = [
+  ["Laporan Jaring", "Jaring melalui WhatsApp Center", "Informasi awal lapangan"],
+  ["Draf Baket", "Petugas Wilayah (Gaswil)", "Hasil verifikasi dan penyusunan awal"],
+  ["Baket Tervalidasi", "Koordinator Wilayah (Korwil)", "Bahan Keterangan tingkat kabupaten/kota"],
+  ["Laporan Intelijen Binda", "Anev Binda", "Produk intelijen tingkat provinsi"],
+  ["Laporan Intelijen Direktorat", "Anev Direktorat", "Produk gabungan beberapa provinsi"],
+  ["Produk Kedeputian II", "Kedeputian II", "Produk intelijen tingkat pusat"],
+];
+
+const BOTTOM_UP_FLOW_STEPS = [
+  "Jaring mengirim Laporan Jaring melalui WhatsApp Center.",
+  "Petugas Wilayah (Gaswil) menerima, mengklarifikasi, memverifikasi, dan menyusun Draf Baket.",
+  "Koordinator Wilayah (Korwil) mengendalikan Gaswil serta melakukan Anev dan validasi tingkat kabupaten/kota.",
+  "Baket tervalidasi diteruskan kepada Binda.",
+  "Anev Binda mengolah Baket menjadi Laporan Intelijen Binda.",
+  "Kabinda melakukan pengendalian atau persetujuan sesuai workflow.",
+  "Laporan dikirim ke Direktorat yang menyupervisi Binda tersebut.",
+  "Anev Direktorat mengolah laporan dari beberapa provinsi.",
+  "Direktur mengendalikan atau menyetujui produk Direktorat.",
+  "Produk diteruskan kepada Kedeputian II.",
+  "Deputi II memberikan persetujuan, disposisi, atau arahan lebih lanjut.",
+  "Produk tertentu dapat diteruskan kepada KaBIN sesuai kewenangan.",
+];
+
+const TOP_DOWN_ROUTE = ["KaBIN", "Deputi II", "Direktur", "Kabinda", "Korwil", "Gaswil", "Jaring"];
+
+const ROLE_IDENTITY_FIELDS = [
+  "user_id",
+  "nama",
+  "jabatan",
+  "role",
+  "fungsi",
+  "unit_organisasi",
+  "direktorat_id",
+  "binda_id",
+  "provinsi_id",
+  "kabupaten_kota_id",
+  "kecamatan_id",
+  "wilayah_penugasan",
+  "atasan_langsung",
+  "status_akun",
+];
+
+const ACTION_PERMISSION_ITEMS = [
+  "Lihat",
+  "Buat",
+  "Edit",
+  "Verifikasi",
+  "Kembalikan untuk perbaikan",
+  "Tolak",
+  "Setujui",
+  "Teruskan",
+  "Disposisi",
+  "Berikan arahan",
+  "Tutup tindak lanjut",
+  "Ekspor",
+  "Kelola pengguna",
+];
+
 function branchLabel(branch?: string | null) {
   if (branch === "PUSAT") return "Pusat";
   if (branch === "DIRECTORATE") return "Direktorat";
@@ -41,20 +182,342 @@ function coverageLabel(position: JabatanResource) {
   return coverages.length > 1 ? `${primary.area.name} +${coverages.length - 1}` : primary.area.name;
 }
 
+function DiagramNode({
+  title,
+  description,
+  tone = "default",
+}: {
+  title: string;
+  description: string;
+  tone?: "default" | "meeting" | "supervision";
+}) {
+  let toneClass = "border-white/10 bg-white/[0.06]";
+  if (tone === "meeting") {
+    toneClass = "border-emerald-400/40 bg-emerald-500/15";
+  }
+  if (tone === "supervision") {
+    toneClass = "border-sky-300/25 bg-sky-400/15";
+  }
+
+  return (
+    <div className={`rounded-[6px] border px-3 py-3 text-center text-white shadow-sm ${toneClass}`}>
+      <div className="font-semibold text-[12px] leading-tight">{title}</div>
+      <div className="mt-1 text-[11px] text-slate-300 leading-snug">{description}</div>
+    </div>
+  );
+}
+
+function CommandConnector({ label }: { label?: string }) {
+  if (!label) {
+    return <div className="py-1 text-center font-mono text-[11px] text-sky-200">|</div>;
+  }
+
+  return (
+    <div className="py-1 text-center">
+      <div className="text-[11px] text-slate-300">{label}</div>
+      <div className="font-mono text-[11px] text-sky-200">|</div>
+    </div>
+  );
+}
+
+function DirectorateCard({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-[6px] border border-sky-300/25 bg-sky-500/15 px-2 py-3 text-center text-white">
+      <div className="font-semibold text-[11px] leading-tight">{title}</div>
+      <div className="mt-1 text-[10px] text-slate-300">{description}</div>
+    </div>
+  );
+}
+
+function ReferenceTable({ title, columns, rows }: { title: string; columns: string[]; rows: string[][] }) {
+  return (
+    <div className="rounded-[8px] border border-border/70 bg-muted/15">
+      <div className="border-border/70 border-b px-3 py-2 font-semibold text-sm">{title}</div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[520px] text-left text-xs">
+          <thead className="bg-muted/30 text-muted-foreground">
+            <tr>
+              {columns.map((column) => (
+                <th key={column} className="px-3 py-2 font-semibold">
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.join("|")} className="border-border/60 border-t">
+                {row.map((cell, index) => {
+                  const column = columns[index] ?? cell;
+                  return (
+                    <td key={`${row.join("|")}-${column}`} className="px-3 py-2 align-top">
+                      {cell}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function BottomUpFlow() {
+  return (
+    <div className="rounded-[8px] border border-border/70 bg-muted/15 p-3">
+      <div className="flex items-center gap-2 font-semibold text-sm">
+        <GitBranch className="size-4 text-sky-600" />
+        Flow Laporan Bottom-Up
+      </div>
+      <ol className="mt-3 space-y-2 text-muted-foreground text-xs">
+        {BOTTOM_UP_FLOW_STEPS.map((step, index) => (
+          <li key={step} className="grid grid-cols-[24px_minmax(0,1fr)] gap-2">
+            <span className="flex size-5 items-center justify-center rounded-[4px] bg-sky-500/10 font-semibold text-sky-700">
+              {index + 1}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function TopDownFlow() {
+  return (
+    <div className="rounded-[8px] border border-border/70 bg-muted/15 p-3">
+      <div className="flex items-center gap-2 font-semibold text-sm">
+        <GitBranch className="size-4 text-emerald-600" />
+        Flow Arahan Top-Down
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        {TOP_DOWN_ROUTE.map((item, index) => (
+          <div key={item} className="flex items-center gap-2">
+            <span className="rounded-[4px] border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-700">
+              {item}
+            </span>
+            {index < TOP_DOWN_ROUTE.length - 1 ? <span className="text-muted-foreground">{"->"}</span> : null}
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-muted-foreground text-xs">
+        Arahan perintah, supervisi, dan tindak lanjut bergerak dari KaBIN sampai Jaring sesuai garis kewenangan.
+      </p>
+    </div>
+  );
+}
+
+function CommandSupervisionDiagram() {
+  return (
+    <Card className="overflow-hidden border border-border/70">
+      <CardHeader>
+        <CardTitle>Hubungan Komando dan Supervisi</CardTitle>
+        <CardDescription>
+          Dua lajur sejajar: kiri menunjukkan garis komando kewilayahan, kanan menunjukkan garis supervisi BIN Pusat.
+          Binda menjadi titik temu supervisi Direktorat dengan komando kewilayahan.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <section className="rounded-[8px] border border-slate-700 bg-[#17171f] p-4 text-white">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="space-y-2">
+              <div className="rounded-[6px] bg-sky-400 px-3 py-2 text-center font-semibold text-slate-950 text-xs">
+                Garis Komando Kewilayahan
+              </div>
+              <div className="space-y-0">
+                {COMMAND_LANE_STEPS.map((step, index) => (
+                  <div key={step.title}>
+                    <DiagramNode
+                      title={step.title}
+                      description={step.description}
+                      tone={step.highlight ? "meeting" : "default"}
+                    />
+                    {index < COMMAND_LANE_STEPS.length - 1 ? <CommandConnector label={step.relation} /> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="rounded-[6px] bg-sky-400 px-3 py-2 text-center font-semibold text-slate-950 text-xs">
+                Garis Supervisi BIN Pusat
+              </div>
+              <div className="space-y-2">
+                <div className="text-center text-[11px] text-slate-300">
+                  BIN Pusat
+                  <div className="font-mono text-sky-200">|</div>
+                </div>
+                <DiagramNode
+                  title={DIRECTORATE_SUPERVISION_STEPS[0].title}
+                  description={DIRECTORATE_SUPERVISION_STEPS[0].description}
+                  tone="supervision"
+                />
+                <div className="text-center text-[11px] text-slate-300">
+                  membawahi
+                  <div className="font-mono text-sky-200">|</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  {DIRECTORATE_SUPERVISION_STEPS.slice(1).map((item) => (
+                    <DirectorateCard key={item.title} title={item.title} description={item.description} />
+                  ))}
+                </div>
+                <div className="pt-6">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-300">
+                    <span className="h-px min-w-10 flex-1 border-sky-400 border-t border-dashed" aria-hidden="true" />
+                    <span className="max-w-[360px]">
+                      Setiap Direktorat menyupervisi beberapa Binda sesuai pembagian provinsi
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-4 border-slate-700 border-t pt-3 text-[11px] text-slate-300">
+            <span className="flex items-center gap-2">
+              <span className="h-px w-8 border-emerald-400 border-t-2" aria-hidden="true" />
+              Garis solid = hubungan komando
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-px w-8 border-sky-400 border-t border-dashed" aria-hidden="true" />
+              Garis putus-putus = hubungan supervisi
+            </span>
+          </div>
+        </section>
+
+        <section className="mt-4 space-y-3 rounded-[8px] border border-sky-500/30 bg-sky-500/[0.03] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="size-4 text-sky-600" />
+              <h2 className="font-semibold text-sm">Pengecualian DKI Jakarta</h2>
+            </div>
+            <Badge variant="outline" className="rounded-[4px] text-[10px]">
+              Supervisi sampai kota/Korwil
+            </Badge>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Untuk DKI Jakarta, Binda DKI/Kabinda tetap berada pada garis komando. Supervisi Direktorat diarahkan ke
+            wilayah kota/Korwil tertentu, bukan mengambil alih komando Kabinda.
+          </p>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-[6px] border border-sky-500/30 bg-background p-3 text-xs">
+              <div className="font-semibold">Sumber mapping</div>
+              <p className="mt-1 text-muted-foreground">
+                Dibaca dari assignment wilayah supervisi yang diatur admin, bukan dari mapping source code.
+              </p>
+            </div>
+            <div className="rounded-[6px] border border-sky-500/30 bg-background p-3 text-xs">
+              <div className="font-semibold">Level DKI</div>
+              <p className="mt-1 text-muted-foreground">
+                Direktorat memilih kota/kabupaten administratif DKI dari master wilayah.
+              </p>
+            </div>
+            <div className="rounded-[6px] border border-sky-500/30 bg-background p-3 text-xs">
+              <div className="font-semibold">Level provinsi lain</div>
+              <p className="mt-1 text-muted-foreground">
+                Direktorat memilih provinsi/Binda sesuai wilayah supervisinya.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-4 space-y-4">
+          <div className="rounded-[8px] border border-border/70 bg-muted/15 p-4">
+            <div className="flex items-center gap-2 font-semibold text-sm">
+              <Building2 className="size-4 text-sky-600" />
+              Hubungan Direktorat dengan Binda
+            </div>
+            <p className="mt-2 text-muted-foreground text-sm">
+              Untuk provinsi selain DKI Jakarta, pembagian supervisi Direktorat dibuat sebagai master data dinamis
+              dengan pola Direktorat -&gt; Provinsi -&gt; Binda yang disupervisi. Direktorat hanya melihat data dari
+              provinsi dalam wilayah supervisinya, termasuk Korwil, Gaswil, Jaring, dan produk informasi di bawah Binda
+              tersebut.
+            </p>
+            <p className="mt-2 text-muted-foreground text-sm">
+              Khusus DKI Jakarta, supervisi Direktorat diarahkan sampai wilayah kota/Korwil seperti panel pengecualian
+              di atas. Assignment kota/kabupaten DKI diubah melalui panel admin, tanpa perubahan source code.
+            </p>
+          </div>
+
+          <ReferenceTable
+            title="Acuan Hierarki Organisasi dan Role"
+            columns={["Tingkat", "Unit/Tingkatan", "Pimpinan/Petugas", "Cakupan"]}
+            rows={HIERARCHY_REFERENCE_ROWS}
+          />
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <BottomUpFlow />
+            <TopDownFlow />
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <ReferenceTable
+              title="Fungsi Anev"
+              columns={["Fungsi", "Tingkat", "Pelaksana yang Dapat Ditunjuk"]}
+              rows={ANEV_FUNCTION_ROWS}
+            />
+            <ReferenceTable
+              title="Cakupan Hak Akses"
+              columns={["Role", "Data yang Dapat Diakses"]}
+              rows={ACCESS_SCOPE_ROWS}
+            />
+          </div>
+
+          <ReferenceTable
+            title="Jenis Produk Intelijen"
+            columns={["Produk", "Pembuat/Pengolah", "Hasil"]}
+            rows={INFORMATION_PRODUCT_ROWS}
+          />
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <div className="rounded-[8px] border border-border/70 bg-muted/15 p-3">
+              <div className="font-semibold text-sm">Ketentuan Implementasi Role</div>
+              <p className="mt-2 text-muted-foreground text-xs">
+                Hak akses dihitung dari kombinasi role, fungsi, unit organisasi, wilayah penugasan, dan kewenangan
+                tindakan. Nama jabatan saja tidak boleh menjadi satu-satunya dasar akses.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-1.5 text-[11px] sm:grid-cols-3">
+                {ROLE_IDENTITY_FIELDS.map((field) => (
+                  <code key={field} className="rounded-[4px] bg-background px-2 py-1 text-muted-foreground">
+                    {field}
+                  </code>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[8px] border border-border/70 bg-muted/15 p-3">
+              <div className="font-semibold text-sm">Kewenangan Tindakan</div>
+              <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
+                {ACTION_PERMISSION_ITEMS.map((item) => (
+                  <Badge key={item} variant="outline" className="rounded-[4px] bg-background">
+                    {item}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function JabatanListClient({ items, pagination, queryState }: Props) {
   const router = useRouter();
   const [viewType, setViewType] = useState<"table" | "card">("table");
   const [clientItems, setClientItems] = useState<JabatanResource[]>(items);
   const [clientPagination, setClientPagination] = useState<PaginationMeta | undefined>(pagination);
-  const [currentPage, setCurrentPage] = useState(queryState.page ?? 1);
-  const [currentLimit, setCurrentLimit] = useState(queryState.limit ?? 20);
+  const [currentPage, setCurrentPage] = useState(queryState.page);
+  const [currentLimit, setCurrentLimit] = useState(queryState.limit);
   const [loadingPage, setLoadingPage] = useState(false);
 
   useEffect(() => {
     setClientItems(items);
     setClientPagination(pagination);
-    setCurrentPage(queryState.page ?? 1);
-    setCurrentLimit(queryState.limit ?? 20);
+    setCurrentPage(queryState.page);
+    setCurrentLimit(queryState.limit);
   }, [items, pagination, queryState.limit, queryState.page]);
 
   function buildListUrl(state: JabatanListQueryState) {
@@ -143,6 +606,8 @@ export function JabatanListClient({ items, pagination, queryState }: Props) {
           </Link>
         </Button>
       </div>
+
+      <CommandSupervisionDiagram />
 
       <FilterPanel
         title="Filter jabatan"

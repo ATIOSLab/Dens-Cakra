@@ -299,7 +299,7 @@ export class BaketController {
   @ApiContract({
     operationId: 'apiBak013',
     contractId: 'API-BAK-013',
-    summary: 'Kirim Baket ke OIM',
+    summary: 'Kirim Baket ke Manajer Intelijen Operasional (OIM)',
     roles: ['field_officer'],
     idempotent: true,
   })

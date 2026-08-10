@@ -19,40 +19,22 @@ interface MapsIntelijenStatsProps {
 
 export function MapsIntelijenStats({ meta, active, onChange, loading, periodLabel }: MapsIntelijenStatsProps) {
   const reports = meta.summary.reports;
-  const complete = reports.complete ?? 0;
-  const incomplete = reports.incomplete ?? 0;
-  const total = reports.total ?? complete + incomplete;
+  const total = reports.total ?? 0;
   const cards = [
     {
       key: "REPORT" as const,
-      label: "Total Laporan Jaring",
+      label: "Laporan Jaring",
       value: total,
-      percentage: 100,
-      definition: "Jumlah Laporan Jaring yang belum dikonversi menjadi Baket; terdiri dari lengkap dan tidak lengkap.",
+      percentage: null,
+      definition: "Jumlah Laporan Jaring yang belum dikonversi menjadi Bahan Keterangan (Baket).",
       presentation: SUMMARY_CARD_PRESENTATION.REPORT,
-    },
-    {
-      key: "COMPLETE" as const,
-      label: "Laporan Jaring Lengkap",
-      value: complete,
-      percentage: total ? Math.round((complete / total) * 100) : 0,
-      definition: "Laporan Jaring yang memenuhi field wajib dan bukti foto serta belum menjadi Baket.",
-      presentation: SUMMARY_CARD_PRESENTATION.COMPLETE,
-    },
-    {
-      key: "INCOMPLETE" as const,
-      label: "Laporan Jaring Tidak Lengkap",
-      value: incomplete,
-      percentage: total ? Math.round((incomplete / total) * 100) : 0,
-      definition: "Laporan Jaring yang telah dikirim tetapi belum memenuhi seluruh field wajib.",
-      presentation: SUMMARY_CARD_PRESENTATION.INCOMPLETE,
     },
     {
       key: "BAKET" as const,
       label: "Bahan Keterangan (Baket)",
       value: meta.summary.bakets.total,
       percentage: null,
-      definition: "Laporan Jaring terverifikasi yang telah dikonversi menjadi Bahan Keterangan (Baket).",
+      definition: "Laporan Jaring yang telah dikonversi menjadi Bahan Keterangan (Baket).",
       presentation: SUMMARY_CARD_PRESENTATION.BAKET,
     },
   ];

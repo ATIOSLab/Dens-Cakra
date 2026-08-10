@@ -1,8 +1,9 @@
 "use client";
 
-import { Clock3, MapPinned, RefreshCw, ShieldCheck } from "lucide-react";
+import { Clock3, RefreshCw, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 interface MapsIntelijenHeaderProps {
@@ -34,11 +35,13 @@ export function MapsIntelijenHeader({
   scopeLabel,
   generatedAt,
 }: MapsIntelijenHeaderProps) {
+  const HeaderIcon = DOMAIN_VISUALS.intelligenceNetworkMap.Icon;
+
   return (
     <header className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-xs lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
         <h1 className="flex items-center gap-2 font-extrabold font-heading text-2xl tracking-tight md:text-3xl">
-          <MapPinned className="size-7 text-sky-500" aria-hidden="true" />
+          <HeaderIcon className={cn("size-7", DOMAIN_VISUALS.intelligenceNetworkMap.iconClass)} aria-hidden="true" />
           Peta Jejaring Intelijen
         </h1>
         <p className="mt-1 max-w-3xl text-muted-foreground text-sm">

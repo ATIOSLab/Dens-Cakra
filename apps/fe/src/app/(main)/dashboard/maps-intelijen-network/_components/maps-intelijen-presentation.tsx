@@ -3,18 +3,13 @@
 import type { ComponentType } from "react";
 
 import {
-  Archive,
   BadgeCheck,
   CircleArrowDown,
   CircleHelp,
   Clock3,
   Crosshair,
-  FileCheck2,
-  FileText,
-  FileWarning,
   MapPinned,
   MapPinOff,
-  Navigation,
   Radio,
   RadioTower,
   ShieldCheck,
@@ -30,6 +25,7 @@ import {
   URGENCY_PRESENTATION as SHARED_URGENCY_PRESENTATION,
 } from "@/lib/domain/operational-presentation";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DOMAIN_VISUALS, PERSONNEL_LOCATION_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import type { HeatmapWeight, MapMarkerType, MapNetworkProperties, SummaryCardFilter } from "./maps-intelijen-types";
@@ -41,38 +37,49 @@ export type MapSemanticPresentation = {
   iconClass: string;
   badgeClass: string;
   surfaceClass: string;
+  markerClass?: string;
 };
 
 function toneFields(
   tone: OperationalTone,
-): Pick<MapSemanticPresentation, "mapColor" | "iconClass" | "badgeClass" | "surfaceClass"> {
+): Pick<MapSemanticPresentation, "mapColor" | "iconClass" | "badgeClass" | "surfaceClass" | "markerClass"> {
   const presentation = OPERATIONAL_TONES[tone];
   return {
     mapColor: presentation.mapColor,
     iconClass: presentation.iconClass,
     badgeClass: presentation.badgeClass,
     surfaceClass: presentation.surfaceClass,
+    markerClass: presentation.markerClass,
   };
 }
 
 export const DATA_TYPE_PRESENTATION: Record<MapMarkerType, MapSemanticPresentation> = {
   report: {
-    label: DOMAIN_TERMS.jaringReport,
-    icon: FileText,
-    ...toneFields("info"),
+    label: DOMAIN_VISUALS.jaringReport.label,
+    icon: DOMAIN_VISUALS.jaringReport.Icon,
+    mapColor: DOMAIN_VISUALS.jaringReport.markerColor,
+    iconClass: DOMAIN_VISUALS.jaringReport.iconClass,
+    badgeClass: "border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+    surfaceClass: "border-cyan-500/30 bg-cyan-500/5",
+    markerClass: "bg-cyan-600 text-white",
   },
   baket: {
-    label: DOMAIN_TERMS.baket,
-    icon: Archive,
-    ...toneFields("baket"),
+    label: DOMAIN_VISUALS.baket.label,
+    icon: DOMAIN_VISUALS.baket.Icon,
+    mapColor: DOMAIN_VISUALS.baket.markerColor,
+    iconClass: DOMAIN_VISUALS.baket.iconClass,
+    badgeClass: "border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+    surfaceClass: "border-violet-500/30 bg-violet-500/5",
+    markerClass: "bg-violet-600 text-white",
   },
   agent: {
-    label: "Personel Lapangan",
-    icon: Navigation,
-    mapColor: "#3b82f6",
-    iconClass: "text-blue-600 dark:text-blue-400",
-    badgeClass: "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-    surfaceClass: "border-blue-500/30 bg-blue-500/5",
+    label: DOMAIN_VISUALS.gaswil.label,
+    icon: DOMAIN_VISUALS.gaswil.Icon,
+    mapColor: PERSONNEL_LOCATION_VISUALS.ONLINE.markerColor,
+    iconClass: DOMAIN_VISUALS.gaswil.iconClass,
+    badgeClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    surfaceClass: "border-emerald-500/30 bg-emerald-500/5",
+    markerClass: "bg-emerald-600 text-white",
   },
 };
 
@@ -101,7 +108,7 @@ export const URGENCY_PRESENTATION: Record<string, MapSemanticPresentation> = {
 
 export const VALIDITY_PRESENTATION: Record<string, MapSemanticPresentation> = {
   VALID: {
-    label: "Valid",
+    label: "Titik Berkoordinat",
     icon: BadgeCheck,
     mapColor: "#2563eb",
     iconClass: "text-blue-600 dark:text-blue-400",
@@ -109,7 +116,7 @@ export const VALIDITY_PRESENTATION: Record<string, MapSemanticPresentation> = {
     surfaceClass: "border-blue-500/30 bg-blue-500/5",
   },
   NEEDS_REVIEW: {
-    label: "Perlu Ditinjau",
+    label: "Perlu Atensi Koordinat",
     icon: TriangleAlert,
     mapColor: "#e11d48",
     iconClass: "text-rose-600 dark:text-rose-400",
@@ -117,30 +124,12 @@ export const VALIDITY_PRESENTATION: Record<string, MapSemanticPresentation> = {
     surfaceClass: "border-rose-500/30 bg-rose-500/5",
   },
   WAITING: {
-    label: "Belum Valid",
+    label: "Tanpa Koordinat",
     icon: Clock3,
     mapColor: "#64748b",
     iconClass: "text-slate-600 dark:text-slate-400",
     badgeClass: "border-slate-500/40 bg-slate-500/10 text-slate-700 dark:text-slate-300",
     surfaceClass: "border-slate-500/30 bg-slate-500/5",
-  },
-};
-
-export const COMPLETENESS_PRESENTATION: Record<string, MapSemanticPresentation> = {
-  COMPLETE: {
-    label: "Lengkap",
-    icon: FileCheck2,
-    ...toneFields("success"),
-  },
-  INCOMPLETE: {
-    label: "Tidak Lengkap",
-    icon: FileWarning,
-    ...toneFields("warning"),
-  },
-  NOT_DETERMINED: {
-    label: "Belum Ditentukan",
-    icon: CircleHelp,
-    ...toneFields("neutral"),
   },
 };
 
@@ -198,7 +187,7 @@ export const COORDINATE_SOURCE_PRESENTATION: Record<string, MapSemanticPresentat
     ...toneFields("neutral"),
   },
   CORRECTED_BY_FIELD_OFFICER: {
-    label: "Koreksi Petugas Lapangan",
+    label: `Koreksi ${DOMAIN_TERMS.fieldOfficer}`,
     icon: MapPinned,
     ...toneFields("warning"),
   },
@@ -211,7 +200,7 @@ export const COORDINATE_SOURCE_PRESENTATION: Record<string, MapSemanticPresentat
 
 export const COORDINATE_AVAILABILITY_PRESENTATION: Record<"WITH" | "WITHOUT", MapSemanticPresentation> = {
   WITH: {
-    label: "Dapat Dipetakan",
+    label: "Titik Berkoordinat",
     icon: Crosshair,
     mapColor: "#2563eb",
     iconClass: "text-blue-600 dark:text-blue-400",
@@ -231,17 +220,13 @@ export const COORDINATE_AVAILABILITY_PRESENTATION: Record<"WITH" | "WITHOUT", Ma
 export const SUMMARY_CARD_PRESENTATION: Record<SummaryCardFilter, MapSemanticPresentation> = {
   ALL: DATA_TYPE_PRESENTATION.report,
   REPORT: DATA_TYPE_PRESENTATION.report,
-  COMPLETE: COMPLETENESS_PRESENTATION.COMPLETE,
-  INCOMPLETE: COMPLETENESS_PRESENTATION.INCOMPLETE,
   BAKET: DATA_TYPE_PRESENTATION.baket,
 };
 
 export const HEATMAP_WEIGHT_PRESENTATION: Record<HeatmapWeight, MapSemanticPresentation> = {
   count: { ...DATA_TYPE_PRESENTATION.report, label: "Kepadatan jumlah data" },
   urgency: { ...URGENCY_PRESENTATION.URGENT, label: "Bobot urgensi" },
-  valid: { ...VALIDITY_PRESENTATION.VALID, label: "Laporan valid" },
-  complete: { ...COMPLETENESS_PRESENTATION.COMPLETE, label: "Laporan lengkap" },
-  incomplete: { ...COMPLETENESS_PRESENTATION.INCOMPLETE, label: "Laporan tidak lengkap" },
+  valid: { ...VALIDITY_PRESENTATION.VALID, label: "Bobot titik berkoordinat" },
   baket: { ...DATA_TYPE_PRESENTATION.baket, label: "Kepadatan Baket" },
 };
 
@@ -266,20 +251,35 @@ export const getUrgencyPresentation = (value?: string | null) =>
   resolvePresentation(URGENCY_PRESENTATION, value, "NORMAL");
 export const getValidityPresentation = (value?: string | null) =>
   resolvePresentation(VALIDITY_PRESENTATION, value, "WAITING");
-export const getCompletenessPresentation = (value?: string | null) =>
-  resolvePresentation(COMPLETENESS_PRESENTATION, value, "NOT_DETERMINED");
 export const getLocationSuitabilityPresentation = (value?: string | null) =>
   resolvePresentation(LOCATION_SUITABILITY_PRESENTATION, value, "NOT_DETERMINED");
 export const getCoordinateSourcePresentation = (value?: string | null) =>
   resolvePresentation(COORDINATE_SOURCE_PRESENTATION, value);
 export const getDataTypePresentation = (value: MapMarkerType) => DATA_TYPE_PRESENTATION[value];
 
-export function getMarkerPresentation(properties: MapNetworkProperties, mode: "completeness" | "validity" | "urgency") {
+export function getFeatureTypePresentation(
+  properties: Pick<MapNetworkProperties, "markerType" | "urgency">,
+): MapSemanticPresentation {
+  if (properties.markerType !== "baket") {
+    return DATA_TYPE_PRESENTATION[properties.markerType];
+  }
+
+  const urgency = getUrgencyPresentation(properties.urgency);
+  return {
+    ...DATA_TYPE_PRESENTATION.baket,
+    mapColor: urgency.mapColor,
+    iconClass: urgency.iconClass,
+    badgeClass: urgency.badgeClass,
+    surfaceClass: urgency.surfaceClass,
+    markerClass: urgency.markerClass,
+  };
+}
+
+export function getMarkerPresentation(properties: MapNetworkProperties, mode: "validity" | "urgency") {
   if (properties.markerType === "baket") return getUrgencyPresentation(properties.urgency);
   if (properties.markerType === "agent") return DATA_TYPE_PRESENTATION.agent;
   if (mode === "validity") return getValidityPresentation(properties.validity);
-  if (mode === "urgency") return getUrgencyPresentation(properties.urgency);
-  return getCompletenessPresentation(properties.completeness);
+  return getUrgencyPresentation(properties.urgency);
 }
 
 export function MapSemanticBadge({

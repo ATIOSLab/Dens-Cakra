@@ -4,11 +4,11 @@ export function PengajuanPersetujuanPage() {
   return (
     <DensModulePage
       title="Pengajuan Persetujuan"
-      role="Manajer Intelijen Operasional"
-      description="Halaman ini disiapkan untuk validasi akhir produk, routing otomatis, dan pengiriman ke Komandan Regional."
+      roleLabel="Manajer Intelijen Operasional"
+      description="Halaman ini disiapkan untuk validasi akhir produk, alur pengiriman otomatis, dan pengiriman ke Komandan Regional."
       highlights={[
-        "Validasi kelengkapan field sebelum submission.",
-        "Routing approval sesuai reporting line dan struktur wilayah.",
+        "Validasi kelengkapan isian sebelum pengajuan.",
+        "Alur persetujuan mengikuti garis pelaporan dan struktur wilayah.",
         "Catatan pengajuan, status kirim, dan riwayat tindak lanjut.",
       ]}
     />

@@ -4,7 +4,7 @@ export function SituasiStrategisPage() {
   return (
     <DensModulePage
       title="Situasi Strategis"
-      role="Eksekutif"
+      roleLabel="Deputi II"
       description="Ruang kerja strategis untuk memantau dinamika wilayah, tren ancaman, dan sinyal peringatan dini pada level pimpinan."
       highlights={[
         "Ringkasan kondisi wilayah prioritas dan isu strategis.",

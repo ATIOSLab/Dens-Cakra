@@ -87,6 +87,7 @@ export type PositionSummary = {
 export type AreaSummary = {
   id: string;
   code: string;
+  officialCode?: string | null;
   name: string;
   level: string;
 };
@@ -196,22 +197,22 @@ export const USER_STATUS_OPTIONS: Array<{
 }> = [
   { value: "ACTIVE", label: "Aktif" },
   { value: "PENDING", label: "Menunggu" },
-  { value: "SUSPENDED", label: "Suspended" },
-  { value: "ARCHIVED", label: "Archived" },
+  { value: "SUSPENDED", label: "Ditangguhkan" },
+  { value: "ARCHIVED", label: "Diarsipkan" },
 ];
 
 export const ROLE_CODE_OPTIONS: Array<{
   value: RoleCode;
   label: string;
 }> = [
-  { value: "ADMIN_SYSTEM", label: "Admin Sistem" },
-  { value: "EXECUTIVE", label: "Eksekutif" },
-  { value: "REGIONAL_COMMANDER", label: "Komandan Regional" },
+  { value: "ADMIN_SYSTEM", label: DOMAIN_TERMS.adminSystemRole },
+  { value: "EXECUTIVE", label: DOMAIN_TERMS.executiveRole },
+  { value: "REGIONAL_COMMANDER", label: DOMAIN_TERMS.regionalCommanderRole },
   {
     value: "OPERATIONAL_INTELLIGENCE_MANAGER",
-    label: "Manajer Intelijen Operasional",
+    label: DOMAIN_TERMS.operationalIntelligenceManagerRole,
   },
-  { value: "FIELD_COORDINATOR", label: "Koordinator Lapangan" },
+  { value: "FIELD_COORDINATOR", label: DOMAIN_TERMS.fieldCoordinatorRole },
   { value: "FIELD_OFFICER", label: DOMAIN_TERMS.fieldOfficer },
 ];
 
@@ -260,9 +261,11 @@ export function getAssignmentRoleSummary(assignment?: UserPositionAssignment | n
 }
 
 export function getAssignmentUnitSummary(assignment?: UserPositionAssignment | null) {
-  const primaryArea =
-    assignment?.areaScopes?.find((scope) => scope.isPrimary)?.area ?? assignment?.areaScopes?.[0]?.area ?? null;
-  const legacyUnit = assignment?.position?.organizationUnit ?? assignment?.seat?.organizationUnit ?? null;
+  if (!assignment) return null;
+
+  const areaScopes = assignment.areaScopes;
+  const primaryArea = areaScopes.find((scope) => scope.isPrimary)?.area ?? areaScopes[0]?.area ?? null;
+  const legacyUnit = assignment.position?.organizationUnit ?? assignment.seat?.organizationUnit ?? null;
 
   if (legacyUnit) {
     return legacyUnit;

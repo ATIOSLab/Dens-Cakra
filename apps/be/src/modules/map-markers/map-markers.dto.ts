@@ -29,11 +29,6 @@ export enum ReportValidityFilter {
   WAITING = 'WAITING',
 }
 
-export enum ReportCompletenessFilter {
-  COMPLETE = 'COMPLETE',
-  INCOMPLETE = 'INCOMPLETE',
-}
-
 export enum ReportLocationSuitabilityFilter {
   WITHIN_SCOPE = 'WITHIN_SCOPE',
   OUTSIDE_SCOPE = 'OUTSIDE_SCOPE',
@@ -113,11 +108,6 @@ export class MapMarkersQuery {
   @List()
   @IsEnum(ReportValidityFilter, { each: true })
   reportValidity?: ReportValidityFilter[];
-
-  @IsOptional()
-  @List()
-  @IsEnum(ReportCompletenessFilter, { each: true })
-  completeness?: ReportCompletenessFilter[];
 
   @IsOptional()
   @BooleanValue()

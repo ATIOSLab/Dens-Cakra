@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { submitBaket } from "@/server/field-ops/repository";
 
 type Params = {
@@ -14,9 +15,6 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(await submitBaket(request.headers.get("cookie") ?? "", baketId));
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal mengirim baket." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal mengirim Baket.");
   }
 }

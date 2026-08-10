@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { validateIncomingMessage } from "@/server/field-ops/repository";
 
 type Params = {
@@ -14,9 +15,6 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(await validateIncomingMessage(request.headers.get("cookie") ?? "", messageId));
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal memvalidasi laporan." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal memeriksa laporan.");
   }
 }

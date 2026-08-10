@@ -338,16 +338,16 @@ function mapTask(
   }
 
   const sourceLabel =
-    record.uukStrVersion?.title ||
-    record.uukStrVersion?.uukStr?.directiveVersion?.directive?.commandNumber ||
-    record.directiveVersion?.directive?.commandNumber ||
-    record.uukStrVersion?.uukStr?.directiveVersion?.commandSource ||
-    record.directiveVersion?.commandSource ||
+    record.uukStrVersion?.title ??
+    record.uukStrVersion?.uukStr?.directiveVersion?.directive?.commandNumber ??
+    record.directiveVersion?.directive?.commandNumber ??
+    record.uukStrVersion?.uukStr?.directiveVersion?.commandSource ??
+    record.directiveVersion?.commandSource ??
     null;
 
   const classification =
-    record.directiveVersion?.classification ||
-    record.uukStrVersion?.classification ||
+    record.directiveVersion?.classification ??
+    record.uukStrVersion?.classification ??
     null;
 
   return {
@@ -355,7 +355,7 @@ function mapTask(
     taskId: record.id,
     title: record.title,
     description: record.description,
-    coordinatorInstruction: assignment.assignmentNote?.trim() || null,
+    coordinatorInstruction: assignment.assignmentNote?.trim() ?? null,
     priority: record.priority,
     dueDate: assignment.dueDate ?? record.dueDate ?? null,
     taskStatus: record.status,
@@ -407,8 +407,8 @@ function mapIncoming(
     referenceNumber:
       record.referenceNumber ?? asString(rawPayload?.referenceNumber),
     jaringId: jaring.id,
-    jaringCode: jaring.aliasName || jaring.id,
-    jaringAlias: jaring.aliasName || jaring.id,
+    jaringCode: jaring.aliasName ?? jaring.id,
+    jaringAlias: jaring.aliasName ?? jaring.id,
     senderPhone: record.senderPhone,
     displayTitle: deriveDisplayTitle(record.content),
     content: record.content ?? null,
@@ -451,7 +451,7 @@ function mapIncoming(
     gpsAccuracyMeters: asNumber(record.gpsAccuracyMeters),
     mediaCount: evidenceFiles.length,
     evidenceFiles,
-    hasPhoto: Boolean(record.media?.length || photoMessageId),
+    hasPhoto: Boolean(record.media?.length ?? photoMessageId),
     photoCaption,
     photoMessageId,
     photoFileId,
@@ -475,7 +475,7 @@ function mapDraftReport(
     id: report.id,
     referenceNumber: report.referenceNumber ?? null,
     jaringId: report.jaringId,
-    jaringCode: jaring.aliasName || jaring.id,
+    jaringCode: jaring.aliasName ?? jaring.id,
     jaringAlias: jaring.aliasName,
     senderPhone: jaring.whatsappNumber,
     displayTitle: report.displayTitle,
@@ -579,8 +579,8 @@ function messageJaring(record: MessageRecord): FieldOfficerJaring | null {
   if (!record.jaring?.id) return null;
   return {
     id: record.jaring.id,
-    code: record.jaring.aliasName || record.jaring.id,
-    aliasName: record.jaring.aliasName || record.jaring.id,
+    code: record.jaring.aliasName ?? record.jaring.id,
+    aliasName: record.jaring.aliasName ?? record.jaring.id,
     whatsappNumber: record.senderPhone,
     status: "ACTIVE",
     lastReportAt: record.receivedAt,
@@ -1193,7 +1193,7 @@ export async function deleteIncomingMessage(cookie: string, messageId: string) {
   return backendApi(`/whatsapp-messages/${messageId}/mark-spam`, {
     cookie,
     method: "POST",
-    body: { reason: "Dihapus dari Informasi Jaring oleh Field Officer." },
+    body: { reason: "Dihapus dari Informasi Jaring oleh Petugas Wilayah (Gaswil)." },
     idempotent: true,
   });
 }

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { AlertCircle, Calendar, FileText, Loader2, Plus, ScrollText, Users } from "lucide-react";
+import { AlertCircle, Calendar, FileText, Loader2, Plus, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import type { FieldOfficerJaring, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 function getCurrentDateTimeLocal() {
@@ -72,7 +73,7 @@ export function CreateCoachingReportForm() {
           }
         }
       } catch (err) {
-        console.error("Gagal memuat data workspace Field Officer:", err);
+        console.error("Gagal memuat data ruang kerja Petugas Wilayah (Gaswil):", err);
       } finally {
         setLoadingWorkspace(false);
       }
@@ -138,7 +139,7 @@ export function CreateCoachingReportForm() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+            <BreadcrumbLink href="/dashboard">Beranda</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -152,8 +153,8 @@ export function CreateCoachingReportForm() {
       </Breadcrumb>
 
       {/* Back Button */}
-      <div>
-        <BackButton href="/dashboard/laporan-pembinaan-jaring" />
+      <div className="flex items-center justify-between gap-3">
+        <BackButton href="/dashboard/laporan-pembinaan-jaring" label="Kembali ke Riwayat" />
       </div>
 
       {/* Header Bar */}
@@ -175,7 +176,7 @@ export function CreateCoachingReportForm() {
             Formulir Laporan Pembinaan
           </CardTitle>
           <CardDescription>
-            Laporan ini akan tersimpan dalam rekaman pembinaan Jaring dan dapat ditinjau oleh Koordinator Wilayah.
+            Laporan ini tersimpan sebagai rekaman pembinaan Jaring dan dapat ditinjau oleh Koordinator Wilayah (Korwil).
           </CardDescription>
         </CardHeader>
 
@@ -184,6 +185,14 @@ export function CreateCoachingReportForm() {
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
               <p className="text-sm font-medium">Memuat data Jaring operasional...</p>
+            </div>
+          ) : jarings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 px-4 py-12 text-center">
+              <DOMAIN_VISUALS.jaring.Icon className="mb-3 size-10 text-muted-foreground/50" />
+              <p className="font-semibold text-foreground text-sm">Belum Ada Jaring Tersedia</p>
+              <p className="mt-1 max-w-md text-muted-foreground text-xs">
+                Laporan pembinaan hanya dapat dibuat untuk Jaring dengan registrasi disetujui dalam wilayah penugasan Anda.
+              </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -197,7 +206,7 @@ export function CreateCoachingReportForm() {
               {/* Select Jaring */}
               <div className="space-y-2">
                 <Label htmlFor="jaring-select" className="text-xs font-semibold flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <DOMAIN_VISUALS.jaring.Icon className="h-3.5 w-3.5 text-muted-foreground" />
                   Pilih Jaring <span className="text-destructive">*</span>
                 </Label>
                 <NativeSelect
@@ -207,22 +216,18 @@ export function CreateCoachingReportForm() {
                   disabled={submitting}
                   className="w-full text-sm h-10 bg-background"
                 >
-                  {jarings.length === 0 ? (
-                    <option value="">-- Tidak ada Jaring terverifikasi tersedia --</option>
-                  ) : (
-                    jarings.map((j) => {
-                      const label = [
-                        j.fullName || "Nama belum tersedia",
-                        j.whatsappNumber || "WhatsApp belum tersedia",
-                        j.aliasName || j.id,
-                      ].join(" — ");
-                      return (
-                        <option key={j.id} value={j.id}>
-                          {label}
-                        </option>
-                      );
-                    })
-                  )}
+                  {jarings.map((j) => {
+                    const label = [
+                      j.fullName || "Nama belum tersedia",
+                      j.whatsappNumber || "WhatsApp belum tersedia",
+                      j.aliasName || j.id,
+                    ].join(" - ");
+                    return (
+                      <option key={j.id} value={j.id}>
+                        {label}
+                      </option>
+                    );
+                  })}
                 </NativeSelect>
                 {selectedJaring ? (
                   <JaringIdentitySummary

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { updateFieldOfficerJaringStatus } from "@/server/field-ops/repository";
 
 type Params = {
@@ -20,9 +21,6 @@ export async function POST(request: NextRequest, { params }: Params) {
       await updateFieldOfficerJaringStatus(request.headers.get("cookie") ?? "", jaringId, body.action, body.reason),
     );
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal mengubah status jaring." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal mengubah status Jaring.");
   }
 }

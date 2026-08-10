@@ -93,6 +93,9 @@ import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { classificationBadgeClass } from "@/lib/classification";
 import { jakartaBoundaryIso } from "@/lib/domain/date-time";
 import { getUrgencyLabel } from "@/lib/domain/operational-presentation";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+
+const OIM_TASKS_ROUTE = "/dashboard/oim/direktif-tugas";
 
 function formatDate(value?: string | null) {
   if (!value) {
@@ -568,7 +571,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
             className="h-8 gap-1.5 rounded-[4px] border-white/10 font-mono text-xs hover:bg-white/[0.04]"
           >
             <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-            <span>REFRESH</span>
+            <span>Muat Ulang</span>
           </Button>
           {createHref ? (
             <Button
@@ -576,7 +579,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
               size="sm"
               className="h-8 rounded-[4px] bg-[var(--dc-primary)] font-mono text-[var(--dc-text-inverse)] text-xs hover:bg-[var(--dc-primary-hover)]"
             >
-              <Link href={createHref}>BUAT TASK</Link>
+              <Link href={createHref}>Buat Tugas</Link>
             </Button>
           ) : null}
         </div>
@@ -746,7 +749,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                 <Calendar className="size-3" />
                 <span>PERIODE STR</span>
               </div>
-              <label className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5">
                 <span className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">Mulai</span>
                 <Input
                   aria-label="Periode STR mulai"
@@ -759,9 +762,9 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                   }}
                   className="h-8 w-[145px] rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 font-mono text-[10px]"
                 />
-              </label>
+              </div>
               <span className="font-mono text-[9px] text-muted-foreground/50">S.D.</span>
-              <label className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5">
                 <span className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">Selesai</span>
                 <Input
                   aria-label="Periode STR selesai"
@@ -774,7 +777,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                   }}
                   className="h-8 w-[145px] rounded-[4px] border-[var(--dc-border-subtle)] bg-background/40 font-mono text-[10px]"
                 />
-              </label>
+              </div>
               {(periodFrom || periodTo) && (
                 <Button
                   type="button"
@@ -889,7 +892,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                             size="sm"
                             className="h-7 rounded-[4px] border border-white/10 bg-white/[0.04] font-mono text-[10px] text-[var(--dc-text-primary)] shadow-none hover:bg-white/[0.08]"
                           >
-                            <Link href={`${detailBasePath}/${task.id}`}>Buka Detail</Link>
+                            <Link href={`${detailBasePath}/${task.id}`}>Lihat Detail</Link>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -947,7 +950,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                         <div className="flex items-center gap-1">
                           <Clock className="size-3 text-muted-foreground/60" />
                           <span>
-                            DEADLINE:{" "}
+                            TENGGAT:{" "}
                             <span className="text-[var(--dc-text-primary)]">{formatDate(taskStrDueDate(task))}</span>
                           </span>
                         </div>
@@ -961,7 +964,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                         <div className="flex items-center gap-1">
                           <Users className="size-3 text-muted-foreground/60" />
                           <span>
-                            FIELD OFFICER:{" "}
+                            PETUGAS WILAYAH:{" "}
                             <span className="text-[var(--dc-text-primary)]">{task.assignments.length} PERSONEL</span>
                           </span>
                         </div>
@@ -1051,7 +1054,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
                       </Badge>
                     </div>
                     <div className="flex justify-between gap-3 font-mono text-[10px] text-muted-foreground">
-                      <span>DEADLINE STR:</span>
+                      <span>TENGGAT STR:</span>
                       <span className="text-right font-bold text-[var(--dc-warning)]">{formatDate(str.dueDate)}</span>
                     </div>
                   </div>
@@ -1065,7 +1068,7 @@ export function TaskListClient({ title, description, tasks, createHref, detailBa
       {/* Sticky Action Footer */}
       <div className="sticky bottom-0 z-50 -mx-6 flex min-h-12 w-full flex-wrap items-center justify-between gap-3 rounded-t-[6px] border-[var(--dc-border-subtle)] border-t bg-[var(--dc-card)]/95 px-4 py-2 backdrop-blur-md sm:mx-0">
         <div className="font-mono text-[10px] text-muted-foreground">
-          SISTEM MONITORING KOORDINATOR LAPANGAN | TOTAL AKTIF:{" "}
+          SISTEM MONITORING Koordinator Wilayah (Korwil) | TOTAL AKTIF:{" "}
           <span className="font-bold text-[var(--dc-warning)]">{stats.inProgress} TUGAS</span>
         </div>
         <div className="font-mono text-[10px] text-muted-foreground/50">DENS CAKRA SECURED</div>
@@ -1240,7 +1243,7 @@ export function FieldCoordinatorAssignmentsClient({
           <div className="relative min-w-[200px] flex-1">
             <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
             <Input
-              placeholder="Cari tugas, FO, instruksi..."
+              placeholder="Cari tugas, Petugas Wilayah (Gaswil), atau instruksi..."
               value={searchQuery}
               onChange={(event) => {
                 setSearchQuery(event.target.value);
@@ -1383,7 +1386,7 @@ export function FieldCoordinatorAssignmentsClient({
                             className="h-7 rounded-[4px] border border-[var(--dc-primary)] bg-[var(--dc-primary)] font-mono text-[10px] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                           >
                             <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>
-                              {hasOfficerAssignments ? "Detail" : "Buat Instruksi"}
+                              {hasOfficerAssignments ? "Lihat Detail" : "Buat Instruksi"}
                             </Link>
                           </Button>
                         </TableCell>
@@ -1423,7 +1426,7 @@ export function FieldCoordinatorAssignmentsClient({
                         </h3>
                       </div>
                       <div className="font-mono text-[10px] text-muted-foreground/60">
-                        DEADLINE: {formatDate(task.dueDate)} | AREA SASARAN: {task.targetAreas.length} WILAYAH
+                        TENGGAT: {formatDate(task.dueDate)} | AREA SASARAN: {task.targetAreas.length} WILAYAH
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
@@ -1433,7 +1436,7 @@ export function FieldCoordinatorAssignmentsClient({
                         className="h-7 rounded-[4px] border border-[var(--dc-primary)] bg-[var(--dc-primary)] font-mono text-[10px] text-[var(--dc-text-inverse)] hover:bg-[var(--dc-primary-hover)]"
                       >
                         <Link href={`/dashboard/field-coordinator/penugasan-field-officer/${task.id}`}>
-                          {hasOfficerAssignments ? "Detail" : "Buat Instruksi"}
+                          {hasOfficerAssignments ? "Lihat Detail" : "Buat Instruksi"}
                         </Link>
                       </Button>
                     </div>
@@ -1479,7 +1482,7 @@ export function FieldCoordinatorAssignmentsClient({
       {/* Sticky Bottom Actions Bar */}
       <div className="sticky bottom-0 z-50 -mx-6 flex min-h-12 w-full flex-wrap items-center justify-between gap-3 rounded-t-[6px] border-[var(--dc-border-subtle)] border-t bg-[var(--dc-card)]/95 px-4 py-2 backdrop-blur-md sm:mx-0">
         <div className="font-mono text-[10px] text-muted-foreground">
-          SISTEM DELEGASI FIELD OFFICER | HIERARKI: KOORDINATOR LAPANGAN
+          SISTEM DELEGASI PETUGAS WILAYAH | HIERARKI: Koordinator Wilayah (Korwil)
         </div>
         <div className="font-mono text-[10px] text-muted-foreground/50">
           TOTAL TERCATAT: {stats.totalAssignments} ASSIGNMENTS
@@ -1528,7 +1531,9 @@ function SubordinateAssignmentsList({ assignments }: { assignments: TaskAssignme
                 </span>
               </div>
               <div className="text-[11px] text-muted-foreground leading-relaxed">
-                <span className="mr-1 font-mono text-[9px] text-[var(--dc-primary)] uppercase">[INSTRUKSI FC]</span>
+                <span className="mr-1 font-mono text-[9px] text-[var(--dc-primary)] uppercase">
+                  [INSTRUKSI Koordinator Wilayah (Korwil)]
+                </span>
                 {normalizeDisplayText(assignment.assignmentNote)}
               </div>
             </div>
@@ -1681,7 +1686,7 @@ export function FieldCoordinatorAssignmentDetailClient({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <div className="space-y-1 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-3.5">
           <div className="font-mono text-[8px] text-muted-foreground/60 uppercase tracking-wider">
-            TOTAL FIELD OFFICER
+            TOTAL PETUGAS WILAYAH
           </div>
           <div className="font-bold font-mono text-[var(--dc-text-primary)] text-xl">{stats.total}</div>
         </div>
@@ -1748,7 +1753,7 @@ export function FieldCoordinatorAssignmentDetailClient({
                   <SelectValue placeholder="Urutkan" />
                 </SelectTrigger>
                 <SelectContent className="border-[var(--dc-border-subtle)] bg-popover font-mono text-popover-foreground text-xs">
-                  <SelectItem value="nama">NAMA FIELD OFFICER</SelectItem>
+                  <SelectItem value="nama">NAMA PETUGAS WILAYAH</SelectItem>
                   <SelectItem value="deadline">BATAS WAKTU PENUGASAN</SelectItem>
                 </SelectContent>
               </Select>
@@ -1766,8 +1771,8 @@ export function FieldCoordinatorAssignmentDetailClient({
               Belum ada instruksi ke Petugas Wilayah (Gaswil).
             </div>
             <p className="mx-auto mt-1 max-w-xl leading-relaxed">
-              Gunakan formulir distribusi di bawah halaman ini untuk memilih Petugas Wilayah (Gaswil), mengatur batas waktu, dan
-              menulis instruksi operasional.
+              Gunakan formulir distribusi di bawah halaman ini untuk memilih Petugas Wilayah (Gaswil), mengatur batas
+              waktu, dan menulis instruksi operasional.
             </p>
             {manageHref ? (
               <Button asChild className="mt-4 h-8 rounded-[4px] font-mono text-xs">
@@ -1835,7 +1840,7 @@ export function FieldCoordinatorAssignmentDetailClient({
                           variant="outline"
                           className="h-7 cursor-pointer rounded-[4px] border-white/10 font-mono text-[10px] hover:bg-white/[0.04]"
                         >
-                          Detail
+                          Lihat Detail
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="border border-[var(--dc-border-subtle)] bg-popover text-[var(--dc-text-primary)]">
@@ -2034,7 +2039,7 @@ export function FieldCoordinatorMonitoringClient({
             className="h-8 gap-1.5 rounded-[4px] border-white/10 font-mono text-xs hover:bg-white/[0.04]"
           >
             <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-            <span>REFRESH</span>
+            <span>Muat Ulang</span>
           </Button>
         </div>
       </div>
@@ -2080,7 +2085,7 @@ export function FieldCoordinatorMonitoringClient({
             <div className="relative min-w-[200px] flex-1">
               <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
               <Input
-                placeholder="Cari tugas, FO, atau instruksi..."
+                placeholder="Cari tugas, Petugas Wilayah (Gaswil), atau instruksi..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -2295,15 +2300,13 @@ export function FieldCoordinatorMonitoringClient({
                             <div className="min-w-0 flex-1 space-y-0.5">
                               <div className="flex items-center gap-1.5">
                                 <GaswilEntityLink
-                                  name={
-                                    assignment.assignee?.userProfile?.fullName ?? "Petugas Wilayah (Gaswil)"
-                                  }
+                                  name={assignment.assignee?.userProfile?.fullName ?? "Petugas Wilayah (Gaswil)"}
                                   assignmentId={assignment.assignee?.id ?? assignment.assigneeAssignmentId}
                                   userProfileId={assignment.assignee?.userProfile?.id}
                                   className="font-bold font-sans text-[var(--dc-text-primary)]"
                                 />
                                 <span className="truncate font-mono text-[9px] text-muted-foreground/40">
-                                  ({assignment.assignee?.position?.title ?? "FO"})
+                                  ({assignment.assignee?.position?.title ?? "Petugas Wilayah (Gaswil)"})
                                 </span>
                               </div>
                               <div className="truncate text-[10px] text-muted-foreground">
@@ -2400,7 +2403,9 @@ export function FieldCoordinatorMonitoringClient({
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px]">
                   <span className="text-muted-foreground">SUDAH MEMBACA/ACK:</span>
-                  <span className="font-bold text-[var(--dc-success)]">{stats.acknowledged} FO</span>
+                  <span className="font-bold text-[var(--dc-success)]">
+                    {stats.acknowledged} Petugas Wilayah (Gaswil)
+                  </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
                   <div
@@ -2415,7 +2420,7 @@ export function FieldCoordinatorMonitoringClient({
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px]">
                   <span className="text-muted-foreground">BELUM RESPOND:</span>
-                  <span className="font-bold text-[var(--dc-warning)]">{stats.sent} FO</span>
+                  <span className="font-bold text-[var(--dc-warning)]">{stats.sent} Petugas Wilayah (Gaswil)</span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
                   <div
@@ -2673,7 +2678,7 @@ export function FieldCoordinatorMonitoringDetailClient({
                           variant="outline"
                           className="h-7 cursor-pointer rounded-[4px] border-white/10 font-mono text-[10px] hover:bg-white/[0.04]"
                         >
-                          Detail
+                          Lihat Detail
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="border border-[var(--dc-border-subtle)] bg-popover text-[var(--dc-text-primary)]">
@@ -2884,7 +2889,7 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
     });
   }, [sources, filterStartDate, filterEndDate, filterClassification, deadlineSortOrder]);
 
-  // Reset page when filters change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset pagination whenever table filters change.
   useEffect(() => {
     setCurrentPage(1);
   }, [filterStartDate, filterEndDate, filterClassification, deadlineSortOrder, pageSize]);
@@ -2926,10 +2931,11 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
         {/* Filters */}
         <div className="flex flex-wrap items-end gap-3 border-border/40 border-t pt-3 text-xs">
           <div className="min-w-[140px] flex-1 space-y-1.5">
-            <label className="font-bold font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+            <span className="font-bold font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
               Periode Mulai
-            </label>
+            </span>
             <Input
+              aria-label="Periode mulai STR diterima"
               type="date"
               value={filterStartDate}
               onChange={(e) => setFilterStartDate(e.target.value)}
@@ -2937,10 +2943,11 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
             />
           </div>
           <div className="min-w-[140px] flex-1 space-y-1.5">
-            <label className="font-bold font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+            <span className="font-bold font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
               Periode Selesai
-            </label>
+            </span>
             <Input
+              aria-label="Periode selesai STR diterima"
               type="date"
               value={filterEndDate}
               onChange={(e) => setFilterEndDate(e.target.value)}
@@ -2948,14 +2955,14 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
             />
           </div>
           <div className="min-w-[160px] flex-1 space-y-1.5">
-            <label className="font-bold font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+            <span className="font-bold font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
               Klasifikasi
-            </label>
+            </span>
             <Select
               value={filterClassification || "ALL"}
               onValueChange={(val) => setFilterClassification(val === "ALL" ? "" : val)}
             >
-              <SelectTrigger className="h-9 border-border bg-background/50 text-xs focus:ring-0">
+              <SelectTrigger aria-label="Filter klasifikasi STR" className="h-9 border-border bg-background/50 text-xs focus:ring-0">
                 {filterClassification ? (
                   <span
                     className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(filterClassification)}`}
@@ -3055,7 +3062,7 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
                         <div className="flex justify-end gap-2">
                           {linkedTask ? (
                             <Button asChild size="sm" variant="outline">
-                              <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Detail</Link>
+                              <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Lihat Detail</Link>
                             </Button>
                           ) : (
                             <Button asChild size="sm" variant="success">
@@ -3129,7 +3136,7 @@ export function OimIncomingForwardingListClient({ sources, tasks }: OimIncomingF
                     <div className="flex justify-end">
                       {linkedTask ? (
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Detail</Link>
+                          <Link href={`/dashboard/oim/direktif-tugas/${linkedTask.id}`}>Lihat Detail</Link>
                         </Button>
                       ) : (
                         <Button asChild size="sm" variant="success">
@@ -3343,7 +3350,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
 
   async function handleForward() {
     if (!selectedAssigneeIds.length) {
-      toast.error("Pilih minimal satu Koordinator Lapangan tujuan distribusi.");
+      toast.error("Pilih minimal satu Koordinator Wilayah (Korwil) tujuan distribusi.");
       return;
     }
 
@@ -3371,14 +3378,14 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
         });
 
         await apiBrowserMutation("POST", `/tasks/${created.id}/assignments`, parsedAssignments);
-        toast.success("STR berhasil diteruskan OIM ke Koordinator Lapangan.");
+        toast.success("STR berhasil diteruskan OIM ke Koordinator Wilayah (Korwil).");
         router.push(`/dashboard/oim/direktif-tugas/${created.id}`);
         router.refresh();
       } catch (assignmentError) {
         const assignmentMessage =
           assignmentError instanceof Error
             ? assignmentError.message
-            : "Distribusi ke Koordinator Lapangan gagal diproses.";
+            : "Distribusi ke Koordinator Wilayah (Korwil) gagal diproses.";
         toast.error(`${assignmentMessage} Task sumber sudah dibuat dan bisa dilanjutkan dari halaman detail.`);
         router.push(`/dashboard/oim/direktif-tugas/${created.id}`);
         router.refresh();
@@ -3391,7 +3398,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
     }
   }
 
-  const classification = source.directiveVersion?.classification || "RAHASIA";
+  const classification = source.directiveVersion?.classification ?? "RAHASIA";
   const areaSummary = source.directiveVersion?.targetAreas?.map((t) => t.area.name).join(", ") ?? "-";
 
   return (
@@ -3401,7 +3408,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
         <Button
           variant="outline"
           size="sm"
-          onClick={() => router.push("/dashboard/oim/direktif-tugas")}
+          onClick={() => router.push(OIM_TASKS_ROUTE)}
           className="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border-white/10 hover:bg-white/[0.04] text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" />
@@ -3414,7 +3421,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-bold text-[var(--dc-text-primary)] text-xl tracking-tight">
-              Baca dan Teruskan STR ke Koordinator Lapangan
+              Baca dan Teruskan STR ke Koordinator Wilayah (Korwil)
             </h1>
             <Badge
               variant="outline"
@@ -3529,7 +3536,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                   <p className="text-[10px] text-muted-foreground leading-normal">Saya mengonfirmasi bahwa:</p>
                   <ul className="list-disc space-y-0.5 pl-3 text-[10px] text-muted-foreground">
                     <li>OIM tidak mengubah isi STR.</li>
-                    <li>Tugas diteruskan hanya ke FC sesuai hirarki komando.</li>
+                    <li>Tugas diteruskan hanya ke Koordinator Wilayah (Korwil) sesuai hirarki komando.</li>
                     <li>Seluruh isi dokumen STR tetap identik.</li>
                   </ul>
                 </div>
@@ -3544,7 +3551,8 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
             </div>
             <div className="space-y-2 border-white/[0.08] border-t pt-3">
               <div className="text-[10px] text-muted-foreground leading-normal">
-                Catatan ini akan otomatis terlampir pada notifikasi tugas operasional di seluruh FC penerima.
+                Catatan ini akan otomatis terlampir pada notifikasi tugas operasional di seluruh Koordinator Wilayah (Korwil)
+                penerima.
               </div>
               <Textarea
                 value={assignmentNote}
@@ -3557,7 +3565,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
           </div>
         </div>
 
-        {/* Step 2: Field Coordinator Selection Area */}
+        {/* Step 2: area pemilihan Koordinator Wilayah (Korwil) */}
         <div className="space-y-3">
           <div className="font-mono text-[9px] text-muted-foreground/60 uppercase tracking-wider">
             TARGET_FIELD_COORDINATORS
@@ -3569,8 +3577,8 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                 <Clock className="size-3.5" /> BACA STR DULU SEBELUM DISTRIBUSI
               </div>
               <div>
-                Penerusan ke Koordinator Lapangan hanya dapat diakses setelah Anda mengonfirmasi bahwa Anda telah membaca
-                STR pada checklist konfirmasi di atas.
+                Penerusan ke Koordinator Wilayah (Korwil) hanya dapat diakses setelah Anda mengonfirmasi bahwa Anda telah
+                membaca STR pada checklist konfirmasi di atas.
               </div>
             </div>
           ) : (
@@ -3586,7 +3594,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Cari nama FC..."
+                        placeholder="Cari nama Koordinator Wilayah (Korwil)..."
                         className="h-9 w-full rounded-[4px] border-border bg-card pl-8 text-xs sm:w-[220px]"
                       />
                     </div>
@@ -3650,8 +3658,9 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                   {/* Status filter tabs & counter info */}
                   <div className="flex w-full flex-wrap items-center justify-between gap-3 font-mono text-xs xl:w-auto xl:justify-end">
                     <div className="text-muted-foreground/80">
-                      DIPILIH: <span className="font-bold text-primary">{selectedAssigneeIds.length} FC</span> /{" "}
-                      {eligibleCandidates.length}
+                      DIPILIH:{" "}
+                      <span className="font-bold text-primary">{selectedAssigneeIds.length} Koordinator Wilayah (Korwil)</span>{" "}
+                      / {eligibleCandidates.length}
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -3681,14 +3690,14 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                 </div>
               </div>
 
-              {/* FC Selector Grid/Table */}
+              {/* Selector Koordinator Wilayah (Korwil) */}
               {paginatedCandidates.length ? (
                 <div className="space-y-4">
                   {viewMode === "card" ? (
                     <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {paginatedCandidates.map((candidate) => {
                         const checked = selectedAssigneeIds.includes(candidate.id);
-                        const initials = candidate.userProfile?.fullName?.slice(0, 2).toUpperCase() || "FC";
+                        const initials = candidate.userProfile?.fullName?.slice(0, 2).toUpperCase() || "KL";
 
                         return (
                           <label
@@ -3705,7 +3714,9 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                               </div>
                               <div className="min-w-0 flex-1 space-y-0.5">
                                 <div className="truncate font-bold text-foreground text-sm">
-                                  {candidate.userProfile?.fullName || candidate.position?.title || "Koordinator Lapangan"}
+                                  {candidate.userProfile?.fullName ||
+                                    candidate.position?.title ||
+                                    "Koordinator Wilayah (Korwil)"}
                                 </div>
                                 <div className="truncate font-mono text-[11px] text-muted-foreground/60 uppercase">
                                   {candidate.position?.title || "-"}
@@ -3738,7 +3749,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                                 <span
                                   className={`font-mono text-[10px] uppercase ${checked ? "font-bold text-primary" : "text-muted-foreground/60"}`}
                                 >
-                                  {checked ? "Terpilih" : "Pilih Koordinator Lapangan"}
+                                  {checked ? "Terpilih" : "Pilih Koordinator Wilayah (Korwil)"}
                                 </span>
                               </div>
                             </div>
@@ -3781,7 +3792,11 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                                 }}
                                 className={`cursor-pointer border-border border-b transition-colors hover:bg-accent/40 ${checked ? "bg-primary/5 text-foreground" : "text-muted-foreground"}`}
                               >
-                                <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                <td
+                                  className="p-3 text-center"
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => e.stopPropagation()}
+                                >
                                   <input
                                     type="checkbox"
                                     checked={checked}
@@ -3797,7 +3812,9 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                                   />
                                 </td>
                                 <td className="p-3 font-bold text-foreground">
-                                  {candidate.userProfile?.fullName || candidate.position?.title || "Koordinator Lapangan"}
+                                  {candidate.userProfile?.fullName ||
+                                    candidate.position?.title ||
+                                    "Koordinator Wilayah (Korwil)"}
                                 </td>
                                 <td className="p-3 text-[11px] uppercase">
                                   {candidate.areaScopes?.[0]?.area.name || "-"}
@@ -3819,7 +3836,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                       Menampilkan{" "}
                       <span className="font-bold text-foreground">{totalCandidatesCount > 0 ? startIndex + 1 : 0}</span>
                       –<span className="font-bold text-foreground">{endIndex}</span> dari{" "}
-                      <span className="font-bold text-foreground">{totalCandidatesCount}</span> Koordinator Lapangan
+                      <span className="font-bold text-foreground">{totalCandidatesCount}</span> Koordinator Wilayah (Korwil)
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -3879,7 +3896,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
                 </div>
               ) : (
                 <div className="rounded-[6px] border border-white/5 border-dashed p-8 text-center font-mono text-muted-foreground text-xs italic">
-                  Tidak ada Koordinator Lapangan yang cocok dengan pencarian atau filter.
+                  Tidak ada Koordinator Wilayah (Korwil) yang cocok dengan pencarian atau filter.
                 </div>
               )}
             </div>
@@ -3892,7 +3909,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
         <div className="font-mono text-muted-foreground text-xs">
           DIPILIH:{" "}
           <span className="font-bold text-[var(--dc-primary)]">
-            {selectedAssigneeIds.length} Koordinator Lapangan dipilih
+            {selectedAssigneeIds.length} Koordinator Wilayah (Korwil) dipilih
           </span>
           {assignmentNote.trim() && <span className="ml-2 text-muted-foreground/60">(Catatan terlampir)</span>}
         </div>
@@ -3914,7 +3931,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Kembali</AlertDialogCancel>
-                <AlertDialogAction variant="destructive" onClick={() => router.push("/dashboard/oim/direktif-tugas")}>
+                <AlertDialogAction variant="destructive" onClick={() => router.push(OIM_TASKS_ROUTE)}>
                   Ya, Batalkan
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -3936,7 +3953,7 @@ export function OimForwardingClient({ source, options }: OimForwardingClientProp
               <AlertDialogHeader>
                 <AlertDialogTitle>Teruskan STR?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Apakah Anda yakin ingin meneruskan STR ini ke {selectedAssigneeIds.length} Koordinator Lapangan yang
+                  Apakah Anda yakin ingin meneruskan STR ini ke {selectedAssigneeIds.length} Koordinator Wilayah (Korwil) yang
                   dipilih?
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -4031,10 +4048,10 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
     <div className="space-y-6">
       <div>
         <h1 className="font-semibold text-2xl tracking-tight">
-          {mode === "create" ? "Builder Tugas Operasional" : "Edit Draft Task"}
+          {mode === "create" ? "Penyusun Tugas Operasional" : "Ubah Draf Tugas"}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Tugas OIM hanya dapat didistribusikan ke Koordinator Lapangan sebelum diteruskan ke Petugas Wilayah (Gaswil).
+          Tugas OIM hanya dapat didistribusikan ke Koordinator Wilayah (Korwil) sebelum diteruskan ke Petugas Wilayah (Gaswil).
         </p>
       </div>
 
@@ -4043,14 +4060,14 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
           <CardTitle>Source Context</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <label className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm">
             <span>Jenis Sumber</span>
             <Select
               value={sourceType}
               onValueChange={(value) => setSourceType(value as "directive" | "uuk" | "none")}
               disabled={mode === "edit"}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Jenis sumber tugas" className="w-full">
                 <SelectValue placeholder="Pilih sumber" />
               </SelectTrigger>
               <SelectContent>
@@ -4059,12 +4076,12 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
                 <SelectItem value="uuk">UUK/STR</SelectItem>
               </SelectContent>
             </Select>
-          </label>
-          <label className="space-y-2 text-sm md:col-span-2">
+          </div>
+          <div className="space-y-2 text-sm md:col-span-2">
             <span>Referensi Sumber</span>
             {sourceType === "directive" ? (
               <Select value={directiveVersionId} onValueChange={setDirectiveVersionId} disabled={mode === "edit"}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Referensi directive" className="w-full">
                   <SelectValue placeholder="Pilih directive" />
                 </SelectTrigger>
                 <SelectContent>
@@ -4077,7 +4094,7 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
               </Select>
             ) : sourceType === "uuk" ? (
               <Select value={uukStrVersionId} onValueChange={setUukStrVersionId} disabled={mode === "edit"}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger aria-label="Referensi UUK atau STR" className="w-full">
                   <SelectValue placeholder="Pilih UUK/STR" />
                 </SelectTrigger>
                 <SelectContent>
@@ -4093,7 +4110,7 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
                 Task dibuat tanpa sumber dokumen formal.
               </div>
             )}
-          </label>
+          </div>
         </CardContent>
       </Card>
 
@@ -4102,14 +4119,14 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
           <CardTitle>Task Builder</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-2 text-sm md:col-span-2">
+          <div className="space-y-2 text-sm md:col-span-2">
             <span>Judul Task</span>
-            <Input value={title} onChange={(event) => setTitle(event.target.value)} />
-          </label>
-          <label className="space-y-2 text-sm">
+            <Input aria-label="Judul tugas" value={title} onChange={(event) => setTitle(event.target.value)} />
+          </div>
+          <div className="space-y-2 text-sm">
             <span>Prioritas</span>
             <Select value={priority} onValueChange={setPriority}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger aria-label="Prioritas tugas" className="w-full">
                 <SelectValue placeholder="Pilih prioritas" />
               </SelectTrigger>
               <SelectContent>
@@ -4120,19 +4137,25 @@ export function TaskBuilderClient({ mode, options, task }: TaskBuilderClientProp
                 ))}
               </SelectContent>
             </Select>
-          </label>
-          <label className="space-y-2 text-sm md:col-span-2">
+          </div>
+          <div className="space-y-2 text-sm md:col-span-2">
             <span>Deskripsi</span>
             <Textarea
+              aria-label="Deskripsi tugas"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               className="min-h-36"
             />
-          </label>
-          <label className="space-y-2 text-sm md:col-span-2">
+          </div>
+          <div className="space-y-2 text-sm md:col-span-2">
             <span>Batas Waktu Tugas</span>
-            <Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
-          </label>
+            <Input
+              aria-label="Batas waktu tugas"
+              type="date"
+              value={dueDate}
+              onChange={(event) => setDueDate(event.target.value)}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -4229,6 +4252,7 @@ function TaskCollapsibleSection({
   return (
     <div className="rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] shadow-sm transition-all duration-200">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full cursor-pointer items-center justify-between rounded-[6px] p-3.5 text-left transition-colors hover:bg-white/[0.02] focus:outline-none"
       >
@@ -4270,7 +4294,7 @@ function TaskCollapsibleSection({
             </div>
           ) : (
             <p className="whitespace-pre-wrap font-sans text-[var(--dc-text-primary)] text-sm leading-relaxed">
-              {description || "Belum diisi."}
+              {description ?? "Belum diisi."}
             </p>
           )}
         </div>
@@ -4283,7 +4307,7 @@ function OperationalTimeline({ status, hasAssignments }: { status: string; hasAs
   const stages = [
     { key: "created", label: "Dibuat", desc: "Dokumen STR diterbitkan di pusat" },
     { key: "forwarded", label: "Diteruskan", desc: "STR diteruskan ke regional komando" },
-    { key: "assigned", label: "Didistribusikan", desc: "Tugas dibagikan ke Koordinator Lapangan" },
+    { key: "assigned", label: "Didistribusikan", desc: "Tugas dibagikan ke Koordinator Wilayah (Korwil)" },
     { key: "accepted", label: "Diterima", desc: "Petugas wilayah menerima penugasan" },
     { key: "completed", label: "Selesai", desc: "Seluruh target operasi diselesaikan" },
   ];
@@ -4330,16 +4354,19 @@ function OperationalTimeline({ status, hasAssignments }: { status: string; hasAs
 
 function CommandHierarchyFlow() {
   const steps = [
-    { label: "HQ (Pusat Komando)", desc: "Pemberi mandat utama STR" },
-    { label: "REGIONAL (Regional Commander)", desc: "Pengarah & supervisor wilayah" },
-    { label: "KABAGOPS (Intelligence Manager)", desc: "OIM pengelola penugasan lapangan" },
-    { label: "FIELD COORDINATOR (Koordinator)", desc: "Pengawas taktis lapangan" },
-    { label: "FIELD OFFICER (Petugas Wilayah)", desc: "Pelaksana operasi langsung" },
+    { label: "Pusat Komando", desc: "Pemberi mandat utama STR" },
+    { label: DOMAIN_TERMS.regionalCommanderRole, desc: "Pengarah dan pengawas wilayah" },
+    {
+      label: `${DOMAIN_TERMS.operationalIntelligenceManagerRole} (${DOMAIN_TERMS.operationalIntelligenceManagerShort})`,
+      desc: "Pengelola penugasan lapangan",
+    },
+    { label: DOMAIN_TERMS.fieldCoordinatorRole, desc: "Pengawas taktis lapangan" },
+    { label: DOMAIN_TERMS.fieldOfficer, desc: "Pelaksana operasi langsung" },
   ];
 
   return (
     <div className="space-y-3 rounded-[6px] border border-white/[0.08] bg-[var(--dc-card)] p-4 shadow-sm">
-      <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">COMMAND_CHAIN_FLOW</div>
+      <div className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-wider">ALUR KOMANDO</div>
       <div className="flex flex-col items-center gap-1 border-white/[0.08] border-t pt-3 text-center font-mono">
         {steps.map((step, idx) => (
           <div key={idx} className="flex w-full flex-col items-center">
@@ -4425,12 +4452,12 @@ export function TaskDetailClient({
             <Badge
               variant="outline"
               className="dc-priority rounded-[4px] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider"
-              data-priority={(task.priority || "NORMAL").toUpperCase()}
+              data-priority={(task.priority ?? "NORMAL").toUpperCase()}
             >
-              {task.priority || "NORMAL"}
+              {task.priority ?? "NORMAL"}
             </Badge>
-            <Badge variant="outline" className={classificationBadgeClass(classification || "RAHASIA")}>
-              {classification || "RAHASIA"}
+            <Badge variant="outline" className={classificationBadgeClass(classification ?? "RAHASIA")}>
+              {classification ?? "RAHASIA"}
             </Badge>
           </div>
 
@@ -4438,7 +4465,7 @@ export function TaskDetailClient({
             <div className="flex items-center gap-1">
               <MapIcon className="size-3 text-muted-foreground/60" />
               <span>
-                WILAYAH: <span className="text-[var(--dc-text-primary)]">{areaSummary || "-"}</span>
+                WILAYAH: <span className="text-[var(--dc-text-primary)]">{areaSummary ?? "-"}</span>
               </span>
             </div>
             <div className="flex items-center gap-1">
@@ -4454,7 +4481,7 @@ export function TaskDetailClient({
         <div className="flex shrink-0 flex-wrap gap-2">
           {editHref ? (
             <Button asChild variant="outline" className="h-8 cursor-pointer rounded-[4px] font-mono text-xs">
-              <Link href={editHref}>Edit Draft</Link>
+              <Link href={editHref}>Ubah Draf</Link>
             </Button>
           ) : null}
           {assignmentHref ? (
@@ -4483,13 +4510,13 @@ export function TaskDetailClient({
               <div className="space-y-1">
                 <div className="text-[9px] text-muted-foreground/60 uppercase">Pemilik</div>
                 <div className="truncate font-semibold text-[var(--dc-text-primary)]">
-                  {task.ownerUnit?.name || "-"}
+                  {task.ownerUnit?.name ?? "-"}
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[9px] text-muted-foreground/60 uppercase">Regional</div>
                 <div className="truncate font-semibold text-[var(--dc-text-primary)]">
-                  {(task.directiveVersion?.directive as any)?.ownerUnit?.name || "-"}
+                  {(task.directiveVersion?.directive as any)?.ownerUnit?.name ?? "-"}
                 </div>
               </div>
               <div className="space-y-1">
@@ -4498,30 +4525,30 @@ export function TaskDetailClient({
                   <Badge
                     variant="outline"
                     className="dc-priority rounded-[4px] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider"
-                    data-priority={(task.priority || "NORMAL").toUpperCase()}
+                    data-priority={(task.priority ?? "NORMAL").toUpperCase()}
                   >
-                    {task.priority || "NORMAL"}
+                    {task.priority ?? "NORMAL"}
                   </Badge>
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[9px] text-muted-foreground/60 uppercase">Klasifikasi</div>
                 <div className="truncate font-semibold text-[var(--dc-text-primary)]">
-                  <Badge variant="outline" className={classificationBadgeClass(classification || "RAHASIA")}>
-                    {classification || "RAHASIA"}
+                  <Badge variant="outline" className={classificationBadgeClass(classification ?? "RAHASIA")}>
+                    {classification ?? "RAHASIA"}
                   </Badge>
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[9px] text-muted-foreground/60 uppercase">Sumber Direktif</div>
                 <div className="truncate font-semibold text-[var(--dc-text-primary)]">
-                  {task.directiveVersion?.directive?.commandNumber || "-"}
+                  {task.directiveVersion?.directive?.commandNumber ?? "-"}
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[9px] text-muted-foreground/60 uppercase">Cakupan Wilayah</div>
                 <div className="truncate font-semibold text-[var(--dc-text-primary)]" title={areaSummary}>
-                  {areaSummary || "-"}
+                  {areaSummary ?? "-"}
                 </div>
               </div>
               <div className="space-y-1">
@@ -4641,7 +4668,9 @@ export function AssignmentBoardClient({
             message = first.message;
           }
         }
-      } catch (_) {}
+      } catch {
+        // Keep the original error message when backend details are not JSON.
+      }
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -4664,7 +4693,7 @@ export function AssignmentBoardClient({
               <AlertTriangle className="size-4" />
               <AlertTitle>Petugas Wilayah (Gaswil) belum tersedia</AlertTitle>
               <AlertDescription>
-                Tidak ada Petugas Wilayah (Gaswil) aktif di bawah garis pelaporan Koordinator Lapangan ini.
+                Tidak ada Petugas Wilayah (Gaswil) aktif di bawah garis pelaporan Koordinator Wilayah (Korwil) ini.
               </AlertDescription>
             </Alert>
           ) : null}
@@ -4673,7 +4702,7 @@ export function AssignmentBoardClient({
               key={index}
               className="grid gap-4 rounded-xl border border-border/70 p-4 md:grid-cols-[minmax(220px,1fr)_minmax(180px,260px)_minmax(280px,1.2fr)_auto] md:items-start"
             >
-              <label className="space-y-1">
+              <div className="space-y-1">
                 <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
                   Petugas
                 </span>
@@ -4687,7 +4716,7 @@ export function AssignmentBoardClient({
                     )
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label="Petugas tujuan" className="w-full">
                     <SelectValue placeholder="Pilih petugas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -4698,8 +4727,8 @@ export function AssignmentBoardClient({
                     ))}
                   </SelectContent>
                 </Select>
-              </label>
-              <label className="space-y-1">
+              </div>
+              <div className="space-y-1">
                 <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
                   Periode Selesai
                 </span>
@@ -4715,12 +4744,13 @@ export function AssignmentBoardClient({
                     )
                   }
                 />
-              </label>
-              <label className="space-y-1">
+              </div>
+              <div className="space-y-1">
                 <span className="block font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
                   Instruksi Operasional
                 </span>
                 <Textarea
+                  aria-label="Instruksi operasional"
                   value={row.assignmentNote}
                   onChange={(event) =>
                     setRows((current) =>
@@ -4732,7 +4762,7 @@ export function AssignmentBoardClient({
                   placeholder="Instruksi operasional untuk petugas"
                   className="min-h-20 resize-y"
                 />
-              </label>
+              </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -5067,21 +5097,22 @@ export function FieldOfficerAssignmentDetailClient({ assignment }: FieldOfficerA
             </div>
           </div>
 
-          <label className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm">
             <span>Catatan</span>
-            <Textarea value={note} onChange={(event) => setNote(event.target.value)} />
-          </label>
+            <Textarea aria-label="Catatan progres" value={note} onChange={(event) => setNote(event.target.value)} />
+          </div>
 
-          <label className="space-y-2 text-sm">
+          <div className="space-y-2 text-sm">
             <span>Progres (%)</span>
             <Input
+              aria-label="Persentase progres"
               type="number"
               min={0}
               max={100}
               value={progressPercent}
               onChange={(event) => setProgressPercent(Number(event.target.value))}
             />
-          </label>
+          </div>
         </CardContent>
         <CardFooter className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => runAction("mark-read")} disabled={action !== null}>

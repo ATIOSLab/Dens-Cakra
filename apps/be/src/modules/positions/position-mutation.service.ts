@@ -1,6 +1,8 @@
-import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
 import {
-  Injectable } from '@nestjs/common';
+  OrganizationType,
+  PositionCode,
+} from '../../common/constants/legacy-operational-code.js';
+import { Injectable } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
 import { AUTH_ROLE_TO_DOMAIN_ROLE } from '../../common/constants/auth-role.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
@@ -11,6 +13,12 @@ import {
   RoleCode,
   UserProfileStatus,
 } from '../../generated/prisma/client.js';
+import {
+  type AreaWithDkiAncestry,
+  isDirectorateSupervisionRole,
+  isDkiJakartaProvince,
+  isDkiJakartaRegencyCity,
+} from '../../common/administrative/dki-supervision.js';
 import { OrganizationService } from '../access/organization.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
@@ -355,27 +363,76 @@ export class PositionMutationService {
   }
 
   async validateScopes(id: string, areaIds: string[]) {
-    const assignment = await this.positionQuery.assignment(id);
+    const assignment =
+      await this.prisma.userOperationalAssignment.findUniqueOrThrow({
+        where: { id },
+        include: { role: true },
+      });
     const policy = await this.prisma.roleAreaPolicy.findMany({
       where: {
-        roleCode: assignment.position.role.code,
-        branch: assignment.position.branch,
+        roleCode: assignment.role.code,
+        branch: assignment.branch,
         isActive: true,
       },
     });
     const areas = await this.prisma.administrativeArea.findMany({
-      where: { id: { in: areaIds }, isActive: true },
+      where: { id: { in: areaIds }, isActive: true, deletedAt: null },
+      select: {
+        id: true,
+        code: true,
+        officialCode: true,
+        name: true,
+        level: true,
+        parent: {
+          select: {
+            code: true,
+            officialCode: true,
+            name: true,
+            level: true,
+          },
+        },
+        ancestorLinks: {
+          where: { ancestor: { level: AdministrativeLevel.PROVINCE } },
+          select: {
+            ancestor: {
+              select: {
+                code: true,
+                officialCode: true,
+                name: true,
+                level: true,
+              },
+            },
+          },
+        },
+      },
     });
     const violations: string[] = [];
     if (areas.length !== new Set(areaIds).size) {
       violations.push('UNKNOWN_OR_INACTIVE_AREA');
     }
-    const allowedLevels = new Set(
-      policy.map((item) => item.administrativeLevel),
-    );
-    for (const area of areas) {
-      if (policy.length && !allowedLevels.has(area.level)) {
-        violations.push(`LEVEL_${area.level}_NOT_ALLOWED`);
+    if (
+      assignment.branch === CommandRouteType.DIRECTORATE &&
+      isDirectorateSupervisionRole(assignment.role.code)
+    ) {
+      for (const area of areas) {
+        if (isDkiJakartaProvince(area)) {
+          violations.push('DKI_DIRECTORATE_PROVINCE_SCOPE_INVALID');
+        } else if (area.level === AdministrativeLevel.PROVINCE) {
+          continue;
+        } else if (isDkiJakartaRegencyCity(area)) {
+          continue;
+        } else {
+          violations.push('DIRECTORATE_SUPERVISION_SCOPE_INVALID');
+        }
+      }
+    } else {
+      const allowedLevels = new Set(
+        policy.map((item) => item.administrativeLevel),
+      );
+      for (const area of areas) {
+        if (policy.length && !allowedLevels.has(area.level)) {
+          violations.push(`LEVEL_${area.level}_NOT_ALLOWED`);
+        }
       }
     }
     const minimum = Math.max(0, ...policy.map((item) => item.minimumAreas));
@@ -404,7 +461,7 @@ export class PositionMutationService {
     if (!validation.valid) {
       throw new ApiException(
         'AREA_SCOPE_INVALID',
-        'Area scope policy validation failed.',
+        'Validasi kebijakan cakupan wilayah gagal.',
         422,
         undefined,
         validation,
@@ -413,19 +470,19 @@ export class PositionMutationService {
     if (input.areas.filter((area) => area.isPrimary).length !== 1) {
       throw new ApiException(
         'PRIMARY_AREA_REQUIRED',
-        'Exactly one primary area is required.',
+        'Tepat satu wilayah utama wajib dipilih.',
         422,
       );
     }
     const effectiveAt = new Date(input.effectiveAt);
     await this.prisma.$transaction(async (tx) => {
-      await tx.positionAreaScope.updateMany({
-        where: { positionAssignmentId: id, validUntil: null },
+      await tx.userAreaScope.updateMany({
+        where: { operationalAssignmentId: id, validUntil: null },
         data: { validUntil: effectiveAt },
       });
-      await tx.positionAreaScope.createMany({
+      await tx.userAreaScope.createMany({
         data: input.areas.map((area) => ({
-          positionAssignmentId: id,
+          operationalAssignmentId: id,
           areaId: area.areaId,
           isPrimary: area.isPrimary,
           validFrom: effectiveAt,
@@ -497,14 +554,14 @@ export class PositionMutationService {
     if (!allowed.get(roleCode)?.includes(positionCode)) {
       throw new ApiException(
         'ROLE_POSITION_MISMATCH',
-        `${roleCode} cannot occupy position ${positionCode}.`,
+        `${roleCode} tidak dapat menempati jabatan ${positionCode}.`,
         422,
       );
     }
     if (roleCode === RoleCode.EXECUTIVE && branch !== CommandRouteType.PUSAT) {
       throw new ApiException(
         'POSITION_BRANCH_MISMATCH',
-        'Executive positions must use PUSAT branch.',
+        'Jabatan Deputi II harus menggunakan jalur PUSAT.',
         422,
       );
     }
@@ -516,7 +573,7 @@ export class PositionMutationService {
     ) {
       throw new ApiException(
         'POSITION_BRANCH_MISMATCH',
-        'Operational positions must use BINDA or DIRECTORATE branch.',
+        'Jabatan operasional harus menggunakan jalur BINDA atau DIRECTORATE.',
         422,
       );
     }
@@ -622,19 +679,20 @@ export class PositionMutationService {
       );
     });
 
-    return this.pickSingleReportingCandidate(matchingCandidates, input.roleCode);
+    return this.pickSingleReportingCandidate(
+      matchingCandidates,
+      input.roleCode,
+    );
   }
 
   private parentRuleFor(
     roleCode: RoleCode,
     branch: CommandRouteType | null,
-  ):
-    | {
-        roleCode: RoleCode;
-        positionCodes: PositionCode[];
-        branch: CommandRouteType | null;
-      }
-    | null {
+  ): {
+    roleCode: RoleCode;
+    positionCodes: PositionCode[];
+    branch: CommandRouteType | null;
+  } | null {
     if (roleCode === RoleCode.REGIONAL_COMMANDER) {
       return {
         roleCode: RoleCode.EXECUTIVE,
@@ -720,7 +778,34 @@ export class PositionMutationService {
         isActive: true,
         deletedAt: null,
       },
-      select: { id: true, level: true },
+      select: {
+        id: true,
+        code: true,
+        officialCode: true,
+        name: true,
+        level: true,
+        parent: {
+          select: {
+            code: true,
+            officialCode: true,
+            name: true,
+            level: true,
+          },
+        },
+        ancestorLinks: {
+          where: { ancestor: { level: AdministrativeLevel.PROVINCE } },
+          select: {
+            ancestor: {
+              select: {
+                code: true,
+                officialCode: true,
+                name: true,
+                level: true,
+              },
+            },
+          },
+        },
+      },
     });
     if (areas.length !== input.areaIds.length) {
       throw new ApiException(
@@ -729,7 +814,10 @@ export class PositionMutationService {
         422,
       );
     }
-    const levels = new Set(areas.map((area) => area.level));
+    const levels = new Set<AdministrativeLevel>();
+    for (const area of areas as AreaWithDkiAncestry[]) {
+      levels.add(area.level);
+    }
     const requireOnlyLevels = (allowed: readonly AdministrativeLevel[]) => {
       for (const level of levels) {
         if (!allowed.includes(level)) {
@@ -745,22 +833,54 @@ export class PositionMutationService {
       requireOnlyLevels([AdministrativeLevel.COUNTRY]);
       return;
     }
-    if (
-      input.roleCode === RoleCode.REGIONAL_COMMANDER ||
-      input.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER
-    ) {
+    if (isDirectorateSupervisionRole(input.roleCode)) {
+      if (input.branch === CommandRouteType.DIRECTORATE) {
+        this.validateDirectorateSupervisionAreas(areas);
+        await this.assertAreasWithinAnchorUnit(input);
+        return;
+      }
+
       requireOnlyLevels([AdministrativeLevel.PROVINCE]);
       await this.assertAreasWithinAnchorUnit(input);
       return;
     }
     if (input.roleCode === RoleCode.FIELD_COORDINATOR) {
-      requireOnlyLevels([AdministrativeLevel.REGENCY, AdministrativeLevel.CITY]);
+      requireOnlyLevels([
+        AdministrativeLevel.REGENCY,
+        AdministrativeLevel.CITY,
+      ]);
       await this.assertAreasWithinAnchorUnit(input);
       return;
     }
     if (input.roleCode === RoleCode.FIELD_OFFICER) {
       requireOnlyLevels([AdministrativeLevel.DISTRICT]);
       await this.assertAreasWithinSupervisorPosition(input);
+    }
+  }
+
+  private validateDirectorateSupervisionAreas(areas: AreaWithDkiAncestry[]) {
+    for (const area of areas) {
+      if (isDkiJakartaProvince(area)) {
+        throw new ApiException(
+          'DKI_DIRECTORATE_PROVINCE_SCOPE_INVALID',
+          'Supervisi Direktorat/Ditwil untuk DKI Jakarta harus memakai cakupan Kota/Kabupaten, bukan Provinsi.',
+          422,
+        );
+      }
+
+      if (area.level === AdministrativeLevel.PROVINCE) {
+        continue;
+      }
+
+      if (isDkiJakartaRegencyCity(area)) {
+        continue;
+      }
+
+      throw new ApiException(
+        'DIRECTORATE_SUPERVISION_SCOPE_INVALID',
+        'Supervisi Direktorat/Ditwil memakai cakupan Provinsi, kecuali DKI Jakarta yang memakai cakupan Kota/Kabupaten.',
+        422,
+      );
     }
   }
 
@@ -801,7 +921,7 @@ export class PositionMutationService {
     if (!input.reportsToPositionId) {
       throw new ApiException(
         'REPORTING_LINE_REQUIRED',
-        'Field Officer positions must report to a Field Coordinator position.',
+        'Jabatan Petugas Wilayah (Gaswil) harus melapor ke jabatan Koordinator Wilayah (Korwil).',
         422,
       );
     }
@@ -821,7 +941,7 @@ export class PositionMutationService {
     ) {
       throw new ApiException(
         'REPORTING_LINE_INVALID',
-        'Field Officer positions must report to KORWIL or STAF_SUBDIT.',
+        'Jabatan Petugas Wilayah (Gaswil) harus melapor ke KORWIL atau STAF_SUBDIT.',
         422,
       );
     }
@@ -854,7 +974,10 @@ export class PositionMutationService {
       select: { ancestorId: true },
     });
     const scopedUnitIds = [
-      ...new Set([organizationUnitId, ...unitIds.map((item) => item.ancestorId)]),
+      ...new Set([
+        organizationUnitId,
+        ...unitIds.map((item) => item.ancestorId),
+      ]),
     ];
     const [bindaProfiles, directorateCoverages, organizationCoverages] =
       await Promise.all([

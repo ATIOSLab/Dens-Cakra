@@ -3,34 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-import {
-  Activity,
-  ArrowDown,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Eye,
-  FileText,
-  MapPin,
-  RefreshCw,
-  Search,
-  ShieldAlert,
-  TriangleAlert,
-  User,
-  X,
-} from "lucide-react";
+import { Calendar, CheckCircle2, Clock, Eye, MapPin, RefreshCw, Search, User, X } from "lucide-react";
 
 import {
   formatFullAreaName,
   type JaringReportSessionDetail,
   type PriorityLevel,
 } from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
-import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Badge } from "@/components/ui/badge";
-import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -41,12 +25,23 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import {
+  type DashboardDetailPeriodPreset,
+  dateInputFromSearchParams,
+  jakartaBoundaryIso,
+  resolveDashboardDetailPeriodPreset,
+} from "@/lib/domain/date-time";
+import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
+
+import { BaketSummaryCards } from "./baket-summary-cards";
 
 export interface ReportCategoryItem {
   id: string;
@@ -75,6 +70,19 @@ function formatDateTime(value?: string | null) {
   }
 }
 
+function getSourceReportDate(item: JaringReportSessionDetail) {
+  return item.reportedAt ?? item.submittedAt ?? item.createdAt;
+}
+
+function getBaketDate(item: JaringReportSessionDetail) {
+  return item.baket?.latestVersion?.reportedAt ?? item.submittedAt ?? item.updatedAt ?? item.createdAt;
+}
+
+function getBaketVersionLabel(item: JaringReportSessionDetail) {
+  if (!item.baket) return "Baket";
+  return `Versi ${item.baket.currentVersionNumber}`;
+}
+
 const BAKET_OFFICER_COLUMNS: ColumnOption[] = [
   { id: "no", label: "No" },
   { id: "refNum", label: "No. Referensi" },
@@ -83,14 +91,18 @@ const BAKET_OFFICER_COLUMNS: ColumnOption[] = [
   { id: "kodeJaring", label: "Kode Jaring" },
   { id: "gaswil", label: "Petugas Wilayah (Gaswil)" },
   { id: "whatsapp", label: "Nomor WhatsApp" },
-  { id: "judulIsi", label: "Judul & Isi Laporan", alwaysVisible: true },
+  { id: "judulIsi", label: "Judul & Isi Baket", alwaysVisible: true },
   { id: "lokasiAktual", label: "Lokasi Aktual Laporan" },
   { id: "wilayahPenempatan", label: "Wilayah Penempatan Jaring" },
-  { id: "statusVerifikasi", label: "Status Verifikasi" },
-  { id: "waktuMasuk", label: "Waktu Masuk" },
+  { id: "statusVerifikasi", label: "Status Validasi" },
+  { id: "tanggalLaporan", label: "Tanggal Laporan Jaring" },
+  { id: "tanggalBaket", label: "Tanggal Baket" },
 ];
 
 export function BaketOfficerClient() {
+  const searchParams = useSearchParams();
+  const initialStartDate = dateInputFromSearchParams(searchParams, ["from", "periodStart"]);
+  const initialEndDate = dateInputFromSearchParams(searchParams, ["to", "periodEnd"]);
   const [reports, setReports] = useState<JaringReportSessionDetail[]>([]);
   const [categories, setCategories] = useState<ReportCategoryItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -107,7 +119,9 @@ export function BaketOfficerClient() {
       try {
         const stored = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
         setReadReportIds(new Set(stored));
-      } catch {}
+      } catch {
+        // Abaikan cache lokal yang tidak valid.
+      }
     }
   }, []);
 
@@ -115,7 +129,9 @@ export function BaketOfficerClient() {
     if (reportId) {
       try {
         void apiBrowserMutation("PATCH", `/jaring/reports/${reportId}/read`);
-      } catch {}
+      } catch {
+        // Abaikan kegagalan penanda baca; status lokal tetap diproses.
+      }
       if (typeof window !== "undefined") {
         try {
           const stored: string[] = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
@@ -124,18 +140,22 @@ export function BaketOfficerClient() {
             localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
             setReadReportIds(new Set(stored));
           }
-        } catch {}
+        } catch {
+          // Abaikan cache lokal yang tidak dapat ditulis.
+        }
       }
     }
   };
 
   // Filter, Search, and Pagination states
   const [search, setSearch] = useState("");
-  const [urgencyFilter, setUrgencyFilter] = useState<string>("ALL");
+  const [urgencyFilter, setUrgencyFilter] = useState<PriorityLevel | "ALL">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
-  const [periodPreset, setPeriodPreset] = useState<"ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM">("ALL");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [periodPreset, setPeriodPreset] = useState<DashboardDetailPeriodPreset>(() =>
+    resolveDashboardDetailPeriodPreset(searchParams, Boolean(initialStartDate || initialEndDate)),
+  );
+  const [startDate, setStartDate] = useState<string>(() => initialStartDate);
+  const [endDate, setEndDate] = useState<string>(() => initialEndDate);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -143,15 +163,15 @@ export function BaketOfficerClient() {
   async function fetchReports(overrideStart?: string, overrideEnd?: string) {
     setLoadingList(true);
     try {
-      let url = "/jaring/reports?registrationStatus=APPROVED";
+      let url = "/jaring/reports?registrationStatus=APPROVED&stage=ALL";
       const sDate = overrideStart ?? startDate;
       const eDate = overrideEnd ?? endDate;
 
       if (sDate && sDate.length === 10) {
-        url += `&from=${encodeURIComponent(`${sDate}T00:00:00.000Z`)}`;
+        url += `&from=${encodeURIComponent(jakartaBoundaryIso(sDate))}`;
       }
       if (eDate && eDate.length === 10) {
-        url += `&to=${encodeURIComponent(`${eDate}T23:59:59.999Z`)}`;
+        url += `&to=${encodeURIComponent(jakartaBoundaryIso(eDate, true))}`;
       }
 
       const res = await apiBrowserFetch<{ items?: JaringReportSessionDetail[] } | JaringReportSessionDetail[]>(url);
@@ -175,14 +195,15 @@ export function BaketOfficerClient() {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: data awal dimuat sekali saat halaman dibuka
   useEffect(() => {
     void fetchReports();
     void fetchCategories();
   }, []);
 
-  // Filter ONLY reports that are converted into Baket (METADATA_RECORDED)
+  // Filter laporan yang sudah memiliki Baket.
   const baketReports = useMemo(() => {
-    return reports.filter((r) => r.verificationStatus === "METADATA_RECORDED");
+    return reports.filter((r) => Boolean(r.baket) || r.processStatus === "BAKET_CREATED");
   }, [reports]);
 
   // Compute summary metrics based on Urgensi
@@ -221,7 +242,7 @@ export function BaketOfficerClient() {
       }
 
       // Date / Period Filter
-      const reportDateStr = item.submittedAt || item.createdAt;
+      const reportDateStr = getBaketDate(item);
       if (reportDateStr) {
         const itemTime = new Date(reportDateStr).getTime();
         const now = new Date();
@@ -267,80 +288,6 @@ export function BaketOfficerClient() {
     return filteredReports.slice(start, start + limit);
   }, [filteredReports, page, limit]);
 
-  const urgencyKpiCards = [
-    {
-      value: "URGENT" as const,
-      label: "URGENT",
-      description: "Mendesak",
-      icon: ShieldAlert,
-      styles: {
-        activeCard:
-          "border-rose-500 bg-rose-50/80 dark:bg-rose-950/40 ring-2 ring-rose-500/40 shadow-sm shadow-rose-500/10",
-        inactiveCard:
-          "border-rose-200/80 dark:border-rose-900/30 bg-card hover:border-rose-300 dark:hover:border-rose-800 hover:bg-rose-50/30 dark:hover:bg-rose-950/20",
-        activeBadge: "bg-rose-600 text-white border-rose-600 font-semibold shadow-xs",
-        inactiveBadge:
-          "border-rose-200 bg-rose-100/80 text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-400",
-        activeIcon: "bg-rose-600 text-white shadow-md shadow-rose-500/30",
-        inactiveIcon: "bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400",
-        countText: "text-rose-700 dark:text-rose-400",
-      },
-    },
-    {
-      value: "HIGH" as const,
-      label: "HIGH",
-      description: "Tinggi",
-      icon: TriangleAlert,
-      styles: {
-        activeCard:
-          "border-amber-500 bg-amber-50/80 dark:bg-amber-950/40 ring-2 ring-amber-500/40 shadow-sm shadow-amber-500/10",
-        inactiveCard:
-          "border-amber-200/80 dark:border-amber-900/30 bg-card hover:border-amber-300 dark:hover:border-amber-800 hover:bg-amber-50/30 dark:hover:bg-amber-950/20",
-        activeBadge: "bg-amber-600 text-white border-amber-600 font-semibold shadow-xs",
-        inactiveBadge:
-          "border-amber-200 bg-amber-100/80 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/50 dark:text-amber-400",
-        activeIcon: "bg-amber-600 text-white shadow-md shadow-amber-500/30",
-        inactiveIcon: "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400",
-        countText: "text-amber-700 dark:text-amber-400",
-      },
-    },
-    {
-      value: "NORMAL" as const,
-      label: "NORMAL",
-      description: "Normal",
-      icon: Activity,
-      styles: {
-        activeCard:
-          "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 ring-2 ring-emerald-500/40 shadow-sm shadow-emerald-500/10",
-        inactiveCard:
-          "border-emerald-200/80 dark:border-emerald-900/30 bg-card hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20",
-        activeBadge: "bg-emerald-600 text-white border-emerald-600 font-semibold shadow-xs",
-        inactiveBadge:
-          "border-emerald-200 bg-emerald-100/80 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400",
-        activeIcon: "bg-emerald-600 text-white shadow-md shadow-emerald-500/30",
-        inactiveIcon: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",
-        countText: "text-emerald-700 dark:text-emerald-400",
-      },
-    },
-    {
-      value: "LOW" as const,
-      label: "LOW",
-      description: "Rendah",
-      icon: ArrowDown,
-      styles: {
-        activeCard: "border-sky-500 bg-sky-50/80 dark:bg-sky-950/40 ring-2 ring-sky-500/40 shadow-sm shadow-sky-500/10",
-        inactiveCard:
-          "border-sky-200/80 dark:border-sky-900/30 bg-card hover:border-sky-300 dark:hover:border-sky-800 hover:bg-sky-50/30 dark:hover:bg-sky-950/20",
-        activeBadge: "bg-sky-600 text-white border-sky-600 font-semibold shadow-xs",
-        inactiveBadge:
-          "border-sky-200 bg-sky-100/80 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/50 dark:text-sky-400",
-        activeIcon: "bg-sky-600 text-white shadow-md shadow-sky-500/30",
-        inactiveIcon: "bg-sky-100 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400",
-        countText: "text-sky-700 dark:text-sky-400",
-      },
-    },
-  ];
-
   return (
     <main className="mx-auto w-full max-w-[1600px] space-y-5 transition-colors duration-150 sm:space-y-6">
       {/* BREADCRUMB */}
@@ -361,7 +308,8 @@ export function BaketOfficerClient() {
         <div>
           <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Bahan Keterangan (Baket)</h1>
           <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
-            Daftar laporan Jaring yang telah terverifikasi dan berhasil dikonversikan menjadi Baket Intelijen.
+            Daftar Bahan Keterangan (Baket) yang telah diformalisasi dari laporan Jaring, lengkap dengan sumber,
+            tanggal, lokasi aktual laporan, dan wilayah penempatan Jaring.
           </p>
         </div>
 
@@ -377,61 +325,16 @@ export function BaketOfficerClient() {
         </Button>
       </div>
 
-      {/* KPI METRIC SUMMARY CARDS BERDASARKAN URGENSI */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {urgencyKpiCards.map((item) => {
-          const Icon = item.icon;
-          const isActive = urgencyFilter === item.value;
-
-          return (
-            <button
-              key={item.value}
-              type="button"
-              aria-pressed={isActive}
-              aria-label={`Filter baket dengan urgensi ${item.label}`}
-              onClick={() => {
-                setUrgencyFilter(isActive ? "ALL" : item.value);
-                setPage(1);
-              }}
-              className={cn(
-                "flex items-center justify-between rounded-xl border p-4 text-left transition-all duration-200 cursor-pointer",
-                isActive ? item.styles.activeCard : item.styles.inactiveCard,
-              )}
-            >
-              <div className="flex flex-col gap-2">
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "w-fit uppercase tracking-wider text-[10px] px-2 py-0.5 font-semibold",
-                    isActive ? item.styles.activeBadge : item.styles.inactiveBadge,
-                  )}
-                >
-                  {item.label}
-                </Badge>
-                <div>
-                  <p
-                    className={cn(
-                      "text-3xl font-extrabold tracking-tight transition-colors",
-                      isActive ? item.styles.countText : "text-foreground",
-                    )}
-                  >
-                    {urgencySummary[item.value]}
-                  </p>
-                  <p className="text-xs text-muted-foreground font-medium">Urgensi {item.description}</p>
-                </div>
-              </div>
-              <div
-                className={cn(
-                  "flex size-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
-                  isActive ? item.styles.activeIcon : item.styles.inactiveIcon,
-                )}
-              >
-                <Icon className="size-5" />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      {/* RINGKASAN DAN FILTER CEPAT */}
+      <BaketSummaryCards
+        total={baketReports.length}
+        urgencySummary={urgencySummary}
+        urgencyFilter={urgencyFilter}
+        onUrgencyFilterChange={(value) => {
+          setUrgencyFilter(value);
+          setPage(1);
+        }}
+      />
 
       {/* FULL TABLE VIEW CONTAINER */}
       <Card className="border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden">
@@ -471,16 +374,16 @@ export function BaketOfficerClient() {
                 <NativeSelect
                   value={urgencyFilter}
                   onChange={(e) => {
-                    setUrgencyFilter(e.target.value);
+                    setUrgencyFilter(e.target.value as PriorityLevel | "ALL");
                     setPage(1);
                   }}
                   className="h-8 text-xs bg-background min-w-[130px]"
                 >
                   <option value="ALL">Semua Urgensi</option>
-                  <option value="URGENT">URGENT</option>
-                  <option value="HIGH">HIGH</option>
-                  <option value="NORMAL">NORMAL</option>
-                  <option value="LOW">LOW</option>
+                  <option value="URGENT">Mendesak</option>
+                  <option value="HIGH">Tinggi</option>
+                  <option value="NORMAL">Normal</option>
+                  <option value="LOW">Rendah</option>
                 </NativeSelect>
               </div>
 
@@ -510,7 +413,7 @@ export function BaketOfficerClient() {
                 <NativeSelect
                   value={periodPreset}
                   onChange={(e) => {
-                    setPeriodPreset(e.target.value as any);
+                    setPeriodPreset(e.target.value as DashboardDetailPeriodPreset);
                     setPage(1);
                   }}
                   className="h-8 text-xs bg-background min-w-[150px]"
@@ -584,6 +487,7 @@ export function BaketOfficerClient() {
                     setSearch("");
                     setUrgencyFilter("ALL");
                     setCategoryFilter("ALL");
+                    setPeriodPreset("ALL");
                     setStartDate("");
                     setEndDate("");
                     setPage(1);
@@ -605,25 +509,72 @@ export function BaketOfficerClient() {
           <Table>
             <TableHeader className="bg-slate-50/50 dark:bg-slate-900/40">
               <TableRow className="border-b border-slate-200/80 dark:border-white/10 hover:bg-transparent">
-                {isColVisible("no") && <TableHead className="w-12 text-center text-xs font-semibold uppercase tracking-wider">No</TableHead>}
-                {isColVisible("refNum") && <TableHead className="w-36 text-xs font-semibold uppercase tracking-wider">No. Referensi</TableHead>}
-                {isColVisible("foto") && <TableHead className="w-12 text-center text-xs font-semibold uppercase tracking-wider">Foto</TableHead>}
-                {isColVisible("namaJaring") && <TableHead className="min-w-[150px] text-xs font-semibold uppercase tracking-wider">Nama Jaring</TableHead>}
-                {isColVisible("kodeJaring") && <TableHead className="min-w-[120px] text-xs font-semibold uppercase tracking-wider">Kode Jaring</TableHead>}
-                {isColVisible("gaswil") && <TableHead className="min-w-[160px] text-xs font-semibold uppercase tracking-wider">Petugas Wilayah (Gaswil)</TableHead>}
-                {isColVisible("whatsapp") && <TableHead className="min-w-[130px] text-xs font-semibold uppercase tracking-wider">Nomor WhatsApp</TableHead>}
-                {isColVisible("judulIsi") && <TableHead className="min-w-[220px] text-xs font-semibold uppercase tracking-wider">Judul & Isi Laporan</TableHead>}
-                {isColVisible("lokasiAktual") && <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">Lokasi Aktual Laporan</TableHead>}
-                {isColVisible("wilayahPenempatan") && <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">Wilayah Penempatan Jaring</TableHead>}
-                {isColVisible("statusVerifikasi") && <TableHead className="w-48 text-xs font-semibold uppercase tracking-wider">Status Verifikasi</TableHead>}
-                {isColVisible("waktuMasuk") && <TableHead className="w-44 text-xs font-semibold uppercase tracking-wider">Waktu Masuk</TableHead>}
+                {isColVisible("no") && (
+                  <TableHead className="w-12 text-center text-xs font-semibold uppercase tracking-wider">No</TableHead>
+                )}
+                {isColVisible("refNum") && (
+                  <TableHead className="w-36 text-xs font-semibold uppercase tracking-wider">No. Referensi</TableHead>
+                )}
+                {isColVisible("foto") && (
+                  <TableHead className="w-12 text-center text-xs font-semibold uppercase tracking-wider">
+                    Foto
+                  </TableHead>
+                )}
+                {isColVisible("namaJaring") && (
+                  <TableHead className="min-w-[150px] text-xs font-semibold uppercase tracking-wider">
+                    Nama Jaring
+                  </TableHead>
+                )}
+                {isColVisible("kodeJaring") && (
+                  <TableHead className="min-w-[120px] text-xs font-semibold uppercase tracking-wider">
+                    Kode Jaring
+                  </TableHead>
+                )}
+                {isColVisible("gaswil") && (
+                  <TableHead className="min-w-[160px] text-xs font-semibold uppercase tracking-wider">
+                    Petugas Wilayah (Gaswil)
+                  </TableHead>
+                )}
+                {isColVisible("whatsapp") && (
+                  <TableHead className="min-w-[130px] text-xs font-semibold uppercase tracking-wider">
+                    Nomor WhatsApp
+                  </TableHead>
+                )}
+                {isColVisible("judulIsi") && (
+                  <TableHead className="min-w-[220px] text-xs font-semibold uppercase tracking-wider">
+                    Judul & Isi Baket
+                  </TableHead>
+                )}
+                {isColVisible("lokasiAktual") && (
+                  <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">
+                    Lokasi Aktual Laporan
+                  </TableHead>
+                )}
+                {isColVisible("wilayahPenempatan") && (
+                  <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">
+                    Wilayah Penempatan Jaring
+                  </TableHead>
+                )}
+                {isColVisible("statusVerifikasi") && (
+                  <TableHead className="w-48 text-xs font-semibold uppercase tracking-wider">
+                    Status Validasi
+                  </TableHead>
+                )}
+                {isColVisible("tanggalLaporan") && (
+                  <TableHead className="w-44 text-xs font-semibold uppercase tracking-wider">
+                    Tanggal Laporan Jaring
+                  </TableHead>
+                )}
+                {isColVisible("tanggalBaket") && (
+                  <TableHead className="w-44 text-xs font-semibold uppercase tracking-wider">Tanggal Baket</TableHead>
+                )}
                 <TableHead className="w-32 text-center text-xs font-semibold uppercase tracking-wider">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-slate-100 dark:divide-white/5">
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={13} className="py-12 text-center text-xs text-muted-foreground font-mono">
+                  <TableCell colSpan={14} className="py-12 text-center text-xs text-muted-foreground font-mono">
                     <div className="flex justify-center items-center gap-2">
                       <RefreshCw className="size-4 animate-spin text-emerald-600 dark:text-emerald-400" />
                       Memuat data Baket...
@@ -657,7 +608,9 @@ export function BaketOfficerClient() {
                       )}
                     >
                       {isColVisible("no") && (
-                        <TableCell className="text-center font-mono text-xs text-muted-foreground">{itemIndex}</TableCell>
+                        <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                          {itemIndex}
+                        </TableCell>
                       )}
                       {isColVisible("refNum") && (
                         <TableCell>
@@ -686,7 +639,9 @@ export function BaketOfficerClient() {
                       )}
                       {isColVisible("kodeJaring") && (
                         <TableCell>
-                          <span className="font-mono text-xs text-sky-600 dark:text-[#38BDF8] font-bold">{identity.code}</span>
+                          <span className="font-mono text-xs text-sky-600 dark:text-[#38BDF8] font-bold">
+                            {identity.code}
+                          </span>
                         </TableCell>
                       )}
                       {isColVisible("gaswil") && (
@@ -700,7 +655,9 @@ export function BaketOfficerClient() {
                       )}
                       {isColVisible("whatsapp") && (
                         <TableCell>
-                          <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400">{identity.whatsappNumber}</span>
+                          <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                            {identity.whatsappNumber}
+                          </span>
                         </TableCell>
                       )}
                       {isColVisible("judulIsi") && (
@@ -710,7 +667,9 @@ export function BaketOfficerClient() {
                               {item.displayTitle || "Baket Intelijen"}
                             </p>
                             {item.content ? (
-                              <p className="text-[11px] text-muted-foreground line-clamp-1 font-normal">{item.content}</p>
+                              <p className="text-[11px] text-muted-foreground line-clamp-1 font-normal">
+                                {item.content}
+                              </p>
                             ) : null}
                           </div>
                         </TableCell>
@@ -731,13 +690,19 @@ export function BaketOfficerClient() {
                       {isColVisible("statusVerifikasi") && (
                         <TableCell>
                           <span className="inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                            Baket Dibuat
+                            {getBaketVersionLabel(item)}
                           </span>
                         </TableCell>
                       )}
-                      {isColVisible("waktuMasuk") && (
+                      {isColVisible("tanggalLaporan") && (
                         <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                          {formatDateTime(item.submittedAt || item.createdAt)}
+                          {formatDateTime(getSourceReportDate(item))}
+                        </TableCell>
+                      )}
+                      {isColVisible("tanggalBaket") && (
+                        <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                          <div>{formatDateTime(getBaketDate(item))}</div>
+                          <div className="mt-0.5 text-[10px] text-muted-foreground">{getBaketVersionLabel(item)}</div>
                         </TableCell>
                       )}
                       <TableCell className="text-center">
@@ -759,8 +724,8 @@ export function BaketOfficerClient() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={13} className="py-12 text-center text-xs text-muted-foreground space-y-2">
-                    <FileText className="size-8 mx-auto text-muted-foreground/40" />
+                  <TableCell colSpan={14} className="py-12 text-center text-xs text-muted-foreground space-y-2">
+                    <DOMAIN_VISUALS.baket.Icon className="size-8 mx-auto text-muted-foreground/40" />
                     <p>Tidak ada Baket yang sesuai filter.</p>
                   </TableCell>
                 </TableRow>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   AlertCircle,
@@ -147,7 +147,7 @@ export default function AdminMasterDataPage() {
   const totalEntities = entities.length;
   const totalDataCount = categories.length + occupations.length;
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       setBusyKey("load-categories");
       const response = await fetch("/api/admin-system/master-data/report-categories", { cache: "no-store" });
@@ -175,9 +175,9 @@ export default function AdminMasterDataPage() {
     } finally {
       setBusyKey(null);
     }
-  };
+  }, []);
 
-  const loadOccupations = async () => {
+  const loadOccupations = useCallback(async () => {
     try {
       setBusyKey("load-occupations");
       const response = await fetch("/api/admin-system/master-data/occupations", { cache: "no-store" });
@@ -205,12 +205,12 @@ export default function AdminMasterDataPage() {
     } finally {
       setBusyKey(null);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadCategories();
     void loadOccupations();
-  }, []);
+  }, [loadCategories, loadOccupations]);
 
   const loadActiveEntity = async () => {
     if (activeEntity === "occupation") return loadOccupations();
@@ -245,7 +245,7 @@ export default function AdminMasterDataPage() {
 
         const body = (await response.json()) as { message?: string };
         if (!response.ok) {
-          throw new Error(body.message || "Gagal memperbarui data.");
+          throw new Error(body.message ?? "Gagal memperbarui data.");
         }
 
         setSuccess(`${entityLabel(activeEntity)} berhasil diperbarui.`);
@@ -265,7 +265,7 @@ export default function AdminMasterDataPage() {
 
         const body = (await response.json()) as { message?: string };
         if (!response.ok) {
-          throw new Error(body.message || "Gagal menyimpan data.");
+          throw new Error(body.message ?? "Gagal menyimpan data.");
         }
 
         setSuccess(`${entityLabel(activeEntity)} baru berhasil ditambahkan.`);
@@ -352,7 +352,7 @@ export default function AdminMasterDataPage() {
     setEditingItem(item);
     setForm({
       name: item.name,
-      description: item.description || "",
+      description: item.description ?? "",
       isActive: item.isActive,
     });
     setFormErrors({});
@@ -386,7 +386,7 @@ export default function AdminMasterDataPage() {
 
       const body = (await response.json()) as { message?: string };
       if (!response.ok) {
-        throw new Error(body.message || "Gagal memperbarui status.");
+        throw new Error(body.message ?? "Gagal memperbarui status.");
       }
 
       setSuccess(`Status berhasil diubah.`);
@@ -427,10 +427,10 @@ export default function AdminMasterDataPage() {
 
       const body = (await response.json()) as { message?: string };
       if (!response.ok) {
-        throw new Error(body.message || "Gagal menghapus data.");
+        throw new Error(body.message ?? "Gagal menghapus data.");
       }
 
-      setSuccess(`Data dinonaktifkan (Soft Delete).`);
+      setSuccess("Data dinonaktifkan.");
       await loadActiveEntity();
       setTimeout(() => setSuccess(null), 3000);
     } catch (delError) {
@@ -447,7 +447,7 @@ export default function AdminMasterDataPage() {
     }
     const typeStr = entityLabel(activeEntity);
     setConfirmDialog({
-      title: `Soft Delete ${typeStr}?`,
+      title: `Nonaktifkan ${typeStr}?`,
       description: `Apakah Anda yakin ingin menonaktifkan "${item.name}" secara permanen? Data historis lama akan tetap dipertahankan namun entitas referensi tidak akan muncul lagi di formulir baru.`,
       actionLabel: "Ya, Hapus/Nonaktifkan",
       actionVariant: "destructive",
@@ -539,6 +539,7 @@ export default function AdminMasterDataPage() {
   const totalItems = filteredAndSortedItems.length;
   const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset pagination and selection when table query state changes.
   useEffect(() => {
     setCurrentPage(1);
     setSelectedIds([]);
@@ -621,6 +622,7 @@ export default function AdminMasterDataPage() {
           return (
             <button
               key={ent.id}
+              type="button"
               onClick={() => {
                 setActiveEntity(ent.id as any);
               }}
@@ -680,6 +682,7 @@ export default function AdminMasterDataPage() {
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery("")}
                   className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
                 >
@@ -845,6 +848,7 @@ export default function AdminMasterDataPage() {
                         <td className="p-4">
                           <div className="flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                             <button
+                              type="button"
                               onClick={() => startEdit(item)}
                               title="Edit Data"
                               className="size-7 rounded-[4px] border border-border bg-background dark:bg-slate-900/50 flex items-center justify-center hover:border-cyan-500/50 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all cursor-pointer text-muted-foreground hover:text-foreground"
@@ -852,6 +856,7 @@ export default function AdminMasterDataPage() {
                               <Edit2 className="size-3.5" />
                             </button>
                             <button
+                              type="button"
                               onClick={() => void toggleStatus(item)}
                               disabled={busyKey === `toggle:${item.id}`}
                               title={item.isActive ? "Nonaktifkan" : "Aktifkan"}
@@ -865,9 +870,10 @@ export default function AdminMasterDataPage() {
                               <Power className="size-3.5" />
                             </button>
                             <button
+                              type="button"
                               onClick={() => void softDelete(item)}
                               disabled={busyKey === `delete:${item.id}` || !item.isActive}
-                              title="Soft Delete (Nonaktifkan)"
+                              title="Nonaktifkan data"
                               className="size-7 rounded-[4px] border border-border bg-background dark:bg-slate-900/50 flex items-center justify-center hover:border-red-500/50 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               <Trash2 className="size-3.5" />
@@ -983,6 +989,7 @@ export default function AdminMasterDataPage() {
           </div>
           <div className="h-4 w-px bg-white/10" />
           <button
+            type="button"
             onClick={() => setSelectedIds([])}
             className="text-white/60 hover:text-white transition-colors cursor-pointer"
           >
@@ -1099,10 +1106,14 @@ export default function AdminMasterDataPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/60 font-bold">
+              <label
+                htmlFor="master-data-description"
+                className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/60 font-bold"
+              >
                 Deskripsi Referensi
               </label>
               <Textarea
+                id="master-data-description"
                 className="rounded-[6px] border-border bg-background dark:bg-slate-900/35 focus-visible:ring-1 focus-visible:ring-cyan-500 dark:focus-visible:ring-[#14B8FF]/30 placeholder:text-muted-foreground/30 text-sm min-h-[140px] resize-none"
                 placeholder="Keterangan atau deskripsi mengenai data referensi ini..."
                 value={form.description}
@@ -1113,10 +1124,13 @@ export default function AdminMasterDataPage() {
             {/* Status Aktif Row */}
             <div className="flex items-center justify-between p-3 rounded-[8px] bg-secondary/30 dark:bg-slate-900/30 border border-border dark:border-white/[0.04]">
               <div className="space-y-0.5">
-                <label className="text-xs font-mono font-bold text-foreground">Status Aktif</label>
+                <label htmlFor="master-data-active" className="text-xs font-mono font-bold text-foreground">
+                  Status Aktif
+                </label>
                 <p className="text-[10px] text-muted-foreground">Menentukan ketersediaan referensi data.</p>
               </div>
               <button
+                id="master-data-active"
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
                 className={cn(
@@ -1142,7 +1156,7 @@ export default function AdminMasterDataPage() {
               onClick={handleCancelClick}
               className="flex-1 rounded-[6px] border-border text-muted-foreground hover:bg-secondary/40 cursor-pointer h-10 text-xs font-bold"
             >
-              Cancel
+              Batal
             </Button>
             <Button
               type="button"

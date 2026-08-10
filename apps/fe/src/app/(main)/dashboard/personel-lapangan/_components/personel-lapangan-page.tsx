@@ -12,6 +12,7 @@ import type {
 import { apiServerFetchEnvelope, apiServerGet } from "@/lib/api/server-client";
 import type { PaginationMeta, QueryParams } from "@/lib/api/types";
 import { requireRole } from "@/lib/auth/server-session";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
 type RouteSearchParams = Record<string, string | string[] | undefined>;
@@ -35,12 +36,16 @@ function readPositiveInt(value: string, fallback: number) {
 function buildQueryState(searchParams?: RouteSearchParams): PersonnelListQueryState {
   return {
     q: readFirst(searchParams?.q),
-    provinceId: "",
+    provinceId: readFirst(searchParams?.provinceId),
     regencyId: readFirst(searchParams?.regencyId),
     districtId: readFirst(searchParams?.districtId),
     page: readPositiveInt(readFirst(searchParams?.page), 1),
     limit: readPositiveInt(readFirst(searchParams?.limit), 20),
   };
+}
+
+function sortAreaOptions(items: PersonnelAreaOption[]) {
+  return [...items].sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
 }
 
 async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
@@ -80,24 +85,67 @@ async function fetchAllPages<T>(path: string, query: QueryParams = {}) {
   };
 }
 
+async function fetchExecutiveAreaFilters(queryState: PersonnelListQueryState): Promise<PersonnelAreaFilters> {
+  const [provinceResult, regenciesFromRegency, regenciesFromCity, districts] = await Promise.all([
+    fetchAllPages<PersonnelAreaOption>("/administrative-areas", {
+      level: "PROVINCE",
+      isActive: true,
+    }),
+    queryState.provinceId
+      ? apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.provinceId}/children`, {
+          level: "REGENCY",
+        })
+      : Promise.resolve([]),
+    queryState.provinceId
+      ? apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.provinceId}/children`, {
+          level: "CITY",
+        })
+      : Promise.resolve([]),
+    queryState.regencyId
+      ? apiServerGet<PersonnelAreaOption[]>(`/administrative-areas/${queryState.regencyId}/children`, {
+          level: "DISTRICT",
+        })
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    provinces: sortAreaOptions(provinceResult.data),
+    regencies: sortAreaOptions([...regenciesFromRegency, ...regenciesFromCity]),
+    districts: sortAreaOptions(districts),
+  };
+}
+
 export async function PersonelLapanganPage({ searchParams }: { searchParams?: Promise<RouteSearchParams> }) {
-  const session = await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  const session = await requireRole(
+    SYSTEM_ROLES.EXECUTIVE,
+    SYSTEM_ROLES.FIELD_COORDINATOR,
+    SYSTEM_ROLES.REGIONAL_COMMANDER,
+  );
+  const isExecutive = session.role === SYSTEM_ROLES.EXECUTIVE;
   const isRegional = session.role === SYSTEM_ROLES.REGIONAL_COMMANDER;
-  const apiPath = isRegional ? "/regional-commander/personnel" : "/field-coordinator/personnel";
+  const apiPath = isExecutive
+    ? "/executive/personnel"
+    : isRegional
+      ? "/regional-commander/personnel"
+      : "/field-coordinator/personnel";
   const basePath = "/dashboard/personel-lapangan";
 
   const queryState = buildQueryState(await searchParams);
   const commonQuery = {
     ...(queryState.q ? { search: queryState.q } : {}),
+    ...(queryState.provinceId ? { provinceId: queryState.provinceId } : {}),
     ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
     ...(queryState.districtId ? { districtId: queryState.districtId } : {}),
   };
   const [listResult, map, areaFilters] = await Promise.all([
     fetchAllPages<PersonnelListItem>(apiPath, commonQuery),
     apiServerGet<PersonnelMapPayload>(`${apiPath}/map`, commonQuery),
-    apiServerGet<PersonnelAreaFilters>(`${apiPath}/area-filters`, {
-      ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
-    }),
+    isExecutive
+      ? fetchExecutiveAreaFilters(queryState)
+      : apiServerGet<PersonnelAreaFilters>(`${apiPath}/area-filters`, {
+          ...(queryState.provinceId ? { provinceId: queryState.provinceId } : {}),
+          ...(queryState.regencyId ? { regencyId: queryState.regencyId } : {}),
+        }),
   ]);
 
   return (
@@ -110,23 +158,47 @@ export async function PersonelLapanganPage({ searchParams }: { searchParams?: Pr
       pageConfig={{
         basePath,
         title: "Petugas Wilayah (Gaswil)",
-        description: isRegional
-          ? "Daftar Petugas Wilayah (Gaswil) dalam hierarki Komandan Regional, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional."
-          : "Daftar petugas wilayah dalam hierarki Koordinator Lapangan, termasuk wilayah penugasan, status sinyal, dan peta lokasi operasional.",
-        tableTabLabel: "DAFTAR PERSONIL",
-        mapTabLabel: "PETA",
-        detailTarget: "assignment",
+        description: isExecutive
+          ? `Pantau ${DOMAIN_TERMS.fieldOfficer}, ${DOMAIN_TERMS.assignmentArea.toLowerCase()}, ${DOMAIN_TERMS.jaring} binaan, status sinyal, dan posisi operasional dalam cakupan ${DOMAIN_TERMS.executiveRole}.`
+          : isRegional
+            ? `Pantau ${DOMAIN_TERMS.fieldOfficer}, ${DOMAIN_TERMS.assignmentArea.toLowerCase()}, ${DOMAIN_TERMS.jaring} binaan, status sinyal, dan posisi operasional dalam cakupan ${DOMAIN_TERMS.regionalCommanderRole}.`
+            : `Pantau ${DOMAIN_TERMS.fieldOfficer}, ${DOMAIN_TERMS.assignmentArea.toLowerCase()}, ${DOMAIN_TERMS.jaring} binaan, status sinyal, dan posisi operasional dalam cakupan ${DOMAIN_TERMS.fieldCoordinatorRole}.`,
+        tableTabLabel: "Daftar Petugas Wilayah",
+        mapTabLabel: "Peta Penugasan",
+        detailTarget: isExecutive ? "userProfile" : "assignment",
+        showMapTab: false,
         showExecutiveSummary: false,
-        showProvinceFilter: false,
+        showProvinceFilter: true,
+        layoutVariant: "directory",
+        searchPlaceholder: `Cari nama, nomor HP, jabatan, ${DOMAIN_TERMS.assignmentArea.toLowerCase()}, atau ${DOMAIN_TERMS.jaring}...`,
+        scopeLabel: isExecutive ? "Cakupan supervisi" : "Cakupan penugasan",
+        totalPersonnelLabel: "Total Petugas Wilayah",
+        personnelColumnLabel: "Petugas Wilayah",
+        jaringKpiLabel: `${DOMAIN_TERMS.jaring} Binaan`,
+        onlineKpiLabel: "Sinyal Aktif",
+        offlineKpiLabel: "Belum Tersambung",
+        emptyTitle: "Belum ada Petugas Wilayah",
+        emptyDescription:
+          "Filter saat ini belum menemukan Petugas Wilayah (Gaswil) dalam cakupan penugasan Anda. Atur ulang filter atau pilih wilayah lain.",
+        mapLegendTitle: "Keterangan Sinyal",
       }}
     />
   );
 }
 
 export async function PersonelLapanganDetailPage({ assignmentId }: { assignmentId: string }) {
-  const session = await requireRole(SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  const session = await requireRole(
+    SYSTEM_ROLES.EXECUTIVE,
+    SYSTEM_ROLES.FIELD_COORDINATOR,
+    SYSTEM_ROLES.REGIONAL_COMMANDER,
+  );
+  const isExecutive = session.role === SYSTEM_ROLES.EXECUTIVE;
   const isRegional = session.role === SYSTEM_ROLES.REGIONAL_COMMANDER;
-  const apiPath = isRegional ? "/regional-commander/personnel" : "/field-coordinator/personnel";
+  const apiPath = isExecutive
+    ? "/executive/personnel"
+    : isRegional
+      ? "/regional-commander/personnel"
+      : "/field-coordinator/personnel";
   const basePath = "/dashboard/personel-lapangan";
 
   const detail = await apiServerGet<PersonnelDetail>(`${apiPath}/${assignmentId}`).catch(() => null);

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { type FieldOfficerWorkspaceView, getFieldOfficerView } from "@/server/field-ops/repository";
 
 const SUPPORTED_VIEWS = new Set<FieldOfficerWorkspaceView>([
@@ -16,7 +17,7 @@ const SUPPORTED_VIEWS = new Set<FieldOfficerWorkspaceView>([
 export async function GET(request: NextRequest, { params }: { params: Promise<{ view: string }> }) {
   const { view } = await params;
   if (!SUPPORTED_VIEWS.has(view as FieldOfficerWorkspaceView)) {
-    return NextResponse.json({ message: "View Field Officer tidak dikenali." }, { status: 404 });
+    return NextResponse.json({ message: "Tampilan Petugas Wilayah (Gaswil) tidak dikenali." }, { status: 404 });
   }
 
   try {
@@ -36,11 +37,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }),
     );
   } catch (error) {
-    return NextResponse.json(
-      {
-        message: error instanceof Error ? error.message : "Gagal memuat view Field Officer.",
-      },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal memuat tampilan Petugas Wilayah (Gaswil).");
   }
 }

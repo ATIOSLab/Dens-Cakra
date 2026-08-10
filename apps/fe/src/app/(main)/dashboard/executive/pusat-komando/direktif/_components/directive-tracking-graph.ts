@@ -127,7 +127,7 @@ export function buildDirectiveTrackingGraph(
         { label: "Status", value: recipient.status },
         { label: "Jumlah Seed STR", value: text(chain.oimTasks?.length ?? 0) },
         { label: "Jumlah koordinator", value: text(chain.fieldCoordinatorStage.totalAssignments) },
-        { label: "Jumlah agen", value: text(chain.korwilStage.total) },
+        { label: "Jumlah personel lapangan", value: text(chain.korwilStage.total) },
         { label: "Dikirim", value: formatDate(recipient.sentAt) },
         { label: "Dibaca", value: formatDate(recipient.readAt) },
         { label: "Progress distribusi", value: `${percentage(regionalCompleted, regionalTotal)}%` },
@@ -191,7 +191,7 @@ function addTaskBranch({
     depth: 2,
     kind: "SEED",
     label: task.title,
-    subtitle: task.uukStr?.title || task.ownerUnit?.name || "Seed STR",
+    subtitle: task.uukStr?.title ?? task.ownerUnit?.name ?? "Seed STR",
     status: task.status,
     priority: task.priority,
     unit: task.ownerUnit?.name,
@@ -222,7 +222,7 @@ function addTaskBranch({
     const downstream = assignment.downstreamAssignments ?? [];
     const completed = completedAssignments(downstream);
     const coordinatorName =
-      assignment.assignee?.fullName ?? assignment.assignee?.positionTitle ?? "Koordinator Lapangan";
+      assignment.assignee?.fullName ?? assignment.assignee?.positionTitle ?? "Koordinator Wilayah (Korwil)";
     const seedNode = nodes.find((node) => node.id === seedId);
 
     seedNode?.childrenIds.push(coordinatorId);
@@ -233,7 +233,7 @@ function addTaskBranch({
       depth: 3,
       kind: "COORDINATOR",
       label: coordinatorName,
-      subtitle: assignment.assignee?.positionTitle ?? "Koordinator Lapangan",
+      subtitle: assignment.assignee?.positionTitle ?? "Koordinator Wilayah (Korwil)",
       status: assignment.status,
       unit: assignment.assignee?.organizationUnitName ?? undefined,
       progressPercent: percentage(completed, downstream.length),
@@ -243,7 +243,7 @@ function addTaskBranch({
         { label: "Unit organisasi", value: text(assignment.assignee?.organizationUnitName) },
         { label: "Regional", value: regionalName },
         { label: "Status", value: assignment.status },
-        { label: "Jumlah agen", value: text(downstream.length) },
+        { label: "Jumlah personel lapangan", value: text(downstream.length) },
         { label: "Sudah diteruskan", value: text(downstream.length) },
         { label: "Selesai", value: text(completed) },
         { label: "Belum selesai", value: text(Math.max(0, downstream.length - completed)) },
@@ -285,7 +285,7 @@ type AddAssignmentBranchOptions = {
 function addAssignmentBranch({ assignment, parentId, regionalName, depth, nodes, edges }: AddAssignmentBranchOptions) {
   const assignmentId = `agent-${assignment.id}`;
   const children = assignment.downstreamAssignments ?? [];
-  const agentName = assignment.assignee?.fullName ?? assignment.assignee?.positionTitle ?? "Agen";
+  const agentName = assignment.assignee?.fullName ?? assignment.assignee?.positionTitle ?? "Personel Lapangan";
   const areaNames = assignment.assignee ? assignment.assignee.areaScopes.map((scope) => scope.name).join(", ") : "-";
   const parentNode = nodes.find((node) => node.id === parentId);
   const completed = assignment.status === "COMPLETED" ? 1 : 0;
@@ -298,7 +298,7 @@ function addAssignmentBranch({ assignment, parentId, regionalName, depth, nodes,
     depth,
     kind: "AGENT",
     label: agentName,
-    subtitle: assignment.assignee?.positionTitle ?? assignment.assignee?.roleCode ?? "Agen / Korwil",
+    subtitle: assignment.assignee?.positionTitle ?? assignment.assignee?.roleCode ?? "Personel Lapangan / Korwil",
     status: assignment.status,
     unit: assignment.assignee?.organizationUnitName ?? undefined,
     progressPercent: completed * 100,
@@ -321,7 +321,7 @@ function addAssignmentBranch({ assignment, parentId, regionalName, depth, nodes,
     id: `edge-${parentId}-${assignmentId}`,
     source: parentId,
     target: assignmentId,
-    label: depth === 4 ? "Distribusi agen" : "Distribusi turunan",
+    label: depth === 4 ? "Distribusi personel lapangan" : "Distribusi turunan",
     status: assignment.status,
   });
 

@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
+import { ApiContract } from '../../common/decorators/api-contract.decorator.js';
 import { LocalStorageService } from './local-storage.service.js';
 
 export function parseStorageByteRange(value: string | undefined, size: number) {
@@ -47,6 +48,13 @@ export class StorageTransportController {
 
   @Put('uploads/:token')
   @HttpCode(204)
+  @ApiContract({
+    operationId: 'apiStorage001',
+    contractId: 'API-STORAGE-001',
+    summary: 'Unggah file melalui URL bertanda tangan',
+    access: 'public-signed',
+    successStatus: 204,
+  })
   async upload(
     @Param('token') token: string,
     @Body() body: Buffer,
@@ -57,6 +65,12 @@ export class StorageTransportController {
 
   @Get('files/:token')
   @Header('Cache-Control', 'private, no-store')
+  @ApiContract({
+    operationId: 'apiStorage002',
+    contractId: 'API-STORAGE-002',
+    summary: 'Unduh file melalui URL bertanda tangan',
+    access: 'public-signed',
+  })
   async download(
     @Param('token') token: string,
     @Req() request: Request,

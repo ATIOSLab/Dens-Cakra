@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+
 const provisionRoleSchema = z.enum([
   "EXECUTIVE",
   "REGIONAL_COMMANDER",
@@ -19,7 +21,7 @@ export const createUserSchema = z
     password: z.string().min(8, "Password minimal 8 karakter."),
     validFrom: z.string().min(1, "Tanggal mulai assignment wajib diisi."),
     areaScopeIds: z
-      .array(z.string().trim().regex(uuidPattern, "Scope area tidak valid. Pilih ulang wilayah dari daftar."))
+      .array(z.string().trim().regex(uuidPattern, "Cakupan wilayah tidak valid. Pilih ulang wilayah dari daftar."))
       .min(1, "Pilih minimal satu wilayah."),
   })
   .superRefine((value, context) => {
@@ -34,14 +36,14 @@ export const createUserSchema = z
       context.addIssue({
         code: "custom",
         path: ["branch"],
-        message: "Role Eksekutif harus menggunakan unit type Pusat.",
+        message: `Role ${DOMAIN_TERMS.executiveRole} harus menggunakan unit type Pusat.`,
       });
     }
     if (value.branch === "PUSAT" && value.roleCode !== "EXECUTIVE") {
       context.addIssue({
         code: "custom",
         path: ["roleCode"],
-        message: "Unit type Pusat hanya tersedia untuk role Eksekutif.",
+        message: `Unit type Pusat hanya tersedia untuk role ${DOMAIN_TERMS.executiveRole}.`,
       });
     }
     if (value.branch === "PUSAT" && value.areaScopeIds.length !== 1) {

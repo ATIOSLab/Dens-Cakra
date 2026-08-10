@@ -72,6 +72,16 @@ function buildHref(pathname: string, queryState: UserListQueryState, overrides: 
   return queryString ? `${pathname}?${queryString}` : pathname;
 }
 
+function formatPercent(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value);
+}
+
+function percentOf(value: number, total: number) {
+  return total <= 0 ? 0 : Math.round((value / total) * 1000) / 10;
+}
+
 function getUnitTypeLabel(user: UserListItem) {
   const assignment = getPrimaryAssignment(user);
   const unit = getAssignmentUnitSummary(assignment);
@@ -101,12 +111,14 @@ function getUnitTypeLabel(user: UserListItem) {
 function StatCard({
   title,
   value,
+  percentageLabel,
   description,
   icon,
   accentColor,
 }: {
   title: string;
   value: number;
+  percentageLabel?: string;
   description: string;
   icon: ReactNode;
   accentColor?: string;
@@ -121,6 +133,11 @@ function StatCard({
         <div className="flex items-baseline justify-between">
           <span className="text-2xl font-bold font-mono tracking-tight text-foreground">{value}</span>
         </div>
+        {percentageLabel ? (
+          <p className="font-mono text-[11px] font-semibold tabular-nums text-sky-600 dark:text-sky-400">
+            {percentageLabel}
+          </p>
+        ) : null}
         <p className="text-xs text-muted-foreground line-clamp-1">{description}</p>
       </CardContent>
     </Card>
@@ -281,6 +298,7 @@ export function PenggunaListClient({
   const pendingCount = facets?.status?.PENDING ?? 0;
   const suspendedCount = facets?.status?.SUSPENDED ?? 0;
   const lockedCount = facets?.security?.locked ?? 0;
+  const totalUsers = Math.max(clientPagination?.total ?? 0, activeCount + pendingCount + suspendedCount, clientItems.length);
   const totalPages = clientPagination?.totalPages ?? 1;
   const activeFilterCount = [q, status, unitId, roleCode, activeArea?.id].filter(Boolean).length;
 
@@ -300,7 +318,7 @@ export function PenggunaListClient({
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Kelola provisioning akun pengguna, alokasi role auth, unit organisasi, dan scope wilayah operasional.
+            Kelola penyediaan akun pengguna, role autentikasi, unit organisasi, dan cakupan wilayah operasional.
           </p>
         </div>
 
@@ -317,20 +335,23 @@ export function PenggunaListClient({
         <StatCard
           title="Aktif"
           value={activeCount}
-          description="User profile aktif dan siap operasional"
+          percentageLabel={`${formatPercent(percentOf(activeCount, totalUsers))}% dari total pengguna`}
+          description="Profil pengguna aktif dan siap operasional"
           icon={<BadgeCheck className="size-4" />}
           accentColor="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
         />
         <StatCard
           title="Menunggu"
           value={pendingCount}
+          percentageLabel={`${formatPercent(percentOf(pendingCount, totalUsers))}% dari total pengguna`}
           description="Provisioning baru butuh konfirmasi"
           icon={<Users className="size-4" />}
           accentColor="text-amber-600 dark:text-amber-400 bg-amber-500/10"
         />
         <StatCard
-          title="Suspended"
+          title="Ditangguhkan"
           value={suspendedCount}
+          percentageLabel={`${formatPercent(percentOf(suspendedCount, totalUsers))}% dari total pengguna`}
           description="Akses dibekukan sementara"
           icon={<ShieldAlert className="size-4" />}
           accentColor="text-orange-600 dark:text-orange-400 bg-orange-500/10"
@@ -338,7 +359,8 @@ export function PenggunaListClient({
         <StatCard
           title="Terkunci"
           value={lockedCount}
-          description="Operational lock aktif"
+          percentageLabel={`${formatPercent(percentOf(lockedCount, totalUsers))}% dari total pengguna`}
+          description="Kunci operasional aktif"
           icon={<Lock className="size-4" />}
           accentColor="text-rose-600 dark:text-rose-400 bg-rose-500/10"
         />
@@ -347,7 +369,7 @@ export function PenggunaListClient({
       {/* Filter Section */}
       <FilterPanel
         title="Filter pengguna"
-        description="Pencarian dan pilihan filter diterapkan ke seluruh data sesuai scope akses Anda."
+        description="Pencarian dan pilihan filter diterapkan ke seluruh data sesuai cakupan akses Anda."
         activeFilterCount={activeFilterCount}
         onReset={clearFilters}
         resultSummary={`${clientPagination?.total ?? clientItems.length} pengguna`}
@@ -514,7 +536,7 @@ export function PenggunaListClient({
                       Unit
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Scope Wilayah
+                      Cakupan Wilayah
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Status
@@ -596,7 +618,7 @@ export function PenggunaListClient({
                             )}
                             {user.status === "SUSPENDED" && (
                               <Badge className="bg-orange-500/15 text-orange-700 dark:text-orange-300 hover:bg-orange-500/20 border-orange-500/20 text-[11px]">
-                                Suspended
+                                Ditangguhkan
                               </Badge>
                             )}
                             {user.status !== "ACTIVE" && user.status !== "PENDING" && user.status !== "SUSPENDED" && (
@@ -606,7 +628,7 @@ export function PenggunaListClient({
                             )}
                             {locked && (
                               <Badge variant="destructive" className="text-[11px]">
-                                Locked
+                                Terkunci
                               </Badge>
                             )}
                           </div>

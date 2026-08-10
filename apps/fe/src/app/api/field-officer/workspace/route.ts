@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { getFieldOfficerWorkspace } from "@/server/field-ops/repository";
 
 export async function GET(request: NextRequest) {
@@ -20,9 +21,6 @@ export async function GET(request: NextRequest) {
       }),
     );
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal memuat workspace field officer." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal memuat ruang kerja Petugas Wilayah (Gaswil).");
   }
 }

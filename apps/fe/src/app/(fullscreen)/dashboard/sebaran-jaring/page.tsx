@@ -82,6 +82,11 @@ function officerName(item: RegistrationJaring) {
   return caretaker ? (caretaker.fieldOfficerAssignment.userProfile.fullName ?? null) : null;
 }
 
+function officerAssignment(item: RegistrationJaring) {
+  const [caretaker] = item.caretakerAssignments;
+  return caretaker?.fieldOfficerAssignment ?? null;
+}
+
 function formatRelativeDate(dateStr?: string | null): string {
   if (!dateStr) return "Belum ada laporan";
   const date = new Date(dateStr);
@@ -137,7 +142,7 @@ function distributionEntry(
   const domicileLat = hasRegisteredCoordinates ? Number(rawItem.latitude) : districtLat + latOffset;
   const domicileLng = hasRegisteredCoordinates ? Number(rawItem.longitude) : districtLng + lngOffset;
 
-  const hasReport = Boolean(latestSession?.submittedAt || realReportCount > 0);
+  const hasReport = Boolean(latestSession?.submittedAt ?? realReportCount > 0);
 
   const reportLatitude = latestSession?.latitude;
   const reportLongitude = latestSession?.longitude;
@@ -156,11 +161,7 @@ function distributionEntry(
   const lastReportDate = latestActivityDate ? formatRelativeDate(latestActivityDate) : "Belum ada laporan";
 
   const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
-  const isActive = Boolean(
-    item.registrationStatus === "APPROVED" &&
-      latestActivityDate &&
-      new Date(latestActivityDate).getTime() >= threeMonthsAgo,
-  );
+  const isActive = Boolean(latestActivityDate && new Date(latestActivityDate).getTime() >= threeMonthsAgo);
 
   return {
     id: item.id,
@@ -175,7 +176,11 @@ function distributionEntry(
     districtId: district ? district.id : null,
     districtName: district ? district.name : "-",
     villageName: village ? village.name : "-",
+    fieldOfficerAssignmentId: officerAssignment(item)?.id ?? null,
+    fieldOfficerUserProfileId:
+      officerAssignment(item)?.userProfile.id ?? officerAssignment(item)?.userProfileId ?? null,
     fieldOfficerName: officerName(item),
+    detailHref: `/dashboard/daftar-jaring/${item.id}`,
     registeredAt: item.registeredAt,
     status,
     isActive,
@@ -407,9 +412,7 @@ export default async function SebaranJaringPage() {
   const session = await requireRole(
     SYSTEM_ROLES.EXECUTIVE,
     SYSTEM_ROLES.REGIONAL_COMMANDER,
-    SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
     SYSTEM_ROLES.FIELD_COORDINATOR,
-    SYSTEM_ROLES.ADMIN_SYSTEM,
   );
 
   const [approvedItems, pendingItems, rejectedItems, scopedData] = await Promise.all([

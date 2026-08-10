@@ -26,14 +26,13 @@ import {
   X,
 } from "lucide-react";
 
-import { REPORT_URGENCY_COLORS, REPORT_URGENCY_LABELS } from "@/components/map/MapLegend";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { REPORT_URGENCY_COLORS, REPORT_URGENCY_LABELS } from "@/components/map/MapLegend";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -52,8 +51,9 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { cn } from "@/lib/utils";
-import { SYSTEM_ROLES, type SystemRole } from "@/navigation/sidebar/system-roles";
+import { getSystemRoleLabel, type SystemRole } from "@/navigation/sidebar/system-roles";
 
 import { ReportTrendChart } from "./command-intelligence-charts";
 import { CommandIntelligenceMap, type CommandMapLayers, type CommandMapMode } from "./command-intelligence-map";
@@ -76,25 +76,16 @@ type CommandIntelligenceClientProps = {
 type MapJaring = FieldIntelligenceDashboard["map"]["jaring"][number];
 type MapBaket = FieldIntelligenceDashboard["map"]["baket"][number];
 
-const ROLE_LABELS: Record<SystemRole, string> = {
-  [SYSTEM_ROLES.ADMIN_SYSTEM]: "Administrator Sistem",
-  [SYSTEM_ROLES.EXECUTIVE]: "Executive",
-  [SYSTEM_ROLES.FIELD_COORDINATOR]: "Koordinator Lapangan",
-  [SYSTEM_ROLES.FIELD_OFFICER]: "Petugas Wilayah (Gaswil)",
-  [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: "OIM",
-  [SYSTEM_ROLES.REGIONAL_COMMANDER]: "Komandan Regional",
-};
-
 const ACTIVITY_LABELS: Record<JaringActivityLevel, string> = {
-  VERY_ACTIVE: "Sangat aktif",
-  ACTIVE: "Aktif",
-  DORMANT: "Dormant",
+  VERY_ACTIVE: "Sangat sering melapor",
+  ACTIVE: "Melapor",
+  DORMANT: "Senyap pada periode",
   NEVER_REPORTED: "Belum melapor",
 };
 
 const REGISTRATION_LABELS: Record<JaringRegistrationStatus, string> = {
-  APPROVED: "Terverifikasi",
-  PENDING: "Belum diverifikasi",
+  APPROVED: "Disetujui",
+  PENDING: "Menunggu tinjauan",
   REJECTED: "Ditolak",
 };
 
@@ -270,7 +261,7 @@ function ReportDetailDialog({
             {item.category ? <Badge variant="secondary">{item.category.name}</Badge> : null}
           </div>
           <DialogTitle className="pt-2 text-2xl leading-8">{item.displayTitle ?? "Laporan tanpa isi"}</DialogTitle>
-          <DialogDescription className="sr-only">Detail laporan lengkap dari titik peta.</DialogDescription>
+          <DialogDescription className="sr-only">Detail laporan dari titik peta.</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[calc(90dvh-142px)]">
           <div className="grid gap-5 px-6 py-6 lg:grid-cols-[320px_1fr]">
@@ -358,7 +349,7 @@ function ReportDetailDialog({
                         mimeType={attachment.mimeType}
                         caption={
                           attachment.caption ||
-                          `${attachment.mimeType ?? "Berkas"} · ${formatBytes(attachment.sizeBytes)}`
+                          `${attachment.mimeType ?? "Berkas"} - ${formatBytes(attachment.sizeBytes)}`
                         }
                       />
                     ))}
@@ -388,7 +379,7 @@ function ReportHoverCard({ hover }: { hover: { item: MapBaket; x: number; y: num
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-[9px] text-primary uppercase tracking-[0.18em]">Preview Laporan</p>
+          <p className="font-mono text-[9px] text-primary uppercase tracking-[0.18em]">Pratinjau Laporan</p>
           <p className="mt-1 truncate font-semibold text-sm">{hover.item.displayTitle ?? "Laporan tanpa isi"}</p>
         </div>
         <span
@@ -681,10 +672,10 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
     {
       label: "Jaring cakupan",
       value: formatNumber(data.summary.totalJaring),
-      description: `${formatNumber(data.summary.approvedJaring)} terverifikasi`,
+      description: `${formatNumber(data.summary.approvedJaring)} disetujui`,
     },
     {
-      label: "Belum diverifikasi",
+      label: "Menunggu tinjauan",
       value: formatNumber(data.summary.pendingJaring),
       description: `${formatNumber(data.summary.rejectedJaring)} ditolak`,
       attention: data.summary.pendingJaring > 0,
@@ -695,7 +686,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
       description: `${formatNumber(data.summary.totalReports)} sepanjang waktu`,
     },
     {
-      label: "Coverage aktif",
+      label: "Cakupan aktif",
       value: `${data.summary.reportingCoverage}%`,
       description: `${formatNumber(data.summary.reportingJaring)} Jaring melapor`,
     },
@@ -742,7 +733,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
               </Badge>
             </div>
             <p className="truncate text-muted-foreground text-xs">
-              {ROLE_LABELS[role]} · {scopeLabel(data)}
+              {getSystemRoleLabel(role)} - {scopeLabel(data)}
             </p>
           </div>
         </div>
@@ -950,9 +941,9 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
         </div>
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline">
-            FILTER {activeFilterCount} · MODE {mapMode.toUpperCase()}
+            Filter {activeFilterCount} - Mode {mapMode.toUpperCase()}
           </span>
-          <span className="text-primary">SYSTEM ONLINE</span>
+          <span className="text-primary">Sistem aktif</span>
         </div>
       </div>
 
@@ -967,7 +958,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
       <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
         <SheetContent side="left" className="w-full sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>Filter intelligence map</SheetTitle>
+            <SheetTitle>Filter Peta Intelijen</SheetTitle>
             <SheetDescription>Seluruh layer, panel, dan registri mengikuti filter ini.</SheetDescription>
           </SheetHeader>
           <ScrollArea className="min-h-0 flex-1 px-4 pb-6">
@@ -1026,8 +1017,8 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                     <SelectContent>
                       <SelectGroup>
                         <SelectItem value="ALL">Semua status</SelectItem>
-                        <SelectItem value="PENDING">Belum diverifikasi</SelectItem>
-                        <SelectItem value="APPROVED">Terverifikasi</SelectItem>
+                        <SelectItem value="PENDING">Menunggu tinjauan</SelectItem>
+                        <SelectItem value="APPROVED">Disetujui</SelectItem>
                         <SelectItem value="REJECTED">Ditolak</SelectItem>
                       </SelectGroup>
                     </SelectContent>
@@ -1070,7 +1061,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                     <SelectContent>
                       <SelectGroup>
                         <SelectLabel>Prioritas laporan</SelectLabel>
-                        <SelectItem value="ALL">Semua urgency</SelectItem>
+                        <SelectItem value="ALL">Semua urgensi</SelectItem>
                         {REPORT_URGENCIES.map((urgency) => (
                           <SelectItem key={urgency} value={urgency}>
                             {REPORT_URGENCY_LABELS[urgency]}
@@ -1095,7 +1086,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                       <SelectItem value="ALL">Seluruh wilayah cakupan</SelectItem>
                       {data.filters.areas.map((area) => (
                         <SelectItem key={area.id} value={area.id}>
-                          {area.name} · {area.level}
+                          {area.name} - {area.level}
                         </SelectItem>
                       ))}
                     </SelectGroup>
@@ -1148,7 +1139,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
         <SheetContent className="w-full sm:max-w-3xl">
           <SheetHeader>
             <SheetTitle>Analitik Laporan & Jaring</SheetTitle>
-            <SheetDescription>Ringkasan operasional dari scope peta yang sedang aktif.</SheetDescription>
+            <SheetDescription>Ringkasan operasional dari cakupan peta yang sedang aktif.</SheetDescription>
           </SheetHeader>
           <ScrollArea className="min-h-0 flex-1 px-4 pb-6">
             <div className="grid gap-4">
@@ -1167,7 +1158,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
                 </Card>
                 <Card>
                   <CardHeader>
-                    <CardDescription>Rata-rata laporan</CardDescription>
+                    <CardDescription>Rata-rata laporan per Jaring melapor</CardDescription>
                     <CardTitle className="font-mono text-3xl">{data.summary.averageReportsPerActiveJaring}</CardTitle>
                   </CardHeader>
                 </Card>
@@ -1201,8 +1192,10 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Indeks keaktifan</CardTitle>
-                  <CardDescription>Sangat aktif ≥4 laporan; aktif 1–3 laporan pada periode.</CardDescription>
+                  <CardTitle>Indeks Pelaporan</CardTitle>
+                  <CardDescription>
+                    Sangat sering melapor minimal 4 laporan; melapor 1-3 laporan pada periode.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2">
                   {(Object.keys(ACTIVITY_LABELS) as JaringActivityLevel[]).map((level) => (
@@ -1223,7 +1216,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
           <SheetHeader>
             <SheetTitle>Registri Jaring</SheetTitle>
             <SheetDescription>
-              Seluruh status registrasi, termasuk Jaring yang belum diverifikasi, serta frekuensi laporannya.
+              Seluruh status registrasi, termasuk Jaring yang menunggu tinjauan, serta frekuensi laporannya.
             </SheetDescription>
           </SheetHeader>
           <Tabs defaultValue="table" className="min-h-0 flex-1 px-4 pb-4">
@@ -1291,7 +1284,7 @@ export function CommandIntelligenceClient({ initialData, initialError, role }: C
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
                 <p className="text-muted-foreground text-xs">
-                  Halaman {data.jaring.pagination.page} dari {Math.max(data.jaring.pagination.totalPages, 1)} ·{" "}
+                  Halaman {data.jaring.pagination.page} dari {Math.max(data.jaring.pagination.totalPages, 1)} -{" "}
                   {formatNumber(data.jaring.pagination.total)} Jaring
                 </p>
                 <div className="flex gap-2">

@@ -5,8 +5,9 @@ import { UserProfileStatus } from '../generated/prisma/client.js';
 import { ensureUserProfileForAuthUser } from '../lib/user-profile.js';
 
 const executiveAccount = {
-  email: 'executive@denscakra.local',
-  name: 'Executive Demo',
+  email: 'deputi@denscakra.local',
+  name: 'Deputi II',
+  username: 'deputi.2.bin',
   password: 'DensCakraDemo123!',
   role: SYSTEM_ROLES.EXECUTIVE,
 } as const;
@@ -34,6 +35,8 @@ async function seedExecutive() {
     },
     data: {
       name: executiveAccount.name,
+      username: executiveAccount.username,
+      displayUsername: executiveAccount.username,
       emailVerified: true,
       role: executiveAccount.role,
       banned: false,
@@ -55,17 +58,18 @@ async function seedExecutive() {
   await ensureUserProfileForAuthUser({
     authUserId: executiveUser.id,
     fullName: executiveUser.name,
+    username: executiveAccount.username,
     status: UserProfileStatus.ACTIVE,
   });
 
   console.log(
-    `Executive account ready: ${executiveAccount.email} -> ${executiveAccount.role}`,
+    `Akun Deputi II siap: ${executiveAccount.email} -> ${executiveAccount.role}`,
   );
 }
 
 void seedExecutive()
   .catch((error: unknown) => {
-    console.error('Failed to seed executive account.', error);
+    console.error('Gagal membuat seed akun Deputi II.', error);
     process.exitCode = 1;
   })
   .finally(async () => {

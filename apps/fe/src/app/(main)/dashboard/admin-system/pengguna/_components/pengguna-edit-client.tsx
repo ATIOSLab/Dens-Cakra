@@ -34,9 +34,9 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
   const form = useForm<EditUserFormValues>({
     resolver: zodResolver(editUserSchema),
     defaultValues: {
-      username: user.username || "",
-      fullName: user.fullName || user.authUser.name || "",
-      phone: user.phone || "",
+      username: user.username ?? "",
+      fullName: user.fullName ?? user.authUser.name ?? "",
+      phone: user.phone ?? "",
     },
   });
   const primaryAssignment = getPrimaryAssignment(user);
@@ -94,7 +94,7 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
               Metadata Profil Domain
             </CardTitle>
             <CardDescription className="text-xs">
-              Ubah data identitas profil domain tanpa memutus alokasi role auth atau assignment aktif.
+              Ubah data identitas profil domain tanpa memutus role autentikasi atau penugasan aktif.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-5">
@@ -173,13 +173,13 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
             <CardHeader className="pb-3 border-b border-border/40">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <ShieldCheck className="size-4 text-muted-foreground" />
-                Ringkasan Profil (Read-Only)
+                Ringkasan Profil
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-4 text-xs">
               <div className="space-y-1">
                 <div className="font-semibold text-sm text-foreground">
-                  {user.fullName || user.authUser.name || user.authUser.email}
+                  {user.fullName ?? user.authUser.name ?? user.authUser.email}
                 </div>
                 <div className="text-xs text-muted-foreground">{user.authUser.email}</div>
                 <div className="flex flex-wrap gap-1 pt-1">
@@ -191,7 +191,7 @@ export function PenggunaEditClient({ user }: PenggunaEditClientProps) {
                   </Badge>
                   {isUserLocked(user) && (
                     <Badge variant="destructive" className="text-[10px]">
-                      Locked
+                      Terkunci
                     </Badge>
                   )}
                 </div>

@@ -12,9 +12,9 @@ export type SystemRole = (typeof SYSTEM_ROLES)[keyof typeof SYSTEM_ROLES];
 export const SYSTEM_ROLE_CATALOG = [
   {
     key: SYSTEM_ROLES.EXECUTIVE,
-    label: 'Eksekutif',
+    label: 'Deputi II',
     summary:
-      'Membuat direktif strategis, memantau situasi nasional, dan memberi persetujuan eksekutif atas keluaran intelijen.',
+      'Membuat direktif strategis, memantau situasi nasional, dan memberi persetujuan pada tingkat Deputi II.',
   },
   {
     key: SYSTEM_ROLES.REGIONAL_COMMANDER,
@@ -30,9 +30,9 @@ export const SYSTEM_ROLE_CATALOG = [
   },
   {
     key: SYSTEM_ROLES.FIELD_COORDINATOR,
-    label: 'Koordinator Lapangan',
+    label: 'Koordinator Wilayah (Korwil)',
     summary:
-      'Lapisan koordinasi lapangan untuk membagi tugas ke Field Officer, memantau progres, personel, peta lapangan, dan laporan darurat.',
+      'Koordinator tingkat kabupaten/kota untuk membagi tugas ke Petugas Wilayah (Gaswil), memantau progres, personel, peta wilayah, dan laporan darurat.',
   },
   {
     key: SYSTEM_ROLES.FIELD_OFFICER,

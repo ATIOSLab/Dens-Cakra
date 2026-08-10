@@ -66,6 +66,6 @@
   - [x] Embed Document Workspace canvas inside `#1B2230` background layout
   - [x] Add dynamic document scaling zoom toolbar (Zoom -, 100%, Zoom +, Fit Width, Refresh Preview) with custom `#1A2434` buttons
   - [x] Pin C2 action buttons to a floating Sticky Bottom action bar of height `64px` and `#131C2B` background
-  - [x] Render status details: `● Draft Saved`, `Last Save: 09:42`, `Version: v1.0.3`, `Auto Save: ON`
+  - [x] Render status details: `● Draf Tersimpan`, `Terakhir disimpan: 09:42`, `Versi: v1.0.3`, `Simpan otomatis: Aktif`
   - [x] Implement button color overrides: Primary `#0E7A5F`, Secondary `#3A4657`, Tertiary `#2D394A` with hover states and transitions
   - [x] Run typescript compile checks

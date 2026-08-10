@@ -5,6 +5,7 @@ import { Check, ChevronsUpDown, Search, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { cn } from "@/lib/utils";
 
 export interface JaringOption {
@@ -61,6 +62,7 @@ export function JaringSelectPopover({
   }, []);
 
   const activeContainer = container ?? fullscreenContainer;
+  const optionScopeLabel = filterVerifiedOnly ? "Jaring Disetujui" : DOMAIN_TERMS.jaring;
 
   // 1. Filter options by verified status if enabled
   const verifiedOptions = React.useMemo(() => {
@@ -189,7 +191,7 @@ export function JaringSelectPopover({
 
           {filteredOptions.length === 0 ? (
             <div className="p-4 text-center text-xs text-muted-foreground">
-              {search ? "Tidak ada Jaring terverifikasi yang cocok." : "Tidak ada Jaring terverifikasi."}
+              {search ? `Tidak ada ${optionScopeLabel} yang cocok.` : `Tidak ada ${optionScopeLabel}.`}
             </div>
           ) : (
             filteredOptions.slice(0, visibleCount).map((item) => {
@@ -230,7 +232,7 @@ export function JaringSelectPopover({
         {/* Footer info showing loaded counts */}
         <div className="p-2 border-t text-[11px] text-muted-foreground bg-muted/10 flex items-center justify-between">
           <span>
-            Total: <strong className="text-foreground">{verifiedOptions.length}</strong> Jaring Terverifikasi
+            Total: <strong className="text-foreground">{verifiedOptions.length}</strong> {optionScopeLabel}
           </span>
           {filteredOptions.length > visibleCount && (
             <span className="text-[10px] text-primary font-medium">

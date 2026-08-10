@@ -19,13 +19,13 @@ export function DirectiveTrackingClient({ directive, tracking }: DirectiveTracki
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tracking Distribusi STR"
-        description={`Timeline perjalanan ${directive.commandNumber} dari Pusat Komando hingga penerima distribusi lapangan.`}
+        title="Pelacakan Distribusi STR"
+        description={`Linimasa perjalanan ${directive.commandNumber} dari Pusat Komando hingga penerima distribusi lapangan.`}
         backButton={true}
         badge={
           <div className="flex items-center gap-2 font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.16em]">
             <GitBranch className="size-4 text-primary" />
-            <span>Tracking Direktif</span>
+            <span>Pelacakan Direktif</span>
           </div>
         }
       />

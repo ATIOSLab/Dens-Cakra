@@ -4,9 +4,15 @@ import { useMemo } from "react";
 
 import { Activity, AlertCircle, MapPinCheck, RadioTower, ShieldCheck, Users } from "lucide-react";
 
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { cn } from "@/lib/utils";
 
-import type { CoordinateSourceMode, JaringDistributionEntry } from "./sebaran-jaring-types";
+import {
+  type CoordinateSourceMode,
+  DISTRIBUTION_ENTITY_COPY,
+  type DistributionEntityMode,
+  type JaringDistributionEntry,
+} from "./sebaran-jaring-types";
 
 type Props = {
   agents: JaringDistributionEntry[];
@@ -14,6 +20,7 @@ type Props = {
   coordinateSourceMode: CoordinateSourceMode;
   onShowPending: () => void;
   onShowAll: () => void;
+  mode?: DistributionEntityMode;
 };
 
 function rate(value: number, total: number) {
@@ -26,7 +33,9 @@ export function SebaranJaringLeadershipStrip({
   coordinateSourceMode,
   onShowPending,
   onShowAll,
+  mode = "jaring",
 }: Props) {
+  const copy = DISTRIBUTION_ENTITY_COPY[mode];
   const summary = useMemo(() => {
     const verified = agents.filter((agent) => agent.status === "VERIFIED").length;
     const pending = agents.filter((agent) => agent.status === "PENDING").length;
@@ -69,11 +78,13 @@ export function SebaranJaringLeadershipStrip({
         <div className="flex items-center justify-between gap-3 border-slate-800 border-b px-3 py-2">
           <div className="min-w-0">
             <p className="font-mono text-[9px] text-cyan-400 uppercase tracking-[0.14em]">Pandangan Pimpinan</p>
-            <p className="truncate font-semibold text-slate-100 text-xs">Situasi Jaring · {regionLabel}</p>
+            <p className="truncate font-semibold text-slate-100 text-xs">
+              {copy.situationLabel} - {regionLabel}
+            </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <span className="hidden text-[9px] text-slate-400 md:inline">
-              Sumber titik: {coordinateSourceMode === "laporan" ? "lokasi laporan aktual" : "penempatan Jaring"}
+              Sumber titik: {coordinateSourceMode === "laporan" ? "lokasi laporan aktual" : copy.sourceDomicileLabel}
             </span>
             <button
               type="button"
@@ -88,35 +99,48 @@ export function SebaranJaringLeadershipStrip({
         <div className="grid auto-cols-[minmax(140px,1fr)] grid-flow-col divide-x divide-slate-800 overflow-x-auto sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-3 sm:divide-y lg:grid-cols-6 lg:divide-y-0">
           <Metric
             icon={Users}
-            label="Jaring Ditampilkan"
+            label={copy.displayedMetricLabel}
             value={summary.total}
-            detail={`${summary.verified.toLocaleString("id-ID")} terverifikasi`}
+            detail={
+              mode === "gaswil"
+                ? `${summary.preciseCoordinates.toLocaleString("id-ID")} lokasi terakhir`
+                : `${summary.verified.toLocaleString("id-ID")} ${copy.statusLabels.VERIFIED.toLowerCase()}`
+            }
           />
           <Metric
             icon={ShieldCheck}
-            label="Tingkat Verifikasi"
-            value={`${rate(summary.verified, summary.total)}%`}
-            detail={`${summary.pending.toLocaleString("id-ID")} menunggu`}
-            tone={summary.pending > 0 ? "amber" : "green"}
-            onClick={summary.pending > 0 ? onShowPending : undefined}
+            label={copy.verificationMetricLabel}
+            value={mode === "gaswil" ? summary.preciseCoordinates : `${rate(summary.verified, summary.total)}%`}
+            detail={
+              mode === "gaswil"
+                ? `${rate(summary.preciseCoordinates, summary.total)}% dari tampilan`
+                : `${summary.pending.toLocaleString("id-ID")} menunggu`
+            }
+            tone={mode === "gaswil" || summary.pending === 0 ? "green" : "amber"}
+            onClick={mode === "gaswil" ? undefined : summary.pending > 0 ? onShowPending : undefined}
           />
           <Metric
             icon={Activity}
-            label="Jaring Aktif"
+            label={mode === "jaring" ? DOMAIN_TERMS.jaringActive90Days : copy.activeMetricLabel}
             value={summary.active}
-            detail={`${rate(summary.active, summary.total)}% dari tampilan`}
+            detail={
+              mode === "gaswil"
+                ? `${summary.pending.toLocaleString("id-ID")} offline`
+                : `${rate(summary.active, summary.total)}% dari tampilan`
+            }
             tone="green"
+            onClick={mode === "gaswil" && summary.pending > 0 ? onShowPending : undefined}
           />
           <Metric
             icon={RadioTower}
-            label="Pernah Melapor"
-            value={summary.reporting}
-            detail={`${summary.reportCount.toLocaleString("id-ID")} laporan · ${summary.baketCount.toLocaleString("id-ID")} Baket`}
+            label={copy.reportingMetricLabel}
+            value={mode === "jaring" ? summary.reporting : summary.reportCount}
+            detail={`${summary.reportCount.toLocaleString("id-ID")} laporan - ${summary.baketCount.toLocaleString("id-ID")} Baket`}
             tone="cyan"
           />
           <Metric
             icon={MapPinCheck}
-            label="Koordinat Aktual"
+            label={copy.coordinateMetricLabel}
             value={`${rate(summary.preciseCoordinates, summary.total)}%`}
             detail={`${summary.preciseCoordinates.toLocaleString("id-ID")} titik aktual`}
             tone={summary.preciseCoordinates === summary.total ? "green" : "amber"}
@@ -125,7 +149,7 @@ export function SebaranJaringLeadershipStrip({
             icon={AlertCircle}
             label="Wilayah Terpadat"
             value={summary.topDistrict?.[0] ?? "-"}
-            detail={summary.topDistrict ? `${summary.topDistrict[1]} Jaring` : "Belum ada data"}
+            detail={summary.topDistrict ? `${summary.topDistrict[1]} ${copy.denseAreaDetailLabel}` : "Belum ada data"}
             compact
           />
         </div>

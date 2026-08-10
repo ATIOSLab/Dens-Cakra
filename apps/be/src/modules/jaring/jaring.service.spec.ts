@@ -20,9 +20,59 @@ describe('JaringService registration security', () => {
     areaIds: ['247c7732-44df-4f4a-bf50-f80c81245205'],
   };
 
+  const defaultScope = () => ({
+    assertJaring: jest.fn(() => Promise.resolve(undefined)),
+    assertArea: jest.fn(() => Promise.resolve(undefined)),
+    scopeSummary: jest.fn(() => ({
+      role: 'field_officer',
+      roleCode: 'FIELD_OFFICER',
+      commandRouteType: 'BINDA',
+      organizationUnitId: 'unit-id',
+      organizationUnitName: 'Binda DKI Jakarta',
+      supervisionMode: 'COMMAND_AREA',
+      supervisionLabel: 'Cakupan Komando Kewilayahan',
+      scopeDescription:
+        'Data ditampilkan sesuai garis komando kewilayahan dan wilayah penugasan pengguna.',
+      areas: [],
+      label: 'Binda DKI Jakarta',
+    })),
+    resolve: jest.fn(() =>
+      Promise.resolve({
+        organizationUnitId: 'unit-id',
+        commandRouteType: 'BINDA',
+        positionIds: ['position-id'],
+        assignmentIds: ['assignment-id'],
+        areaRootIds: ['district-id'],
+      }),
+    ),
+  });
+
+  const defaultCache = () => ({
+    getOrSet: jest.fn((_options: unknown, loader: () => Promise<unknown>) =>
+      loader(),
+    ),
+    invalidate: jest.fn(() => Promise.resolve(undefined)),
+  });
+
+  function createService(
+    prisma: unknown,
+    domainScope: unknown = defaultScope(),
+    cache: unknown = defaultCache(),
+  ) {
+    const mergedDomainScope = {
+      ...defaultScope(),
+      ...(domainScope as Record<string, unknown>),
+    };
+    return new JaringService(
+      prisma as never,
+      mergedDomainScope as never,
+      cache as never,
+    );
+  }
+
   it('memfilter Jaring berdasarkan kelurahan turunan dari cakupan wilayah', async () => {
     const findMany = jest.fn(() => Promise.resolve([]));
-    const service = new JaringService(
+    const service = createService(
       { jaring: { findMany } } as never,
       {
         resolve: jest.fn(() =>
@@ -37,7 +87,7 @@ describe('JaringService registration security', () => {
       } as never,
     );
 
-    await service.list({ limit: 100 }, {
+    await service.list({ page: 1, limit: 100 }, {
       authRole: 'field_officer',
       primaryAssignmentId: 'assignment-id',
     } as never);
@@ -71,7 +121,7 @@ describe('JaringService registration security', () => {
 
   it('mengambil halaman Jaring berikutnya dengan offset yang sesuai', async () => {
     const findMany = jest.fn(() => Promise.resolve([]));
-    const service = new JaringService(
+    const service = createService(
       { jaring: { findMany } } as never,
       {
         resolve: jest.fn(() =>
@@ -101,7 +151,7 @@ describe('JaringService registration security', () => {
   });
 
   it('mengembalikan ringkasan kartu dari scope dan filter yang sama', async () => {
-    const service = new JaringService(
+    const service = createService(
       {
         jaring: {
           findMany: jest.fn(() => Promise.resolve([])),
@@ -147,7 +197,7 @@ describe('JaringService registration security', () => {
   });
 
   it('menolak tanggal bergabung sebelum tanggal lahir', async () => {
-    const service = new JaringService(
+    const service = createService(
       {
         jaringOccupation: {
           findUnique: jest.fn(() => Promise.resolve({ isActive: true })),
@@ -167,13 +217,13 @@ describe('JaringService registration security', () => {
     });
   });
 
-  it('memastikan Jaring yang diedit berada di cakupan Field Officer', async () => {
+  it('memastikan Jaring yang diedit berada di cakupan Petugas Wilayah (Gaswil)', async () => {
     const accessError = new Error(
-      'Jaring berada di luar cakupan Field Officer.',
+      'Jaring berada di luar cakupan Petugas Wilayah (Gaswil).',
     );
     const assertJaring = jest.fn(() => Promise.reject(accessError));
     const findUniqueOrThrow = jest.fn();
-    const service = new JaringService(
+    const service = createService(
       { jaring: { findUniqueOrThrow } } as never,
       { assertJaring } as never,
     );
@@ -199,7 +249,7 @@ describe('JaringService registration security', () => {
         nationalIdNumber: '3171000000000001',
       }),
     );
-    const service = new JaringService(
+    const service = createService(
       {
         jaring: {
           findUniqueOrThrow,
@@ -230,7 +280,7 @@ describe('JaringService registration security', () => {
     });
   });
 
-  it('menolak nomor Jaring yang terdaftar di bawah Field Officer lain', async () => {
+  it('menolak nomor Jaring yang terdaftar di bawah Petugas Wilayah (Gaswil) lain', async () => {
     const prisma = {
       jaring: {
         findFirst: jest.fn(() =>
@@ -251,7 +301,7 @@ describe('JaringService registration security', () => {
       userOperationalAssignment: { findUniqueOrThrow: jest.fn() },
       administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
-    const service = new JaringService(
+    const service = createService(
       prisma as never,
       {
         assertArea: jest.fn(() => Promise.resolve()),
@@ -264,7 +314,7 @@ describe('JaringService registration security', () => {
     await expect(create).rejects.toMatchObject({
       code: 'JARING_WHATSAPP_OWNED_BY_OTHER_OFFICER',
       message:
-        'Nomor WhatsApp sama dengan Jaring aktif Jaring Terdaftar (alias Z01001) di bawah Field Officer lain.',
+        'Nomor WhatsApp sama dengan Jaring terdaftar Jaring Terdaftar (alias Z01001) di bawah Petugas Wilayah (Gaswil) lain.',
     });
     expect(prisma.jaring.findFirst).toHaveBeenCalledWith({
       where: {
@@ -286,7 +336,7 @@ describe('JaringService registration security', () => {
     expect(prisma.jaring.create).not.toHaveBeenCalled();
   });
 
-  it('menolak nomor Jaring yang sudah terdaftar pada Field Officer yang sama', async () => {
+  it('menolak nomor Jaring yang sudah terdaftar pada Petugas Wilayah (Gaswil) yang sama', async () => {
     const prisma = {
       jaring: {
         findFirst: jest.fn(() =>
@@ -309,7 +359,7 @@ describe('JaringService registration security', () => {
       userOperationalAssignment: { findUniqueOrThrow: jest.fn() },
       administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
-    const service = new JaringService(
+    const service = createService(
       prisma as never,
       {
         assertArea: jest.fn(() => Promise.resolve()),
@@ -323,7 +373,7 @@ describe('JaringService registration security', () => {
     ).rejects.toMatchObject({
       code: 'JARING_WHATSAPP_DUPLICATE',
       message:
-        'Nomor WhatsApp sama dengan Jaring aktif Jaring Terdaftar (alias Z01001) di bawah Field Officer ini.',
+        'Nomor WhatsApp sama dengan Jaring terdaftar Jaring Terdaftar (alias Z01001) di bawah Petugas Wilayah (Gaswil) ini.',
     });
     expect(prisma.jaring.create).not.toHaveBeenCalled();
   });
@@ -340,12 +390,12 @@ describe('JaringService registration security', () => {
       Promise.resolve({
         id: 'active-jaring-id',
         aliasName: 'Z01001',
-        fullName: 'Jaring Aktif',
+        fullName: 'Jaring Terdaftar',
       }),
     );
     const auditCreate = jest.fn();
     const assertJaring = jest.fn(() => Promise.resolve());
-    const service = new JaringService(
+    const service = createService(
       {
         jaring: { findUniqueOrThrow, findFirst, update },
         auditLog: { create: auditCreate },
@@ -360,7 +410,7 @@ describe('JaringService registration security', () => {
     ).rejects.toMatchObject({
       code: 'JARING_WHATSAPP_ACTIVE_DUPLICATE',
       message:
-        'Nomor WhatsApp sama dengan Jaring aktif Jaring Aktif (alias Z01001). Gunakan nomor berbeda atau tolak pengajuan jika data ini duplikat.',
+        'Nomor WhatsApp sama dengan Jaring terdaftar Jaring Terdaftar (alias Z01001). Gunakan nomor berbeda atau tolak pengajuan jika data ini duplikat.',
     });
 
     expect(assertJaring).toHaveBeenCalledWith(
@@ -387,11 +437,14 @@ describe('JaringService registration security', () => {
   it('menolak pembuatan Jaring jika NIK sudah dipakai Jaring lain', async () => {
     const prisma = {
       jaring: {
-        findFirst: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce({
-          id: 'existing-jaring-id',
-          aliasName: 'V02068',
-          fullName: 'Jaring Dengan NIK Sama',
-        }),
+        findFirst: jest
+          .fn<() => Promise<{ id: string; aliasName: string; fullName: string } | null>>()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({
+            id: 'existing-jaring-id',
+            aliasName: 'V02068',
+            fullName: 'Jaring Dengan NIK Sama',
+          }),
         create: jest.fn(),
       },
       jaringOccupation: {
@@ -400,7 +453,7 @@ describe('JaringService registration security', () => {
       userOperationalAssignment: { findUniqueOrThrow: jest.fn() },
       administrativeArea: { count: jest.fn(() => Promise.resolve(1)) },
     };
-    const service = new JaringService(
+    const service = createService(
       prisma as never,
       {
         assertArea: jest.fn(() => Promise.resolve()),
@@ -441,7 +494,7 @@ describe('JaringService registration security', () => {
       }),
     );
     const findFirst = jest
-      .fn()
+      .fn<() => Promise<{ id: string; aliasName: string; fullName: string } | null>>()
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         id: 'existing-jaring-id',
@@ -450,7 +503,7 @@ describe('JaringService registration security', () => {
       });
     const auditCreate = jest.fn();
     const assertJaring = jest.fn(() => Promise.resolve());
-    const service = new JaringService(
+    const service = createService(
       {
         jaring: { findUniqueOrThrow, findFirst, update },
         auditLog: { create: auditCreate },
@@ -542,7 +595,7 @@ describe('JaringService registration security', () => {
       },
       auditLog: { create: jest.fn(() => Promise.resolve({})) },
     };
-    const service = new JaringService(
+    const service = createService(
       prisma as never,
       {
         assertArea: jest.fn(() => Promise.resolve()),
@@ -554,7 +607,9 @@ describe('JaringService registration security', () => {
       userProfileId: 'profile-id',
     } as never);
 
-    const createInput = prisma.jaring.create.mock.calls[0]?.[0];
+    const createInput = prisma.jaring.create.mock.calls[0]?.[0] as {
+      data: { aliasName?: string; address?: string };
+    };
     expect(createInput.data).not.toHaveProperty('code');
     expect(createInput.data.aliasName).toBe('Z01005');
     expect(createInput.data.address).toBe(
@@ -563,7 +618,7 @@ describe('JaringService registration security', () => {
     expect(prisma.jaring.findFirst).toHaveBeenCalledTimes(2);
   });
 
-  it('mengembalikan status Jaring APPROVED ke PENDING dan INACTIVE saat di-update oleh Field Officer', async () => {
+  it('mengembalikan status Jaring APPROVED ke PENDING dan INACTIVE saat di-update oleh Petugas Wilayah (Gaswil)', async () => {
     const update = jest.fn(() => Promise.resolve({}));
     const findUniqueOrThrow = jest.fn(() =>
       Promise.resolve({ registrationStatus: 'APPROVED' }),
@@ -577,7 +632,7 @@ describe('JaringService registration security', () => {
     );
     const auditCreate = jest.fn(() => Promise.resolve({}));
     const assertJaring = jest.fn(() => Promise.resolve());
-    const service = new JaringService(
+    const service = createService(
       {
         jaring: {
           update,
@@ -628,7 +683,7 @@ describe('JaringService registration security', () => {
       }),
     );
     const auditCreate = jest.fn(() => Promise.resolve({}));
-    const service = new JaringService(
+    const service = createService(
       {
         jaring: { update, findUniqueOrThrow, findFirstOrThrow },
         auditLog: { create: auditCreate },
@@ -752,7 +807,7 @@ describe('JaringService registration security', () => {
     const groupBy = jest.fn(() =>
       Promise.resolve([{ status: 'SUBMITTED', _count: { _all: 1 } }]),
     );
-    const service = new JaringService(
+    const service = createService(
       {
         whatsAppReportSession: { findMany, count, groupBy },
       } as never,
@@ -818,11 +873,12 @@ describe('JaringService registration security', () => {
     const jaringWhere = jest.fn(() =>
       Promise.resolve({ id: { in: ['jaring-id'] } }),
     );
-    const service = new JaringService(
+    const assertArea = jest.fn(() => Promise.resolve(undefined));
+    const service = createService(
       {
         whatsAppReportSession: { findMany, count, groupBy },
       } as never,
-      { jaringWhere } as never,
+      { assertArea, jaringWhere } as never,
       {} as never,
     );
 
@@ -862,7 +918,7 @@ describe('JaringService registration security', () => {
         ],
       },
     });
-    expect(count).toHaveBeenNthCalledWith(5, {
+    expect(count).toHaveBeenNthCalledWith(4, {
       where: {
         AND: [
           expect.any(Object),
@@ -870,7 +926,6 @@ describe('JaringService registration security', () => {
             submittedMessage: {
               is: {
                 convertedBaketId: { not: null },
-                validationSummary: 'VALID',
               },
             },
           },
@@ -880,16 +935,8 @@ describe('JaringService registration security', () => {
     expect(result.summary).toEqual({
       totalSessions: 3,
       totalJaringReports: 2,
-      completeJaringReports: 1,
-      incompleteJaringReports: 1,
       baketReports: 1,
-      verifiedJaringReports: 1,
-      waitingVerificationReports: 1,
     });
-    expect(result.summary.totalJaringReports).toBe(
-      result.summary.completeJaringReports +
-        result.summary.incompleteJaringReports,
-    );
     expect(result.summary.baketReports).toBe(1);
   });
 
@@ -900,11 +947,12 @@ describe('JaringService registration security', () => {
     const jaringWhere = jest.fn(() =>
       Promise.resolve({ id: { in: ['jaring-id'] } }),
     );
-    const service = new JaringService(
+    const assertArea = jest.fn(() => Promise.resolve(undefined));
+    const service = createService(
       {
         whatsAppReportSession: { findMany, count, groupBy },
       } as never,
-      { jaringWhere } as never,
+      { assertArea, jaringWhere } as never,
       {} as never,
     );
 
@@ -925,6 +973,10 @@ describe('JaringService registration security', () => {
       { authRole: 'field_officer' } as never,
     );
 
+    expect(assertArea).toHaveBeenCalledWith(
+      expect.any(Object),
+      '247c7732-44df-4f4a-bf50-f80c81245205',
+    );
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         skip: 25,
@@ -954,11 +1006,6 @@ describe('JaringService registration security', () => {
                 is: { coordinateSource: 'WHATSAPP_LOCATION' },
               },
             },
-            {
-              submittedMessage: {
-                is: { validationSummary: 'VALID' },
-              },
-            },
           ]),
         },
       }),
@@ -969,12 +1016,14 @@ describe('JaringService registration security', () => {
     const findMany = jest.fn(() => Promise.resolve([]));
     const count = jest.fn(() => Promise.resolve(0));
     const groupBy = jest.fn(() => Promise.resolve([]));
+    const jaringFindMany = jest.fn(() => Promise.resolve([]));
     const jaringWhere = jest.fn(() =>
       Promise.resolve({ id: { in: ['jaring-id'] } }),
     );
-    const service = new JaringService(
+    const service = createService(
       {
         jaringCoachingReport: { findMany, count, groupBy },
+        jaring: { findMany: jaringFindMany },
       } as never,
       { jaringWhere } as never,
       {} as never,
@@ -1023,9 +1072,15 @@ describe('JaringService registration security', () => {
       uniqueJaringCount: 0,
       thisMonthCount: 0,
     });
+    expect(result.filterOptions).toEqual({ jaring: [] });
+    expect(jaringFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ['jaring-id'] } },
+      }),
+    );
   });
 
-  it('memverifikasi laporan Jaring dan mengubah status tampilan menjadi verified', async () => {
+  it('menampilkan laporan selesai sebagai siap dibuat Baket tanpa tahap verifikasi', async () => {
     const assertJaring = jest.fn(() => Promise.resolve());
     const reportSession = {
       id: 'report-session-id',
@@ -1063,58 +1118,16 @@ describe('JaringService registration security', () => {
       },
       _count: { contentParts: 1, media: 1, amendments: 0 },
     };
-    const sourceSession = {
-      id: 'report-session-id',
-      jaringId: 'jaring-id',
-      currentState: 'SUBMITTED',
-      submittedMessage: {
-        id: 'message-id',
-        title: 'Laporan Situasi Pasar',
-        content: 'Aktivitas meningkat pada pagi hari.',
-        senderPhone: '6281234567890',
-        jaringId: 'jaring-id',
-        receivedAt: new Date('2026-07-31T01:10:00.000Z'),
-        latitude: '1.2345678',
-        longitude: '104.1234567',
-        resolvedAreaId: 'area-id',
-        rawPayload: { photoMessageId: 'photo-id' },
-        media: [{ messageId: 'message-id', fileId: 'file-id' }],
-        validationIssues: [],
-        convertedBaketId: null,
-        categoryId: null,
-        status: 'RECEIVED',
-        validationSummary: 'NOT_CHECKED',
-      },
-    };
-    const tx = {
-      whatsAppValidationIssue: {
-        deleteMany: jest.fn(() => Promise.resolve({ count: 0 })),
-        createMany: jest.fn(() => Promise.resolve({ count: 0 })),
-      },
-      whatsAppMessage: { update: jest.fn(() => Promise.resolve({})) },
-      whatsAppReportHistory: {
-        create: jest.fn(() => Promise.resolve({})),
-      },
-      auditLog: { create: jest.fn(() => Promise.resolve({})) },
-    };
-    const transaction = jest.fn((callback: (client: typeof tx) => unknown) =>
-      Promise.resolve(callback(tx)),
-    );
-    const findUnique = jest
-      .fn()
-      .mockResolvedValueOnce(sourceSession)
-      .mockResolvedValueOnce(reportSession);
-    const service = new JaringService(
+    const findUnique = jest.fn<() => Promise<unknown>>().mockResolvedValue(reportSession);
+    const service = createService(
       {
-        $transaction: transaction,
         whatsAppReportSession: { findUnique },
       } as never,
       { assertJaring } as never,
     );
 
-    const result = await service.verifyReport(
+    const result = await service.report(
       'report-session-id',
-      { note: 'Valid' },
       {
         userProfileId: 'profile-id',
         primaryAssignmentId: 'assignment-id',
@@ -1122,18 +1135,8 @@ describe('JaringService registration security', () => {
     );
 
     expect(assertJaring).toHaveBeenCalledWith(expect.anything(), 'jaring-id');
-    expect(tx.whatsAppMessage.update).toHaveBeenCalledWith({
-      where: { id: 'message-id' },
-      data: { validationSummary: 'VALID', status: 'READY_FOR_BAKET' },
-    });
-    expect(tx.whatsAppReportHistory.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          action: 'FIELD_OFFICER_VERIFIED',
-        }),
-      }),
-    );
-    expect(result.verificationStatus).toBe('VERIFIED_BY_FIELD_OFFICER');
+    expect(result.processStatus).toBe('READY_FOR_BAKET');
+    expect(result.verificationStatus).toBe('READY_FOR_BAKET');
     expect(result.canFillMetadata).toBe(true);
   });
 
@@ -1141,7 +1144,7 @@ describe('JaringService registration security', () => {
     const assertJaring = jest.fn(() => Promise.resolve());
     const reportCreatedAt = new Date('2026-07-31T02:00:00.000Z');
     const auditCreatedAt = new Date('2026-07-31T03:00:00.000Z');
-    const service = new JaringService(
+    const service = createService(
       {
         whatsAppReportSession: {
           findUnique: jest.fn(() =>

@@ -4,9 +4,10 @@ import { Eye, MapPin, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { MapPopup } from "@/components/ui/map";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
 import {
-  getDataTypePresentation,
+  getFeatureTypePresentation,
   getUrgencyPresentation,
   MapSemanticBadge,
 } from "./maps-intelijen-presentation";
@@ -42,7 +43,7 @@ export function MapsIntelijenHoverPopup({
 }) {
   const properties = feature.properties;
   const isAgent = properties.markerType === "agent";
-  const presentation = getDataTypePresentation(properties.markerType);
+  const presentation = getFeatureTypePresentation(properties);
   const urgency = getUrgencyPresentation(properties.urgency);
   const jaring = properties.jaring ?? properties.jarings?.[0] ?? null;
 
@@ -83,7 +84,7 @@ export function MapsIntelijenHoverPopup({
           </h2>
           <p className="mt-1 line-clamp-1 text-slate-400">
             {isAgent
-              ? (properties.positionTitle ?? "Personel lapangan")
+              ? (properties.positionTitle ?? DOMAIN_TERMS.fieldOfficer)
               : jaring
                 ? `Jaring: ${jaring.name}`
                 : "Jaring belum tersedia"}

@@ -36,8 +36,7 @@ export function MapsIntelijenLeadershipBrief({
   onCardFilterChange,
 }: Props) {
   const intelligence = useMemo(() => {
-    const reportTotal =
-      meta.summary.reports.total ?? (meta.summary.reports.complete ?? 0) + (meta.summary.reports.incomplete ?? 0);
+    const reportTotal = meta.summary.reports.total ?? meta.counts.report ?? 0;
     const baketTotal = meta.summary.bakets.total ?? 0;
     const agentTotal = meta.counts.agent ?? 0;
     const total = reportTotal + baketTotal + agentTotal;
@@ -92,7 +91,7 @@ export function MapsIntelijenLeadershipBrief({
 
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
             <Metric label="Laporan Jaring" value={intelligence.reportTotal} detail="Belum menjadi Baket" />
-            <Metric label="Baket" value={intelligence.baketTotal} detail="Hasil verifikasi" tone="cyan" />
+            <Metric label="Baket" value={intelligence.baketTotal} detail="Dari Laporan Jaring" tone="cyan" />
             <Metric label="Personel" value={intelligence.agentTotal} detail="Lokasi termuat" tone="cyan" />
             <Metric
               label="Cakupan Koordinat"
@@ -129,7 +128,6 @@ export function MapsIntelijenLeadershipBrief({
                 onCardFilterChange("ALL");
                 onFilterChange({
                   dataType: "ALL",
-                  completeness: "ALL",
                   urgency: "URGENT",
                 });
               }}
@@ -145,7 +143,6 @@ export function MapsIntelijenLeadershipBrief({
                 onFilterChange({
                   dataType: "AGENT",
                   agentState: "active",
-                  completeness: "ALL",
                   urgency: "ALL",
                 });
               }}

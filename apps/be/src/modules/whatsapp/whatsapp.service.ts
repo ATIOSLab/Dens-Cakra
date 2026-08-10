@@ -522,7 +522,7 @@ export class WhatsAppService {
         if (!taskAssignment) {
           throw new ApiException(
             'TASK_ASSIGNMENT_NOT_FOUND',
-            'Tugas terkait tidak ditemukan pada assignment Field Officer.',
+            'Tugas terkait tidak ditemukan pada penugasan Petugas Wilayah (Gaswil).',
             404,
           );
         }

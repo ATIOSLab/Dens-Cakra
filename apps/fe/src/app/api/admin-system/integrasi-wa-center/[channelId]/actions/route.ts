@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { activateWhatsappControlChannel } from "@/server/field-ops/repository";
 
 type Params = {
@@ -19,9 +20,6 @@ export async function POST(request: NextRequest, { params }: Params) {
       await activateWhatsappControlChannel(request.headers.get("cookie") ?? "", channelId, body.action),
     );
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal menjalankan aksi kanal WhatsApp." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal menjalankan aksi kanal WhatsApp.");
   }
 }

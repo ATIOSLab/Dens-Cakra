@@ -21,7 +21,6 @@ import {
   AgentLocationState,
   MapMarkersQuery,
   MapMarkerType,
-  ReportCompletenessFilter,
   ReportLocationSuitabilityFilter,
   ReportValidityFilter,
 } from './map-markers.dto.js';
@@ -55,10 +54,8 @@ type MarkerResult = {
 type JaringReportVerificationStatus =
   | 'IN_PROGRESS_BY_JARING'
   | 'NOT_SUBMITTED'
-  | 'WAITING_FIELD_OFFICER_VERIFICATION'
-  | 'NEEDS_FIELD_OFFICER_REVIEW'
-  | 'VERIFIED_BY_FIELD_OFFICER'
-  | 'METADATA_RECORDED';
+  | 'READY_FOR_BAKET'
+  | 'BAKET_CREATED';
 
 const CATEGORY_COLORS = [
   '#ef4444',
@@ -456,7 +453,6 @@ export class MapMarkersService {
             validationSummary: true,
             receivedAt: true,
             coordinateSource: true,
-            category: { select: { id: true, code: true, name: true } },
             resolvedArea: {
               select: {
                 id: true,
@@ -477,6 +473,7 @@ export class MapMarkersService {
                 id: true,
                 status: true,
                 currentVersionNumber: true,
+                reportCategory: { select: { id: true, code: true, name: true } },
                 versions: {
                   orderBy: { versionNumber: 'desc' },
                   take: 1,
@@ -532,7 +529,6 @@ export class MapMarkersService {
           report.status,
           message,
         );
-        const completeness = this.reportCompleteness(message);
         const baketVersion = message?.convertedBaket?.versions?.[0] ?? null;
         const suitability = this.reportLocationSuitability(
           baketVersion?.coverageValidationStatus,
@@ -555,7 +551,6 @@ export class MapMarkersService {
           message,
           validity,
           verificationStatus,
-          completeness,
           suitability,
           baketVersion,
           hasCoordinates,
@@ -565,23 +560,25 @@ export class MapMarkersService {
         };
       })
       .filter((item) => {
-        const { report, message, validity, completeness, suitability } = item;
+        const { report, message, validity, suitability } = item;
         return (
           this.matchesDate(item.reportedAt, filters.from, filters.to) &&
           (!query.categoryIds?.length ||
-            (message?.category?.id &&
-              query.categoryIds.includes(message.category.id))) &&
+            (message?.convertedBaket?.reportCategory?.id &&
+              query.categoryIds.includes(
+                message.convertedBaket.reportCategory.id,
+              ))) &&
           (!query.categoryCodes?.length ||
-            (message?.category?.code &&
-              query.categoryCodes.includes(message.category.code))) &&
+            (message?.convertedBaket?.reportCategory?.code &&
+              query.categoryCodes.includes(
+                message.convertedBaket.reportCategory.code,
+              ))) &&
           (!query.urgencies?.length ||
             query.urgencies.includes(
               item.baketVersion?.urgency ?? PriorityLevel.NORMAL,
             )) &&
           (!query.reportValidity?.length ||
             query.reportValidity.includes(validity)) &&
-          (!query.completeness?.length ||
-            query.completeness.includes(completeness)) &&
           (query.hasCoordinates === undefined ||
             query.hasCoordinates === item.hasCoordinates) &&
           (query.hasAttachments === undefined ||
@@ -635,8 +632,8 @@ export class MapMarkersService {
         },
         properties: {
           markerType: MapMarkerType.REPORT,
-          markerKey: `report:${item.completeness.toLowerCase()}`,
-          suggestedColor: this.reportColor(item.completeness),
+          markerKey: 'report',
+          suggestedColor: '#0ea5e9',
           reportId: report.id,
           referenceNumber:
             report.referenceNumber ?? message?.referenceNumber ?? report.id,
@@ -645,11 +642,11 @@ export class MapMarkersService {
             : 'Laporan Jaring tanpa judul',
           excerpt: content.slice(0, 220),
           reportStatus: report.status,
+          processStatus: item.verificationStatus,
           verificationStatus: item.verificationStatus,
           validity: item.validity,
-          completeness: item.completeness,
           urgency: item.baketVersion?.urgency ?? PriorityLevel.NORMAL,
-          category: message?.category ?? null,
+          category: message?.convertedBaket?.reportCategory ?? null,
           reportedAt: item.reportedAt,
           receivedAt: message?.receivedAt ?? null,
           locationCapturedAt: report.locationCapturedAt,
@@ -718,13 +715,7 @@ export class MapMarkersService {
         valid: prepared.filter(
           (item) => item.validity === ReportValidityFilter.VALID,
         ).length,
-        complete: prepared.filter(
-          (item) => item.completeness === ReportCompletenessFilter.COMPLETE,
-        ).length,
-          incomplete: prepared.filter(
-            (item) => item.completeness === ReportCompletenessFilter.INCOMPLETE,
-          ).length,
-          mappable: located.length,
+        mappable: located.length,
         unlocated: prepared.length - located.length,
       },
       unlocatedItems: prepared
@@ -1435,50 +1426,8 @@ export class MapMarkersService {
         ? 'IN_PROGRESS_BY_JARING'
         : 'NOT_SUBMITTED';
     }
-    if (message.convertedBaketId) return 'METADATA_RECORDED';
-    if (
-      message.validationSummary === WhatsAppValidationSummary.VALID &&
-      message.status === WhatsAppMessageStatus.READY_FOR_BAKET
-    ) {
-      return 'VERIFIED_BY_FIELD_OFFICER';
-    }
-    if (
-      message.validationSummary === WhatsAppValidationSummary.INVALID ||
-      message.status === WhatsAppMessageStatus.UNDER_REVIEW
-    ) {
-      return 'NEEDS_FIELD_OFFICER_REVIEW';
-    }
-    return 'WAITING_FIELD_OFFICER_VERIFICATION';
-  }
-
-  private reportCompleteness(
-    message: {
-      content?: string | null;
-      senderPhone?: string | null;
-      jaringId?: string | null;
-      latitude?: unknown;
-      longitude?: unknown;
-      resolvedAreaId?: string | null;
-      rawPayload?: unknown;
-      _count?: { media?: number };
-    } | null,
-  ): ReportCompletenessFilter {
-    if (!message) return ReportCompletenessFilter.INCOMPLETE;
-    const rawPayload =
-      message.rawPayload && typeof message.rawPayload === 'object'
-        ? (message.rawPayload as Record<string, unknown>)
-        : null;
-    const hasPhoto =
-      (message._count?.media ?? 0) > 0 || Boolean(rawPayload?.photoMessageId);
-    return message.content !== null &&
-      message.senderPhone !== '' &&
-      Boolean(message.jaringId) &&
-      message.latitude !== null &&
-      message.longitude !== null &&
-      Boolean(message.resolvedAreaId) &&
-      hasPhoto
-      ? ReportCompletenessFilter.COMPLETE
-      : ReportCompletenessFilter.INCOMPLETE;
+    if (message.convertedBaketId) return 'BAKET_CREATED';
+    return 'READY_FOR_BAKET';
   }
 
   private reportLocationSuitability(
@@ -1499,12 +1448,6 @@ export class MapMarkersService {
       return ReportLocationSuitabilityFilter.OUTSIDE_SCOPE;
     }
     return ReportLocationSuitabilityFilter.NOT_DETERMINED;
-  }
-
-  private reportColor(completeness: ReportCompletenessFilter) {
-    if (completeness === ReportCompletenessFilter.COMPLETE) return '#16a34a';
-    if (completeness === ReportCompletenessFilter.INCOMPLETE) return '#f97316';
-    return '#64748b';
   }
 
   private normalizeFilters(query: MapMarkersQuery) {

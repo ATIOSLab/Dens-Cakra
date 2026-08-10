@@ -4,11 +4,11 @@ export function DirektifPage() {
   return (
     <DensModulePage
       title="Direktif"
-      role="Eksekutif"
+      roleLabel="Deputi II"
       description="Halaman ini disiapkan untuk penerbitan dan monitoring direktif strategis dari pimpinan ke unit pelaksana."
       highlights={[
         "Daftar direktif masuk dan direktif diterbitkan.",
-        "Status progres, deadline, dan read receipt.",
+        "Status progres, tenggat, dan status baca.",
         "Riwayat perubahan dan catatan supervisi.",
       ]}
     />

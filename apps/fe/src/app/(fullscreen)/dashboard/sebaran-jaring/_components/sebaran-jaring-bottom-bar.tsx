@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { ChevronUp, SlidersHorizontal, X } from "lucide-react";
+import { BarChart3, Boxes, ChevronUp, type LucideIcon, MapPin, SlidersHorizontal, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -10,8 +10,10 @@ import type {
   CoordinateSourceMode,
   DateRangeOption,
   DisplayMode,
+  DistributionEntityMode,
   MapStyleMode,
 } from "./sebaran-jaring-types";
+import { DISTRIBUTION_ENTITY_COPY } from "./sebaran-jaring-types";
 
 type Props = {
   displayMode: DisplayMode;
@@ -25,6 +27,7 @@ type Props = {
   centerCoords: string;
   zoomLevel: string;
   adminLevelLabel: string;
+  mode?: DistributionEntityMode;
 };
 
 export function SebaranJaringBottomBar({
@@ -39,8 +42,15 @@ export function SebaranJaringBottomBar({
   centerCoords,
   zoomLevel,
   adminLevelLabel,
+  mode = "jaring",
 }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const copy = DISTRIBUTION_ENTITY_COPY[mode];
+  const displayOptions: Array<{ value: DisplayMode; label: string; Icon: LucideIcon }> = [
+    { value: "marker", label: "Titik", Icon: MapPin },
+    { value: "cluster", label: "Kelompok", Icon: Boxes },
+    { value: "heatmap", label: "Kepadatan", Icon: BarChart3 },
+  ];
 
   if (isCollapsed) {
     return (
@@ -75,25 +85,19 @@ export function SebaranJaringBottomBar({
             MODE TAMPILAN
           </span>
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-            {(
-              [
-                ["marker", "Titik", "📍"],
-                ["cluster", "Kelompok", "❇️"],
-                ["heatmap", "Kepadatan", "📊"],
-              ] as const
-            ).map(([mode, label, icon]) => (
+            {displayOptions.map(({ value, label, Icon }) => (
               <button
                 type="button"
-                key={mode}
-                onClick={() => onDisplayModeChange(mode as DisplayMode)}
+                key={value}
+                onClick={() => onDisplayModeChange(value)}
                 className={cn(
                   "px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer",
-                  displayMode === mode
-                    ? "bg-blue-600 text-white font-semibold shadow"
+                  displayMode === value
+                    ? "bg-cyan-600 text-white font-semibold shadow"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200",
                 )}
               >
-                <span className="text-[10px]">{icon}</span>
+                <Icon className="size-3.5" aria-hidden />
                 <span>{label}</span>
               </button>
             ))}
@@ -121,7 +125,7 @@ export function SebaranJaringBottomBar({
                 className={cn(
                   "px-2.5 py-1 rounded text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
                   mapStyle === style
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-semibold ring-1 ring-blue-500"
+                    ? "border-cyan-500 bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 font-semibold ring-1 ring-cyan-500"
                     : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200",
                 )}
               >
@@ -140,34 +144,40 @@ export function SebaranJaringBottomBar({
           <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             SUMBER TITIK
           </span>
-          <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs dark:border-slate-800 dark:bg-slate-950/80">
-            {(
-              [
-                ["domisili", "Penempatan Jaring"],
-                ["laporan", "Lokasi Laporan"],
-              ] as const
-            ).map(([mode, label]) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => onCoordinateSourceModeChange(mode)}
-                className={cn(
-                  "rounded px-2.5 py-1 font-medium transition-colors",
-                  coordinateSourceMode === mode
-                    ? "bg-cyan-600 text-white shadow"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200",
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {mode === "gaswil" ? (
+            <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              {copy.sourceDomicileLabel}
+            </span>
+          ) : (
+            <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs dark:border-slate-800 dark:bg-slate-950/80">
+              {(
+                [
+                  ["domisili", copy.sourceDomicileLabel],
+                  ["laporan", copy.sourceReportLabel],
+                ] as const
+              ).map(([sourceMode, label]) => (
+                <button
+                  key={sourceMode}
+                  type="button"
+                  onClick={() => onCoordinateSourceModeChange(sourceMode)}
+                  className={cn(
+                    "rounded px-2.5 py-1 font-medium transition-colors",
+                    coordinateSourceMode === sourceMode
+                      ? "bg-cyan-600 text-white shadow"
+                      : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* RENTANG WAKTU LAPORAN */}
         <div className="flex items-center gap-2">
           <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            RENTANG WAKTU LAPORAN
+            {mode === "gaswil" ? "RENTANG WAKTU SINYAL" : "RENTANG WAKTU LAPORAN"}
           </span>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-lg border border-slate-200 dark:border-slate-800 font-mono text-[11px]">
@@ -179,7 +189,7 @@ export function SebaranJaringBottomBar({
                   className={cn(
                     "px-2.5 py-0.5 rounded transition-colors cursor-pointer",
                     dateRange === option
-                      ? "bg-blue-100 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold"
+                      ? "bg-cyan-100 dark:bg-cyan-950 border border-cyan-300 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 font-bold"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200",
                   )}
                 >

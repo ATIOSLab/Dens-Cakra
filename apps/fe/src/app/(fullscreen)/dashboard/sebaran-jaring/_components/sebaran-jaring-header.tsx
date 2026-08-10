@@ -1,14 +1,19 @@
 "use client";
 
-import { Clock, Compass, RefreshCw, SlidersHorizontal, Users } from "lucide-react";
+import { Clock, RefreshCw, SlidersHorizontal, Users } from "lucide-react";
 
 import { ThemeSwitcher } from "@/app/(main)/dashboard/_components/sidebar/theme-switcher";
+import { AppLogo } from "@/components/app-logo";
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { cn } from "@/lib/utils";
 
-import type { JaringDistributionCity } from "./sebaran-jaring-types";
+import {
+  DISTRIBUTION_ENTITY_COPY,
+  type DistributionEntityMode,
+  type JaringDistributionCity,
+} from "./sebaran-jaring-types";
 
 type Props = {
   cities: JaringDistributionCity[];
@@ -22,6 +27,7 @@ type Props = {
   isLeftPanelOpen: boolean;
   onToggleLeftPanel: () => void;
   showAllCities: boolean;
+  mode?: DistributionEntityMode;
 };
 
 export function SebaranJaringHeader({
@@ -36,7 +42,10 @@ export function SebaranJaringHeader({
   isLeftPanelOpen,
   onToggleLeftPanel,
   showAllCities,
+  mode = "jaring",
 }: Props) {
+  const copy = DISTRIBUTION_ENTITY_COPY[mode];
+
   return (
     <header className="z-30 h-14 shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between shadow-md transition-colors">
       {/* Left Branding */}
@@ -48,15 +57,13 @@ export function SebaranJaringHeader({
           className="h-8 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 [&_span]:hidden xl:[&_span]:inline"
         />
         <div className="flex items-center gap-2.5">
-          <div className="size-7 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.3)] shrink-0">
-            <Compass className="size-4 animate-spin-slow" />
-          </div>
+          <AppLogo size="sm" className="border-cyan-500/40 bg-cyan-500/10 shadow-[0_0_12px_rgba(6,182,212,0.22)]" />
           <div className="flex items-center gap-2">
             <span className="font-bold text-sm tracking-wider text-slate-900 dark:text-slate-100 shrink-0">
               DENS CAKRA
             </span>
             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-cyan-700 dark:text-cyan-400 font-semibold uppercase tracking-widest hidden xl:inline-block shrink-0">
-              PETA JARINGAN INTELIJEN
+              {copy.headerBadge}
             </span>
           </div>
         </div>
@@ -115,9 +122,11 @@ export function SebaranJaringHeader({
         </button>
 
         {/* Entity Counter Badge */}
-        <div className="hidden items-center gap-1.5 rounded-md border border-blue-300 bg-blue-100 px-2.5 py-1 text-[11px] text-blue-700 xl:flex dark:border-blue-800/80 dark:bg-blue-950/80 dark:text-blue-300">
+        <div className="hidden items-center gap-1.5 rounded-md border border-cyan-300 bg-cyan-100 px-2.5 py-1 text-[11px] text-cyan-700 xl:flex dark:border-cyan-800/80 dark:bg-cyan-950/80 dark:text-cyan-300">
           <Users className="size-3.5" />
-          <span>{totalEntities.toLocaleString("id-ID")} JARING</span>
+          <span>
+            {totalEntities.toLocaleString("id-ID")} {copy.plural.toUpperCase()}
+          </span>
         </div>
 
         {/* Theme Switcher Toggle */}

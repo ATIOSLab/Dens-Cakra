@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AlertTriangle, Crosshair, ExternalLink, RefreshCw } from "lucide-react";
 
@@ -72,17 +72,17 @@ export function LivePersonnelMap() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMap = async () => {
+  const fetchMap = useCallback(async () => {
     setError(null);
     const response = await fetch("/api/field-officer/personnel-location-map");
 
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { message?: string } | null;
-      throw new Error(body?.message || "Gagal membaca lokasi personel.");
+      throw new Error(body?.message ?? "Gagal membaca lokasi personel.");
     }
 
     setData((await response.json()) as PersonnelLocationMapResponse);
-  };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +108,7 @@ export function LivePersonnelMap() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [fetchMap]);
 
   useEffect(() => {
     let removed = false;

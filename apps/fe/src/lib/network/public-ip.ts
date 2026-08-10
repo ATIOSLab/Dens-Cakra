@@ -1,4 +1,4 @@
-import { publicIpv4, publicIpv6, type Options } from "public-ip";
+import { type Options, publicIpv4, publicIpv6 } from "public-ip";
 
 export async function detectPublicIp(options?: Options) {
   try {

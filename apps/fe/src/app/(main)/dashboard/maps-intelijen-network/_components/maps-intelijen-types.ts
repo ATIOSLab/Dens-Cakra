@@ -5,11 +5,11 @@ import {
   type ReportCategoryOption,
   type VerificationStatus,
 } from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
-import type { LocationMatchStatus } from "@/lib/domain/spatial-location-matcher";
 import {
   getVerificationStatusBadgeClass,
   getVerificationStatusLabel,
 } from "@/lib/domain/operational-presentation";
+import type { LocationMatchStatus } from "@/lib/domain/spatial-location-matcher";
 
 export type { LocationMatchStatus };
 export { formatFullAreaName };
@@ -165,8 +165,6 @@ export type PaginatedReportResponse = {
 
 export type JaringReportSummary = {
   totalJaringReports: number;
-  completeJaringReports: number;
-  incompleteJaringReports: number;
   baketReports: number;
 };
 
@@ -244,9 +242,9 @@ export type MapMarkerType = "report" | "baket" | "agent";
 export type VisualizationMode = "marker" | "cluster" | "heatmap";
 export type BaseMapLayer = "dark" | "satellite" | "terrain" | "light" | "osm";
 export type CommandLayerKey = "report" | "baket" | "agent_active" | "agent_last_known";
-export type MarkerColorMode = "completeness" | "validity" | "urgency" | "category";
-export type HeatmapWeight = "count" | "urgency" | "valid" | "complete" | "incomplete" | "baket";
-export type SummaryCardFilter = "ALL" | "REPORT" | "COMPLETE" | "INCOMPLETE" | "BAKET";
+export type MarkerColorMode = "validity" | "urgency" | "category";
+export type HeatmapWeight = "count" | "urgency" | "valid" | "baket";
+export type SummaryCardFilter = "ALL" | "REPORT" | "BAKET";
 export type DataTypeFilter = "ALL" | "REPORT" | "BAKET" | "AGENT";
 export type AgentStateFilter = "ALL" | "active" | "last_known";
 
@@ -256,7 +254,6 @@ export type MapNetworkFilters = {
   startDate: string;
   endDate: string;
   dataType: DataTypeFilter;
-  completeness: "ALL" | "COMPLETE" | "INCOMPLETE";
   urgency: "ALL" | PriorityLevel;
   categoryId: string;
   fieldOfficerAssignmentId: string;
@@ -335,7 +332,6 @@ export type MapNetworkProperties = {
   verificationStatus?: VerificationStatus;
   status?: string;
   validity?: "VALID" | "NEEDS_REVIEW" | "WAITING";
-  completeness?: "COMPLETE" | "INCOMPLETE";
   urgency?: PriorityLevel | null;
   category?: ReportCategoryOption | null;
   reportedAt?: string;
@@ -446,8 +442,6 @@ export type MapNetworkResponse = {
       reports: {
         total?: number;
         valid?: number;
-        complete?: number;
-        incomplete?: number;
         mappable?: number;
         unlocated?: number;
       };

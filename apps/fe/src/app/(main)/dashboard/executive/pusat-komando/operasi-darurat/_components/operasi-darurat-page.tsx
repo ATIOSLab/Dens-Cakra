@@ -4,7 +4,7 @@ export function OperasiDaruratPage() {
   return (
     <DensModulePage
       title="Operasi Darurat"
-      role="Eksekutif"
+      roleLabel="Deputi II"
       description="Halaman ini menjadi fondasi untuk komando insiden darurat, bantuan lintas unit, dan penanganan cepat."
       highlights={[
         "Panic alert dan peta insiden aktif.",

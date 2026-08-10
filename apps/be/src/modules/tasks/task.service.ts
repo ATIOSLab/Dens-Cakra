@@ -921,13 +921,13 @@ export class TaskService {
     this.assertRole(
       context,
       [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Only OIM can create operational tasks.',
+      'Hanya Manajer Intelijen Operasional (OIM) yang dapat membuat tugas operasional.',
     );
 
     if (body.ownerAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'TASK_OWNER_UNIT_OUT_OF_SCOPE',
-        'Tasks can only be created for the current organization unit.',
+        'Tugas hanya dapat dibuat untuk unit organisasi saat ini.',
         403,
       );
     }
@@ -974,7 +974,7 @@ export class TaskService {
       if (!directiveVersion) {
         throw new ApiException(
           'TASK_SOURCE_OUT_OF_SCOPE',
-          'Directive source is not available for the current OIM area scope.',
+          'Sumber arahan strategis tidak tersedia dalam cakupan wilayah Manajer Intelijen Operasional (OIM) saat ini.',
           403,
         );
       }
@@ -1062,7 +1062,7 @@ export class TaskService {
     this.assertRole(
       context,
       [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Only OIM can create child tasks.',
+      'Hanya Manajer Intelijen Operasional (OIM) yang dapat membuat tugas turunan.',
     );
 
     const parent = await this.taskDetail(taskId, context);
@@ -1074,7 +1074,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'DUE_DATE_EXCEEDS_PARENT',
-        'Child due date cannot exceed parent.',
+        'Tenggat tugas turunan tidak boleh melewati tenggat tugas induk.',
         422,
       );
     }
@@ -1105,7 +1105,7 @@ export class TaskService {
     this.assertRole(
       context,
       [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Only OIM can edit task drafts.',
+      'Hanya Manajer Intelijen Operasional (OIM) yang dapat mengubah draf tugas.',
     );
 
     const task = await this.taskDetail(taskId, context);
@@ -1116,7 +1116,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'TASK_NOT_MUTABLE',
-        'Only the owning OIM chain can edit this task.',
+        'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat mengubah tugas ini.',
         403,
       );
     }
@@ -1124,7 +1124,7 @@ export class TaskService {
     if (task.status !== TaskStatus.DRAFT) {
       throw new ApiException(
         'INVALID_STATE_TRANSITION',
-        'Only draft tasks can be edited.',
+        'Hanya tugas berstatus draf yang dapat diubah.',
         409,
       );
     }
@@ -1149,7 +1149,7 @@ export class TaskService {
     this.assertRole(
       context,
       [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Only OIM can edit task target areas.',
+      'Hanya Manajer Intelijen Operasional (OIM) yang dapat mengubah wilayah sasaran tugas.',
     );
 
     const task = await this.taskDetail(taskId, context);
@@ -1160,7 +1160,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'TASK_NOT_MUTABLE',
-        'Only the owning OIM chain can edit this task.',
+        'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat mengubah tugas ini.',
         403,
       );
     }
@@ -1168,7 +1168,7 @@ export class TaskService {
     if (task.status !== TaskStatus.DRAFT) {
       throw new ApiException(
         'INVALID_STATE_TRANSITION',
-        'Targets can only change while draft.',
+        'Wilayah sasaran hanya dapat diubah saat tugas masih draf.',
         409,
       );
     }
@@ -1203,7 +1203,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'TASK_NOT_ASSIGNABLE',
-        'Completed or cancelled tasks cannot be assigned.',
+        'Tugas yang sudah selesai atau dibatalkan tidak dapat didistribusikan.',
         409,
       );
     }
@@ -1217,7 +1217,7 @@ export class TaskService {
       ) {
         throw new ApiException(
           'TASK_ASSIGN_OUT_OF_SCOPE',
-          'Only the owning OIM chain can distribute this task.',
+          'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat mendistribusikan tugas ini.',
           403,
         );
       }
@@ -1234,7 +1234,7 @@ export class TaskService {
       if (!coordinatorAssignment) {
         throw new ApiException(
           'TASK_ASSIGNMENT_NOT_OWNER',
-          'Field Coordinator can only distribute tasks assigned to their seat.',
+          'Koordinator Wilayah (Korwil) hanya dapat mendistribusikan tugas yang ditetapkan untuk jabatannya.',
           403,
         );
       }
@@ -1243,7 +1243,7 @@ export class TaskService {
     } else {
       throw new ApiException(
         'TASK_ROLE_FORBIDDEN',
-        'Only OIM and Field Coordinator can distribute tasks.',
+        'Hanya Manajer Intelijen Operasional (OIM) dan Koordinator Wilayah (Korwil) yang dapat mendistribusikan tugas.',
         403,
       );
     }
@@ -1256,7 +1256,7 @@ export class TaskService {
       ) {
         throw new ApiException(
           'DUE_DATE_EXCEEDS_PARENT',
-          'Assignment due date cannot exceed task.',
+          'Tenggat penugasan tidak boleh melewati tenggat tugas induk.',
           422,
         );
       }
@@ -1409,7 +1409,7 @@ export class TaskService {
     if (context.roleCode !== RoleCode.FIELD_OFFICER) {
       throw new ApiException(
         'TASK_JARING_FORWARD_FORBIDDEN',
-        'Only Field Officer can forward field instructions to Jaring.',
+        'Hanya Petugas Wilayah (Gaswil) yang dapat meneruskan instruksi lapangan ke Jaring.',
         403,
       );
     }
@@ -1443,7 +1443,7 @@ export class TaskService {
     if (!assignment) {
       throw new ApiException(
         'TASK_ASSIGNMENT_NOT_FOUND',
-        'Assignment Field Officer tidak ditemukan atau sudah ditutup.',
+        'Penugasan Petugas Wilayah (Gaswil) tidak ditemukan atau sudah ditutup.',
         404,
       );
     }
@@ -1476,7 +1476,7 @@ export class TaskService {
     if (body.jaringIds?.length && jaring.length !== body.jaringIds.length) {
       throw new ApiException(
         'TASK_JARING_TARGET_OUT_OF_SCOPE',
-        'Sebagian target Jaring tidak aktif atau bukan binaan Field Officer ini.',
+        'Sebagian target Jaring tidak aktif atau bukan binaan Petugas Wilayah (Gaswil) ini.',
         403,
       );
     }
@@ -1568,7 +1568,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'INVALID_STATE_TRANSITION',
-        'Assignment cannot be reassigned.',
+        'Penugasan tidak dapat dialihkan.',
         409,
       );
     }
@@ -1582,7 +1582,7 @@ export class TaskService {
       ) {
         throw new ApiException(
           'TASK_REASSIGN_OUT_OF_SCOPE',
-          'Only the owning OIM chain can reassign Field Coordinator delivery.',
+          'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat mengalihkan pengiriman Koordinator Wilayah (Korwil).',
           403,
         );
       }
@@ -1591,7 +1591,7 @@ export class TaskService {
       if (old.assignerAssignmentId !== context.primaryAssignmentId) {
         throw new ApiException(
           'TASK_REASSIGN_OUT_OF_SCOPE',
-          'Field Coordinator can only reassign subordinate delivery they created.',
+          'Koordinator Wilayah (Korwil) hanya dapat mengalihkan pengiriman bawahan yang dibuatnya.',
           403,
         );
       }
@@ -1599,7 +1599,7 @@ export class TaskService {
     } else {
       throw new ApiException(
         'TASK_ROLE_FORBIDDEN',
-        'Only OIM and Field Coordinator can reassign tasks.',
+        'Hanya Manajer Intelijen Operasional (OIM) dan Koordinator Wilayah (Korwil) yang dapat mengalihkan tugas.',
         403,
       );
     }
@@ -1611,7 +1611,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'DUE_DATE_EXCEEDS_PARENT',
-        'Assignment due date cannot exceed task.',
+        'Tenggat penugasan tidak boleh melewati tenggat tugas induk.',
         422,
       );
     }
@@ -1652,7 +1652,7 @@ export class TaskService {
     this.assertRole(
       context,
       [RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER],
-      'Only OIM can cancel tasks in this phase.',
+      'Hanya Manajer Intelijen Operasional (OIM) yang dapat membatalkan tugas pada tahap ini.',
     );
 
     const task = await this.taskDetail(taskId, context);
@@ -1663,7 +1663,7 @@ export class TaskService {
     ) {
       throw new ApiException(
         'TASK_CANCEL_OUT_OF_SCOPE',
-        'Only the owning OIM chain can cancel this task.',
+        'Hanya rantai Manajer Intelijen Operasional (OIM) pemilik yang dapat membatalkan tugas ini.',
         403,
       );
     }

@@ -13,9 +13,7 @@ import {
   Columns3,
   Crosshair,
   Eye,
-  Inbox,
   MapPin,
-  Network,
   Pencil,
   Plus,
   Radio,
@@ -24,16 +22,14 @@ import {
   Send,
   ShieldCheck,
   UserRound,
-  Users,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
-import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -45,6 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -70,6 +67,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import type {
   FieldOfficerIncoming,
@@ -90,6 +89,7 @@ type FieldOfficerView = "overview" | "tasks" | "jaring" | "incoming" | "baket" |
 
 const FORWARDED_STORAGE_KEY = "dens-cakra-forwarded-assignments";
 const JARING_COLUMNS_STORAGE_KEY = "dens-cakra-field-officer-jaring-columns-v2";
+const BAKET_ROUTE = "/dashboard/baket";
 const EMPTY_BAKET_FILTERS = {
   categoryId: "",
   from: "",
@@ -136,7 +136,7 @@ const JARING_COLUMN_OPTIONS: Array<{ key: JaringColumnKey; label: string }> = [
   { key: "address", label: "Alamat" },
   { key: "occupation", label: "Pekerjaan" },
   { key: "status", label: "Status" },
-  { key: "kinerja", label: "Kinerja" },
+  { key: "kinerja", label: DOMAIN_TERMS.jaringActivity90Days },
 ];
 
 type PendingFieldOfficerAction = {
@@ -158,7 +158,7 @@ function formatDateTime(value?: string | null) {
 }
 
 function baketStatusLabel(status?: string | null, sentToPositionTitle?: string | null) {
-  switch ((status || "").toUpperCase()) {
+  switch ((status ?? "").toUpperCase()) {
     case "DRAFT":
       return "Draf";
     case "READY_TO_SEND":
@@ -174,7 +174,7 @@ function baketStatusLabel(status?: string | null, sentToPositionTitle?: string |
     case "REJECTED":
       return "Ditolak";
     default:
-      return status || "-";
+      return status ?? "-";
   }
 }
 
@@ -183,7 +183,7 @@ function baketUrgencyLabel(urgency?: string | null) {
 }
 
 function urgencyTone(urgency?: string | null) {
-  switch ((urgency || "").toUpperCase()) {
+  switch ((urgency ?? "").toUpperCase()) {
     case "LOW":
       return "border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400";
     case "NORMAL":
@@ -244,18 +244,31 @@ function statusTone(status: string) {
 }
 
 function validationLabel(status: string) {
-  return status === "NOT_CHECKED" ? "MENUNGGU VALIDASI" : status;
+  if (status === "NOT_CHECKED") return "BELUM DIPERIKSA";
+  if (status === "VALID") return "FORMAT SESUAI";
+  if (status === "INVALID") return "PERLU PERBAIKAN";
+  return status;
 }
 
 function jaringRegistrationStatusLabel(status: FieldOfficerJaring["registrationStatus"]) {
   switch (status) {
     case "PENDING":
-      return "BELUM TERVERIFIKASI";
+      return "MENUNGGU TINJAUAN";
     case "APPROVED":
-      return "TERVERIFIKASI";
+      return "DISETUJUI";
     case "REJECTED":
       return "DITOLAK";
   }
+}
+
+function formatPercent(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value);
+}
+
+function percentOf(value: number, total: number) {
+  return total <= 0 ? 0 : Math.round((value / total) * 1000) / 10;
 }
 
 function isFieldOfficerJaringActive(item: FieldOfficerJaring): boolean {
@@ -275,7 +288,7 @@ function nextTaskAction(status: string) {
   }
 
   if (value === "READ") {
-    return { label: "Acknowledge", nextStatus: "ACKNOWLEDGED" as const };
+    return { label: "Konfirmasi", nextStatus: "ACKNOWLEDGED" as const };
   }
 
   if (value === "ACKNOWLEDGED") {
@@ -453,7 +466,14 @@ export function FieldOfficerOperationsPage({
   const filteredJaring = serverJaring;
   const safeJaringPage = Math.min(jaringPage, Math.max(1, Math.ceil(jaringTotal / jaringLimit)));
   const paginatedJaring = serverJaring;
+  const jaringAreaSubtitle = useMemo(() => {
+    const villageName = jaringVillageOptions.find((area) => area.areaId === jaringVillageFilter)?.name;
+    return jaringVillageFilter !== "all" && villageName
+      ? `Jumlah Jaring Kelurahan/Desa ${villageName}`
+      : "Jumlah Jaring semua Kelurahan/Desa penugasan";
+  }, [jaringVillageFilter, jaringVillageOptions]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: halaman harus kembali ke halaman pertama saat filter Jaring berubah.
   useEffect(() => {
     setJaringPage(1);
   }, [jaringSearch, jaringOccupationFilter, jaringVillageFilter, jaringStatusFilter, jaringActiveFilter]);
@@ -497,6 +517,7 @@ export function FieldOfficerOperationsPage({
     taskDeadlineSortOrder,
   ]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: halaman tugas harus direset setelah hasil filter berubah.
   useEffect(() => {
     setTasksPage(1);
   }, [filteredTasks]);
@@ -514,6 +535,7 @@ export function FieldOfficerOperationsPage({
     return workspace.incoming.slice((safeIncomingPage - 1) * incomingLimit, safeIncomingPage * incomingLimit);
   }, [workspace?.incoming, safeIncomingPage, incomingLimit]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: halaman laporan masuk harus direset saat data masuk diperbarui.
   useEffect(() => {
     setIncomingPage(1);
   }, [workspace?.incoming]);
@@ -579,7 +601,7 @@ export function FieldOfficerOperationsPage({
           | { message?: string };
 
         if (!response.ok) {
-          throw new Error("message" in body ? body.message : "Gagal memuat workspace field officer.");
+          throw new Error("message" in body ? body.message : "Gagal memuat ruang kerja Petugas Wilayah (Gaswil).");
         }
 
         setWorkspace((body as { view: FieldOfficerView; data: FieldOfficerWorkspace }).data);
@@ -589,7 +611,7 @@ export function FieldOfficerOperationsPage({
         if (loadError instanceof DOMException && loadError.name === "AbortError") {
           return true;
         }
-        setError(loadError instanceof Error ? loadError.message : "Gagal memuat workspace field officer.");
+        setError(loadError instanceof Error ? loadError.message : "Gagal memuat ruang kerja Petugas Wilayah (Gaswil).");
         return false;
       } finally {
         if (workspaceAbortController.current === controller) {
@@ -641,7 +663,7 @@ export function FieldOfficerOperationsPage({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       workspaceAbortController.current?.abort();
     };
-  }, [appliedBaketFilters, loadWorkspace]);
+  }, [appliedBaketFilters, loadWorkspace, view]);
 
   const metrics = useMemo(() => {
     if (!workspace) {
@@ -663,11 +685,12 @@ export function FieldOfficerOperationsPage({
         value: jaringSummary.total,
         filter: "all",
         tone: "blue" as const,
-        icon: <Users className="size-5" />,
+        icon: <DOMAIN_VISUALS.jaring.Icon className="size-5" />,
       },
       {
         label: "Terverifikasi",
         value: jaringSummary.approved,
+        percentageLabel: `${formatPercent(percentOf(jaringSummary.approved, jaringSummary.total))}% dari total Jaring`,
         filter: "APPROVED",
         tone: "green" as const,
         icon: <CheckCircle2 className="size-5" />,
@@ -675,6 +698,7 @@ export function FieldOfficerOperationsPage({
       {
         label: "Belum Terverifikasi",
         value: jaringSummary.pending,
+        percentageLabel: `${formatPercent(percentOf(jaringSummary.pending, jaringSummary.total))}% dari total Jaring`,
         filter: "PENDING",
         tone: "amber" as const,
         icon: <Clock className="size-5" />,
@@ -682,6 +706,7 @@ export function FieldOfficerOperationsPage({
       {
         label: "Ditolak",
         value: jaringSummary.rejected,
+        percentageLabel: `${formatPercent(percentOf(jaringSummary.rejected, jaringSummary.total))}% dari total Jaring`,
         filter: "REJECTED",
         tone: "red" as const,
         icon: <XCircle className="size-5" />,
@@ -783,7 +808,7 @@ export function FieldOfficerOperationsPage({
       } | null;
 
       if (!response.ok) {
-        throw new Error(body?.message || "Gagal meneruskan instruksi ke Jaring.");
+        throw new Error(body?.message ?? "Gagal meneruskan instruksi ke Jaring.");
       }
 
       setForwardedAssignment(assignmentId, true);
@@ -804,7 +829,7 @@ export function FieldOfficerOperationsPage({
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal memperbarui tugas.");
+        throw new Error(body.message ?? "Gagal memperbarui tugas.");
       }
     });
   };
@@ -820,14 +845,14 @@ export function FieldOfficerOperationsPage({
         | null;
 
       if (!response.ok) {
-        throw new Error((body && "message" in body ? body.message : null) || "Gagal memvalidasi laporan.");
+        throw new Error((body && "message" in body ? body.message : null) ?? "Gagal memeriksa laporan.");
       }
 
       const result = body && "validationSummary" in body ? body.validationSummary : null;
       setActionNotice(
         result === "VALID"
-          ? "Validasi berhasil. Laporan sudah lengkap dan langsung masuk ke antrian Siap Dikirim."
-          : "Validasi selesai. Cek badge dan kelengkapan laporan sebelum dimasukkan ke antrian Siap Dikirim.",
+          ? "Pemeriksaan selesai. Laporan langsung masuk ke antrian Siap Dikirim."
+          : "Pemeriksaan selesai. Cek badge dan catatan laporan sebelum dimasukkan ke antrian Siap Dikirim.",
       );
     });
   };
@@ -851,7 +876,7 @@ export function FieldOfficerOperationsPage({
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal membuat baket.");
+        throw new Error(body.message ?? "Gagal membuat baket.");
       }
 
       setBaketTab("ready-to-send");
@@ -867,7 +892,7 @@ export function FieldOfficerOperationsPage({
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal menghapus laporan.");
+        throw new Error(body.message ?? "Gagal menghapus laporan.");
       }
     });
   };
@@ -880,7 +905,7 @@ export function FieldOfficerOperationsPage({
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal mengirim baket.");
+        throw new Error(body.message ?? "Gagal mengirim baket.");
       }
 
       setActionNotice("Baket berhasil dikirim ke OIM dan sudah masuk ke antrean Laporan Masuk.");
@@ -895,13 +920,13 @@ export function FieldOfficerOperationsPage({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           action,
-          reason: `Status diubah dari workspace field officer ke mode ${action}.`,
+          reason: `Status diubah dari ruang kerja Petugas Wilayah (Gaswil) ke mode ${action}.`,
         }),
       });
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal mengubah status jaring.");
+        throw new Error(body.message ?? "Gagal mengubah status jaring.");
       }
     });
   };
@@ -938,7 +963,7 @@ export function FieldOfficerOperationsPage({
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal mengirim lokasi.");
+        throw new Error(body.message ?? "Gagal mengirim lokasi.");
       }
     });
   };
@@ -960,7 +985,7 @@ export function FieldOfficerOperationsPage({
         latitude: item.latitude as number,
         longitude: item.longitude as number,
         title: item.displayTitle || item.jaringAlias,
-        subtitle: `${item.jaringCode} • ${item.status}`,
+        subtitle: `${item.jaringCode} - ${item.status}`,
       }));
 
     const ownPoint = workspace.latestLocation
@@ -1011,8 +1036,8 @@ export function FieldOfficerOperationsPage({
     return (
       <Alert className="border-[var(--dc-danger)]/30 bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]">
         <AlertTriangle className="size-4" />
-        <AlertTitle>Workspace tidak tersedia</AlertTitle>
-        <AlertDescription>{error || "Data field officer belum dapat dibaca."}</AlertDescription>
+        <AlertTitle>Ruang kerja tidak tersedia</AlertTitle>
+        <AlertDescription>{error || "Data Petugas Wilayah (Gaswil) belum dapat dibaca."}</AlertDescription>
       </Alert>
     );
   }
@@ -1123,15 +1148,16 @@ export function FieldOfficerOperationsPage({
             className="w-fit h-9 gap-2 text-xs"
           >
             <RefreshCw className={cn("size-4 text-sky-600 dark:text-[#38BDF8]", isLoading && "animate-spin")} />
-            Refresh Data
+            Muat Ulang
           </Button>
 
           <button
+            type="button"
             disabled={isBusy === "location:publish"}
             onClick={() =>
               requestConfirmation({
-                title: "KONFIRMASI SYNC GPS",
-                description: "Kirim posisi GPS terbaru Anda ke workspace lapangan sekarang?",
+                title: "KONFIRMASI SINKRONISASI GPS",
+                description: "Kirim posisi GPS terbaru Anda ke ruang kerja lapangan sekarang?",
                 confirmLabel: "YA, KIRIM",
                 onConfirm: () => {
                   void publishOwnLocation();
@@ -1140,7 +1166,7 @@ export function FieldOfficerOperationsPage({
             }
             className="h-9 shrink-0 cursor-pointer rounded-md border border-slate-300 dark:border-white/10 bg-background px-3 font-mono font-semibold text-foreground text-xs uppercase tracking-wider transition-all duration-150 hover:bg-accent hover:text-accent-foreground active:scale-[0.98] disabled:opacity-50"
           >
-            SYNC GPS
+            SINKRONKAN GPS
           </button>
         </div>
       </div>
@@ -1152,6 +1178,7 @@ export function FieldOfficerOperationsPage({
             key={card.filter}
             icon={card.icon}
             label={card.label}
+            percentageLabel={card.percentageLabel}
             value={card.value}
             tone={card.tone}
             active={jaringStatusFilter === card.filter}
@@ -1185,7 +1212,7 @@ export function FieldOfficerOperationsPage({
             code="MOD-01"
             title="TUGAS SAYA"
             metadata={[
-              { label: "TOTAL TUGAS", value: workspace.tasks.length },
+              { label: "JUMLAH TUGAS", value: workspace.tasks.length },
               { label: "AKTIF", value: metrics.activeTasks },
             ]}
           >
@@ -1193,10 +1220,14 @@ export function FieldOfficerOperationsPage({
               {/* Task filters */}
               <div className="grid items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 dark:border-white/5 dark:bg-white/[0.02]">
                 <div className="space-y-1.5">
-                  <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
+                  <label
+                    htmlFor="task-classification-filter"
+                    className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]"
+                  >
                     Klasifikasi
                   </label>
                   <select
+                    id="task-classification-filter"
                     value={taskClassificationFilter}
                     onChange={(e) => setTaskClassificationFilter(e.target.value)}
                     className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-slate-900 text-sm dark:border-white/10 dark:bg-[#131A26] dark:text-white"
@@ -1210,10 +1241,14 @@ export function FieldOfficerOperationsPage({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
+                  <label
+                    htmlFor="task-priority-filter"
+                    className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]"
+                  >
                     Prioritas
                   </label>
                   <select
+                    id="task-priority-filter"
                     value={taskPriorityFilter}
                     onChange={(e) => setTaskPriorityFilter(e.target.value)}
                     className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-slate-900 text-sm dark:border-white/10 dark:bg-[#131A26] dark:text-white"
@@ -1227,10 +1262,14 @@ export function FieldOfficerOperationsPage({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
+                  <label
+                    htmlFor="task-period-start"
+                    className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]"
+                  >
                     Periode Mulai
                   </label>
                   <Input
+                    id="task-period-start"
                     type="date"
                     value={taskPeriodStart}
                     onChange={(e) => setTaskPeriodStart(e.target.value)}
@@ -1239,10 +1278,14 @@ export function FieldOfficerOperationsPage({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]">
+                  <label
+                    htmlFor="task-period-end"
+                    className="font-bold font-mono text-[11px] text-slate-500 uppercase tracking-wider dark:text-[#7C8798]"
+                  >
                     Periode Selesai
                   </label>
                   <Input
+                    id="task-period-end"
                     type="date"
                     value={taskPeriodEnd}
                     onChange={(e) => setTaskPeriodEnd(e.target.value)}
@@ -1453,12 +1496,13 @@ export function FieldOfficerOperationsPage({
                   <TacticalEmptyState
                     title="Tidak ada Daftar Jaring"
                     description="Tekan tombol Tambah Jaring untuk mendaftarkan Jaring operasional baru."
-                    icon={Users}
+                    icon={DOMAIN_VISUALS.jaring.Icon}
                   />
                 ) : (
                   <>
                     {/* Filters bar */}
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-secondary/10 dark:bg-slate-900/20 p-3 rounded-lg border border-[var(--tactical-border)]">
+                      <p className="basis-full text-xs font-semibold text-foreground">{jaringAreaSubtitle}</p>
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="relative w-48">
                           <Input
@@ -1488,13 +1532,13 @@ export function FieldOfficerOperationsPage({
                         </div>
 
                         <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--tactical-text-secondary)]">
-                          <span>Kelurahan:</span>
+                          <span>Kelurahan/Desa:</span>
                           <Select value={jaringVillageFilter} onValueChange={setJaringVillageFilter}>
                             <SelectTrigger className="w-[150px] h-8 border-[var(--tactical-border)] bg-background dark:bg-slate-900/40 text-xs">
-                              <SelectValue placeholder="Pilih Kelurahan" />
+                              <SelectValue placeholder="Pilih Kelurahan/Desa" />
                             </SelectTrigger>
                             <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
-                              <SelectItem value="all">Semua Kelurahan</SelectItem>
+                              <SelectItem value="all">Semua Kelurahan/Desa</SelectItem>
                               {jaringVillageOptions.map((area) => (
                                 <SelectItem key={area.areaId} value={area.areaId}>
                                   {area.name}
@@ -1520,15 +1564,15 @@ export function FieldOfficerOperationsPage({
                         </div>
 
                         <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--tactical-text-secondary)]">
-                          <span>Kinerja:</span>
+                          <span>{DOMAIN_TERMS.jaringActivity90Days}:</span>
                           <Select value={jaringActiveFilter} onValueChange={setJaringActiveFilter}>
                             <SelectTrigger className="w-[180px] h-8 border-[var(--tactical-border)] bg-background dark:bg-slate-900/40 text-xs">
-                              <SelectValue placeholder="Pilih Kinerja" />
+                              <SelectValue placeholder="Pilih aktivitas laporan" />
                             </SelectTrigger>
                             <SelectContent className="bg-card border-[var(--tactical-border)] text-foreground">
-                              <SelectItem value="all">Semua Kinerja</SelectItem>
-                              <SelectItem value="active">Aktif</SelectItem>
-                              <SelectItem value="inactive">Tidak Aktif</SelectItem>
+                              <SelectItem value="all">Semua Aktivitas Laporan 90 Hari</SelectItem>
+                              <SelectItem value="active">{DOMAIN_TERMS.jaringActive90Days}</SelectItem>
+                              <SelectItem value="inactive">{DOMAIN_TERMS.jaringInactive90Days}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1583,7 +1627,7 @@ export function FieldOfficerOperationsPage({
                       <TacticalEmptyState
                         title="Tidak ada Jaring ditemukan"
                         description="Tidak ada Daftar Jaring yang memenuhi kriteria filter saat ini."
-                        icon={Users}
+                        icon={DOMAIN_VISUALS.jaring.Icon}
                       />
                     ) : (
                       <div className="overflow-x-auto rounded-[6px] border border-[var(--tactical-border)]">
@@ -1598,7 +1642,9 @@ export function FieldOfficerOperationsPage({
                               {visibleJaringColumns.has("address") && <TableHead>Alamat</TableHead>}
                               {visibleJaringColumns.has("occupation") && <TableHead>Pekerjaan</TableHead>}
                               {visibleJaringColumns.has("status") && <TableHead>Status</TableHead>}
-                              {visibleJaringColumns.has("kinerja") && <TableHead>Kinerja</TableHead>}
+                              {visibleJaringColumns.has("kinerja") && (
+                                <TableHead>{DOMAIN_TERMS.jaringActivity90Days}</TableHead>
+                              )}
                               <TableHead className="text-right">Aksi</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1611,9 +1657,7 @@ export function FieldOfficerOperationsPage({
                                       <Avatar className="size-9 shrink-0 border border-[var(--tactical-border)]">
                                         {jaring.profilePhotoUrl || jaring.profilePhotoFileId ? (
                                           <AvatarImage
-                                            src={
-                                              jaring.profilePhotoUrl || `/api/files/${jaring.profilePhotoFileId}`
-                                            }
+                                            src={jaring.profilePhotoUrl || `/api/files/${jaring.profilePhotoFileId}`}
                                             alt={`Foto Jaring ${jaring.fullName || jaring.aliasName}`}
                                           />
                                         ) : null}
@@ -1680,7 +1724,9 @@ export function FieldOfficerOperationsPage({
                                     <span
                                       className={`tactical-badge rounded px-2 py-0.5 text-[10px] ${isFieldOfficerJaringActive(jaring) ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30" : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/30"}`}
                                     >
-                                      {isFieldOfficerJaringActive(jaring) ? "AKTIF" : "TIDAK AKTIF"}
+                                      {isFieldOfficerJaringActive(jaring)
+                                        ? DOMAIN_TERMS.jaringActive90Days
+                                        : DOMAIN_TERMS.jaringInactive90Days}
                                     </span>
                                   </TableCell>
                                 )}
@@ -1701,6 +1747,7 @@ export function FieldOfficerOperationsPage({
                                       {jaring.registrationStatus === "REJECTED" ? "Revisi Data" : "Edit"}
                                     </Link>
                                     <button
+                                      type="button"
                                       disabled={isBusy === `jaring:${jaring.id}:delete`}
                                       onClick={() =>
                                         requestConfirmation({
@@ -1752,17 +1799,17 @@ export function FieldOfficerOperationsPage({
           <TacticalSection
             code="MOD-03"
             title="INFORMASI JARING"
-            description="Validasi judul, isi, bukti foto, koordinat GPS, waktu kejadian, Jaring, dan sumber laporan intelijen."
+            description="Pemeriksaan judul, isi, bukti foto, koordinat GPS, waktu kejadian, Jaring, dan sumber laporan intelijen."
             metadata={[
-              { label: "PENDING VALIDASI", value: metrics.pendingIncoming },
-              { label: "SOURCE NODE", value: workspace.incoming.length },
+              { label: "BELUM DIPERIKSA", value: metrics.pendingIncoming },
+              { label: "JUMLAH SUMBER", value: workspace.incoming.length },
             ]}
           >
             {workspace.incoming.length === 0 ? (
               <TacticalEmptyState
                 title="Tidak ada laporan masuk"
-                description="Semua pesan masuk dari Jaring telah divalidasi dan diarsipkan."
-                icon={Inbox}
+                description="Semua pesan masuk dari Jaring telah diperiksa dan diarsipkan."
+                icon={DOMAIN_VISUALS.jaringReport.Icon}
               />
             ) : (
               <>
@@ -1778,7 +1825,7 @@ export function FieldOfficerOperationsPage({
                             Identitas Jaring
                           </TableHead>
                           <TableHead className="w-[12%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
-                            Validasi
+                            Pemeriksaan
                           </TableHead>
                           <TableHead className="w-[16%] font-mono font-bold text-[10px] text-[var(--tactical-text-muted)] uppercase tracking-wider">
                             Waktu
@@ -1798,119 +1845,123 @@ export function FieldOfficerOperationsPage({
                         {paginatedIncoming.map((message) => {
                           const jaring = workspace.jaring.find((item) => item.id === message.jaringId);
                           return (
-                          <TableRow key={message.id} className="border-[var(--tactical-border)]">
-                            <TableCell className="min-w-0 py-4 pl-4">
-                              <Link
-                                href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}
-                                className="block truncate font-semibold text-[var(--tactical-text-primary)] hover:text-[var(--tactical-blue)] hover:underline"
-                              >
-                                {message.displayTitle || message.jaringAlias}
-                              </Link>
-                              <p className="mt-1 line-clamp-2 text-[var(--tactical-text-secondary)] text-xs">
-                                {message.content || "Pesan belum memiliki isi teks."}
-                              </p>
-                              {message.referenceNumber ? (
-                                <p className="mt-1 font-mono text-[10px] text-[var(--tactical-blue)]">
-                                  {message.referenceNumber}
+                            <TableRow key={message.id} className="border-[var(--tactical-border)]">
+                              <TableCell className="min-w-0 py-4 pl-4">
+                                <Link
+                                  href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}
+                                  className="block truncate font-semibold text-[var(--tactical-text-primary)] hover:text-[var(--tactical-blue)] hover:underline"
+                                >
+                                  {message.displayTitle || message.jaringAlias}
+                                </Link>
+                                <p className="mt-1 line-clamp-2 text-[var(--tactical-text-secondary)] text-xs">
+                                  {message.content || "Pesan belum memiliki isi teks."}
                                 </p>
-                              ) : null}
-                            </TableCell>
-                            <TableCell className="min-w-[280px] py-4">
-                              <JaringIdentitySummary
-                                compact
-                                source={{
-                                  id: message.jaringId,
-                                  fullName: jaring?.fullName,
-                                  jaringAlias: message.jaringAlias,
-                                  jaringCode: message.jaringCode,
-                                  whatsappNumber: jaring?.whatsappNumber ?? message.senderPhone,
-                                  profilePhotoUrl: jaring?.profilePhotoUrl,
-                                  profilePhotoFileId: jaring?.profilePhotoFileId,
-                                  gaswilName: workspace.profile.name,
-                                  gaswilHref: "/dashboard/profil",
-                                  villageName: jaring?.areaNames.join(", ") || message.areaName,
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <span
-                                className={`tactical-badge inline-block max-w-full truncate rounded px-2 py-0.5 text-[11px] ${statusTone(message.status)}`}
-                              >
-                                {validationLabel(message.validationSummary)}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-4 font-mono text-[11px] text-[var(--tactical-text-muted)]">
-                              <span className="block">Terima: {formatDateTime(message.receivedAt)}</span>
-                              <span className="block">Kejadian: {formatDateTime(message.reportedAt)}</span>
-                            </TableCell>
-                            <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
-                              <span className="block truncate">{message.areaName || "-"}</span>
-                              {message.latitude !== null && message.longitude !== null ? (
-                                <a
-                                  href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
-                                  rel="noreferrer"
-                                  target="_blank"
-                                  className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--tactical-blue)] hover:underline"
+                                {message.referenceNumber ? (
+                                  <p className="mt-1 font-mono text-[10px] text-[var(--tactical-blue)]">
+                                    {message.referenceNumber}
+                                  </p>
+                                ) : null}
+                              </TableCell>
+                              <TableCell className="min-w-[280px] py-4">
+                                <JaringIdentitySummary
+                                  compact
+                                  source={{
+                                    id: message.jaringId,
+                                    fullName: jaring?.fullName,
+                                    jaringAlias: message.jaringAlias,
+                                    jaringCode: message.jaringCode,
+                                    whatsappNumber: jaring?.whatsappNumber ?? message.senderPhone,
+                                    profilePhotoUrl: jaring?.profilePhotoUrl,
+                                    profilePhotoFileId: jaring?.profilePhotoFileId,
+                                    gaswilName: workspace.profile.name,
+                                    gaswilHref: "/dashboard/profil",
+                                    villageName: jaring?.areaNames.join(", ") || message.areaName,
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell className="py-4">
+                                <span
+                                  className={`tactical-badge inline-block max-w-full truncate rounded px-2 py-0.5 text-[11px] ${statusTone(message.status)}`}
                                 >
-                                  <MapPin className="size-3" />
-                                  GPS
-                                </a>
-                              ) : null}
-                            </TableCell>
-                            <TableCell className="py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
-                              {message.hasPhoto ? (
-                                <span className="inline-flex items-center gap-1 text-[var(--tactical-green)]">
-                                  <CheckCircle2 className="size-3.5" />
-                                  {message.mediaCount} File
+                                  {validationLabel(message.validationSummary)}
                                 </span>
-                              ) : (
-                                "-"
-                              )}
-                            </TableCell>
-                            <TableCell className="py-4 pr-4">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  asChild
-                                  variant="ghost"
-                                  className="h-8 rounded-[4px] border border-[#475569] px-2 font-mono text-[10px] sm:px-3"
-                                >
-                                  <Link href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}>Detail</Link>
-                                </Button>
-                                <button
-                                  disabled={isBusy === `validate:${message.id}`}
-                                  onClick={() =>
-                                    requestConfirmation({
-                                      title: "KONFIRMASI VALIDASI",
-                                      description: "Jalankan validasi ulang untuk laporan masuk ini sekarang?",
-                                      confirmLabel: "YA, VALIDASI",
-                                      onConfirm: () => {
-                                        void validateIncoming(message.id);
-                                      },
-                                    })
-                                  }
-                                  className="h-8 cursor-pointer rounded-[4px] bg-[#16A34A] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#15803D] disabled:opacity-50 sm:px-3"
-                                >
-                                  Validasi
-                                </button>
-                                <button
-                                  disabled={isBusy === `delete:${message.id}`}
-                                  onClick={() =>
-                                    requestConfirmation({
-                                      title: "KONFIRMASI TOLAK LAPORAN",
-                                      description: "Tolak dan keluarkan laporan ini dari antrean informasi Jaring?",
-                                      confirmLabel: "YA, TOLAK",
-                                      onConfirm: () => {
-                                        void deleteIncoming(message.id);
-                                      },
-                                    })
-                                  }
-                                  className="h-8 cursor-pointer rounded-[4px] bg-[#991B1B] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#DC2626] disabled:opacity-50 sm:px-3"
-                                >
-                                  Tolak
-                                </button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
+                              </TableCell>
+                              <TableCell className="py-4 font-mono text-[11px] text-[var(--tactical-text-muted)]">
+                                <span className="block">Terima: {formatDateTime(message.receivedAt)}</span>
+                                <span className="block">Kejadian: {formatDateTime(message.reportedAt)}</span>
+                              </TableCell>
+                              <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                                <span className="block truncate">{message.areaName || "-"}</span>
+                                {message.latitude !== null && message.longitude !== null ? (
+                                  <a
+                                    href={`https://www.google.com/maps?q=${message.latitude},${message.longitude}`}
+                                    rel="noreferrer"
+                                    target="_blank"
+                                    className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--tactical-blue)] hover:underline"
+                                  >
+                                    <MapPin className="size-3" />
+                                    GPS
+                                  </a>
+                                ) : null}
+                              </TableCell>
+                              <TableCell className="py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                                {message.hasPhoto ? (
+                                  <span className="inline-flex items-center gap-1 text-[var(--tactical-green)]">
+                                    <CheckCircle2 className="size-3.5" />
+                                    {message.mediaCount} File
+                                  </span>
+                                ) : (
+                                  "-"
+                                )}
+                              </TableCell>
+                              <TableCell className="py-4 pr-4">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button
+                                    asChild
+                                    variant="ghost"
+                                    className="h-8 rounded-[4px] border border-[#475569] px-2 font-mono text-[10px] sm:px-3"
+                                  >
+                                    <Link href={`/dashboard/field-officer/kotak-masuk-jaring/${message.id}`}>
+                                      Detail
+                                    </Link>
+                                  </Button>
+                                  <button
+                                    type="button"
+                                    disabled={isBusy === `validate:${message.id}`}
+                                    onClick={() =>
+                                      requestConfirmation({
+                                      title: "KONFIRMASI PEMERIKSAAN",
+                                      description: "Jalankan pemeriksaan ulang untuk laporan masuk ini sekarang?",
+                                      confirmLabel: "YA, PERIKSA",
+                                        onConfirm: () => {
+                                          void validateIncoming(message.id);
+                                        },
+                                      })
+                                    }
+                                    className="h-8 cursor-pointer rounded-[4px] bg-[#16A34A] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#15803D] disabled:opacity-50 sm:px-3"
+                                  >
+                                  Periksa
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isBusy === `delete:${message.id}`}
+                                    onClick={() =>
+                                      requestConfirmation({
+                                        title: "KONFIRMASI TOLAK LAPORAN",
+                                        description: "Tolak dan keluarkan laporan ini dari antrean informasi Jaring?",
+                                        confirmLabel: "YA, TOLAK",
+                                        onConfirm: () => {
+                                          void deleteIncoming(message.id);
+                                        },
+                                      })
+                                    }
+                                    className="h-8 cursor-pointer rounded-[4px] bg-[#991B1B] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#DC2626] disabled:opacity-50 sm:px-3"
+                                  >
+                                    Tolak
+                                  </button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
                           );
                         })}
                       </TableBody>
@@ -2117,66 +2168,65 @@ export function FieldOfficerOperationsPage({
                                   </TableHeader>
                                   <TableBody>
                                     {paginatedReadyToSendBakets.map((baket) => {
-                                      const jaring = workspace.jaring.find(
-                                        (item) => item.id === baket.primaryJaringId,
-                                      );
+                                      const jaring = workspace.jaring.find((item) => item.id === baket.primaryJaringId);
                                       return (
-                                      <TableRow key={baket.id} className="border-[var(--tactical-border)]">
-                                        <TableCell className="min-w-0 py-4 pl-4">
-                                          <div className="space-y-1">
-                                            <p className="truncate font-semibold text-[var(--tactical-text-primary)]">
-                                              {baket.currentVersionDisplayTitle || "Tanpa judul versi aktif"}
-                                            </p>
-                                            <JaringIdentitySummary
-                                              compact
-                                              source={{
-                                                id: baket.primaryJaringId,
-                                                fullName: jaring?.fullName,
-                                                jaringAlias: baket.primaryJaringAlias,
-                                                jaringCode: baket.primaryJaringCode,
-                                                whatsappNumber: jaring?.whatsappNumber,
-                                                profilePhotoUrl: jaring?.profilePhotoUrl,
-                                                profilePhotoFileId: jaring?.profilePhotoFileId,
-                                                gaswilName: workspace.profile.name,
-                                                gaswilHref: "/dashboard/profil",
-                                                villageName: jaring?.areaNames.join(", "),
-                                              }}
-                                            />
-                                          </div>
-                                        </TableCell>
-                                        <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
-                                          <span className="block truncate">{baket.categoryName || "LEGACY"}</span>
-                                        </TableCell>
-                                        <TableCell className="py-4">
-                                          <span
-                                            className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
-                                          >
-                                            {baketUrgencyLabel(baket.urgency)}
-                                          </span>
-                                        </TableCell>
-                                        <TableCell className="truncate whitespace-nowrap py-4 font-mono text-xs text-[var(--tactical-text-muted)]">
-                                          {formatDateTime(baket.createdAt)}
-                                        </TableCell>
-                                        <TableCell className="py-4 pr-4 text-right">
-                                          <button
-                                            disabled={isBusy === `submit:${baket.id}`}
-                                            onClick={() =>
-                                              requestConfirmation({
-                                                title: "KONFIRMASI KIRIM KE OIM",
-                                                description:
-                                                  "Apakah Anda yakin ingin mengirim laporan Baket ini ke OIM?",
-                                                confirmLabel: "YA, KIRIM",
-                                                onConfirm: () => {
-                                                  void submitBaket(baket.id);
-                                                },
-                                              })
-                                            }
-                                            className="h-8 cursor-pointer rounded-[4px] bg-[#16A34A] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#15803D] disabled:opacity-50 sm:px-3"
-                                          >
-                                            Kirim
-                                          </button>
-                                        </TableCell>
-                                      </TableRow>
+                                        <TableRow key={baket.id} className="border-[var(--tactical-border)]">
+                                          <TableCell className="min-w-0 py-4 pl-4">
+                                            <div className="space-y-1">
+                                              <p className="truncate font-semibold text-[var(--tactical-text-primary)]">
+                                                {baket.currentVersionDisplayTitle || "Tanpa judul versi aktif"}
+                                              </p>
+                                              <JaringIdentitySummary
+                                                compact
+                                                source={{
+                                                  id: baket.primaryJaringId,
+                                                  fullName: jaring?.fullName,
+                                                  jaringAlias: baket.primaryJaringAlias,
+                                                  jaringCode: baket.primaryJaringCode,
+                                                  whatsappNumber: jaring?.whatsappNumber,
+                                                  profilePhotoUrl: jaring?.profilePhotoUrl,
+                                                  profilePhotoFileId: jaring?.profilePhotoFileId,
+                                                  gaswilName: workspace.profile.name,
+                                                  gaswilHref: "/dashboard/profil",
+                                                  villageName: jaring?.areaNames.join(", "),
+                                                }}
+                                              />
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="min-w-0 py-4 font-mono text-xs text-[var(--tactical-text-secondary)]">
+                                            <span className="block truncate">{baket.categoryName || "LEGACY"}</span>
+                                          </TableCell>
+                                          <TableCell className="py-4">
+                                            <span
+                                              className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
+                                            >
+                                              {baketUrgencyLabel(baket.urgency)}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell className="truncate whitespace-nowrap py-4 font-mono text-xs text-[var(--tactical-text-muted)]">
+                                            {formatDateTime(baket.createdAt)}
+                                          </TableCell>
+                                          <TableCell className="py-4 pr-4 text-right">
+                                            <button
+                                              type="button"
+                                              disabled={isBusy === `submit:${baket.id}`}
+                                              onClick={() =>
+                                                requestConfirmation({
+                                                  title: "KONFIRMASI KIRIM KE OIM",
+                                                  description:
+                                                    "Apakah Anda yakin ingin mengirim laporan Baket ini ke OIM?",
+                                                  confirmLabel: "YA, KIRIM",
+                                                  onConfirm: () => {
+                                                    void submitBaket(baket.id);
+                                                  },
+                                                })
+                                              }
+                                              className="h-8 cursor-pointer rounded-[4px] bg-[#16A34A] px-2 font-mono font-semibold text-white text-[10px] uppercase transition hover:bg-[#15803D] disabled:opacity-50 sm:px-3"
+                                            >
+                                              Kirim
+                                            </button>
+                                          </TableCell>
+                                        </TableRow>
                                       );
                                     })}
                                   </TableBody>
@@ -2187,69 +2237,70 @@ export function FieldOfficerOperationsPage({
                             paginatedReadyToSendBakets.map((baket) => {
                               const jaring = workspace.jaring.find((item) => item.id === baket.primaryJaringId);
                               return (
-                              <div key={baket.id} className="tactical-card space-y-3">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <div className="flex-1 space-y-1.5">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span
-                                        className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(baket.status)}`}
-                                      >
-                                        SIAP DIKIRIM
-                                      </span>
-                                      <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
-                                        KATEGORI: {baket.categoryName || "LEGACY"}
-                                      </span>
-                                      <span
-                                        className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
-                                      >
-                                        URGENSI: {baketUrgencyLabel(baket.urgency)}
-                                      </span>
+                                <div key={baket.id} className="tactical-card space-y-3">
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div className="flex-1 space-y-1.5">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span
+                                          className={`tactical-badge rounded px-2 py-0.5 text-[11px] ${statusTone(baket.status)}`}
+                                        >
+                                          SIAP DIKIRIM
+                                        </span>
+                                        <span className="tactical-badge rounded border border-[var(--tactical-border)] px-2 py-0.5 font-mono text-[11px] text-[var(--tactical-text-secondary)]">
+                                          KATEGORI: {baket.categoryName || "LEGACY"}
+                                        </span>
+                                        <span
+                                          className={`tactical-badge rounded px-2 py-0.5 font-mono text-[11px] ${urgencyTone(baket.urgency)}`}
+                                        >
+                                          URGENSI: {baketUrgencyLabel(baket.urgency)}
+                                        </span>
+                                      </div>
+                                      <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
+                                        {baket.currentVersionDisplayTitle || "Tanpa judul versi aktif"}
+                                      </h3>
+                                      <JaringIdentitySummary
+                                        compact
+                                        source={{
+                                          id: baket.primaryJaringId,
+                                          fullName: jaring?.fullName,
+                                          jaringAlias: baket.primaryJaringAlias,
+                                          jaringCode: baket.primaryJaringCode,
+                                          whatsappNumber: jaring?.whatsappNumber,
+                                          profilePhotoUrl: jaring?.profilePhotoUrl,
+                                          profilePhotoFileId: jaring?.profilePhotoFileId,
+                                          gaswilName: workspace.profile.name,
+                                          gaswilHref: "/dashboard/profil",
+                                          villageName: jaring?.areaNames.join(", "),
+                                        }}
+                                      />
+                                      <p className="rounded border border-[var(--tactical-border)] bg-black/5 p-2.5 text-[var(--tactical-text-secondary)] text-sm italic leading-relaxed dark:bg-white/[0.01]">
+                                        {baket.summary || "Catatan Petugas Wilayah (Gaswil) belum ditambahkan."}
+                                      </p>
                                     </div>
-                                    <h3 className="font-semibold text-[var(--tactical-text-primary)] text-lg">
-                                      {baket.currentVersionDisplayTitle || "Tanpa judul versi aktif"}
-                                    </h3>
-                                    <JaringIdentitySummary
-                                      compact
-                                      source={{
-                                        id: baket.primaryJaringId,
-                                        fullName: jaring?.fullName,
-                                        jaringAlias: baket.primaryJaringAlias,
-                                        jaringCode: baket.primaryJaringCode,
-                                        whatsappNumber: jaring?.whatsappNumber,
-                                        profilePhotoUrl: jaring?.profilePhotoUrl,
-                                        profilePhotoFileId: jaring?.profilePhotoFileId,
-                                        gaswilName: workspace.profile.name,
-                                        gaswilHref: "/dashboard/profil",
-                                        villageName: jaring?.areaNames.join(", "),
-                                      }}
-                                    />
-                                    <p className="rounded border border-[var(--tactical-border)] bg-black/5 p-2.5 text-[var(--tactical-text-secondary)] text-sm italic leading-relaxed dark:bg-white/[0.01]">
-                                      {baket.summary || "Catatan Petugas Wilayah (Gaswil) belum ditambahkan."}
-                                    </p>
+                                    <button
+                                      type="button"
+                                      disabled={isBusy === `submit:${baket.id}`}
+                                      onClick={() =>
+                                        requestConfirmation({
+                                          title: "KONFIRMASI KIRIM KE OIM",
+                                          description: "Apakah Anda yakin ingin mengirim laporan Baket ini ke OIM?",
+                                          confirmLabel: "YA, KIRIM",
+                                          onConfirm: () => {
+                                            void submitBaket(baket.id);
+                                          },
+                                        })
+                                      }
+                                      className="h-[40px] cursor-pointer rounded-[4px] bg-[#16A34A] px-[18px] font-mono font-semibold text-white text-xs uppercase shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#15803D] hover:brightness-105 active:scale-[0.98] active:bg-[#166534] disabled:opacity-50"
+                                    >
+                                      KIRIM KE OIM
+                                    </button>
                                   </div>
-                                  <button
-                                    disabled={isBusy === `submit:${baket.id}`}
-                                    onClick={() =>
-                                      requestConfirmation({
-                                        title: "KONFIRMASI KIRIM KE OIM",
-                                        description: "Apakah Anda yakin ingin mengirim laporan Baket ini ke OIM?",
-                                        confirmLabel: "YA, KIRIM",
-                                        onConfirm: () => {
-                                          void submitBaket(baket.id);
-                                        },
-                                      })
-                                    }
-                                    className="h-[40px] cursor-pointer rounded-[4px] bg-[#16A34A] px-[18px] font-mono font-semibold text-white text-xs uppercase shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#15803D] hover:brightness-105 active:scale-[0.98] active:bg-[#166534] disabled:opacity-50"
-                                  >
-                                    KIRIM KE OIM
-                                  </button>
+                                  <div className="flex gap-4 border-[var(--tactical-border)] border-t pt-2.5 font-mono text-[11px] text-[var(--tactical-text-muted)]">
+                                    <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
+                                    <span>&middot;</span>
+                                    <span>CREATED: {formatDateTime(baket.createdAt)}</span>
+                                  </div>
                                 </div>
-                                <div className="flex gap-4 border-[var(--tactical-border)] border-t pt-2.5 font-mono text-[11px] text-[var(--tactical-text-muted)]">
-                                  <span>BAKET ID: {baket.id.slice(0, 8).toUpperCase()}</span>
-                                  <span>&middot;</span>
-                                  <span>CREATED: {formatDateTime(baket.createdAt)}</span>
-                                </div>
-                              </div>
                               );
                             })
                           )}
@@ -2348,7 +2399,7 @@ export function FieldOfficerOperationsPage({
                                     variant="ghost"
                                     className="h-8 rounded-[4px] border border-[#475569] px-2 font-mono text-[10px] sm:px-3"
                                   >
-                                    <Link href="/dashboard/baket">Lihat Baket</Link>
+                                    <Link href={BAKET_ROUTE}>Lihat Baket</Link>
                                   </Button>
                                 </TableCell>
                               </TableRow>
@@ -2389,7 +2440,7 @@ export function FieldOfficerOperationsPage({
                             variant="outline"
                             className="h-10 shrink-0 rounded-[4px] border-[#475569] bg-transparent px-[18px] font-mono font-semibold text-[#CBD5E1] text-xs uppercase hover:-translate-y-px hover:border-[#64748B] hover:bg-[#334155]"
                           >
-                            <Link href="/dashboard/baket">Lihat Baket</Link>
+                            <Link href={BAKET_ROUTE}>Lihat Baket</Link>
                           </Button>
                         </div>
                         <div className="flex gap-4 border-[var(--tactical-border)] border-t pt-2.5 font-mono text-[11px] text-[var(--tactical-text-muted)]">
@@ -2426,15 +2477,15 @@ export function FieldOfficerOperationsPage({
         <>
           <TacticalSection
             code="MOD-05"
-            title="PETA TUGAS & LIVE LOCATION"
+            title="PETA TUGAS & LOKASI LANGSUNG"
             description="Gabungan lokasi laporan Jaring dan ping lokasi terbaru petugas di lapangan."
             metadata={[
-              { label: "ACTIVE MARKER", value: mapPoints.length },
+              { label: "MARKER AKTIF", value: mapPoints.length },
               {
-                label: "GPS ACCURACY",
+                label: "AKURASI GPS",
                 value: workspace.latestLocation?.gpsAccuracyMeters
-                  ? `${workspace.latestLocation.gpsAccuracyMeters}M`
-                  : "N/A",
+                  ? `${workspace.latestLocation.gpsAccuracyMeters} m`
+                  : "-",
               },
             ]}
           >
@@ -2449,23 +2500,23 @@ export function FieldOfficerOperationsPage({
                   <div className="absolute top-3 right-3 z-[1000] w-52 space-y-1.5 rounded-[4px] border border-[var(--tactical-border)] bg-[#ffffff]/90 p-3 font-mono text-[10px] text-[var(--tactical-text-secondary)] shadow-lg backdrop-blur-sm dark:bg-[#131A26]/90">
                     <div className="mb-1.5 flex items-center justify-between border-[var(--tactical-border)] border-b pb-1.5">
                       <span className="font-semibold text-[var(--tactical-text-primary)] uppercase tracking-wider">
-                        TACTICAL MAP OVERLAY
+                        LAPISAN PETA TAKTIS
                       </span>
                       <span className="flex items-center gap-1 rounded bg-[var(--tactical-green)]/15 px-1 font-bold text-[9px] text-[var(--tactical-green)]">
                         <span className="size-1 animate-ping rounded-full bg-[var(--tactical-green)]" />
-                        LIVE
+                        LANGSUNG
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>GPS STATUS:</span>
+                      <span>STATUS GPS:</span>
                       <span className="font-medium text-[var(--tactical-text-primary)]">OPTIMAL</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>MARKER COUNT:</span>
-                      <span className="font-medium text-[var(--tactical-text-primary)]">{mapPoints.length} NODES</span>
+                      <span>JUMLAH MARKER:</span>
+                      <span className="font-medium text-[var(--tactical-text-primary)]">{mapPoints.length} titik</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>COORDINATE:</span>
+                      <span>KOORDINAT:</span>
                       <span
                         className="max-w-[100px] truncate font-medium text-[var(--tactical-text-primary)]"
                         title={`${mapCenter[1].toFixed(5)}, ${mapCenter[0].toFixed(5)}`}
@@ -2474,9 +2525,9 @@ export function FieldOfficerOperationsPage({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>LAST PING:</span>
+                      <span>PING TERAKHIR:</span>
                       <span className="font-medium text-[var(--tactical-text-primary)]">
-                        {workspace.latestLocation ? "ACTIVE" : "N/A"}
+                        {workspace.latestLocation ? "AKTIF" : "-"}
                       </span>
                     </div>
                   </div>
@@ -2485,10 +2536,10 @@ export function FieldOfficerOperationsPage({
                 </div>
               </div>
 
-              {/* Live Location Card */}
+              {/* Kartu Lokasi Langsung */}
               <div className="tactical-card space-y-4">
                 <h3 className="border-[var(--tactical-border)] border-b pb-2 font-semibold text-[var(--tactical-text-primary)] text-lg tracking-tight">
-                  Live Location
+                  Lokasi Langsung
                 </h3>
 
                 <div className="space-y-3">
@@ -2525,11 +2576,12 @@ export function FieldOfficerOperationsPage({
                     )}
                   </div>
                   <button
+                    type="button"
                     disabled={isBusy === "location:publish"}
                     onClick={() =>
                       requestConfirmation({
                         title: "KONFIRMASI PING LOKASI",
-                        description: "Kirim ping lokasi terbaru ke monitor live workspace sekarang?",
+                        description: "Kirim ping lokasi terbaru ke monitor ruang kerja sekarang?",
                         confirmLabel: "YA, KIRIM",
                         onConfirm: () => {
                           void publishOwnLocation();
@@ -2553,9 +2605,9 @@ export function FieldOfficerOperationsPage({
         <TacticalSection
           code="MOD-06"
           title="ALUR DARURAT & PANIK"
-          description="Eskalasi darurat terpusat. Kirim lokasi darurat secara langsung ke coordinator."
+          description="Eskalasi darurat terpusat. Kirim lokasi darurat secara langsung ke koordinator."
           metadata={[
-            { label: "UNIT DARURAT", value: "UNIT KOMANDO FC" },
+            { label: "UNIT DARURAT", value: "UNIT KOMANDO Koordinator Wilayah (Korwil)" },
             { label: "STATUS RUTE", value: "JALUR LANGSUNG" },
           ]}
         >
@@ -2569,7 +2621,7 @@ export function FieldOfficerOperationsPage({
                   Alur Darurat & Panik
                 </h3>
                 <p className="text-[var(--tactical-text-secondary)] text-xs">
-                  Tombol darurat tetap berpusat pada pengiriman lokasi dan eskalasi ke coordinator/regional.
+                  Tombol darurat tetap berpusat pada pengiriman lokasi dan eskalasi ke koordinator/regional.
                 </p>
               </div>
             </div>
@@ -2583,21 +2635,22 @@ export function FieldOfficerOperationsPage({
               <EmergencyStep
                 icon={<ShieldCheck className="size-4 shrink-0 text-[var(--tactical-red)]" strokeWidth={2} />}
                 title="2. AKTIFKAN SOP"
-                description="Coordinator memeriksa Jaring aktif, coverage area, dan kanal WhatsApp pusat yang sedang online."
+                description="Koordinator memeriksa Jaring terdaftar, cakupan wilayah, dan kanal WhatsApp pusat yang sedang terhubung."
               />
               <EmergencyStep
                 icon={<Send className="size-4 shrink-0 text-[var(--tactical-red)]" strokeWidth={2} />}
                 title="3. ESKALASI"
-                description="Laporan diteruskan ke regional atau posko menggunakan channel resmi di level coordinator."
+                description="Laporan diteruskan ke regional atau posko menggunakan kanal resmi di level koordinator."
               />
 
               <div className="pt-2 xl:col-span-3">
                 <button
+                  type="button"
                   disabled={isBusy === "location:publish"}
                   onClick={() =>
                     requestConfirmation({
                       title: "KONFIRMASI LOKASI DARURAT",
-                      description: "Kirim lokasi darurat terbaru ke coordinator sekarang?",
+                      description: "Kirim lokasi darurat terbaru ke koordinator sekarang?",
                       confirmLabel: "YA, KIRIM DARURAT",
                       onConfirm: () => {
                         void publishOwnLocation();
@@ -2658,6 +2711,7 @@ function MetricCard({
   icon,
   label,
   onClick,
+  percentageLabel,
   tone = "blue",
   value,
 }: {
@@ -2665,6 +2719,7 @@ function MetricCard({
   icon?: React.ReactNode;
   label: string;
   onClick?: () => void;
+  percentageLabel?: string;
   tone?: "blue" | "green" | "amber" | "red";
   value: number;
 }) {
@@ -2694,9 +2749,14 @@ function MetricCard({
       {icon && (
         <div className={`flex size-10 items-center justify-center rounded-lg shrink-0 ${iconBg[tone]}`}>{icon}</div>
       )}
-      <div>
+      <div className="min-w-0">
         <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
         <p className="text-xl font-bold tracking-tight text-foreground">{value}</p>
+        {percentageLabel ? (
+          <p className="mt-1 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
+            {percentageLabel}
+          </p>
+        ) : null}
       </div>
     </button>
   );
@@ -2808,7 +2868,7 @@ function TaskCard({
   const [showForwardConfirm, setShowForwardConfirm] = useState(false);
   const [forwardInstruction, setForwardInstruction] = useState(task.coordinatorInstruction ?? "");
   const instructionBody =
-    task.coordinatorInstruction ?? "Koordinator Lapangan belum menuliskan instruksi rinci untuk penugasan ini.";
+    task.coordinatorInstruction ?? "Koordinator Wilayah (Korwil) belum menuliskan instruksi rinci untuk penugasan ini.";
   const instructionSenderLabel = task.assignerPositionTitle ?? task.assignerName ?? "Pengirim Instruksi";
   const canForwardToJaring = jaring.length > 0 && forwardInstruction.trim().length > 0;
 
@@ -2869,17 +2929,18 @@ function TaskCard({
       <div className="border-[var(--tactical-border)] border-b py-4">
         <div className="space-y-3 rounded-[12px] border border-[var(--tactical-action-border)] bg-[var(--tactical-action-bg)] p-[16px]">
           <span className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
-            ACTION
+            AKSI
           </span>
           <div className="flex flex-wrap items-center gap-[12px]">
             {action && (
               <>
                 <button
+                  type="button"
                   disabled={isBusy}
                   onClick={handleActionClick}
                   className="flex h-[40px] cursor-pointer items-center justify-center rounded-[4px] border border-[#475569] bg-transparent px-[18px] font-mono font-semibold text-[#CBD5E1] text-xs uppercase tracking-[0.04em] transition-all duration-180 hover:-translate-y-[1px] hover:border-[#64748B] hover:bg-[#334155] hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
                 >
-                  {isBusy ? "PROCESSING..." : action.label.toUpperCase()}
+                  {isBusy ? "MEMPROSES..." : action.label.toUpperCase()}
                 </button>
 
                 <AlertDialog open={showStatusConfirm} onOpenChange={setShowStatusConfirm}>
@@ -2923,6 +2984,7 @@ function TaskCard({
               </>
             )}
             <button
+              type="button"
               onClick={handleForwardClick}
               disabled={isForwarding}
               className={`flex h-[40px] cursor-pointer items-center justify-center rounded-[4px] px-[18px] font-mono font-semibold text-xs uppercase tracking-[0.04em] transition-all duration-180 hover:-translate-y-[1px] hover:brightness-105 active:scale-[0.98] ${
@@ -2931,7 +2993,7 @@ function TaskCard({
                   : "bg-[#B45309] text-white shadow-[0_0_18px_rgba(217,119,6,0.20)] hover:bg-[#D97706] active:bg-[#92400E]"
               }`}
             >
-              {isForwarding ? "MEMPROSES..." : forwarded ? "BATAL INSTRUKSI JARING" : "FORWARD KE JARING"}
+              {isForwarding ? "MEMPROSES..." : forwarded ? "BATAL INSTRUKSI JARING" : "TERUSKAN KE JARING"}
             </button>
 
             <AlertDialog open={showForwardConfirm} onOpenChange={setShowForwardConfirm}>
@@ -2950,10 +3012,14 @@ function TaskCard({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="mt-4 space-y-2">
-                  <label className="block font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
+                  <label
+                    htmlFor="forward-instruction"
+                    className="block font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider"
+                  >
                     Instruksi untuk Jaring
                   </label>
                   <Textarea
+                    id="forward-instruction"
                     value={forwardInstruction}
                     onChange={(event) => setForwardInstruction(event.target.value)}
                     className="min-h-32 border-[var(--tactical-border)] bg-[var(--tactical-panel-bg)] text-[var(--tactical-text-primary)] text-sm"
@@ -3003,7 +3069,7 @@ function TaskCard({
         <div className="grid gap-3 font-mono text-xs sm:grid-cols-2 md:grid-cols-4">
           <div className="flex min-h-[75px] flex-col justify-between rounded-[10px] border border-[var(--tactical-panel-border)] bg-[var(--tactical-panel-bg)] p-3">
             <span className="mb-1.5 border-slate-200/50 border-b pb-1.5 font-semibold text-[9px] text-[var(--tactical-text-muted)] uppercase tracking-wider dark:border-white/[0.03]">
-              MISSION ID
+              ID TUGAS
             </span>
             <span className="whitespace-pre-wrap break-all font-medium text-[var(--tactical-text-primary)] leading-relaxed">
               {task.assignmentId.toUpperCase()}
@@ -3012,7 +3078,7 @@ function TaskCard({
 
           <div className="flex min-h-[75px] flex-col justify-between rounded-[10px] border border-[var(--tactical-panel-border)] bg-[var(--tactical-panel-bg)] p-3">
             <span className="mb-1.5 border-slate-200/50 border-b pb-1.5 font-semibold text-[9px] text-[var(--tactical-text-muted)] uppercase tracking-wider dark:border-white/[0.03]">
-              TARGET AREAS
+              WILAYAH SASARAN
             </span>
             <span className="whitespace-pre-wrap break-words font-medium text-[var(--tactical-text-primary)] leading-relaxed">
               {task.targetAreas.join(", ").toUpperCase() || "-"}
@@ -3024,13 +3090,13 @@ function TaskCard({
               SUMBER TUGAS
             </span>
             <span className="whitespace-pre-wrap break-words font-medium text-[var(--tactical-text-primary)] leading-relaxed">
-              {(task.sourceLabel || "-").toUpperCase()}
+              {(task.sourceLabel ?? "-").toUpperCase()}
             </span>
           </div>
 
           <div className="flex min-h-[75px] flex-col justify-between rounded-[10px] border border-[var(--tactical-panel-border)] bg-[var(--tactical-panel-bg)] p-3">
             <span className="mb-1.5 border-slate-200/50 border-b pb-1.5 font-semibold text-[9px] text-[var(--tactical-text-muted)] uppercase tracking-wider dark:border-white/[0.03]">
-              DEADLINE
+              TENGGAT
             </span>
             <span className="whitespace-pre-wrap break-words font-medium text-[var(--tactical-text-primary)] leading-relaxed">
               {formatDateTime(task.dueDate).toUpperCase()}
@@ -3046,7 +3112,7 @@ function TacticalEmptyState({
   title,
   description,
   onAction,
-  actionLabel = "Refresh",
+  actionLabel = "Muat Ulang",
   icon: IconComponent = Radio,
 }: {
   title: string;
@@ -3066,6 +3132,7 @@ function TacticalEmptyState({
       </div>
       {onAction && (
         <button
+          type="button"
           onClick={onAction}
           className="rounded-[4px] border border-[var(--tactical-blue)]/10 bg-[var(--tactical-blue)]/5 px-3 py-1 font-medium text-[var(--tactical-blue)] text-xs uppercase hover:underline"
         >
@@ -3103,7 +3170,7 @@ function BaketCandidateForm({
   const [urgency, setUrgency] = useState<"LOW" | "NORMAL" | "HIGH" | "URGENT">("NORMAL");
   const [urgencyConfirmed, setUrgencyConfirmed] = useState(false);
   const [showCreateConfirm, setShowCreateConfirm] = useState(false);
-  const [normalizedContent, setNormalizedContent] = useState(message.content || "");
+  const [normalizedContent, setNormalizedContent] = useState(message.content ?? "");
   const [fieldOfficerNote, setFieldOfficerNote] = useState("");
   const [taskAssignmentId, setTaskAssignmentId] = useState("");
   const canCreate = Boolean(categoryId && urgencyConfirmed && normalizedContent.trim());
@@ -3123,7 +3190,7 @@ function BaketCandidateForm({
           ) : null}
         </div>
         <div className="font-mono text-[10px] text-[var(--tactical-text-muted)]">
-          CANDIDATE ID: {message.id.slice(0, 8).toUpperCase()}
+          ID KANDIDAT: {message.id.slice(0, 8).toUpperCase()}
         </div>
       </div>
 
@@ -3182,7 +3249,7 @@ function BaketCandidateForm({
               <div className="max-w-56 overflow-hidden rounded-lg border border-[var(--tactical-border)] bg-black/10 shadow-sm dark:bg-white/[0.01]">
                 <EvidenceImageViewer
                   src={message.photoUrl}
-                  alt={`Evidence ${message.displayTitle || message.jaringAlias}`}
+                  alt={`Bukti ${message.displayTitle || message.jaringAlias}`}
                   fileName={`${message.id}.jpg`}
                   caption={`Jaring ${message.jaringCode}`}
                 />
@@ -3221,7 +3288,7 @@ function BaketCandidateForm({
           )}
 
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[10px] text-[var(--tactical-text-muted)]">
-            <span>INCOMING: {formatDateTime(message.receivedAt)}</span>
+            <span>MASUK: {formatDateTime(message.receivedAt)}</span>
             <span>DILAPORKAN: {formatDateTime(message.reportedAt)}</span>
           </div>
         </div>
@@ -3230,11 +3297,17 @@ function BaketCandidateForm({
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
+              <label
+                htmlFor="baket-category"
+                className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider"
+              >
                 KATEGORI LAPORAN <span className="text-[var(--tactical-red)]">*</span>
               </label>
               <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 text-[var(--tactical-text-primary)] dark:bg-white/[0.02]">
+                <SelectTrigger
+                  id="baket-category"
+                  className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 text-[var(--tactical-text-primary)] dark:bg-white/[0.02]"
+                >
                   <SelectValue placeholder="PILIH KATEGORI" />
                 </SelectTrigger>
                 <SelectContent>
@@ -3250,8 +3323,11 @@ function BaketCandidateForm({
             </div>
 
             <div className="space-y-2">
-              <label className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
-                URGENCY LEVEL <span className="text-[var(--tactical-red)]">*</span>
+              <label
+                htmlFor="baket-urgency"
+                className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider"
+              >
+                TINGKAT URGENSI <span className="text-[var(--tactical-red)]">*</span>
               </label>
               <Select
                 value={urgency}
@@ -3260,7 +3336,10 @@ function BaketCandidateForm({
                   setUrgencyConfirmed(false);
                 }}
               >
-                <SelectTrigger className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 font-mono text-[var(--tactical-text-primary)] dark:bg-white/[0.02]">
+                <SelectTrigger
+                  id="baket-urgency"
+                  className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 font-mono text-[var(--tactical-text-primary)] dark:bg-white/[0.02]"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="font-mono">
@@ -3274,10 +3353,14 @@ function BaketCandidateForm({
           </div>
 
           <div className="space-y-2">
-            <label className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
+            <label
+              htmlFor="normalized-content"
+              className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider"
+            >
               ISI NORMALISASI LAPORAN <span className="text-[var(--tactical-red)]">*</span>
             </label>
             <Textarea
+              id="normalized-content"
               value={normalizedContent}
               onChange={(event) => setNormalizedContent(event.target.value)}
               placeholder="Tuliskan isi laporan dengan bahasa formal..."
@@ -3287,14 +3370,20 @@ function BaketCandidateForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
+              <label
+                htmlFor="related-task"
+                className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider"
+              >
                 TUGAS OPERASIONAL TERKAIT
               </label>
               <Select
-                value={taskAssignmentId || "none"}
+                value={taskAssignmentId ? taskAssignmentId : "none"}
                 onValueChange={(value) => setTaskAssignmentId(value === "none" ? "" : value)}
               >
-                <SelectTrigger className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 text-[var(--tactical-text-primary)] dark:bg-white/[0.02]">
+                <SelectTrigger
+                  id="related-task"
+                  className="tactical-input w-full border-[var(--tactical-border)] bg-black/10 text-[var(--tactical-text-primary)] dark:bg-white/[0.02]"
+                >
                   <SelectValue placeholder="TANPA TUGAS" />
                 </SelectTrigger>
                 <SelectContent>
@@ -3310,13 +3399,17 @@ function BaketCandidateForm({
           </div>
 
           <div className="space-y-2">
-            <label className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider">
-              CATATAN FIELD OFFICER
+            <label
+              htmlFor="field-officer-note"
+              className="block font-mono font-semibold text-[10px] text-[var(--tactical-text-secondary)] uppercase tracking-wider"
+            >
+              CATATAN PETUGAS WILAYAH (GASWIL)
             </label>
             <Textarea
+              id="field-officer-note"
               value={fieldOfficerNote}
               onChange={(event) => setFieldOfficerNote(event.target.value)}
-              placeholder="Catatan tambahan FO mengenai situasi lapangan..."
+              placeholder="Catatan tambahan Petugas Wilayah (Gaswil) mengenai situasi lapangan..."
               className="tactical-input min-h-16 w-full"
             />
           </div>
@@ -3329,15 +3422,16 @@ function BaketCandidateForm({
                 onChange={(event) => setUrgencyConfirmed(event.target.checked)}
                 className="size-4 shrink-0 rounded border-[var(--tactical-border)] bg-transparent text-[var(--tactical-blue)] focus:ring-0 focus:ring-offset-0"
               />
-              <span className="text-[10px]">SOP CONFIRMATION: Konfirmasi urgency {urgency}.</span>
+              <span className="text-[10px]">KONFIRMASI SOP: Konfirmasi urgensi {urgency}.</span>
             </label>
 
             <button
+              type="button"
               disabled={!canCreate || busy}
               onClick={() => setShowCreateConfirm(true)}
               className="h-[40px] cursor-pointer rounded-[4px] bg-[#16A34A] px-[18px] font-semibold text-white text-xs uppercase tracking-[0.04em] shadow-[0_0_18px_rgba(22,163,74,0.25)] transition-all duration-180 hover:-translate-y-[1px] hover:bg-[#15803D] hover:brightness-105 active:scale-[0.98] active:bg-[#166534] disabled:opacity-50"
             >
-              {busy ? "SAVING..." : "FORMULASIKAN BAKET"}
+              {busy ? "MENYIMPAN..." : "FORMULASIKAN BAKET"}
             </button>
           </div>
 
@@ -3362,8 +3456,8 @@ function BaketCandidateForm({
                       categoryId,
                       urgency,
                       normalizedContent: normalizedContent.trim(),
-                      fieldOfficerNote: fieldOfficerNote.trim() || undefined,
-                      taskAssignmentId: taskAssignmentId || undefined,
+                      fieldOfficerNote: fieldOfficerNote.trim() ? fieldOfficerNote.trim() : undefined,
+                      taskAssignmentId: taskAssignmentId ? taskAssignmentId : undefined,
                     });
                   }}
                   className="h-9 cursor-pointer rounded-[4px] bg-[#16A34A] px-4 font-semibold text-white text-xs uppercase tracking-wider hover:bg-[#15803D]"

@@ -4,7 +4,7 @@ export function MonitoringTugasPage() {
   return (
     <DensModulePage
       title="Monitoring Tugas"
-      role="Koordinator Lapangan"
+      roleLabel="Koordinator Wilayah (Korwil)"
       description="Halaman ini disiapkan untuk memantau konfirmasi penerimaan, progres, hambatan, batas waktu, dan pengalihan tugas lapangan."
       highlights={[
         "Status tugas aktif, overdue, dan hambatan operasional lapangan.",

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { backendApi } from "@/server/backend-api";
 
 export async function GET(request: NextRequest) {
@@ -16,10 +17,7 @@ export async function GET(request: NextRequest) {
       }),
     );
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal memuat pekerjaan." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal memuat pekerjaan.");
   }
 }
 
@@ -35,9 +33,6 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal membuat pekerjaan." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal membuat pekerjaan.");
   }
 }

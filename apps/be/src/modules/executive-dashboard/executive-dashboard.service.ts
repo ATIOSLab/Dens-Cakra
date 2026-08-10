@@ -14,9 +14,7 @@ import {
   Prisma,
   RoleCode,
   VerificationStatus,
-  WhatsAppMessageStatus,
   WhatsAppReportSessionStatus,
-  WhatsAppValidationSummary,
 } from '../../generated/prisma/client.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
 import {
@@ -36,12 +34,40 @@ import {
 } from './executive-dashboard.metrics.js';
 
 const JAKARTA_OFFSET_MS = 7 * 60 * 60 * 1000;
+const JARING_ACTIVITY_WINDOW_DAYS = 90;
 const OUTSIDE_COVERAGE_STATUSES = [
   CoverageValidationStatus.OUTSIDE_JARING_SCOPE,
   CoverageValidationStatus.OUTSIDE_FIELD_OFFICER_SCOPE,
   CoverageValidationStatus.OUTSIDE_FIELD_COORDINATOR_SCOPE,
   CoverageValidationStatus.OUTSIDE_UNIT_SCOPE,
 ];
+
+const dashboardAreaWithParentsSelect = {
+  id: true,
+  name: true,
+  level: true,
+  parent: {
+    select: {
+      id: true,
+      name: true,
+      level: true,
+      parent: {
+        select: {
+          id: true,
+          name: true,
+          level: true,
+          parent: {
+            select: {
+              id: true,
+              name: true,
+              level: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.AdministrativeAreaSelect;
 
 const dashboardReportSelect = {
   id: true,
@@ -158,6 +184,17 @@ const dashboardJaringSelect = {
   registrationStatus: true,
   registeredAt: true,
   createdAt: true,
+  messages: {
+    orderBy: { receivedAt: 'desc' as const },
+    take: 1,
+    select: { receivedAt: true },
+  },
+  reportSessions: {
+    where: { submittedAt: { not: null } },
+    orderBy: { submittedAt: 'desc' as const },
+    take: 1,
+    select: { submittedAt: true },
+  },
   caretakerAssignments: {
     where: { isActive: true, validUntil: null },
     orderBy: { validFrom: 'desc' as const },
@@ -184,7 +221,7 @@ const dashboardJaringSelect = {
     where: { validUntil: null },
     orderBy: [{ isPrimary: 'desc' as const }, { validFrom: 'desc' as const }],
     take: 1,
-    select: { area: { select: { id: true, name: true, level: true } } },
+    select: { area: { select: dashboardAreaWithParentsSelect } },
   },
 } satisfies Prisma.JaringSelect;
 
@@ -332,6 +369,36 @@ export class ExecutiveDashboardService {
     const resolvedScope = await this.scope.resolve(context);
     const search = query.search?.trim();
     const jaringWhere = await this.scope.jaringWhere(context);
+    const jaringFilterWhere: Prisma.JaringWhereInput = {
+      ...jaringWhere,
+      ...(query.areaId
+        ? {
+            areaCoverages: {
+              some: {
+                validUntil: null,
+                area: {
+                  OR: [
+                    { id: query.areaId },
+                    {
+                      descendantLinks: {
+                        some: { ancestorId: query.areaId },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          }
+        : {}),
+      ...(search
+        ? {
+            OR: [
+              { aliasName: { contains: search, mode: 'insensitive' } },
+              { fullName: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
     const areaConstraint = query.areaId
       ? {
           areaScopes: {
@@ -387,54 +454,36 @@ export class ExecutiveDashboardService {
           },
         }),
         this.prisma.jaring.findMany({
-          where: {
-            ...jaringWhere,
-            ...(query.areaId
-              ? {
-                  areaCoverages: {
-                    some: {
-                      validUntil: null,
-                      area: {
-                        OR: [
-                          { id: query.areaId },
-                          {
-                            descendantLinks: {
-                              some: { ancestorId: query.areaId },
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  },
-                }
-              : {}),
-            ...(search
-              ? {
-                  OR: [
-                    { aliasName: { contains: search, mode: 'insensitive' } },
-                    { fullName: { contains: search, mode: 'insensitive' } },
-                  ],
-                }
-              : {}),
-          },
+          where: jaringFilterWhere,
           take: query.limit,
           orderBy: [{ aliasName: 'asc' }, { fullName: 'asc' }],
           select: { id: true, aliasName: true, fullName: true },
         }),
-        this.prisma.jaring.count({ where: jaringWhere }),
+        this.prisma.jaring.count({ where: jaringFilterWhere }),
       ]);
 
     return {
-      scope: this.scopeSummary(context),
+      scope: this.scope.scopeSummary(context),
       categories,
       productTypes,
       areaTree,
-      fieldOfficers: officers.map((officer) => ({
+      fieldOfficers: (
+        officers as Array<{
+          id: string;
+          userProfile: { fullName: string | null; username: string };
+        }>
+      ).map((officer) => ({
         id: officer.id,
         name: officer.userProfile.fullName ?? officer.userProfile.username,
       })),
       jaring: {
-        items: jaring.map((item) => ({
+        items: (
+          jaring as Array<{
+            id: string;
+            aliasName: string | null;
+            fullName: string | null;
+          }>
+        ).map((item) => ({
           id: item.id,
           name: item.aliasName ?? item.fullName ?? item.id,
         })),
@@ -444,8 +493,7 @@ export class ExecutiveDashboardService {
       options: {
         urgency: ['LOW', 'NORMAL', 'HIGH', 'URGENT'],
         reportStatus: Object.values(WhatsAppReportSessionStatus),
-        completeness: ['COMPLETE', 'INCOMPLETE'],
-        verificationStatus: ['WAITING', 'NEEDS_REVIEW', 'VERIFIED'],
+        verificationStatus: [],
         workflowStatus: Object.values(BaketStatus),
         validationStatus: Object.values(VerificationStatus),
         coordinateSource: [
@@ -464,14 +512,7 @@ export class ExecutiveDashboardService {
         ],
         source: ['WHATSAPP'],
       },
-      unavailableFilters: [
-        {
-          key: 'organizationHierarchy',
-          label: 'Kedeputian/Direktorat/Binda/Korwil',
-          reason:
-            'Relasi hierarki organisasi tersebut tidak tersimpan sebagai foreign key aktif pada schema saat ini.',
-        },
-      ],
+      unavailableFilters: [],
     };
   }
 
@@ -654,7 +695,7 @@ export class ExecutiveDashboardService {
         previousFrom: range.previousFrom.toISOString(),
         previousTo: range.previousTo.toISOString(),
       },
-      scope: this.scopeSummary(context),
+      scope: this.scope.scopeSummary(context),
       appliedFilters: this.appliedFilters(query),
       metrics: EXECUTIVE_DASHBOARD_METRICS,
       overview: {
@@ -668,11 +709,8 @@ export class ExecutiveDashboardService {
           (report) =>
             report.submittedMessage?.convertedBaket?.status ?? 'LAPORAN_JARING',
         ),
-        completeness: this.distribution(currentReports, (report) =>
-          this.isComplete(report) ? 'COMPLETE' : 'INCOMPLETE',
-        ),
-        verification: this.distribution(currentReports, (report) =>
-          this.verificationState(report),
+        reportStage: this.distribution(currentReports, (report) =>
+          this.reportStage(report),
         ),
         urgency: this.distribution(
           currentReports,
@@ -733,13 +771,13 @@ export class ExecutiveDashboardService {
         unavailableRankings: [
           {
             key: 'korwil',
-            label: 'Ranking Korwil',
+            label: 'Peringkat Korwil',
             reason:
               'Relasi atasan Korwil ke Gaswil tidak tersedia sebagai foreign key yang aman untuk atribusi.',
           },
           {
             key: 'binda',
-            label: 'Ranking Binda',
+            label: 'Peringkat Binda',
             reason:
               'Entitas profil Binda aktif sudah tidak tersedia pada schema; agregasi berdasarkan nama tidak dilakukan.',
           },
@@ -789,10 +827,7 @@ export class ExecutiveDashboardService {
     const messageFilters: Prisma.WhatsAppMessageWhereInput[] = [];
     if (query.categoryId) {
       messageFilters.push({
-        OR: [
-          { categoryId: query.categoryId },
-          { convertedBaket: { is: { reportCategoryId: query.categoryId } } },
-        ],
+        convertedBaket: { is: { reportCategoryId: query.categoryId } },
       });
     }
     if (query.areaId) {
@@ -814,33 +849,6 @@ export class ExecutiveDashboardService {
     }
     if (query.coordinateSource) {
       messageFilters.push({ coordinateSource: query.coordinateSource });
-    }
-    if (query.verificationStatus === 'VERIFIED') {
-      messageFilters.push({
-        validationSummary: WhatsAppValidationSummary.VALID,
-      });
-    } else if (query.verificationStatus === 'NEEDS_REVIEW') {
-      messageFilters.push({
-        OR: [
-          { validationSummary: WhatsAppValidationSummary.INVALID },
-          { status: WhatsAppMessageStatus.UNDER_REVIEW },
-        ],
-      });
-    } else if (query.verificationStatus === 'WAITING') {
-      messageFilters.push({
-        NOT: {
-          OR: [
-            { validationSummary: WhatsAppValidationSummary.VALID },
-            { validationSummary: WhatsAppValidationSummary.INVALID },
-            { status: WhatsAppMessageStatus.UNDER_REVIEW },
-          ],
-        },
-      });
-    }
-    if (query.completeness === 'COMPLETE') {
-      messageFilters.push(this.completeMessageWhere());
-    } else if (query.completeness === 'INCOMPLETE') {
-      messageFilters.push({ NOT: this.completeMessageWhere() });
     }
     if (currentVersionBaketIds) {
       messageFilters.push({ convertedBaketId: { in: currentVersionBaketIds } });
@@ -986,30 +994,6 @@ export class ExecutiveDashboardService {
     };
   }
 
-  private isComplete(report: DashboardReport) {
-    const message = report.submittedMessage;
-    if (!message) return false;
-    const rawPayload =
-      message.rawPayload &&
-      typeof message.rawPayload === 'object' &&
-      !Array.isArray(message.rawPayload)
-        ? (message.rawPayload as Record<string, unknown>)
-        : null;
-    const hasPhoto =
-      message._count.media > 0 ||
-      (typeof rawPayload?.photoMessageId === 'string' &&
-        rawPayload.photoMessageId.length > 0);
-    return Boolean(
-      message.content &&
-      message.senderPhone &&
-      message.jaringId &&
-      message.latitude !== null &&
-      message.longitude !== null &&
-      message.resolvedAreaId &&
-      hasPhoto,
-    );
-  }
-
   private hasAttachment(report: DashboardReport) {
     return (
       report.media.length > 0 ||
@@ -1023,24 +1007,19 @@ export class ExecutiveDashboardService {
 
   private category(report: DashboardReport) {
     return (
-      report.submittedMessage?.category ??
       report.submittedMessage?.convertedBaket?.reportCategory ??
       null
     );
   }
 
-  private verificationState(report: DashboardReport) {
+  private reportStage(report: DashboardReport) {
     const message = report.submittedMessage;
-    if (message?.validationSummary === WhatsAppValidationSummary.VALID) {
-      return 'VERIFIED';
+    if (!message) {
+      return report.status === WhatsAppReportSessionStatus.ACTIVE
+        ? 'IN_PROGRESS_BY_JARING'
+        : 'NOT_SUBMITTED';
     }
-    if (
-      message?.validationSummary === WhatsAppValidationSummary.INVALID ||
-      message?.status === WhatsAppMessageStatus.UNDER_REVIEW
-    ) {
-      return 'NEEDS_REVIEW';
-    }
-    return 'WAITING';
+    return message.convertedBaket ? 'BAKET_CREATED' : 'READY_FOR_BAKET';
   }
 
   private locationState(report: DashboardReport) {
@@ -1061,28 +1040,17 @@ export class ExecutiveDashboardService {
   private countReports(reports: DashboardReport[]) {
     const counts = {
       totalReports: reports.length,
-      completeReports: 0,
-      incompleteReports: 0,
-      verifiedReports: 0,
+      baketCreatedReports: 0,
       draftBakets: 0,
       validatedBakets: 0,
       urgentReports: 0,
-      needsCompletion: 0,
-      waitingVerification: 0,
+      readyForBaket: 0,
       needsReview: 0,
     };
     for (const report of reports) {
-      const complete = this.isComplete(report);
-      if (complete) counts.completeReports += 1;
-      else {
-        counts.incompleteReports += 1;
-        counts.needsCompletion += 1;
-      }
-      const verification = this.verificationState(report);
-      if (verification === 'VERIFIED') counts.verifiedReports += 1;
-      if (verification === 'WAITING') counts.waitingVerification += 1;
-      if (verification === 'NEEDS_REVIEW') counts.needsReview += 1;
       const baket = report.submittedMessage?.convertedBaket;
+      if (baket) counts.baketCreatedReports += 1;
+      else counts.readyForBaket += 1;
       if (baket?.status === BaketStatus.VERIFIED) counts.validatedBakets += 1;
       else if (baket) counts.draftBakets += 1;
       if (this.latestVersion(report)?.urgency === 'URGENT') {
@@ -1109,7 +1077,7 @@ export class ExecutiveDashboardService {
         : Math.round((value / current.totalReports) * 1000) / 10;
     const actionRequired =
       context.authRole === SYSTEM_ROLES.FIELD_COORDINATOR
-        ? current.waitingVerification + current.needsReview
+        ? current.readyForBaket + current.needsReview
         : current.needsReview + pendingApprovals;
 
     const decorate = (value: {
@@ -1132,9 +1100,7 @@ export class ExecutiveDashboardService {
       });
     return [
       card('totalReports'),
-      card('completeReports', { percent: true, tone: 'positive' }),
-      card('incompleteReports', { percent: true, tone: 'warning' }),
-      card('verifiedReports', { percent: true, tone: 'positive' }),
+      card('baketCreatedReports', { percent: true, tone: 'positive' }),
       card('draftBakets'),
       card('validatedBakets', { tone: 'positive' }),
       decorate({
@@ -1145,7 +1111,6 @@ export class ExecutiveDashboardService {
         tone: 'neutral',
       }),
       card('urgentReports', { tone: 'danger' }),
-      card('needsCompletion', { tone: 'warning' }),
       decorate({
         key: 'waitingAction',
         value: actionRequired,
@@ -1186,8 +1151,6 @@ export class ExecutiveDashboardService {
       {
         bucket: string;
         total: number;
-        complete: number;
-        incomplete: number;
         verified: number;
       }
     >();
@@ -1206,14 +1169,10 @@ export class ExecutiveDashboardService {
       const item = buckets.get(bucket) ?? {
         bucket,
         total: 0,
-        complete: 0,
-        incomplete: 0,
         verified: 0,
       };
       item.total += 1;
-      if (this.isComplete(report)) item.complete += 1;
-      else item.incomplete += 1;
-      if (this.verificationState(report) === 'VERIFIED') item.verified += 1;
+      if (this.reportStage(report) === 'BAKET_CREATED') item.verified += 1;
       buckets.set(bucket, item);
     }
     return {
@@ -1228,24 +1187,42 @@ export class ExecutiveDashboardService {
     return total === 0 ? 0 : Math.round((value / total) * 1000) / 10;
   }
 
+  private latestJaringReportAt(jaring: DashboardJaring) {
+    const latestMessageAt = jaring.messages[0]?.receivedAt?.getTime() ?? null;
+    const latestSessionAt = jaring.reportSessions[0]?.submittedAt?.getTime() ?? null;
+    if (latestMessageAt === null && latestSessionAt === null) return null;
+    return new Date(Math.max(latestMessageAt ?? 0, latestSessionAt ?? 0));
+  }
+
+  private isJaringActiveByReportWindow(jaring: DashboardJaring) {
+    const latestReportAt = this.latestJaringReportAt(jaring);
+    if (!latestReportAt) return false;
+    const threshold = new Date();
+    threshold.setDate(threshold.getDate() - JARING_ACTIVITY_WINDOW_DAYS);
+    return latestReportAt.getTime() >= threshold.getTime();
+  }
+
   private networkSummary(
     jaring: DashboardJaring[],
     reports: DashboardReport[],
     range: DashboardDateRange,
   ) {
     const reportingIds = new Set(reports.map((report) => report.jaring.id));
-    const active = jaring.filter((item) => item.status === 'ACTIVE').length;
-    const inactive = jaring.filter((item) => item.status === 'INACTIVE').length;
+    const active = jaring.filter((item) =>
+      this.isJaringActiveByReportWindow(item),
+    ).length;
+    const inactive = jaring.length - active;
     const newlyRegistered = jaring.filter((item) => {
       const date = item.registeredAt ?? item.createdAt;
       return date >= range.from && date <= range.to;
     }).length;
-    const complete = reports.filter((report) => this.isComplete(report)).length;
     return {
       total: jaring.length,
+      korwilCount: this.countKorwilAreas(jaring),
+      gaswilCount: this.countGaswilAssignments(jaring),
       active,
       inactive,
-      otherStatus: jaring.length - active - inactive,
+      otherStatus: 0,
       newlyRegistered,
       reporting: reportingIds.size,
       withoutReports: jaring.filter((item) => !reportingIds.has(item.id))
@@ -1254,8 +1231,39 @@ export class ExecutiveDashboardService {
         jaring.length === 0
           ? 0
           : Math.round((reports.length / jaring.length) * 100) / 100,
-      completenessRate: this.percentage(complete, reports.length),
     };
+  }
+
+  private countGaswilAssignments(jaring: DashboardJaring[]) {
+    const assignmentIds = new Set<string>();
+    for (const item of jaring) {
+      const assignmentId =
+        item.caretakerAssignments[0]?.fieldOfficerAssignment?.id;
+      if (assignmentId) assignmentIds.add(assignmentId);
+    }
+    return assignmentIds.size;
+  }
+
+  private countKorwilAreas(jaring: DashboardJaring[]) {
+    const korwilAreaIds = new Set<string>();
+    for (const item of jaring) {
+      const area = this.findRegencyCityArea(item.areaCoverages[0]?.area ?? null);
+      if (area) korwilAreaIds.add(area.id);
+    }
+    return korwilAreaIds.size;
+  }
+
+  private findRegencyCityArea(
+    area: DashboardJaring['areaCoverages'][number]['area'] | null,
+  ): { id: string } | null {
+    let current = area;
+    while (current) {
+      if (current.level === 'CITY' || current.level === 'REGENCY') {
+        return current;
+      }
+      current = current.parent ?? null;
+    }
+    return null;
   }
 
   private regionalRanking(
@@ -1273,7 +1281,6 @@ export class ExecutiveDashboardService {
         verified: number;
         draftBakets: number;
         validatedBakets: number;
-        complete: number;
         urgent: number;
         outsideScope: number;
       }
@@ -1290,11 +1297,10 @@ export class ExecutiveDashboardService {
         verified: 0,
         draftBakets: 0,
         validatedBakets: 0,
-        complete: 0,
         urgent: 0,
         outsideScope: 0,
       };
-      if (network.status === 'ACTIVE') item.activeJaring += 1;
+      if (this.isJaringActiveByReportWindow(network)) item.activeJaring += 1;
       values.set(area.id, item);
     }
     for (const report of reports) {
@@ -1312,13 +1318,11 @@ export class ExecutiveDashboardService {
         verified: 0,
         draftBakets: 0,
         validatedBakets: 0,
-        complete: 0,
         urgent: 0,
         outsideScope: 0,
       };
       item.reports += 1;
-      if (this.isComplete(report)) item.complete += 1;
-      if (this.verificationState(report) === 'VERIFIED') item.verified += 1;
+      if (this.reportStage(report) === 'BAKET_CREATED') item.verified += 1;
       const baket = report.submittedMessage?.convertedBaket;
       if (baket?.status === BaketStatus.VERIFIED) item.validatedBakets += 1;
       else if (baket) item.draftBakets += 1;
@@ -1331,14 +1335,10 @@ export class ExecutiveDashboardService {
     return [...values.values()]
       .map((item) => ({
         ...item,
-        completenessRate: this.percentage(item.complete, item.reports),
         attentionReasons: [
-          ...(item.urgent > 0 ? [`${item.urgent} laporan urgent`] : []),
+          ...(item.urgent > 0 ? [`${item.urgent} laporan mendesak`] : []),
           ...(item.outsideScope > 0
             ? [`${item.outsideScope} laporan di luar wilayah penugasan`]
-            : []),
-          ...(item.reports - item.complete > 0
-            ? [`${item.reports - item.complete} laporan belum lengkap`]
             : []),
         ],
       }))
@@ -1356,7 +1356,6 @@ export class ExecutiveDashboardService {
         gaswil: string | null;
         area: string | null;
         reports: number;
-        complete: number;
         verified: number;
         draftBakets: number;
         lastReportAt: string | null;
@@ -1368,7 +1367,9 @@ export class ExecutiveDashboardService {
       values.set(network.id, {
         id: network.id,
         name: network.aliasName ?? network.fullName ?? network.id,
-        status: network.status,
+        status: this.isJaringActiveByReportWindow(network)
+          ? 'ACTIVE'
+          : 'INACTIVE',
         registrationStatus: network.registrationStatus,
         gaswil:
           caretaker?.userProfile.fullName ??
@@ -1376,7 +1377,6 @@ export class ExecutiveDashboardService {
           null,
         area: network.areaCoverages[0]?.area.name ?? null,
         reports: 0,
-        complete: 0,
         verified: 0,
         draftBakets: 0,
         lastReportAt: null,
@@ -1398,14 +1398,12 @@ export class ExecutiveDashboardService {
           null,
         area: report.jaring.areaCoverages[0]?.area.name ?? null,
         reports: 0,
-        complete: 0,
         verified: 0,
         draftBakets: 0,
         lastReportAt: null,
       };
       item.reports += 1;
-      if (this.isComplete(report)) item.complete += 1;
-      if (this.verificationState(report) === 'VERIFIED') item.verified += 1;
+      if (this.reportStage(report) === 'BAKET_CREATED') item.verified += 1;
       const baket = report.submittedMessage?.convertedBaket;
       if (baket && baket.status !== BaketStatus.VERIFIED) {
         item.draftBakets += 1;
@@ -1418,13 +1416,11 @@ export class ExecutiveDashboardService {
     return [...values.values()]
       .map((item) => ({
         ...item,
-        completenessRate: this.percentage(item.complete, item.reports),
         drilldown: `/dashboard/daftar-jaring/${item.id}`,
       }))
       .sort(
         (a, b) =>
           b.reports - a.reports ||
-          b.complete - a.complete ||
           b.verified - a.verified ||
           a.name.localeCompare(b.name),
       );
@@ -1444,7 +1440,6 @@ export class ExecutiveDashboardService {
         jaring: number;
         activeJaring: number;
         reports: number;
-        complete: number;
         verified: number;
         draftBakets: number;
         verificationHours: number[];
@@ -1465,14 +1460,13 @@ export class ExecutiveDashboardService {
         jaring: 0,
         activeJaring: 0,
         reports: 0,
-        complete: 0,
         verified: 0,
         draftBakets: 0,
         verificationHours: [],
         lastActivityAt: null,
       };
       item.jaring += 1;
-      if (network.status === 'ACTIVE') item.activeJaring += 1;
+      if (this.isJaringActiveByReportWindow(network)) item.activeJaring += 1;
       values.set(caretaker.id, item);
     }
     for (const report of reports) {
@@ -1489,15 +1483,13 @@ export class ExecutiveDashboardService {
         jaring: 0,
         activeJaring: 0,
         reports: 0,
-        complete: 0,
         verified: 0,
         draftBakets: 0,
         verificationHours: [],
         lastActivityAt: null,
       };
       item.reports += 1;
-      if (this.isComplete(report)) item.complete += 1;
-      if (this.verificationState(report) === 'VERIFIED') item.verified += 1;
+      if (this.reportStage(report) === 'BAKET_CREATED') item.verified += 1;
       const baket = report.submittedMessage?.convertedBaket;
       if (baket && baket.status !== BaketStatus.VERIFIED) {
         item.draftBakets += 1;
@@ -1518,8 +1510,6 @@ export class ExecutiveDashboardService {
     return [...values.values()]
       .map(({ verificationHours, ...item }) => ({
         ...item,
-        incomplete: item.reports - item.complete,
-        completenessRate: this.percentage(item.complete, item.reports),
         averageVerificationHours:
           verificationHours.length === 0
             ? null
@@ -1533,7 +1523,6 @@ export class ExecutiveDashboardService {
       .sort(
         (a, b) =>
           b.reports - a.reports ||
-          b.complete - a.complete ||
           b.verified - a.verified ||
           a.name.localeCompare(b.name),
       );
@@ -1822,34 +1811,14 @@ export class ExecutiveDashboardService {
         > = [];
         if (
           this.latestVersion(report)?.urgency === 'URGENT' &&
-          this.verificationState(report) !== 'VERIFIED'
+          this.reportStage(report) !== 'BAKET_CREATED'
         ) {
           items.push(
             this.attentionItem(
               report,
-              'URGENT_UNVERIFIED',
-              'Laporan urgent belum terverifikasi',
+              'URGENT_READY_FOR_BAKET',
+              'Laporan mendesak siap dibuat Baket',
               'danger',
-            ),
-          );
-        }
-        if (!this.isComplete(report)) {
-          items.push(
-            this.attentionItem(
-              report,
-              'INCOMPLETE',
-              'Data wajib laporan belum lengkap',
-              'warning',
-            ),
-          );
-        }
-        if (this.verificationState(report) === 'NEEDS_REVIEW') {
-          items.push(
-            this.attentionItem(
-              report,
-              'NEEDS_REVIEW',
-              'Memerlukan peninjauan Field Officer',
-              'warning',
             ),
           );
         }
@@ -1872,7 +1841,7 @@ export class ExecutiveDashboardService {
             this.attentionItem(
               report,
               'REVISION_OVERDUE',
-              'Permintaan kelengkapan telah melewati tenggat',
+              'Permintaan perbaikan telah melewati tenggat',
               'danger',
             ),
           );
@@ -1899,14 +1868,10 @@ export class ExecutiveDashboardService {
   private priorityReasons(report: DashboardReport) {
     const reasons: string[] = [];
     const urgency = this.latestVersion(report)?.urgency;
-    if (urgency === 'URGENT') reasons.push('Urgensi: Urgent');
+    if (urgency === 'URGENT') reasons.push('Urgensi: Mendesak');
     else if (urgency === 'HIGH') reasons.push('Urgensi: Tinggi');
-    if (!this.isComplete(report)) reasons.push('Data wajib belum lengkap');
-    if (this.verificationState(report) === 'NEEDS_REVIEW') {
-      reasons.push('Memerlukan peninjauan');
-    }
-    if (this.verificationState(report) === 'WAITING') {
-      reasons.push('Menunggu verifikasi');
+    if (this.reportStage(report) === 'READY_FOR_BAKET') {
+      reasons.push('Siap dibuat Baket');
     }
     if (this.locationState(report) === 'OUTSIDE_SCOPE') {
       reasons.push('Lokasi di luar wilayah penugasan');
@@ -1915,7 +1880,7 @@ export class ExecutiveDashboardService {
       report.submittedMessage?.convertedBaket?.revisionRequests.some(
         (request) => request.dueDate && request.dueDate < new Date(),
       ) ?? false;
-    if (overdue) reasons.push('Permintaan kelengkapan melewati tenggat');
+    if (overdue) reasons.push('Permintaan perbaikan melewati tenggat');
     return reasons;
   }
 
@@ -1936,8 +1901,7 @@ export class ExecutiveDashboardService {
         .filter((date): date is Date => Boolean(date))
         .sort((a, b) => a.getTime() - b.getTime())[0] ?? null;
     const actionRequired = (report: DashboardReport) =>
-      !this.isComplete(report) ||
-      this.verificationState(report) !== 'VERIFIED' ||
+      this.reportStage(report) !== 'BAKET_CREATED' ||
       this.locationState(report) === 'OUTSIDE_SCOPE' ||
       (report.submittedMessage?.convertedBaket?.revisionRequests.length ?? 0) >
         0;
@@ -1994,7 +1958,7 @@ export class ExecutiveDashboardService {
   private reportSummary(report: DashboardReport) {
     const normalized = report.content?.replace(/\s+/g, ' ').trim();
     const title = normalized
-      ? `${normalized.split(' ').slice(0, 10).join(' ')}${normalized.split(' ').length > 10 ? '…' : ''}`
+      ? `${normalized.split(' ').slice(0, 10).join(' ')}${normalized.split(' ').length > 10 ? '...' : ''}`
       : 'Laporan Jaring';
     const reportedAt = report.submittedAt ?? report.startedAt;
     const revisionRequests =
@@ -2018,8 +1982,7 @@ export class ExecutiveDashboardService {
         null,
       category: this.category(report),
       urgency: this.latestVersion(report)?.urgency ?? null,
-      completeness: this.isComplete(report) ? 'COMPLETE' : 'INCOMPLETE',
-      verification: this.verificationState(report),
+      stage: this.reportStage(report),
       workflow:
         report.submittedMessage?.convertedBaket?.status ?? 'LAPORAN_JARING',
       reportedAt: reportedAt.toISOString(),
@@ -2082,14 +2045,6 @@ export class ExecutiveDashboardService {
             'Belum tersedia sebagai field terstruktur pada kontrak laporan.',
         },
       ],
-      completenessRate:
-        reports.length === 0
-          ? 0
-          : Math.round(
-              (reports.filter((report) => this.isComplete(report)).length /
-                reports.length) *
-                1000,
-            ) / 10,
     };
   }
 
@@ -2102,25 +2057,6 @@ export class ExecutiveDashboardService {
           !['period', 'timezone'].includes(key),
       ),
     );
-  }
-
-  private scopeSummary(context: AuthorizationContext) {
-    return {
-      role: context.authRole,
-      roleCode: context.roleCode,
-      organizationUnitId: context.organizationUnitId,
-      organizationUnitName: context.organizationUnitName,
-      areas: context.areaScopes.map((area) => ({
-        id: area.areaId,
-        code: area.code,
-        name: area.name,
-        level: area.level,
-      })),
-      label:
-        context.areaScopes.length > 0
-          ? context.areaScopes.map((area) => area.name).join(', ')
-          : context.organizationUnitName,
-    };
   }
 
   private resolvePeriod(query: ExecutiveDashboardQueryDto): DashboardDateRange {

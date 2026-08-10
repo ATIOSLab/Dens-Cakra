@@ -76,6 +76,7 @@ export type AreaNode = {
 export type ProvinceOption = {
   id: string;
   code: string;
+  officialCode?: string | null;
   name: string;
   level: string;
   hasActiveBoundary?: boolean;
@@ -116,6 +117,7 @@ export type RegionalMasterDirectorate = {
   coverageAreas: Array<{
     areaId: string;
     code: string;
+    officialCode?: string | null;
     name: string;
     level: string;
     isPrimary: boolean;

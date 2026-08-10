@@ -2,8 +2,13 @@ export type AdministrativeAreaNode = {
   id?: string | null;
   name?: string | null;
   level?: string | null;
+  code?: string | null;
+  officialCode?: string | null;
   parent?: AdministrativeAreaNode | null;
 };
+
+export const DKI_JAKARTA_PROVINCE_CODE = "31";
+export const DKI_REGENCY_CITY_LEVELS = ["REGENCY", "CITY"] as const;
 
 const LEVEL_LABELS: Record<string, string> = {
   COUNTRY: "Negara",
@@ -56,4 +61,27 @@ export function administrativeAreaHierarchy(value?: AdministrativeAreaNode | nul
 export function administrativeAreaLabel(value?: AdministrativeAreaNode | null) {
   const hierarchy = administrativeAreaHierarchy(value);
   return hierarchy.length > 0 ? hierarchy.map(administrativeAreaDisplayName).join(", ") : "Wilayah belum terpetakan";
+}
+
+export function isDkiJakartaProvinceArea(area?: AdministrativeAreaNode | null) {
+  if (area?.level !== "PROVINCE") return false;
+
+  const code = area.officialCode ?? area.code ?? "";
+  const name = area.name?.toLocaleLowerCase("id-ID") ?? "";
+  return (
+    code === DKI_JAKARTA_PROVINCE_CODE || name.includes("dki jakarta") || name.includes("daerah khusus ibukota jakarta")
+  );
+}
+
+export function isDkiJakartaRegencyCityArea(area?: AdministrativeAreaNode | null) {
+  if (!area?.level || !DKI_REGENCY_CITY_LEVELS.includes(area.level as (typeof DKI_REGENCY_CITY_LEVELS)[number])) {
+    return false;
+  }
+
+  const code = area.officialCode ?? area.code ?? "";
+  return (
+    code.startsWith(`${DKI_JAKARTA_PROVINCE_CODE}.`) ||
+    isDkiJakartaProvinceArea(area.parent) ||
+    Boolean(area.parent?.name?.toLocaleLowerCase("id-ID").includes("jakarta"))
+  );
 }

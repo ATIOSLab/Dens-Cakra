@@ -2,10 +2,10 @@
 
 import type { RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { Crosshair, LoaderCircle, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 import { LngLatBounds, type Map as MapLibreMap } from "maplibre-gl";
+import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { MapControls, MapMarker, Map as MapView } from "@/components/ui/map";
@@ -16,7 +16,7 @@ import { MapsIntelijenDataLayers, markerColor } from "./maps-intelijen-data-laye
 import { MapsIntelijenHoverPopup } from "./maps-intelijen-hover-popup";
 import { MapsIntelijenLegend } from "./maps-intelijen-legend";
 import styles from "./maps-intelijen-map-view.module.css";
-import { COORDINATE_AVAILABILITY_PRESENTATION, getDataTypePresentation } from "./maps-intelijen-presentation";
+import { COORDINATE_AVAILABILITY_PRESENTATION, getFeatureTypePresentation } from "./maps-intelijen-presentation";
 import type {
   BaseMapLayer,
   CommandLayerKey,
@@ -277,7 +277,7 @@ export function MapsIntelijenMapView({
           {!isFullscreen ? <MapControls position="bottom-left" showZoom showCompass /> : null}
           {mode === "marker"
             ? displayedFeatures.map((feature) => {
-                const presentation = getDataTypePresentation(feature.properties.markerType);
+                const presentation = getFeatureTypePresentation(feature.properties);
                 const MarkerIcon = presentation.icon;
                 const isActive = selectedPopup?.id === feature.id;
 
@@ -301,7 +301,8 @@ export function MapsIntelijenMapView({
                         handleFeatureClick(feature);
                       }}
                       className={cn(
-                        "grid size-5 cursor-pointer place-items-center border border-white text-white shadow-lg transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-1",
+                        "grid size-6 cursor-pointer place-items-center border border-white/90 shadow-lg transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-1",
+                        presentation.markerClass,
                         feature.properties.markerType === "baket"
                           ? "rounded-lg"
                           : feature.properties.markerType === "agent"
@@ -312,7 +313,7 @@ export function MapsIntelijenMapView({
                       style={{ backgroundColor: markerColor(feature, colorMode) }}
                     >
                       <MarkerIcon
-                        className={cn("size-2.5", feature.properties.markerType === "agent" && "-rotate-45")}
+                        className={cn("size-3", feature.properties.markerType === "agent" && "-rotate-45")}
                         aria-hidden
                       />
                     </button>
@@ -375,10 +376,10 @@ export function MapsIntelijenMapView({
               isFullscreen ? "border-slate-700 bg-slate-900 text-slate-100" : "bg-background text-foreground",
             )}
           >
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-            <option value="terrain">Terrain</option>
-            <option value="satellite">Satellite</option>
+            <option value="dark">Gelap</option>
+            <option value="light">Terang</option>
+            <option value="terrain">Medan</option>
+            <option value="satellite">Satelit</option>
             <option value="osm">OpenStreetMap</option>
           </select>
         </label>
@@ -395,9 +396,7 @@ export function MapsIntelijenMapView({
             >
               <option value="count">Jumlah Data</option>
               <option value="urgency">Urgensi</option>
-              <option value="valid">Laporan Valid</option>
-              <option value="complete">Laporan Lengkap</option>
-              <option value="incomplete">Laporan Tidak Lengkap</option>
+              <option value="valid">Titik Berkoordinat</option>
               <option value="baket">Bahan Keterangan (Baket)</option>
             </select>
           </label>
@@ -465,7 +464,7 @@ export function MapsIntelijenMapView({
       {loading ? (
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-background/20">
           <span className="inline-flex items-center gap-2 rounded-full border bg-background/95 px-4 py-2 text-sm shadow">
-            <LoaderCircle className="size-4 animate-spin text-sky-600 dark:text-sky-400" /> Memuat layer peta…
+          <LoaderCircle className="size-4 animate-spin text-sky-600 dark:text-sky-400" /> Memuat lapisan peta…
           </span>
         </div>
       ) : null}

@@ -111,4 +111,45 @@ describe('DomainScopeService', () => {
       },
     });
   });
+
+  it('menandai scope Direktorat/Ditwil DKI sebagai supervisi kota/kabupaten', () => {
+    const service = new DomainScopeService({} as never);
+    const context: AuthorizationContext = {
+      authUserId: 'auth',
+      authRole: 'regional_commander',
+      userProfileId: 'profile',
+      userProfileStatus: UserProfileStatus.ACTIVE,
+      primaryAssignmentId: 'directorate-a',
+      operationalAssignmentId: 'directorate-a',
+      positionId: 'directorate-a',
+      positionCode: RoleCode.REGIONAL_COMMANDER,
+      positionTitle: 'Direktur 21',
+      roleCode: RoleCode.REGIONAL_COMMANDER,
+      organizationUnitId: 'ditwil-21',
+      organizationUnitName: 'Direktorat 21',
+      organizationUnitType: CommandRouteType.DIRECTORATE,
+      commandRouteType: CommandRouteType.DIRECTORATE,
+      areaScopes: [
+        {
+          areaId: 'jakarta-selatan',
+          code: '31.74',
+          name: 'Kota Administrasi Jakarta Selatan',
+          level: AdministrativeLevel.CITY,
+          isPrimary: true,
+        },
+      ],
+    };
+
+    expect(service.scopeSummary(context)).toMatchObject({
+      supervisionMode: 'DKI_REGENCY_CITY',
+      supervisionLabel: 'Supervisi DKI berbasis Kota/Kabupaten',
+      label: 'Kota Administrasi Jakarta Selatan',
+      areas: [
+        expect.objectContaining({
+          id: 'jakarta-selatan',
+          isDkiJakarta: true,
+        }),
+      ],
+    });
+  });
 });

@@ -61,7 +61,7 @@ export function KpiIndicator({ indicators, definitionsByCode }: KpiIndicatorProp
                 <div className="min-w-0 flex-1">
                   <h4 className="truncate font-semibold text-[var(--dc-text-primary)] text-xs">{def.name}</h4>
                   <p className="mt-0.5 text-[10px] text-[var(--dc-text-muted)]">
-                    Sampel: {indicator.sample.toLocaleString("id-ID")}
+                    Bukti: {indicator.sample.toLocaleString("id-ID")}
                   </p>
                 </div>
               </div>

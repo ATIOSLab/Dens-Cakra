@@ -10,8 +10,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 import { SebaranJaringBottomBar } from "./sebaran-jaring-bottom-bar";
 import { SebaranJaringHeader } from "./sebaran-jaring-header";
-import { SebaranJaringLeftPanel } from "./sebaran-jaring-left-panel";
 import { SebaranJaringLeadershipStrip } from "./sebaran-jaring-leadership-strip";
+import { SebaranJaringLeftPanel } from "./sebaran-jaring-left-panel";
 import { SebaranJaringMapView } from "./sebaran-jaring-map-view";
 import { SebaranJaringRightPanel } from "./sebaran-jaring-right-panel";
 import {
@@ -21,6 +21,7 @@ import {
   type DateRangeOption,
   DEFAULT_CENTER,
   type DisplayMode,
+  type DistributionEntityMode,
   districtCoordinate,
   geoJsonBounds,
   type JaringDistributionCity,
@@ -155,11 +156,13 @@ function focusDistrict(map: MapLibreMap, district: JaringDistributionDistrict, o
 type Props = {
   cities: JaringDistributionCity[];
   allowedAdminLevels?: AdminLevel[];
+  mode?: DistributionEntityMode;
 };
 
 export function JaringDistributionClient({
   cities,
   allowedAdminLevels = ["PROVINCE", "CITY", "DISTRICT", "VILLAGE"],
+  mode = "jaring",
 }: Props) {
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -183,6 +186,7 @@ export function JaringDistributionClient({
   const [dateRange, setDateRange] = useState<DateRangeOption>("ALL");
   const [isClusterMode, setIsClusterMode] = useState<boolean>(true);
   const [coordinateSourceMode, setCoordinateSourceMode] = useState<CoordinateSourceMode>("domisili");
+  const effectiveCoordinateSourceMode: CoordinateSourceMode = mode === "gaswil" ? "domisili" : coordinateSourceMode;
 
   // Panel Visibilities
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(true);
@@ -255,15 +259,7 @@ export function JaringDistributionClient({
     return selectedCity?.districts.find((d) => d.id === selectedDistrictId) ?? null;
   }, [selectedCity, selectedDistrictId]);
 
-  const availableVillages = useMemo(() => {
-    if (selectedDistrict) {
-      return selectedDistrict.villages;
-    }
-    if (selectedCity) {
-      return selectedCity.districts.flatMap((d) => d.villages);
-    }
-    return [];
-  }, [selectedDistrict, selectedCity]);
+  const availableVillages = useMemo(() => selectedDistrict?.villages ?? [], [selectedDistrict]);
 
   const selectedVillage = useMemo(() => {
     if (!selectedVillageId) return null;
@@ -341,51 +337,42 @@ export function JaringDistributionClient({
     return allAgents.find((a) => a.id === selectedJaringId) ?? null;
   }, [selectedJaringId, allAgents]);
 
-  // Dynamic Region Summary Metrics based strictly on API data
-  const summaryStats = useMemo(() => {
-    let agents = selectedDistrict
-      ? (selectedCity?.jaring.filter((a) => a.districtId === selectedDistrict.id) ?? [])
-      : adminLevel === "PROVINCE"
-        ? allAgents
-        : selectedCity
-        ? selectedCity.jaring
-        : allAgents;
-
-    if (selectedVillage) {
-      agents = agents.filter((a) => a.villageName.toLowerCase() === selectedVillage.name.toLowerCase());
-    }
-
-    const verified = agents.filter((a) => a.status === "VERIFIED").length;
-    const pending = agents.filter((a) => a.status === "PENDING").length;
-    const rejected = agents.filter((a) => a.status === "REJECTED").length;
-
+  const regionContext = useMemo(() => {
     const regionName = selectedVillage
       ? selectedVillage.name
       : selectedDistrict
         ? selectedDistrict.name
         : adminLevel === "PROVINCE"
-          ? cities[0]?.provinceName || "Seluruh wilayah"
-          : selectedCity?.name || "Seluruh wilayah";
+          ? (cities[0]?.provinceName ?? "Seluruh wilayah")
+          : (selectedCity?.name ?? "Seluruh wilayah");
 
     const levelName = selectedVillage
-      ? "Kelurahan"
+      ? "Kelurahan/Desa"
       : selectedDistrict
         ? "Kecamatan"
         : adminLevel === "PROVINCE"
           ? "Provinsi"
           : selectedCity
-          ? "Kota / Kab"
+          ? "Kota/Kabupaten"
           : "Provinsi";
 
+    return { regionName, levelName };
+  }, [selectedVillage, selectedDistrict, adminLevel, cities, selectedCity]);
+
+  const summaryStats = useMemo(() => {
+    const verified = filteredAgents.filter((a) => a.status === "VERIFIED").length;
+    const pending = filteredAgents.filter((a) => a.status === "PENDING").length;
+    const rejected = filteredAgents.filter((a) => a.status === "REJECTED").length;
+
     return {
-      regionName,
-      levelName,
-      total: agents.length,
+      regionName: regionContext.regionName,
+      levelName: regionContext.levelName,
+      total: filteredAgents.length,
       verified,
       pending,
       rejected,
     };
-  }, [selectedVillage, selectedDistrict, selectedCity, allAgents, adminLevel, cities]);
+  }, [filteredAgents, regionContext]);
 
   const mask = useMemo(
     () => (selectedCity && adminLevel !== "PROVINCE" ? outsideCityMask(selectedCity) : null),
@@ -397,8 +384,8 @@ export function JaringDistributionClient({
       setSelectedJaringId(agent.id);
       setIsRightPanelOpen(true);
       const map = mapRef.current;
-      const longitude = coordinateSourceMode === "laporan" ? agent.latestReportLng : agent.longitude;
-      const latitude = coordinateSourceMode === "laporan" ? agent.latestReportLat : agent.latitude;
+      const longitude = effectiveCoordinateSourceMode === "laporan" ? agent.latestReportLng : agent.longitude;
+      const latitude = effectiveCoordinateSourceMode === "laporan" ? agent.latestReportLat : agent.latitude;
       if (map && longitude != null && latitude != null) {
         map.flyTo({
           center: [longitude, latitude],
@@ -407,7 +394,7 @@ export function JaringDistributionClient({
         });
       }
     },
-    [coordinateSourceMode],
+    [effectiveCoordinateSourceMode],
   );
 
   const handleSelectCity = useCallback(
@@ -467,6 +454,7 @@ export function JaringDistributionClient({
         isLeftPanelOpen={isLeftPanelOpen}
         onToggleLeftPanel={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
         showAllCities={allowedAdminLevels.includes("PROVINCE")}
+        mode={mode}
       />
 
       {/* 2. Main Workspace Layout */}
@@ -507,6 +495,7 @@ export function JaringDistributionClient({
             setSelectedVillageId(null);
           }}
           summaryStats={summaryStats}
+          mode={mode}
         />
 
         {/* Center GIS Map Workspace & Floating Telemetry Bar */}
@@ -514,7 +503,7 @@ export function JaringDistributionClient({
           <SebaranJaringLeadershipStrip
             agents={filteredAgents}
             regionLabel={summaryStats.regionName}
-            coordinateSourceMode={coordinateSourceMode}
+            coordinateSourceMode={effectiveCoordinateSourceMode}
             onShowPending={() => {
               handleStatusTabChange("PENDING");
               setIsRightPanelOpen(true);
@@ -523,6 +512,7 @@ export function JaringDistributionClient({
               handleStatusTabChange("ALL");
               setIsRightPanelOpen(true);
             }}
+            mode={mode}
           />
           <SebaranJaringMapView
             adminLevel={adminLevel}
@@ -541,9 +531,10 @@ export function JaringDistributionClient({
             displayMode={displayMode}
             isClusterMode={isClusterMode}
             onToggleClusterMode={setIsClusterMode}
-            coordinateSourceMode={coordinateSourceMode}
+            coordinateSourceMode={effectiveCoordinateSourceMode}
             mapStyleMode={mapStyleMode}
             mask={mask}
+            mode={mode}
             onMapReady={(map) => {
               mapRef.current = map;
               map.dragPan.enable();
@@ -575,11 +566,12 @@ export function JaringDistributionClient({
             onMapStyleChange={setMapStyleMode}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
-            coordinateSourceMode={coordinateSourceMode}
+            coordinateSourceMode={effectiveCoordinateSourceMode}
             onCoordinateSourceModeChange={setCoordinateSourceMode}
             centerCoords={`${mapTelemetry.center[1].toFixed(4)}, ${mapTelemetry.center[0].toFixed(4)}`}
             zoomLevel={mapTelemetry.zoom.toFixed(1)}
             adminLevelLabel={summaryStats.levelName}
+            mode={mode}
           />
         </div>
 
@@ -595,7 +587,8 @@ export function JaringDistributionClient({
           onSearchQueryChange={setAgentSearchQuery}
           activeTab={rightPanelTab}
           onTabChange={handleStatusTabChange}
-          coordinateSourceMode={coordinateSourceMode}
+          coordinateSourceMode={effectiveCoordinateSourceMode}
+          mode={mode}
         />
       </div>
     </div>

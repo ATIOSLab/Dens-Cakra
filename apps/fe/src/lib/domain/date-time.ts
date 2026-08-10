@@ -1,6 +1,7 @@
 export const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 
 export type PeriodPreset = "ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "THIS_MONTH" | "CUSTOM";
+export type DashboardDetailPeriodPreset = Exclude<PeriodPreset, "THIS_MONTH">;
 
 export function jakartaDateKey(date: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -15,6 +16,37 @@ export function jakartaDateKey(date: Date) {
 
 export function jakartaBoundaryIso(date: string, endOfDay = false) {
   return new Date(`${date}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}+07:00`).toISOString();
+}
+
+export function dateInputFromQueryValue(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const date = new Date(trimmed);
+  if (Number.isNaN(date.getTime())) return "";
+  return jakartaDateKey(date);
+}
+
+export function dateInputFromSearchParams(searchParams: { get(name: string): string | null }, keys: readonly string[]) {
+  for (const key of keys) {
+    const date = dateInputFromQueryValue(searchParams.get(key));
+    if (date) return date;
+  }
+  return "";
+}
+
+export function resolveDashboardDetailPeriodPreset(
+  searchParams: { get(name: string): string | null },
+  hasDateRange: boolean,
+): DashboardDetailPeriodPreset {
+  if (hasDateRange) return "CUSTOM";
+
+  const period = searchParams.get("period");
+  if (period === "TODAY" || period === "LAST_7_DAYS" || period === "LAST_30_DAYS" || period === "CUSTOM") {
+    return period;
+  }
+  return "ALL";
 }
 
 export function resolveJakartaPeriodRange(preset: PeriodPreset, startDate = "", endDate = "", now = new Date()) {

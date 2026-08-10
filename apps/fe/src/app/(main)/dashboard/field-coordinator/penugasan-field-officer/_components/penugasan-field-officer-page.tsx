@@ -4,7 +4,7 @@ export function PenugasanFieldOfficerPage() {
   return (
     <DensModulePage
       title="Penugasan Petugas Wilayah (Gaswil)"
-      role="Koordinator Lapangan"
+      roleLabel="Koordinator Wilayah (Korwil)"
       description="Halaman ini disiapkan untuk membagi tugas kepada Petugas Wilayah (Gaswil) berdasarkan wilayah, target, batas waktu, dan prioritas."
       highlights={[
         "Pemilihan Petugas Wilayah (Gaswil) berdasarkan cakupan dan beban kerja.",

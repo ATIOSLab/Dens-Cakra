@@ -126,7 +126,7 @@ export class BaketService {
     if (context.positionCode !== RoleCode.FIELD_OFFICER) {
       throw new ApiException(
         'BAKET_CREATOR_MUST_BE_FIELD_OFFICER',
-        'Only Field Officer can create Baket directly.',
+        'Hanya Petugas Wilayah (Gaswil) yang dapat membuat Bahan Keterangan (Baket) secara langsung.',
         403,
       );
     }
@@ -136,7 +136,7 @@ export class BaketService {
     ) {
       throw new ApiException(
         'BAKET_SOURCE_REQUIRED',
-        'Baket requires a task assignment or at least one source message.',
+        'Bahan Keterangan (Baket) membutuhkan penugasan atau minimal satu pesan sumber.',
         422,
       );
     }
@@ -285,7 +285,7 @@ export class BaketService {
       if (!taskAssignment) {
         throw new ApiException(
           'TASK_ASSIGNMENT_NOT_FOUND',
-          'Tugas terkait tidak ditemukan pada assignment Field Officer.',
+          'Tugas terkait tidak ditemukan pada penugasan Petugas Wilayah (Gaswil).',
           404,
         );
       }

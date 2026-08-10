@@ -83,6 +83,16 @@ function dateInputValue(value: string | undefined) {
   return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }
 
+function formatPercent(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value);
+}
+
+function percentOf(value: number, total: number) {
+  return total <= 0 ? 0 : Math.round((value / total) * 1000) / 10;
+}
+
 function SelectField({
   name,
   label,
@@ -116,12 +126,14 @@ function SelectField({
 function StatCard({
   label,
   value,
+  percentageLabel,
   detail,
   icon: Icon,
   tone = "text-cyan-600 dark:text-cyan-300",
 }: {
   label: string;
   value: number;
+  percentageLabel?: string;
   detail: string;
   icon: typeof Activity;
   tone?: string;
@@ -132,6 +144,11 @@ function StatCard({
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
           <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">{value.toLocaleString("id-ID")}</p>
+          {percentageLabel ? (
+            <p className="mt-1 font-mono text-[11px] font-semibold tabular-nums text-cyan-700 dark:text-cyan-300">
+              {percentageLabel}
+            </p>
+          ) : null}
           <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
         </div>
         <div className="rounded-xl border border-current/15 bg-current/5 p-2.5">
@@ -155,6 +172,8 @@ export default async function KeamananAuditPage({ searchParams }: { searchParams
     apiServerGet<SecuritySessionRecord[]>("/system/security/sessions", { limit: 30 }),
   ]);
   const onlineCount = sessions.filter((session) => session.isOnline).length;
+  const totalAuditEvents = panel.summary.total;
+  const onlineSessionRate = percentOf(onlineCount, sessions.length);
   const maxCategory = Math.max(1, ...panel.facets.categories.map((item) => item.count));
 
   return (
@@ -177,7 +196,7 @@ export default async function KeamananAuditPage({ searchParams }: { searchParams
             </p>
           </div>
           <Badge variant="outline" className="w-fit border-cyan-500/30 bg-background/70 px-3 py-1.5">
-            <ShieldCheck className="mr-1.5 size-3.5 text-cyan-600" /> Append-only evidence
+            <ShieldCheck className="mr-1.5 size-3.5 text-cyan-600" /> Bukti append-only
           </Badge>
         </div>
       </div>
@@ -196,14 +215,15 @@ export default async function KeamananAuditPage({ searchParams }: { searchParams
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <StatCard
-          label="Total event"
-          value={panel.summary.total}
+          label="Total Aktivitas"
+          value={totalAuditEvents}
           detail={`Rata-rata risiko ${panel.summary.averageRiskScore}/100`}
           icon={Activity}
         />
         <StatCard
           label="Insiden"
           value={panel.summary.incidents}
+          percentageLabel={`${formatPercent(percentOf(panel.summary.incidents, totalAuditEvents))}% dari total aktivitas`}
           detail="Butuh prioritas"
           icon={ShieldAlert}
           tone="text-rose-600 dark:text-rose-300"
@@ -211,6 +231,7 @@ export default async function KeamananAuditPage({ searchParams }: { searchParams
         <StatCard
           label="Anomali"
           value={panel.summary.anomalies}
+          percentageLabel={`${formatPercent(percentOf(panel.summary.anomalies, totalAuditEvents))}% dari total aktivitas`}
           detail="Pola menyimpang"
           icon={AlertTriangle}
           tone="text-amber-600 dark:text-amber-300"
@@ -218,6 +239,7 @@ export default async function KeamananAuditPage({ searchParams }: { searchParams
         <StatCard
           label="Akses ditolak"
           value={panel.summary.denied}
+          percentageLabel={`${formatPercent(percentOf(panel.summary.denied, totalAuditEvents))}% dari total aktivitas`}
           detail="HTTP 401 / 403"
           icon={Ban}
           tone="text-orange-600 dark:text-orange-300"
@@ -225,6 +247,7 @@ export default async function KeamananAuditPage({ searchParams }: { searchParams
         <StatCard
           label="Gagal"
           value={panel.summary.failures}
+          percentageLabel={`${formatPercent(percentOf(panel.summary.failures, totalAuditEvents))}% dari total aktivitas`}
           detail="Error non-otorisasi"
           icon={ShieldAlert}
           tone="text-rose-600 dark:text-rose-300"
@@ -232,6 +255,7 @@ export default async function KeamananAuditPage({ searchParams }: { searchParams
         <StatCard
           label="Pengguna online"
           value={onlineCount}
+          percentageLabel={`${formatPercent(onlineSessionRate)}% dari sesi valid`}
           detail={`${sessions.length} sesi valid`}
           icon={MonitorSmartphone}
         />

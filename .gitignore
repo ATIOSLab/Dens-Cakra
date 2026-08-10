@@ -61,3 +61,20 @@ docs/wilayah-desa-spasial.md
 apps/osiris
 apps/wilayah
 apps/worldmonitor
+
+# Local agent/project instructions
+AGENTS.md
+
+# Local audit and operations scripts, not required by deployment runtime
+apps/be/scripts/
+apps/be/src/scripts/check-*.ts
+apps/be/src/scripts/*prod*.ts
+apps/be/src/scripts/inspect-*.ts
+apps/be/src/scripts/clean-prod-reports.ts
+apps/be/src/scripts/clear-prod-reports.ts
+apps/be/src/scripts/map-missing-fo.ts
+apps/be/src/scripts/repair-field-officer-district-scopes.ts
+apps/be/src/scripts/seed-missing-field-officers.ts
+apps/be/src/scripts/update-prod-jaring-aliases.ts
+apps/be/src/scripts/verify-*.ts
+apps/be/src/scripts/test-*.ts

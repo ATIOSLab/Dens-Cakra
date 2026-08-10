@@ -4,7 +4,7 @@ export function LaporanMasukPage() {
   return (
     <DensModulePage
       title="Laporan Masuk"
-      role="Manajer Intelijen Operasional"
+      roleLabel="Manajer Intelijen Operasional"
       description="Halaman ini menjadi fondasi intake laporan, validasi metadata awal, dan penugasan verifikator."
       highlights={[
         "Intake aplikasi, WA Center, dan laporan darurat.",

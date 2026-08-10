@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AlertTriangle, FileText, Layers3, LoaderCircle, MapPinned, Radio, ShieldAlert, UserRound } from "lucide-react";
+import { AlertTriangle, Layers3, LoaderCircle, MapPinned, Radio, ShieldAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Map as BaseMap, MapControls, MapGeoJSON, MapMarker, type MapRef, type MapViewport } from "@/components/ui/map";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 type DataRecord = Record<string, unknown>;
@@ -103,9 +104,9 @@ export function OperationalMapClient({ mode }: { mode: "regional" | "national" }
         if (controller.signal.aborted) return;
 
         const layersToUpdate = [
-          { label: "boundary wilayah", setter: setBoundaries },
+          { label: "batas wilayah", setter: setBoundaries },
           { label: "Baket", setter: setReports },
-          { label: "alert", setter: setAlerts },
+          { label: "peringatan", setter: setAlerts },
           { label: "insiden darurat", setter: setEmergencies },
           { label: "lokasi personel", setter: setPersonnel },
         ] as const;
@@ -173,7 +174,8 @@ export function OperationalMapClient({ mode }: { mode: "regional" | "national" }
             {mode === "regional" ? "Peta & Peringatan Dini Regional" : "Peta Kerawanan Nasional"}
           </h1>
           <p className="mt-1 max-w-3xl text-muted-foreground text-sm">
-            Baket, personel lapangan, boundary administratif, alert, dan insiden dalam scope komando aktif.
+            Bahan Keterangan (Baket), Petugas Wilayah (Gaswil), batas administratif, peringatan, dan insiden dalam
+            cakupan komando aktif.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -194,9 +196,14 @@ export function OperationalMapClient({ mode }: { mode: "regional" | "national" }
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { key: "reports" as const, label: "Baket terpetakan", value: counts.reports, icon: FileText },
-          { key: "personnel" as const, label: "Personel dalam scope", value: counts.personnel, icon: UserRound },
-          { key: "alerts" as const, label: "Alert viewport", value: counts.alerts, icon: AlertTriangle },
+          { key: "reports" as const, label: "Baket Dipetakan", value: counts.reports, icon: DOMAIN_VISUALS.baket.Icon },
+          {
+            key: "personnel" as const,
+            label: DOMAIN_VISUALS.gaswil.label,
+            value: counts.personnel,
+            icon: DOMAIN_VISUALS.gaswil.Icon,
+          },
+          { key: "alerts" as const, label: "Peringatan di tampilan", value: counts.alerts, icon: AlertTriangle },
           { key: "emergencies" as const, label: "Insiden darurat", value: counts.emergencies, icon: ShieldAlert },
         ].map((metric) => (
           <button
@@ -307,9 +314,21 @@ function OperationalMarker({ feature, kind, onSelect }: { feature: MapFeature; k
   const props = feature.properties;
   const label = text(props.title, text(props.userName, text(props.areaName, kind)));
   let markerClass = severityClass(props.severity);
-  if (kind === "reports") markerClass = "bg-primary text-primary-foreground";
-  if (kind === "personnel") markerClass = "bg-sky-500 text-black";
-  const markerIcons = { reports: FileText, personnel: UserRound, alerts: AlertTriangle, emergencies: ShieldAlert };
+  let markerColor: string | undefined;
+  if (kind === "reports") {
+    markerClass = "text-white";
+    markerColor = DOMAIN_VISUALS.baket.markerColor;
+  }
+  if (kind === "personnel") {
+    markerClass = "text-white";
+    markerColor = DOMAIN_VISUALS.gaswil.markerColor;
+  }
+  const markerIcons = {
+    reports: DOMAIN_VISUALS.baket.Icon,
+    personnel: DOMAIN_VISUALS.gaswil.Icon,
+    alerts: AlertTriangle,
+    emergencies: ShieldAlert,
+  };
   const MarkerIcon = markerIcons[kind];
   return (
     <MapMarker longitude={point[0]} latitude={point[1]}>
@@ -322,6 +341,7 @@ function OperationalMarker({ feature, kind, onSelect }: { feature: MapFeature; k
           "grid size-8 place-items-center rounded-full border-2 border-background shadow-lg transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
           markerClass,
         )}
+        style={markerColor ? { backgroundColor: markerColor } : undefined}
       >
         <MarkerIcon className="size-4" />
       </button>
@@ -346,20 +366,20 @@ function MapInspector({
     "Situasi belum menunjukkan eskalasi tinggi. Pertahankan validasi berlapis dan pantau perubahan pola laporan antar-kecamatan.";
   if (reports.length === 0) {
     recommendation =
-      "Viewport ini adalah blind spot laporan. Periksa coverage personel dan jaring, lalu arahkan pengumpulan terukur pada kecamatan yang belum memiliki Baket.";
+      "Tampilan peta ini belum memiliki laporan. Periksa cakupan personel dan Jaring, lalu arahkan pengumpulan terukur pada kecamatan yang belum memiliki Baket.";
   }
   if (highRisk > 0) {
     recommendation =
-      "Prioritaskan verifikasi silang pada titik bereskalasi tinggi, pastikan gaswil cadangan tersedia, lalu susun opsi respons sebelum eskalasi ke pimpinan.";
+      "Prioritaskan verifikasi silang pada titik bereskalasi tinggi, pastikan Petugas Wilayah (Gaswil) cadangan tersedia, lalu susun opsi respons sebelum eskalasi ke pimpinan.";
   }
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MapPinned className="size-4 text-primary" /> Inspector wilayah & titik
+            <MapPinned className="size-4 text-primary" /> Pemeriksa wilayah & titik
           </CardTitle>
-          <CardDescription>Pilih boundary atau marker untuk membaca detail operasional.</CardDescription>
+          <CardDescription>Pilih batas wilayah atau penanda peta untuk membaca detail operasional.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           {selection ? (
@@ -381,7 +401,7 @@ function MapInspector({
               {selection.kind === "area" ? (
                 <div className="grid grid-cols-3 gap-2 border-t pt-3 text-center">
                   <MetricMini label="Baket" value={summary.bakets} />
-                  <MetricMini label="Alert" value={summary.alerts} />
+                  <MetricMini label="Peringatan" value={summary.alerts} />
                   <MetricMini label="Darurat" value={summary.emergencies} />
                 </div>
               ) : null}
@@ -394,7 +414,7 @@ function MapInspector({
       <Card>
         <CardHeader>
           <CardTitle>Saran taktis / strategis</CardTitle>
-          <CardDescription>Dihasilkan dari kepadatan laporan dan tingkat eskalasi pada viewport.</CardDescription>
+          <CardDescription>Dihasilkan dari kepadatan laporan dan tingkat eskalasi pada tampilan peta.</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6">{recommendation}</p>
@@ -405,7 +425,7 @@ function MapInspector({
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Baket dalam viewport</CardTitle>
+          <CardTitle>Baket dalam tampilan peta</CardTitle>
           <CardDescription>{reports.length} laporan berkoordinat.</CardDescription>
         </CardHeader>
         <CardContent className="max-h-72 space-y-2 overflow-y-auto">
@@ -418,7 +438,7 @@ function MapInspector({
             </div>
           ))}
           {!reports.length ? (
-            <p className="text-muted-foreground text-sm">Tidak ada Baket berkoordinat pada viewport ini.</p>
+            <p className="text-muted-foreground text-sm">Tidak ada Baket berkoordinat pada tampilan peta ini.</p>
           ) : null}
         </CardContent>
       </Card>

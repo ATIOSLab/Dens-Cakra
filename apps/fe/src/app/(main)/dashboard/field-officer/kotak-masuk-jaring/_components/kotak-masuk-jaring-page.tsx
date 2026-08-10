@@ -4,10 +4,10 @@ export function KotakMasukJaringPage() {
   return (
     <DensModulePage
       title="Informasi Jaring"
-      role="Petugas Wilayah"
-      description="Halaman ini disiapkan untuk menerima laporan Jaring, memeriksa kelengkapan, dan melakukan verifikasi awal sebelum menjadi Baket."
+      roleLabel="Petugas Wilayah (Gaswil)"
+      description="Halaman ini disiapkan untuk menerima laporan Jaring dari WhatsApp, meninjau lokasi aktual, dan memprosesnya menjadi Baket sesuai kewenangan."
       highlights={[
-        "Pemeriksaan Judul, Foto, GPS, dan Isi laporan dari WhatsApp.",
+        "Peninjauan judul, bukti, Live Location, dan isi laporan dari WhatsApp.",
         "Aksi minta pengembangan, tandai duplikat, tidak relevan, atau gabungkan pesan.",
         "Penghubungan ke tugas dan konversi cepat menjadi Baket.",
       ]}

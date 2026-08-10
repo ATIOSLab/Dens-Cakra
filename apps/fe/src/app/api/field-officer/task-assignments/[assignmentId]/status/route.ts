@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { updateTaskAssignmentStatus } from "@/server/field-ops/repository";
 
 type Params = {
@@ -20,9 +21,6 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       await updateTaskAssignmentStatus(request.headers.get("cookie") ?? "", assignmentId, body.nextStatus, body.note),
     );
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal mengubah status tugas." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal mengubah status tugas.");
   }
 }

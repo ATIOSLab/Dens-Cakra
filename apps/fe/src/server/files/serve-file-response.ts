@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 
 import { getBackendInternalUrl } from "@/lib/auth/backend-url";
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { backendApi } from "@/server/backend-api";
 
 import { createHash } from "node:crypto";
@@ -50,9 +51,7 @@ const runtime: ThumbnailRuntime = globalRuntime.__densCakraThumbnailRuntime ?? {
   waiters: [] as Array<() => void>,
 };
 
-if (!globalRuntime.__densCakraThumbnailRuntime) {
-  globalRuntime.__densCakraThumbnailRuntime = runtime;
-}
+globalRuntime.__densCakraThumbnailRuntime ??= runtime;
 
 function contentDisposition(disposition: "inline" | "attachment", originalName?: string | null) {
   if (!originalName) return disposition;
@@ -226,9 +225,6 @@ export async function serveAuthenticatedFile(request: NextRequest, fileId: strin
 
     return new NextResponse(response.body, { status: response.status, headers });
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal membaca file." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal membaca file.");
   }
 }

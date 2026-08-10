@@ -1050,7 +1050,7 @@ export class IntelligenceProductsController {
   @ApiContract({
     operationId: 'apiFieldOfficerDashboard001',
     contractId: 'API-FIELD-OFFICER-DASHBOARD-001',
-    summary: 'Data beranda dan dashboard operasional Field Officer',
+    summary: 'Data beranda dan dashboard operasional Petugas Wilayah (Gaswil)',
     roles: [
       'field_officer',
       'field_coordinator',
@@ -1069,7 +1069,7 @@ export class IntelligenceProductsController {
   @ApiContract({
     operationId: 'apiFieldOfficerWorkspaceSummary001',
     contractId: 'API-FIELD-OFFICER-WORKSPACE-SUMMARY-001',
-    summary: 'Ringkasan data beranda dan workspace Field Officer',
+    summary: 'Ringkasan data beranda dan workspace Petugas Wilayah (Gaswil)',
     roles: [
       'field_officer',
       'field_coordinator',

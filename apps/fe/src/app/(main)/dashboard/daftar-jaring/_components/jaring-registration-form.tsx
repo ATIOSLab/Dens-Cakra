@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, BriefcaseBusiness, ImagePlus, LoaderCircle, Network, UserRound, X } from "lucide-react";
+import { AlertTriangle, BriefcaseBusiness, ImagePlus, LoaderCircle, UserRound, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -30,6 +30,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { createIdempotencyKey } from "@/lib/api/idempotency";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import type { FieldOfficerJaring, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 const LIST_ROUTE = "/dashboard/daftar-jaring";
@@ -591,10 +592,10 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
       toast.success(
         isEditMode
           ? editingJaring?.registrationStatus === "APPROVED"
-            ? "Perubahan data Jaring berhasil disimpan dan diajukan ulang untuk verifikasi."
+            ? "Perubahan data Jaring berhasil disimpan dan diajukan ulang untuk persetujuan."
             : editingJaring?.registrationStatus === "REJECTED"
-              ? "Revisi Jaring tersimpan dan diajukan ulang untuk verifikasi."
-              : "Perubahan data Jaring berhasil disimpan dan menunggu verifikasi."
+              ? "Revisi Jaring tersimpan dan diajukan ulang untuk persetujuan."
+              : "Perubahan data Jaring berhasil disimpan dan menunggu tinjauan."
           : "Pengajuan Jaring tersimpan dan menunggu persetujuan.",
       );
       router.push(isEditMode && jaringId ? `${LIST_ROUTE}/${jaringId}` : LIST_ROUTE);
@@ -637,12 +638,12 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
         <Alert className="border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200">
           <AlertTitle className="flex items-center gap-2 font-semibold">
             <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
-            Pengajuan Ulang Verifikasi Jaring
+            Pengajuan Ulang Data Jaring
           </AlertTitle>
           <AlertDescription>
-            Jaring ini saat ini berstatus <strong>Terverifikasi (APPROVED)</strong>. Menyimpan perubahan data ini akan
+            Jaring ini saat ini berstatus <strong>Disetujui</strong>. Menyimpan perubahan data ini akan
             mengajukan ulang data Jaring sehingga statusnya kembali menjadi{" "}
-            <strong>Belum Terverifikasi (PENDING)</strong> dan memerlukan verifikasi ulang.
+            <strong>Menunggu Tinjauan</strong> dan memerlukan persetujuan ulang.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -651,7 +652,7 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
         <Card className="order-2">
           <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
-              <Network className="size-4 text-primary" /> Informasi Jaring
+              <DOMAIN_VISUALS.jaring.Icon className={`size-4 ${DOMAIN_VISUALS.jaring.iconClass}`} /> Informasi Jaring
             </CardTitle>
             <CardDescription>Data operasional untuk identifikasi dan cakupan pembinaan Jaring.</CardDescription>
           </CardHeader>
@@ -727,7 +728,7 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
                       {...form.register("areaId")}
                     >
                       <NativeSelectOption value="">
-                        {isLoading ? "Memuat kecamatan..." : "Pilih Kecamatan"}
+                        {isLoading ? "Memuat Kecamatan..." : "Pilih Kecamatan"}
                       </NativeSelectOption>
                       {workspace?.districtAreas.map((area) => (
                         <NativeSelectOption key={area.areaId} value={area.areaId}>
@@ -1035,7 +1036,7 @@ export function JaringRegistrationForm({ jaringId }: JaringRegistrationFormProps
             </AlertDialogTitle>
             <AlertDialogDescription>
               {isEditMode && editingJaring?.registrationStatus === "APPROVED"
-                ? "Data Jaring ini saat ini telah terverifikasi. Perubahan data akan membuat Jaring diajukan ulang (status kembali ke Belum Terverifikasi) dan memerlukan persetujuan/verifikasi ulang. Lanjutkan menyimpan?"
+                ? "Data Jaring ini saat ini berstatus Disetujui. Perubahan data akan membuat Jaring diajukan ulang dengan status Menunggu Tinjauan dan memerlukan persetujuan ulang. Lanjutkan menyimpan?"
                 : `Periksa kembali data pribadi, pekerjaan, dan cakupan wilayah. Jika semuanya sudah benar, klik Simpan untuk ${isEditMode ? "memperbarui" : "menyimpan"} Jaring.`}
             </AlertDialogDescription>
           </AlertDialogHeader>

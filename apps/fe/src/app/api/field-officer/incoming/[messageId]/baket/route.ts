@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { createBaketFromMessage } from "@/server/field-ops/repository";
 
 type Params = {
@@ -23,11 +24,6 @@ export async function POST(request: NextRequest, { params }: Params) {
       status: 201,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        message: error instanceof Error ? error.message : "Gagal membuat baket dari laporan.",
-      },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal membuat Baket dari laporan.");
   }
 }

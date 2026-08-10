@@ -10,9 +10,13 @@ import { toast } from "sonner";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth/auth-client";
 
+import { useRoleWorkspace } from "./role-workspace-provider";
+
 export function SignOutMenuItem() {
   const router = useRouter();
+  const { activeRole } = useRoleWorkspace();
   const [isPending, startTransition] = useTransition();
+  const signOutRedirect = activeRole === "field_officer" ? "/auth/officer" : "/auth/login";
 
   return (
     <DropdownMenuItem
@@ -28,7 +32,7 @@ export function SignOutMenuItem() {
             return;
           }
 
-          router.replace("/auth/login");
+          router.replace(signOutRedirect);
           router.refresh();
         });
       }}

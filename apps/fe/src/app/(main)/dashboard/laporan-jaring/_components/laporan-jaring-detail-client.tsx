@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
-  AlertCircle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -15,16 +14,15 @@ import {
   EyeOff,
   FileDiff,
   FileEdit,
-  FileText,
   History,
   ImageIcon,
   MapPin,
   Paperclip,
   RefreshCw,
-  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,7 +33,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { BackButton } from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -49,11 +46,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -98,11 +95,7 @@ export function LaporanJaringDetailClient({
   // Media preview toggle state (initially hidden as requested)
   const [showMediaPreview, setShowMediaPreview] = useState(false);
 
-  // Step 1: Verification form state
-  const [verificationNote, setVerificationNote] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
-
-  // Step 2: Metadata form state
+  // Baket form state
   const [categoryId, setCategoryId] = useState("");
   const [urgency, setUrgency] = useState<PriorityLevel>("NORMAL");
   const [content, setContent] = useState("");
@@ -111,8 +104,6 @@ export function LaporanJaringDetailClient({
   const [isSavingMetadata, setIsSavingMetadata] = useState(false);
   const detailRequestInFlight = useRef(false);
 
-  // Confirmation modal states
-  const [confirmVerifyOpen, setConfirmVerifyOpen] = useState(false);
   const [confirmSaveMetadataOpen, setConfirmSaveMetadataOpen] = useState(false);
 
   // History modal state
@@ -131,7 +122,7 @@ export function LaporanJaringDetailClient({
         const res = await apiBrowserFetch<ReportCategoryOption[]>("/jaring/report-categories");
         setCategories(Array.isArray(res) ? res : []);
       } catch (err) {
-        console.error("Gagal memuat kategori laporan:", err);
+        console.error("Gagal memuat kategori Baket:", err);
       }
     }
     void loadCategories();
@@ -161,7 +152,9 @@ export function LaporanJaringDetailClient({
               stored.push(laporanId);
               localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
             }
-          } catch {}
+          } catch {
+            // Abaikan cache lokal yang tidak valid.
+          }
         }
       } catch (err) {
         console.error("Gagal memuat detail laporan:", err);
@@ -182,34 +175,10 @@ export function LaporanJaringDetailClient({
     return () => window.clearInterval(interval);
   }, [fetchDetail]);
 
-  // Handler: Verify Report (Step 1)
-  async function handleVerifyReport() {
-    if (!activeReport) return;
-    setIsVerifying(true);
-    try {
-      const updated = await apiBrowserMutation<JaringReportSessionDetail>(
-        "POST",
-        `/jaring/reports/${activeReport.id}/verify`,
-        { note: verificationNote.trim() || undefined },
-      );
-      toast.success(
-        updated.verificationStatus === "VERIFIED_BY_FIELD_OFFICER"
-          ? "Laporan berhasil diverifikasi. Lanjutkan pengisian metadata & Baket."
-          : "Laporan ditandai perlu review tambahan.",
-      );
-      setActiveReport(updated);
-      setVerificationNote("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal memproses verifikasi laporan.");
-    } finally {
-      setIsVerifying(false);
-    }
-  }
-
   function onClickSaveMetadata() {
     if (!activeReport) return;
     if (!categoryId) {
-      toast.error("Kategori laporan wajib dipilih.");
+      toast.error("Kategori Baket wajib dipilih.");
       return;
     }
     if (!urgency) {
@@ -223,7 +192,7 @@ export function LaporanJaringDetailClient({
   async function handleSaveMetadata() {
     if (!activeReport) return;
     if (!categoryId) {
-      toast.error("Kategori laporan wajib dipilih.");
+      toast.error("Kategori Baket wajib dipilih.");
       return;
     }
     if (!urgency) {
@@ -288,16 +257,16 @@ export function LaporanJaringDetailClient({
   }
 
   function getEventDescription(evt: ReportHistoryEvent): string {
-    if (evt.action.includes("VERIFIED")) return "Jaring Report diverifikasi dan siap ke BAKET";
-    if (evt.action.includes("SUBMITTED")) return "Laporan berhasil dikirim oleh Jaring Lapangan";
-    if (evt.action.includes("METADATA")) return "Informasi lanjutan & formulasi Baket berhasil diperbarui";
-    if (evt.action.includes("MEDIA")) return "Pratinjau media dan lampiran diverifikasi";
+    if (evt.action.includes("VERIFIED")) return "Laporan Jaring siap dijadikan Baket";
+    if (evt.action.includes("SUBMITTED")) return "Laporan berhasil dikirim oleh Jaring";
+    if (evt.action.includes("METADATA")) return "Kategori dan formulasi Baket berhasil diperbarui";
+    if (evt.action.includes("MEDIA")) return "Pratinjau media dan lampiran diperbarui";
     return "Log aktivitas sistem dicatat.";
   }
 
   function getSystemNoteText(evt: ReportHistoryEvent): string {
     if (evt.previousState || evt.newState) {
-      return `Laporan telah diverifikasi dan status diubah menjadi ${evt.newState || evt.previousState || "READY_FOR_BAKET"}.`;
+      return `Status proses laporan: ${evt.newState ?? evt.previousState ?? "READY_FOR_BAKET"}.`;
     }
     if (evt.metadata?.note) {
       return String(evt.metadata.note);
@@ -340,14 +309,14 @@ export function LaporanJaringDetailClient({
                 <span className="font-mono font-bold text-sm text-sky-600 dark:text-[#38BDF8]">
                   {activeReport?.referenceNumber || laporanId}
                 </span>
-                {activeReport?.verificationStatus ? (
+                {activeReport?.displayStatus ? (
                   <span
                     className={cn(
                       "inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                      verificationStatusBadgeVariant(activeReport.verificationStatus),
+                      verificationStatusBadgeVariant(activeReport.displayStatus),
                     )}
                   >
-                    {verificationStatusLabel(activeReport.verificationStatus)}
+                    {verificationStatusLabel(activeReport.displayStatus)}
                   </span>
                 ) : null}
               </div>
@@ -366,7 +335,7 @@ export function LaporanJaringDetailClient({
               className="h-9 gap-1.5 rounded-lg text-xs"
             >
               <RefreshCw className={cn("size-4", loadingDetail && "animate-spin")} />
-              Refresh
+              Muat Ulang
             </Button>
             <Button
               variant="outline"
@@ -392,13 +361,12 @@ export function LaporanJaringDetailClient({
       ) : activeReport ? (
         (() => {
           const hasFormulatedMetadata =
-            activeReport.verificationStatus === "METADATA_RECORDED" ||
-            Boolean(activeReport.reportCategory) ||
+            activeReport.processStatus === "BAKET_CREATED" ||
             Boolean(activeReport.baket?.latestVersion);
 
           return (
             <div className="space-y-6">
-              {/* STEP 1: PEMERIKSAAN & VERIFIKASI FIELD OFFICER */}
+              {/* RINGKASAN LAPORAN SUMBER */}
               <Card className="border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden">
                 <CardHeader className="p-4 md:p-5 border-b border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40">
                   <div className="flex items-center gap-3">
@@ -406,12 +374,12 @@ export function LaporanJaringDetailClient({
                       1
                     </div>
                     <div>
-                      <CardTitle className="text-sm font-bold uppercase tracking-wide">
-                        Tahap 1: Pemeriksaan dan Verifikasi Petugas Wilayah (Gaswil)
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Periksa keabsahan isi laporan WhatsApp dari Jaring sebelum dikonversi ke Baket.
-                      </CardDescription>
+                        <CardTitle className="text-sm font-bold uppercase tracking-wide">
+                          Laporan Jaring Sumber
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                          Laporan yang sudah dikirim dapat langsung dijadikan Baket sesuai cakupan hak akses.
+                        </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -462,7 +430,7 @@ export function LaporanJaringDetailClient({
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-xs text-foreground flex items-center gap-1.5">
                           <MapPin className="size-4 text-sky-600 dark:text-[#38BDF8]" />
-                          Informasi Lokasi & Koordinat GPS Lengkap
+                          Informasi Lokasi & Koordinat GPS
                         </span>
 
                         {activeReport.location ? (
@@ -567,49 +535,23 @@ export function LaporanJaringDetailClient({
                     </div>
                   </div>
 
-                  {/* Verification Action Form */}
                   {!readOnly &&
                     (activeReport.status === "ACTIVE" ? (
                       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-amber-700 dark:text-amber-400">
-                        Laporan masih disusun oleh Jaring. Aksi baca, verifikasi, dan metadata tersedia setelah Jaring
-                        mengetik SELESAI.
-                      </div>
-                    ) : activeReport.verificationStatus === "WAITING_FIELD_OFFICER_VERIFICATION" ? (
-                      <div className="pt-4 border-t border-slate-200/80 dark:border-white/10 space-y-3">
-                        <label htmlFor="verify-note" className="font-medium text-xs text-foreground block">
-                          Catatan Verifikasi Petugas Wilayah (Gaswil) (opsional):
-                        </label>
-                        <Input
-                          id="verify-note"
-                          value={verificationNote}
-                          onChange={(e) => setVerificationNote(e.target.value)}
-                          placeholder="Masukkan catatan verifikasi atau arahan pengayaan data..."
-                          className="h-9 text-xs bg-background"
-                        />
-
-                        <div className="flex items-center justify-end gap-3 pt-1">
-                          <Button
-                            disabled={isVerifying}
-                            onClick={() => setConfirmVerifyOpen(true)}
-                            className="h-9 gap-1.5 text-xs rounded-lg bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600"
-                          >
-                            <ShieldCheck className="size-4" />
-                            {isVerifying ? "Memproses Verifikasi..." : "Verifikasi & Setujui Laporan"}
-                          </Button>
-                        </div>
+                        Laporan masih disusun oleh Jaring. Pembuatan Baket tersedia setelah Jaring mengetik SELESAI.
                       </div>
                     ) : (
                       <div className="pt-3 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 dark:text-[#38BDF8]">
                           <CheckCircle2 className="size-4 shrink-0 text-sky-500" />
-                          <span>Laporan telah diverifikasi dan disetujui Petugas Wilayah (Gaswil).</span>
+                          <span>Laporan sudah siap dijadikan Baket.</span>
                         </div>
                       </div>
                     ))}
                 </CardContent>
               </Card>
 
-              {/* STEP 2: INFORMASI LANJUTAN */}
+              {/* PEMBUATAN BAKET */}
               {(!readOnly || hasFormulatedMetadata) && (
                 <Card
                   className={cn(
@@ -625,12 +567,12 @@ export function LaporanJaringDetailClient({
                         </div>
                         <div>
                           <CardTitle className="text-sm font-bold uppercase tracking-wide">
-                            Tahap 2: Informasi Lanjutan
+                            Pembuatan Baket
                           </CardTitle>
                           <CardDescription className="text-xs">
-                            {readOnly || activeReport.verificationStatus === "METADATA_RECORDED"
-                              ? "Informasi lanjutan dan narasi Baket yang terverifikasi."
-                              : "Isi kategori, urgency, dan formulasi narasi informasi lanjutan untuk menerbitkan Baket."}
+                            {readOnly || activeReport.baket
+                              ? "Kategori, urgensi, dan narasi Baket yang sudah dibuat dari Laporan Jaring."
+                              : "Pilih kategori Baket, urgensi, dan formulasi narasi untuk menerbitkan Baket."}
                           </CardDescription>
                         </div>
                       </div>
@@ -638,7 +580,7 @@ export function LaporanJaringDetailClient({
                         <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
                           Mode Lihat (Read Only)
                         </Badge>
-                      ) : activeReport.verificationStatus === "METADATA_RECORDED" || activeReport.baket ? (
+                      ) : activeReport.baket ? (
                         <Badge
                           variant="outline"
                           className="border-violet-500/40 bg-violet-500/10 text-[10px] font-mono text-violet-700 dark:text-violet-400"
@@ -647,28 +589,28 @@ export function LaporanJaringDetailClient({
                         </Badge>
                       ) : !activeReport.canFillMetadata ? (
                         <Badge variant="outline" className="text-[10px] font-mono">
-                          Terkunci (Selesaikan Tahap 1 Dahulu)
+                          Terkunci (Laporan belum selesai)
                         </Badge>
                       ) : null}
                     </div>
                   </CardHeader>
 
-                  {readOnly || activeReport.verificationStatus === "METADATA_RECORDED" || activeReport.baket ? (
+                  {readOnly || activeReport.baket ? (
                     <CardContent className="p-4 md:p-6 space-y-4 text-xs">
-                      {(activeReport.verificationStatus === "METADATA_RECORDED" || Boolean(activeReport.baket)) && (
+                      {activeReport.baket && (
                         <div className="flex items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/10 p-3 font-semibold text-violet-700 text-xs dark:text-violet-400">
                           <CheckCircle2 className="size-4 shrink-0 text-violet-600 dark:text-violet-400" />
-                          <span>Informasi Lanjutan telah disimpan dan Baket Intelijen telah resmi diterbitkan.</span>
+                          <span>Baket telah dibuat dari Laporan Jaring ini.</span>
                         </div>
                       )}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1">
-                          <span className="text-muted-foreground font-medium block">Kategori Laporan:</span>
+                          <span className="text-muted-foreground font-medium block">Kategori Baket:</span>
                           <p className="font-semibold text-foreground">{activeReport.reportCategory?.name || "-"}</p>
                         </div>
 
                         <div className="p-3 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50/40 dark:bg-slate-900/30 space-y-1">
-                          <span className="text-muted-foreground font-medium block">Tingkat Urgensi (Urgency):</span>
+                          <span className="text-muted-foreground font-medium block">Tingkat Urgensi:</span>
                           <Badge
                             variant="outline"
                             className={cn("font-semibold", urgencyBadgeClass(activeReport.urgency))}
@@ -679,7 +621,7 @@ export function LaporanJaringDetailClient({
 
                         <div className="md:col-span-2 space-y-1">
                           <span className="text-muted-foreground font-medium block">
-                            Formulasi Isi Laporan / Baket:
+                            Formulasi Isi Baket:
                           </span>
                           <div className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50 dark:border-white/10 dark:bg-slate-950/40 font-mono text-xs whitespace-pre-wrap text-foreground leading-relaxed">
                             {activeReport.content || "-"}
@@ -712,10 +654,10 @@ export function LaporanJaringDetailClient({
                   ) : (
                     <CardContent className="p-4 md:p-6 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Kategori Laporan */}
+                        {/* Kategori Baket */}
                         <div className="space-y-1.5">
                           <label htmlFor="category-select" className="font-medium text-xs text-foreground block">
-                            Kategori Laporan <span className="text-rose-500">*</span>
+                            Kategori Baket <span className="text-rose-500">*</span>
                           </label>
                           <NativeSelect
                             id="category-select"
@@ -723,7 +665,7 @@ export function LaporanJaringDetailClient({
                             onChange={(e) => setCategoryId(e.target.value)}
                             className="h-9 text-xs bg-background"
                           >
-                            <option value="">-- Pilih Kategori --</option>
+                            <option value="">-- Pilih Kategori Baket --</option>
                             {categories.map((cat) => (
                               <option key={cat.id} value={cat.id}>
                                 {cat.name}
@@ -732,10 +674,10 @@ export function LaporanJaringDetailClient({
                           </NativeSelect>
                         </div>
 
-                        {/* Urgency */}
+                        {/* Tingkat Urgensi */}
                         <div className="space-y-1.5">
                           <label htmlFor="urgency-select" className="font-medium text-xs text-foreground block">
-                            Tingkat Urgensi (Urgency) <span className="text-rose-500">*</span>
+                            Tingkat Urgensi <span className="text-rose-500">*</span>
                           </label>
                           <NativeSelect
                             id="urgency-select"
@@ -751,10 +693,10 @@ export function LaporanJaringDetailClient({
                           </NativeSelect>
                         </div>
 
-                        {/* Formulasi Isi Baket */}
+                        {/* Formulasi Isi Bahan Keterangan (Baket) */}
                         <div className="space-y-1.5 md:col-span-2">
                           <label htmlFor="content-textarea" className="font-medium text-xs text-foreground block">
-                            Formulasi Isi Laporan / Baket:
+                            Formulasi Isi Baket:
                           </label>
                           <Textarea
                             id="content-textarea"
@@ -781,7 +723,7 @@ export function LaporanJaringDetailClient({
                           />
                         </div>
 
-                        {/* Catatan Field Officer */}
+                        {/* Catatan Petugas Wilayah (Gaswil) */}
                         <div className="space-y-1.5 md:col-span-2">
                           <label htmlFor="fo-note-textarea" className="font-medium text-xs text-foreground block">
                             Catatan Tambahan Petugas Wilayah (Gaswil):
@@ -806,7 +748,7 @@ export function LaporanJaringDetailClient({
                           <FileEdit className="size-4" />
                           {isSavingMetadata
                             ? "Menyimpan Informasi Lanjutan..."
-                            : "Simpan Informasi Lanjutan & Buat Baket"}
+                            : "Simpan & Buat Baket"}
                         </Button>
                       </div>
                     </CardContent>
@@ -833,7 +775,7 @@ export function LaporanJaringDetailClient({
                     Riwayat Perubahan & Audit Log Laporan
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground">
-                    Histori kronologis verifikasi, perubahan data, dan log audit sistem.
+                    Histori kronologis pembuatan Baket, perubahan data, dan log audit sistem.
                   </DialogDescription>
                 </div>
               </div>
@@ -1050,7 +992,7 @@ export function LaporanJaringDetailClient({
                   {/* Catatan Sistem / Description Card */}
                   <div className="p-4 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-slate-900/30 space-y-2">
                     <div className="flex items-center gap-2">
-                      <FileText className="size-4 text-sky-600 dark:text-[#38BDF8]" />
+                      <DOMAIN_VISUALS.jaringReport.Icon className={`size-4 ${DOMAIN_VISUALS.jaringReport.iconClass}`} />
                       <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">Catatan Sistem</h4>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">{getSystemNoteText(selectedEvent)}</p>
@@ -1081,32 +1023,7 @@ export function LaporanJaringDetailClient({
         </DialogContent>
       </Dialog>
 
-      {/* ALERT DIALOG: KONFIRMASI VERIFIKASI (STEP 1) */}
-      <AlertDialog open={confirmVerifyOpen} onOpenChange={setConfirmVerifyOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-sky-600 dark:text-[#38BDF8]">
-              <ShieldCheck className="size-5 shrink-0" />
-              Konfirmasi Verifikasi Laporan
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground pt-1">
-              Apakah Anda yakin ingin memverifikasi dan menyetujui laporan Jaring ini? Setelah diverifikasi, laporan
-              dapat dilanjutkan ke tahap pengisian Informasi Lanjutan & pembuatan Baket.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="pt-2">
-            <AlertDialogCancel className="h-8 text-xs">Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => void handleVerifyReport()}
-              className="h-8 text-xs bg-sky-600 hover:bg-sky-700 text-white dark:bg-sky-500 dark:hover:bg-sky-600"
-            >
-              Ya, Verifikasi Laporan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* ALERT DIALOG: KONFIRMASI BUAT BAKET (STEP 2) */}
+      {/* ALERT DIALOG: KONFIRMASI BUAT BAKET */}
       <AlertDialog open={confirmSaveMetadataOpen} onOpenChange={setConfirmSaveMetadataOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

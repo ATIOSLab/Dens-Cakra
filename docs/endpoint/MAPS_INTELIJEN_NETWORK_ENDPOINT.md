@@ -1,6 +1,6 @@
-# Endpoint Maps Intelijen Network
+# Endpoint Peta Jejaring Intelijen
 
-Dokumen ini menjelaskan kontrak endpoint yang menjadi sumber data halaman **Maps Intelijen Network**, termasuk seluruh filter request, tiga bentuk marker, metadata agregat, dan pemakaiannya pada tampilan peta/fullscreen.
+Dokumen ini menjelaskan kontrak endpoint yang menjadi sumber data halaman **Peta Jejaring Intelijen**, termasuk seluruh filter request, tiga bentuk marker, metadata agregat, dan pemakaiannya pada tampilan peta/fullscreen.
 
 ## Ringkasan
 
@@ -25,7 +25,7 @@ Parameter berbentuk daftar dapat dikirim sebagai CSV, misalnya `types=report,bak
 
 | Parameter | Tipe | Default | Nilai/format | Pengaruh |
 |---|---:|---:|---|---|
-| `types` | CSV enum | `baket,agent` dari DTO | `report`, `baket`, `agent` | Memilih jenis feature. UI Maps mengirim `report,baket,agent` ketika “Semua” dipilih. |
+| `types` | CSV enum | `baket,agent` dari DTO | `report`, `baket`, `agent` | Memilih jenis fitur. UI peta mengirim `report,baket,agent` ketika “Semua” dipilih. |
 | `bbox` | string | - | `minLongitude,minLatitude,maxLongitude,maxLatitude` | Membatasi feature ke viewport geografis. |
 | `areaIds` | CSV UUID | - | UUID wilayah | Filter berdasarkan ID wilayah administratif. |
 | `areaCodes` | CSV string | - | kode wilayah | Filter berdasarkan kode wilayah. |
@@ -33,7 +33,7 @@ Parameter berbentuk daftar dapat dikirim sebagai CSV, misalnya `types=report,bak
 | `categoryIds` | CSV UUID | - | UUID kategori | Filter kategori laporan/Baket. |
 | `categoryCodes` | CSV string | - | kode kategori | Filter kategori memakai kode. |
 | `jaringIds` | CSV UUID | - | UUID Jaring | Membatasi Laporan Jaring, Baket sumber/utama, dan personel yang menjadi Gaswil aktif Jaring tersebut. |
-| `fieldOfficerAssignmentIds` | CSV UUID | - | UUID assignment | Membatasi laporan, Baket, dan marker personel berdasarkan assignment Petugas Wilayah (Gaswil/Field Officer). |
+| `fieldOfficerAssignmentIds` | CSV UUID | - | UUID assignment | Membatasi laporan, Baket, dan marker personel berdasarkan assignment Petugas Wilayah (Gaswil/Petugas Wilayah (Gaswil)). |
 | `reportValidity` | CSV enum | - | `VALID`, `NEEDS_REVIEW`, `WAITING` | Filter validitas Laporan Jaring. |
 | `completeness` | CSV enum | - | `COMPLETE`, `INCOMPLETE` | Filter kelengkapan Laporan Jaring. |
 | `hasCoordinates` | boolean | - | `true`, `false` | Memilih data dengan/tanpa koordinat. Data tanpa koordinat tidak menjadi feature peta. |
@@ -202,7 +202,7 @@ Frontend `apiBrowserFetch` mengembalikan isi properti `data`, sehingga komponen 
 }
 ```
 
-### Feature Personel (`markerType: agent`)
+### Fitur Personel (`markerType: agent`)
 
 ```json
 {
@@ -318,7 +318,7 @@ Catatan perhitungan:
 - `unlocatedItems` berisi pratinjau Laporan Jaring tanpa koordinat, maksimal 20 item; Baket/personel tanpa koordinat hanya tersedia sebagai angka agregat.
 - `areas` berasal dari area yang benar-benar ditemukan pada feature hasil dan mengikuti scope akses.
 
-## Pemakaian pada halaman Maps Intelijen Network
+## Pemakaian pada halaman Peta Jejaring Intelijen
 
 | Data endpoint | Penyajian UI |
 |---|---|

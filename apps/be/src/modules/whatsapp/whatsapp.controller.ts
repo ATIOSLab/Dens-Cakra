@@ -155,7 +155,7 @@ export class WhatsAppController {
   @ApiContract({
     operationId: 'apiWa007',
     contractId: 'API-WA-007',
-    summary: 'Route pesan ke Field Officer',
+    summary: 'Rutekan pesan ke Petugas Wilayah (Gaswil)',
     roles: ['field_officer'],
     idempotent: true,
   })

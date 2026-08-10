@@ -1,11 +1,10 @@
 "use client";
 
-import { ChevronDown, Layers3, Tags } from "lucide-react";
+import { ChevronDown, Layers3 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 import {
-  COMPLETENESS_PRESENTATION,
   DATA_TYPE_PRESENTATION,
   HEATMAP_WEIGHT_PRESENTATION,
   MapSemanticBadge,
@@ -16,7 +15,6 @@ import {
 import type { HeatmapWeight, MarkerColorMode, VisualizationMode } from "./maps-intelijen-types";
 
 const LEGENDS: Record<MarkerColorMode, MapSemanticPresentation[]> = {
-  completeness: [COMPLETENESS_PRESENTATION.COMPLETE, COMPLETENESS_PRESENTATION.INCOMPLETE],
   validity: [VALIDITY_PRESENTATION.VALID, VALIDITY_PRESENTATION.NEEDS_REVIEW, VALIDITY_PRESENTATION.WAITING],
   urgency: [
     URGENCY_PRESENTATION.URGENT,
@@ -27,13 +25,11 @@ const LEGENDS: Record<MarkerColorMode, MapSemanticPresentation[]> = {
   category: [
     {
       ...DATA_TYPE_PRESENTATION.report,
-      label: "Kategori laporan",
-      icon: Tags,
+      label: DATA_TYPE_PRESENTATION.report.label,
     },
     {
       ...DATA_TYPE_PRESENTATION.baket,
-      label: "Kategori lain",
-      icon: Tags,
+      label: DATA_TYPE_PRESENTATION.baket.label,
     },
   ],
 };
@@ -103,7 +99,12 @@ export function MapsIntelijenLegend({
                 const Icon = presentation.icon;
                 return (
                   <span key={presentation.label} className="inline-flex min-h-7 items-center gap-2">
-                    <Icon className={`size-4 shrink-0 ${presentation.iconClass}`} aria-hidden />
+                    <span
+                      className="grid size-5 shrink-0 place-items-center rounded-md border bg-background/70"
+                      style={{ borderColor: presentation.mapColor, color: presentation.mapColor }}
+                    >
+                      <Icon className="size-3" aria-hidden />
+                    </span>
                     {presentation.label}
                   </span>
                 );

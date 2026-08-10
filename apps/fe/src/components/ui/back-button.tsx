@@ -40,7 +40,7 @@ export function BackButton({
       size="sm"
       onClick={handleClick}
       className={cn(
-        "flex items-center gap-1.5 h-8 px-3 text-xs font-mono border-white/10 hover:bg-white/[0.04] text-muted-foreground hover:text-foreground cursor-pointer transition-all duration-150 rounded-md",
+        "gap-1.5 text-xs text-muted-foreground hover:text-foreground",
         className
       )}
     >

@@ -13,7 +13,12 @@ type PageProps = {
 };
 
 export default async function Page({ params }: PageProps) {
-  await requireRole(SYSTEM_ROLES.FIELD_OFFICER, SYSTEM_ROLES.FIELD_COORDINATOR, SYSTEM_ROLES.REGIONAL_COMMANDER);
+  await requireRole(
+    SYSTEM_ROLES.EXECUTIVE,
+    SYSTEM_ROLES.FIELD_OFFICER,
+    SYSTEM_ROLES.FIELD_COORDINATOR,
+    SYSTEM_ROLES.REGIONAL_COMMANDER,
+  );
 
   const { jaringId } = await params;
   const item = await apiServerGet<RegistrationJaring>(`/jaring/${jaringId}`);

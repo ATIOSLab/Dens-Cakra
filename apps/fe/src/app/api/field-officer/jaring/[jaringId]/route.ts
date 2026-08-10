@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { updateFieldOfficerJaring } from "@/server/field-ops/repository";
 
 type Params = {
@@ -33,9 +34,6 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(await updateFieldOfficerJaring(request.headers.get("cookie") ?? "", jaringId, body));
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal memperbarui jaring." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal memperbarui Jaring.");
   }
 }

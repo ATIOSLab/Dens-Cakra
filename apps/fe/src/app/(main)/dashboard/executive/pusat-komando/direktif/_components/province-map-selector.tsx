@@ -438,7 +438,7 @@ export function ProvinceMapSelector({
         <CardTitle>Peta Wilayah Sasaran</CardTitle>
         <CardDescription>
           Pilih sasaran STR lewat provinsi, Binda, atau Direktorat. Saat memilih Direktorat, seluruh provinsi
-          coverage-nya langsung ikut ditandai pada peta.
+          cakupannya langsung ikut ditandai pada peta.
         </CardDescription>
       </CardHeader>
       <CardContent className="min-w-0 space-y-4">
@@ -495,15 +495,15 @@ export function ProvinceMapSelector({
           {!mapSelectionEnabled && <div className="absolute inset-0 z-30 cursor-not-allowed bg-transparent" />}
 
           <div className="absolute top-4 left-4 z-10 max-w-sm rounded-xl border border-white/10 bg-black/55 p-3 text-white shadow-2xl backdrop-blur">
-            <div className="text-[11px] text-sky-200/80 uppercase tracking-[0.24em]">Preview Wilayah</div>
+            <div className="text-[11px] text-sky-200/80 uppercase tracking-[0.24em]">Pratinjau Wilayah</div>
             <div className="mt-2 font-medium text-base">{hoveredProvince?.name ?? "Arahkan kursor ke provinsi"}</div>
             <div className="mt-1 text-slate-200/80 text-xs">
               {hoveredProvince
                 ? selectionMode === "directorate"
-                  ? `${hoveredDirectorate?.name ?? "Belum ada direktorat"} | ${hoveredDirectorate ? getDirectorateCoverageIds(hoveredDirectorate).length : 0} provinsi coverage | ${hoveredProvincePreview?.recipients.length ?? 0} recipient regional`
-                  : `${hoveredProvinceSummary?.binda?.name ?? "Belum ada Binda"} | ${hoveredProvinceSummary?.directorates.length ?? 0} direktorat coverage | ${hoveredProvincePreview?.recipients.length ?? 0} recipient regional`
+                  ? `${hoveredDirectorate?.name ?? "Belum ada direktorat"} | ${hoveredDirectorate ? getDirectorateCoverageIds(hoveredDirectorate).length : 0} provinsi cakupan | ${hoveredProvincePreview?.recipients.length ?? 0} penerima regional`
+                  : `${hoveredProvinceSummary?.binda?.name ?? "Belum ada Binda"} | ${hoveredProvinceSummary?.directorates.length ?? 0} direktorat cakupan | ${hoveredProvincePreview?.recipients.length ?? 0} penerima regional`
                 : selectionMode === "directorate"
-                  ? "Klik salah satu provinsi di blok direktorat untuk memilih seluruh coverage direktorat tersebut."
+                  ? "Klik salah satu provinsi di blok direktorat untuk memilih seluruh cakupan direktorat tersebut."
                   : selectionMode === "binda"
                     ? "Klik provinsi yang memiliki Binda untuk memilih satu provinsi sasaran."
                     : "Klik provinsi mana pun untuk menyusun distribusi penuh ke seluruh jalur yang relevan."}

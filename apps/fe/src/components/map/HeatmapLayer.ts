@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/useFilenamingConvention: Map layer filenames preserve exported layer names.
 import type { HeatmapLayerSpecification } from "maplibre-gl";
 
 export const HeatmapLayerSpec = (sourceId: string): HeatmapLayerSpecification => ({

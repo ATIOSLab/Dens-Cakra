@@ -19,7 +19,7 @@ type AreaScopeItem = {
 
 export function UserAreaBadge() {
   const { activeUser } = useRoleWorkspace();
-  const [areaLabel, setAreaLabel] = useState<string>("Memuat Wilayah...");
+  const [areaLabel, setAreaLabel] = useState<string>("Memuat wilayah...");
 
   useEffect(() => {
     let isMounted = true;
@@ -36,15 +36,15 @@ export function UserAreaBadge() {
             if (names.length > 0) {
               setAreaLabel(names.slice(0, 2).join(", "));
             } else {
-              setAreaLabel("Semua Wilayah");
+              setAreaLabel("Semua wilayah");
             }
           } else {
-            setAreaLabel("Semua Wilayah");
+            setAreaLabel("Semua wilayah");
           }
         }
       } catch {
         if (isMounted) {
-          setAreaLabel("Wilayah Operasional");
+          setAreaLabel("Wilayah operasional");
         }
       }
     }
@@ -59,7 +59,7 @@ export function UserAreaBadge() {
     <div
       className="hidden min-w-0 items-center gap-2 rounded-md border border-[var(--dc-divider)] bg-background/80 px-2.5 py-1 text-xs shadow-[var(--dc-shadow-card)] backdrop-blur lg:flex"
       aria-live="polite"
-      title={`Pengguna: ${activeUser.name} - Wilayah: ${areaLabel}`}
+      title={`Pengguna: ${activeUser.name}; wilayah: ${areaLabel}`}
     >
       <div className="grid max-w-44 leading-tight xl:max-w-52">
         <span className="truncate font-bold text-foreground text-xs">{activeUser.name}</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { Activity, Bot, Check, CheckCircle2, ChevronsUpDown, Plus, QrCode, Save, Trash2 } from "lucide-react";
 
@@ -94,6 +94,7 @@ function formatDateTime(value?: string | null) {
 
 export function AdminWaCenterPage() {
   const [channels, setChannels] = useState<WhatsappControlChannel[]>([]);
+  const channelsCountRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [pairingChannelId, setPairingChannelId] = useState<string | null>(null);
@@ -105,6 +106,10 @@ export function AdminWaCenterPage() {
   const [allCoordinatorAreas, setAllCoordinatorAreas] = useState<CoordinatorAreaOption[]>([]);
   const deferredAreaQuery = useDeferredValue(areaQuery);
   const [comboOpen, setComboOpen] = useState(false);
+
+  useEffect(() => {
+    channelsCountRef.current = channels.length;
+  }, [channels.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -172,7 +177,7 @@ export function AdminWaCenterPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAddOpen]);
+  }, []);
 
   const areaQueryStr = deferredAreaQuery.trim().toLowerCase();
   const areaResults = useMemo(() => {
@@ -214,7 +219,7 @@ export function AdminWaCenterPage() {
       }
 
       if (!selectedUser) {
-        throw new Error(`Tidak ada Koordinator Lapangan di wilayah ${selectedArea.name}.`);
+        throw new Error(`Tidak ada Koordinator Wilayah (Korwil) di wilayah ${selectedArea.name}.`);
       }
 
       const codeBase = (selectedUser.username || selectedUser.id.split("-")[0]).toUpperCase();
@@ -233,7 +238,7 @@ export function AdminWaCenterPage() {
       const body = await response.json();
 
       if (!response.ok) {
-        throw new Error((body as { message?: string }).message || "Gagal membuat kanal WhatsApp.");
+        throw new Error((body as { message?: string }).message ?? "Gagal membuat kanal WhatsApp.");
       }
       setIsAddOpen(false);
       setSelectedArea(null);
@@ -251,7 +256,7 @@ export function AdminWaCenterPage() {
     }
   };
 
-  const loadChannels = async (silent = false) => {
+  const loadChannels = useCallback(async (silent = false) => {
     try {
       const response = await fetch("/api/admin-system/integrasi-wa-center", {
         cache: "no-store",
@@ -265,15 +270,15 @@ export function AdminWaCenterPage() {
       setChannels(body as WhatsappControlChannel[]);
       setError(null);
     } catch (loadError) {
-      if (!silent || channels.length === 0) {
+      if (!silent || channelsCountRef.current === 0) {
         setError(loadError instanceof Error ? loadError.message : "Gagal memuat kontrol WhatsApp.");
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadChannels();
-  }, []);
+  }, [loadChannels]);
 
   useEffect(() => {
     const hasPendingConnection = channels.some(
@@ -289,7 +294,7 @@ export function AdminWaCenterPage() {
     }, pollingIntervalMs);
 
     return () => clearInterval(intervalId);
-  }, [channels, pairingChannelId]);
+  }, [channels, pairingChannelId, loadChannels]);
 
   useEffect(() => {
     if (!pairingChannelId) return;
@@ -322,7 +327,7 @@ export function AdminWaCenterPage() {
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal menyimpan kanal WhatsApp.");
+        throw new Error(body.message ?? "Gagal menyimpan kanal WhatsApp.");
       }
 
       await loadChannels();
@@ -344,7 +349,7 @@ export function AdminWaCenterPage() {
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal menjalankan aksi kanal.");
+        throw new Error(body.message ?? "Gagal menjalankan aksi kanal.");
       }
 
       await loadChannels();
@@ -364,7 +369,7 @@ export function AdminWaCenterPage() {
 
       if (!response.ok) {
         const body = (await response.json()) as { message?: string };
-        throw new Error(body.message || "Gagal menghapus kanal WhatsApp.");
+        throw new Error(body.message ?? "Gagal menghapus kanal WhatsApp.");
       }
 
       await loadChannels();
@@ -404,12 +409,12 @@ export function AdminWaCenterPage() {
                 <DialogHeader>
                   <DialogTitle>Tambah Koneksi WhatsApp</DialogTitle>
                   <DialogDescription>
-                    Tambahkan koneksi bot WhatsApp baru untuk koordinator lapangan atau unit.
+                    Tambahkan koneksi bot WhatsApp baru untuk Koordinator Wilayah (Korwil) atau unit.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label>Wilayah Koordinator Lapangan</Label>
+                    <Label>Wilayah Koordinator Wilayah (Korwil)</Label>
                     <Popover open={comboOpen} onOpenChange={setComboOpen}>
                       <PopoverTrigger asChild>
                         <Button

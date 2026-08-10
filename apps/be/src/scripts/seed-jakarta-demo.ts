@@ -1,4 +1,3 @@
-import { OrganizationType, PositionCode } from '../common/constants/legacy-operational-code.js';
 import {
   createHash } from 'node:crypto';
 import { readFile,
@@ -30,6 +29,7 @@ import {
   PriorityLevel,
   ProductStatus,
   RevisionRequestStatus,
+  RoleCode,
   SourceReliability,
   TaskAssignmentStatus,
   TaskStatus,
@@ -45,23 +45,18 @@ const seedBaseDate = new Date('2026-07-07T01:00:00.000Z');
 
 const assignmentSelect = {
   id: true,
-  seatId: true,
-  positionId: true,
   userProfileId: true,
   userProfile: { select: { fullName: true } },
-  position: {
+  branch: true,
+  role: {
     select: {
-      id: true,
-      title: true,
       code: true,
-      reportsToPositionId: true,
-      organizationUnitId: true,
-      organizationUnit: { select: { id: true, code: true, name: true } },
+      name: true,
     },
   },
-} satisfies Prisma.UserSeatAssignmentSelect;
+} satisfies Prisma.UserOperationalAssignmentSelect;
 
-type Assignment = Prisma.UserSeatAssignmentGetPayload<{
+type Assignment = Prisma.UserOperationalAssignmentGetPayload<{
   select: typeof assignmentSelect;
 }>;
 
@@ -129,7 +124,7 @@ const reportTopics = [
   },
   {
     title: 'Sebaran narasi provokatif pada media sosial lokal',
-    fact: 'Sejumlah akun komunitas menyebarkan narasi yang belum terverifikasi dan mulai memperoleh interaksi tinggi.',
+    fact: 'Sejumlah akun komunitas menyebarkan narasi yang belum dikonfirmasi dan mulai memperoleh interaksi tinggi.',
     implication:
       'Narasi berpotensi membentuk persepsi negatif apabila tidak diimbangi klarifikasi berbasis fakta.',
   },
@@ -309,26 +304,27 @@ async function loadContext() {
     );
   }
 
-  const findAssignment = (positionCode: PositionCode, areaCode?: string) =>
-    prisma.userSeatAssignment.findFirstOrThrow({
+  const findAssignment = (input: {
+    roleCode: RoleCode;
+    branch?: CommandRouteType;
+    areaCode?: string;
+  }) =>
+    prisma.userOperationalAssignment.findFirstOrThrow({
       where: {
         isPrimary: true,
         isActive: true,
         validUntil: null,
         userProfile: { isActive: true, deletedAt: null },
-        position: {
-          code: positionCode,
-          isActive: true,
-          ...(positionCode === PositionCode.DEPUTI_II
-            ? {}
-            : { branch: CommandRouteType.BINDA }),
+        role: {
+          code: input.roleCode,
         },
-        ...(areaCode
+        ...(input.branch ? { branch: input.branch } : {}),
+        ...(input.areaCode
           ? {
               areaScopes: {
                 some: {
                   validUntil: null,
-                  area: { officialCode: areaCode },
+                  area: { officialCode: input.areaCode },
                 },
               },
             }
@@ -338,16 +334,31 @@ async function loadContext() {
     });
 
   const [operationalManager, regionalCommander, executive] = await Promise.all([
-    findAssignment(PositionCode.KABAGOPS, JAKARTA_PROVINCE_CODE),
-    findAssignment(PositionCode.KABINDA, JAKARTA_PROVINCE_CODE),
-    findAssignment(PositionCode.DEPUTI_II),
+    findAssignment({
+      roleCode: RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+      branch: CommandRouteType.BINDA,
+      areaCode: JAKARTA_PROVINCE_CODE,
+    }),
+    findAssignment({
+      roleCode: RoleCode.REGIONAL_COMMANDER,
+      branch: CommandRouteType.BINDA,
+      areaCode: JAKARTA_PROVINCE_CODE,
+    }),
+    findAssignment({
+      roleCode: RoleCode.EXECUTIVE,
+      branch: CommandRouteType.PUSAT,
+    }),
   ]);
 
   const areas: DemoArea[] = [];
   for (const rawArea of rawAreas) {
     const officialCode = rawArea.officialCode;
     if (!officialCode) continue;
-    const coordinator = await findAssignment(PositionCode.KORWIL, officialCode);
+    const coordinator = await findAssignment({
+      roleCode: RoleCode.FIELD_COORDINATOR,
+      branch: CommandRouteType.BINDA,
+      areaCode: officialCode,
+    });
     const districtCodes = (
       await prisma.administrativeArea.findMany({
         where: {
@@ -365,17 +376,14 @@ async function loadContext() {
     );
     const fieldOfficerAreaCodes =
       districtCodes.length > 0 ? districtCodes : [officialCode];
-    const fieldOfficer = await prisma.userSeatAssignment.findFirstOrThrow({
+    const fieldOfficer = await prisma.userOperationalAssignment.findFirstOrThrow({
       where: {
         isPrimary: true,
         isActive: true,
         validUntil: null,
-        position: {
-          code: PositionCode.PETUGAS_ORGANIK,
-          branch: CommandRouteType.BINDA,
-          reportsToPositionId: coordinator.positionId,
-          isActive: true,
-        },
+        userProfile: { isActive: true, deletedAt: null },
+        branch: CommandRouteType.BINDA,
+        role: { code: RoleCode.FIELD_OFFICER },
         areaScopes: {
           some: {
             validUntil: null,
@@ -457,7 +465,7 @@ async function seedAreaTask(area: DemoArea, operationalManager: Assignment) {
   await prisma.task.upsert({
     where: { id: taskId },
     update: {
-      ownerUnitId: operationalManager.position.organizationUnitId,
+      ownerAssignmentId: operationalManager.id,
       createdByAssignmentId: operationalManager.id,
       title: `Pemantauan situasi strategis ${trimAreaName(area.name)}`,
       description: `${SEED_TAG} Himpun perkembangan politik, ekonomi, sosial, keamanan, dan infrastruktur sebagai bahan analisis DKI Jakarta.`,
@@ -468,7 +476,7 @@ async function seedAreaTask(area: DemoArea, operationalManager: Assignment) {
     },
     create: {
       id: taskId,
-      ownerUnitId: operationalManager.position.organizationUnitId,
+      ownerAssignmentId: operationalManager.id,
       createdByAssignmentId: operationalManager.id,
       title: `Pemantauan situasi strategis ${trimAreaName(area.name)}`,
       description: `${SEED_TAG} Himpun perkembangan politik, ekonomi, sosial, keamanan, dan infrastruktur sebagai bahan analisis DKI Jakarta.`,
@@ -741,7 +749,7 @@ async function seedAreaBakets(params: {
       CoverageScopeType.FIELD_COORDINATOR,
       CoverageScopeType.ORGANIZATION_UNIT,
     ]) {
-      const positionAssignmentId =
+      const operationalAssignmentId =
         scopeType === CoverageScopeType.FIELD_OFFICER
           ? area.fieldOfficer.id
           : scopeType === CoverageScopeType.FIELD_COORDINATOR
@@ -757,7 +765,7 @@ async function seedAreaBakets(params: {
           baketVersionId: versionId,
           scopeType,
           areaId: area.id,
-          positionAssignmentId,
+          operationalAssignmentId,
           isWithinScope: true,
           note: `${SEED_TAG} Cakupan ${scopeType} tervalidasi.`,
           checkedAt: addHours(eventTime, 1),
@@ -767,7 +775,7 @@ async function seedAreaBakets(params: {
           baketVersionId: versionId,
           scopeType,
           areaId: area.id,
-          positionAssignmentId,
+          operationalAssignmentId,
           isWithinScope: true,
           note: `${SEED_TAG} Cakupan ${scopeType} tervalidasi.`,
           checkedAt: addHours(eventTime, 1),
@@ -952,7 +960,7 @@ async function seedAnalyses(params: {
     await prisma.analysisCase.upsert({
       where: { id: caseId },
       update: {
-        ownerUnitId: params.operationalManager.position.organizationUnitId,
+        ownerAssignmentId: params.operationalManager.id,
         createdByAssignmentId: params.operationalManager.id,
         title: group.title,
         status,
@@ -962,7 +970,7 @@ async function seedAnalyses(params: {
       },
       create: {
         id: caseId,
-        ownerUnitId: params.operationalManager.position.organizationUnitId,
+        ownerAssignmentId: params.operationalManager.id,
         createdByAssignmentId: params.operationalManager.id,
         title: group.title,
         status,
@@ -1142,7 +1150,7 @@ function buildProductContent(
         NO_URUT: index + 1,
         PERMASALAHAN_AGENDA: baket.title,
         DAERAH_KEJADIAN: baket.area.name,
-        MATERI_SUMBER: `${baket.originalContent}\n\nSumber: ${baket.area.fieldOfficer.userProfile.fullName ?? 'Field Officer'}`,
+        MATERI_SUMBER: `${baket.originalContent}\n\nSumber: ${baket.area.fieldOfficer.userProfile.fullName ?? 'Petugas Wilayah (Gaswil)'}`,
       })),
     } satisfies Prisma.InputJsonObject;
   }
@@ -1151,7 +1159,7 @@ function buildProductContent(
     FAKTA:
       'Berdasarkan rangkaian BAKET terverifikasi, situasi DKI Jakarta relatif terkendali dengan beberapa indikator peningkatan aktivitas pada pusat pemerintahan, simpul transportasi, pasar, dan ruang digital.',
     CATATAN:
-      'Data dihimpun oleh Field Officer wilayah Jakarta dan telah melalui pemeriksaan sumber, waktu, lokasi, dokumentasi, serta relevansi penugasan.',
+      'Data dihimpun oleh Petugas Wilayah (Gaswil) wilayah Jakarta dan telah melalui pemeriksaan sumber, waktu, lokasi, dokumentasi, serta relevansi penugasan.',
     LAMPIRAN:
       'Dokumentasi foto lapangan dan daftar BAKET sumber terhubung pada versi produk ini.',
     INDIKASI:
@@ -1173,7 +1181,7 @@ function buildProductContent(
     SPOT_INTELIJEN:
       'Titik perhatian utama berada pada pusat pemerintahan, simpul transportasi, pasar induk, kawasan pesisir, dan permukiman rawan genangan.',
     DAFTAR_PUSTAKA:
-      'BAKET Field Officer DKI Jakarta periode 7-14 Juli 2026; hasil verifikasi OIM Binda DKI Jakarta.',
+      'Baket Petugas Wilayah (Gaswil) DKI Jakarta periode 7-14 Juli 2026; hasil verifikasi Manajer Intelijen Operasional (OIM) Binda DKI Jakarta.',
     SITUASI_DALAM_NEGERI:
       'Situasi Jakarta secara umum kondusif. Aktivitas masyarakat meningkat pada pusat ekonomi dan pemerintahan dengan beberapa isu lokal yang memerlukan pemantauan.',
     SITUASI_LUAR_NEGERI:
@@ -1290,7 +1298,7 @@ async function seedProducts(params: {
         where: { productNumber },
         update: {
           productTypeId: productType.id,
-          ownerUnitId: params.operationalManager.position.organizationUnitId,
+          ownerAssignmentId: params.operationalManager.id,
           createdByAssignmentId: params.operationalManager.id,
           classification:
             variant === 2 ? Classification.RAHASIA : Classification.TERBATAS,
@@ -1304,7 +1312,7 @@ async function seedProducts(params: {
         create: {
           id: productId,
           productTypeId: productType.id,
-          ownerUnitId: params.operationalManager.position.organizationUnitId,
+          ownerAssignmentId: params.operationalManager.id,
           createdByAssignmentId: params.operationalManager.id,
           productNumber,
           classification:
@@ -1429,8 +1437,7 @@ async function seedProducts(params: {
           where: { workflowId_stepNumber: { workflowId, stepNumber: 1 } },
           update: {
             stage: ApprovalStage.REGIONAL,
-            targetSeatId: params.regionalCommander.seatId,
-            targetPositionId: params.regionalCommander.positionId,
+            targetAssignmentId: params.regionalCommander.id,
             status: isComplete
               ? ApprovalStepStatus.APPROVED
               : ApprovalStepStatus.ACTIVE,
@@ -1450,8 +1457,7 @@ async function seedProducts(params: {
             workflowId,
             stepNumber: 1,
             stage: ApprovalStage.REGIONAL,
-            targetSeatId: params.regionalCommander.seatId,
-            targetPositionId: params.regionalCommander.positionId,
+            targetAssignmentId: params.regionalCommander.id,
             status: isComplete
               ? ApprovalStepStatus.APPROVED
               : ApprovalStepStatus.ACTIVE,
@@ -1487,8 +1493,8 @@ async function seedProducts(params: {
                 ? params.regionalCommander.id
                 : params.operationalManager.id,
               note: isComplete
-                ? 'Produk telah disetujui Regional Commander.'
-                : 'Produk diajukan untuk persetujuan Regional Commander.',
+                ? 'Produk telah disetujui Komandan Regional.'
+                : 'Produk diajukan untuk persetujuan Komandan Regional.',
               metadata: { seeded: true, provinceCode: JAKARTA_PROVINCE_CODE },
               createdAt: isComplete
                 ? (decidedAt ?? createdAt)
@@ -1505,7 +1511,7 @@ async function seedProducts(params: {
             : 'Persetujuan produk DKI Jakarta',
           message: isComplete
             ? `${title} telah Anda setujui.`
-            : `${title} menunggu keputusan Regional Commander.`,
+            : `${title} menunggu keputusan Komandan Regional.`,
           link: `/dashboard/regional-commander/laporan-intelijen`,
           createdAt: addHours(createdAt, 2),
           readAt: isComplete ? decidedAt : null,
@@ -1514,11 +1520,8 @@ async function seedProducts(params: {
 
       if (productStatus === ProductStatus.DISTRIBUTED) {
         for (const [distributionIndex, target] of [
-          { targetPositionId: params.executive.positionId, targetUnitId: null },
-          {
-            targetPositionId: null,
-            targetUnitId: params.executive.position.organizationUnitId,
-          },
+          { targetAssignmentId: params.executive.id },
+          { targetAssignmentId: params.regionalCommander.id },
         ].entries()) {
           const sentAt = addHours(createdAt, 8 + distributionIndex);
           await prisma.productDistribution.upsert({
@@ -1530,9 +1533,7 @@ async function seedProducts(params: {
             update: {
               productVersionId: versionId,
               sentByAssignmentId: params.operationalManager.id,
-              targetPositionId: target.targetPositionId,
-              targetUnitId: target.targetUnitId,
-              targetSeatId: null,
+              targetAssignmentId: target.targetAssignmentId,
               targetUserProfileId: null,
               status:
                 distributionIndex === 0
@@ -1550,8 +1551,8 @@ async function seedProducts(params: {
               ),
               productVersionId: versionId,
               sentByAssignmentId: params.operationalManager.id,
-              targetPositionId: target.targetPositionId,
-              targetUnitId: target.targetUnitId,
+              targetAssignmentId: target.targetAssignmentId,
+              targetUserProfileId: null,
               status:
                 distributionIndex === 0
                   ? DistributionStatus.READ
@@ -1569,7 +1570,7 @@ async function seedProducts(params: {
           userProfileId: params.executive.userProfileId,
           type: NotificationType.PRODUCT,
           title: 'Produk intelijen DKI Jakarta tersedia',
-          message: `${title} telah disetujui Regional Commander dan tersedia untuk dibaca pimpinan.`,
+          message: `${title} telah disetujui Komandan Regional dan tersedia untuk dibaca pimpinan.`,
           link: `/dashboard/executive/laporan-intelijen`,
           createdAt: addHours(createdAt, 7),
           readAt:

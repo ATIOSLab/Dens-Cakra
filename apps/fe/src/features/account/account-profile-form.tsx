@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+
 import { useRouter } from "next/navigation";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AtSign, RefreshCw, Save, User, UserRound } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
@@ -60,7 +62,7 @@ function resolveErrorMessage(error: AuthClientError) {
     return "Username minimal 3 karakter.";
   }
 
-  return error.message || "Gagal memperbarui profil. Coba beberapa saat lagi.";
+  return error.message ?? "Gagal memperbarui profil. Coba beberapa saat lagi.";
 }
 
 type AccountProfileFormProps = {

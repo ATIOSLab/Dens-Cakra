@@ -11,11 +11,11 @@ Dashboard lama memakai `GET /dashboard/briefing` dan menampilkan angka Baket, tu
 
 - `GET /dashboard/executive` menjadi kontrak agregat ringkas untuk role pimpinan;
 - `GET /dashboard/executive/filters` mengirim pilihan filter yang sudah dipotong oleh scope;
-- endpoint lama tetap tersedia untuk Admin Sistem dan Field Officer;
+- endpoint lama tetap tersedia untuk Admin Sistem dan Petugas Wilayah (Gaswil);
 - data utama dihitung per `WhatsAppReportSession.id`, bukan dari join mentah;
 - `submittedAt` menjadi field periode Laporan Jaring, dengan fallback `startedAt` hanya untuk record tanpa `submittedAt`;
 - periode dan pembanding dihitung sebagai hari kalender `Asia/Jakarta`;
-- status kelengkapan, verifikasi Field Officer, workflow Baket, validasi Baket, urgensi, dan produk tidak digabung;
+- status kelengkapan, verifikasi Petugas Wilayah (Gaswil), workflow Baket, validasi Baket, urgensi, dan produk tidak digabung;
 - satu endpoint agregat dipertahankan karena payload hanya memuat agregat dan maksimal 20 item per ranking/daftar, sedangkan master filter dipisah;
 - hasil di-cache 15 detik berdasarkan scope dan query;
 - tidak ada peta, data dummy, atau formula skor kinerja baru.
@@ -53,7 +53,7 @@ Status Baket aktual: 4 `READY_TO_SEND`, 1 `SENT_TO_OIM`. Tidak ada Baket `VERIFI
 | `UserOperationalAssignment` | `id`, `roleId`, `areaScopes` | Gaswil dan scope penugasan |
 | `Task` / `TaskAssignment` | `status`, `ownerAssignmentId`, `assigneeAssignmentId` | ringkasan tindak lanjut |
 | `Directive` | `status`, `ownerAssignmentId` | ringkasan arahan |
-| `IntelligenceProduct` | `status`, `createdAt`, `createdByAssignmentId`, `ownerAssignmentId` | perkembangan Produk Informasi |
+| `IntelligenceProduct` | `status`, `createdAt`, `createdByAssignmentId`, `ownerAssignmentId` | perkembangan Produk Intelijen |
 | `ProductApprovalStep` | `targetAssignmentId`, `status` | tindakan approval milik pengguna aktif |
 
 ## Matriks indikator
@@ -61,14 +61,12 @@ Status Baket aktual: 4 `READY_TO_SEND`, 1 `SENT_TO_OIM`. Tidak ada Baket `VERIFI
 | Indikator | Entitas sumber | Field tanggal | Kondisi/filter | Denominator | Permission | Endpoint/query | Drill-down | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Total Laporan Jaring | `WhatsAppReportSession` | `submittedAt` | pesan sudah dikirim, seluruh filter global | - | `jaringWhere` | `/dashboard/executive` | `/dashboard/laporan-jaring` | Implemented |
-| Laporan Jaring Lengkap | session + message + media | `submittedAt` | isi, pengirim, Jaring, koordinat, resolved area, foto | total laporan | `jaringWhere` | agregasi unique session | `completeness=COMPLETE` | Implemented |
-| Laporan Jaring Tidak Lengkap | session + message + media | `submittedAt` | negasi definisi lengkap | total laporan | `jaringWhere` | agregasi unique session | `completeness=INCOMPLETE` | Implemented |
 | Laporan Jaring Terverifikasi | `WhatsAppMessage` | session `submittedAt` | `validationSummary=VALID` | total laporan | `jaringWhere` | agregasi unique session | filter verifikasi FO | Implemented |
 | Draf Baket | `Baket` dari submitted message | session `submittedAt` | status Baket selain `VERIFIED` | total laporan | relasi laporan scoped | agregasi unique session | `stage=DRAFT_BAKET` | Implemented |
 | Baket Tervalidasi | `Baket` | session `submittedAt` | `status=VERIFIED` | total laporan | relasi laporan scoped | agregasi unique session | `stage=VALIDATED_BAKET` | Implemented |
-| Produk Informasi | `IntelligenceProduct` | `createdAt` | status dalam `productWhere` | - | `productWhere` | `groupBy status` | route produk sesuai role | Implemented |
+| Produk Intelijen | `IntelligenceProduct` | `createdAt` | status dalam `productWhere` | - | `productWhere` | `groupBy status` | route produk sesuai role | Implemented |
 | Laporan Urgent | current `BaketVersion` | session `submittedAt` | `urgency=URGENT` pada versi aktif | total laporan | relasi laporan scoped | current-version join | `urgency=URGENT` | Implemented |
-| Perlu Dilengkapi | session + message | `submittedAt` | laporan tidak lengkap | total laporan | `jaringWhere` | agregasi unique session | filter kelengkapan | Implemented |
+| Siap Dibuat Baket | session + message | `submittedAt` | Laporan Jaring sudah masuk dan belum menjadi Baket | total laporan | `jaringWhere` | agregasi unique session | `stage=JARING_REPORT` | Implemented |
 | Menunggu Tindakan | message + approval step | `submittedAt` | sesuai role: review laporan atau approval assignment aktif | - | scope + target assignment aktif | agregasi | halaman sumber | Implemented |
 | Laporan Intelijen Binda | - | - | profil Binda aktif tidak ada di schema | - | - | - | - | Belum tersedia |
 | Laporan Intelijen Direktorat | - | - | relasi organisasi direktorat aktif tidak ada | - | - | - | - | Belum tersedia |
@@ -111,8 +109,8 @@ Status Baket aktual: 4 `READY_TO_SEND`, 1 `SENT_TO_OIM`. Tidak ada Baket `VERIFI
 | Executive | `DomainScopeService` nasional/area aktif | scoped | scoped | scoped | route guard existing | belum disediakan |
 | Regional Commander | assignment dan area descendant | scoped | scoped | scoped | route guard existing | belum disediakan |
 | OIM | assignment dan area aktif | scoped | scoped | scoped | route guard existing | belum disediakan |
-| Field Coordinator | branch/area aktif sesuai `jaringWhere` | scoped | scoped | scoped | route guard existing | belum disediakan |
-| Field Officer | dashboard lama dipertahankan | existing | existing | existing | existing | existing |
+| Koordinator Wilayah (Korwil) | branch/area aktif sesuai `jaringWhere` | scoped | scoped | scoped | route guard existing | belum disediakan |
+| Petugas Wilayah (Gaswil) | dashboard lama dipertahankan | existing | existing | existing | existing | existing |
 | Admin Sistem | dashboard lama dipertahankan | existing | existing | existing | existing | existing |
 
 Filter `fieldOfficerAssignmentId` di luar `resolvedScope.assignmentIds` menghasilkan 404. `areaId` divalidasi dengan `assertArea`. Pilihan Jaring dan Gaswil di endpoint filter sudah memakai scope yang sama.
@@ -123,18 +121,18 @@ Filter `fieldOfficerAssignmentId` di luar `resolvedScope.assignmentIds` menghasi
 - Wilayah administratif dari area tree scoped.
 - Kategori/isu dari `ReportCategory` aktif.
 - Petugas Wilayah (Gaswil) dan Jaring dari assignment/scope aktif.
-- Tipe Produk Informasi, status sesi laporan, sumber laporan, urgensi, kelengkapan, verifikasi laporan, workflow Baket, validasi Baket, lampiran, sumber lokasi, dan kesesuaian lokasi.
+- Tipe Produk Intelijen, status sesi laporan, sumber laporan, urgensi, kelengkapan, verifikasi laporan, workflow Baket, validasi Baket, lampiran, sumber lokasi, dan kesesuaian lokasi.
 - State filter disimpan di URL, reset tidak mengubah scope, request di-debounce 250 ms, dan request lama dibatalkan.
 - Pilihan Kedeputian/Direktorat/Binda/Korwil ditandai belum tersedia karena relasi foreign key organisasi tersebut sudah tidak aktif pada schema. Aplikasi tidak melakukan pencocokan berdasarkan nama.
 
 ## Konsistensi lintas halaman
 
-- Executive, Regional Commander, OIM, dan Field Coordinator memakai satu kontrak dashboard, satu definisi indikator, dan satu formatter angka/status/waktu WIB.
+- Executive, Regional Commander, OIM, dan Koordinator Wilayah (Korwil) memakai satu kontrak dashboard, satu definisi indikator, dan satu formatter angka/status/waktu WIB.
 - Card, grafik, ranking Jaring, ranking Petugas Wilayah, ranking wilayah, daftar prioritas, aktivitas audit, serta kualitas data berasal dari dataset laporan terfilter yang sama.
 - Nilai numerik pada tabel rata kanan dan memakai digit tabular; card ringkasan memakai tinggi dan struktur label/nilai yang seragam.
 - Drill-down Laporan Jaring meneruskan periode, wilayah, kategori, Jaring, Petugas Wilayah, urgensi, status sesi, kelengkapan, verifikasi, workflow Baket, lampiran, sumber koordinat, dan kesesuaian lokasi yang relevan.
 - Halaman daftar Laporan Jaring membaca filter dari URL dan mengirimkannya ke endpoint server. Definisi `VERIFIED`, `NEEDS_REVIEW`, dan `WAITING` disamakan dengan kartu dashboard, termasuk laporan yang sudah dikonversi menjadi Baket.
-- Daftar Produk Informasi bersama membaca periode dan tipe produk dari URL untuk route Executive, Regional Commander, dan OIM.
+- Daftar Produk Intelijen bersama membaca periode dan tipe produk dari URL untuk route Executive, Regional Commander, dan OIM.
 - Tabel/daftar tidak menggunakan dataset dummy atau kalkulasi ulang frontend; formatter frontend hanya mengubah presentasi, bukan nilai.
 
 ## Arsitektur dan performa
@@ -156,7 +154,7 @@ Pencegahan masalah performa:
 
 | Method | Endpoint | Fungsi | Role |
 | --- | --- | --- | --- |
-| GET | `/dashboard/executive` | cards, attention, trend, distributions, products, ranking, priority, follow-up, recent activity, quality | Executive, Regional Commander, OIM, Field Coordinator |
+| GET | `/dashboard/executive` | cards, attention, trend, distributions, products, ranking, priority, follow-up, recent activity, quality | Executive, Regional Commander, OIM, Koordinator Wilayah (Korwil) |
 | GET | `/dashboard/executive/filters` | kategori, area tree, Gaswil, Jaring, enum/filter availability | role yang sama |
 | GET | `/dashboard/briefing` | kontrak lama, tetap kompatibel | existing roles |
 
@@ -186,7 +184,7 @@ Kegagalan E2E terjadi pada lifecycle teardown/background worker existing, bukan 
 ## Batasan yang dinyatakan jujur
 
 - Ranking Korwil dan Binda tidak dihitung karena hubungan atasan-organisasi aktif tidak tersedia sebagai foreign key. Shared-area matching berpotensi memberi atribusi ganda dan sengaja tidak digunakan.
-- Card khusus Laporan Intelijen Binda, Laporan Intelijen Direktorat, dan Produk Kedeputian II tidak dibuat sebagai angka palsu. Produk Informasi existing tetap ditampilkan.
+- Card khusus Laporan Intelijen Binda, Laporan Intelijen Direktorat, dan Produk Kedeputian II tidak dibuat sebagai angka palsu. Produk Intelijen existing tetap ditampilkan.
 - Ekspor tidak ditambahkan karena belum ada kontrak ekspor dashboard yang scoped.
 - Screenshot runtime belum dapat dibuat tanpa sesi role pimpinan yang valid dan browser test harness. Build dan layout breakpoint berbasis CSS telah diverifikasi; pemeriksaan visual authenticated tetap perlu dilakukan di UAT.
 - Dashboard diberi label bukan real-time; refresh mengikuti request pengguna dan cache 15 detik.

@@ -8,16 +8,15 @@ import {
   CheckCircle2,
   Clock,
   Compass,
-  FileText,
   LoaderCircle,
   MapPinned,
   ShieldAlert,
   User,
-  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 
 import { REPORT_URGENCY_COLORS, REPORT_URGENCY_LABELS } from "./MapLegend";
 import { type PersonnelStatus, STATUS_COLORS, STATUS_LABELS } from "./utils/mapHelpers";
@@ -83,9 +82,9 @@ function formatEnum(value: unknown) {
   if (!value) return "-";
   const labels: Record<string, string> = {
     SENT_TO_OIM: "Dikirim ke OIM",
-    UNDER_VERIFICATION: "Dalam Verifikasi",
+    UNDER_VERIFICATION: "Dalam Tinjauan",
     NEEDS_DEVELOPMENT: "Perlu Pengembangan",
-    VERIFIED: "Terverifikasi",
+    VERIFIED: "Disetujui",
     REJECTED: "Ditolak",
     PENDING: "Menunggu",
     APPROVED: "Disetujui",
@@ -167,7 +166,7 @@ export function MapInspector({ selection, onClear }: MapInspectorProps) {
           ) : selection.kind === "cluster" && clusterStats ? (
             <div className="space-y-3 font-mono">
               <div className="mb-2 flex items-center gap-2 border-border/20 border-b pb-2">
-                <Users className="size-4 shrink-0 text-primary" />
+                <DOMAIN_VISUALS.gaswil.Icon className={`size-4 shrink-0 ${DOMAIN_VISUALS.gaswil.iconClass}`} />
                 <span className="font-bold font-sans text-foreground text-sm">Ringkasan Kelompok Personel</span>
               </div>
 
@@ -217,7 +216,7 @@ function ReportInspector({ selection }: { selection: Extract<SelectionType, { ki
   return (
     <div className="space-y-3 font-mono">
       <div className="mb-2 flex items-center gap-2 border-border/20 border-b pb-2">
-        <FileText className="size-4 shrink-0 text-emerald-500" />
+        <DOMAIN_VISUALS.baket.Icon className={`size-4 shrink-0 ${DOMAIN_VISUALS.baket.iconClass}`} />
         <span className="font-bold font-sans text-foreground text-sm">{properties.displayTitle || "Baket terpetakan"}</span>
       </div>
 
@@ -242,7 +241,7 @@ function ReportInspector({ selection }: { selection: Extract<SelectionType, { ki
       </div>
 
       <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
-        <DataField label="Kategori" value={properties.reportCategoryName || "-"} breakWords />
+        <DataField label="Kategori Baket" value={properties.reportCategoryName || "-"} breakWords />
       </div>
 
       <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
@@ -265,7 +264,7 @@ function ReportInspector({ selection }: { selection: Extract<SelectionType, { ki
         <DataField label="Dibuat Oleh" value={properties.createdByName || "-"} breakWords />
         <DataField label="Jabatan" value={properties.createdByPosition || "-"} breakWords />
         <DataField label="Validasi Cakupan" value={formatEnum(properties.coverageValidationStatus)} breakWords />
-        <DataField label="Status Verifikasi" value={formatEnum(properties.verificationStatus)} breakWords />
+        <DataField label="Status Validasi Baket" value={formatEnum(properties.verificationStatus)} breakWords />
       </div>
 
       <div className="grid grid-cols-4 gap-2 rounded-[4px] border border-border/40 bg-secondary/10 p-2.5 text-center">
@@ -318,11 +317,6 @@ function PersonnelInspector({ selection }: { selection: Extract<SelectionType, {
             <strong className="text-foreground">{STATUS_LABELS[status]}</strong>
           </span>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 border-t border-border/20 pt-2 text-[10.5px]">
-        <DataField label="Email" value={properties.email || "-"} breakWords />
-        <DataField label="Telepon" value={properties.phone || "-"} breakWords />
       </div>
 
       <DataField label="Jabatan" value={properties.positionTitle || "-"} />
@@ -400,16 +394,16 @@ function AreaInspector({ selection }: { selection: Extract<SelectionType, { kind
 
       <div className="grid grid-cols-2 gap-3 border-t border-border/20 pt-2">
         <AreaMetric
-          icon={Users}
+          icon={DOMAIN_VISUALS.gaswil.Icon}
           label="Personel"
           value={selection.summary?.personnelCount ?? 0}
-          className="text-primary"
+          className={DOMAIN_VISUALS.gaswil.iconClass}
         />
         <AreaMetric
-          icon={FileText}
+          icon={DOMAIN_VISUALS.baket.Icon}
           label="Baket"
           value={selection.summary?.reportsCount ?? 0}
-          className="text-emerald-500"
+          className={DOMAIN_VISUALS.baket.iconClass}
         />
         <AreaMetric
           icon={AlertTriangle}

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { createFieldOfficerJaring } from "@/server/field-ops/repository";
 
 export async function POST(request: NextRequest) {
@@ -29,9 +30,6 @@ export async function POST(request: NextRequest) {
       status: 201,
     });
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal membuat jaring." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal membuat Jaring.");
   }
 }

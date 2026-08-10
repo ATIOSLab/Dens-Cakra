@@ -482,7 +482,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
           recipient.targetPosition?.assigneeName ||
           recipient.targetPosition?.title ||
           recipient.targetUnit?.name ||
-          "Regional Commander",
+          "Komandan Regional",
         ...regionalState,
         readAt: recipient.readAt,
         acknowledgedAt: recipient.acknowledgedAt,
@@ -581,10 +581,13 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
               { label: "Status forwarding", value: detailValue(chain.forwarding?.status) },
               { label: "Status ringkas", value: oimState.statusLabel },
               { label: "Jumlah tugas OIM", value: detailValue(chain.oimStage.taskCount) },
-              { label: "Jumlah Field Coordinator", value: detailValue(chain.oimStage.fieldCoordinatorAssignmentCount) },
+              {
+                label: "Jumlah Koordinator Wilayah (Korwil)",
+                value: detailValue(chain.oimStage.fieldCoordinatorAssignmentCount),
+              },
               { label: "Sudah dibaca", value: chain.oimStage.hasRead ? "Ya" : "Belum" },
               {
-                label: "Sudah diteruskan ke FC",
+                label: "Sudah diteruskan ke Koordinator Wilayah (Korwil)",
                 value: chain.oimStage.hasForwardedToFieldCoordinator ? "Ya" : "Belum",
               },
               { label: "Dibuat", value: formatDate(chain.forwarding?.createdAt) },
@@ -619,7 +622,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
               coordinator.assignee?.fullName ||
               coordinator.assignee?.positionTitle ||
               coordinator.assignee?.organizationUnitName ||
-              "Field Coordinator",
+              "Koordinator Wilayah (Korwil)",
             ...coordinatorState,
             readAt: coordinator.readAt,
             acknowledgedAt: coordinator.acknowledgedAt,
@@ -638,7 +641,10 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
               { label: "Wilayah utama", value: coordinatorArea },
               { label: "Status assignment", value: detailValue(coordinator.status) },
               { label: "Status ringkas", value: coordinatorState.statusLabel },
-              { label: "Jumlah Field Officer", value: detailValue(coordinator.downstreamAssignments?.length ?? 0) },
+              {
+                label: "Jumlah Petugas Wilayah (Gaswil)",
+                value: detailValue(coordinator.downstreamAssignments?.length ?? 0),
+              },
               { label: "Ditugaskan", value: formatDate(coordinator.assignedAt) },
               { label: "Dibaca", value: formatDate(coordinator.readAt) },
               { label: "Diakui", value: formatDate(coordinator.acknowledgedAt) },
@@ -676,7 +682,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
                 officer.assignee?.fullName ||
                 officer.assignee?.positionTitle ||
                 officer.assignee?.organizationUnitName ||
-                "Field Officer",
+                "Petugas Wilayah (Gaswil)",
               ...officerState,
               readAt: officer.readAt,
               acknowledgedAt: officer.acknowledgedAt,
@@ -811,11 +817,11 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
         id: "dir-default-officer",
         parentId: "dir-default-coordinator",
         branch: "DIRECTORATE",
-        name: "Agen",
+        name: "Personel Lapangan",
         status: "PENDING",
         statusLabel: "Belum diproses",
         groupName: "Direktorat Wilayah",
-        officer: "Agen",
+        officer: "Personel Lapangan",
         details: [],
       });
     }
@@ -1136,10 +1142,10 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
 
   const summaryFlowNodes = useMemo<PipelineReactFlowNode[]>(() => {
     const list: Array<{ id: PipelineStageId; label: string; subtitle: string; icon: LucideIcon; x: number }> = [
-      { id: "executive", label: "Deputi II", subtitle: "Executive Command", icon: Shield, x: 80 },
+      { id: "executive", label: "Deputi II", subtitle: "Komando Deputi II", icon: Shield, x: 80 },
       { id: "regional", label: "Pimpinan Regional", subtitle: "Kabinda / Direktur Wilayah", icon: Shield, x: 360 },
       { id: "oim", label: "OIM Unit", subtitle: "Kabagops / Kasubdit", icon: RadioTower, x: 640 },
-      { id: "coordinator", label: "FC / Korwil", subtitle: "Koordinator lapangan", icon: Users, x: 920 },
+      { id: "coordinator", label: "Koordinator Wilayah (Korwil)", subtitle: "Korwil", icon: Users, x: 920 },
       { id: "officer", label: "Petugas Organik", subtitle: "Pelaksana lapangan", icon: UserRound, x: 1200 },
     ];
 
@@ -1476,7 +1482,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
           y: coordinatorPositions.get(coordinator.id) ?? graphCenterY,
           icon: Users,
           label: coordinator.name,
-          subtitle: coordinator.officer || coordinator.positionCode || "FC / Korwil",
+          subtitle: coordinator.officer || coordinator.positionCode || "Koordinator Wilayah (Korwil)",
           status: coordinator.status,
           progressText: coordinator.statusLabel,
         }),
@@ -1582,7 +1588,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
           regional: ["Kabinda", "Pimpinan BINDA"],
           oim: ["Kabagops", "Penjabaran STR BINDA"],
           coordinator: ["Korwil", "Koordinator wilayah"],
-          officer: ["Field Officer", "Petugas organik BINDA"],
+          officer: ["Petugas Wilayah (Gaswil)", "Petugas organik Binda"],
         },
       },
       {
@@ -1591,8 +1597,8 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
         labels: {
           regional: ["Direktur Wilayah", "Pimpinan direktorat"],
           oim: ["Kasubdit", "Penjabaran STR direktorat"],
-          coordinator: ["Staf Subdit", "Koordinator lapangan"],
-          officer: ["Field Officer", "Agen / petugas organik"],
+          coordinator: ["Staf Subdit", "Koordinator Wilayah (Korwil)"],
+          officer: ["Petugas Wilayah (Gaswil)", "Personel lapangan / petugas organik"],
         },
       },
     ];
@@ -1763,7 +1769,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      fitView({
+      void fitView({
         padding: variant === "compact" ? 0.22 : 0.18,
         minZoom: variant === "compact" ? 0.35 : 0.08,
         maxZoom: variant === "compact" ? 1.05 : 1.05,
@@ -1854,7 +1860,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
                 Alur Distribusi STR
               </CardTitle>
               <CardDescription className="text-xs">
-                Perjalanan satu STR dari pemberi perintah sampai Field Officer.
+                Perjalanan satu STR dari pemberi perintah sampai Petugas Wilayah (Gaswil).
               </CardDescription>
             </div>
             <div className="flex select-none items-center gap-4 font-mono text-[10px] text-muted-foreground">
@@ -1992,7 +1998,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
             (() => {
               const stagesPopupMeta = {
                 executive: {
-                  title: "Deputi II (Executive)",
+                  title: "Deputi II",
                   desc: "Titik awal penerbitan direktif strategis oleh Deputi II.",
                   details: [
                     { label: "Nomor STR", value: directive.commandNumber },
@@ -2025,7 +2031,7 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
                       ? "Kabagops"
                       : activeBranch === "DIRECTORATE"
                         ? "Kasubdit"
-                        : "Operational Intelligence Manager (OIM)",
+                        : "Manajer Intelijen Operasional (OIM)",
                   desc:
                     activeBranch === "BINDA"
                       ? "Daftar Kabagops yang menjabarkan STR pada jalur BINDA."
@@ -2041,23 +2047,23 @@ function TrackingFlowCanvas({ directive, tracking, variant = "full" }: TrackingF
                       ? "Korwil"
                       : activeBranch === "DIRECTORATE"
                         ? "Staf Subdit"
-                        : "Field Coordinator / Korwil",
+                        : "Koordinator Wilayah (Korwil) / Korwil",
                   desc:
                     activeBranch === "BINDA"
                       ? "Daftar Korwil yang menerima penerusan tugas dari Kabagops."
                       : activeBranch === "DIRECTORATE"
                         ? "Daftar Staf Subdit yang menerima penerusan tugas dari Kasubdit."
-                        : "Daftar koordinator lapangan penanggung jawab instruksi taktis STR ini.",
+                        : "Daftar Koordinator Wilayah (Korwil) penanggung jawab instruksi taktis STR ini.",
                   details: [],
                   instructions: null,
                 },
                 officer: {
-                  title: "Field Officer",
+                  title: "Petugas Wilayah (Gaswil)",
                   desc:
                     activeBranch === "BINDA"
                       ? "Daftar petugas organik BINDA yang menerima tugas dari Korwil."
                       : activeBranch === "DIRECTORATE"
-                        ? "Daftar agen atau petugas organik direktorat yang menerima tugas dari Staf Subdit."
+                        ? "Daftar personel lapangan atau petugas organik direktorat yang menerima tugas dari Staf Subdit."
                         : "Daftar petugas organik pelaksana operasi taktis STR ini.",
                   details: [],
                   instructions: null,

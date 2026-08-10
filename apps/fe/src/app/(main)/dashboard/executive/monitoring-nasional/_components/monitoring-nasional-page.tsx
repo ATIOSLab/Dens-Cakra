@@ -4,7 +4,7 @@ export function MonitoringNasionalPage() {
   return (
     <DensModulePage
       title="Monitoring Nasional"
-      role="Eksekutif"
+      roleLabel="Deputi II"
       description="Halaman ini mengonsolidasikan monitoring tugas, pipeline laporan, performa wilayah, dan alert nasional dalam satu tampilan."
       highlights={[
         "Status wilayah, tugas strategis, dan jalur pelaporan aktif.",

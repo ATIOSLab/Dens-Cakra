@@ -413,7 +413,6 @@ describe('MapMarkersService', () => {
       expect.objectContaining({
         markerType: 'report',
         validity: 'VALID',
-        completeness: 'COMPLETE',
         jaring: expect.objectContaining({ id: 'jaring-1' }),
         attachments: expect.objectContaining({
           total: 1,
@@ -432,15 +431,9 @@ describe('MapMarkersService', () => {
       expect.objectContaining({
         total: 2,
         valid: 1,
-        complete: 1,
-        incomplete: 1,
         mappable: 1,
         unlocated: 1,
       }),
-    );
-    expect(result.meta.summary.reports.total).toBe(
-      (result.meta.summary.reports.complete ?? 0) +
-        (result.meta.summary.reports.incomplete ?? 0),
     );
     expect(result.meta.unlocatedItems).toHaveLength(1);
     expect(scope.jaringWhere).toHaveBeenCalledTimes(1);

@@ -4,12 +4,12 @@ export function DirektifTugasPage() {
   return (
     <DensModulePage
       title="Direktif & Tugas"
-      role="Manajer Intelijen Operasional"
+      roleLabel="Manajer Intelijen Operasional"
       description="Halaman ini disiapkan untuk menerima direktif, memecahnya menjadi tugas teknis, dan mendistribusikan eksekusi."
       highlights={[
-        "Direktif aktif, target informasi, dan deadline.",
+        "Direktif aktif, target informasi, dan tenggat.",
         "Status pemenuhan serta pembagian tugas ke Korwil atau tim.",
-        "Read receipt dan catatan pimpinan operasional.",
+        "Status baca dan catatan pimpinan operasional.",
       ]}
     />
   );

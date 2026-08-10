@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { assignIncomingMessageCategory } from "@/server/field-ops/repository";
 
 type RouteContext = {
@@ -19,9 +20,6 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       await assignIncomingMessageCategory(request.headers.get("cookie") ?? "", messageId, body.categoryId),
     );
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal menyimpan kategori laporan." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal menyimpan kategori laporan.");
   }
 }

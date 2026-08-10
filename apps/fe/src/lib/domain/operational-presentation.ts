@@ -1,4 +1,4 @@
-import { DOMAIN_TERMS } from "./terminology";
+import { URGENCY_VISUALS } from "./visual-system";
 
 export type OperationalTone = "critical" | "warning" | "success" | "info" | "neutral" | "baket";
 
@@ -21,28 +21,28 @@ export const OPERATIONAL_TONES: Record<OperationalTone, OperationalTonePresentat
     iconClass: "text-rose-600 dark:text-rose-400",
     surfaceClass: "border-rose-500/30 bg-rose-500/5",
     markerClass: "bg-rose-600 text-white",
-    mapColor: "#e11d48",
+    mapColor: URGENCY_VISUALS.URGENT.markerColor,
   },
   warning: {
     badgeClass: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     iconClass: "text-amber-600 dark:text-amber-400",
     surfaceClass: "border-amber-500/30 bg-amber-500/5",
     markerClass: "bg-amber-500 text-slate-950",
-    mapColor: "#f59e0b",
+    mapColor: URGENCY_VISUALS.HIGH.markerColor,
   },
   success: {
     badgeClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
     iconClass: "text-emerald-600 dark:text-emerald-400",
     surfaceClass: "border-emerald-500/30 bg-emerald-500/5",
     markerClass: "bg-emerald-600 text-white",
-    mapColor: "#10b981",
+    mapColor: URGENCY_VISUALS.NORMAL.markerColor,
   },
   info: {
     badgeClass: "border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300",
     iconClass: "text-sky-600 dark:text-sky-400",
     surfaceClass: "border-sky-500/30 bg-sky-500/5",
     markerClass: "bg-sky-600 text-white",
-    mapColor: "#0ea5e9",
+    mapColor: URGENCY_VISUALS.LOW.markerColor,
   },
   neutral: {
     badgeClass: "border-slate-500/40 bg-slate-500/10 text-slate-700 dark:text-slate-300",
@@ -70,16 +70,18 @@ export const URGENCY_PRESENTATION = {
 export const VERIFICATION_PRESENTATION = {
   IN_PROGRESS_BY_JARING: { label: "Sedang disusun Jaring", tone: "neutral" },
   NOT_SUBMITTED: { label: "Sedang disusun Jaring", tone: "neutral" },
-  WAITING_FIELD_OFFICER_VERIFICATION: { label: "Belum Diverifikasi", tone: "warning" },
+  WAITING_FIELD_OFFICER_VERIFICATION: { label: "Siap Dibuat Baket", tone: "info" },
   NEEDS_FIELD_OFFICER_REVIEW: {
-    label: "Perlu Ditinjau Petugas Wilayah (Gaswil)",
+    label: "Perlu Perbaikan",
     tone: "critical",
   },
   VERIFIED_BY_FIELD_OFFICER: {
-    label: "Terverifikasi Petugas Wilayah (Gaswil)",
+    label: "Siap Dibuat Baket",
     tone: "info",
   },
-  METADATA_RECORDED: { label: DOMAIN_TERMS.baket, tone: "baket" },
+  READY_FOR_BAKET: { label: "Siap Dibuat Baket", tone: "info" },
+  METADATA_RECORDED: { label: "Baket Dibuat", tone: "baket" },
+  BAKET_CREATED: { label: "Baket Dibuat", tone: "baket" },
 } as const satisfies Record<string, { label: string; tone: OperationalTone }>;
 
 export function getUrgencyPresentation(value?: string | null) {

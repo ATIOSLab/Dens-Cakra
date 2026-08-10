@@ -41,7 +41,9 @@ import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/compo
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { isDkiJakartaProvinceArea, isDkiJakartaRegencyCityArea } from "@/features/baket/administrative-area";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { cn } from "@/lib/utils";
 
 import { type CreateUserFormValues, createUserSchema } from "./pengguna-schemas";
@@ -67,31 +69,33 @@ type AreaLevel = "COUNTRY" | "PROVINCE" | "REGENCY" | "CITY" | "DISTRICT";
 
 const ROLE_AREA_CONFIG: Record<ProvisionRoleCode, { label: string; levels: AreaLevel[]; scopeLabel: string }> = {
   EXECUTIVE: {
-    label: "Eksekutif",
+    label: DOMAIN_TERMS.executiveRole,
     levels: ["COUNTRY"],
     scopeLabel: "Nasional",
   },
   REGIONAL_COMMANDER: {
-    label: "Komandan Regional",
+    label: DOMAIN_TERMS.regionalCommanderRole,
     levels: ["PROVINCE"],
     scopeLabel: "Provinsi",
   },
   OPERATIONAL_INTELLIGENCE_MANAGER: {
-    label: "Manajer Intelijen Operasional",
+    label: DOMAIN_TERMS.operationalIntelligenceManagerRole,
     levels: ["PROVINCE"],
     scopeLabel: "Provinsi",
   },
   FIELD_COORDINATOR: {
-    label: "Koordinator Lapangan",
+    label: DOMAIN_TERMS.fieldCoordinatorRole,
     levels: ["REGENCY", "CITY"],
     scopeLabel: "Kabupaten/Kota",
   },
   FIELD_OFFICER: {
-    label: "Petugas Wilayah (Gaswil)",
+    label: DOMAIN_TERMS.fieldOfficer,
     levels: ["DISTRICT"],
     scopeLabel: "Kecamatan",
   },
 };
+
+const DIRECTORATE_DKI_SUPERVISION_LEVELS: AreaLevel[] = ["PROVINCE", "REGENCY", "CITY"];
 
 const BRANCH_OPTIONS: Array<{ value: BranchValue; label: string }> = [
   { value: "PUSAT", label: "Pusat" },
@@ -106,6 +110,7 @@ const AREA_LEVEL_LABELS: Record<AreaLevel, string> = {
   CITY: "Kota",
   DISTRICT: "Kecamatan",
 };
+const USERS_ROUTE = "/dashboard/admin-system/pengguna";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isUuid(value: unknown): value is string {
@@ -162,6 +167,37 @@ function getProvisionRoleOptions(branch: BranchValue) {
   );
 }
 
+function isDirectorateSupervisionRole(roleCode: ProvisionRoleCode) {
+  return roleCode === "REGIONAL_COMMANDER" || roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER";
+}
+
+function getEffectiveRoleAreaConfig(branch: BranchValue, roleCode: ProvisionRoleCode) {
+  const base = ROLE_AREA_CONFIG[roleCode];
+  if (branch === "DIRECTORATE" && isDirectorateSupervisionRole(roleCode)) {
+    return {
+      ...base,
+      levels: DIRECTORATE_DKI_SUPERVISION_LEVELS,
+      scopeLabel: "Provinsi / Kota/Kabupaten DKI",
+    };
+  }
+
+  return base;
+}
+
+function isAllowedDirectorateSupervisionArea(area: AreaSearchResult) {
+  if (area.level === "PROVINCE") {
+    return !isDkiJakartaProvinceArea(area);
+  }
+
+  return isDkiJakartaRegencyCityArea(area);
+}
+
+function areaCommandEmptyMessage(areasLoading: boolean, areaQuery: string, areasError: string) {
+  if (areasLoading) return "Mencari wilayah...";
+  if (areaQuery.trim().length < 2) return "Ketik minimal 2 karakter untuk mencari.";
+  return areasError || "Wilayah tidak ditemukan.";
+}
+
 export function PenggunaCreateClient() {
   const router = useRouter();
   const [branch, setBranch] = useState<BranchValue>("BINDA");
@@ -191,7 +227,7 @@ export function PenggunaCreateClient() {
     },
   });
 
-  const roleConfig = ROLE_AREA_CONFIG[roleCode];
+  const roleConfig = getEffectiveRoleAreaConfig(branch, roleCode);
   const selectedAreaIds = form.watch("areaScopeIds") ?? [];
   const branchLabel = BRANCH_OPTIONS.find((option) => option.value === branch)?.label ?? branch;
   const roleOptions = getProvisionRoleOptions(branch);
@@ -237,7 +273,11 @@ export function PenggunaCreateClient() {
         );
 
         if (!cancelled) {
-          const merged = dedupeAreas(responses.flat());
+          const merged = dedupeAreas(
+            branch === "DIRECTORATE" && isDirectorateSupervisionRole(roleCode)
+              ? responses.flat().filter(isAllowedDirectorateSupervisionArea)
+              : responses.flat(),
+          );
           setAreaOptions(merged);
           setAreasError(merged.length ? "" : `Tidak ada ${roleConfig.scopeLabel.toLowerCase()} yang cocok.`);
           if (isNationalScope) {
@@ -269,7 +309,7 @@ export function PenggunaCreateClient() {
     return () => {
       cancelled = true;
     };
-  }, [areaQuery, form, roleConfig.levels, roleConfig.scopeLabel]);
+  }, [areaQuery, branch, form, roleCode, roleConfig.levels, roleConfig.scopeLabel]);
 
   function handleBranchChange(nextBranch: BranchValue) {
     setBranch(nextBranch);
@@ -294,9 +334,9 @@ export function PenggunaCreateClient() {
     if (!normalizedArea) {
       form.setError("areaScopeIds", {
         type: "validate",
-        message: "Scope area tidak valid. Pilih ulang wilayah dari daftar.",
+        message: "Cakupan wilayah tidak valid. Pilih ulang wilayah dari daftar.",
       });
-      toast.error("Scope area tidak valid. Pilih ulang wilayah dari daftar.");
+      toast.error("Cakupan wilayah tidak valid. Pilih ulang wilayah dari daftar.");
       return;
     }
 
@@ -328,9 +368,9 @@ export function PenggunaCreateClient() {
     if (areaScopeIds.length !== values.areaScopeIds.length) {
       form.setError("areaScopeIds", {
         type: "validate",
-        message: "Scope area tidak valid. Pilih ulang wilayah dari daftar.",
+        message: "Cakupan wilayah tidak valid. Pilih ulang wilayah dari daftar.",
       });
-      toast.error("Scope area tidak valid. Pilih ulang wilayah dari daftar.");
+      toast.error("Cakupan wilayah tidak valid. Pilih ulang wilayah dari daftar.");
       return;
     }
     if (values.branch === "BINDA" && areaScopeIds.length !== 1) {
@@ -338,11 +378,11 @@ export function PenggunaCreateClient() {
       return;
     }
     if (values.branch === "PUSAT" && values.roleCode !== "EXECUTIVE") {
-      toast.error("Unit Pusat hanya tersedia untuk role Eksekutif.");
+      toast.error(`Unit Pusat hanya tersedia untuk role ${DOMAIN_TERMS.executiveRole}.`);
       return;
     }
     if (values.roleCode === "EXECUTIVE" && values.branch !== "PUSAT") {
-      toast.error("Role Eksekutif harus menggunakan unit Pusat.");
+      toast.error(`Role ${DOMAIN_TERMS.executiveRole} harus menggunakan unit Pusat.`);
       return;
     }
 
@@ -354,17 +394,17 @@ export function PenggunaCreateClient() {
     if (areaScopeIds.length !== values.areaScopeIds.length) {
       form.setError("areaScopeIds", {
         type: "validate",
-        message: "Scope area tidak valid. Pilih ulang wilayah dari daftar.",
+        message: "Cakupan wilayah tidak valid. Pilih ulang wilayah dari daftar.",
       });
       setPendingValues(null);
-      toast.error("Scope area tidak valid. Pilih ulang wilayah dari daftar.");
+      toast.error("Cakupan wilayah tidak valid. Pilih ulang wilayah dari daftar.");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const email = values.email?.trim();
+      const email = typeof values.email === "string" ? values.email.trim() : "";
       const response = await apiBrowserMutation<UserProvisionResponse>("POST", "/user-profiles/provision", {
         auth: {
           name: values.username.trim(),
@@ -466,7 +506,7 @@ export function PenggunaCreateClient() {
                   <Link href={`/dashboard/admin-system/pengguna/${createdUser.id}`}>Buka detail pengguna</Link>
                 </Button>
                 <Button asChild type="button" variant="outline" size="sm">
-                  <Link href="/dashboard/admin-system/pengguna">Kembali ke daftar</Link>
+                  <Link href={USERS_ROUTE}>Kembali ke daftar</Link>
                 </Button>
               </div>
             </CardContent>
@@ -496,7 +536,7 @@ export function PenggunaCreateClient() {
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Role:</span>
-                  <span className="font-medium text-foreground">{assignmentRole?.name || "-"}</span>
+                  <span className="font-medium text-foreground">{assignmentRole?.name ?? "-"}</span>
                 </div>
                 <div className="flex items-start justify-between text-xs gap-2">
                   <span className="text-muted-foreground shrink-0">Wilayah:</span>
@@ -521,7 +561,7 @@ export function PenggunaCreateClient() {
       {/* Top Header */}
       <div className="space-y-1.5">
         <Link
-          href="/dashboard/admin-system/pengguna"
+          href={USERS_ROUTE}
           className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="size-3.5" />
@@ -546,7 +586,7 @@ export function PenggunaCreateClient() {
             <CardHeader className="pb-4 border-b border-border/40">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <ShieldCheck className="size-4 text-primary" />
-                Penempatan & Scope Wilayah
+                Penempatan & Cakupan Wilayah
               </CardTitle>
               <CardDescription className="text-xs">
                 Tentukan tipe unit organisasi dan role penempatan operasional user.
@@ -636,11 +676,7 @@ export function PenggunaCreateClient() {
                         />
                         <CommandList className="max-h-[300px]">
                           <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
-                            {areasLoading
-                              ? "Mencari wilayah..."
-                              : areaQuery.trim().length < 2
-                                ? "Ketik minimal 2 karakter untuk mencari."
-                                : areasError || "Wilayah tidak ditemukan."}
+                            {areaCommandEmptyMessage(areasLoading, areaQuery, areasError)}
                           </CommandEmpty>
                           <CommandGroup>
                             {areaOptions.map((area) => {
@@ -825,7 +861,7 @@ export function PenggunaCreateClient() {
               <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <AlertTitle className="text-xs font-semibold">Password Sementara</AlertTitle>
               <AlertDescription className="text-xs mt-0.5 text-amber-800/90 dark:text-amber-300/90">
-                Password awal yang dimasukkan akan digunakan langsung saat provisioning selesai.
+                Password awal yang dimasukkan akan digunakan langsung saat penyediaan akun selesai.
               </AlertDescription>
             </Alert>
           </div>
@@ -869,7 +905,7 @@ export function PenggunaCreateClient() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Kembali ke Form</AlertDialogCancel>
-            <AlertDialogAction onClick={() => router.push("/dashboard/admin-system/pengguna")}>
+            <AlertDialogAction onClick={() => router.push(USERS_ROUTE)}>
               Ya, Batalkan
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -6,16 +6,20 @@ import Link from "next/link";
 
 import { Search, Users, X } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { cn } from "@/lib/utils";
 
 import {
   type CoordinateSourceMode,
+  DISTRIBUTION_ENTITY_COPY,
+  type DistributionEntityMode,
   type JaringDistributionEntry,
-  STATUS_COLORS,
+  signalLabelForMode,
+  statusPresentationForMode,
 } from "./sebaran-jaring-types";
 
 type Props = {
@@ -30,6 +34,7 @@ type Props = {
   activeTab: "ALL" | "VERIFIED" | "PENDING";
   onTabChange: (tab: "ALL" | "VERIFIED" | "PENDING") => void;
   coordinateSourceMode: CoordinateSourceMode;
+  mode?: DistributionEntityMode;
 };
 
 export function SebaranJaringRightPanel({
@@ -44,8 +49,11 @@ export function SebaranJaringRightPanel({
   activeTab,
   onTabChange,
   coordinateSourceMode,
+  mode = "jaring",
 }: Props) {
   const [detailTab, setDetailTab] = useState<"info" | "reports" | "activities">("info");
+  const copy = DISTRIBUTION_ENTITY_COPY[mode];
+  const isGaswilMode = mode === "gaswil";
 
   if (!isOpen) return null;
 
@@ -56,7 +64,7 @@ export function SebaranJaringRightPanel({
         <div className="flex items-center gap-2">
           <Users className="size-4 text-cyan-600 dark:text-cyan-400" />
           <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-            DAFTAR JARING
+            {copy.rightPanelTitle}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -67,7 +75,7 @@ export function SebaranJaringRightPanel({
             type="button"
             onClick={onClose}
             className="rounded p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
-            aria-label="Sembunyikan daftar Jaring"
+            aria-label={`Sembunyikan daftar ${copy.plural}`}
           >
             <X className="size-4" aria-hidden />
           </button>
@@ -79,7 +87,7 @@ export function SebaranJaringRightPanel({
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 size-3.5 text-slate-400" />
           <Input
-            placeholder="Cari jaring atau kode..."
+            placeholder={copy.rightSearchPlaceholder}
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             className="pl-8 text-xs h-8.5 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
@@ -109,7 +117,7 @@ export function SebaranJaringRightPanel({
                 : "border-transparent hover:text-slate-900 dark:hover:text-slate-200",
             )}
           >
-            Terverifikasi
+            {copy.statusLabels.VERIFIED}
           </button>
           <button
             type="button"
@@ -117,11 +125,13 @@ export function SebaranJaringRightPanel({
             className={cn(
               "flex-1 py-1.5 border-b-2 text-center transition-colors cursor-pointer",
               activeTab === "PENDING"
-                ? "border-blue-500 text-blue-600 dark:text-blue-300 font-semibold"
+                ? mode === "gaswil"
+                  ? "border-slate-500 text-slate-600 dark:text-slate-300 font-semibold"
+                  : "border-blue-500 text-blue-600 dark:text-blue-300 font-semibold"
                 : "border-transparent hover:text-slate-900 dark:hover:text-slate-200",
             )}
           >
-            Belum Terverifikasi
+            {copy.statusLabels.PENDING}
           </button>
         </div>
       </div>
@@ -130,7 +140,7 @@ export function SebaranJaringRightPanel({
       <div className="flex-1 overflow-y-auto pb-24 divide-y divide-slate-200 dark:divide-slate-800/60 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
         {filteredAgents.map((agent) => {
           const isSelected = selectedJaring?.id === agent.id;
-          const statusMeta = STATUS_COLORS[agent.status] || STATUS_COLORS.PENDING;
+          const statusMeta = statusPresentationForMode(mode, agent.status);
           return (
             <button
               type="button"
@@ -153,44 +163,66 @@ export function SebaranJaringRightPanel({
                         statusMeta.dotClass || "bg-emerald-500",
                       )}
                     >
-                      {statusMeta.label}
+                      {copy.statusLabels[agent.status] || statusMeta.label}
                     </Badge>
-                    <Badge
-                      className={cn(
-                        "text-[9px] px-1.5 py-0 border-none font-semibold text-white",
-                        agent.isActive ? "bg-emerald-600" : "bg-red-600",
-                      )}
-                    >
-                      {agent.isActive ? "Aktif" : "Tidak Aktif"}
-                    </Badge>
+                    {mode === "jaring" ? (
+                      <Badge
+                        className={cn(
+                          "text-[9px] px-1.5 py-0 border-none font-semibold text-white",
+                          agent.isActive ? "bg-emerald-600" : "bg-red-600",
+                        )}
+                      >
+                        {agent.isActive ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days}
+                      </Badge>
+                    ) : null}
                   </div>
                   <span className="font-mono text-[10px] text-slate-500 shrink-0">{agent.lastActivityTime}</span>
                 </div>
 
-                <JaringIdentitySummary
-                  compact
-                  source={{
-                    id: agent.id,
-                    fullName: agent.fullName,
-                    aliasName: agent.aliasName,
-                    whatsappNumber: agent.whatsappNumber,
-                    profilePhotoFileId: agent.profilePhotoFileId,
-                    fieldOfficerName: agent.fieldOfficerName,
-                    villageName: agent.villageName,
-                    districtName: agent.districtName,
-                    cityName: agent.cityName,
-                    provinceName: agent.provinceName,
-                  }}
-                  className="mt-1"
-                />
+                {mode === "jaring" ? (
+                  <JaringIdentitySummary
+                    compact
+                    source={{
+                      id: agent.id,
+                      fullName: agent.fullName,
+                      aliasName: agent.aliasName,
+                      whatsappNumber: agent.whatsappNumber,
+                      profilePhotoFileId: agent.profilePhotoFileId,
+                      fieldOfficerName: agent.fieldOfficerName,
+                      villageName: agent.villageName,
+                      districtName: agent.districtName,
+                      cityName: agent.cityName,
+                      provinceName: agent.provinceName,
+                    }}
+                    className="mt-1"
+                  />
+                ) : (
+                  <div className="mt-1 space-y-0.5">
+                    <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
+                      {agent.fullName || agent.fieldOfficerName || "Gaswil tanpa nama"}
+                    </p>
+                    <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                      {(agent.assignmentAreaNames ?? []).join(" / ") || "Cakupan penugasan"}
+                    </p>
+                  </div>
+                )}
 
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   {agent.villageName}, {agent.districtName}
                 </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                  {agent.reportCount.toLocaleString("id-ID")} Laporan Jaring · {agent.baketCount.toLocaleString("id-ID")} Baket
-                </p>
-                {coordinateSourceMode === "laporan" && (agent.latestReportLat == null || agent.latestReportLng == null) ? (
+                {isGaswilMode ? (
+                  agent.jaringCount != null ? (
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {agent.jaringCount.toLocaleString("id-ID")} Jaring binaan
+                    </p>
+                  ) : null
+                ) : (
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {agent.reportCount.toLocaleString("id-ID")} Laporan Jaring -{" "}
+                    {agent.baketCount.toLocaleString("id-ID")} Baket
+                  </p>
+                )}
+                {!isGaswilMode && coordinateSourceMode === "laporan" && (agent.latestReportLat == null || agent.latestReportLng == null) ? (
                   <p className="text-[10px] text-amber-600 dark:text-amber-400">Lokasi laporan belum tersedia</p>
                 ) : null}
               </div>
@@ -201,7 +233,7 @@ export function SebaranJaringRightPanel({
         {filteredAgents.length === 0 ? (
           <div className="grid min-h-40 place-items-center p-5 text-center text-slate-500 text-xs">
             <span>
-              Tidak ada Jaring sesuai wilayah dan filter aktif.
+              {copy.emptyListText}
               <br />Ubah filter untuk melihat data lainnya.
             </span>
           </div>
@@ -214,24 +246,28 @@ export function SebaranJaringRightPanel({
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono font-bold text-sm text-slate-900 dark:text-slate-100">
-                {selectedJaring.aliasName || selectedJaring.fullName || selectedJaring.id}
+                {isGaswilMode
+                  ? (selectedJaring.fullName ?? selectedJaring.fieldOfficerName ?? "Gaswil tanpa nama")
+                  : (selectedJaring.aliasName ?? selectedJaring.fullName ?? selectedJaring.id)}
               </span>
               <Badge
                 className={cn(
                   "text-[10px] px-1.5 py-0 border-none font-semibold text-slate-950",
-                  STATUS_COLORS[selectedJaring.status]?.dotClass || "bg-emerald-500",
+                  statusPresentationForMode(mode, selectedJaring.status).dotClass,
                 )}
               >
-                {STATUS_COLORS[selectedJaring.status]?.label || "Terverifikasi"}
+                {copy.statusLabels[selectedJaring.status] || statusPresentationForMode(mode, selectedJaring.status).label}
               </Badge>
-              <Badge
-                className={cn(
-                  "text-[10px] px-1.5 py-0 border-none font-semibold text-white",
-                  selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
-                )}
-              >
-                {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
-              </Badge>
+              {!isGaswilMode ? (
+                <Badge
+                  className={cn(
+                    "text-[10px] px-1.5 py-0 border-none font-semibold text-white",
+                    selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
+                  )}
+                >
+                  {selectedJaring.isActive ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days}
+                </Badge>
+              ) : null}
             </div>
             <button
               type="button"
@@ -242,48 +278,87 @@ export function SebaranJaringRightPanel({
             </button>
           </div>
 
-          {/* Underline Sub-Tabs */}
-          <div className="flex items-center gap-4 text-xs font-medium border-b border-slate-200 dark:border-slate-800 pb-1.5 text-slate-500 dark:text-slate-400">
-            <button
-              type="button"
-              onClick={() => setDetailTab("info")}
-              className={cn(
-                "pb-1 border-b-2 transition-colors cursor-pointer",
-                detailTab === "info"
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400 font-semibold"
-                  : "border-transparent hover:text-slate-900 dark:hover:text-slate-200",
-              )}
-            >
-              Informasi
-            </button>
-            <button
-              type="button"
-              onClick={() => setDetailTab("reports")}
-              className={cn(
-                "pb-1 border-b-2 transition-colors cursor-pointer",
-                detailTab === "reports"
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400 font-semibold"
-                  : "border-transparent hover:text-slate-900 dark:hover:text-slate-200",
-              )}
-            >
-              Riwayat Laporan
-            </button>
-            <button
-              type="button"
-              onClick={() => setDetailTab("activities")}
-              className={cn(
-                "pb-1 border-b-2 transition-colors cursor-pointer",
-                detailTab === "activities"
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400 font-semibold"
-                  : "border-transparent hover:text-slate-900 dark:hover:text-slate-200",
-              )}
-            >
-              Aktivitas
-            </button>
-          </div>
+          {!isGaswilMode ? (
+            <div className="flex items-center gap-4 text-xs font-medium border-b border-slate-200 dark:border-slate-800 pb-1.5 text-slate-500 dark:text-slate-400">
+              <button
+                type="button"
+                onClick={() => setDetailTab("info")}
+                className={cn(
+                  "pb-1 border-b-2 transition-colors cursor-pointer",
+                  detailTab === "info"
+                    ? "border-cyan-600 text-cyan-600 dark:text-cyan-400 font-semibold"
+                    : "border-transparent hover:text-slate-900 dark:hover:text-slate-200",
+                )}
+              >
+                Informasi
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailTab("reports")}
+                className={cn(
+                  "pb-1 border-b-2 transition-colors cursor-pointer",
+                  detailTab === "reports"
+                    ? "border-cyan-600 text-cyan-600 dark:text-cyan-400 font-semibold"
+                    : "border-transparent hover:text-slate-900 dark:hover:text-slate-200",
+                )}
+              >
+                Riwayat Laporan
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailTab("activities")}
+                className={cn(
+                  "pb-1 border-b-2 transition-colors cursor-pointer",
+                  detailTab === "activities"
+                    ? "border-cyan-600 text-cyan-600 dark:text-cyan-400 font-semibold"
+                    : "border-transparent hover:text-slate-900 dark:hover:text-slate-200",
+                )}
+              >
+                Aktivitas
+              </button>
+            </div>
+          ) : null}
 
           {/* Key-Value Details */}
-          {detailTab === "info" && (
+          {isGaswilMode ? (
+            <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+              <div className="rounded-lg border border-slate-200 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Wilayah Penugasan
+                </p>
+                <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">
+                  {(selectedJaring.assignmentAreaNames ?? []).join(" / ") ||
+                    selectedJaring.districtName ||
+                    "Cakupan penugasan"}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400">Status Sinyal</span>
+                <Badge
+                  className={cn(
+                    "border-none px-2 py-0.5 text-[10px] font-semibold",
+                    selectedJaring.isActive
+                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                      : "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
+                  )}
+                >
+                  {signalLabelForMode(mode, selectedJaring.isActive)}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400">Lokasi Terakhir</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{selectedJaring.lastReportDate}</span>
+              </div>
+              {selectedJaring.jaringCount != null ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Jaring Binaan</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                    {selectedJaring.jaringCount.toLocaleString("id-ID")}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          ) : detailTab === "info" ? (
             <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300 pt-1">
               <JaringIdentitySummary
                 compact
@@ -303,7 +378,7 @@ export function SebaranJaringRightPanel({
 
               <div className="flex justify-between items-center font-mono">
                 <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-sans">
-                  📍 Koordinat
+                  Koordinat
                 </span>
                 <span className="text-cyan-700 dark:text-cyan-300 font-mono text-[11px]">
                   {coordinateSourceMode === "laporan"
@@ -315,27 +390,30 @@ export function SebaranJaringRightPanel({
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">⚡ Kinerja</span>
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  {DOMAIN_TERMS.jaringActivity90Days}
+                </span>
                 <Badge
                   className={cn(
-                    "text-[10px] px-2 py-0.5 border-none font-semibold text-white",
+                    "text-[10px] px-2 py-0.5 border-none font-semibold",
+                    "text-white",
                     selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
                   )}
                 >
-                  {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
+                  {signalLabelForMode(mode, selectedJaring.isActive)}
                 </Badge>
               </div>
 
               <div className="flex justify-between items-center">
                 <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  🕒 Laporan Terakhir
+                  Laporan Terakhir
                 </span>
                 <span className="text-slate-800 dark:text-slate-200">{selectedJaring.lastReportDate}</span>
               </div>
             </div>
-          )}
+          ) : null}
 
-          {detailTab === "reports" && (
+          {!isGaswilMode && detailTab === "reports" && (
             <div className="space-y-1.5 pt-1 text-xs">
               <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
                 <div className="flex justify-between text-[10px] text-slate-500 font-mono">
@@ -343,14 +421,14 @@ export function SebaranJaringRightPanel({
                   <span>{selectedJaring.lastReportDate}</span>
                 </div>
                 <p className="font-medium text-slate-900 dark:text-slate-200">
-                  {selectedJaring.reportCount.toLocaleString("id-ID")} Laporan Jaring ·{" "}
+                  {selectedJaring.reportCount.toLocaleString("id-ID")} Laporan Jaring -{" "}
                   {selectedJaring.baketCount.toLocaleString("id-ID")} Baket
                 </p>
               </div>
             </div>
           )}
 
-          {detailTab === "activities" && (
+          {!isGaswilMode && detailTab === "activities" && (
             <div className="text-xs text-slate-700 dark:text-slate-300 py-1 space-y-1">
               <div>
                 Aktivitas Terakhir:{" "}
@@ -365,11 +443,14 @@ export function SebaranJaringRightPanel({
             className="mt-1 h-9 w-full cursor-pointer bg-slate-900 font-semibold text-white text-xs shadow-sm hover:bg-slate-800 dark:bg-cyan-600 dark:hover:bg-cyan-500"
           >
             <Link
-              href={`/dashboard/daftar-jaring/${selectedJaring.id}`}
+              href={
+                selectedJaring.detailHref ??
+                (isGaswilMode ? "/dashboard/personel-lapangan" : `/dashboard/daftar-jaring/${selectedJaring.id}`)
+              }
               target="_blank"
               rel="noopener noreferrer"
             >
-              Lihat Detail Lengkap
+              {copy.detailLinkLabel}
             </Link>
           </Button>
         </div>

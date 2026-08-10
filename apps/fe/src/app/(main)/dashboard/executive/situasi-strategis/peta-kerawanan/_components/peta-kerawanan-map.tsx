@@ -106,7 +106,7 @@ const riskPoints: RiskPoint[] = [
     score: 52,
     tone: "watch",
     layers: ["ekonomi", "pertahanan", "keamanan"],
-    dominantIssue: "Aktivitas logistik tidak biasa dan laporan koordinat belum lengkap.",
+    dominantIssue: "Aktivitas logistik tidak biasa dan koordinat laporan perlu pembaruan.",
     reports: 12,
     actors: ["Pelaku logistik lokal", "Sumber lapangan terbatas"],
     demand: "Belum ada tuntutan terbuka, perlu pendalaman jaringan.",

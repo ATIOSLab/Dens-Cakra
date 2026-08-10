@@ -1,5 +1,5 @@
-import { OrganizationType, PositionCode } from '../common/constants/legacy-operational-code.js';
 import {
+  AdministrativeLevel,
   Classification,
   CommandRouteType,
   DirectiveStatus,
@@ -34,19 +34,17 @@ type AssignmentNode = {
   id: string;
   email: string;
   fullName: string | null;
-  positionId: string;
-  positionCode: PositionCode;
   positionTitle: string;
   roleCode: RoleCode;
-  organizationUnitId: string;
   organizationUnitCode: string;
   organizationUnitName: string;
-  branch: CommandRouteType | null;
-  reportsToPositionId: string | null;
+  branch: CommandRouteType;
   areaScopes: Array<{
     areaId: string;
     areaCode: string | null;
     areaName: string;
+    level: AdministrativeLevel;
+    parentId: string | null;
     isPrimary: boolean;
   }>;
 };
@@ -111,10 +109,10 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Siapa aktor utama, simpul penghubung, dan kelompok pendukung yang terindikasi aktif melakukan konsolidasi?',
       'Apa agenda, tuntutan, estimasi waktu, titik kumpul, rute pergerakan, dan target lokasi kegiatan?',
       'Bagaimana narasi yang berkembang di media sosial dan apakah narasi tersebut berkorelasi dengan aktivitas lapangan?',
-      'Apa indikator eskalasi yang membutuhkan laporan cepat kepada OIM dan Regional Commander?',
+      'Apa indikator eskalasi yang membutuhkan laporan cepat kepada Manajer Intelijen Operasional (OIM) dan Komandan Regional?',
     ],
     collection: [
-      'Mengumpulkan laporan awal dari Field Officer pada titik pemerintahan, ruang publik, kampus, komunitas, dan simpul transportasi.',
+      'Mengumpulkan laporan awal dari Petugas Wilayah (Gaswil) pada titik pemerintahan, ruang publik, kampus, komunitas, dan simpul transportasi.',
       'Membandingkan temuan lapangan dengan pemantauan sumber terbuka untuk membedakan informasi valid, rumor, dan disinformasi.',
       'Melakukan pembaruan situasi setiap hari atau lebih cepat bila ditemukan indikator mobilisasi yang meningkat.',
       'Menyusun ringkasan aktor, agenda, lokasi, estimasi massa, dan rekomendasi langkah lanjutan.',
@@ -125,15 +123,15 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Kesalahan penilaian terhadap aktor dan agenda dapat menimbulkan respons yang tidak proporsional.',
     ],
     mechanisms: [
-      'Regional Commander menetapkan prioritas pemantauan dan menyampaikan batasan informasi yang wajib dilaporkan.',
-      'OIM menerjemahkan STR menjadi task harian, membagi fokus area, dan memastikan validasi silang setiap temuan penting.',
-      'Field Coordinator mengatur ritme laporan Field Officer dan memastikan titik pantau tidak tumpang tindih.',
-      'Field Officer melaporkan fakta lapangan, waktu, lokasi, sumber, bukti pendukung, dan tingkat keyakinan informasi.',
+      'Komandan Regional menetapkan prioritas pemantauan dan menyampaikan batasan informasi yang wajib dilaporkan.',
+      'Manajer Intelijen Operasional (OIM) menerjemahkan STR menjadi tugas harian, membagi fokus area, dan memastikan validasi silang setiap temuan penting.',
+      'Koordinator Wilayah (Korwil) mengatur ritme laporan Petugas Wilayah (Gaswil) dan memastikan titik pantau tidak tumpang tindih.',
+      'Petugas Wilayah (Gaswil) melaporkan fakta lapangan, waktu, lokasi, sumber, bukti pendukung, dan tingkat keyakinan informasi.',
     ],
     reporting: [
       'Laporan awal dikirim maksimal 6 jam setelah indikator kegiatan ditemukan.',
       'Laporan perkembangan memuat perubahan aktor, jumlah peserta, lokasi, narasi, dan potensi dampak operasional.',
-      'Setiap informasi yang belum terkonfirmasi diberi catatan status verifikasi agar tidak diperlakukan sebagai kepastian.',
+      'Setiap informasi yang belum terkonfirmasi diberi catatan tingkat keyakinan agar tidak diperlakukan sebagai kepastian.',
     ],
     recommendations: [
       'Prioritaskan pemetaan aktor dan titik kumpul sebelum kegiatan mencapai skala besar.',
@@ -167,7 +165,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Bagaimana respons pedagang, konsumen, dan pengelola pasar terhadap perubahan pasokan?',
     ],
     collection: [
-      'Field Officer melakukan pengecekan harga dan stok pada pasar induk, pasar tradisional, gudang, dan titik distribusi akhir.',
+      'Petugas Wilayah (Gaswil) melakukan pengecekan harga dan stok pada pasar induk, pasar tradisional, gudang, dan titik distribusi akhir.',
       'Membandingkan informasi dari pedagang, pemasok, pengelola pasar, dan data terbuka yang tersedia.',
       'Mencatat waktu pengecekan, kisaran harga, volume indikatif, dan penjelasan sumber mengenai perubahan pasokan.',
       'Menyusun laporan tematik per komoditas untuk memudahkan analisis tren lintas wilayah.',
@@ -178,10 +176,10 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Gangguan pada simpul logistik strategis dapat berdampak pada wilayah lain di luar area pantau utama.',
     ],
     mechanisms: [
-      'Regional Commander menetapkan komoditas prioritas dan wilayah pembanding.',
-      'OIM mengatur format laporan harga, stok, sumber, dan bukti pendukung agar data mudah dibandingkan.',
-      'Field Coordinator memastikan Field Officer mengambil data dari beberapa titik yang mewakili kondisi wilayah.',
-      'Field Officer mengirim temuan awal, foto lokasi bila tersedia, dan catatan validasi sumber.',
+      'Komandan Regional menetapkan komoditas prioritas dan wilayah pembanding.',
+      'Manajer Intelijen Operasional (OIM) mengatur format laporan harga, stok, sumber, dan bukti pendukung agar data mudah dibandingkan.',
+      'Koordinator Wilayah (Korwil) memastikan Petugas Wilayah (Gaswil) mengambil data dari beberapa titik yang mewakili kondisi wilayah.',
+      'Petugas Wilayah (Gaswil) mengirim temuan awal, foto lokasi bila tersedia, dan catatan validasi sumber.',
     ],
     reporting: [
       'Laporan harga dan stok disampaikan secara berkala dengan format yang sama untuk memudahkan pembacaan tren.',
@@ -220,21 +218,21 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Apa respons pemangku kepentingan setempat dan bagaimana penerimaannya di masyarakat?',
     ],
     collection: [
-      'Field Officer menghimpun informasi dari warga, pengurus lingkungan, tokoh komunitas, dan lokasi pelayanan publik.',
+      'Petugas Wilayah (Gaswil) menghimpun informasi dari warga, pengurus lingkungan, tokoh komunitas, dan lokasi pelayanan publik.',
       'Mencatat kronologi keluhan, pihak terkait, titik lokasi, jumlah warga terdampak, dan respons awal yang telah muncul.',
       'Memantau perubahan narasi di grup komunitas lokal dan menghubungkannya dengan kondisi lapangan.',
       'Melaporkan indikator eskalasi seperti pertemuan besar, penolakan terbuka, atau konflik antar kelompok.',
     ],
     risks: [
       'Keluhan yang berlarut dapat menjadi agenda kolektif dan memicu aksi protes lokal.',
-      'Informasi tidak lengkap dapat memperkuat salah persepsi antara warga dan penyedia layanan.',
+      'Informasi yang belum utuh dapat memperkuat salah persepsi antara warga dan penyedia layanan.',
       'Ketegangan antar kelompok dapat muncul bila isu pelayanan dikaitkan dengan identitas atau kepentingan tertentu.',
     ],
     mechanisms: [
-      'Regional Commander menetapkan isu sosial prioritas dan batas wilayah pemantauan.',
-      'OIM menyiapkan kebutuhan informasi mengenai aktor, narasi, dampak warga, dan respons otoritas.',
-      'Field Coordinator menyusun jadwal pengecekan lokasi dan pembagian sumber informasi.',
-      'Field Officer mengirim laporan faktual tanpa menyimpulkan aktor atau motif sebelum ada verifikasi.',
+      'Komandan Regional menetapkan isu sosial prioritas dan batas wilayah pemantauan.',
+      'Manajer Intelijen Operasional (OIM) menyiapkan kebutuhan informasi mengenai aktor, narasi, dampak warga, dan respons otoritas.',
+      'Koordinator Wilayah (Korwil) menyusun jadwal pengecekan lokasi dan pembagian sumber informasi.',
+      'Petugas Wilayah (Gaswil) mengirim laporan faktual tanpa menyimpulkan aktor atau motif sebelum ada verifikasi.',
     ],
     reporting: [
       'Laporan sosial memuat pokok keluhan, jumlah terdampak indikatif, aktor lokal, kanal penyebaran, dan potensi dampak.',
@@ -273,7 +271,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Apakah terdapat narasi sensitif yang dapat memicu gesekan sosial atau penolakan warga?',
     ],
     collection: [
-      'Field Officer memantau lokasi kegiatan, kanal informasi penyelenggara, dan respons warga sekitar.',
+      'Petugas Wilayah (Gaswil) memantau lokasi kegiatan, kanal informasi penyelenggara, dan respons warga sekitar.',
       'Mengumpulkan data waktu kegiatan, estimasi peserta, titik kerumunan, dan perubahan arus lalu lintas.',
       'Melakukan validasi kepada sumber lokal untuk memastikan kegiatan berjalan sesuai izin dan agenda awal.',
       'Mengirim pembaruan cepat bila terjadi perubahan lokasi, penambahan peserta, atau potensi gesekan.',
@@ -284,10 +282,10 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Kurangnya informasi lapangan dapat menyebabkan keterlambatan koordinasi dengan unsur wilayah.',
     ],
     mechanisms: [
-      'Regional Commander menetapkan kegiatan budaya prioritas berdasarkan skala, lokasi, dan sensitivitas isu.',
-      'OIM membagi kebutuhan informasi menjadi data penyelenggara, massa, lokasi, dan potensi dampak.',
-      'Field Coordinator memastikan Field Officer memantau titik masuk, pusat kegiatan, dan lingkungan sekitar.',
-      'Field Officer melaporkan fakta secara proporsional dan menjaga sensitivitas terhadap kegiatan masyarakat.',
+      'Komandan Regional menetapkan kegiatan budaya prioritas berdasarkan skala, lokasi, dan sensitivitas isu.',
+      'Manajer Intelijen Operasional (OIM) membagi kebutuhan informasi menjadi data penyelenggara, massa, lokasi, dan potensi dampak.',
+      'Koordinator Wilayah (Korwil) memastikan Petugas Wilayah (Gaswil) memantau titik masuk, pusat kegiatan, dan lingkungan sekitar.',
+      'Petugas Wilayah (Gaswil) melaporkan fakta secara proporsional dan menjaga sensitivitas terhadap kegiatan masyarakat.',
     ],
     reporting: [
       'Laporan kegiatan budaya memuat jadwal, lokasi, penyelenggara, estimasi peserta, situasi keamanan, dan dampak mobilitas.',
@@ -326,7 +324,7 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Apa potensi dampak terhadap layanan publik, transportasi, komunikasi, atau kegiatan pemerintahan?',
     ],
     collection: [
-      'Field Officer melakukan pemantauan terbatas pada area publik di sekitar objek vital sesuai area tanggung jawab.',
+      'Petugas Wilayah (Gaswil) melakukan pemantauan terbatas pada area publik di sekitar objek vital sesuai area tanggung jawab.',
       'Menghimpun informasi dari sumber lokal mengenai perubahan jadwal operasional, aktivitas pemeliharaan, dan akses kendaraan.',
       'Mencatat indikator faktual seperti waktu, lokasi, jenis aktivitas, pihak terkait, dan perubahan pola.',
       'Melaporkan segera bila ditemukan indikator gangguan, akses tidak wajar, atau peningkatan pengamanan.',
@@ -337,10 +335,10 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Informasi sensitif mengenai fasilitas strategis harus dikendalikan agar tidak memperluas risiko keamanan.',
     ],
     mechanisms: [
-      'Regional Commander menetapkan daftar objek vital prioritas dan batasan informasi yang boleh dikumpulkan.',
-      'OIM menyiapkan indikator perubahan aktivitas yang perlu dilaporkan dan ambang eskalasi.',
-      'Field Coordinator mengatur pembagian titik pantau agar tidak mengganggu operasional fasilitas.',
-      'Field Officer menyampaikan laporan faktual dengan memperhatikan keamanan sumber dan kerahasiaan informasi.',
+      'Komandan Regional menetapkan daftar objek vital prioritas dan batasan informasi yang boleh dikumpulkan.',
+      'Manajer Intelijen Operasional (OIM) menyiapkan indikator perubahan aktivitas yang perlu dilaporkan dan ambang eskalasi.',
+      'Koordinator Wilayah (Korwil) mengatur pembagian titik pantau agar tidak mengganggu operasional fasilitas.',
+      'Petugas Wilayah (Gaswil) menyampaikan laporan faktual dengan memperhatikan keamanan sumber dan kerahasiaan informasi.',
     ],
     reporting: [
       'Laporan objek vital memuat indikator perubahan, lokasi, waktu, sumber, tingkat keyakinan, dan potensi dampak.',
@@ -379,25 +377,25 @@ const STR_SCENARIOS: readonly StrScenario[] = [
       'Kapan informasi harus dinaikkan menjadi peringatan dini kepada pimpinan?',
     ],
     collection: [
-      'Field Officer menghimpun informasi dari titik rawan, sumber lokal, laporan lapangan, dan kanal terbuka yang relevan.',
+      'Petugas Wilayah (Gaswil) menghimpun informasi dari titik rawan, sumber lokal, laporan lapangan, dan kanal terbuka yang relevan.',
       'Melakukan validasi cepat terhadap waktu, lokasi, aktor, dan bukti pendukung sebelum laporan dikirim.',
-      'Field Coordinator menggabungkan laporan lintas petugas untuk melihat pola antar wilayah.',
-      'OIM menyusun penilaian sementara dan rekomendasi eskalasi berdasarkan indikator yang telah diverifikasi.',
+      'Koordinator Wilayah (Korwil) menggabungkan laporan lintas petugas untuk melihat pola antar wilayah.',
+      'Manajer Intelijen Operasional (OIM) menyusun penilaian sementara dan rekomendasi eskalasi berdasarkan indikator yang telah diverifikasi.',
     ],
     risks: [
       'Keterlambatan pelaporan dapat mempersempit waktu respons terhadap gangguan keamanan.',
       'Informasi tunggal yang tidak diverifikasi dapat memicu salah arah penanganan.',
-      'Pola lintas wilayah dapat terlewat bila laporan Field Officer tidak dikonsolidasikan oleh Field Coordinator.',
+      'Pola lintas wilayah dapat terlewat bila laporan Petugas Wilayah (Gaswil) tidak dikonsolidasikan oleh Koordinator Wilayah (Korwil).',
     ],
     mechanisms: [
-      'Regional Commander menetapkan indikator peringatan dini dan prioritas lokasi rawan.',
-      'OIM memastikan setiap laporan memiliki penilaian validitas, urgensi, dan rekomendasi tindak lanjut.',
-      'Field Coordinator memonitor kepatuhan laporan petugas dan mengoordinasikan pembaruan cepat.',
-      'Field Officer mengirim laporan awal, perkembangan, dan penutupan peristiwa sesuai format yang ditetapkan.',
+      'Komandan Regional menetapkan indikator peringatan dini dan prioritas lokasi rawan.',
+      'Manajer Intelijen Operasional (OIM) memastikan setiap laporan memiliki penilaian validitas, urgensi, dan rekomendasi tindak lanjut.',
+      'Koordinator Wilayah (Korwil) memonitor kepatuhan laporan petugas dan mengoordinasikan pembaruan cepat.',
+      'Petugas Wilayah (Gaswil) mengirim laporan awal, perkembangan, dan penutupan peristiwa sesuai format yang ditetapkan.',
     ],
     reporting: [
       'Laporan keamanan dikirim segera untuk indikator mendesak dan diperbarui sampai situasi terkendali.',
-      'Setiap laporan mencantumkan status verifikasi, sumber, bukti, dampak, dan rekomendasi eskalasi.',
+      'Setiap laporan mencantumkan tingkat keyakinan, sumber, bukti, dampak, dan rekomendasi eskalasi.',
       'Laporan lintas area disusun bila terdapat pola yang sama pada lebih dari satu wilayah.',
     ],
     recommendations: [
@@ -444,6 +442,46 @@ function pickPrimaryArea(node: AssignmentNode) {
   );
 }
 
+function rolePositionTitle(roleCode: RoleCode, branch: CommandRouteType) {
+  if (roleCode === RoleCode.EXECUTIVE) {
+    return 'Deputi II';
+  }
+
+  if (roleCode === RoleCode.REGIONAL_COMMANDER) {
+    return branch === CommandRouteType.DIRECTORATE
+      ? 'Direktur Supervisi'
+      : 'Komandan Regional';
+  }
+
+  if (roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER) {
+    return 'Manajer Intelijen Operasional (OIM)';
+  }
+
+  if (roleCode === RoleCode.FIELD_COORDINATOR) {
+    return 'Koordinator Wilayah (Korwil)';
+  }
+
+  if (roleCode === RoleCode.FIELD_OFFICER) {
+    return 'Petugas Wilayah (Gaswil)';
+  }
+
+  return 'Admin Sistem';
+}
+
+function branchOrganizationName(branch: CommandRouteType, roleCode: RoleCode) {
+  if (branch === CommandRouteType.PUSAT) {
+    return 'Pusat';
+  }
+
+  if (branch === CommandRouteType.DIRECTORATE) {
+    return roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER
+      ? 'Direktorat Supervisi'
+      : 'Direktorat';
+  }
+
+  return 'Binda';
+}
+
 function pickTaskPriority(index: number) {
   if (index % 7 === 0) {
     return PriorityLevel.URGENT;
@@ -485,7 +523,7 @@ function buildDirectiveSeed(
   const commandNarrative = [
     title,
     `Tujuan operasi adalah ${scenario.objective}.`,
-    `Fokus wilayah berada pada ${areaLabel} dengan jalur kendali ${branchLabel.toLowerCase()} melalui ${chain.regionalCommander.positionTitle}, ${chain.operationalManager.positionTitle}, Field Coordinator, dan Field Officer.`,
+    `Fokus wilayah berada pada ${areaLabel} dengan jalur kendali ${branchLabel.toLowerCase()} melalui ${chain.regionalCommander.positionTitle}, ${chain.operationalManager.positionTitle}, Koordinator Wilayah (Korwil), dan Petugas Wilayah (Gaswil).`,
     'Seluruh laporan wajib membedakan fakta lapangan, indikasi, penilaian sementara, dan rekomendasi tindak lanjut.',
   ].join('\n');
   const uukSections = buildUukSections(chain, scenario, title, commandDate);
@@ -559,13 +597,13 @@ function buildUukSections(
       .map(
         (item) => item.coordinator.fullName ?? item.coordinator.positionTitle,
       )
-      .join(', ') || 'Field Coordinator setempat';
+      .join(', ') || 'Koordinator Wilayah (Korwil) setempat';
   const officerNames =
     chain.fieldCoordinators
       .flatMap((item) => item.fieldOfficers)
       .slice(0, 4)
       .map((item) => item.fullName ?? item.positionTitle)
-      .join(', ') || 'Field Officer setempat';
+      .join(', ') || 'Petugas Wilayah (Gaswil) setempat';
 
   const header = [
     `Judul STR: ${directiveTitle}.`,
@@ -575,7 +613,7 @@ function buildUukSections(
     `Pengendali operasional: ${chain.operationalManager.fullName ?? chain.operationalManager.positionTitle}.`,
   ];
   const commandContext = [
-    `Jalur operasi ${branchLabel.toLowerCase()} menggunakan ${coordinatorNames} sebagai koordinator lapangan utama.`,
+    `Jalur operasi ${branchLabel.toLowerCase()} menggunakan ${coordinatorNames} sebagai Koordinator Wilayah (Korwil) utama.`,
     `Personel awal yang menjadi sumber laporan lapangan meliputi ${officerNames}.`,
   ];
   const scenarioContext = (lines: readonly string[]) =>
@@ -604,7 +642,7 @@ function buildUukSections(
       title: 'Rencana Pengumpulan',
       lines: [
         ...scenario.collection,
-        `Field Coordinator wajib memastikan area ${areaLabel} tercakup melalui penugasan Field Officer dan jaring aktif.`,
+        `Koordinator Wilayah (Korwil) wajib memastikan area ${areaLabel} tercakup melalui penugasan Petugas Wilayah (Gaswil) dan Jaring aktif.`,
         'Setiap temuan yang berpotensi berdampak cepat harus dilaporkan sebagai pembaruan antara tanpa menunggu laporan akhir.',
       ],
     },
@@ -614,7 +652,7 @@ function buildUukSections(
       lines: [
         `Isu ${scenario.issue} dinilai perlu dipantau karena dapat memengaruhi stabilitas ${areaLabel}.`,
         ...scenario.risks,
-        'Risiko residual tetap ada bila sumber tunggal belum diverifikasi atau perubahan situasi terjadi di luar jam pemantauan utama.',
+        'Risiko residual tetap ada bila sumber tunggal belum dikonfirmasi atau perubahan situasi terjadi di luar jam pemantauan utama.',
       ],
     },
     {
@@ -627,7 +665,7 @@ function buildUukSections(
       title: 'Koordinasi dan Pelaporan',
       lines: [
         ...scenario.reporting,
-        'Laporan BAKET menjadi bahan awal untuk verifikasi OIM, analisis lanjutan, dan penyusunan produk intelijen.',
+        'Laporan Baket menjadi bahan awal untuk verifikasi Manajer Intelijen Operasional (OIM), analisis lanjutan, dan penyusunan produk intelijen.',
       ],
     },
     {
@@ -640,7 +678,7 @@ function buildUukSections(
       title: 'Pengesahan',
       lines: [
         `Dokumen STR ini disahkan oleh ${chain.regionalCommander.fullName ?? chain.regionalCommander.positionTitle} selaku pengendali regional ${branchLabel.toLowerCase()}.`,
-        `OIM pelaksana adalah ${chain.operationalManager.fullName ?? chain.operationalManager.positionTitle} dan bertanggung jawab menjaga ritme pelaporan, validasi sumber, serta eskalasi peringatan dini.`,
+        `Manajer Intelijen Operasional (OIM) pelaksana adalah ${chain.operationalManager.fullName ?? chain.operationalManager.positionTitle} dan bertanggung jawab menjaga ritme pelaporan, validasi sumber, serta eskalasi peringatan dini.`,
         'Setiap perubahan signifikan terhadap target, wilayah, atau indikator ancaman wajib dituangkan dalam pembaruan STR atau task lanjutan.',
       ],
     },
@@ -673,14 +711,14 @@ function buildTaskSeed(
       `Tugas ini menurunkan STR ${scenario.category.toLowerCase()} untuk ${areaLabel}.`,
       `Fokus pengumpulan: ${scenario.issue}.`,
       `Tujuan: ${scenario.objective}.`,
-      `Koordinator lapangan: ${coordinator.fullName ?? coordinator.positionTitle}.`,
+      `Koordinator Wilayah (Korwil): ${coordinator.fullName ?? coordinator.positionTitle}.`,
       `Kode area operasi: ${compactArea}.`,
     ].join('\n'),
   };
 }
 
 async function loadAssignments() {
-  const rows = await prisma.userSeatAssignment.findMany({
+  const rows = await prisma.userOperationalAssignment.findMany({
     where: {
       isPrimary: true,
       isActive: true,
@@ -689,18 +727,14 @@ async function loadAssignments() {
         deletedAt: null,
         isActive: true,
       },
-      position: {
-        isActive: true,
+      role: {
         code: {
           in: [
-            PositionCode.DEPUTI_II,
-            PositionCode.DIREKTUR_WILAYAH,
-            PositionCode.KABINDA,
-            PositionCode.KASUBDIT,
-            PositionCode.KABAGOPS,
-            PositionCode.STAF_SUBDIT,
-            PositionCode.KORWIL,
-            PositionCode.PETUGAS_ORGANIK,
+            RoleCode.EXECUTIVE,
+            RoleCode.REGIONAL_COMMANDER,
+            RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+            RoleCode.FIELD_COORDINATOR,
+            RoleCode.FIELD_OFFICER,
           ],
         },
       },
@@ -717,25 +751,11 @@ async function loadAssignments() {
           },
         },
       },
-      position: {
+      branch: true,
+      role: {
         select: {
-          id: true,
           code: true,
-          title: true,
-          branch: true,
-          reportsToPositionId: true,
-          role: {
-            select: {
-              code: true,
-            },
-          },
-          organizationUnit: {
-            select: {
-              id: true,
-              code: true,
-              name: true,
-            },
-          },
+          name: true,
         },
       },
       areaScopes: {
@@ -750,6 +770,8 @@ async function loadAssignments() {
               id: true,
               officialCode: true,
               name: true,
+              level: true,
+              parentId: true,
             },
           },
         },
@@ -757,56 +779,49 @@ async function loadAssignments() {
     },
   });
 
-  return rows.map<AssignmentNode>((row) => ({
-    id: row.id,
-    email: row.userProfile.authUser.email,
-    fullName: row.userProfile.fullName,
-    positionId: row.position.id,
-    positionCode: row.position.code,
-    positionTitle: row.position.title,
-    roleCode: row.position.role.code,
-    organizationUnitId: row.position.organizationUnit.id,
-    organizationUnitCode: row.position.organizationUnit.code,
-    organizationUnitName: row.position.organizationUnit.name,
-    branch: row.position.branch,
-    reportsToPositionId: row.position.reportsToPositionId,
-    areaScopes: row.areaScopes.map((scope) => ({
+  return rows.map((row): AssignmentNode => {
+    const areaScopes = row.areaScopes.map((scope) => ({
       areaId: scope.area.id,
       areaCode: scope.area.officialCode,
       areaName: scope.area.name,
+      level: scope.area.level,
+      parentId: scope.area.parentId,
       isPrimary: scope.isPrimary,
-    })),
-  }));
+    }));
+    const primaryArea =
+      areaScopes.find((area) => area.isPrimary) ?? areaScopes[0] ?? null;
+
+    return {
+      id: row.id,
+      email: row.userProfile.authUser.email,
+      fullName: row.userProfile.fullName,
+      positionTitle: rolePositionTitle(row.role.code, row.branch),
+      roleCode: row.role.code,
+      organizationUnitCode:
+        primaryArea?.areaCode ?? `${row.branch}-${row.role.code}`,
+      organizationUnitName: branchOrganizationName(row.branch, row.role.code),
+      branch: row.branch,
+      areaScopes,
+    };
+  });
 }
 
 function buildChains(assignments: AssignmentNode[]) {
-  const byReportsTo = new Map<string, AssignmentNode[]>();
-
-  for (const assignment of assignments) {
-    if (!assignment.reportsToPositionId) {
-      continue;
-    }
-
-    const items = byReportsTo.get(assignment.reportsToPositionId) ?? [];
-    items.push(assignment);
-    byReportsTo.set(assignment.reportsToPositionId, items);
-  }
-
   const executive = assignments.find(
-    (assignment) => assignment.positionCode === PositionCode.DEPUTI_II,
+    (assignment) => assignment.roleCode === RoleCode.EXECUTIVE,
   );
 
   if (!executive) {
     throw new Error(
-      'Executive assignment not found. Run seed-role-accounts first.',
+      'Penugasan Deputi II tidak ditemukan. Jalankan seed-role-accounts terlebih dahulu.',
     );
   }
 
   const regionalCommanders = assignments
     .filter(
       (assignment) =>
-        assignment.positionCode === PositionCode.DIREKTUR_WILAYAH ||
-        assignment.positionCode === PositionCode.KABINDA,
+        assignment.roleCode === RoleCode.REGIONAL_COMMANDER &&
+        assignment.branch === CommandRouteType.BINDA,
     )
     .sort((left, right) =>
       left.organizationUnitCode.localeCompare(right.organizationUnitCode),
@@ -815,18 +830,33 @@ function buildChains(assignments: AssignmentNode[]) {
   const chains: HierarchyChain[] = [];
 
   for (const regionalCommander of regionalCommanders) {
-    const oim = (byReportsTo.get(regionalCommander.positionId) ?? []).find(
+    const regionalArea = pickPrimaryArea(regionalCommander);
+
+    if (!regionalArea) {
+      continue;
+    }
+
+    const oim = assignments.find(
       (assignment) =>
-        assignment.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER,
+        assignment.roleCode === RoleCode.OPERATIONAL_INTELLIGENCE_MANAGER &&
+        assignment.branch === CommandRouteType.BINDA &&
+        assignment.areaScopes.some(
+          (area) => area.areaId === regionalArea.areaId,
+        ),
     );
 
     if (!oim) {
       continue;
     }
 
-    const coordinators = (byReportsTo.get(oim.positionId) ?? [])
+    const coordinators = assignments
       .filter(
-        (assignment) => assignment.roleCode === RoleCode.FIELD_COORDINATOR,
+        (assignment) =>
+          assignment.roleCode === RoleCode.FIELD_COORDINATOR &&
+          assignment.branch === CommandRouteType.BINDA &&
+          assignment.areaScopes.some(
+            (area) => area.parentId === regionalArea.areaId,
+          ),
       )
       .sort((left, right) =>
         (pickPrimaryArea(left)?.areaCode ?? left.positionTitle).localeCompare(
@@ -835,10 +865,19 @@ function buildChains(assignments: AssignmentNode[]) {
       )
       .map((coordinator) => ({
         coordinator,
-        fieldOfficers: (byReportsTo.get(coordinator.positionId) ?? [])
-          .filter(
-            (assignment) => assignment.roleCode === RoleCode.FIELD_OFFICER,
-          )
+        fieldOfficers: assignments
+          .filter((assignment) => {
+            const coordinatorArea = pickPrimaryArea(coordinator);
+
+            return (
+              assignment.roleCode === RoleCode.FIELD_OFFICER &&
+              assignment.branch === CommandRouteType.BINDA &&
+              Boolean(coordinatorArea) &&
+              assignment.areaScopes.some(
+                (area) => area.parentId === coordinatorArea?.areaId,
+              )
+            );
+          })
           .sort((left, right) =>
             (
               pickPrimaryArea(left)?.areaCode ?? left.positionTitle
@@ -882,14 +921,7 @@ async function upsertDirective(
       commandNumber: seed.commandNumber,
     },
     update: {
-      ownerUnitId: chain.regionalCommander.reportsToPositionId
-        ? (
-            await prisma.position.findUniqueOrThrow({
-              where: { id: chain.regionalCommander.reportsToPositionId },
-              select: { organizationUnitId: true },
-            })
-          ).organizationUnitId
-        : chain.regionalCommander.organizationUnitId,
+      ownerAssignmentId: chain.regionalCommander.id,
       createdByAssignmentId: executiveAssignmentId,
       status: DirectiveStatus.DISTRIBUTED,
       currentVersionNumber: 1,
@@ -897,14 +929,7 @@ async function upsertDirective(
     },
     create: {
       commandNumber: seed.commandNumber,
-      ownerUnitId: chain.regionalCommander.reportsToPositionId
-        ? (
-            await prisma.position.findUniqueOrThrow({
-              where: { id: chain.regionalCommander.reportsToPositionId },
-              select: { organizationUnitId: true },
-            })
-          ).organizationUnitId
-        : chain.regionalCommander.organizationUnitId,
+      ownerAssignmentId: chain.regionalCommander.id,
       createdByAssignmentId: executiveAssignmentId,
       status: DirectiveStatus.DISTRIBUTED,
     },
@@ -976,7 +1001,7 @@ async function upsertDirective(
   const existingRecipient = await prisma.directiveRecipient.findFirst({
     where: {
       directiveVersionId: version.id,
-      targetPositionId: chain.regionalCommander.positionId,
+      targetAssignmentId: chain.regionalCommander.id,
     },
     select: {
       id: true,
@@ -985,8 +1010,7 @@ async function upsertDirective(
 
   const recipientData = {
     directiveVersionId: version.id,
-    targetUnitId: null,
-    targetPositionId: chain.regionalCommander.positionId,
+    targetAssignmentId: chain.regionalCommander.id,
     status: RecipientStatus.ACKNOWLEDGED,
     deliveredAt: addDays(seed.commandDate, 1),
     readAt: addDays(seed.commandDate, 1),
@@ -1025,7 +1049,7 @@ async function upsertUukStr(
   const existing = await prisma.uukStr.findFirst({
     where: {
       directiveVersionId,
-      ownerUnitId: chain.regionalCommander.organizationUnitId,
+      ownerAssignmentId: chain.regionalCommander.id,
       createdByAssignmentId: chain.regionalCommander.id,
       deletedAt: null,
     },
@@ -1041,13 +1065,14 @@ async function upsertUukStr(
           status: UukStrStatus.PUBLISHED,
           currentVersionNumber: 1,
           createdByAssignmentId: chain.regionalCommander.id,
+          ownerAssignmentId: chain.regionalCommander.id,
           deletedAt: null,
         },
       })
     : await prisma.uukStr.create({
         data: {
           directiveVersionId,
-          ownerUnitId: chain.regionalCommander.organizationUnitId,
+          ownerAssignmentId: chain.regionalCommander.id,
           createdByAssignmentId: chain.regionalCommander.id,
           status: UukStrStatus.PUBLISHED,
           currentVersionNumber: 1,
@@ -1139,7 +1164,7 @@ async function upsertTask(
 
   const existing = await prisma.task.findFirst({
     where: {
-      ownerUnitId: chain.operationalManager.organizationUnitId,
+      ownerAssignmentId: chain.operationalManager.id,
       uukStrVersionId,
       deletedAt: null,
       OR: [
@@ -1148,7 +1173,7 @@ async function upsertTask(
           assignments: {
             some: {
               assigneeAssignmentId: coordinator.id,
-              assignmentNote: `${SEED_TAG} Distribusi OIM ke Field Coordinator.`,
+              assignmentNote: `${SEED_TAG} Distribusi Manajer Intelijen Operasional (OIM) ke Koordinator Wilayah (Korwil).`,
             },
           },
         },
@@ -1165,7 +1190,7 @@ async function upsertTask(
         data: {
           directiveVersionId,
           uukStrVersionId,
-          ownerUnitId: chain.operationalManager.organizationUnitId,
+          ownerAssignmentId: chain.operationalManager.id,
           createdByAssignmentId: chain.operationalManager.id,
           title,
           description,
@@ -1184,7 +1209,7 @@ async function upsertTask(
         data: {
           directiveVersionId,
           uukStrVersionId,
-          ownerUnitId: chain.operationalManager.organizationUnitId,
+          ownerAssignmentId: chain.operationalManager.id,
           createdByAssignmentId: chain.operationalManager.id,
           title,
           description,
@@ -1238,7 +1263,7 @@ async function upsertTask(
           ? TaskAssignmentStatus.IN_PROGRESS
           : TaskAssignmentStatus.ACKNOWLEDGED,
     dueDate,
-    assignmentNote: `${SEED_TAG} Distribusi OIM ke Field Coordinator.`,
+    assignmentNote: `${SEED_TAG} Distribusi Manajer Intelijen Operasional (OIM) ke Koordinator Wilayah (Korwil).`,
   });
 
   for (const [index, fieldOfficer] of fieldOfficers.entries()) {
@@ -1257,7 +1282,7 @@ async function upsertTask(
       assigneeAssignmentId: fieldOfficer.id,
       status: officerStage,
       dueDate: addDays(dueDate, -(index % 2)),
-      assignmentNote: `${SEED_TAG} Distribusi FC ke Field Officer ${index + 1}.`,
+      assignmentNote: `${SEED_TAG} Distribusi Koordinator Wilayah (Korwil) ke Petugas Wilayah (Gaswil) ${index + 1}.`,
     });
   }
 
@@ -1458,10 +1483,10 @@ async function seedStrHierarchy() {
   console.log(`- uuk/strs: ${uukCount}`);
   console.log(`- tasks: ${taskCount}`);
   console.log(
-    `- OIM -> Field Coordinator assignments: ${coordinatorAssignmentCount}`,
+    `- Penugasan Manajer Intelijen Operasional (OIM) -> Koordinator Wilayah (Korwil): ${coordinatorAssignmentCount}`,
   );
   console.log(
-    `- Field Coordinator -> Field Officer assignments: ${officerAssignmentCount}`,
+    `- Penugasan Koordinator Wilayah (Korwil) -> Petugas Wilayah (Gaswil): ${officerAssignmentCount}`,
   );
 }
 

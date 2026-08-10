@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   AdministrativeLevel,
+  JaringRegistrationStatus,
+  JaringStatus,
   Prisma,
   RoleCode,
   UserProfileStatus,
@@ -49,7 +51,7 @@ const LOCATION_LEGEND = [
     code: 'NS',
     status: 'NO_SIGNAL',
     label: 'No signal',
-    description: 'Belum ada ping, marker memakai centroid wilayah tugas.',
+    description: 'Belum ada lokasi terakhir yang dapat dipetakan.',
     color: '#94a3b8',
   },
 ] as const;
@@ -62,7 +64,9 @@ export class ExecutivePersonnelService {
   ) {}
 
   async list(query: ExecutivePersonnelListQuery) {
-    return this.listPersonnel(query);
+    return this.listPersonnel(query, {
+      requiredRoleCode: RoleCode.FIELD_OFFICER,
+    });
   }
 
   async listFieldCoordinatorPersonnel(
@@ -148,7 +152,7 @@ export class ExecutivePersonnelService {
           : null;
         const jaringPreview = assignment
           ? assignment.jaringCaretakerAssignments.map(
-              (caretaker: any) => caretaker.jaring,
+              (caretaker: any) => this.withJaringActivity(caretaker.jaring),
             )
           : [];
         return {
@@ -234,7 +238,14 @@ export class ExecutivePersonnelService {
       parentId: true,
     } satisfies Prisma.AdministrativeAreaSelect;
 
-    const [regencies, districts] = await Promise.all([
+    const [provinces, regencies, districts] = await Promise.all([
+      this.prisma.administrativeArea.findMany({
+        where: {
+          ...this.scopedAreaWhere(scope.areaRootIds, AdministrativeLevel.PROVINCE),
+        },
+        select: areaSelect,
+        orderBy: { name: 'asc' },
+      }),
       this.prisma.administrativeArea.findMany({
         where: {
           ...this.scopedAreaWhere(scope.areaRootIds, [
@@ -261,7 +272,7 @@ export class ExecutivePersonnelService {
         : Promise.resolve([]),
     ]);
 
-    return { provinces: [], regencies, districts };
+    return { provinces, regencies, districts };
   }
 
   async regionalCommanderAreaFilters(
@@ -319,6 +330,7 @@ export class ExecutivePersonnelService {
         id: assignmentId,
         isActive: true,
         validUntil: null,
+        role: { code: RoleCode.FIELD_OFFICER },
         userProfile: {
           deletedAt: null,
           isActive: true,
@@ -467,7 +479,7 @@ export class ExecutivePersonnelService {
           role: true,
           areaScopes: {
             where: { validUntil: null },
-            include: { area: true },
+            include: { area: this.areaWithHierarchyInclude() },
             orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
           },
         },
@@ -498,9 +510,8 @@ export class ExecutivePersonnelService {
         assignment.areaScopes.find((scope) => scope.isPrimary)?.area ??
         assignment.areaScopes[0]?.area ??
         null;
-      const latitude = ping?.latitude ?? primaryArea?.centroidLatitude ?? null;
-      const longitude =
-        ping?.longitude ?? primaryArea?.centroidLongitude ?? null;
+      const latitude = ping?.latitude ?? null;
+      const longitude = ping?.longitude ?? null;
 
       if (latitude === null || longitude === null) {
         unlocatedCount += 1;
@@ -599,7 +610,7 @@ export class ExecutivePersonnelService {
           include: {
             role: true,
             areaScopes: {
-              include: { area: true },
+              include: { area: this.areaWithHierarchyInclude() },
               orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
             },
           },
@@ -612,7 +623,16 @@ export class ExecutivePersonnelService {
       },
     });
 
-    if (!profile || profile.deletedAt) {
+    if (
+      !profile ||
+      profile.deletedAt ||
+      !profile.operationalAssignments.some(
+        (assignment) =>
+          assignment.isActive &&
+          !assignment.validUntil &&
+          assignment.role.code === RoleCode.FIELD_OFFICER,
+      )
+    ) {
       throw new NotFoundException('Personel tidak ditemukan.');
     }
 
@@ -679,6 +699,16 @@ export class ExecutivePersonnelService {
               area: { select: { id: true, name: true } },
             },
           },
+          messages: {
+            take: 1,
+            orderBy: { receivedAt: 'desc' },
+            select: { receivedAt: true },
+          },
+          reportSessions: {
+            take: 1,
+            orderBy: { submittedAt: 'desc' },
+            select: { submittedAt: true },
+          },
         },
         orderBy: [{ registeredAt: 'desc' }, { id: 'desc' }],
       }),
@@ -696,6 +726,10 @@ export class ExecutivePersonnelService {
         (assignment) => assignment.isActive && !assignment.validUntil,
       ) ??
       null;
+
+    const jaringWithActivity = jaring.map((item) =>
+      this.withJaringActivity(item),
+    );
 
     return {
       profile: {
@@ -757,9 +791,9 @@ export class ExecutivePersonnelService {
           updatedAt: report.updatedAt,
         };
       }),
-      jaring,
+      jaring: jaringWithActivity,
       summary: {
-        jaringCount: jaring.length,
+        jaringCount: jaringWithActivity.length,
         baketCount,
         assignmentCount: profile.operationalAssignments.length,
         activeAreaCount:
@@ -919,7 +953,7 @@ export class ExecutivePersonnelService {
         role: true,
         areaScopes: {
           where: { validUntil: null },
-          include: { area: true },
+          include: { area: this.areaWithHierarchyInclude() },
           orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
         },
         jaringCaretakerAssignments: {
@@ -945,6 +979,16 @@ export class ExecutivePersonnelService {
                   select: {
                     area: { select: { id: true, name: true } },
                   },
+                },
+                messages: {
+                  take: 1,
+                  orderBy: { receivedAt: 'desc' },
+                  select: { receivedAt: true },
+                },
+                reportSessions: {
+                  take: 1,
+                  orderBy: { submittedAt: 'desc' },
+                  select: { submittedAt: true },
                 },
               },
             },
@@ -1063,6 +1107,43 @@ export class ExecutivePersonnelService {
     }
   }
 
+  private withJaringActivity<
+    T extends {
+      messages?: Array<{ receivedAt: Date }>;
+      reportSessions?: Array<{ submittedAt: Date | null }>;
+      registrationStatus?: JaringRegistrationStatus | string | null;
+      status?: JaringStatus | string | null;
+    },
+  >(item: T) {
+    const latestMessageDate = item.messages?.[0]?.receivedAt
+      ? new Date(item.messages[0].receivedAt).getTime()
+      : null;
+    const latestSessionDate = item.reportSessions?.[0]?.submittedAt
+      ? new Date(item.reportSessions[0].submittedAt).getTime()
+      : null;
+
+    let lastReportAt: Date | null = null;
+    if (latestMessageDate && latestSessionDate) {
+      lastReportAt = new Date(Math.max(latestMessageDate, latestSessionDate));
+    } else if (latestMessageDate) {
+      lastReportAt = new Date(latestMessageDate);
+    } else if (latestSessionDate) {
+      lastReportAt = new Date(latestSessionDate);
+    }
+
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
+    const isApproved = item.registrationStatus === JaringRegistrationStatus.APPROVED;
+    const hasRecentActivity = lastReportAt !== null && lastReportAt.getTime() >= threeMonthsAgo.getTime();
+    const { messages: _messages, reportSessions: _reportSessions, ...payload } = item;
+
+    return {
+      ...payload,
+      lastReportAt: lastReportAt ? lastReportAt.toISOString() : null,
+      status: isApproved && hasRecentActivity ? JaringStatus.ACTIVE : JaringStatus.INACTIVE,
+    };
+  }
+
   private async latestLocationPings(assignmentIds: string[]) {
     if (!assignmentIds.length) {
       return [];
@@ -1113,6 +1194,23 @@ export class ExecutivePersonnelService {
       name: scope.area.name,
       level: scope.area.level,
       isPrimary: scope.isPrimary,
+      ancestors:
+        scope.area.ancestorLinks
+          ?.map((link: any) => link.ancestor)
+          .filter((area: any) =>
+            [
+              AdministrativeLevel.PROVINCE,
+              AdministrativeLevel.REGENCY,
+              AdministrativeLevel.CITY,
+              AdministrativeLevel.DISTRICT,
+            ].includes(area.level),
+          )
+          .map((area: any) => ({
+            id: area.id,
+            code: area.code,
+            name: area.name,
+            level: area.level,
+          })) ?? [],
     }));
 
     return {
@@ -1159,6 +1257,26 @@ export class ExecutivePersonnelService {
       capturedAt: ping.capturedAt,
       receivedAt: ping.receivedAt,
       area: ping.area,
+    };
+  }
+
+  private areaWithHierarchyInclude() {
+    return {
+      include: {
+        ancestorLinks: {
+          orderBy: { depth: 'desc' as const },
+          include: {
+            ancestor: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                level: true,
+              },
+            },
+          },
+        },
+      },
     };
   }
 

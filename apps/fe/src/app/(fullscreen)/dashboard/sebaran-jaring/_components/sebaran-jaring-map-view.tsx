@@ -5,9 +5,10 @@ import { useEffect, useMemo, useRef } from "react";
 import { ChevronRight, MapPin, X } from "lucide-react";
 import type { Map as MapLibreMap, StyleSpecification } from "maplibre-gl";
 
-import { Badge } from "@/components/ui/badge";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
+import { Badge } from "@/components/ui/badge";
 import { Map as BaseMap, MapControls, MapGeoJSON, MapMarker, MapPopup } from "@/components/ui/map";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { cn } from "@/lib/utils";
 
 import {
@@ -16,7 +17,9 @@ import {
   type CoordinateSourceMode,
   cityCoordinate,
   DEFAULT_CENTER,
+  DISTRIBUTION_ENTITY_COPY,
   type DisplayMode,
+  type DistributionEntityMode,
   type DistrictFeatureProperties,
   districtCoordinate,
   type JaringDistributionCity,
@@ -25,6 +28,8 @@ import {
   SATELLITE_TILES,
   STATUS_COLORS,
   STREET_TILES,
+  signalLabelForMode,
+  statusPresentationForMode,
   villageCoordinate,
 } from "./sebaran-jaring-types";
 
@@ -138,6 +143,7 @@ type Props = {
   mapStyleMode: MapStyleMode;
   mask: GeoJSON.Feature<GeoJSON.Polygon> | null;
   onMapReady: (map: MapLibreMap) => void;
+  mode?: DistributionEntityMode;
 };
 
 export function SebaranJaringMapView({
@@ -161,9 +167,11 @@ export function SebaranJaringMapView({
   mapStyleMode,
   mask,
   onMapReady,
+  mode = "jaring",
 }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<MapLibreMap | null>(null);
+  const copy = DISTRIBUTION_ENTITY_COPY[mode];
   const activeStyle = MAP_TILE_STYLES[mapStyleMode] || MAP_TILE_STYLES.dark;
   const agentsWithCoordinates = useMemo(
     () => filteredAgents.filter((agent) => agentCoordinate(agent, coordinateSourceMode) !== null),
@@ -229,7 +237,7 @@ export function SebaranJaringMapView({
           },
           properties: {
             id: a.id,
-            weight: a.reportCount > 0 ? a.reportCount : 1,
+            weight: mode === "gaswil" ? 1 : a.reportCount > 0 ? a.reportCount : 1,
           },
         };
       }),
@@ -277,7 +285,7 @@ export function SebaranJaringMapView({
     } catch {
       // ignore style loading race
     }
-  }, [agentsWithCoordinates, coordinateSourceMode, displayMode]);
+  }, [agentsWithCoordinates, coordinateSourceMode, displayMode, mode]);
 
   return (
     <main className="relative flex-1 h-full w-full bg-slate-950 overflow-hidden">
@@ -326,14 +334,14 @@ export function SebaranJaringMapView({
                       type="button"
                       onClick={() => onSelectAdminLevel?.("DISTRICT")}
                       className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
-                      title={`Kota ${selectedCity.name}: ${selectedCity.total} Jaring`}
+                      title={`Kota ${selectedCity.name}: ${selectedCity.total} ${copy.plural}`}
                     >
                       <div className="h-7 px-3 rounded-full border border-cyan-500/80 font-mono font-bold text-xs text-white flex items-center justify-center shadow-md bg-slate-900/95 backdrop-blur-md gap-2">
                         <span className="text-cyan-300 font-extrabold uppercase tracking-wide">
                           {selectedCity.name}
                         </span>
                         <span className="px-2 py-0.5 rounded-full bg-cyan-600 text-white font-bold text-xs">
-                          {selectedCity.total} Jaring
+                          {selectedCity.total} {copy.plural}
                         </span>
                       </div>
                     </button>
@@ -355,7 +363,7 @@ export function SebaranJaringMapView({
                           onSelectAdminLevel?.("CITY");
                         }}
                         className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
-                        title={`Kota ${city.name}: ${city.total} Jaring`}
+                        title={`Kota ${city.name}: ${city.total} ${copy.plural}`}
                       >
                         <div
                           className={cn(
@@ -401,7 +409,7 @@ export function SebaranJaringMapView({
                           onSelectVillage?.(village.id);
                         }}
                         className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
-                        title={`Kelurahan ${village.name}: ${village.total} Jaring`}
+                        title={`Kelurahan/Desa ${village.name}: ${village.total} ${copy.plural}`}
                       >
                         <div
                           className={cn(
@@ -436,7 +444,7 @@ export function SebaranJaringMapView({
                         onSelectAdminLevel?.("VILLAGE");
                       }}
                       className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
-                      title={`Kecamatan ${district.name}: ${district.total} Jaring`}
+                      title={`Kecamatan ${district.name}: ${district.total} ${copy.plural}`}
                     >
                       <div className="h-6 px-2.5 rounded-full border border-slate-700/80 bg-slate-900/90 text-slate-100 font-mono font-semibold text-[11px] flex items-center justify-center shadow-md backdrop-blur-md hover:border-cyan-500 hover:text-white transition-all">
                         <span>{district.name}</span>
@@ -454,7 +462,7 @@ export function SebaranJaringMapView({
           {displayMode === "marker" &&
             agentsWithCoordinates.map((agent) => {
               const isSelected = selectedJaring?.id === agent.id;
-              const statusMeta = STATUS_COLORS[agent.status] || STATUS_COLORS.PENDING;
+              const statusMeta = statusPresentationForMode(mode, agent.status);
               const [lng, lat] = agentCoordinate(agent, coordinateSourceMode) ?? [agent.longitude, agent.latitude];
 
               return (
@@ -466,7 +474,11 @@ export function SebaranJaringMapView({
                       "group relative flex items-center justify-center transition-all duration-150 cursor-pointer p-1",
                       isSelected ? "z-50 scale-125" : "z-10 hover:scale-125",
                     )}
-                    title={`${agent.aliasName || agent.fullName || agent.id} - ${agent.fullName || "Tanpa Nama"}`}
+                    title={
+                      mode === "gaswil"
+                        ? (agent.fullName ?? agent.fieldOfficerName ?? "Gaswil tanpa nama")
+                        : `${agent.aliasName || agent.fullName || agent.id} - ${agent.fullName || "Tanpa Nama"}`
+                    }
                   >
                     <div
                       className={cn(
@@ -494,19 +506,21 @@ export function SebaranJaringMapView({
                     <Badge
                       className={cn(
                         "text-[10px] px-1.5 py-0 border-none font-semibold text-slate-950",
-                        STATUS_COLORS[selectedJaring.status]?.dotClass || "bg-emerald-500",
+                        statusPresentationForMode(mode, selectedJaring.status).dotClass,
                       )}
                     >
-                      {STATUS_COLORS[selectedJaring.status]?.label || "Terverifikasi"}
+                      {copy.statusLabels[selectedJaring.status] || statusPresentationForMode(mode, selectedJaring.status).label}
                     </Badge>
-                    <Badge
-                      className={cn(
-                        "text-[10px] px-1.5 py-0 border-none font-semibold text-white",
-                        selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
-                      )}
-                    >
-                      {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
-                    </Badge>
+                    {mode === "jaring" ? (
+                      <Badge
+                        className={cn(
+                          "text-[10px] px-1.5 py-0 border-none font-semibold text-white",
+                          selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
+                        )}
+                      >
+                        {selectedJaring.isActive ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days}
+                      </Badge>
+                    ) : null}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -523,57 +537,90 @@ export function SebaranJaringMapView({
                 </div>
 
                 <div className="text-[11px] space-y-1 text-slate-300 pt-0.5">
-                  <JaringIdentitySummary
-                    compact
-                    source={{
-                      id: selectedJaring.id,
-                      fullName: selectedJaring.fullName,
-                      aliasName: selectedJaring.aliasName,
-                      whatsappNumber: selectedJaring.whatsappNumber,
-                      profilePhotoFileId: selectedJaring.profilePhotoFileId,
-                      fieldOfficerName: selectedJaring.fieldOfficerName,
-                      villageName: selectedJaring.villageName,
-                      districtName: selectedJaring.districtName,
-                      cityName: selectedJaring.cityName,
-                      provinceName: selectedJaring.provinceName,
-                    }}
-                  />
+                  {mode === "jaring" ? (
+                    <JaringIdentitySummary
+                      compact
+                      source={{
+                        id: selectedJaring.id,
+                        fullName: selectedJaring.fullName,
+                        aliasName: selectedJaring.aliasName,
+                        whatsappNumber: selectedJaring.whatsappNumber,
+                        profilePhotoFileId: selectedJaring.profilePhotoFileId,
+                        fieldOfficerName: selectedJaring.fieldOfficerName,
+                        villageName: selectedJaring.villageName,
+                        districtName: selectedJaring.districtName,
+                        cityName: selectedJaring.cityName,
+                        provinceName: selectedJaring.provinceName,
+                      }}
+                    />
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="font-semibold text-slate-100">
+                        {selectedJaring.fullName ?? selectedJaring.fieldOfficerName ?? "Gaswil tanpa nama"}
+                      </p>
+                      <p className="text-slate-400">
+                        {selectedJaring.districtName}, {selectedJaring.cityName ?? selectedJaring.provinceName ?? "-"}
+                      </p>
+                      <p className="font-mono text-[10px] text-slate-500">
+                        {(selectedJaring.assignmentAreaNames ?? []).slice(0, 2).join(" / ") || "Cakupan wilayah"}
+                      </p>
+                    </div>
+                  )}
                   <div className="flex justify-between">
-                    <span className="text-slate-400 font-mono">Kinerja</span>
+                    <span className="text-slate-400 font-mono">
+                      {mode === "gaswil" ? "Status Sinyal" : DOMAIN_TERMS.jaringActivity90Days}
+                    </span>
                     <span
                       className={cn(
                         "font-bold text-[11px]",
-                        selectedJaring.isActive ? "text-emerald-400" : "text-red-400",
+                        selectedJaring.isActive
+                          ? "text-emerald-400"
+                          : mode === "gaswil"
+                            ? "text-slate-400"
+                            : "text-red-400",
                       )}
                     >
-                      {selectedJaring.isActive ? "Aktif" : "Tidak Aktif"}
+                      {signalLabelForMode(mode, selectedJaring.isActive)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400 font-mono">Laporan Terakhir</span>
+                    <span className="text-slate-400 font-mono">
+                      {mode === "gaswil" ? "Lokasi Terakhir" : "Laporan Terakhir"}
+                    </span>
                     <span className="text-slate-200">{selectedJaring.lastReportDate}</span>
                   </div>
-                  <div className="flex justify-between font-mono">
-                    <span className="text-slate-400">
-                      {coordinateSourceMode === "laporan"
-                        ? "Lokasi laporan"
-                        : selectedJaring.domicileCoordinateSource === "REGISTERED"
-                          ? "Lokasi terdaftar"
-                          : "Perkiraan wilayah"}
-                    </span>
-                    <span className="text-cyan-300 text-[10px]">
-                      {selectedCoordinate[1].toFixed(4)}, {selectedCoordinate[0].toFixed(4)}
-                    </span>
-                  </div>
+                  {mode === "gaswil" && selectedJaring.jaringCount != null ? (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400 font-mono">Jaring Binaan</span>
+                      <span className="text-slate-200">{selectedJaring.jaringCount.toLocaleString("id-ID")}</span>
+                    </div>
+                  ) : null}
+                  {mode === "jaring" ? (
+                    <div className="flex justify-between font-mono">
+                      <span className="text-slate-400">
+                        {coordinateSourceMode === "laporan"
+                          ? copy.sourceReportLabel
+                          : selectedJaring.domicileCoordinateSource === "REGISTERED"
+                            ? copy.sourceDomicileLabel
+                            : "Perkiraan wilayah"}
+                      </span>
+                      <span className="text-cyan-300 text-[10px]">
+                        {selectedCoordinate[1].toFixed(4)}, {selectedCoordinate[0].toFixed(4)}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
 
                 <a
-                  href={`/dashboard/daftar-jaring/${selectedJaring.id}`}
+                  href={
+                    selectedJaring.detailHref ??
+                    (mode === "gaswil" ? "/dashboard/personel-lapangan" : `/dashboard/daftar-jaring/${selectedJaring.id}`)
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full mt-2.5 text-center text-cyan-400 hover:text-cyan-300 text-xs font-medium pt-1.5 border-t border-slate-800/80 flex items-center justify-center gap-1 cursor-pointer"
                 >
-                  <span>Lihat Detail</span>
+                  <span>{copy.detailLinkLabel}</span>
                   <ChevronRight className="size-3.5" />
                 </a>
               </div>
@@ -587,12 +634,16 @@ export function SebaranJaringMapView({
             LEGENDA
           </div>
           <div className="space-y-1.5">
-            {Object.entries(STATUS_COLORS).map(([key, val]) => (
-              <div key={key} className="flex items-center gap-2 text-[11px]">
-                <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: val.bg }} />
-                <span className="text-slate-700 dark:text-slate-300">{val.label}</span>
-              </div>
-            ))}
+            {Object.keys(STATUS_COLORS).map((key) => {
+              const status = key as keyof typeof STATUS_COLORS;
+              const val = statusPresentationForMode(mode, status);
+              return (
+                <div key={key} className="flex items-center gap-2 text-[11px]">
+                  <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: val.bg }} />
+                  <span className="text-slate-700 dark:text-slate-300">{copy.statusLabels[status]}</span>
+                </div>
+              );
+            })}
           </div>
 
           {displayMode === "marker" ? (

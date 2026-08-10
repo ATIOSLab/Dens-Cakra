@@ -19,13 +19,11 @@ import {
   FileCheck,
   FileDown,
   FileSearch,
-  FileText,
-  Inbox,
+  type LucideIcon,
   MapPin,
   MapPinned,
   Maximize2,
   Minus,
-  Network,
   Plus,
   Printer,
   RadioTower,
@@ -62,6 +60,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { Progress } from "@/components/ui/progress";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -74,13 +73,16 @@ import { BaketAdministrativeArea } from "@/features/baket/components/baket-admin
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import type { OimPageData, OimView } from "./oim-types";
 
 const SituationMap = dynamic(() => import("./oim-situation-map").then((module) => module.OimSituationMap), {
   ssr: false,
-  loading: () => <div className="h-[min(35rem,65svh)] min-h-[28rem] animate-pulse rounded-[var(--dc-radius-lg)] bg-muted" />,
+  loading: () => (
+    <div className="h-[min(35rem,65svh)] min-h-[28rem] animate-pulse rounded-[var(--dc-radius-lg)] bg-muted" />
+  ),
 });
 
 const BaketLocationMap = dynamic(
@@ -94,11 +96,11 @@ const BaketLocationMap = dynamic(
 type Row = Record<string, any>;
 type Props = { view: OimView; data: OimPageData; params: Record<string, string> };
 
-const VIEW_META: Record<OimView, [string, string, typeof FileText]> = {
-  dashboard: ["Pusat Kendali OIM", "Ringkasan antrean intelijen dalam scope komando dan wilayah Anda.", RadioTower],
+const VIEW_META: Record<OimView, [string, string, LucideIcon]> = {
+  dashboard: ["Pusat Kendali OIM", "Ringkasan antrean intelijen dalam cakupan komando dan wilayah Anda.", RadioTower],
   reports: ["Laporan Masuk", "", FileSearch],
   "report-detail": ["Detail Baket", "Bukti, peta lokasi, versi, dan jejak keputusan.", FileSearch],
-  "report-version": ["Snapshot Versi Baket", "Versi historis bersifat baca-saja.", FileText],
+  "report-version": ["Snapshot Versi Baket", "Versi historis bersifat baca-saja.", DOMAIN_VISUALS.baket.Icon],
   verification: [
     "Neraca Penilaian",
     "Antrean penilaian keandalan sumber A–F dan kredibilitas informasi 1–6.",
@@ -106,50 +108,50 @@ const VIEW_META: Record<OimView, [string, string, typeof FileText]> = {
   ],
   "verification-detail": [
     "Lembar Verifikasi",
-    "Checklist, cross-reference, matriks, interpretasi, dan keputusan final.",
+    "Daftar cek, rujukan silang, matriks, interpretasi, dan keputusan final.",
     ShieldCheck,
   ],
   analysis: [
     "Analisis Intelijen",
-    "Analisis manual berbasis Baket terverifikasi, tanpa pembuatan draft AI.",
+    "Analisis manual berbasis Bahan Keterangan (Baket) terverifikasi, tanpa pembuatan draf AI.",
     BarChart3,
   ],
-  "analysis-new": ["Analisis Baru", "Pilih sumber terverifikasi dan mulai draft lima bagian.", Plus],
+  "analysis-new": ["Analisis Baru", "Pilih sumber terverifikasi dan mulai draf lima bagian.", Plus],
   "analysis-detail": [
-    "Workspace Analisis",
-    "Gabungkan beberapa Baket, susun analisis, lalu simpan sebagai draft atau final.",
-    Network,
+    "Ruang Kerja Analisis",
+    "Gabungkan beberapa Baket, susun analisis, lalu simpan sebagai draf atau final.",
+    BarChart3,
   ],
   "analysis-edit": ["Edit Analisis", "Perbarui versi aktif sebelum difinalkan.", BarChart3],
   "analysis-version": ["Versi Analisis", "Snapshot final tidak dapat diubah.", BarChart3],
-  products: ["Produk Intelijen", "Laporan Intelijen yang bersumber dari analisis final.", FileText],
-  "product-list": ["Daftar Produk", "Pipeline draft, revisi, pengajuan, dan versi produk.", FileText],
+  products: ["Produk Intelijen", "Laporan Intelijen yang bersumber dari analisis final.", DOMAIN_VISUALS.intelligenceReport.Icon],
+  "product-list": ["Daftar Produk", "Alur draf, revisi, pengajuan, dan versi produk.", DOMAIN_VISUALS.intelligenceReport.Icon],
   "product-new": [
     "Buat Laporan Intelijen",
     "Pilih jenis laporan dan susun isinya dari analisis final beserta Baket sumber.",
     Plus,
   ],
-  "product-detail": ["Detail Produk", "Metadata, sumber, versi, validasi, approval, dan traceability.", FileText],
-  "product-edit": ["Edit Produk", "Koreksi metadata draft dan konten versi aktif.", FileText],
-  "product-version": ["Versi Produk", "Snapshot produk untuk audit dan cetak.", FileText],
-  approval: ["Pengajuan Persetujuan", "Produk final yang menunggu keputusan Regional Commander.", Send],
-  "approval-detail": ["Persiapan Pengajuan", "Finalkan produk dan kunci versi untuk Regional Commander.", Send],
-  "workflow-detail": ["Timeline Persetujuan", "Status keputusan Regional Commander.", Send],
+  "product-detail": ["Detail Produk", "Metadata, sumber, versi, validasi, persetujuan, dan ketertelusuran.", DOMAIN_VISUALS.intelligenceReport.Icon],
+  "product-edit": ["Edit Produk", "Koreksi metadata draf dan konten versi aktif.", DOMAIN_VISUALS.intelligenceReport.Icon],
+  "product-version": ["Versi Produk", "Snapshot produk untuk audit dan cetak.", DOMAIN_VISUALS.intelligenceReport.Icon],
+  approval: ["Pengajuan Persetujuan", "Produk final yang menunggu keputusan Komandan Regional.", Send],
+  "approval-detail": ["Persiapan Pengajuan", "Finalkan produk dan kunci versi untuk Komandan Regional.", Send],
+  "workflow-detail": ["Linimasa Persetujuan", "Status keputusan Komandan Regional.", Send],
   monitoring: [
     "Monitoring Lapangan",
-    "Workload, deadline, coverage, laporan, personel, dan insiden pada rantai komando.",
+    "Beban kerja, tenggat, cakupan, laporan, personel, dan insiden pada rantai komando.",
     RadioTower,
   ],
-  "monitoring-task": ["Monitoring Tugas", "Progress lapangan dan laporan terkait.", RadioTower],
+  "monitoring-task": ["Monitoring Tugas", "Perkembangan lapangan dan laporan terkait.", RadioTower],
   "monitoring-report": ["Baket Lapangan", "Detail Baket dari konteks monitoring.", FileSearch],
   "monitoring-personnel": [
     "Profil Operasional Personel",
-    "Workload, deadline, coverage, dan posisi terakhir.",
+    "Beban kerja, tenggat, cakupan, dan posisi terakhir.",
     RadioTower,
   ],
-  map: ["Peta Situasi", "Seluruh Baket masuk, boundary scope, cluster, heatmap, dan alert.", MapPinned],
+  map: ["Peta Situasi", "Seluruh Baket masuk, batas cakupan, klaster, peta panas, dan peringatan.", MapPinned],
   "map-report": ["Baket pada Peta", "Detail laporan dan konteks spasial.", MapPinned],
-  "map-alert": ["Detail Alert", "Situasi, severity, lokasi, dan tindak lanjut.", AlertTriangle],
+  "map-alert": ["Detail Peringatan", "Situasi, tingkat risiko, lokasi, dan tindak lanjut.", AlertTriangle],
 };
 
 function rows(value: unknown): Row[] {
@@ -357,7 +359,7 @@ function Kpis({ data }: { data: OimPageData }) {
       label: "Baket baru",
       value: bakets.filter((item) => item.status === "SENT_TO_OIM").length,
       hint: "Menunggu intake",
-      icon: Inbox,
+      icon: DOMAIN_VISUALS.baket.Icon,
       colorClass: "border-t-primary/80",
       bgTint: "bg-primary/5 text-primary",
       badge: "Intake Baru",
@@ -383,14 +385,14 @@ function Kpis({ data }: { data: OimPageData }) {
     {
       label: "Analisis aktif",
       value: analyses.filter((item) => item.status !== "ARCHIVED").length,
-      hint: "Draft dan review",
+      hint: "Draf dan peninjauan",
       icon: Activity,
       colorClass: "border-t-primary/80",
       bgTint: "bg-primary/5 text-primary",
       badge: "Draf Aktif",
     },
     {
-      label: "Draft produk",
+      label: "Draf produk",
       value: products.filter((item) => ["DRAFT", "NEEDS_REVISION"].includes(item.status)).length,
       hint: "Belum diajukan",
       icon: FileCheck,
@@ -620,6 +622,12 @@ function Filters({
   const selectedRegency = regencies.find((area) => area.id === regencyId);
   const districts = selectedRegency ? rows(selectedRegency.children).filter((area) => area.level === "DISTRICT") : [];
   const areaId = districtId || regencyId || provinceId;
+  const selectedDistrict = districts.find((area) => area.id === districtId);
+  const areaSubtitle = selectedDistrict
+    ? `Jumlah data Kecamatan ${selectedDistrict.name}`
+    : selectedRegency
+      ? `Jumlah data Kota/Kabupaten ${selectedRegency.name}`
+      : "Jumlah data semua wilayah akses";
   const statusOptions =
     mode === "product"
       ? ["DRAFT", "READY_FOR_SUBMISSION", "SUBMITTED", "IN_REVIEW", "NEEDS_REVISION", "APPROVED", "REJECTED"]
@@ -701,60 +709,56 @@ function Filters({
               ? "Filter verifikasi"
               : "Filter laporan"
         }
-        description="Filter diterapkan pada seluruh dataset sesuai scope akses Anda."
+        description={`Filter diterapkan pada seluruh dataset sesuai cakupan akses Anda. ${areaSubtitle}.`}
         activeFilterCount={activeFilterCount}
         onReset={resetFilters}
       >
         <Input
           name="search"
           aria-label="Cari laporan"
-          placeholder="Cari judul, isi, nomor produk…"
+          placeholder="Cari judul, isi, nomor produk..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-10 border-border bg-background text-sm text-foreground"
         />
 
-        {/* Kabupaten/Kota Select */}
-        <Select
+        {/* Kota/Kabupaten Select */}
+        <SearchableSelect
+          aria-label="Filter Kota/Kabupaten"
           value={regencyId || "ALL"}
+          options={[
+            { value: "ALL", label: "Seluruh Kota/Kabupaten" },
+            ...regencies.map((area) => ({ value: area.id, label: area.name })),
+          ]}
           onValueChange={(val) => {
             setRegencyId(val === "ALL" ? "" : val);
             setDistrictId("");
           }}
-        >
-          <SelectTrigger
-            aria-label="Filter kabupaten atau kota"
-            className="h-10 border-border bg-background text-sm text-foreground"
-          >
-            <SelectValue placeholder="Seluruh kabupaten/kota" />
-          </SelectTrigger>
-          <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
-            <SelectItem value="ALL">Seluruh kabupaten/kota</SelectItem>
-            {regencies.map((area) => (
-              <SelectItem key={area.id} value={area.id}>
-                {area.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          placeholder="Seluruh Kota/Kabupaten"
+          searchPlaceholder="Cari Kota/Kabupaten..."
+          emptyText="Kota/Kabupaten tidak ditemukan."
+          className="h-10 border-border bg-background text-sm text-foreground"
+        />
 
         {/* Kecamatan Select */}
-        <Select value={districtId || "ALL"} onValueChange={(val) => setDistrictId(val === "ALL" ? "" : val)}>
-          <SelectTrigger
-            aria-label="Filter kecamatan"
-            className="h-10 border-border bg-background text-sm text-foreground"
-          >
-            <SelectValue placeholder="Seluruh kecamatan" />
-          </SelectTrigger>
-          <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
-            <SelectItem value="ALL">Seluruh kecamatan</SelectItem>
-            {districts.map((area) => (
-              <SelectItem key={area.id} value={area.id}>
-                {area.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          aria-label="Filter kecamatan"
+          value={districtId || "ALL"}
+          options={[
+            {
+              value: "ALL",
+              label: regencyId ? "Seluruh Kecamatan" : "Pilih Kota/Kabupaten dahulu",
+              disabled: !regencyId,
+            },
+            ...districts.map((area) => ({ value: area.id, label: area.name })),
+          ]}
+          onValueChange={(val) => setDistrictId(val === "ALL" ? "" : val)}
+          disabled={!regencyId}
+          placeholder={regencyId ? "Seluruh Kecamatan" : "Pilih Kota/Kabupaten dahulu"}
+          searchPlaceholder="Cari Kecamatan..."
+          emptyText="Kecamatan tidak ditemukan."
+          className="h-10 border-border bg-background text-sm text-foreground"
+        />
 
         {/* Status Select */}
         <Select value={status || "ALL"} onValueChange={(val) => setStatus(val === "ALL" ? "" : val)}>
@@ -811,22 +815,19 @@ function Filters({
 
         {/* Kategori Select (for Baket mode) */}
         {mode === "baket" ? (
-          <Select value={categoryId || "ALL"} onValueChange={(val) => setCategoryId(val === "ALL" ? "" : val)}>
-            <SelectTrigger
-              aria-label="Filter kategori"
-              className="h-10 border-border bg-background text-sm text-foreground"
-            >
-              <SelectValue placeholder="Semua kategori" />
-            </SelectTrigger>
-            <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
-              <SelectItem value="ALL">Semua kategori</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            aria-label="Filter kategori"
+            value={categoryId || "ALL"}
+            options={[
+              { value: "ALL", label: "Semua kategori" },
+              ...categories.map((category) => ({ value: category.id, label: category.name })),
+            ]}
+            onValueChange={(val) => setCategoryId(val === "ALL" ? "" : val)}
+            placeholder="Semua kategori"
+            searchPlaceholder="Cari kategori..."
+            emptyText="Kategori tidak ditemukan."
+            className="h-10 border-border bg-background text-sm text-foreground"
+          />
         ) : null}
 
         <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
@@ -1107,8 +1108,7 @@ function BaketList({ data }: { data: OimPageData }) {
                             assignmentId={fieldOfficer.id}
                             userProfileId={fieldOfficer.userProfile?.id}
                           />{" "}
-                          · {administrativeAreaLabel(version.eventArea)} ·{" "}
-                          {fmtDate(item.updatedAt)}
+                          · {administrativeAreaLabel(version.eventArea)} · {fmtDate(item.updatedAt)}
                         </p>
                       </div>
 
@@ -1135,7 +1135,7 @@ function BaketList({ data }: { data: OimPageData }) {
       ) : (
         <div className="flex min-h-[220px] select-none flex-col items-center justify-center space-y-4 rounded-[8px] border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/5 dark:bg-[#131A26] dark:shadow-none">
           <div className="size-12 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-muted-foreground/60 border border-slate-200 dark:border-white/10">
-            <Inbox className="size-6" style={{ strokeWidth: "2px" }} />
+            <DOMAIN_VISUALS.baket.Icon className="size-6" style={{ strokeWidth: "2px" }} />
           </div>
           <div className="space-y-1">
             <h3 className="text-[15px] font-bold text-slate-900 tracking-tight dark:text-white">
@@ -1808,7 +1808,7 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
       <CardHeader>
         <CardTitle>Mulai dari sumber terverifikasi</CardTitle>
         <CardDescription>
-          Hanya canonical verification berstatus VERIFIED dalam scope OIM yang dapat dipilih.
+          Hanya verifikasi kanonis berstatus terverifikasi dalam cakupan OIM yang dapat dipilih.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -1836,7 +1836,9 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
                     }
                   />
                   <span>
-                    <b className="block text-sm">{source.baketVersion?.title ?? "Baket terverifikasi"}</b>
+                    <b className="block text-sm">
+                      {source.baketVersion?.title ?? "Bahan Keterangan (Baket) terverifikasi"}
+                    </b>
                     <span className="text-muted-foreground text-xs">
                       {administrativeAreaLabel(source.baketVersion?.eventArea)}
                     </span>
@@ -1846,7 +1848,7 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
             })
           ) : (
             <p className="rounded-lg border border-dashed p-6 text-muted-foreground text-sm">
-              Belum ada Baket terverifikasi dalam scope Anda.
+              Belum ada Bahan Keterangan (Baket) terverifikasi dalam cakupan Anda.
             </p>
           )}
         </div>
@@ -1854,15 +1856,15 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
           <AlertDialogTrigger asChild>
             <Button disabled={pending || !title.trim() || selected.length === 0}>
               <Plus />
-              {pending ? "Membuat…" : "Buat case analisis"}
+              {pending ? "Membuat..." : "Buat kasus analisis"}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Buat Kasus Analisis?</AlertDialogTitle>
               <AlertDialogDescription>
-                Apakah Anda yakin ingin membuat kasus analisis baru dengan {selected.length} sumber Baket terverifikasi
-                yang dipilih?
+                Apakah Anda yakin ingin membuat kasus analisis baru dengan {selected.length} sumber Bahan Keterangan
+                (Baket) terverifikasi yang dipilih?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1876,7 +1878,7 @@ function AnalysisCreate({ data }: { data: OimPageData }) {
                         verificationIds: selected,
                       });
                       router.push(`/dashboard/oim/analisis-intelijen/${created.id}`);
-                      toast.success("Case analisis dibuat");
+                      toast.success("Kasus analisis berhasil dibuat");
                     } catch (error) {
                       toast.error(error instanceof Error ? error.message : "Gagal membuat analisis");
                     }
@@ -1959,7 +1961,7 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button disabled={locked || pending || !version.id} variant="outline" className="w-full">
-                  Simpan draft
+                  Simpan draf
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -2265,7 +2267,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                     <CardContent className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                       <div className="flex items-start gap-3">
                         <div className="grid size-10 place-items-center rounded-lg bg-primary/10">
-                          <FileText className="size-5 text-primary" />
+                          <DOMAIN_VISUALS.intelligenceReport.Icon className={`size-5 ${DOMAIN_VISUALS.intelligenceReport.iconClass}`} />
                         </div>
                         <div>
                           <div className="flex flex-wrap gap-2">
@@ -2320,7 +2322,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
       ) : (
         <div className="rounded-[18px] bg-white dark:bg-[#131A26] border border-slate-200 dark:border-white/5 p-8 flex flex-col items-center justify-center text-center space-y-4 select-none min-h-[220px] shadow-sm dark:shadow-none">
           <div className="size-12 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-muted-foreground/60 border border-slate-200 dark:border-white/10">
-            <Inbox className="size-6" style={{ strokeWidth: "2px" }} />
+            <DOMAIN_VISUALS.intelligenceReport.Icon className="size-6" style={{ strokeWidth: "2px" }} />
           </div>
           <div className="space-y-1">
             <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
@@ -2458,10 +2460,10 @@ function ProductBuilder({ data }: { data: OimPageData }) {
   const selectedProductType = productTypes.find((item) => item.id === selectedProductTypeId) ?? null;
   const isJournal = selectedProductType?.code === "JURNAL_INFORMASI";
   const journalRows = buildJournalRows(analysisCase);
-  const analysisVersion = analysisCase ? currentVersion(analysisCase) : {};
+  const analysisVersion = useMemo(() => (analysisCase ? currentVersion(analysisCase) : {}), [analysisCase]);
   const productContent = buildProductContent(template, fieldValues, journalRows);
 
-  // Workflow states
+  // Alur kerja produk
   const [activeStep, setActiveStep] = useState(1);
   const [zoom, setZoom] = useState(100);
   const [expandedSections, setExpandedSections] = useState({
@@ -2494,7 +2496,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
 
   useEffect(() => {
     setFieldValues(initialTemplateValues(template, analysisVersion));
-  }, [template, analysisVersion.id]);
+  }, [template, analysisVersion]);
 
   const selectAnalysis = async (caseId: string) => {
     if (!caseId) {
@@ -2521,8 +2523,8 @@ function ProductBuilder({ data }: { data: OimPageData }) {
           title,
           version: {
             templateId: template.id,
-            routingTo: "Regional Commander",
-            routingFrom: "Operational Intelligence Manager",
+            routingTo: "Komandan Regional",
+            routingFrom: "Manajer Intelijen Operasional",
             subject: title,
             content: productContent,
             sourceAnalysisVersionIds: [analysisVersion.id],
@@ -2534,7 +2536,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
             versionId: version.id,
             confirmation: "SUBMIT",
           });
-          toast.success("Produk final dikirim ke Regional Commander");
+          toast.success("Produk final dikirim ke Komandan Regional");
         } else {
           toast.success("Draft Produk Intelijen tersimpan");
         }
@@ -2816,9 +2818,9 @@ function ProductBuilder({ data }: { data: OimPageData }) {
             <div className="px-3 py-1.5 border-t border-border/40 bg-secondary/15 font-mono text-[8px] text-muted-foreground/60 flex items-center justify-between shrink-0 select-none">
               <span className="flex items-center gap-1">
                 <span className="size-1 bg-emerald-500 rounded-full animate-pulse" />
-                AUTO SAVE // DRAFT SECURED
+                SIMPAN OTOMATIS - DRAF AMAN
               </span>
-              <span>VER: v1.0.0-draft // PREVIEW SYNCED</span>
+              <span>VER: v1.0.0-draf - PRATINJAU SINKRON</span>
             </div>
           </Card>
         </div>
@@ -2832,7 +2834,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
                 variant="outline"
                 className="shrink-0 border-slate-300 dark:border-[#324155] bg-slate-200/50 dark:bg-[#1A2434] font-mono text-[8px] uppercase text-sky-600 dark:text-sky-300"
               >
-                Preview Aman
+                Pratinjau Aman
               </Badge>
               <span className="truncate">Dokumen A4 / {zoom}%</span>
             </div>
@@ -2862,7 +2864,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
                 size="icon-xs"
                 className="border border-slate-200 dark:border-[#324155] bg-white dark:bg-[#1A2434] text-slate-700 dark:text-[#C8D3E2] hover:bg-slate-100 dark:hover:bg-[#233248]"
                 onClick={() => setZoom((current) => Math.max(50, current - 10))}
-                title="Perkecil preview"
+                title="Perkecil pratinjau"
               >
                 <Minus className="size-3.5" />
               </Button>
@@ -2880,7 +2882,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
                 size="icon-xs"
                 className="border border-slate-200 dark:border-[#324155] bg-white dark:bg-[#1A2434] text-slate-700 dark:text-[#C8D3E2] hover:bg-slate-100 dark:hover:bg-[#233248]"
                 onClick={() => setZoom((current) => Math.min(150, current + 10))}
-                title="Perbesar preview"
+                title="Perbesar pratinjau"
               >
                 <Plus className="size-3.5" />
               </Button>
@@ -2889,7 +2891,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
                 size="xs"
                 className="hidden h-6 border border-slate-200 dark:border-[#324155] bg-white dark:bg-[#1A2434] px-2 font-mono text-[9px] text-slate-700 dark:text-[#C8D3E2] hover:bg-slate-100 dark:hover:bg-[#233248] sm:inline-flex"
                 onClick={() => setZoom(90)}
-                title="Sesuaikan lebar preview"
+                title="Sesuaikan lebar pratinjau"
               >
                 <Maximize2 className="size-3" />
                 Fit
@@ -2902,7 +2904,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
                   setZoom((current) => current + 0.1);
                   setTimeout(() => setZoom((current) => Math.floor(current)), 50);
                 }}
-                title="Segarkan preview"
+                title="Segarkan pratinjau"
               >
                 <RefreshCw className="size-3.5" />
               </Button>
@@ -2929,15 +2931,15 @@ function ProductBuilder({ data }: { data: OimPageData }) {
         <div className="flex min-w-0 items-center gap-3 text-[10px] font-mono text-slate-600 dark:text-[#8F9FB4] select-none sm:gap-4">
           <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
             <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Draft Saved
+            Draf Tersimpan
           </span>
           <span className="hidden text-slate-200 dark:text-white/10 sm:inline">|</span>
-          <span className="hidden sm:inline">Last Save: 09:42</span>
+          <span className="hidden sm:inline">Terakhir disimpan: 09:42</span>
           <span className="hidden text-slate-200 dark:text-white/10 md:inline">|</span>
-          <span className="hidden md:inline">Version: v1.0.3</span>
+          <span className="hidden md:inline">Versi: v1.0.3</span>
           <span className="hidden text-slate-200 dark:text-white/10 lg:inline">|</span>
           <span className="hidden lg:inline">
-            Auto Save: <span className="text-emerald-600 dark:text-emerald-400 font-bold">ON</span>
+            Simpan otomatis: <span className="text-emerald-600 dark:text-emerald-400 font-bold">Aktif</span>
           </span>
         </div>
 
@@ -2951,7 +2953,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
                 variant="outline"
                 className="h-9 rounded-[4px] border border-slate-300 dark:border-[#3A4657] bg-transparent px-3 font-mono text-xs text-slate-700 dark:text-[#C8D3E2] transition-all duration-200 hover:scale-[1.02] hover:bg-slate-100 dark:hover:bg-[#1A2434] active:scale-[0.98] active:bg-slate-200 dark:active:bg-[#141C28] sm:px-4"
               >
-                <FileText className="size-3.5 mr-1" />
+                <DOMAIN_VISUALS.intelligenceReport.Icon className="mr-1 size-3.5" />
                 Simpan Draft
               </Button>
             </AlertDialogTrigger>
@@ -3088,7 +3090,7 @@ function ProductPreview({
 
           <div className="mt-16 border-t border-neutral-200 pt-4 flex flex-col items-end">
             <p className="text-[10px] font-mono text-neutral-500">AUTENTIKASI DOKUMEN ELEKTRONIK</p>
-            <p className="text-[10px] font-mono font-bold text-neutral-700">OIM // PENUGASAN VALID</p>
+            <p className="text-[10px] font-mono font-bold text-neutral-700">OIM - PENUGASAN VALID</p>
           </div>
 
           <p className="absolute bottom-6 left-0 right-0 text-center text-xs font-bold uppercase tracking-widest select-none border-t border-black pt-2">
@@ -3124,7 +3126,7 @@ function ProductDetail({ item, approval = false }: { item?: unknown; approval?: 
               <TabsTrigger value="content">Isi</TabsTrigger>
               <TabsTrigger value="sources">Sumber</TabsTrigger>
               <TabsTrigger value="versions">Versi</TabsTrigger>
-              <TabsTrigger value="approval">Approval</TabsTrigger>
+              <TabsTrigger value="approval">Persetujuan</TabsTrigger>
             </TabsList>
             <TabsContent value="content" className="space-y-4">
               {journalItems.length ? (
@@ -3176,13 +3178,13 @@ function ProductDetail({ item, approval = false }: { item?: unknown; approval?: 
             <TabsContent value="versions">
               {rows(product.versions).map((entry) => (
                 <div key={entry.id} className="border-b py-3">
-                  Versi {entry.versionNumber} · {fmtDate(entry.createdAt)}
+                  Versi {entry.versionNumber} - {fmtDate(entry.createdAt)}
                 </div>
               ))}
             </TabsContent>
             <TabsContent value="approval">
               <p className="text-sm text-muted-foreground">
-                {version.approvalWorkflow ? `Workflow ${version.approvalWorkflow.status}` : "Belum diajukan."}
+                {version.approvalWorkflow ? `Alur Persetujuan ${version.approvalWorkflow.status}` : "Belum diajukan."}
               </p>
             </TabsContent>
           </Tabs>
@@ -3190,8 +3192,8 @@ function ProductDetail({ item, approval = false }: { item?: unknown; approval?: 
       </Card>
       <Card className="h-fit">
         <CardHeader>
-          <CardTitle>{approval ? "Pre-submit" : "Kontrol produk"}</CardTitle>
-          <CardDescription>Routing: OIM → Regional Commander → Executive (baca setelah disetujui).</CardDescription>
+          <CardTitle>{approval ? "Pra-pengajuan" : "Kontrol produk"}</CardTitle>
+          <CardDescription>{"Alur: OIM -> Komandan Regional -> Deputi II (baca setelah disetujui)."}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
@@ -3203,7 +3205,7 @@ function ProductDetail({ item, approval = false }: { item?: unknown; approval?: 
           </div>
           <Button variant="outline" className="w-full" onClick={() => window.print()}>
             <Printer />
-            Print preview
+            Cetak pratinjau
           </Button>
           {approval && (
             <Button
@@ -3519,7 +3521,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
           >
             {/* Tactical Frame Core Identifier */}
             <div className="absolute top-1.5 right-4 font-mono text-[7px] text-muted-foreground/20 pointer-events-none uppercase">
-              C2 MONITORING CORE // SYS-REV-09
+              Inti Monitoring C2 - SYS-REV-09
             </div>
 
             <Kpis data={data} />
@@ -3528,37 +3530,37 @@ export function OimWorkspaceClient({ view, data }: Props) {
               {[
                 {
                   id: "MOD-01",
-                  label: "WORKLOAD PERSONEL",
+                  label: "BEBAN KERJA PERSONEL",
                   value: 72,
-                  desc: "ACTIVE STRENGTH // 72 OF 100 OPs",
+                  desc: "Kekuatan aktif - 72 dari 100 operasi",
                   status: "NORMAL",
                   statusColor: "bg-emerald-500",
                   progressColor: "bg-emerald-500/90",
-                  trend: "+2.4% CHANGE",
+                  trend: "+2.4% perubahan",
                   trendPositive: true,
                   icon: Users,
                 },
                 {
                   id: "MOD-02",
-                  label: "DEADLINE TUGAS",
+                  label: "TENGGAT TUGAS",
                   value: 45,
-                  desc: "COMPLETED MISSION // 45 OF 100 STRs",
-                  status: "WARNING",
+                  desc: "Misi selesai - 45 dari 100 STR",
+                  status: "PERINGATAN",
                   statusColor: "bg-amber-500",
                   progressColor: "bg-amber-500/90",
-                  trend: "-1.5% DRIFT",
+                  trend: "-1.5% deviasi",
                   trendPositive: false,
                   icon: Clock,
                 },
                 {
                   id: "MOD-03",
-                  label: "COVERAGE WILAYAH",
+                  label: "CAKUPAN WILAYAH",
                   value: 86,
-                  desc: "INTEL COVERAGE // TARGET SECTOR SECURED",
-                  status: "ACTIVE",
+                  desc: "Cakupan intelijen - sektor sasaran terkendali",
+                  status: "AKTIF",
                   statusColor: "bg-emerald-500",
                   progressColor: "bg-emerald-500/90",
-                  trend: "+5.1% RATIO",
+                  trend: "+5.1% rasio",
                   trendPositive: true,
                   icon: MapPin,
                 },
@@ -3566,35 +3568,35 @@ export function OimWorkspaceClient({ view, data }: Props) {
                   id: "MOD-04",
                   label: "LAPORAN MASUK",
                   value: 64,
-                  desc: "VERIFIED INTAKE // 64 VALID BAKETs",
+                  desc: "Intake terverifikasi - 64 Baket valid",
                   status: "NORMAL",
                   statusColor: "bg-sky-500",
                   progressColor: "bg-sky-500/90",
-                  trend: "+12.8% VOL",
+                  trend: "+12.8% volume",
                   trendPositive: true,
-                  icon: FileText,
+                  icon: DOMAIN_VISUALS.baket.Icon,
                 },
                 {
                   id: "MOD-05",
                   label: "INSIDEN AKTIF",
                   value: 18,
-                  desc: "CRITICAL ALERT // 18 EMERGENCY PINGs",
-                  status: "CRITICAL",
+                  desc: "Peringatan kritis - 18 sinyal darurat",
+                  status: "KRITIS",
                   statusColor: "bg-red-500",
                   progressColor: "bg-red-500/90",
-                  trend: "+2 ACTIVE PINGS",
+                  trend: "+2 sinyal aktif",
                   trendPositive: false,
                   icon: AlertCircle,
                 },
                 {
                   id: "MOD-06",
-                  label: "PROGRESS LAPANGAN",
+                  label: "PERKEMBANGAN LAPANGAN",
                   value: 58,
-                  desc: "DATA COLLECTION // UUK TARGETS MET",
-                  status: "ACTIVE",
+                  desc: "Pengumpulan data - target UUK terpenuhi",
+                  status: "AKTIF",
                   statusColor: "bg-purple-500",
                   progressColor: "bg-purple-500/90",
-                  trend: "+8.2% PROGRESS",
+                  trend: "+8.2% perkembangan",
                   trendPositive: true,
                   icon: Zap,
                 },
@@ -3611,11 +3613,8 @@ export function OimWorkspaceClient({ view, data }: Props) {
                     <div className="absolute bottom-0 left-0 size-2 border-b border-l border-muted-foreground/30 group-hover:border-sky-400" />
                     <div className="absolute bottom-0 right-0 size-2 border-b border-r border-muted-foreground/30 group-hover:border-sky-400" />
 
-                    {/* Side Accent Line for Critical/Warnings */}
-                    {item.status === "CRITICAL" && (
-                      <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-red-500" />
-                    )}
-                    {item.status === "WARNING" && (
+                    {item.status === "KRITIS" && <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-red-500" />}
+                    {item.status === "PERINGATAN" && (
                       <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-amber-500" />
                     )}
 
@@ -3628,7 +3627,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
                           </CardTitle>
                         </div>
                         <CardDescription className="text-[8px] font-mono text-muted-foreground/50 uppercase tracking-widest">
-                          C2 // UNIT SCAN
+                          C2 - Pindai unit
                         </CardDescription>
                       </div>
                       <div className="p-1 rounded bg-secondary/15 text-muted-foreground/60 group-hover:text-sky-400 transition-colors">
@@ -3650,11 +3649,11 @@ export function OimWorkspaceClient({ view, data }: Props) {
                             className={cn(
                               "size-1.5 rounded-full",
                               item.statusColor,
-                              item.status === "CRITICAL" && "animate-ping",
+                              item.status === "KRITIS" && "animate-ping",
                             )}
                           />
                           <span className="text-[8px] font-mono font-bold leading-none tracking-widest">
-                            ● {item.status}
+                            Status: {item.status}
                           </span>
                         </div>
                       </div>
@@ -3693,7 +3692,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
               <Card>
                 <CardHeader>
                   <CardTitle>Legenda situasi</CardTitle>
-                  <CardDescription>Zoom rendah menampilkan agregasi; zoom tinggi menampilkan marker.</CardDescription>
+                  <CardDescription>Zoom rendah menampilkan agregasi; zoom tinggi menampilkan penanda.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
@@ -3702,7 +3701,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
                   </div>
                   <Separator />
                   <p className="text-xs text-muted-foreground">
-                    Merah: urgent · Kuning: high · Biru: normal. Baket tanpa koordinat tetap tersedia pada daftar
+                    Merah: mendesak - Kuning: tinggi - Biru: normal. Baket tanpa koordinat tetap tersedia pada daftar
                     laporan masuk.
                   </p>
                 </CardContent>
@@ -3714,7 +3713,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
           <Card>
             <CardContent className="py-12 text-center">
               <ShieldCheck className="mx-auto size-8 text-primary" />
-              <h2 className="mt-3 font-medium">Data operasional berada dalam scope OIM</h2>
+              <h2 className="mt-3 font-medium">Data operasional berada dalam cakupan OIM</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Detail ini menggunakan kontrak monitoring dan traceability yang sama tanpa membuka data lintas rantai
                 komando.

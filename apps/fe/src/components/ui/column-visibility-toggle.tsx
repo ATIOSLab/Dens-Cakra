@@ -16,6 +16,7 @@ export interface ColumnOption {
   id: string;
   label: string;
   alwaysVisible?: boolean;
+  defaultVisible?: boolean;
 }
 
 interface ColumnVisibilityToggleProps {
@@ -32,6 +33,10 @@ export function ColumnVisibilityToggle({
   className,
 }: ColumnVisibilityToggleProps) {
   const [open, setOpen] = React.useState(false);
+  const isColumnVisible = React.useCallback(
+    (column: ColumnOption) => visibleColumns[column.id] ?? column.defaultVisible !== false,
+    [visibleColumns],
+  );
 
   const toggleableColumns = React.useMemo(
     () => columns.filter((col) => !col.alwaysVisible),
@@ -39,17 +44,20 @@ export function ColumnVisibilityToggle({
   );
 
   const visibleCount = React.useMemo(() => {
-    return columns.filter((col) => visibleColumns[col.id] !== false).length;
-  }, [columns, visibleColumns]);
+    return columns.filter((col) => isColumnVisible(col)).length;
+  }, [columns, isColumnVisible]);
 
   const allSelected = React.useMemo(() => {
-    return toggleableColumns.every((col) => visibleColumns[col.id] !== false);
-  }, [toggleableColumns, visibleColumns]);
+    return toggleableColumns.every((col) => isColumnVisible(col));
+  }, [toggleableColumns, isColumnVisible]);
 
   const handleToggle = (columnId: string) => {
+    const column = columns.find((item) => item.id === columnId);
+    if (!column) return;
+
     const nextState = {
       ...visibleColumns,
-      [columnId]: visibleColumns[columnId] === false ? true : false,
+      [columnId]: !isColumnVisible(column),
     };
     onChange(nextState);
   };
@@ -65,7 +73,7 @@ export function ColumnVisibilityToggle({
   const handleReset = () => {
     const nextState: Record<string, boolean> = {};
     for (const col of columns) {
-      nextState[col.id] = true;
+      nextState[col.id] = col.defaultVisible !== false;
     }
     onChange(nextState);
   };
@@ -102,7 +110,8 @@ export function ColumnVisibilityToggle({
             size="sm"
             onClick={handleReset}
             className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground gap-1"
-            title="Tampilkan semua kolom"
+            title="Kembalikan default kolom"
+            aria-label="Kembalikan default kolom"
           >
             <RotateCcw className="size-3" /> Reset
           </Button>
@@ -110,7 +119,7 @@ export function ColumnVisibilityToggle({
 
         <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
           {columns.map((col) => {
-            const isVisible = visibleColumns[col.id] !== false;
+            const isVisible = isColumnVisible(col);
             return (
               <label
                 key={col.id}

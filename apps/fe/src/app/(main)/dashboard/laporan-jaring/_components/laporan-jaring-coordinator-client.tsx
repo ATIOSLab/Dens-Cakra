@@ -7,15 +7,11 @@ import { useSearchParams } from "next/navigation";
 
 import {
   Activity,
-  Archive,
   ArrowDown,
   Calendar,
   Clock,
   Download,
   Eye,
-  FileCheck2,
-  FileText,
-  FileWarning,
   ImageIcon,
   MapPin,
   MessageSquare,
@@ -27,10 +23,8 @@ import {
 } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
-import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
-import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -42,13 +36,27 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { Input } from "@/components/ui/input";
 import { type JaringOption, JaringSelectPopover } from "@/components/ui/jaring-select-popover";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import {
+  buildAreaFilterSubtitle,
+  buildDistrictFilterOptions,
+  buildProvinceFilterOptions,
+  buildRegencyFilterOptions,
+  buildVillageFilterOptions,
+  isDkiAreaScope,
+  resolveAreaFilterSelection,
+  selectedAreaFilterId,
+} from "@/lib/domain/area-filter";
 import { jakartaBoundaryIso, resolveJakartaPeriodRange } from "@/lib/domain/date-time";
+import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -57,8 +65,6 @@ import {
   isJaringReportCategoryFilterActive,
   JARING_REPORT_CATEGORY_FILTERS,
   type JaringReportCategoryKey,
-  jaringReportCategoryFromCompleteness,
-  resolveJaringReportCategorySelectValue,
   verificationStatusBadgeVariant,
   verificationStatusLabel,
 } from "./laporan-jaring-presentation";
@@ -109,6 +115,23 @@ interface RawJaringItem {
   aliasName?: string | null;
   fullName?: string | null;
   registrationStatus?: string | null;
+  caretakerAssignments?: Array<{
+    id?: string | null;
+    fieldOfficerAssignmentId?: string | null;
+    fieldOfficerAssignment?: {
+      id?: string | null;
+      userProfile?: {
+        id?: string | null;
+        fullName?: string | null;
+      } | null;
+    } | null;
+  }>;
+  areaCoverages?: Array<{
+    areaId?: string | null;
+    isPrimary?: boolean;
+    validUntil?: string | null;
+    area?: JaringAdministrativeArea | null;
+  }>;
 }
 
 type PaginatedReportResponse = {
@@ -118,15 +141,30 @@ type PaginatedReportResponse = {
     total: number;
     totalPages: number;
   };
+  scope?: ReportScopeMetadata;
   summary?: {
     totalSessions: number;
     totalJaringReports: number;
-    completeJaringReports: number;
-    incompleteJaringReports: number;
     baketReports: number;
-    verifiedJaringReports: number;
-    waitingVerificationReports: number;
   };
+};
+
+type ReportScopeMetadata = {
+  role?: string;
+  roleCode?: string;
+  commandRouteType?: string;
+  organizationUnitName?: string;
+  supervisionMode?: string;
+  supervisionLabel?: string;
+  scopeDescription?: string;
+  label?: string;
+  areas?: Array<{
+    id: string;
+    code?: string | null;
+    name: string;
+    level: string;
+    isDkiJakarta?: boolean;
+  }>;
 };
 
 type PaginatedJaringResponse = {
@@ -148,39 +186,54 @@ type AdministrativeAreaScope = {
   parentOfficialCode?: string | null;
 };
 
-type ReportStage = "ALL" | "JARING_REPORT" | "DRAFT_BAKET" | "VALIDATED_BAKET";
-type ReportCompleteness = "ALL" | "COMPLETE" | "INCOMPLETE";
+type ReportStage = "JARING_REPORT";
+
+type JaringAdministrativeArea = {
+  id: string;
+  name?: string | null;
+  level?: string | null;
+  parent?: JaringAdministrativeArea | null;
+};
+
+type GaswilFilterOption = {
+  assignmentId: string;
+  name: string;
+  jaringCount: number;
+};
+
+function jaringAreaMatchesSelection(jaring: RawJaringItem, selectedAreaId?: string) {
+  if (!selectedAreaId) return true;
+  return (jaring.areaCoverages ?? []).some((coverage) => {
+    if (coverage.validUntil) return false;
+    if (coverage.areaId === selectedAreaId) return true;
+
+    let area = coverage.area ?? null;
+    while (area) {
+      if (area.id === selectedAreaId) return true;
+      area = area.parent ?? null;
+    }
+
+    return false;
+  });
+}
+
+function getJaringGaswilAssignment(jaring: RawJaringItem) {
+  const caretaker = jaring.caretakerAssignments?.[0];
+  const assignmentId =
+    caretaker?.fieldOfficerAssignmentId ?? caretaker?.fieldOfficerAssignment?.id ?? caretaker?.id ?? "";
+  if (!assignmentId) return null;
+
+  return {
+    assignmentId,
+    name: caretaker?.fieldOfficerAssignment?.userProfile?.fullName?.trim() || "Petugas Wilayah (Gaswil) tanpa nama",
+  };
+}
 
 function resolveInitialReportFilters(searchParams: { get(name: string): string | null }): {
   status: string;
-  completeness: ReportCompleteness;
   stage: ReportStage;
 } {
-  const rawStatus = searchParams.get("verificationStatus") ?? "ALL";
-  const rawCompleteness = searchParams.get("completeness");
-  const completeness: ReportCompleteness =
-    rawCompleteness === "COMPLETE" || rawCompleteness === "INCOMPLETE" ? rawCompleteness : "ALL";
-  const rawStage = searchParams.get("stage");
-  let stage: ReportStage = searchParams.get("workflowStatus") ? "ALL" : "JARING_REPORT";
-  if (
-    rawStage === "ALL" ||
-    rawStage === "JARING_REPORT" ||
-    rawStage === "DRAFT_BAKET" ||
-    rawStage === "VALIDATED_BAKET"
-  ) {
-    stage = rawStage;
-  }
-
-  if (stage === "DRAFT_BAKET" || stage === "VALIDATED_BAKET") {
-    return { status: "METADATA_RECORDED", completeness: "ALL", stage };
-  }
-  if (rawStatus === "METADATA_RECORDED") {
-    return { status: rawStatus, completeness: "ALL", stage: "ALL" };
-  }
-  if (completeness !== "ALL") {
-    return { status: rawStatus, completeness, stage: "JARING_REPORT" };
-  }
-  return { status: rawStatus, completeness, stage };
+  return { status: "ALL", stage: "JARING_REPORT" };
 }
 
 function jakartaDateInput(value: string | null) {
@@ -197,76 +250,22 @@ function jakartaDateInput(value: string | null) {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
-function isVerifiedReport(status: VerificationStatus) {
-  return status === "VERIFIED_BY_FIELD_OFFICER" || status === "METADATA_RECORDED";
-}
-
-function isRegencyLevel(level: string) {
-  return level === "CITY" || level === "REGENCY" || level === "KOTA" || level === "KABUPATEN";
-}
-
-function isVillageLevel(level: string) {
-  return level === "VILLAGE" || level === "URBAN_VILLAGE";
-}
-
-function areaCode(area: AdministrativeAreaScope) {
-  return area.officialCode?.trim() || area.code.trim();
-}
-
-function resolveDistrictRegency(
-  district: AdministrativeAreaScope,
-  regencies: AdministrativeAreaScope[],
-): AdministrativeAreaScope | null {
-  if (district.parentAreaId) {
-    const parent = regencies.find((regency) => regency.areaId === district.parentAreaId);
-    if (parent) return parent;
-  }
-
-  const districtCodeStr = areaCode(district);
-  return (
-    regencies.find((regency) => {
-      const regencyCodeStr = areaCode(regency);
-      return (
-        (Boolean(district.parentOfficialCode) && district.parentOfficialCode === regencyCodeStr) ||
-        (Boolean(regencyCodeStr) && districtCodeStr.startsWith(`${regencyCodeStr}.`))
-      );
-    }) ?? null
-  );
-}
-
-function resolveVillageDistrict(
-  village: AdministrativeAreaScope,
-  districts: AdministrativeAreaScope[],
-): AdministrativeAreaScope | null {
-  if (village.parentAreaId) {
-    const parent = districts.find((district) => district.areaId === village.parentAreaId);
-    if (parent) return parent;
-  }
-
-  const villageCode = areaCode(village);
-  return (
-    districts.find((district) => {
-      const districtCode = areaCode(district);
-      return (
-        (Boolean(village.parentOfficialCode) && village.parentOfficialCode === districtCode) ||
-        (Boolean(districtCode) && villageCode.startsWith(`${districtCode}.`))
-      );
-    }) ?? null
-  );
+function getReportDisplayStatus(item: JaringReportSessionDetail): VerificationStatus {
+  return (item.processStatus ?? item.displayStatus ?? item.verificationStatus) as VerificationStatus;
 }
 
 const LAPORAN_JARING_COLUMNS: ColumnOption[] = [
-  { id: "refNum", label: "No. Ref / Sandi" },
+  { id: "waktuMasuk", label: "Waktu Masuk" },
   { id: "foto", label: "Foto Jaring" },
   { id: "namaJaring", label: "Nama Jaring", alwaysVisible: true },
   { id: "kodeJaring", label: "Kode Jaring" },
   { id: "gaswil", label: "Petugas Wilayah (Gaswil)" },
-  { id: "whatsapp", label: "Nomor WhatsApp" },
+  { id: "whatsapp", label: "Nomor WhatsApp", defaultVisible: false },
   { id: "judulIsi", label: "Judul & Isi Laporan", alwaysVisible: true },
   { id: "wilayahSumber", label: "Lokasi Aktual Laporan" },
   { id: "wilayahPenempatan", label: "Wilayah Penempatan Jaring" },
   { id: "statusProses", label: "Status Proses" },
-  { id: "waktuMasuk", label: "Waktu Masuk" },
+  { id: "refNum", label: "Nomor Referensi" },
 ];
 
 export function LaporanJaringCoordinatorClient() {
@@ -275,6 +274,7 @@ export function LaporanJaringCoordinatorClient() {
   const [reports, setReports] = useState<JaringReportSessionDetail[]>([]);
   const [reportTotal, setReportTotal] = useState(0);
   const [reportSummary, setReportSummary] = useState<PaginatedReportResponse["summary"]>();
+  const [reportScope, setReportScope] = useState<ReportScopeMetadata | null>(null);
   const [jaringList, setJaringList] = useState<RawJaringItem[]>([]);
   const [areaScopes, setAreaScopes] = useState<AdministrativeAreaScope[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -282,7 +282,8 @@ export function LaporanJaringCoordinatorClient() {
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
-  const isColVisible = (id: string) => visibleColumns[id] !== false;
+  const isColVisible = (id: string) =>
+    visibleColumns[id] ?? LAPORAN_JARING_COLUMNS.find((column) => column.id === id)?.defaultVisible !== false;
 
   // View Mode: Card vs Table
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
@@ -292,10 +293,8 @@ export function LaporanJaringCoordinatorClient() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState<string>(() => searchParams.get("urgency") || "ALL");
   const [statusFilter, setStatusFilter] = useState<string>(() => initialReportFilters.status);
-  const [completenessFilter, setCompletenessFilter] = useState<ReportCompleteness>(
-    () => initialReportFilters.completeness,
-  );
   const [jaringFilter, setJaringFilter] = useState<string>(() => searchParams.get("jaringId") || "ALL");
+  const [provinceFilter, setProvinceFilter] = useState<string>("ALL");
   const [regencyFilter, setRegencyFilter] = useState<string>("ALL");
   const [districtFilter, setDistrictFilter] = useState<string>("ALL");
   const [villageFilter, setVillageFilter] = useState<string>("ALL");
@@ -304,14 +303,11 @@ export function LaporanJaringCoordinatorClient() {
   const [fieldOfficerFilter, setFieldOfficerFilter] = useState(
     () => searchParams.get("fieldOfficerAssignmentId") || "",
   );
-  const [reportStatusFilter, setReportStatusFilter] = useState(() => searchParams.get("reportStatus") || "");
-  const [workflowStatusFilter, setWorkflowStatusFilter] = useState(() => searchParams.get("workflowStatus") || "");
   const [attachmentFilter, setAttachmentFilter] = useState(() => searchParams.get("hasAttachment") || "");
   const [coordinateSourceFilter, setCoordinateSourceFilter] = useState(
     () => searchParams.get("coordinateSource") || "",
   );
   const [locationFilter, setLocationFilter] = useState(() => searchParams.get("locationSuitability") || "");
-  const [stageFilter, setStageFilter] = useState<ReportStage>(() => initialReportFilters.stage);
   const [periodPreset, setPeriodPreset] = useState<"ALL" | "TODAY" | "LAST_7_DAYS" | "LAST_30_DAYS" | "CUSTOM">(() =>
     searchParams.get("from") || searchParams.get("to") ? "CUSTOM" : "ALL",
   );
@@ -322,31 +318,27 @@ export function LaporanJaringCoordinatorClient() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);
   const reportRequestId = useRef(0);
+  const didHydrateAreaHierarchy = useRef(false);
+  const selectedJaringAreaId = useMemo(
+    () => selectedAreaFilterId({ provinceFilter, regencyFilter, districtFilter, villageFilter }),
+    [districtFilter, provinceFilter, regencyFilter, villageFilter],
+  );
 
   function reportQuery(requestedPage: number, requestedLimit: number) {
     const period = resolveJakartaPeriodRange(periodPreset, startDate, endDate);
-    let jaringAreaId: string | undefined;
-    if (villageFilter !== "ALL") jaringAreaId = villageFilter;
-    else if (districtFilter !== "ALL") jaringAreaId = districtFilter;
-    else if (regencyFilter !== "ALL") jaringAreaId = regencyFilter;
 
     return {
       page: requestedPage,
       limit: requestedLimit,
-      stage: stageFilter,
+      stage: "JARING_REPORT",
       sortBy: "reportedAt",
       sortOrder: "desc",
       search: debouncedSearch || undefined,
       urgency: urgencyFilter === "ALL" ? undefined : urgencyFilter,
-      verificationStatus: statusFilter === "ALL" ? undefined : statusFilter,
-      completeness: completenessFilter === "ALL" ? undefined : completenessFilter,
       jaringId: jaringFilter === "ALL" ? undefined : jaringFilter,
       fieldOfficerAssignmentId: fieldOfficerFilter || undefined,
-      categoryId: categoryFilter || undefined,
       areaId: areaFilter || undefined,
-      jaringAreaId,
-      status: reportStatusFilter || undefined,
-      workflowStatus: workflowStatusFilter || undefined,
+      jaringAreaId: selectedJaringAreaId,
       hasAttachment: attachmentFilter || undefined,
       coordinateSource: coordinateSourceFilter || undefined,
       locationSuitability: locationFilter || undefined,
@@ -355,14 +347,20 @@ export function LaporanJaringCoordinatorClient() {
     };
   }
 
-  async function fetchAllJaringPages() {
+  async function fetchAllJaringPages(jaringAreaId?: string) {
     const allJaring: RawJaringItem[] = [];
     let currentPage = 1;
     let totalPages = 1;
 
     do {
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: "100",
+      });
+      if (jaringAreaId) params.set("areaId", jaringAreaId);
+
       const response = await apiBrowserFetch<PaginatedJaringResponse | RawJaringItem[]>(
-        `/jaring?page=${currentPage}&limit=100`,
+        `/jaring?${params.toString()}`,
       );
       const pageItems = Array.isArray(response) ? response : response.items || [];
       allJaring.push(...pageItems);
@@ -396,6 +394,7 @@ export function LaporanJaringCoordinatorClient() {
       setReports(items);
       setReportTotal(Array.isArray(response) ? items.length : (response.pagination?.total ?? items.length));
       setReportSummary(Array.isArray(response) ? undefined : response.summary);
+      setReportScope(Array.isArray(response) ? null : (response.scope ?? null));
     } catch (err) {
       if (requestId !== reportRequestId.current) return;
       console.error("Gagal memuat laporan jaring (field-coordinator):", err);
@@ -412,15 +411,28 @@ export function LaporanJaringCoordinatorClient() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: opsi scope dimuat sekali dan fungsi tidak bergantung state
   useEffect(() => {
-    Promise.all([fetchAllJaringPages(), fetchAreaScopes()])
-      .then(([jaringItems, areaScopeItems]) => {
-        setJaringList(jaringItems);
+    fetchAreaScopes()
+      .then((areaScopeItems) => {
         setAreaScopes(areaScopeItems);
       })
       .catch((error) => {
-        console.error("Gagal memuat opsi filter laporan jaring:", error);
+        console.error("Gagal memuat cakupan wilayah laporan jaring:", error);
       });
   }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: opsi Jaring mengikuti filter wilayah aktif
+  useEffect(() => {
+    fetchAllJaringPages(selectedJaringAreaId)
+      .then((jaringItems) => {
+        setJaringList(jaringItems);
+        if (jaringFilter !== "ALL" && !jaringItems.some((item) => item.id === jaringFilter)) {
+          setJaringFilter("ALL");
+        }
+      })
+      .catch((error) => {
+        console.error("Gagal memuat opsi Jaring sesuai wilayah:", error);
+      });
+  }, [selectedJaringAreaId, jaringFilter]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: daftar eksplisit memicu ulang query saat filter berubah
   useEffect(() => {
@@ -433,20 +445,18 @@ export function LaporanJaringCoordinatorClient() {
     debouncedSearch,
     urgencyFilter,
     statusFilter,
-    completenessFilter,
     jaringFilter,
+    provinceFilter,
     regencyFilter,
     districtFilter,
     villageFilter,
+    selectedJaringAreaId,
     categoryFilter,
     areaFilter,
     fieldOfficerFilter,
-    reportStatusFilter,
-    workflowStatusFilter,
     attachmentFilter,
     coordinateSourceFilter,
     locationFilter,
-    stageFilter,
     periodPreset,
     startDate,
     endDate,
@@ -457,16 +467,11 @@ export function LaporanJaringCoordinatorClient() {
   const kpiSummary = alignJaringReportCategorySummary(reportSummary);
   const categoryFilterState = {
     verificationStatus: statusFilter,
-    completeness: completenessFilter,
-    stage: stageFilter,
+    stage: "JARING_REPORT",
   };
-  const categorySelectValue = resolveJaringReportCategorySelectValue(categoryFilterState);
 
   function applyCategoryFilter(category: JaringReportCategoryKey) {
-    const filter = JARING_REPORT_CATEGORY_FILTERS[category];
-    setStatusFilter(filter.verificationStatus);
-    setCompletenessFilter(filter.completeness);
-    setStageFilter(filter.stage);
+    setStatusFilter("ALL");
     setPage(1);
   }
 
@@ -474,9 +479,9 @@ export function LaporanJaringCoordinatorClient() {
     {
       key: "TOTAL" as const,
       label: "TOTAL",
-      description: JARING_REPORT_CATEGORY_FILTERS.TOTAL.label,
+      description: "Sesuai filter aktif",
       count: kpiSummary.totalJaringReports,
-      icon: FileText,
+      icon: DOMAIN_VISUALS.jaringReport.Icon,
       isActive: isJaringReportCategoryFilterActive("TOTAL", categoryFilterState),
       onClick: () => applyCategoryFilter("TOTAL"),
       styles: {
@@ -491,138 +496,131 @@ export function LaporanJaringCoordinatorClient() {
         countText: "text-sky-700 dark:text-sky-400",
       },
     },
-    {
-      key: "COMPLETE" as const,
-      label: "LENGKAP",
-      description: JARING_REPORT_CATEGORY_FILTERS.COMPLETE.label,
-      count: kpiSummary.completeJaringReports,
-      icon: FileCheck2,
-      isActive: isJaringReportCategoryFilterActive("COMPLETE", categoryFilterState),
-      onClick: () => applyCategoryFilter("COMPLETE"),
-      styles: {
-        activeCard:
-          "border-green-500 bg-green-50/80 dark:bg-green-950/40 ring-2 ring-green-500/40 shadow-sm shadow-green-500/10",
-        inactiveCard:
-          "border-green-200/80 dark:border-green-900/30 bg-card hover:border-green-300 dark:hover:border-green-800 hover:bg-green-50/30 dark:hover:bg-green-950/20",
-        activeBadge: "bg-green-600 text-white border-green-600 font-semibold shadow-xs",
-        inactiveBadge:
-          "border-green-200 bg-green-100/80 text-green-700 dark:border-green-900/50 dark:bg-green-950/50 dark:text-green-400",
-        activeIcon: "bg-green-600 text-white shadow-md shadow-green-500/30",
-        inactiveIcon: "bg-green-100 text-green-600 dark:bg-green-950/60 dark:text-green-400",
-        countText: "text-green-700 dark:text-green-400",
-      },
-    },
-    {
-      key: "INCOMPLETE" as const,
-      label: "TIDAK LENGKAP",
-      description: JARING_REPORT_CATEGORY_FILTERS.INCOMPLETE.label,
-      count: kpiSummary.incompleteJaringReports,
-      icon: FileWarning,
-      isActive: isJaringReportCategoryFilterActive("INCOMPLETE", categoryFilterState),
-      onClick: () => applyCategoryFilter("INCOMPLETE"),
-      styles: {
-        activeCard:
-          "border-orange-500 bg-orange-50/80 dark:bg-orange-950/40 ring-2 ring-orange-500/40 shadow-sm shadow-orange-500/10",
-        inactiveCard:
-          "border-orange-200/80 dark:border-orange-900/30 bg-card hover:border-orange-300 dark:hover:border-orange-800 hover:bg-orange-50/30 dark:hover:bg-orange-950/20",
-        activeBadge: "bg-orange-600 text-white border-orange-600 font-semibold shadow-xs",
-        inactiveBadge:
-          "border-orange-200 bg-orange-100/80 text-orange-700 dark:border-orange-900/50 dark:bg-orange-950/50 dark:text-orange-400",
-        activeIcon: "bg-orange-600 text-white shadow-md shadow-orange-500/30",
-        inactiveIcon: "bg-orange-100 text-orange-600 dark:bg-orange-950/60 dark:text-orange-400",
-        countText: "text-orange-700 dark:text-orange-400",
-      },
-    },
-    {
-      key: "BAKET" as const,
-      label: "BAKET",
-      description: JARING_REPORT_CATEGORY_FILTERS.BAKET.label,
-      count: kpiSummary.baketReports,
-      icon: Archive,
-      isActive: isJaringReportCategoryFilterActive("BAKET", categoryFilterState),
-      onClick: () => applyCategoryFilter("BAKET"),
-      styles: {
-        activeCard:
-          "border-violet-500 bg-violet-50/80 dark:bg-violet-950/40 ring-2 ring-violet-500/40 shadow-sm shadow-violet-500/10",
-        inactiveCard:
-          "border-violet-200/80 dark:border-violet-900/30 bg-card hover:border-violet-300 dark:hover:border-violet-800 hover:bg-violet-50/30 dark:hover:bg-violet-950/20",
-        activeBadge: "bg-violet-600 text-white border-violet-600 font-semibold shadow-xs",
-        inactiveBadge:
-          "border-violet-200 bg-violet-100/80 text-violet-700 dark:border-violet-900/50 dark:bg-violet-950/50 dark:text-violet-400",
-        activeIcon: "bg-violet-600 text-white shadow-md shadow-violet-500/30",
-        inactiveIcon: "bg-violet-100 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400",
-        countText: "text-violet-700 dark:text-violet-400",
-      },
-    },
   ];
 
-  // Jaring Popover options format
+  const provinceOptions = useMemo(() => {
+    return buildProvinceFilterOptions(areaScopes);
+  }, [areaScopes]);
+
+  const regencyOptions = useMemo(() => {
+    return buildRegencyFilterOptions(areaScopes, provinceOptions.length > 0 ? provinceFilter : "ALL");
+  }, [areaScopes, provinceFilter, provinceOptions.length]);
+
+  const districtOptions = useMemo(() => {
+    return buildDistrictFilterOptions(areaScopes, regencyFilter);
+  }, [areaScopes, regencyFilter]);
+
+  const villageOptions = useMemo(() => {
+    return buildVillageFilterOptions(areaScopes, districtFilter);
+  }, [areaScopes, districtFilter]);
+
+  const areaFilteredJaringList = useMemo(() => {
+    return jaringList.filter((jaring) => jaringAreaMatchesSelection(jaring, selectedJaringAreaId));
+  }, [jaringList, selectedJaringAreaId]);
+
+  const gaswilOptions: GaswilFilterOption[] = useMemo(() => {
+    const optionMap = new Map<string, GaswilFilterOption>();
+
+    for (const jaring of areaFilteredJaringList) {
+      const gaswil = getJaringGaswilAssignment(jaring);
+      if (!gaswil) continue;
+
+      const existing = optionMap.get(gaswil.assignmentId);
+      if (existing) {
+        existing.jaringCount += 1;
+        continue;
+      }
+
+      optionMap.set(gaswil.assignmentId, { ...gaswil, jaringCount: 1 });
+    }
+
+    return Array.from(optionMap.values()).sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
+  }, [areaFilteredJaringList]);
+
+  const connectedJaringList = useMemo(() => {
+    if (!fieldOfficerFilter) return areaFilteredJaringList;
+    return areaFilteredJaringList.filter(
+      (jaring) => getJaringGaswilAssignment(jaring)?.assignmentId === fieldOfficerFilter,
+    );
+  }, [areaFilteredJaringList, fieldOfficerFilter]);
+
   const popoverJaringOptions: JaringOption[] = useMemo(() => {
-    return jaringList.map((j) => ({
+    return connectedJaringList.map((j) => ({
       id: j.id,
       code: j.aliasName || j.fullName || j.id,
       aliasName: j.aliasName || j.fullName || j.id,
       fullName: j.fullName,
       registrationStatus: j.registrationStatus,
     }));
-  }, [jaringList]);
+  }, [connectedJaringList]);
 
-  const regencyOptions = useMemo(() => {
-    const regencies = new globalThis.Map<string, { id: string; name: string }>();
-    for (const area of areaScopes) {
-      if (isRegencyLevel(area.level)) {
-        regencies.set(area.areaId, { id: area.areaId, name: area.name });
-      }
-    }
+  useEffect(() => {
+    if (!fieldOfficerFilter) return;
+    if (gaswilOptions.some((option) => option.assignmentId === fieldOfficerFilter)) return;
 
-    return Array.from(regencies.values()).sort((a, b) => a.name.localeCompare(b.name, "id"));
-  }, [areaScopes]);
+    setFieldOfficerFilter("");
+    setPage(1);
+  }, [fieldOfficerFilter, gaswilOptions]);
 
-  const districtOptions = useMemo(() => {
-    const regencies = areaScopes.filter((area) => isRegencyLevel(area.level));
-    const districts = new globalThis.Map<
-      string,
-      { id: string; name: string; regencyId: string | null; regencyName: string | null }
-    >();
+  useEffect(() => {
+    if (jaringFilter === "ALL") return;
+    if (popoverJaringOptions.some((option) => option.id === jaringFilter)) return;
 
-    for (const area of areaScopes) {
-      if (area.level === "DISTRICT") {
-        const regency = resolveDistrictRegency(area, regencies);
-        if (regencyFilter !== "ALL" && regency?.areaId !== regencyFilter) continue;
-        districts.set(area.areaId, {
-          id: area.areaId,
-          name: area.name,
-          regencyId: regency?.areaId ?? area.parentAreaId ?? null,
-          regencyName: regency?.name ?? null,
-        });
-      }
-    }
+    setJaringFilter("ALL");
+    setPage(1);
+  }, [jaringFilter, popoverJaringOptions]);
 
-    return Array.from(districts.values()).sort((a, b) => a.name.localeCompare(b.name, "id"));
-  }, [areaScopes, regencyFilter]);
+  useEffect(() => {
+    if (didHydrateAreaHierarchy.current || !areaFilter || areaScopes.length === 0) return;
 
-  const villageOptions = useMemo(() => {
-    const districts = areaScopes.filter((area) => area.level === "DISTRICT");
-    const villages = new globalThis.Map<
-      string,
-      { id: string; name: string; districtId: string | null; districtName: string | null }
-    >();
+    const selection = resolveAreaFilterSelection(areaScopes, areaFilter);
+    if (selection.provinceFilter !== "ALL") setProvinceFilter(selection.provinceFilter);
+    if (selection.regencyFilter !== "ALL") setRegencyFilter(selection.regencyFilter);
+    if (selection.districtFilter !== "ALL") setDistrictFilter(selection.districtFilter);
+    if (selection.villageFilter !== "ALL") setVillageFilter(selection.villageFilter);
+    didHydrateAreaHierarchy.current = true;
+  }, [areaFilter, areaScopes]);
 
-    for (const area of areaScopes) {
-      if (isVillageLevel(area.level)) {
-        const district = resolveVillageDistrict(area, districts);
-        if (districtFilter !== "ALL" && district?.areaId !== districtFilter) continue;
-        villages.set(area.areaId, {
-          id: area.areaId,
-          name: area.name,
-          districtId: district?.areaId ?? area.parentAreaId ?? null,
-          districtName: district?.name ?? null,
-        });
-      }
-    }
-
-    return Array.from(villages.values()).sort((a, b) => a.name.localeCompare(b.name, "id"));
-  }, [areaScopes, districtFilter]);
+  const areaSubtitle = useMemo(
+    () =>
+      buildAreaFilterSubtitle({
+        metricLabel: "Jumlah laporan",
+        allScopeLabel: "semua wilayah koordinasi",
+        provinceFilter,
+        regencyFilter,
+        districtFilter,
+        villageFilter,
+        provinceOptions,
+        regencyOptions,
+        districtOptions,
+        villageOptions,
+      }),
+    [
+      districtFilter,
+      districtOptions,
+      provinceFilter,
+      provinceOptions,
+      regencyFilter,
+      regencyOptions,
+      villageFilter,
+      villageOptions,
+    ],
+  );
+  const selectedAreaFromQuery = useMemo(
+    () => (areaFilter ? resolveAreaFilterSelection(areaScopes, areaFilter).selectedArea : null),
+    [areaFilter, areaScopes],
+  );
+  const isDkiScoped = useMemo(() => {
+    if (reportScope?.supervisionMode === "DKI_REGENCY_CITY") return true;
+    const rootAreas = areaScopes.filter((area) => area.level === "CITY" || area.level === "REGENCY");
+    return rootAreas.length > 0 && rootAreas.some(isDkiAreaScope);
+  }, [areaScopes, reportScope]);
+  const scopeDescription =
+    reportScope?.scopeDescription ??
+    (isDkiScoped
+      ? "Cakupan laporan mengikuti wilayah supervisi DKI berbasis kota/kabupaten yang ditetapkan admin."
+      : "Cakupan laporan mengikuti wilayah komando atau supervisi yang melekat pada hak akses pengguna.");
+  const scopeLabel = reportScope?.supervisionLabel ?? (isDkiScoped ? "Supervisi DKI Kota/Kabupaten" : "Cakupan Hak Akses");
 
   const paginatedReports = reports;
 
@@ -630,20 +628,17 @@ export function LaporanJaringCoordinatorClient() {
     setSearch("");
     setUrgencyFilter("ALL");
     setStatusFilter("ALL");
-    setCompletenessFilter("ALL");
     setJaringFilter("ALL");
+    setProvinceFilter("ALL");
     setRegencyFilter("ALL");
     setDistrictFilter("ALL");
     setVillageFilter("ALL");
     setCategoryFilter("");
     setAreaFilter("");
     setFieldOfficerFilter("");
-    setReportStatusFilter("");
-    setWorkflowStatusFilter("");
     setAttachmentFilter("");
     setCoordinateSourceFilter("");
     setLocationFilter("");
-    setStageFilter("JARING_REPORT");
     setPeriodPreset("ALL");
     setStartDate("");
     setEndDate("");
@@ -681,8 +676,8 @@ export function LaporanJaringCoordinatorClient() {
       `"${r.referenceNumber || r.id}"`,
       `"${r.jaringAlias || r.jaringCode || "-"}"`,
       `"${(r.displayTitle || r.content || "-").replace(/"/g, '""')}"`,
-      `"${isVerifiedReport(r.verificationStatus) ? r.urgency || "Belum ditentukan" : "Belum diverifikasi"}"`,
-      `"${verificationStatusLabel(r.verificationStatus)}"`,
+      `"${r.urgency || "Belum ditentukan"}"`,
+      `"${verificationStatusLabel(getReportDisplayStatus(r))}"`,
       `"${r.resolvedArea?.name || "-"}"`,
       `"${formatDateTime(r.reportedAt)}"`,
       `"${formatDateTime(r.reportedAt)}"`,
@@ -704,7 +699,7 @@ export function LaporanJaringCoordinatorClient() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/field-coordinator">Koordinator Lapangan</BreadcrumbLink>
+            <BreadcrumbLink href="/dashboard">Monitoring</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -718,8 +713,20 @@ export function LaporanJaringCoordinatorClient() {
         <div>
           <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Laporan Jaring</h1>
           <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
-            Monitoring & verifikasi arus laporan informasi Daftar Jaring di wilayah koordinasi.
+            Monitoring arus Laporan Jaring dalam cakupan hak akses dan wilayah penugasan.
           </p>
+          <p className="mt-2 text-sm font-medium text-foreground">{areaSubtitle}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="outline" className="gap-1.5">
+              <MapPin className="size-3.5" />
+              {scopeLabel}
+            </Badge>
+            <span>{scopeDescription}</span>
+            {reportScope?.label ? <span className="font-medium text-foreground">Cakupan: {reportScope.label}</span> : null}
+            {selectedAreaFromQuery ? (
+              <span className="font-medium text-foreground">Filter dashboard: {selectedAreaFromQuery.name}</span>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -731,7 +738,7 @@ export function LaporanJaringCoordinatorClient() {
             className="h-9 gap-2"
           >
             <RefreshCw className={cn("size-4 text-emerald-500 dark:text-emerald-400", loadingList && "animate-spin")} />
-            Refresh
+            Muat Ulang
           </Button>
 
           <Button
@@ -742,13 +749,13 @@ export function LaporanJaringCoordinatorClient() {
             className="h-9 gap-2 border-slate-200 dark:border-white/10"
           >
             <Download className="size-4 text-sky-500" />
-            EKSPOR CSV
+            Ekspor CSV
           </Button>
         </div>
       </div>
 
       {/* KPI STATUS LAPORAN — klik untuk menerapkan atau melepas filter */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {statusKpiCards.map((item) => {
           const Icon = item.icon;
           const isActive = item.isActive;
@@ -758,7 +765,7 @@ export function LaporanJaringCoordinatorClient() {
               key={item.key}
               type="button"
               aria-pressed={isActive}
-              aria-label={`Filter ${item.description}`}
+              aria-label={`Filter ${item.label}`}
               onClick={() => {
                 if (isActive) {
                   applyCategoryFilter("TOTAL");
@@ -767,7 +774,7 @@ export function LaporanJaringCoordinatorClient() {
                 }
               }}
               className={cn(
-                "flex items-center justify-between rounded-xl border p-4 text-left transition-all duration-200 cursor-pointer",
+                "flex items-center justify-between rounded-md border p-4 text-left transition-all duration-200 cursor-pointer",
                 isActive ? item.styles.activeCard : item.styles.inactiveCard,
               )}
             >
@@ -795,7 +802,7 @@ export function LaporanJaringCoordinatorClient() {
               </div>
               <div
                 className={cn(
-                  "flex size-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
+                  "flex size-11 shrink-0 items-center justify-center rounded-md transition-all duration-200",
                   isActive ? item.styles.activeIcon : item.styles.inactiveIcon,
                 )}
               >
@@ -815,7 +822,7 @@ export function LaporanJaringCoordinatorClient() {
             <div className="relative flex-1 min-w-[240px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Cari ID Laporan, Kata Kunci, Wilayah..."
+                placeholder="Cari ID laporan, kata kunci, wilayah..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -846,107 +853,93 @@ export function LaporanJaringCoordinatorClient() {
           </div>
 
           {/* MIDDLE ROW: Structured Grid of Filter Dropdowns */}
-          <div
-            className={cn(
-              "grid grid-cols-1 sm:grid-cols-2 gap-2.5",
-              regencyOptions.length > 0 ? "md:grid-cols-4 xl:grid-cols-7" : "md:grid-cols-3 xl:grid-cols-6",
-            )}
-          >
-            {/* 1. Status Verifikasi Filter */}
-            <NativeSelect
-              aria-label="Filter Status Verifikasi"
-              value={statusFilter === "METADATA_RECORDED" ? "ALL" : statusFilter}
-              onChange={(e) => {
-                const nextStatus = e.target.value;
-                if (nextStatus === "METADATA_RECORDED") {
-                  applyCategoryFilter("BAKET");
-                } else {
-                  setStatusFilter(nextStatus);
-                  setStageFilter("JARING_REPORT");
-                  setPage(1);
-                }
-              }}
-              className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
-            >
-              <option value="ALL">Semua Status Verifikasi</option>
-              <option value="UNVERIFIED">Belum Diverifikasi</option>
-              <option value="WAITING">Menunggu Verifikasi</option>
-              <option value="NEEDS_REVIEW">Perlu Ditinjau</option>
-              <option value="VERIFIED">Terverifikasi</option>
-              <option value="WAITING_FIELD_OFFICER_VERIFICATION">Belum Diverifikasi Petugas Wilayah (Gaswil)</option>
-              <option value="VERIFIED_BY_FIELD_OFFICER">Terverifikasi, Belum Menjadi Baket</option>
-            </NativeSelect>
-
-            {/* 2. Kategori Data */}
-            <NativeSelect
-              aria-label="Filter Kategori Data"
-              value={categorySelectValue}
-              onChange={(event) => {
-                const nextCategory = event.target.value;
-                if (nextCategory === "ALL_DATA") {
-                  setStatusFilter("ALL");
-                  setCompletenessFilter("ALL");
-                  setStageFilter("ALL");
-                  setPage(1);
-                  return;
-                }
-                if (nextCategory === "BAKET") {
-                  applyCategoryFilter("BAKET");
-                  return;
-                }
-                applyCategoryFilter(jaringReportCategoryFromCompleteness(nextCategory));
-              }}
-              className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
-            >
-              <option value="ALL_DATA">Semua Data Laporan Jaring dan Baket</option>
-              <option value="TOTAL">{JARING_REPORT_CATEGORY_FILTERS.TOTAL.label}</option>
-              <option value="COMPLETE">{JARING_REPORT_CATEGORY_FILTERS.COMPLETE.label}</option>
-              <option value="INCOMPLETE">{JARING_REPORT_CATEGORY_FILTERS.INCOMPLETE.label}</option>
-              <option value="BAKET">{JARING_REPORT_CATEGORY_FILTERS.BAKET.label}</option>
-            </NativeSelect>
-
-            {/* 4. Filter Kota/Kabupaten (Tampil untuk Regional Commander) */}
-            {regencyOptions.length > 0 && (
-              <NativeSelect
-                aria-label="Filter Kota/Kabupaten"
-                value={regencyFilter}
-                onChange={(event) => {
-                  setRegencyFilter(event.target.value);
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
+            {/* Filter Provinsi */}
+            {provinceOptions.length > 0 && (
+              <SearchableSelect
+                aria-label="Filter Provinsi"
+                value={provinceFilter}
+                options={[
+                  { value: "ALL", label: "Semua Provinsi" },
+                  ...provinceOptions.map((province) => ({ value: province.id, label: province.name })),
+                ]}
+                onValueChange={(value) => {
+                  setProvinceFilter(value);
+                  setRegencyFilter("ALL");
                   setDistrictFilter("ALL");
                   setVillageFilter("ALL");
                   setPage(1);
                 }}
-                className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
-              >
-                <option value="ALL">Semua Kabupaten/Kota</option>
-                {regencyOptions.map((regency) => (
-                  <option key={regency.id} value={regency.id}>
-                    {regency.name}
-                  </option>
-                ))}
-              </NativeSelect>
+                placeholder="Semua Provinsi"
+                searchPlaceholder="Cari Provinsi..."
+                emptyText="Provinsi tidak ditemukan."
+                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+              />
             )}
 
-            {/* 5. Filter Kecamatan */}
-            <NativeSelect
+            {/* 3. Filter Kota/Kabupaten */}
+            {(regencyOptions.length > 0 || provinceOptions.length > 0) && (
+              <SearchableSelect
+                aria-label="Filter Kota/Kabupaten"
+                value={regencyFilter}
+                options={[
+                  {
+                    value: "ALL",
+                    label:
+                      provinceOptions.length > 0 && provinceFilter === "ALL"
+                        ? "Pilih Provinsi dahulu"
+                        : isDkiScoped
+                          ? "Semua Kota/Kabupaten DKI"
+                          : "Semua Kota/Kabupaten",
+                    disabled: provinceOptions.length > 0 && provinceFilter === "ALL",
+                  },
+                  ...regencyOptions.map((regency) => ({ value: regency.id, label: regency.name })),
+                ]}
+                onValueChange={(value) => {
+                  setRegencyFilter(value);
+                  setDistrictFilter("ALL");
+                  setVillageFilter("ALL");
+                  setPage(1);
+                }}
+                disabled={provinceOptions.length > 0 && provinceFilter === "ALL"}
+                placeholder={
+                  provinceOptions.length > 0 && provinceFilter === "ALL"
+                    ? "Pilih Provinsi dahulu"
+                    : isDkiScoped
+                      ? "Semua Kota/Kabupaten DKI"
+                      : "Semua Kota/Kabupaten"
+                }
+                searchPlaceholder="Cari Kota/Kabupaten..."
+                emptyText="Kota/Kabupaten tidak ditemukan."
+                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+              />
+            )}
+
+            {/* 4. Filter Kecamatan */}
+            <SearchableSelect
               aria-label="Filter Kecamatan"
               value={districtFilter}
-              onChange={(event) => {
-                setDistrictFilter(event.target.value);
+              options={[
+                {
+                  value: "ALL",
+                  label: regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan",
+                  disabled: regencyFilter === "ALL",
+                },
+                ...districtOptions.map((district) => ({ value: district.id, label: district.name })),
+              ]}
+              onValueChange={(value) => {
+                setDistrictFilter(value);
                 setVillageFilter("ALL");
                 setPage(1);
               }}
-              className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
-            >
-              <option value="ALL">Semua Kecamatan</option>
-              {districtOptions.map((district) => (
-                <option key={district.id} value={district.id}>
-                  {district.name}
-                </option>
-              ))}
-            </NativeSelect>
+              disabled={regencyFilter === "ALL"}
+              placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
+              searchPlaceholder="Cari Kecamatan..."
+              emptyText="Kecamatan tidak ditemukan."
+              className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+            />
 
-            {/* 6. Filter Kelurahan/Desa */}
+            {/* 4. Filter Kelurahan/Desa */}
             <NativeSelect
               aria-label="Filter Kelurahan atau Desa"
               value={villageFilter}
@@ -954,9 +947,12 @@ export function LaporanJaringCoordinatorClient() {
                 setVillageFilter(event.target.value);
                 setPage(1);
               }}
+              disabled={districtFilter === "ALL"}
               className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
             >
-              <option value="ALL">Semua Kelurahan/Desa</option>
+              <option value="ALL">
+                {districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"}
+              </option>
               {villageOptions.map((village) => (
                 <option key={village.id} value={village.id}>
                   {village.name}
@@ -965,7 +961,29 @@ export function LaporanJaringCoordinatorClient() {
               ))}
             </NativeSelect>
 
-            {/* 7. Jaring Filter Popover */}
+            {/* 5. Filter Petugas Wilayah (Gaswil) */}
+            <SearchableSelect
+              aria-label="Filter Petugas Wilayah (Gaswil)"
+              value={fieldOfficerFilter || "ALL"}
+              options={[
+                { value: "ALL", label: "Semua Petugas Wilayah (Gaswil)" },
+                ...gaswilOptions.map((option) => ({
+                  value: option.assignmentId,
+                  label: `${option.name} (${option.jaringCount} Jaring)`,
+                })),
+              ]}
+              onValueChange={(value) => {
+                setFieldOfficerFilter(value === "ALL" ? "" : value);
+                setPage(1);
+              }}
+              disabled={gaswilOptions.length === 0}
+              placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)"}
+              searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
+              emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
+              className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+            />
+
+            {/* 6. Jaring Filter Popover */}
             <div className="w-full">
               <JaringSelectPopover
                 options={popoverJaringOptions}
@@ -981,7 +999,7 @@ export function LaporanJaringCoordinatorClient() {
               />
             </div>
 
-            {/* 8. Filter Periode Waktu */}
+            {/* 7. Filter Periode Waktu */}
             <NativeSelect
               aria-label="Filter Periode Waktu"
               value={periodPreset}
@@ -1004,17 +1022,14 @@ export function LaporanJaringCoordinatorClient() {
           search ||
           urgencyFilter !== "ALL" ||
           statusFilter !== "ALL" ||
-          completenessFilter !== "ALL" ||
           jaringFilter !== "ALL" ||
+          provinceFilter !== "ALL" ||
           regencyFilter !== "ALL" ||
           districtFilter !== "ALL" ||
           villageFilter !== "ALL" ||
-          stageFilter !== "JARING_REPORT" ||
           categoryFilter ||
           areaFilter ||
           fieldOfficerFilter ||
-          reportStatusFilter ||
-          workflowStatusFilter ||
           attachmentFilter ||
           coordinateSourceFilter ||
           locationFilter ||
@@ -1055,17 +1070,14 @@ export function LaporanJaringCoordinatorClient() {
               {(search ||
                 urgencyFilter !== "ALL" ||
                 statusFilter !== "ALL" ||
-                completenessFilter !== "ALL" ||
-                jaringFilter !== "ALL" ||
-                regencyFilter !== "ALL" ||
+              jaringFilter !== "ALL" ||
+              provinceFilter !== "ALL" ||
+              regencyFilter !== "ALL" ||
                 districtFilter !== "ALL" ||
                 villageFilter !== "ALL" ||
-                stageFilter !== "JARING_REPORT" ||
                 categoryFilter ||
                 areaFilter ||
                 fieldOfficerFilter ||
-                reportStatusFilter ||
-                workflowStatusFilter ||
                 attachmentFilter ||
                 coordinateSourceFilter ||
                 locationFilter ||
@@ -1107,7 +1119,7 @@ export function LaporanJaringCoordinatorClient() {
         </Card>
       ) : reportTotal === 0 ? (
         <div className="flex flex-col items-center justify-center p-12 text-center border rounded-xl bg-card border-slate-200 dark:border-white/10">
-          <FileText className="size-10 text-muted-foreground/50 mb-3" />
+          <DOMAIN_VISUALS.jaringReport.Icon className="size-10 text-muted-foreground/50 mb-3" />
           <p className="text-base font-semibold text-foreground">Tidak ada laporan ditemukan</p>
           <p className="text-xs text-muted-foreground mt-1 max-w-md">
             Cobalah untuk memuat ulang data atau sesuaikan filter pencarian Anda.
@@ -1122,8 +1134,8 @@ export function LaporanJaringCoordinatorClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginatedReports.map((item) => {
               const urgencyStyle = getUrgencyCardStyle(item.urgency);
-              const reportIsVerified = isVerifiedReport(item.verificationStatus);
-              const hasVerifiedUrgency = reportIsVerified && Boolean(item.urgency);
+              const displayStatus = getReportDisplayStatus(item);
+              const hasBaketUrgency = Boolean(item.urgency);
               const refNum =
                 item.referenceNumber ||
                 item.submittedMessage?.referenceNumber ||
@@ -1133,7 +1145,6 @@ export function LaporanJaringCoordinatorClient() {
               const title = item.displayTitle || item.content || "Laporan sedang dibuat";
               const mediaCount = item.media?.length || item.counts?.media || 0;
               const partsCount = item.messages?.length || item.counts?.contentParts || 0;
-              const draftComplete = Boolean(item.content && item.location && mediaCount > 0);
               const locationName = formatFullAreaName(item.resolvedArea);
 
               return (
@@ -1141,14 +1152,14 @@ export function LaporanJaringCoordinatorClient() {
                   key={item.id}
                   className={cn(
                     "flex flex-col justify-between rounded-xl border bg-card p-4 transition-all duration-200 hover:scale-[1.01]",
-                    hasVerifiedUrgency ? urgencyStyle.border : "border-border",
+                    hasBaketUrgency ? urgencyStyle.border : "border-border",
                   )}
                 >
                   {/* Card Header Pills */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {hasVerifiedUrgency ? (
+                        {hasBaketUrgency ? (
                           <Badge
                             variant="outline"
                             className={cn("text-[10px] font-extrabold tracking-wider", urgencyStyle.badge)}
@@ -1168,10 +1179,10 @@ export function LaporanJaringCoordinatorClient() {
                         variant="outline"
                         className={cn(
                           "text-[10px] px-2 py-0.5 font-medium shrink-0",
-                          verificationStatusBadgeVariant(item.verificationStatus),
+                          verificationStatusBadgeVariant(displayStatus),
                         )}
                       >
-                        {verificationStatusLabel(item.verificationStatus)}
+                        {verificationStatusLabel(displayStatus)}
                       </Badge>
                     </div>
 
@@ -1224,15 +1235,6 @@ export function LaporanJaringCoordinatorClient() {
                       </span>
                     </div>
 
-                    {item.status === "ACTIVE" ? (
-                      <Badge
-                        variant="outline"
-                        className="w-fit border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400"
-                      >
-                        {draftComplete ? "Komponen lengkap" : "Komponen belum lengkap"}
-                      </Badge>
-                    ) : null}
-
                     {/* Action button */}
                     <Button
                       asChild
@@ -1240,7 +1242,7 @@ export function LaporanJaringCoordinatorClient() {
                       className="w-full h-9 text-xs font-bold gap-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors uppercase tracking-wider"
                     >
                       <Link href={`/dashboard/laporan-jaring/${item.id}`}>
-                        <Eye className="size-4" /> LIHAT DETAIL
+                          <Eye className="size-4" /> Lihat Detail
                       </Link>
                     </Button>
                   </div>
@@ -1268,7 +1270,7 @@ export function LaporanJaringCoordinatorClient() {
             <Table className="w-full min-w-[1350px]">
               <TableHeader className="bg-slate-50 dark:bg-white/5">
                 <TableRow className="border-b border-slate-200 dark:border-slate-800">
-                  {isColVisible("refNum") && <TableHead className="text-xs font-bold uppercase tracking-wider">Nomor Referensi</TableHead>}
+                  {isColVisible("waktuMasuk") && <TableHead className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Waktu Masuk</TableHead>}
                   {isColVisible("foto") && <TableHead className="w-12 text-center text-xs font-bold uppercase tracking-wider">Foto</TableHead>}
                   {isColVisible("namaJaring") && <TableHead className="text-xs font-bold uppercase tracking-wider">Nama Jaring</TableHead>}
                   {isColVisible("kodeJaring") && <TableHead className="text-xs font-bold uppercase tracking-wider">Kode Jaring</TableHead>}
@@ -1286,19 +1288,17 @@ export function LaporanJaringCoordinatorClient() {
                       Status Proses
                     </TableHead>
                   )}
-                  {isColVisible("waktuMasuk") && <TableHead className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Waktu Masuk</TableHead>}
+                  {isColVisible("refNum") && <TableHead className="text-xs font-bold uppercase tracking-wider">Nomor Referensi</TableHead>}
                   <TableHead className="text-xs font-bold uppercase tracking-wider text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedReports.map((item) => {
                   const urgencyStyle = getUrgencyCardStyle(item.urgency);
-                  const reportIsVerified = isVerifiedReport(item.verificationStatus);
-                  const hasVerifiedUrgency = reportIsVerified && Boolean(item.urgency);
+                  const displayStatus = getReportDisplayStatus(item);
                   const refNum = item.referenceNumber || item.jaringAlias || item.jaringCode || item.id.slice(0, 8);
                   const messageCount = item.messages?.length ?? item.counts?.contentParts ?? 0;
                   const mediaCount = item.media?.length ?? item.counts?.media ?? 0;
-                  const draftComplete = Boolean(item.content && item.location && mediaCount > 0);
 
                   const identity = resolveJaringIdentity({
                     id: item.jaringId,
@@ -1316,9 +1316,9 @@ export function LaporanJaringCoordinatorClient() {
 
                   return (
                     <TableRow key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800">
-                      {isColVisible("refNum") && (
-                        <TableCell className="font-mono text-xs font-medium text-foreground align-middle">
-                          {refNum}
+                      {isColVisible("waktuMasuk") && (
+                        <TableCell className="align-middle text-xs font-mono text-muted-foreground whitespace-nowrap">
+                          {formatDateTime(item.reportedAt)}
                         </TableCell>
                       )}
 
@@ -1382,7 +1382,6 @@ export function LaporanJaringCoordinatorClient() {
                           <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{item.content || "-"}</p>
                           <p className="mt-0.5 text-[10px] text-muted-foreground">
                             {messageCount} pesan · {mediaCount} media
-                            {item.status === "ACTIVE" ? ` · ${draftComplete ? "Lengkap" : "Belum lengkap"}` : ""}
                           </p>
                         </TableCell>
                       )}
@@ -1405,17 +1404,17 @@ export function LaporanJaringCoordinatorClient() {
                             variant="outline"
                             className={cn(
                               "text-[10px] px-2 py-0.5 font-medium",
-                              verificationStatusBadgeVariant(item.verificationStatus),
+                              verificationStatusBadgeVariant(displayStatus),
                             )}
                           >
-                            {verificationStatusLabel(item.verificationStatus)}
+                            {verificationStatusLabel(displayStatus)}
                           </Badge>
                         </TableCell>
                       )}
 
-                      {isColVisible("waktuMasuk") && (
-                        <TableCell className="align-middle text-xs font-mono text-muted-foreground whitespace-nowrap">
-                          {formatDateTime(item.reportedAt)}
+                      {isColVisible("refNum") && (
+                        <TableCell className="font-mono text-xs font-medium text-foreground align-middle">
+                          {refNum}
                         </TableCell>
                       )}
 

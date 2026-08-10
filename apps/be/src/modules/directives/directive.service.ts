@@ -1,6 +1,8 @@
-import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
 import {
-  Injectable } from '@nestjs/common';
+  OrganizationType,
+  PositionCode,
+} from '../../common/constants/legacy-operational-code.js';
+import { Injectable } from '@nestjs/common';
 import {
   CommandRouteType,
   DirectiveStatus,
@@ -569,7 +571,9 @@ export class DirectiveService {
           : []),
       ],
       ...(query.status ? { status: query.status } : {}),
-      ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
+      ...(query.ownerAssignmentId
+        ? { ownerAssignmentId: query.ownerAssignmentId }
+        : {}),
       ...(query.search
         ? {
             OR: [
@@ -714,13 +718,13 @@ export class DirectiveService {
     this.assertRole(
       context,
       [RoleCode.EXECUTIVE],
-      'Only Executive can create strategic directives.',
+      'Hanya Deputi II yang dapat membuat arahan strategis.',
     );
 
     if (body.ownerAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'DIRECTIVE_OWNER_UNIT_OUT_OF_SCOPE',
-        'Directives can only be created for the current organization unit.',
+        'Arahan strategis hanya dapat dibuat untuk unit organisasi saat ini.',
         403,
       );
     }
@@ -815,7 +819,7 @@ export class DirectiveService {
     this.assertRole(
       context,
       [RoleCode.EXECUTIVE],
-      'Only Executive can revise strategic directives.',
+      'Hanya Deputi II yang dapat merevisi arahan strategis.',
     );
 
     if (body.patch.recipients) {
@@ -830,7 +834,7 @@ export class DirectiveService {
     ) {
       throw new ApiException(
         'DIRECTIVE_NOT_MUTABLE',
-        'Only the owning executive chain can revise this directive.',
+        'Hanya rantai Deputi II pemilik yang dapat merevisi arahan strategis ini.',
         403,
       );
     }
@@ -841,7 +845,7 @@ export class DirectiveService {
     ) {
       throw new ApiException(
         'DIRECTIVE_NOT_MUTABLE',
-        'Cancelled or completed directives cannot be revised.',
+        'Arahan strategis yang dibatalkan atau selesai tidak dapat direvisi.',
         409,
       );
     }
@@ -927,7 +931,7 @@ export class DirectiveService {
     this.assertRole(
       context,
       [RoleCode.EXECUTIVE],
-      'Only Executive can edit directive drafts.',
+      'Hanya Deputi II yang dapat mengubah draf arahan strategis.',
     );
 
     await this.getEditableVersion(versionId, context);
@@ -954,7 +958,7 @@ export class DirectiveService {
     this.assertRole(
       context,
       [RoleCode.EXECUTIVE],
-      'Only Executive can edit directive draft areas.',
+      'Hanya Deputi II yang dapat mengubah wilayah sasaran draf arahan strategis.',
     );
 
     await this.getEditableVersion(versionId, context);
@@ -986,7 +990,7 @@ export class DirectiveService {
     this.assertRole(
       context,
       [RoleCode.EXECUTIVE],
-      'Only Executive can edit directive recipients.',
+      'Hanya Deputi II yang dapat mengubah penerima arahan strategis.',
     );
 
     await this.getEditableVersion(versionId, context);
@@ -1016,13 +1020,13 @@ export class DirectiveService {
     this.assertRole(
       context,
       [RoleCode.EXECUTIVE],
-      'Only Executive can publish strategic directives.',
+      'Hanya Deputi II yang dapat menerbitkan arahan strategis.',
     );
 
     if (body.confirmation !== 'PUBLISH') {
       throw new ApiException(
         'DIRECTIVE_PUBLISH_CONFIRMATION_REQUIRED',
-        'Confirmation must be PUBLISH.',
+        'Konfirmasi harus bernilai PUBLISH.',
         422,
       );
     }
@@ -1036,7 +1040,7 @@ export class DirectiveService {
     ) {
       throw new ApiException(
         'DIRECTIVE_INCOMPLETE',
-        'Directive requires at least one target area and one recipient.',
+        'Arahan strategis membutuhkan minimal satu wilayah sasaran dan satu penerima.',
         422,
       );
     }
@@ -1061,7 +1065,7 @@ export class DirectiveService {
     this.assertRole(
       context,
       [RoleCode.EXECUTIVE],
-      'Only Executive can distribute strategic directives.',
+      'Hanya Deputi II yang dapat mendistribusikan arahan strategis.',
     );
 
     const version = await this.prisma.directiveVersion.findUniqueOrThrow({
@@ -1078,7 +1082,7 @@ export class DirectiveService {
     ) {
       throw new ApiException(
         'DIRECTIVE_NOT_DISTRIBUTABLE',
-        'Only the owning executive chain can distribute this directive.',
+        'Hanya rantai Deputi II pemilik yang dapat mendistribusikan arahan strategis ini.',
         403,
       );
     }
@@ -1089,7 +1093,7 @@ export class DirectiveService {
     ) {
       throw new ApiException(
         'DIRECTIVE_NOT_DISTRIBUTABLE',
-        'Only the current published directive can be distributed.',
+        'Hanya arahan strategis terbit versi berjalan yang dapat didistribusikan.',
         409,
       );
     }
@@ -1136,8 +1140,8 @@ export class DirectiveService {
               data: {
                 userProfileId: profile.userProfileId,
                 type: 'DIRECTIVE',
-                title: `Directive ${version.directive.commandNumber}`,
-                message: 'Directive baru telah didistribusikan.',
+                title: `Arahan ${version.directive.commandNumber}`,
+                message: 'Arahan strategis baru telah didistribusikan.',
                 link: `/directives/${version.directiveId}`,
               },
             });
@@ -1183,7 +1187,7 @@ export class DirectiveService {
     ) {
       throw new ApiException(
         'DIRECTIVE_RECIPIENT_NOT_OWNER',
-        'Directive recipient does not belong to the current position.',
+        'Penerima arahan strategis tidak sesuai dengan jabatan saat ini.',
         403,
       );
     }
@@ -1194,7 +1198,7 @@ export class DirectiveService {
     ) {
       throw new ApiException(
         'DIRECTIVE_RECIPIENT_NOT_OWNER',
-        'Directive recipient does not belong to the current unit.',
+        'Penerima arahan strategis tidak sesuai dengan unit saat ini.',
         403,
       );
     }
@@ -1243,7 +1247,7 @@ export class DirectiveService {
     if (!recipient) {
       throw new ApiException(
         'DIRECTIVE_RECIPIENT_NOT_OWNER',
-        'Directive recipient does not belong to the current access context.',
+        'Penerima arahan strategis tidak sesuai dengan konteks akses saat ini.',
         403,
       );
     }
@@ -1286,7 +1290,7 @@ export class DirectiveService {
     this.assertRole(
       context,
       [RoleCode.EXECUTIVE],
-      'Only Executive can access end-to-end directive tracking.',
+      'Hanya Deputi II yang dapat mengakses pelacakan arahan strategis menyeluruh.',
     );
 
     const directive = await this.prisma.directive.findFirstOrThrow({
@@ -2035,7 +2039,7 @@ export class DirectiveService {
     this.assertRole(
       context,
       [RoleCode.EXECUTIVE],
-      'Only Executive can cancel strategic directives.',
+      'Hanya Deputi II yang dapat membatalkan arahan strategis.',
     );
 
     const directive = await this.detail(directiveId, context);

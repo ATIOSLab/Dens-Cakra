@@ -1,5 +1,5 @@
 import type { WAMessage, WASocket } from '@whiskeysockets/baileys';
-import { describe, expect, it, jest } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { WhatsAppReportFlowService } from './whatsapp-report-flow.service.js';
 
 const channel = {
@@ -18,9 +18,10 @@ const eligibleJaring = {
 const captureResponse = `Terima kasih Informasi telah masuk.
 Anda masih dapat menambahkan informasi jika ada.
 
-Balas *SELESAI* jika informasi telah lengkap dan siap dikirimkan.
+Balas *SELESAI* jika informasi siap dikirimkan.
 
 Balas *BATAL* untuk membatalkan.`;
+const captureAckDebounceMs = 5_000;
 
 function activeSession(overrides: Record<string, unknown> = {}) {
   return {
@@ -141,6 +142,10 @@ function inbound(
 }
 
 describe('WhatsAppReportFlowService simplified collector', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('keeps unknown or unverified senders completely silent', async () => {
     const { service, prisma } = createFixture();
     prisma.jaring.findFirst.mockResolvedValue(null);
@@ -238,7 +243,8 @@ describe('WhatsAppReportFlowService simplified collector', () => {
     );
   });
 
-  it('replies with the standard continuation message after saving text', async () => {
+  it('debounces the standard continuation message after saving text', async () => {
+    jest.useFakeTimers();
     const { service, prisma } = createFixture();
     prisma.whatsAppReportSession.findUnique
       .mockResolvedValueOnce(activeSession())
@@ -247,10 +253,14 @@ describe('WhatsAppReportFlowService simplified collector', () => {
 
     await service.handle(input);
 
+    expect(input.reply).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(captureAckDebounceMs);
     expect(input.reply).toHaveBeenCalledWith([captureResponse]);
+    jest.useRealTimers();
   });
 
-  it('replies with the standard continuation message after saving Live Location', async () => {
+  it('debounces the standard continuation message after saving Live Location', async () => {
+    jest.useFakeTimers();
     const { service, prisma } = createFixture();
     prisma.whatsAppReportSession.findUnique
       .mockResolvedValueOnce(activeSession())
@@ -273,10 +283,14 @@ describe('WhatsAppReportFlowService simplified collector', () => {
 
     await service.handle(input);
 
+    expect(input.reply).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(captureAckDebounceMs);
     expect(input.reply).toHaveBeenCalledWith([captureResponse]);
+    jest.useRealTimers();
   });
 
-  it('replies with the standard continuation message after saving media', async () => {
+  it('debounces the standard continuation message after saving media', async () => {
+    jest.useFakeTimers();
     const { service, prisma } = createFixture();
     const session = activeSession();
     prisma.whatsAppReportSession.findUnique.mockResolvedValue(
@@ -308,7 +322,72 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       'Dokumentasi lapangan',
     );
 
+    expect(input.reply).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(captureAckDebounceMs);
     expect(input.reply).toHaveBeenCalledWith([captureResponse]);
+    jest.useRealTimers();
+  });
+
+  it('sends one continuation message for a burst of media messages', async () => {
+    jest.useFakeTimers();
+    const { service, prisma } = createFixture();
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(activeSession());
+    const target = service as any;
+    jest.spyOn(target, 'storeAndScanMedia').mockResolvedValue({
+      id: 'file-id',
+      storageKey: 'draft/file.jpg',
+    });
+    const first = inbound('', {
+      imageMessage: { mimetype: 'image/jpeg' },
+    });
+    const second = inbound('', {
+      imageMessage: { mimetype: 'image/jpeg' },
+    });
+    second.payload.externalMessageId = 'message-media-2';
+
+    await service.handle(first);
+    await service.handle(second);
+
+    await jest.advanceTimersByTimeAsync(captureAckDebounceMs);
+    expect(first.reply).not.toHaveBeenCalled();
+    expect(second.reply).toHaveBeenCalledTimes(1);
+    expect(second.reply).toHaveBeenCalledWith([captureResponse]);
+    jest.useRealTimers();
+  });
+
+  it('cancels a pending continuation message when SELESAI is processed', async () => {
+    jest.useFakeTimers();
+    const { service, prisma } = createFixture();
+    const completeSession = activeSession({
+      content: 'Narasi lapangan',
+      latitude: -6.2,
+      longitude: 106.8,
+      locationAccuracyMeters: 8,
+      locationCapturedAt: new Date(),
+      locationType: 'LIVE_LOCATION',
+      media: [{ fileId: 'file-id', caption: null }],
+    });
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(completeSession);
+    const target = service as any;
+    jest.spyOn(target, 'storeAndScanMedia').mockResolvedValue({
+      id: 'file-id',
+      storageKey: 'draft/file.jpg',
+    });
+    const mediaInput = inbound('', {
+      imageMessage: { mimetype: 'image/jpeg' },
+    });
+    const finishInput = inbound('Selesai');
+    finishInput.payload.receivedAt = '2026-08-05T05:00:00.000Z';
+
+    await service.handle(mediaInput);
+    await service.handle(finishInput);
+    await jest.advanceTimersByTimeAsync(captureAckDebounceMs);
+
+    expect(mediaInput.reply).not.toHaveBeenCalled();
+    expect(finishInput.reply).toHaveBeenCalledWith([
+      'Kode Pengiriman: *WLY-UNK-20260805-000001*\n\nTerima kasih.\nInformasi telah kami terima.',
+    ]);
+    jest.useRealTimers();
   });
 
   it('treats SELESAI or BATAL in a media caption as a caption, not a command', async () => {
@@ -365,14 +444,14 @@ describe('WhatsAppReportFlowService simplified collector', () => {
 
     expect(txMessageCreate).not.toHaveBeenCalled();
     expect(input.reply).toHaveBeenCalledWith([
-      expect.stringContaining('belum dapat dikirim karena belum lengkap'),
+      expect.stringContaining('komponen wajib belum terpenuhi'),
     ]);
     expect(input.reply.mock.calls[0][0][0]).toContain('Live Location');
     expect(input.reply.mock.calls[0][0][0]).toContain('Foto atau video');
     expect(input.reply.mock.calls[0][0][0]).toContain('ketik *SELESAI* kembali');
   });
 
-  it('submits a complete draft once, clears its active sender key, and returns a reference', async () => {
+  it('submits a ready draft once, clears its active sender key, and returns a reference', async () => {
     const {
       service,
       prisma,
@@ -381,8 +460,8 @@ describe('WhatsAppReportFlowService simplified collector', () => {
       txReferenceCounterUpsert,
       txSessionUpdate,
     } = createFixture();
-    const complete = activeSession({
-      content: 'Narasi lengkap situasi wilayah',
+    const ready = activeSession({
+      content: 'Narasi situasi wilayah',
       latitude: -6.2,
       longitude: 106.8,
       locationAccuracyMeters: 8,
@@ -397,7 +476,7 @@ describe('WhatsAppReportFlowService simplified collector', () => {
         },
       ],
     });
-    prisma.whatsAppReportSession.findUnique.mockResolvedValue(complete);
+    prisma.whatsAppReportSession.findUnique.mockResolvedValue(ready);
     spatial.resolveReportArea.mockResolvedValue({
       area: { areaId: 'village-id' },
       method: 'POLYGON_MATCH',
@@ -428,7 +507,7 @@ describe('WhatsAppReportFlowService simplified collector', () => {
 
     expect(txMessageCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        content: 'Narasi lengkap situasi wilayah',
+        content: 'Narasi situasi wilayah',
         referenceNumber: 'JKT-SEL-20260805-000002',
       }),
     });

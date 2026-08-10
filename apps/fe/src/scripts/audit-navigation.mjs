@@ -90,7 +90,10 @@ const routes = [...new Set(pageFiles.map(toRoute))].sort();
 const matchers = routes.map((route) => ({ route, regex: routePattern(route) }));
 const placeholderRoutes = new Set(
   pageFiles
-    .filter((file) => fs.readFileSync(file, "utf8").includes("UniversalDensRoutePage"))
+    .filter((file) => {
+      const text = fs.readFileSync(file, "utf8");
+      return text.includes("UniversalDensRoutePage") || text.includes("/dashboard/coming-soon/page");
+    })
     .map(toRoute)
     .filter((route) => !route.startsWith("/dashboard/oim")),
 );
@@ -109,7 +112,89 @@ const deprecatedUiTerms = new Map([
   ["Maps Intelijen Network", "Peta Jejaring Intelijen"],
   ["History Pembinaan Jaring", "Riwayat Pembinaan Jaring"],
   ["Baket (Bahan Keterangan)", "Bahan Keterangan (Baket)"],
+  ["Jaring Lapangan", "Jaring"],
+  ["Field Officer", "Petugas Wilayah (Gaswil)"],
+  ["Field Coordinator", "Koordinator Wilayah (Korwil)"],
+  ["Regional Commander", "Komandan Regional"],
+  ["Operational Intelligence Manager", "Manajer Intelijen Operasional"],
+  ["Incoming information", "Informasi masuk"],
+  ["Edit Draft", "Ubah Draf"],
+  ["Builder Tugas", "Penyusun Tugas"],
+  ["Jumlah Agen", "Jumlah Personel Lapangan"],
+  ["Jumlah agen", "Jumlah personel lapangan"],
+  ["Daftar agen", "Daftar personel lapangan"],
+  ["draft report", "draf laporan"],
+  ["VALID BAKETs", "BAKET VALID"],
+  ["Executive", "Deputi II"],
+  ["Agen Aktif", "Personel Aktif"],
+  ["Agent Transit Lokasi", "Transit Lokasi Personel"],
+  ["Save as PDF", "Simpan sebagai PDF"],
+  ["Draft Saved", "Draf Tersimpan"],
+  ["Last Save", "Terakhir disimpan"],
+  ["Auto Save", "Simpan otomatis"],
+  ["Soft Delete", "Nonaktifkan"],
+  ["Workflow", "Alur Kerja"],
+  ["Urgent", "Mendesak"],
+  ["High", "Tinggi"],
+  ["Buka Detail", "Lihat Detail"],
+  ["BUAT TASK", "Buat Tugas"],
+  ["REFRESH", "Muat Ulang"],
+  ["Tracking", "Pelacakan"],
+  ["scope pengguna", "cakupan pengguna"],
+  ["Approval", "Persetujuan"],
+  ["Ranking", "Peringkat"],
+  ["Queue approval", "Antrean persetujuan"],
+  ["Traceability", "Ketertelusuran"],
+  ["versioning", "riwayat versi"],
+  ["Filter intelligence map", "Filter Peta Intelijen"],
+  ["Semua urgency", "Semua urgensi"],
+  ["SYSTEM ONLINE", "Sistem aktif"],
+  ["WORKLOAD", "Beban kerja"],
+  ["DEADLINE", "Tenggat"],
+  ["COVERAGE", "Cakupan"],
+  ["Preview Distribusi", "Pratinjau Distribusi"],
+  ["Preview Wilayah", "Pratinjau Wilayah"],
+  ["Suspended", "Ditangguhkan"],
+  ["Archived", "Diarsipkan"],
+  ["Locked", "Terkunci"],
+  ["Operational lock", "Kunci operasional"],
+  ["Lock User", "Kunci Pengguna"],
+  ["Unlock Operasional", "Buka Kunci Operasional"],
+  ["Suspend User", "Tangguhkan Pengguna"],
+  ["Suspend Akun", "Tangguhkan Akun"],
+  ["Alasan Suspend", "Alasan Penangguhan"],
+  ["Arsipkan User", "Arsipkan Pengguna"],
+  ["Read-Only", "Hanya Baca"],
+  ["assignment aktif", "penugasan aktif"],
+  ["user aktif", "pengguna aktif"],
+  ["coverage gap", "kesenjangan cakupan"],
+  ["mode stealth", "mode lokasi tersembunyi"],
+  ["Lokasi stealth", "Lokasi yang dirahasiakan"],
+  ["coverage sumber", "cakupan sumber"],
+  ["Provinsi induk coverage", "Provinsi induk cakupan"],
 ]);
+
+const rawDeprecatedUiTerms = new Map([
+  ["Field Officer", "Petugas Wilayah (Gaswil)"],
+  ["Field Coordinator", "Koordinator Wilayah (Korwil)"],
+  ["Regional Commander", "Komandan Regional"],
+  ["Operational Intelligence Manager", "Manajer Intelijen Operasional"],
+  ["Jaring Lapangan", "Jaring"],
+  ["WhatsApp View", "Tampilan WhatsApp"],
+  ["Owner Regional", "Regional Pengirim"],
+  ["Tasks Turunan", "Tugas Turunan"],
+  ["Jumlah Section", "Jumlah Bagian"],
+  ["View tabel", "Tampilan tabel"],
+  ["read receipt", "status baca"],
+  ["acknowledgement", "konfirmasi"],
+  ["Detail Alert", "Detail Peringatan"],
+  ["Coverage aktif", "Cakupan aktif"],
+  ["scope saat user", "akses saat pengguna"],
+]);
+
+function termPattern(term) {
+  return new RegExp(term.split(/\s+/).map(escapeRegExp).join("\\s+"), "g");
+}
 
 function validateTarget(target, sourceFile, node, kind) {
   if (!target || target === "#") {
@@ -206,6 +291,19 @@ for (const file of sourceFiles) {
   );
   const targetsInFile = new Map();
 
+  if (path.basename(file) !== "audit-navigation.mjs") {
+    for (const [term, replacement] of rawDeprecatedUiTerms.entries()) {
+      for (const match of text.matchAll(termPattern(term))) {
+        const { line, character } = sourceFile.getLineAndCharacterOfPosition(match.index ?? 0);
+        terminologyRisks.push({
+          location: `${path.relative(projectRoot, file)}:${line + 1}:${character + 1}`,
+          value: match[0].replace(/\s+/g, " "),
+          replacement,
+        });
+      }
+    }
+  }
+
   function recordTarget(target, node, kind) {
     validateTarget(target, sourceFile, node, kind);
     if (!target?.startsWith("/")) return;
@@ -274,7 +372,9 @@ for (const file of sourceFiles) {
 
     const visibleLiteral = stringValue(node) ?? (ts.isJsxText(node) ? node.text.trim() : null);
     const replacement =
-      path.basename(file) !== "audit-navigation.mjs" && visibleLiteral ? deprecatedUiTerms.get(visibleLiteral) : null;
+      path.basename(file) !== "audit-navigation.mjs" && visibleLiteral
+        ? [...deprecatedUiTerms.entries()].find(([term]) => visibleLiteral.includes(term))?.[1]
+        : null;
     if (replacement) {
       terminologyRisks.push({
         location: locationOf(sourceFile, node),

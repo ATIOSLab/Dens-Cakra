@@ -62,7 +62,7 @@ function resolveErrorMessage(error: AuthClientError) {
     return "Sesi login perlu disegarkan. Silakan login ulang, lalu coba lagi.";
   }
 
-  return error.message || "Password gagal diperbarui. Coba beberapa saat lagi.";
+  return error.message ?? "Password gagal diperbarui. Coba beberapa saat lagi.";
 }
 
 export function AccountPasswordForm() {

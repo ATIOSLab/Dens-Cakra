@@ -279,7 +279,7 @@ export class PositionController {
   @ApiContract({
     operationId: 'apiAsg006',
     contractId: 'API-ASG-006',
-    summary: 'Ambil scope assignment',
+    summary: 'Ambil cakupan wilayah assignment',
     roles: ['admin_system'],
   })
   async scopes(@Param('assignmentId', ParseUUIDPipe) id: string) {
@@ -289,7 +289,7 @@ export class PositionController {
   @ApiContract({
     operationId: 'apiAsg007',
     contractId: 'API-ASG-007',
-    summary: 'Ganti scope assignment',
+    summary: 'Ganti cakupan wilayah assignment',
     roles: ['admin_system'],
     idempotent: true,
   })
@@ -304,7 +304,7 @@ export class PositionController {
   @ApiContract({
     operationId: 'apiAsg008',
     contractId: 'API-ASG-008',
-    summary: 'Preview validasi scope',
+    summary: 'Preview validasi cakupan wilayah',
     roles: ['admin_system'],
   })
   async validateScopes(

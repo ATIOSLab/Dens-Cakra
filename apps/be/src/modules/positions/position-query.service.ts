@@ -380,9 +380,9 @@ export class PositionQueryService {
   }
 
   scopes(id: string, activeOnly = true) {
-    return this.prisma.positionAreaScope.findMany({
+    return this.prisma.userAreaScope.findMany({
       where: {
-        positionAssignmentId: id,
+        operationalAssignmentId: id,
         ...(activeOnly ? { validUntil: null } : {}),
       },
       include: { area: true },

@@ -1,14 +1,15 @@
-import { OrganizationType, PositionCode } from '../common/constants/legacy-operational-code.js';
 import {
   createHash } from 'node:crypto';
 import { readFile,
   stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
+  CommandRouteType,
   FileLifecycleStatus,
   FileType,
   JaringRegistrationStatus,
   JaringStatus,
+  RoleCode,
 } from '../generated/prisma/client.js';
 import { prisma } from '../modules/prisma/prisma.service.js';
 
@@ -235,11 +236,15 @@ async function loadContext(
       select: { id: true, code: true },
     }),
   ]);
-  const areasByCode = new Map(
-    areas.flatMap((area) =>
-      area.officialCode ? [[area.officialCode, area]] : [],
-    ),
-  );
+  const areasByCode = new Map<
+    string,
+    { id: string; officialCode: string | null; name: string }
+  >();
+  for (const area of areas) {
+    if (area.officialCode) {
+      areasByCode.set(area.officialCode, area);
+    }
+  }
   const occupationsByCode = new Map(
     occupations.map((occupation) => [occupation.code, occupation.id]),
   );
@@ -258,11 +263,13 @@ async function loadContext(
 
   const assignmentsByDistrict = new Map<string, string>();
   for (const districtCode of districtCodes) {
-    const assignments = await prisma.userSeatAssignment.findMany({
+    const assignments = await prisma.userOperationalAssignment.findMany({
       where: {
         isActive: true,
         validUntil: null,
-        position: { code: PositionCode.PETUGAS_ORGANIK, isActive: true },
+        branch: CommandRouteType.BINDA,
+        role: { code: RoleCode.FIELD_OFFICER, isActive: true },
+        userProfile: { isActive: true, deletedAt: null },
         areaScopes: {
           some: {
             validUntil: null,
@@ -280,7 +287,7 @@ async function loadContext(
     });
     if (assignments.length !== 1) {
       throw new Error(
-        `District ${districtCode} must resolve to exactly one active Field Officer; found ${assignments.length}.`,
+        `Kecamatan ${districtCode} harus terhubung ke tepat satu Petugas Wilayah (Gaswil) aktif; ditemukan ${assignments.length}.`,
       );
     }
     assignmentsByDistrict.set(districtCode, assignments[0].id);

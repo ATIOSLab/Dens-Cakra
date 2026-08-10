@@ -37,12 +37,17 @@ function statusTone(status: string) {
 }
 
 function validationLabel(status: string) {
-  return status === "NOT_CHECKED" ? "MENUNGGU VALIDASI" : status;
+  if (status === "NOT_CHECKED") return "BELUM DIPERIKSA";
+  if (status === "VALID") return "FORMAT SESUAI";
+  if (status === "INVALID") return "PERLU PERBAIKAN";
+  return status;
 }
 
 type IncomingDetailClientProps = {
   messageId: string;
 };
+
+const FIELD_OFFICER_HOME_ROUTE = "/dashboard/field-officer";
 
 export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
   const [workspace, setWorkspace] = useState<FieldOfficerWorkspace | null>(null);
@@ -94,7 +99,7 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
     return (
       <div className="p-6 space-y-4">
         <div>
-          <BackButton href="/dashboard/field-officer" />
+          <BackButton href={FIELD_OFFICER_HOME_ROUTE} />
         </div>
         <Card className="border-[var(--tactical-border)] bg-[var(--tactical-card-bg)]">
           <CardContent className="py-8 text-center text-red-500 font-mono">
@@ -110,7 +115,7 @@ export function IncomingDetailClient({ messageId }: IncomingDetailClientProps) {
   return (
     <div className="space-y-4 p-6">
       <div>
-        <BackButton href="/dashboard/field-officer" label="Kembali ke Dashboard" />
+        <BackButton href={FIELD_OFFICER_HOME_ROUTE} label="Kembali ke Dashboard" />
       </div>
 
       <div className="tactical-card space-y-6">

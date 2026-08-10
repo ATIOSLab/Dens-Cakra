@@ -118,7 +118,7 @@ function buildForwardingDraftFromDirective(commandDescription?: string | null) {
 
   const sections = UUK_SECTION_BLUEPRINT.map(([sectionType, title], index) => {
     const sourceSection = parsed.uukSections.find((item) => item.sectionType === sectionType);
-    const inheritedContent = sourceSection?.content?.trim() || (index === 0 ? parsed.commandNarrative.trim() : "");
+    const inheritedContent = sourceSection?.content?.trim() ?? (index === 0 ? parsed.commandNarrative.trim() : "");
 
     return {
       sectionType,
@@ -241,15 +241,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
     }
-  }, [
-    classificationFilter,
-    deadlineSortOrder,
-    debouncedSearch,
-    page,
-    periodFrom,
-    periodTo,
-    rowsPerPage,
-  ]);
+  }, [classificationFilter, deadlineSortOrder, debouncedSearch, page, periodFrom, periodTo, rowsPerPage]);
 
   useEffect(() => {
     void fetchDirectives();
@@ -271,7 +263,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
       <div>
         <h1 className="font-semibold text-2xl tracking-tight">STR Masuk dan Penerusan Regional</h1>
         <p className="text-muted-foreground text-sm">
-          Regional Commander menerima STR dari Eksekutif, lalu meneruskan STR yang sama ke rantai komando di bawahnya
+          Komandan Regional menerima STR dari Deputi II, lalu meneruskan STR yang sama ke rantai komando di bawahnya
           dengan penajaman arahan regional.
         </p>
       </div>
@@ -358,7 +350,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
         <CardHeader className="border-[var(--dc-border-subtle)]/70 border-b bg-muted/10 pb-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-              <CardTitle>STR Diterima dari Eksekutif</CardTitle>
+              <CardTitle>STR Diterima dari Deputi II</CardTitle>
               <CardDescription>
                 Pilih STR yang sudah masuk untuk dibaca, lalu lanjutkan sebagai penerusan regional tanpa membuat STR
                 akar baru.
@@ -419,17 +411,17 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                       <TableRow key={directive.id}>
                         <TableCell className="pl-5 font-medium">{directive.commandNumber}</TableCell>
                         <TableCell className="max-w-[34rem]">
-                          <div className="truncate" title={parsedTitle.uukTitle || "STR Eksekutif"}>
-                            {parsedTitle.uukTitle || "STR Eksekutif"}
+                          <div className="truncate" title={parsedTitle.uukTitle ?? "STR Deputi II"}>
+                            {parsedTitle.uukTitle ?? "STR Deputi II"}
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={classificationBadgeClass(currentVersion?.classification)}>
-                            {currentVersion?.classification || "RAHASIA"}
+                            {currentVersion?.classification ?? "RAHASIA"}
                           </Badge>
                         </TableCell>
                         <TableCell>{currentVersion?.commandIssuer ?? directive.ownerUnit?.name ?? "-"}</TableCell>
-                        <TableCell>{formatDate(currentVersion?.dueDate || currentVersion?.commandDate)}</TableCell>
+                        <TableCell>{formatDate(currentVersion?.dueDate ?? currentVersion?.commandDate)}</TableCell>
                         <TableCell>
                           {relatedUuk ? (
                             <Badge
@@ -493,7 +485,7 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                     <CardContent className="space-y-4 p-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className={classificationBadgeClass(currentVersion?.classification)}>
-                          {currentVersion?.classification || "RAHASIA"}
+                          {currentVersion?.classification ?? "RAHASIA"}
                         </Badge>
                         {relatedUuk ? (
                           <Badge
@@ -515,12 +507,12 @@ export function UukListClient({ directives, uuks }: UukListClientProps) {
                           {directive.commandNumber}
                         </p>
                         <h3 className="font-semibold text-[var(--dc-text-primary)] leading-snug">
-                          {parsedTitle.uukTitle || "STR Eksekutif"}
+                          {parsedTitle.uukTitle ?? "STR Deputi II"}
                         </h3>
                       </div>
                       <div className="grid gap-2 border-border/50 border-t pt-3 text-muted-foreground text-xs sm:grid-cols-2">
                         <span>Pemberi: {currentVersion?.commandIssuer ?? directive.ownerUnit?.name ?? "-"}</span>
-                        <span>Deadline: {formatDate(currentVersion?.dueDate || currentVersion?.commandDate)}</span>
+                        <span>Deadline: {formatDate(currentVersion?.dueDate ?? currentVersion?.commandDate)}</span>
                       </div>
                       <div className="flex justify-end">
                         {relatedUuk ? (
@@ -653,7 +645,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
       issuer: selectedDirective.version.commandIssuer || selectedDirective.directive.ownerUnit?.name || "-",
       commandDate: selectedDirective.version.commandDate,
       dueDate: selectedDirective.version.dueDate,
-      ownerUnitName: selectedDirective.directive.ownerUnit?.name || "-",
+      ownerUnitName: selectedDirective.directive.ownerUnit?.name ?? "-",
     };
   }, [selectedDirective]);
   const inheritedForwarding = useMemo(() => {
@@ -711,7 +703,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
       <div>
         <h1 className="font-semibold text-2xl tracking-tight">Baca dan Teruskan STR Regional</h1>
         <p className="text-muted-foreground text-sm">
-          Regional Commander hanya membaca STR dari Eksekutif lalu meneruskannya ke OIM dalam rantai komando yang sama,
+          Komandan Regional hanya membaca STR dari Deputi II lalu meneruskannya ke OIM dalam rantai komando yang sama,
           tanpa mengubah isi STR.
         </p>
       </div>
@@ -767,7 +759,7 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
 
               <Alert className="border-border/70 bg-muted/20">
                 <FileText className="size-4" />
-                <AlertTitle>{normalizeDisplayText(sourceDirectiveContent.uukTitle || "STR Eksekutif")}</AlertTitle>
+                <AlertTitle>{normalizeDisplayText(sourceDirectiveContent.uukTitle || "STR Deputi II")}</AlertTitle>
                 <AlertDescription>
                   {sourceDirectiveContent.commandNarrative?.trim()
                     ? sourceDirectiveContent.commandNarrative
@@ -823,9 +815,9 @@ export function UukEditorClient({ ownerUnitId, directives, initialDirectiveVersi
         <CardContent className="space-y-4">
           <Alert className="border-border/70 bg-muted/20">
             <BookOpenText className="size-4" />
-            <AlertTitle>Tidak ada perubahan isi di level Regional Commander</AlertTitle>
+            <AlertTitle>Tidak ada perubahan isi di level Komandan Regional</AlertTitle>
             <AlertDescription>
-              Setelah STR diterbitkan dari Eksekutif, tindakan Regional Commander hanya membaca lalu meneruskan. Isi STR
+              Setelah STR diterbitkan dari Deputi II, tindakan Komandan Regional hanya membaca lalu meneruskan. Isi STR
               tetap sama sampai dipakai OIM sebagai dasar tindak lanjut operasional.
             </AlertDescription>
           </Alert>
@@ -919,7 +911,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
     }
   }
 
-  const classification = uuk.directiveVersion?.classification || "RAHASIA";
+  const classification = uuk.directiveVersion?.classification ?? "RAHASIA";
   const commandNumber = uuk.directiveVersion?.directive?.commandNumber ?? "-";
   const ownerUnitName = uuk.ownerUnit?.name ?? "unit regional";
   const currentVersionCreatedAt = currentVersion?.createdAt ?? null;
@@ -978,8 +970,8 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
       <div className="flex items-start gap-2.5 rounded-[6px] border border-white/[0.06] bg-white/[0.02] p-2.5 text-muted-foreground text-xs leading-normal">
         <Lock className="mt-0.5 size-4 shrink-0 text-[var(--dc-primary)]" />
         <div>
-          <span className="font-bold text-[var(--dc-text-primary)]">Isi STR terkunci di level regional.</span> Regional
-          Commander tidak melakukan edit atau revisi isi. Halaman ini hanya menjadi bukti bahwa STR sudah diteruskan
+          <span className="font-bold text-[var(--dc-text-primary)]">Isi STR terkunci di level regional.</span> Komandan
+          Regional tidak melakukan edit atau revisi isi. Halaman ini hanya menjadi bukti bahwa STR sudah diteruskan
           dalam rantai komando yang sama.
         </div>
       </div>
@@ -987,7 +979,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
       {/* 3. Operational Metadata Row */}
       <div className="grid grid-cols-2 gap-3 rounded-[6px] border border-white/[0.04] bg-white/[0.02] p-3 font-mono text-xs md:grid-cols-4">
         <div className="space-y-0.5">
-          <span className="text-[9px] text-muted-foreground/60 uppercase">Owner Regional</span>
+          <span className="text-[9px] text-muted-foreground/60 uppercase">Regional Pengirim</span>
           <div className="font-bold text-[var(--dc-text-primary)]">{uuk.ownerUnit?.name ?? "-"}</div>
         </div>
         <div className="space-y-0.5">
@@ -995,11 +987,11 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
           <div className="font-bold text-[var(--dc-text-primary)]">{uuk.currentVersionNumber}</div>
         </div>
         <div className="space-y-0.5">
-          <span className="text-[9px] text-muted-foreground/60 uppercase">Tasks Turunan</span>
+          <span className="text-[9px] text-muted-foreground/60 uppercase">Tugas Turunan</span>
           <div className="font-bold text-[var(--dc-text-primary)]">{currentVersion?.tasks?.length ?? 0}</div>
         </div>
         <div className="space-y-0.5">
-          <span className="text-[9px] text-muted-foreground/60 uppercase">Jumlah Section</span>
+          <span className="text-[9px] text-muted-foreground/60 uppercase">Jumlah Bagian</span>
           <div className="font-bold text-[var(--dc-text-primary)]">{currentVersion?.sections?.length ?? 0}</div>
         </div>
       </div>
@@ -1018,7 +1010,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
               <li>
                 Dokumen ini merupakan direktif strategis yang diterbitkan oleh{" "}
                 <strong className="text-[var(--dc-text-primary)]">
-                  {uuk.directiveVersion?.directive?.ownerUnit?.name || "Eksekutif"}
+                  {uuk.directiveVersion?.directive?.ownerUnit?.name ?? "Deputi II"}
                 </strong>{" "}
                 untuk penjabaran teknis di tingkat regional.
               </li>
@@ -1030,7 +1022,7 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                 arahan operasional termasuk sasaran penyelidikan, rencana pengumpulan, dan mekanisme koordinasi.
               </li>
               <li>
-                Isi STR terkunci sepenuhnya di level Regional Commander guna menjaga integritas informasi operasional
+                Isi STR terkunci sepenuhnya di level Komandan Regional guna menjaga integritas informasi operasional
                 asli dalam rantai komando.
               </li>
             </ul>
@@ -1181,9 +1173,9 @@ export function UukDetailClient({ uuk }: UukDetailClientProps) {
                 <span className="text-muted-foreground/60">PEMILIK REGIONAL:</span>
                 <span
                   className="max-w-[120px] truncate font-bold text-[var(--dc-text-primary)]"
-                  title={uuk.ownerUnit?.name || "-"}
+                  title={uuk.ownerUnit?.name ?? "-"}
                 >
-                  {uuk.ownerUnit?.name || "-"}
+                  {uuk.ownerUnit?.name ?? "-"}
                 </span>
               </div>
               <div className="flex items-center justify-between border-white/[0.04] border-b py-0.5">

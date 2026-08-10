@@ -45,8 +45,13 @@ import type {
   UpdateJaringReportMetadataDto,
   UpdateReportCategoryDto,
   UpdateJaringDto,
-  VerifyJaringReportDto,
 } from './jaring.dto.js';
+
+type JaringReportProcessStatus =
+  | 'IN_PROGRESS_BY_JARING'
+  | 'NOT_SUBMITTED'
+  | 'READY_FOR_BAKET'
+  | 'BAKET_CREATED';
 
 const JAKARTA_CITY_ALIAS_CODES: Record<string, string> = {
   '31.74': 'Z', // Jakarta Selatan
@@ -313,6 +318,11 @@ type JaringReportSessionRecord = Prisma.WhatsAppReportSessionGetPayload<{
   select: typeof jaringReportSessionSelect;
 }>;
 
+type JaringReportStatusCount = {
+  status: string;
+  _count: { _all: number };
+};
+
 const jaringCoachingReportSelect = {
   id: true,
   jaringId: true,
@@ -491,13 +501,16 @@ export class JaringService {
       },
       select: { aliasName: true },
     });
-    const maxSequence = existingAliases.reduce((max, item) => {
+    const maxSequence = existingAliases.reduce(
+      (max: number, item: { aliasName: string | null }) => {
       const sequence = item.aliasName?.slice(aliasPrefix.length);
       if (!sequence || !/^\d{3}$/.test(sequence)) {
         return max;
       }
       return Math.max(max, Number(sequence));
-    }, 0);
+      },
+      0,
+    );
     const nextSequence = maxSequence + 1;
 
     if (nextSequence > 999) {
@@ -570,7 +583,7 @@ export class JaringService {
     const existingLabel = this.formatJaringIdentityConflict(conflict);
     throw new ApiException(
       'JARING_WHATSAPP_ACTIVE_DUPLICATE',
-      `Nomor WhatsApp sama dengan Jaring aktif ${existingLabel}. Gunakan nomor berbeda atau tolak pengajuan jika data ini duplikat.`,
+      `Nomor WhatsApp sama dengan Jaring terdaftar ${existingLabel}. Gunakan nomor berbeda atau tolak pengajuan jika data ini duplikat.`,
       409,
       [
         {
@@ -658,7 +671,7 @@ export class JaringService {
     if (!file || !file.mimeType.startsWith('image/')) {
       throw new ApiException(
         'JARING_PROFILE_PHOTO_INVALID',
-        'Foto profil Jaring tidak ditemukan, bukan gambar, atau belum menjadi milik Field Officer ini.',
+        'Foto profil Jaring tidak ditemukan, bukan gambar, atau belum menjadi milik Petugas Wilayah (Gaswil) ini.',
         422,
       );
     }
@@ -667,8 +680,6 @@ export class JaringService {
   private calculateJaringReportActivity(item: {
     messages?: Array<{ receivedAt: Date }>;
     reportSessions?: Array<{ submittedAt: Date | null }>;
-    registrationStatus?: JaringRegistrationStatus;
-    status?: JaringStatus;
   }) {
     const latestMessageDate = item.messages?.[0]?.receivedAt
       ? new Date(item.messages[0].receivedAt).getTime()
@@ -689,16 +700,12 @@ export class JaringService {
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
 
-    const isApproved =
-      item.registrationStatus === JaringRegistrationStatus.APPROVED;
     const hasReportInLast3Months =
       lastReportAt !== null &&
       lastReportAt.getTime() >= threeMonthsAgo.getTime();
 
     const computedStatus =
-      isApproved && hasReportInLast3Months
-        ? JaringStatus.ACTIVE
-        : JaringStatus.INACTIVE;
+      hasReportInLast3Months ? JaringStatus.ACTIVE : JaringStatus.INACTIVE;
 
     return {
       lastReportAt: lastReportAt ? lastReportAt.toISOString() : null,
@@ -776,7 +783,9 @@ export class JaringService {
     });
   }
 
-  private jaringReportVerificationStatus(session: JaringReportSessionRecord) {
+  private jaringReportProcessStatus(
+    session: JaringReportSessionRecord,
+  ): JaringReportProcessStatus {
     const message = session.submittedMessage;
     if (!message) {
       return session.status === 'ACTIVE'
@@ -785,24 +794,10 @@ export class JaringService {
     }
 
     if (message.convertedBaketId) {
-      return 'METADATA_RECORDED';
+      return 'BAKET_CREATED';
     }
 
-    if (
-      message.validationSummary === WhatsAppValidationSummary.VALID &&
-      message.status === WhatsAppMessageStatus.READY_FOR_BAKET
-    ) {
-      return 'VERIFIED_BY_FIELD_OFFICER';
-    }
-
-    if (
-      message.validationSummary === WhatsAppValidationSummary.INVALID ||
-      message.status === WhatsAppMessageStatus.UNDER_REVIEW
-    ) {
-      return 'NEEDS_FIELD_OFFICER_REVIEW';
-    }
-
-    return 'WAITING_FIELD_OFFICER_VERIFICATION';
+    return 'READY_FOR_BAKET';
   }
 
   private deriveDisplayTitle(content: string | null | undefined) {
@@ -821,10 +816,7 @@ export class JaringService {
       session.latitude === null ? null : Number(session.latitude);
     const longitude =
       session.longitude === null ? null : Number(session.longitude);
-    const verificationStatus = this.jaringReportVerificationStatus(session);
-    const completenessIssues = submittedMessage
-      ? this.validateReportMessageForFieldOfficer(submittedMessage)
-      : [];
+    const processStatus = this.jaringReportProcessStatus(session);
     const currentReportVersion = session.amendments?.at(-1)?.versionNumber ?? 1;
     const content =
       latestVersion?.originalContent ??
@@ -926,18 +918,11 @@ export class JaringService {
       ],
       status: session.status,
       currentState: session.currentState,
-      verificationStatus,
-      displayStatus: verificationStatus,
-      completenessStatus: !submittedMessage
-        ? 'NOT_DETERMINED'
-        : completenessIssues.length === 0
-          ? 'COMPLETE'
-          : 'INCOMPLETE',
-      completenessIssues: completenessIssues.map(([, message]) => message),
-      canFillMetadata: [
-        'VERIFIED_BY_FIELD_OFFICER',
-        'METADATA_RECORDED',
-      ].includes(verificationStatus),
+      processStatus,
+      displayStatus: processStatus,
+      // Deprecated compatibility alias. New UI/API consumers should use processStatus.
+      verificationStatus: processStatus,
+      canFillMetadata: processStatus === 'READY_FOR_BAKET' || processStatus === 'BAKET_CREATED',
       displayTitle: this.deriveDisplayTitle(content),
       content,
       normalizedContent: latestVersion?.normalizedContent ?? null,
@@ -968,8 +953,7 @@ export class JaringService {
               capturedAt: session.locationCapturedAt,
               type: session.locationType,
             },
-      reportCategory:
-        submittedMessage?.category ?? baket?.reportCategory ?? null,
+      reportCategory: baket?.reportCategory ?? null,
       urgency: latestVersion?.urgency ?? null,
       locationSuitabilityStatus:
         latestVersion?.coverageValidationStatus ??
@@ -1044,60 +1028,9 @@ export class JaringService {
     };
   }
 
-  private validateReportMessageForFieldOfficer(message: {
-    content: string | null;
-    senderPhone: string;
-    jaringId: string | null;
-    receivedAt: Date;
-    latitude: Prisma.Decimal | null;
-    longitude: Prisma.Decimal | null;
-    resolvedAreaId: string | null;
-    rawPayload: Prisma.JsonValue;
-    media: Array<unknown>;
-  }) {
-    const rawPayload =
-      message.rawPayload &&
-      typeof message.rawPayload === 'object' &&
-      !Array.isArray(message.rawPayload)
-        ? (message.rawPayload as Record<string, unknown>)
-        : null;
-    const hasPhotoEvidence =
-      (message.media?.length ?? 0) > 0 ||
-      (typeof rawPayload?.photoMessageId === 'string' &&
-        rawPayload.photoMessageId.length > 0);
-
-    return [
-      ...(!message.content ? [['MISSING_CONTENT', 'Isi wajib tersedia']] : []),
-      ...(!message.senderPhone
-        ? [['MISSING_SOURCE', 'Identitas pengirim wajib tersedia']]
-        : []),
-      ...(!message.jaringId
-        ? [['MISSING_JARING', 'Sumber Jaring wajib tersedia']]
-        : []),
-      ...(!message.receivedAt
-        ? [['MISSING_TIME', 'Waktu penerimaan wajib tersedia']]
-        : []),
-      ...(message.latitude === null || message.longitude === null
-        ? [['MISSING_GPS', 'GPS wajib tersedia']]
-        : []),
-      ...(message.latitude !== null &&
-      message.longitude !== null &&
-      !message.resolvedAreaId
-        ? [
-            [
-              'UNRESOLVED_AREA',
-              'Wilayah administratif dari koordinat belum berhasil ditentukan',
-            ],
-          ]
-        : []),
-      ...(!hasPhotoEvidence ? [['MISSING_PHOTO', 'Foto wajib tersedia']] : []),
-    ];
-  }
-
   private async summarizeReportSessions(
     where: Prisma.WhatsAppReportSessionWhereInput,
   ) {
-    const completeMessageWhere = this.completeReportMessageWhere();
     const jaringReportWhere: Prisma.WhatsAppReportSessionWhereInput = {
       AND: [
         where,
@@ -1108,19 +1041,10 @@ export class JaringService {
         },
       ],
     };
-    const verifiedWhere = this.verificationStatusWhere(
-      'VERIFIED_BY_FIELD_OFFICER',
-    );
-    const waitingWhere = this.verificationStatusWhere(
-      'WAITING_FIELD_OFFICER_VERIFICATION',
-    );
     const [
       totalSessions,
       totalJaringReports,
-      completeJaringReports,
       baketReports,
-      verifiedJaringReports,
-      waitingVerificationReports,
     ] = await Promise.all([
       this.prisma.whatsAppReportSession.count({ where }),
       this.prisma.whatsAppReportSession.count({ where: jaringReportWhere }),
@@ -1131,53 +1055,19 @@ export class JaringService {
             {
               submittedMessage: {
                 is: {
-                  ...completeMessageWhere,
-                  convertedBaketId: null,
-                },
-              },
-            },
-          ],
-        },
-      }),
-      this.prisma.whatsAppReportSession.count({
-        where: {
-          AND: [
-            where,
-            {
-              submittedMessage: {
-                is: {
                   convertedBaketId: { not: null },
-                  validationSummary: WhatsAppValidationSummary.VALID,
                 },
               },
             },
           ],
-        },
-      }),
-      this.prisma.whatsAppReportSession.count({
-        where: {
-          AND: [where, ...(verifiedWhere ? [verifiedWhere] : [])],
-        },
-      }),
-      this.prisma.whatsAppReportSession.count({
-        where: {
-          AND: [where, ...(waitingWhere ? [waitingWhere] : [])],
         },
       }),
     ]);
-    const incompleteJaringReports = Math.max(
-      0,
-      totalJaringReports - completeJaringReports,
-    );
 
     return {
       totalSessions,
       totalJaringReports,
-      completeJaringReports,
-      incompleteJaringReports,
       baketReports,
-      verifiedJaringReports,
-      waitingVerificationReports,
     };
   }
 
@@ -1199,117 +1089,6 @@ export class JaringService {
         },
       ],
     };
-  }
-
-  private verificationStatusWhere(
-    status: JaringReportQuery['verificationStatus'],
-  ): Prisma.WhatsAppReportSessionWhereInput | null {
-    if (!status) return null;
-
-    switch (status) {
-      case 'VERIFIED':
-        return {
-          submittedMessage: {
-            is: { validationSummary: WhatsAppValidationSummary.VALID },
-          },
-        };
-      case 'NEEDS_REVIEW':
-        return {
-          submittedMessage: {
-            is: {
-              OR: [
-                { validationSummary: WhatsAppValidationSummary.INVALID },
-                { status: WhatsAppMessageStatus.UNDER_REVIEW },
-              ],
-            },
-          },
-        };
-      case 'WAITING':
-        return {
-          submittedMessage: {
-            is: {
-              NOT: {
-                OR: [
-                  { validationSummary: WhatsAppValidationSummary.VALID },
-                  { validationSummary: WhatsAppValidationSummary.INVALID },
-                  { status: WhatsAppMessageStatus.UNDER_REVIEW },
-                ],
-              },
-            },
-          },
-        };
-      case 'IN_PROGRESS_BY_JARING':
-        return {
-          status: 'ACTIVE',
-          submittedMessage: { is: null },
-        };
-      case 'NOT_SUBMITTED':
-        return {
-          status: { not: 'ACTIVE' },
-          submittedMessage: { is: null },
-        };
-      case 'METADATA_RECORDED':
-        return {
-          submittedMessage: {
-            is: {
-              convertedBaketId: { not: null },
-              validationSummary: WhatsAppValidationSummary.VALID,
-            },
-          },
-        };
-      case 'VERIFIED_BY_FIELD_OFFICER':
-        return {
-          submittedMessage: {
-            is: {
-              convertedBaketId: null,
-              validationSummary: WhatsAppValidationSummary.VALID,
-              status: WhatsAppMessageStatus.READY_FOR_BAKET,
-            },
-          },
-        };
-      case 'NEEDS_FIELD_OFFICER_REVIEW':
-        return {
-          submittedMessage: {
-            is: {
-              convertedBaketId: null,
-              OR: [
-                { validationSummary: WhatsAppValidationSummary.INVALID },
-                { status: WhatsAppMessageStatus.UNDER_REVIEW },
-              ],
-            },
-          },
-        };
-      case 'WAITING_FIELD_OFFICER_VERIFICATION':
-        return {
-          submittedMessage: {
-            is: {
-              convertedBaketId: null,
-              NOT: [
-                {
-                  validationSummary: WhatsAppValidationSummary.VALID,
-                  status: WhatsAppMessageStatus.READY_FOR_BAKET,
-                },
-                { validationSummary: WhatsAppValidationSummary.INVALID },
-                { status: WhatsAppMessageStatus.UNDER_REVIEW },
-              ],
-            },
-          },
-        };
-      case 'UNVERIFIED':
-        return {
-          NOT: {
-            submittedMessage: {
-              is: {
-                convertedBaketId: null,
-                validationSummary: WhatsAppValidationSummary.VALID,
-                status: WhatsAppMessageStatus.READY_FOR_BAKET,
-              },
-            },
-          },
-        };
-      default:
-        return null;
-    }
   }
 
   private reportOrderBy(
@@ -1722,7 +1501,7 @@ export class JaringService {
       },
     });
 
-    const mappedItems = items.map((item) => {
+    const mappedItems = items.map((item: (typeof items)[number]) => {
       const { lastReportAt, computedStatus } =
         this.calculateJaringReportActivity(item);
       return {
@@ -1748,13 +1527,14 @@ export class JaringService {
       }),
     ]);
     const registrationCounts = new Map(
-      registrationGroups.map((group) => [
+      registrationGroups.map((group: (typeof registrationGroups)[number]) => [
         group.registrationStatus,
         group._count._all,
       ]),
     );
     const summaryTotal = registrationGroups.reduce(
-      (sum, group) => sum + group._count._all,
+      (sum: number, group: (typeof registrationGroups)[number]) =>
+        sum + group._count._all,
       0,
     );
     return {
@@ -1804,7 +1584,7 @@ export class JaringService {
     if (body.fieldOfficerAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'JARING_CARETAKER_SCOPE_INVALID',
-        'Jaring hanya dapat didaftarkan untuk akun Field Officer yang sedang aktif.',
+        'Jaring hanya dapat didaftarkan untuk akun Petugas Wilayah (Gaswil) yang sedang aktif.',
         403,
       );
     }
@@ -1833,7 +1613,7 @@ export class JaringService {
     if (coverageCount !== areaIds.length) {
       throw new ApiException(
         'JARING_AREA_MUST_BE_VILLAGE',
-        'Wilayah Jaring harus berupa satu kelurahan/desa aktif di bawah cakupan Field Officer.',
+        'Wilayah Jaring harus berupa satu Kelurahan/Desa aktif di bawah cakupan Petugas Wilayah (Gaswil).',
         422,
       );
     }
@@ -1868,14 +1648,14 @@ export class JaringService {
       ) {
         throw new ApiException(
           'JARING_WHATSAPP_OWNED_BY_OTHER_OFFICER',
-          `Nomor WhatsApp sama dengan Jaring aktif ${existingLabel} di bawah Field Officer lain.`,
+          `Nomor WhatsApp sama dengan Jaring terdaftar ${existingLabel} di bawah Petugas Wilayah (Gaswil) lain.`,
           409,
         );
       }
 
       throw new ApiException(
         'JARING_WHATSAPP_DUPLICATE',
-        `Nomor WhatsApp sama dengan Jaring aktif ${existingLabel} di bawah Field Officer ini.`,
+        `Nomor WhatsApp sama dengan Jaring terdaftar ${existingLabel} di bawah Petugas Wilayah (Gaswil) ini.`,
         409,
       );
     }
@@ -1893,7 +1673,7 @@ export class JaringService {
     if (officer.role.code !== RoleCode.FIELD_OFFICER || !officer.isActive) {
       throw new ApiException(
         'CARETAKER_INVALID',
-        'Caretaker must be an active Field Officer.',
+        'Penanggung jawab Jaring harus Petugas Wilayah (Gaswil) aktif.',
         422,
       );
     }
@@ -2074,7 +1854,7 @@ export class JaringService {
       if (coverageCount !== areaIds.length) {
         throw new ApiException(
           'JARING_AREA_MUST_BE_VILLAGE',
-          'Wilayah Jaring harus berupa satu kelurahan/desa aktif di bawah cakupan Field Officer.',
+          'Wilayah Jaring harus berupa satu Kelurahan/Desa aktif di bawah cakupan Petugas Wilayah (Gaswil).',
           422,
         );
       }
@@ -2295,7 +2075,7 @@ export class JaringService {
     if (duplicate) {
       throw new ApiException(
         'REPORT_CATEGORY_DUPLICATE',
-        'Kode atau nama kategori laporan sudah digunakan.',
+        'Kode atau nama kategori Baket sudah digunakan.',
         409,
       );
     }
@@ -2354,7 +2134,7 @@ export class JaringService {
       if (duplicate) {
         throw new ApiException(
           'REPORT_CATEGORY_DUPLICATE',
-          'Kode atau nama kategori laporan sudah digunakan.',
+          'Kode atau nama kategori Baket sudah digunakan.',
           409,
         );
       }
@@ -2374,7 +2154,7 @@ export class JaringService {
   async activate(id: string, body: ReasonDto, context: AuthorizationContext) {
     throw new ApiException(
       'JARING_STATUS_AUTOMATIC',
-      'Status aktif/tidak aktif Jaring diatur secara otomatis berdasarkan aktivitas pelaporan 3 bulan terakhir.',
+      'Status aktif/tidak aktif Jaring diatur secara otomatis berdasarkan aktivitas pelaporan 90 hari terakhir.',
       400,
     );
   }
@@ -2382,7 +2162,7 @@ export class JaringService {
   async deactivate(id: string, body: ReasonDto, context: AuthorizationContext) {
     throw new ApiException(
       'JARING_STATUS_AUTOMATIC',
-      'Status aktif/tidak aktif Jaring diatur secara otomatis berdasarkan aktivitas pelaporan 3 bulan terakhir.',
+      'Status aktif/tidak aktif Jaring diatur secara otomatis berdasarkan aktivitas pelaporan 90 hari terakhir.',
       400,
     );
   }
@@ -2613,6 +2393,9 @@ export class JaringService {
     };
     const where: Prisma.JaringCoachingReportWhereInput = {
       jaring: jaringWhere,
+      ...(query.fieldOfficerAssignmentId
+        ? { fieldOfficerAssignmentId: query.fieldOfficerAssignmentId }
+        : {}),
       ...(search
         ? {
             OR: [
@@ -2670,7 +2453,8 @@ export class JaringService {
     };
 
     const currentMonth = this.currentWibMonthRange();
-    const [reports, total, groupedJaring, thisMonthCount] = await Promise.all([
+    const [reports, total, groupedJaring, thisMonthCount, filterJaring] =
+      await Promise.all([
       this.prisma.jaringCoachingReport.findMany({
         where,
         skip: (page - 1) * limit,
@@ -2701,6 +2485,50 @@ export class JaringService {
           ],
         },
       }),
+      this.prisma.jaring.findMany({
+        where: scopedJaringWhere,
+        orderBy: [{ aliasName: 'asc' }, { fullName: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          aliasName: true,
+          fullName: true,
+          registrationStatus: true,
+          caretakerAssignments: {
+            where: {
+              isActive: true,
+              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+            },
+            take: 1,
+            select: {
+              id: true,
+              fieldOfficerAssignmentId: true,
+              isActive: true,
+              validFrom: true,
+              validUntil: true,
+              fieldOfficerAssignment: {
+                select: {
+                  id: true,
+                  userProfile: {
+                    select: { id: true, fullName: true },
+                  },
+                },
+              },
+            },
+          },
+          areaCoverages: {
+            where: { validUntil: null },
+            orderBy: [{ isPrimary: 'desc' }, { validFrom: 'desc' }],
+            select: {
+              id: true,
+              areaId: true,
+              isPrimary: true,
+              validFrom: true,
+              validUntil: true,
+              area: { select: areaSelectWithParents },
+            },
+          },
+        },
+      }),
     ]);
 
     return {
@@ -2718,6 +2546,10 @@ export class JaringService {
         uniqueJaringCount: groupedJaring.length,
         thisMonthCount,
       },
+      filterOptions: {
+        jaring: filterJaring,
+      },
+      scope: this.domainScope.scopeSummary(context),
     };
   }
 
@@ -2738,8 +2570,8 @@ export class JaringService {
       targetJaring.registrationStatus !== JaringRegistrationStatus.APPROVED
     ) {
       throw new ApiException(
-        'JARING_NOT_VERIFIED',
-        'Laporan pembinaan hanya dapat dibuat untuk Jaring yang sudah terverifikasi (disetujui).',
+        'JARING_REGISTRATION_NOT_APPROVED',
+        'Laporan pembinaan hanya dapat dibuat untuk Jaring dengan registrasi disetujui.',
         422,
       );
     }
@@ -2816,6 +2648,12 @@ export class JaringService {
   }
 
   async allReports(query: JaringReportQuery, context: AuthorizationContext) {
+    await Promise.all(
+      [query.areaId, query.jaringAreaId]
+        .filter((areaId): areaId is string => Boolean(areaId))
+        .map((areaId) => this.domainScope.assertArea(context, areaId)),
+    );
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 
@@ -2930,14 +2768,9 @@ export class JaringService {
       filters.push({
         submittedMessage: {
           is: {
-            OR: [
-              { categoryId: query.categoryId },
-              {
-                convertedBaket: {
-                  is: { reportCategoryId: query.categoryId },
-                },
-              },
-            ],
+            convertedBaket: {
+              is: { reportCategoryId: query.categoryId },
+            },
           },
         },
       });
@@ -3075,29 +2908,6 @@ export class JaringService {
     const summaryWhere: Prisma.WhatsAppReportSessionWhereInput = {
       AND: [...filters],
     };
-    const verificationWhere = this.verificationStatusWhere(
-      query.verificationStatus,
-    );
-    if (verificationWhere) filters.push(verificationWhere);
-    if (query.completeness === 'COMPLETE') {
-      filters.push({
-        submittedMessage: {
-          is: {
-            ...this.completeReportMessageWhere(),
-            convertedBaketId: null,
-          },
-        },
-      });
-    } else if (query.completeness === 'INCOMPLETE') {
-      filters.push({
-        submittedMessage: {
-          is: {
-            convertedBaketId: null,
-            NOT: this.completeReportMessageWhere(),
-          },
-        },
-      });
-    }
     if (query.stage === 'JARING_REPORT') {
       filters.push({
         submittedMessage: { is: { convertedBaketId: null } },
@@ -3106,7 +2916,6 @@ export class JaringService {
       filters.push({
         submittedMessage: {
           is: {
-            validationSummary: WhatsAppValidationSummary.VALID,
             convertedBaket: {
               is: { status: { not: BaketStatus.VERIFIED } },
             },
@@ -3117,7 +2926,6 @@ export class JaringService {
       filters.push({
         submittedMessage: {
           is: {
-            validationSummary: WhatsAppValidationSummary.VALID,
             convertedBaket: { is: { status: BaketStatus.VERIFIED } },
           },
         },
@@ -3143,7 +2951,7 @@ export class JaringService {
     ]);
 
     return {
-      items: sessions.map((session) =>
+      items: (sessions as JaringReportSessionRecord[]).map((session) =>
         this.serializeJaringReportSession(session),
       ),
       pagination: {
@@ -3154,10 +2962,14 @@ export class JaringService {
       },
       facets: {
         status: Object.fromEntries(
-          statusCounts.map((item) => [item.status, item._count._all]),
+          (statusCounts as JaringReportStatusCount[]).map((item) => [
+            item.status,
+            item._count._all,
+          ]),
         ),
       },
       summary,
+      scope: this.domainScope.scopeSummary(context),
     };
   }
 
@@ -3196,7 +3008,7 @@ export class JaringService {
     ]);
 
     return {
-      items: sessions.map((session) =>
+      items: (sessions as JaringReportSessionRecord[]).map((session) =>
         this.serializeJaringReportSession(session),
       ),
       pagination: {
@@ -3207,7 +3019,10 @@ export class JaringService {
       },
       facets: {
         status: Object.fromEntries(
-          statusCounts.map((item) => [item.status, item._count._all]),
+          (statusCounts as JaringReportStatusCount[]).map((item) => [
+            item.status,
+            item._count._all,
+          ]),
         ),
       },
     };
@@ -3235,7 +3050,7 @@ export class JaringService {
     if (context.roleCode !== RoleCode.FIELD_OFFICER) {
       throw new ApiException(
         'JARING_REPORT_READ_FORBIDDEN',
-        'Hanya Field Officer yang dapat menandai laporan Jaring sebagai sudah dibaca petugas.',
+        'Hanya Petugas Wilayah (Gaswil) yang dapat menandai Laporan Jaring sebagai sudah dibaca petugas.',
         403,
       );
     }
@@ -3272,125 +3087,6 @@ export class JaringService {
     }
 
     return this.serializeJaringReportSession(session);
-  }
-
-  async verifyReport(
-    id: string,
-    body: VerifyJaringReportDto,
-    context: AuthorizationContext,
-  ) {
-    const session = await this.prisma.whatsAppReportSession.findUnique({
-      where: { id },
-      include: {
-        submittedMessage: {
-          include: {
-            media: true,
-            validationIssues: true,
-          },
-        },
-      },
-    });
-    if (!session) {
-      throw new ApiException(
-        'JARING_REPORT_NOT_FOUND',
-        'Laporan Jaring tidak ditemukan.',
-        404,
-      );
-    }
-    await this.domainScope.assertJaring(context, session.jaringId);
-
-    const message = session.submittedMessage;
-    if (!message) {
-      throw new ApiException(
-        'JARING_REPORT_NOT_SUBMITTED',
-        'Laporan Jaring belum dikirim sehingga belum dapat diverifikasi Field Officer.',
-        422,
-      );
-    }
-
-    if (message.convertedBaketId) {
-      return this.report(id, context);
-    }
-
-    const issues = this.validateReportMessageForFieldOfficer(message);
-    const before = this.reportFieldSnapshot({
-      categoryId: message.categoryId,
-      content: message.content,
-      messageStatus: message.status,
-      validationSummary: message.validationSummary,
-    });
-    const nextValidationSummary = issues.length
-      ? WhatsAppValidationSummary.INVALID
-      : WhatsAppValidationSummary.VALID;
-    const nextMessageStatus = issues.length
-      ? WhatsAppMessageStatus.UNDER_REVIEW
-      : WhatsAppMessageStatus.READY_FOR_BAKET;
-    const after = {
-      ...before,
-      messageStatus: nextMessageStatus,
-      validationSummary: nextValidationSummary,
-    };
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.whatsAppValidationIssue.deleteMany({
-        where: { messageId: message.id },
-      });
-      if (issues.length) {
-        await tx.whatsAppValidationIssue.createMany({
-          data: issues.map(([code, issueMessage]) => ({
-            messageId: message.id,
-            code,
-            message: issueMessage,
-          })),
-        });
-      }
-      await tx.whatsAppMessage.update({
-        where: { id: message.id },
-        data: {
-          validationSummary: nextValidationSummary,
-          status: nextMessageStatus,
-        },
-      });
-      await tx.whatsAppReportHistory.create({
-        data: {
-          reportSessionId: session.id,
-          action: issues.length
-            ? 'FIELD_OFFICER_VERIFICATION_FAILED'
-            : 'FIELD_OFFICER_VERIFIED',
-          previousState: session.currentState,
-          newState: session.currentState,
-          metadata: {
-            note: body.note ?? null,
-            actorAssignmentId: context.primaryAssignmentId,
-            issues: issues.map(([code, issueMessage]) => ({
-              code,
-              message: issueMessage,
-            })),
-            before,
-            after,
-          },
-        },
-      });
-      await tx.auditLog.create({
-        data: {
-          actorUserProfileId: context.userProfileId,
-          actorAssignmentId: context.primaryAssignmentId,
-          action: issues.length
-            ? 'JARING_REPORT.VERIFICATION_FAILED'
-            : 'JARING_REPORT.VERIFIED',
-          entityType: 'WhatsAppReportSession',
-          entityId: session.id,
-          beforeData: before,
-          afterData: after,
-          metadata: {
-            messageId: message.id,
-            note: body.note ?? null,
-          },
-        },
-      });
-    });
-
-    return this.report(id, context);
   }
 
   async updateReportMetadata(
@@ -3437,23 +3133,10 @@ export class JaringService {
         422,
       );
     }
-    if (
-      message.validationSummary !== WhatsAppValidationSummary.VALID ||
-      ![
-        WhatsAppMessageStatus.READY_FOR_BAKET,
-        WhatsAppMessageStatus.PROCESSED,
-      ].includes(message.status)
-    ) {
-      throw new ApiException(
-        'JARING_REPORT_NOT_VERIFIED',
-        'Laporan Jaring harus diverifikasi Field Officer sebelum kategori dan urgency diisi.',
-        422,
-      );
-    }
     if (!message.resolvedAreaId) {
       throw new ApiException(
         'JARING_REPORT_AREA_UNRESOLVED',
-        'Wilayah laporan belum tersimpan. Selesaikan resolusi lokasi sebelum mengisi metadata.',
+        'Wilayah laporan belum tersimpan. Selesaikan resolusi lokasi sebelum membuat Baket.',
         422,
       );
     }
@@ -3461,13 +3144,13 @@ export class JaringService {
     const baket = message.convertedBaket;
     const latestVersion = baket?.versions[0] ?? null;
     const categoryId =
-      body.categoryId ?? message.categoryId ?? baket?.reportCategoryId ?? null;
+      body.categoryId ?? baket?.reportCategoryId ?? null;
     const urgency = body.urgency ?? latestVersion?.urgency ?? null;
 
     if (!categoryId || !urgency) {
       throw new ApiException(
         'JARING_REPORT_METADATA_INCOMPLETE',
-        'Kategori laporan dan urgency wajib diisi.',
+        'Kategori Baket dan urgensi wajib diisi.',
         422,
       );
     }
@@ -3478,7 +3161,7 @@ export class JaringService {
     if (!category) {
       throw new ApiException(
         'REPORT_CATEGORY_NOT_FOUND',
-        'Kategori laporan tidak aktif atau tidak ditemukan.',
+        'Kategori Baket tidak aktif atau tidak ditemukan.',
         422,
       );
     }
@@ -3493,7 +3176,7 @@ export class JaringService {
       if (!taskAssignment) {
         throw new ApiException(
           'TASK_ASSIGNMENT_NOT_FOUND',
-          'Tugas terkait tidak ditemukan pada assignment Field Officer.',
+          'Tugas terkait tidak ditemukan pada penugasan Petugas Wilayah (Gaswil).',
           404,
         );
       }
@@ -3522,7 +3205,7 @@ export class JaringService {
       body.taskAssignmentId ?? baket?.taskAssignmentId ?? null;
 
     const before = this.reportFieldSnapshot({
-      categoryId: message.categoryId ?? baket?.reportCategoryId ?? null,
+      categoryId: baket?.reportCategoryId ?? null,
       urgency: latestVersion?.urgency ?? null,
       content: latestVersion?.originalContent ?? message.content,
       normalizedContent: latestVersion?.normalizedContent,
@@ -3543,7 +3226,7 @@ export class JaringService {
       baketId: baket?.id ?? null,
       baketVersionId: latestVersion?.id ?? null,
       messageStatus: WhatsAppMessageStatus.PROCESSED,
-      validationSummary: WhatsAppValidationSummary.VALID,
+      validationSummary: message.validationSummary,
     });
     const versionChanged =
       !latestVersion ||
@@ -3557,7 +3240,8 @@ export class JaringService {
         FileLifecycleStatus.CLEAN,
         FileLifecycleStatus.UPLOADED,
       ];
-      const usableMedia = message.media.filter((item) =>
+      type UsableWhatsAppMedia = (typeof message.media)[number];
+      const usableMedia = message.media.filter((item: UsableWhatsAppMedia) =>
         usableFileStatuses.includes(item.file.lifecycleStatus),
       );
       const versionPayload = {
@@ -3579,7 +3263,7 @@ export class JaringService {
         sourceMessages: { create: { messageId: message.id } },
         attachments: usableMedia.length
           ? {
-              create: usableMedia.map((item) => ({
+              create: usableMedia.map((item: UsableWhatsAppMedia) => ({
                 fileId: item.fileId,
                 caption: item.caption,
               })),
@@ -3642,7 +3326,6 @@ export class JaringService {
         where: { id: message.id },
         data: {
           convertedBaketId: nextBaket.id,
-          categoryId: category.id,
           status: WhatsAppMessageStatus.PROCESSED,
           processedAt: new Date(),
         },
@@ -3718,7 +3401,8 @@ export class JaringService {
     return {
       reportSessionId: id,
       events: [
-        ...reportHistory.map((item) => ({
+        ...reportHistory.map(
+          (item: (typeof reportHistory)[number]) => ({
           id: item.id,
           source: 'report_history',
           action: item.action,
@@ -3727,8 +3411,9 @@ export class JaringService {
           externalMessageId: item.externalMessageId,
           metadata: item.metadata,
           createdAt: item.createdAt,
-        })),
-        ...auditHistory.map((item) => ({
+          }),
+        ),
+        ...auditHistory.map((item: (typeof auditHistory)[number]) => ({
           id: item.id,
           source: 'audit_log',
           action: item.action,

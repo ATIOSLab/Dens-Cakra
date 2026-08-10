@@ -35,7 +35,6 @@ import {
   UpdateJaringReportMetadataDto,
   UpdateReportCategoryDto,
   UpdateJaringDto,
-  VerifyJaringReportDto,
 } from './jaring.dto.js';
 import { JaringService } from './jaring.service.js';
 
@@ -50,7 +49,12 @@ export class JaringController {
     operationId: 'apiJar001',
     contractId: 'API-JAR-001',
     summary: 'Daftar Jaring',
-    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async list(
     @Query() query: JaringQuery,
@@ -127,7 +131,7 @@ export class JaringController {
   @ApiContract({
     operationId: 'apiReportCategory001',
     contractId: 'API-REPORT-CATEGORY-001',
-    summary: 'Daftar kategori laporan',
+    summary: 'Daftar kategori Baket',
     roles: [
       'admin_system',
       'field_officer',
@@ -145,7 +149,7 @@ export class JaringController {
   @ApiContract({
     operationId: 'apiReportCategory002',
     contractId: 'API-REPORT-CATEGORY-002',
-    summary: 'Buat kategori laporan',
+    summary: 'Buat kategori Baket',
     roles: ['admin_system'],
     successStatus: 201,
     idempotent: true,
@@ -163,7 +167,7 @@ export class JaringController {
   @ApiContract({
     operationId: 'apiReportCategory003',
     contractId: 'API-REPORT-CATEGORY-003',
-    summary: 'Ubah kategori laporan',
+    summary: 'Ubah kategori Baket',
     roles: ['admin_system'],
   })
   async updateReportCategory(
@@ -201,7 +205,12 @@ export class JaringController {
     operationId: 'apiJarCoachingReportAll',
     contractId: 'API-JAR-COACHING-REPORT-ALL',
     summary: 'Daftar semua laporan pembinaan Jaring',
-    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async allCoachingReports(
     @Query() query: JaringCoachingReportQuery,
@@ -217,7 +226,12 @@ export class JaringController {
     operationId: 'apiJar003',
     contractId: 'API-JAR-003',
     summary: 'Detail Jaring',
-    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async get(
     @Param('jaringId', ParseUUIDPipe) id: string,
@@ -327,7 +341,12 @@ export class JaringController {
     operationId: 'apiJar008',
     contractId: 'API-JAR-008',
     summary: 'Riwayat caretaker',
-    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async caretakers(
     @Param('jaringId', ParseUUIDPipe) id: string,
@@ -358,7 +377,12 @@ export class JaringController {
     operationId: 'apiJar010',
     contractId: 'API-JAR-010',
     summary: 'Coverage wilayah Jaring',
-    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async coverages(
     @Param('jaringId', ParseUUIDPipe) id: string,
@@ -399,7 +423,12 @@ export class JaringController {
     operationId: 'apiJarCoachingReport001',
     contractId: 'API-JAR-COACHING-REPORT-001',
     summary: 'Daftar laporan pembinaan Jaring',
-    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async coachingReports(
     @Param('jaringId', ParseUUIDPipe) id: string,
@@ -435,7 +464,12 @@ export class JaringController {
     operationId: 'apiJarCoachingReport003',
     contractId: 'API-JAR-COACHING-REPORT-003',
     summary: 'Detail laporan pembinaan Jaring',
-    roles: ['regional_commander', 'field_coordinator', 'field_officer'],
+    roles: [
+      'executive',
+      'regional_commander',
+      'field_coordinator',
+      'field_officer',
+    ],
   })
   async coachingReportDetail(
     @Param('jaringId', ParseUUIDPipe) jaringId: string,
@@ -492,7 +526,8 @@ export class JaringController {
   @ApiContract({
     operationId: 'apiJar016b',
     contractId: 'API-JAR-016B',
-    summary: 'Tandai laporan Jaring sebagai sudah dibaca Field Officer',
+    summary:
+      'Tandai laporan Jaring sebagai sudah dibaca Petugas Wilayah (Gaswil)',
     roles: ['field_officer'],
   })
   async markReportAsRead(
@@ -502,28 +537,12 @@ export class JaringController {
     return apiResult(await this.jaringService.markReportAsRead(id, context));
   }
 
-  @Post('reports/:reportSessionId/verify')
-  @ApiContract({
-    operationId: 'apiJar017',
-    contractId: 'API-JAR-017',
-    summary: 'Verifikasi laporan Jaring oleh Field Officer',
-    roles: ['field_officer'],
-    idempotent: true,
-  })
-  async verifyReport(
-    @Param('reportSessionId', ParseUUIDPipe) id: string,
-    @Body() body: VerifyJaringReportDto,
-    @CurrentAccessContext() context: AuthorizationContext,
-  ) {
-    return apiResult(await this.jaringService.verifyReport(id, body, context));
-  }
-
   @Patch('reports/:reportSessionId/metadata')
   @ApiContract({
     operationId: 'apiJar018',
     contractId: 'API-JAR-018',
-    summary: 'Ubah kategori, urgency, dan isian laporan Jaring',
-    roles: ['field_officer'],
+    summary: 'Buat atau perbarui Baket dari Laporan Jaring',
+    roles: ['field_officer', 'field_coordinator'],
   })
   async updateReportMetadata(
     @Param('reportSessionId', ParseUUIDPipe) id: string,

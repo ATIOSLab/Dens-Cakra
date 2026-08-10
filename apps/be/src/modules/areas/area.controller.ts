@@ -94,8 +94,8 @@ export class AreaController {
   }
   @Get('administrative-areas/scoped-tree')
   @ApiContract({
-    operationId: 'apiArea016',
-    contractId: 'API-AREA-016',
+    operationId: 'apiArea019',
+    contractId: 'API-AREA-019',
     summary: 'Cascading tree wilayah sesuai scope pengguna',
     roles: ['operational_intelligence_manager'],
   })

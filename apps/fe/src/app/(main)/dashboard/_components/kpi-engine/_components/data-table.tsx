@@ -1,25 +1,32 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 
 type DataRecord = Record<string, unknown>;
 
 interface DataTableProps {
   readonly type: "unit" | "personnel";
   readonly data: readonly DataRecord[];
+  readonly rowOffset?: number;
   readonly sortField: string;
   readonly sortDirection: "asc" | "desc";
   readonly onSortChange: (field: string) => void;
   readonly onSelectRow: (item: DataRecord) => void;
 }
 
-export function DataTable({ type, data, sortField, sortDirection, onSortChange, onSelectRow }: DataTableProps) {
-  // Safe helpers
+export function DataTable({
+  type,
+  data,
+  rowOffset = 0,
+  sortField,
+  sortDirection,
+  onSortChange,
+  onSelectRow,
+}: DataTableProps) {
   const text = (value: unknown, fallback = "Belum tersedia") => {
     return typeof value === "string" && value.trim() ? value : fallback;
   };
@@ -39,8 +46,16 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
     return val === "N/A" ? "outline" : "secondary";
   };
 
-  // Extract kabupaten name from unit name (e.g. "Field Coordination Unit Binda Aceh Barat" -> "Aceh Barat")
-  const extractKabupaten = (name: string) => {
+  const getScoreStatus = (score: number | null) => {
+    if (score === null) return { label: "Belum Cukup Bukti", className: "text-[var(--dc-text-muted)]" };
+    if (score >= 95) return { label: "Sangat Baik", className: "text-emerald-500" };
+    if (score >= 90) return { label: "Target Tercapai", className: "text-emerald-500" };
+    if (score >= 80) return { label: "Optimal", className: "text-[var(--dc-primary)]" };
+    if (score >= 70) return { label: "Cukup", className: "text-[var(--dc-warning)]" };
+    return { label: "Perlu Pembinaan", className: "text-[var(--dc-danger)]" };
+  };
+
+  const extractScope = (name: string) => {
     const bindaIndex = name.indexOf("Binda ");
     if (bindaIndex !== -1) return name.slice(bindaIndex + 6);
 
@@ -53,10 +68,9 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
     return name;
   };
 
-  // Render sort arrow helper
   const renderSortIcon = (field: string) => {
     if (sortField !== field) {
-      return <ArrowUpDown className="ml-1 size-3.5 opacity-40 group-hover:opacity-100 transition-opacity" />;
+      return <ArrowUpDown className="ml-1 size-3.5 opacity-40 transition-opacity group-hover:opacity-100" />;
     }
     return sortDirection === "asc" ? (
       <ArrowUp className="ml-1 size-3.5 text-[var(--dc-primary)]" />
@@ -65,54 +79,29 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
     );
   };
 
-  // Mock a stable trend indicator based on ID / score
-  const renderTrendIcon = (id: string, score: number | null) => {
-    if (score === null) return <span className="text-[var(--dc-text-muted)] font-mono text-xs">—</span>;
-    // Generate deterministic boolean based on charCode sum
-    const charSum = id.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-    const trendType = charSum % 3;
-
-    if (trendType === 0) {
-      return (
-        <span className="inline-flex items-center text-emerald-500 font-mono text-xs gap-0.5">
-          <TrendingUp className="size-3.5" />▲
-        </span>
-      );
-    }
-    if (trendType === 1) {
-      return (
-        <span className="inline-flex items-center text-red-500 font-mono text-xs gap-0.5">
-          <TrendingDown className="size-3.5" />▼
-        </span>
-      );
-    }
-    return <span className="text-[var(--dc-text-muted)] font-mono text-xs">■</span>;
-  };
-
   return (
     <div className="relative overflow-x-auto rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-surface)]">
-      <div className="max-h-[750px] overflow-y-auto no-scrollbar">
+      <div className="no-scrollbar max-h-[750px] overflow-y-auto">
         <Table className="w-full border-collapse text-xs">
-          {/* Header */}
-          <TableHeader className="sticky top-0 bg-[var(--dc-surface)] border-b border-[var(--dc-divider)] shadow-[0_1px_0_var(--dc-divider)] z-10">
+          <TableHeader className="sticky top-0 z-10 border-[var(--dc-divider)] border-b bg-[var(--dc-surface)] shadow-[0_1px_0_var(--dc-divider)]">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-12 text-center font-mono font-bold text-[var(--dc-text-muted)]">#</TableHead>
+              <TableHead className="w-12 text-center font-bold font-mono text-[var(--dc-text-muted)]">#</TableHead>
               {type === "unit" ? (
                 <>
-                  <TableHead className="min-w-[200px]">
+                  <TableHead className="min-w-[220px]">
                     <button
                       type="button"
                       onClick={() => onSortChange("name")}
                       className="group flex items-center text-left font-semibold text-[var(--dc-text-secondary)]"
                     >
-                      Unit {renderSortIcon("name")}
+                      Kinerja {renderSortIcon("name")}
                     </button>
                   </TableHead>
                   <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">
-                    Kabupaten
+                    Tingkat
                   </TableHead>
                   <TableHead className="min-w-[100px] text-right font-semibold text-[var(--dc-text-secondary)]">
-                    Personel
+                    Jaring
                   </TableHead>
                 </>
               ) : (
@@ -127,9 +116,11 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
                     </button>
                   </TableHead>
                   <TableHead className="min-w-[140px] font-semibold text-[var(--dc-text-secondary)]">Jabatan</TableHead>
-                  <TableHead className="min-w-[160px] font-semibold text-[var(--dc-text-secondary)]">Unit</TableHead>
+                  <TableHead className="min-w-[160px] font-semibold text-[var(--dc-text-secondary)]">
+                    Penempatan
+                  </TableHead>
                   <TableHead className="min-w-[120px] font-semibold text-[var(--dc-text-secondary)]">
-                    Kabupaten
+                    Cakupan
                   </TableHead>
                 </>
               )}
@@ -151,68 +142,75 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
                   Skor {renderSortIcon("score")}
                 </button>
               </TableHead>
-              <TableHead className="w-16 text-center font-semibold text-[var(--dc-text-secondary)]">Trend</TableHead>
-              <TableHead className="w-20 text-center font-semibold text-[var(--dc-text-secondary)]">Action</TableHead>
+              <TableHead className="w-32 text-center font-semibold text-[var(--dc-text-secondary)]">Status</TableHead>
+              <TableHead className="w-20 text-center font-semibold text-[var(--dc-text-secondary)]">Aksi</TableHead>
             </TableRow>
           </TableHeader>
 
-          {/* Body */}
           <TableBody>
             {data.map((item, idx) => {
               const score = numeric(item.score);
               const grade = text(item.grade, "N/A");
               const itemId = String(item.id ?? idx);
+              const scoreStatus = getScoreStatus(score);
 
               if (type === "unit") {
                 const unitName = text(item.name);
-                const kabupaten = extractKabupaten(unitName);
-                const personnelCount = Number(item.personnelCount ?? 0);
+                const scopeArea = (item.scopeArea as DataRecord) || {};
+                const levelLabel = text(item.levelLabel, text(item.hierarchyLevel, "Kinerja"));
+                const scopeLabel = text(scopeArea.name, extractScope(unitName));
+                const jaringCount = Number(item.jaringCount ?? 0);
 
                 return (
                   <TableRow
                     key={itemId}
-                    className="group/row transition-colors border-b border-[var(--dc-divider)] even:bg-[color-mix(in_srgb,var(--dc-surface)_97%,white)] dark:even:bg-[color-mix(in_srgb,var(--dc-surface)_97%,black)] hover:bg-[var(--dc-surface-hover)]"
+                    className="group/row border-[var(--dc-divider)] border-b transition-colors even:bg-[color-mix(in_srgb,var(--dc-surface)_97%,white)] hover:bg-[var(--dc-surface-hover)] dark:even:bg-[color-mix(in_srgb,var(--dc-surface)_97%,black)]"
                   >
-                    <TableCell className="text-center font-mono text-[var(--dc-text-muted)] font-medium">
-                      {(idx + 1).toString().padStart(2, "0")}
+                    <TableCell className="text-center font-medium font-mono text-[var(--dc-text-muted)]">
+                      {(rowOffset + idx + 1).toString().padStart(2, "0")}
                     </TableCell>
-                    <TableCell className="font-semibold text-[var(--dc-text-primary)]">{unitName}</TableCell>
-                    <TableCell className="text-[var(--dc-text-secondary)]">{kabupaten}</TableCell>
-                    <TableCell className="text-right font-mono font-medium text-[var(--dc-text-secondary)]">
-                      {personnelCount}
+                    <TableCell>
+                      <div className="space-y-0.5">
+                        <p className="font-semibold text-[var(--dc-text-primary)]">{unitName}</p>
+                        <p className="text-[10px] text-[var(--dc-text-muted)]">{scopeLabel}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[var(--dc-text-secondary)]">{levelLabel}</TableCell>
+                    <TableCell className="text-right font-medium font-mono text-[var(--dc-text-secondary)]">
+                      {jaringCount}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={getGradeVariant(grade)} className="font-mono px-2 py-0.5 text-[10px]">
+                      <Badge variant={getGradeVariant(grade)} className="px-2 py-0.5 font-mono text-[10px]">
                         {grade}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-[var(--dc-text-primary)]">
+                    <TableCell className="text-right font-bold font-mono text-[var(--dc-text-primary)]">
                       {getScoreLabel(score)}
                     </TableCell>
-                    <TableCell className="text-center">{renderTrendIcon(itemId, score)}</TableCell>
+                    <TableCell className="text-center">
+                      <span className={`font-medium text-[10px] ${scoreStatus.className}`}>{scoreStatus.label}</span>
+                    </TableCell>
                     <TableCell className="text-center">
                       <Button
                         size="xs"
                         variant="ghost"
                         onClick={() => onSelectRow(item)}
-                        className="h-7 px-2 text-xs font-medium text-[var(--dc-primary)] hover:bg-[var(--dc-primary-soft)] hover:text-[var(--dc-primary)]"
+                        className="h-7 px-2 font-medium text-[var(--dc-primary)] text-xs hover:bg-[var(--dc-primary-soft)] hover:text-[var(--dc-primary)]"
                       >
                         Detail
-                        <ChevronRight className="size-3.5 ml-0.5" />
+                        <ChevronRight className="ml-0.5 size-3.5" />
                       </Button>
                     </TableCell>
                   </TableRow>
                 );
               }
 
-              // Personnel Row
               const personName = text(item.name);
               const position = text(item.position);
               const unitObj = (item.unit as DataRecord) || {};
               const unitName = text(unitObj.name);
-
               const areas = Array.isArray(item.areas) ? item.areas : [];
-              const kabupaten =
+              const scopeLabel =
                 areas
                   .map((area: any) => text(area?.name, ""))
                   .filter(Boolean)
@@ -221,35 +219,37 @@ export function DataTable({ type, data, sortField, sortDirection, onSortChange, 
               return (
                 <TableRow
                   key={itemId}
-                  className="group/row transition-colors border-b border-[var(--dc-divider)] even:bg-[color-mix(in_srgb,var(--dc-surface)_97%,white)] dark:even:bg-[color-mix(in_srgb,var(--dc-surface)_97%,black)] hover:bg-[var(--dc-surface-hover)]"
+                  className="group/row border-[var(--dc-divider)] border-b transition-colors even:bg-[color-mix(in_srgb,var(--dc-surface)_97%,white)] hover:bg-[var(--dc-surface-hover)] dark:even:bg-[color-mix(in_srgb,var(--dc-surface)_97%,black)]"
                 >
-                  <TableCell className="text-center font-mono text-[var(--dc-text-muted)] font-medium">
-                    {(idx + 1).toString().padStart(2, "0")}
+                  <TableCell className="text-center font-medium font-mono text-[var(--dc-text-muted)]">
+                    {(rowOffset + idx + 1).toString().padStart(2, "0")}
                   </TableCell>
                   <TableCell className="font-semibold text-[var(--dc-text-primary)]">{personName}</TableCell>
                   <TableCell className="text-[var(--dc-text-secondary)]">{position}</TableCell>
                   <TableCell className="text-[var(--dc-text-muted)]">{unitName}</TableCell>
-                  <TableCell className="text-[var(--dc-text-secondary)] truncate max-w-[120px]" title={kabupaten}>
-                    {kabupaten}
+                  <TableCell className="max-w-[120px] truncate text-[var(--dc-text-secondary)]" title={scopeLabel}>
+                    {scopeLabel}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={getGradeVariant(grade)} className="font-mono px-2 py-0.5 text-[10px]">
+                    <Badge variant={getGradeVariant(grade)} className="px-2 py-0.5 font-mono text-[10px]">
                       {grade}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-mono font-bold text-[var(--dc-text-primary)]">
+                  <TableCell className="text-right font-bold font-mono text-[var(--dc-text-primary)]">
                     {getScoreLabel(score)}
                   </TableCell>
-                  <TableCell className="text-center">{renderTrendIcon(itemId, score)}</TableCell>
+                  <TableCell className="text-center">
+                    <span className={`font-medium text-[10px] ${scoreStatus.className}`}>{scoreStatus.label}</span>
+                  </TableCell>
                   <TableCell className="text-center">
                     <Button
                       size="xs"
                       variant="ghost"
                       onClick={() => onSelectRow(item)}
-                      className="h-7 px-2 text-xs font-medium text-[var(--dc-primary)] hover:bg-[var(--dc-primary-soft)] hover:text-[var(--dc-primary)]"
+                      className="h-7 px-2 font-medium text-[var(--dc-primary)] text-xs hover:bg-[var(--dc-primary-soft)] hover:text-[var(--dc-primary)]"
                     >
                       Detail
-                      <ChevronRight className="size-3.5 ml-0.5" />
+                      <ChevronRight className="ml-0.5 size-3.5" />
                     </Button>
                   </TableCell>
                 </TableRow>

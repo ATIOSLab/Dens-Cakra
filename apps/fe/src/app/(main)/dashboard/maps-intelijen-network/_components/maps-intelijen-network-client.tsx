@@ -8,16 +8,14 @@ import { Button } from "@/components/ui/button";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 
 import { normalizeMapAreas } from "./maps-intelijen-area-hierarchy";
-import { MapsIntelijenDataList } from "./maps-intelijen-data-list";
 import { MapsIntelijenDetailSheet } from "./maps-intelijen-detail-sheet";
 import { MapsIntelijenHeader } from "./maps-intelijen-header";
 import { MapsIntelijenLeadershipBrief } from "./maps-intelijen-leadership-brief";
 import { MapsIntelijenMapView } from "./maps-intelijen-map-view";
 import { MapsIntelijenStats } from "./maps-intelijen-stats";
-import { MapsIntelijenToolbar } from "./maps-intelijen-toolbar";
 import {
-  EMPTY_MAP_RESPONSE,
   type AdministrativeAreaScope,
+  EMPTY_MAP_RESPONSE,
   type HeatmapWeight,
   type MapArea,
   type MapAreaFilterOptions,
@@ -50,7 +48,6 @@ const INITIAL_FILTERS: MapNetworkFilters = {
   startDate: "",
   endDate: "",
   dataType: "ALL",
-  completeness: "ALL",
   urgency: "ALL",
   categoryId: "ALL",
   fieldOfficerAssignmentId: "ALL",
@@ -64,6 +61,10 @@ const INITIAL_FILTERS: MapNetworkFilters = {
   activeWithinMinutes: 15,
   lastKnownWithinHours: 168,
 };
+
+const INITIAL_MAP_LIMIT_PER_TYPE = 350;
+const FOCUSED_MAP_LIMIT_PER_TYPE = 1000;
+const MAP_REQUEST_TIMEOUT_MS = 20_000;
 
 function periodRange(filters: MapNetworkFilters) {
   const now = new Date();
@@ -111,31 +112,63 @@ function periodLabel(filters: MapNetworkFilters) {
     : "Rentang kustom";
 }
 
+function findAreaName(areaOptions: MapAreaFilterOptions, id: string) {
+  return [
+    ...areaOptions.provinces,
+    ...areaOptions.regencies,
+    ...areaOptions.districts,
+    ...areaOptions.villages,
+  ].find((area) => area.id === id)?.name;
+}
+
+function buildMapAreaSubtitle(filters: MapNetworkFilters, areaOptions: MapAreaFilterOptions) {
+  const regencyName = findAreaName(areaOptions, filters.regencyId);
+  const districtName = findAreaName(areaOptions, filters.districtId);
+  const villageName = findAreaName(areaOptions, filters.villageId);
+  const provinceName = findAreaName(areaOptions, filters.provinceId);
+
+  if (filters.villageId !== "ALL" && villageName) {
+    return `Jumlah data Kecamatan ${districtName ?? "-"}, Kelurahan/Desa ${villageName}`;
+  }
+  if (filters.districtId !== "ALL" && districtName) return `Jumlah data Kecamatan ${districtName}`;
+  if (filters.regencyId !== "ALL" && regencyName) return `Jumlah data Kota/Kabupaten ${regencyName}`;
+  if (filters.provinceId !== "ALL" && provinceName) return `Jumlah data Provinsi ${provinceName}`;
+  return "Jumlah data semua wilayah";
+}
+
 function buildQuery(filters: MapNetworkFilters, card: SummaryCardFilter, debouncedSearch: string) {
-  const reportSpecific =
-    card === "REPORT" ||
-    card === "COMPLETE" ||
-    card === "INCOMPLETE" ||
-    filters.completeness !== "ALL";
+  const reportSpecific = card === "REPORT";
   let types = "report,baket,agent";
   if (filters.dataType === "REPORT") types = "report";
   if (filters.dataType === "BAKET") types = "baket";
   if (filters.dataType === "AGENT") types = "agent";
   if (card === "BAKET") types = "baket";
   else if (card !== "ALL" || (filters.dataType === "ALL" && reportSpecific)) types = "report";
-  let completeness = filters.completeness;
-  if (card === "COMPLETE") completeness = "COMPLETE";
-  if (card === "INCOMPLETE") completeness = "INCOMPLETE";
   const selectedAreaId = [filters.villageId, filters.districtId, filters.regencyId, filters.provinceId].find(
     (areaId) => areaId !== "ALL",
   );
+  const hasNarrowedPeriod = ["TODAY", "LAST_7_DAYS", "THIS_MONTH", "CUSTOM"].includes(filters.period);
+  const hasFocusedFilter =
+    card !== "ALL" ||
+    Boolean(debouncedSearch) ||
+    filters.dataType !== "ALL" ||
+    filters.urgency !== "ALL" ||
+    filters.categoryId !== "ALL" ||
+    filters.fieldOfficerAssignmentId !== "ALL" ||
+    filters.jaringId !== "ALL" ||
+    Boolean(selectedAreaId) ||
+    filters.suitability !== "ALL" ||
+    filters.agentState !== "ALL" ||
+    hasNarrowedPeriod ||
+    filters.activeWithinMinutes !== INITIAL_FILTERS.activeWithinMinutes ||
+    filters.lastKnownWithinHours !== INITIAL_FILTERS.lastKnownWithinHours;
+
   return {
     types,
-    limitPerType: 1000,
+    limitPerType: hasFocusedFilter ? FOCUSED_MAP_LIMIT_PER_TYPE : INITIAL_MAP_LIMIT_PER_TYPE,
     includeAreaHierarchy: true,
     ...(debouncedSearch ? { q: debouncedSearch } : {}),
     ...periodRange(filters),
-    ...(completeness !== "ALL" ? { completeness } : {}),
     ...(filters.urgency !== "ALL" ? { urgencies: filters.urgency } : {}),
     ...(filters.categoryId !== "ALL" ? { categoryIds: filters.categoryId } : {}),
     ...(filters.fieldOfficerAssignmentId !== "ALL"
@@ -213,7 +246,7 @@ export function MapsIntelijenNetworkClient() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [cardFilter, setCardFilter] = useState<SummaryCardFilter>("ALL");
   const [visualization, setVisualization] = useState<VisualizationMode>("marker");
-  const [colorMode, setColorMode] = useState<MarkerColorMode>("completeness");
+  const [colorMode, setColorMode] = useState<MarkerColorMode>("validity");
   const [heatmapWeight, setHeatmapWeight] = useState<HeatmapWeight>("count");
   const [mapLayer, setMapLayer] = useState<"dark" | "satellite" | "terrain" | "light" | "osm">("dark");
   const [loading, setLoading] = useState(true);
@@ -305,6 +338,12 @@ export function MapsIntelijenNetworkClient() {
     const controller = new AbortController();
     const timeout = window.setTimeout(
       async () => {
+        let timedOut = false;
+        const requestTimeout = window.setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, MAP_REQUEST_TIMEOUT_MS);
+
         activeMapRequestRef.current = controller;
         setLoading(true);
         setError(null);
@@ -332,11 +371,16 @@ export function MapsIntelijenNetworkClient() {
             setEntityFilterOptions((current) => mergeEntityFilterOptions(current, data));
           }
         } catch (cause) {
-          if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Data peta gagal dimuat.");
+          if (timedOut) {
+            setError("Pemuatan data peta melewati batas waktu. Persempit periode atau wilayah, lalu muat ulang.");
+          } else if (!controller.signal.aborted) {
+            setError(cause instanceof Error ? cause.message : "Data peta gagal dimuat.");
+          }
         } finally {
+          window.clearTimeout(requestTimeout);
           if (activeMapRequestRef.current === controller) {
             activeMapRequestRef.current = null;
-            if (!controller.signal.aborted) setLoading(false);
+            if (!controller.signal.aborted || timedOut) setLoading(false);
           }
         }
       },
@@ -416,9 +460,8 @@ export function MapsIntelijenNetworkClient() {
   }, []);
 
   const activePeriodLabel = periodLabel(filters);
-  const activeReportTotal =
-    response.meta.summary.reports.total ??
-    (response.meta.summary.reports.complete ?? 0) + (response.meta.summary.reports.incomplete ?? 0);
+  const activeAreaSubtitle = useMemo(() => buildMapAreaSubtitle(filters, areaOptions), [areaOptions, filters]);
+  const activeReportTotal = response.meta.summary.reports.total ?? response.meta.counts.report ?? 0;
   const activeBaketTotal = response.meta.summary.bakets.total ?? 0;
   const activeMappableTotal =
     (response.meta.summary.reports.mappable ?? 0) +
@@ -435,7 +478,7 @@ export function MapsIntelijenNetworkClient() {
         loading={loading}
         onRefresh={() => setReloadKey((value) => value + 1)}
         periodLabel={activePeriodLabel}
-        scopeLabel="Sesuai cakupan akses backend"
+        scopeLabel={activeAreaSubtitle}
         generatedAt={response.meta.freshness.generatedAt}
       />
       {error ? (
@@ -467,23 +510,9 @@ export function MapsIntelijenNetworkClient() {
         onFilterChange={handleFilterChange}
         onCardFilterChange={setCardFilter}
       />
-      <MapsIntelijenToolbar
-        filters={filters}
-        onChange={handleFilterChange}
-        visualization={visualization}
-        onVisualizationChange={setVisualization}
-        colorMode={colorMode}
-        onColorModeChange={setColorMode}
-        categories={response.meta.facets.categories}
-        fieldOfficerOptions={entityFilterOptions.fieldOfficers}
-        jaringOptions={entityFilterOptions.jarings}
-        areaOptions={areaOptions}
-        agentStates={response.meta.facets.agentStates}
-        activeFilterCount={activeFilterCount}
-        onReset={resetFilters}
-      />
       <div className="flex flex-col gap-2 rounded-xl border bg-muted/20 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p>
+          {activeAreaSubtitle}.{" "}
           <strong>{activeReportTotal.toLocaleString("id-ID")}</strong> Laporan Jaring dan{" "}
           <strong>{activeBaketTotal.toLocaleString("id-ID")}</strong> Baket sesuai filter;{" "}
           <strong>{response.meta.counts.agent.toLocaleString("id-ID")}</strong> personel termuat;{" "}
@@ -538,9 +567,6 @@ export function MapsIntelijenNetworkClient() {
           bobot “Jumlah Data” memberi bobot setara untuk setiap titik Laporan Jaring maupun Baket.
         </p>
       </div>
-      {!isFullscreen ? (
-        <MapsIntelijenDataList features={response.features} meta={response.meta} onDetail={openDetail} />
-      ) : null}
       <MapsIntelijenDetailSheet feature={selected} open={detailOpen} onOpenChange={setDetailOpen} />
     </main>
   );

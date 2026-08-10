@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 
+import Link from "next/link";
+
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, RefreshCw } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { Mail, RefreshCw } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

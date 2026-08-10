@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { backendApi } from "@/server/backend-api";
 import { createOwnLocationPing } from "@/server/field-ops/repository";
 import type { AccessContext } from "@/server/field-ops/types";
@@ -23,14 +24,11 @@ export async function POST(request: NextRequest) {
     const positionAssignmentId = body.positionAssignmentId ?? access.authorizationContext?.primaryAssignmentId;
 
     if (!positionAssignmentId) {
-      return NextResponse.json({ message: "Assignment Field Officer tidak tersedia." }, { status: 403 });
+      return NextResponse.json({ message: "Penugasan Petugas Wilayah (Gaswil) tidak tersedia." }, { status: 403 });
     }
 
     return NextResponse.json(await createOwnLocationPing(cookie, { ...body, positionAssignmentId }), { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal mengirim ping lokasi." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal mengirim ping lokasi.");
   }
 }

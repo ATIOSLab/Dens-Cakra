@@ -182,19 +182,10 @@ export class JaringReportQuery {
   @IsIn([
     'IN_PROGRESS_BY_JARING',
     'NOT_SUBMITTED',
-    'WAITING_FIELD_OFFICER_VERIFICATION',
-    'NEEDS_FIELD_OFFICER_REVIEW',
-    'VERIFIED_BY_FIELD_OFFICER',
-    'METADATA_RECORDED',
-    'UNVERIFIED',
-    'WAITING',
-    'NEEDS_REVIEW',
-    'VERIFIED',
+    'READY_FOR_BAKET',
+    'BAKET_CREATED',
   ])
   verificationStatus?: string;
-  @IsOptional()
-  @IsIn(['COMPLETE', 'INCOMPLETE'])
-  completeness?: 'COMPLETE' | 'INCOMPLETE';
   @IsOptional() @IsIn(['true', 'false']) hasAttachment?: 'true' | 'false';
   @IsOptional()
   @IsIn(['WITHIN_SCOPE', 'OUTSIDE_SCOPE', 'BORDER_AMBIGUOUS', 'NOT_DETERMINED'])
@@ -214,6 +205,7 @@ export class JaringCoachingReportQuery {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
   @IsOptional() @IsString() @MaxLength(200) search?: string;
   @IsOptional() @IsUUID() jaringId?: string;
+  @IsOptional() @IsUUID() fieldOfficerAssignmentId?: string;
   @IsOptional() @IsUUID() areaId?: string;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
@@ -231,10 +223,6 @@ export class CreateJaringCoachingReportDto {
     { message: 'Tanggal dan waktu laporan pembinaan harus valid.' },
   )
   reportedAt!: string;
-}
-
-export class VerifyJaringReportDto {
-  @IsOptional() @IsString() @MaxLength(1000) note?: string;
 }
 
 export class UpdateJaringReportMetadataDto {

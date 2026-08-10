@@ -2,27 +2,41 @@
 
 import { useEffect, useState } from "react";
 
-import { RefreshCw, RotateCcw, Search } from "lucide-react";
+import { Filter, RefreshCw, RotateCcw, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
+import { DC_CONTROLS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 interface SearchToolbarProps {
   readonly search: string;
   readonly onSearchChange: (value: string) => void;
+  readonly bindaFilter: string;
+  readonly onBindaChange: (value: string) => void;
+  readonly bindaOptions: SearchableSelectOption[];
+  readonly korwilFilter: string;
+  readonly onKorwilChange: (value: string) => void;
+  readonly korwilOptions: SearchableSelectOption[];
+  readonly gaswilFilter: string;
+  readonly onGaswilChange: (value: string) => void;
+  readonly gaswilOptions: SearchableSelectOption[];
   readonly statusFilter: string;
   readonly onStatusChange: (value: string) => void;
   readonly gradeFilter: string;
   readonly onGradeChange: (value: string) => void;
-  readonly kabupatenFilter: string;
-  readonly onKabupatenChange: (value: string) => void;
-  readonly kabupatenList: readonly string[];
+  readonly levelFilter: string;
+  readonly onLevelChange: (value: string) => void;
+  readonly levelList: readonly string[];
+  readonly levelLabel: string;
   readonly sortOrder: string;
   readonly onSortChange: (value: string) => void;
   readonly pageSize: number;
   readonly onPageSizeChange: (value: number) => void;
+  readonly activeFilterCount: number;
+  readonly resultCount: number;
+  readonly contextLabel: string;
   readonly onReset: () => void;
   readonly onRefresh: () => void;
 }
@@ -30,17 +44,30 @@ interface SearchToolbarProps {
 export function SearchToolbar({
   search,
   onSearchChange,
+  bindaFilter,
+  onBindaChange,
+  bindaOptions,
+  korwilFilter,
+  onKorwilChange,
+  korwilOptions,
+  gaswilFilter,
+  onGaswilChange,
+  gaswilOptions,
   statusFilter,
   onStatusChange,
   gradeFilter,
   onGradeChange,
-  kabupatenFilter,
-  onKabupatenChange,
-  kabupatenList,
+  levelFilter,
+  onLevelChange,
+  levelList,
+  levelLabel,
   sortOrder,
   onSortChange,
   pageSize,
   onPageSizeChange,
+  activeFilterCount,
+  resultCount,
+  contextLabel,
   onReset,
   onRefresh,
 }: SearchToolbarProps) {
@@ -68,145 +95,137 @@ export function SearchToolbar({
     }, 600);
   };
 
+  const option = (value: string, label: string, description?: string): SearchableSelectOption => ({
+    value,
+    label,
+    description,
+  });
+
+  const levelOptions = [
+    option("ALL", `Semua ${levelLabel}`, "Mengikuti tingkatan hierarki aktif"),
+    ...levelList.map((level) => option(level, level)),
+  ];
+  const gradeOptions = ["ALL", "A", "B", "C", "D"].map((grade) =>
+    option(grade, grade === "ALL" ? "Semua Grade" : `Grade ${grade}`),
+  );
+  const statusOptions = [
+    option("ALL", "Semua Status"),
+    option("EXCELLENT", "Sangat Baik", "Skor >= 95"),
+    option("TARGET", "Target Tercapai", "Skor 90-94"),
+    option("OPTIMAL", "Optimal", "Skor 80-89"),
+    option("CUKUP", "Cukup", "Skor 70-79"),
+    option("PEMBINAAN", "Perlu Pembinaan", "Skor < 70"),
+    option("EMPTY", "Belum Cukup Bukti", "Skor belum tersedia"),
+  ];
+  const sortOptions = [
+    option(
+      "HIERARCHY_ASC",
+      "Urutan Hierarki",
+      "Provinsi/Binda, kota/kabupaten/Korwil, kecamatan/Gaswil, lalu Jaring",
+    ),
+    option("SCORE_DESC", "Skor Tertinggi"),
+    option("SCORE_ASC", "Skor Terendah"),
+    option("NAME_ASC", "Nama A-Z"),
+    option("NAME_DESC", "Nama Z-A"),
+    option("GRADE_ASC", "Grade A-D"),
+    option("GRADE_DESC", "Grade D-A"),
+  ];
+  const pageSizeOptions = [20, 30, 40, 50].map((size) => option(String(size), `${size} Baris`));
+
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] p-3 shadow-xs">
-      <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:flex xl:flex-wrap xl:items-center xl:gap-2">
-        {/* 1. Search */}
-        <div className="relative xl:w-60">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <Filter className="size-4 text-[var(--dc-primary)]" aria-hidden />
+          <p className="font-semibold text-[var(--dc-text-primary)] text-sm">Filter {contextLabel}</p>
+          <span className="rounded-full bg-[var(--dc-primary-soft)] px-2 py-0.5 font-mono text-[var(--dc-primary)] text-[10px]">
+            {activeFilterCount} aktif
+          </span>
+        </div>
+        <p className="text-[var(--dc-text-muted)] text-xs">
+          Menampilkan {resultCount.toLocaleString("id-ID")} data sesuai filter dan hak akses.
+        </p>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-[minmax(16rem,1.2fr)_repeat(7,minmax(10rem,1fr))_auto_auto]">
+        <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--dc-text-muted)]" />
           <Input
-            className="h-9 border-[var(--dc-border-strong)] bg-background pl-9 text-xs placeholder:text-[var(--dc-text-muted)]"
+            className={cn(DC_CONTROLS.input, "pl-9 text-xs")}
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            placeholder="Cari nama, unit, atau wilayah..."
+            placeholder="Cari provinsi, kota/kabupaten, kecamatan, Petugas Wilayah, atau Jaring..."
           />
         </div>
 
-        {/* 2. Wilayah (Kabupaten) */}
-        <div className="xl:w-40">
-          <Select value={kabupatenFilter} onValueChange={onKabupatenChange}>
-            <SelectTrigger className="h-9 border-[var(--dc-border-strong)] bg-background text-xs">
-              <SelectValue placeholder="Semua Wilayah" />
-            </SelectTrigger>
-            <SelectContent className="max-h-60">
-              <SelectItem value="ALL" className="text-xs">
-                Semua Wilayah
-              </SelectItem>
-              {kabupatenList.map((kab) => (
-                <SelectItem key={kab} value={kab} className="text-xs">
-                  {kab}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <SearchableSelect
+          value={bindaFilter}
+          onValueChange={onBindaChange}
+          options={bindaOptions}
+          placeholder="Semua Provinsi/Binda"
+          searchPlaceholder="Cari provinsi atau Binda..."
+          className={cn(DC_CONTROLS.selectTrigger, "text-xs")}
+        />
+        <SearchableSelect
+          value={korwilFilter}
+          onValueChange={onKorwilChange}
+          options={korwilOptions}
+          placeholder="Semua Kota/Kabupaten/Korwil"
+          searchPlaceholder="Cari kota/kabupaten atau Korwil..."
+          disabled={bindaFilter === "ALL"}
+          className={cn(DC_CONTROLS.selectTrigger, "text-xs")}
+        />
+        <SearchableSelect
+          value={gaswilFilter}
+          onValueChange={onGaswilChange}
+          options={gaswilOptions}
+          placeholder="Semua Kecamatan/Gaswil"
+          searchPlaceholder="Cari kecamatan atau Gaswil..."
+          disabled={korwilFilter === "ALL"}
+          className={cn(DC_CONTROLS.selectTrigger, "text-xs")}
+        />
+        <SearchableSelect
+          value={levelFilter}
+          onValueChange={onLevelChange}
+          options={levelOptions}
+          placeholder={`Semua ${levelLabel}`}
+          searchPlaceholder={`Cari ${levelLabel.toLowerCase()}...`}
+          className={cn(DC_CONTROLS.selectTrigger, "text-xs")}
+        />
+        <SearchableSelect
+          value={gradeFilter}
+          onValueChange={onGradeChange}
+          options={gradeOptions}
+          placeholder="Semua Grade"
+          searchPlaceholder="Cari grade..."
+          className={cn(DC_CONTROLS.selectTrigger, "text-xs")}
+        />
+        <SearchableSelect
+          value={statusFilter}
+          onValueChange={onStatusChange}
+          options={statusOptions}
+          placeholder="Semua Status"
+          searchPlaceholder="Cari status..."
+          className={cn(DC_CONTROLS.selectTrigger, "text-xs")}
+        />
+        <SearchableSelect
+          value={sortOrder}
+          onValueChange={onSortChange}
+          options={sortOptions}
+          placeholder="Urutkan"
+          searchPlaceholder="Cari urutan..."
+          className={cn(DC_CONTROLS.selectTrigger, "text-xs")}
+        />
+        <SearchableSelect
+          value={pageSize.toString()}
+          onValueChange={(val) => onPageSizeChange(Number(val))}
+          options={pageSizeOptions}
+          placeholder="Baris"
+          searchPlaceholder="Cari jumlah baris..."
+          className={cn(DC_CONTROLS.selectTrigger, "text-xs")}
+        />
 
-        {/* 3. Grade */}
-        <div className="xl:w-32">
-          <Select value={gradeFilter} onValueChange={onGradeChange}>
-            <SelectTrigger className="h-9 border-[var(--dc-border-strong)] bg-background text-xs">
-              <SelectValue placeholder="Semua Grade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL" className="text-xs">
-                Semua Grade
-              </SelectItem>
-              <SelectItem value="A" className="text-xs">
-                Grade A
-              </SelectItem>
-              <SelectItem value="B" className="text-xs">
-                Grade B
-              </SelectItem>
-              <SelectItem value="C" className="text-xs">
-                Grade C
-              </SelectItem>
-              <SelectItem value="D" className="text-xs">
-                Grade D
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 4. Status */}
-        <div className="xl:w-36">
-          <Select value={statusFilter} onValueChange={onStatusChange}>
-            <SelectTrigger className="h-9 border-[var(--dc-border-strong)] bg-background text-xs">
-              <SelectValue placeholder="Semua Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL" className="text-xs">
-                Semua Status
-              </SelectItem>
-              <SelectItem value="EXCELLENT" className="text-xs">
-                Sangat Baik (≥ 95)
-              </SelectItem>
-              <SelectItem value="TARGET" className="text-xs">
-                Target Tercapai (90-94)
-              </SelectItem>
-              <SelectItem value="OPTIMAL" className="text-xs">
-                Optimal (80-89)
-              </SelectItem>
-              <SelectItem value="CUKUP" className="text-xs">
-                Cukup (70-79)
-              </SelectItem>
-              <SelectItem value="PEMBINAAN" className="text-xs">
-                Perlu Pembinaan (&lt; 70)
-              </SelectItem>
-              <SelectItem value="EMPTY" className="text-xs">
-                Belum Cukup Bukti
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 5. Sort */}
-        <div className="xl:w-36">
-          <Select value={sortOrder} onValueChange={onSortChange}>
-            <SelectTrigger className="h-9 border-[var(--dc-border-strong)] bg-background text-xs">
-              <SelectValue placeholder="Urutkan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SCORE_DESC" className="text-xs">
-                Skor Tertinggi
-              </SelectItem>
-              <SelectItem value="SCORE_ASC" className="text-xs">
-                Skor Terendah
-              </SelectItem>
-              <SelectItem value="NAME_ASC" className="text-xs">
-                Nama A-Z
-              </SelectItem>
-              <SelectItem value="NAME_DESC" className="text-xs">
-                Nama Z-A
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 6. Rows Per Page */}
-        <div className="xl:w-28">
-          <Select value={pageSize.toString()} onValueChange={(val) => onPageSizeChange(Number(val))}>
-            <SelectTrigger className="h-9 border-[var(--dc-border-strong)] bg-background text-xs">
-              <SelectValue placeholder="Baris" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="20" className="text-xs">
-                20 Baris
-              </SelectItem>
-              <SelectItem value="30" className="text-xs">
-                30 Baris
-              </SelectItem>
-              <SelectItem value="40" className="text-xs">
-                40 Baris
-              </SelectItem>
-              <SelectItem value="50" className="text-xs">
-                50 Baris
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 7. Reset */}
-        <div>
+        <div className="grid grid-cols-2 gap-2 sm:col-span-2 lg:col-span-3 2xl:col-span-2 2xl:grid-cols-2">
           <Button
             size="sm"
             variant="outline"
@@ -216,10 +235,7 @@ export function SearchToolbar({
             <RotateCcw className="mr-1.5 size-3.5" />
             Reset
           </Button>
-        </div>
 
-        {/* 8. Sinkronkan (Refresh) */}
-        <div className="xl:ml-auto">
           <Button
             size="sm"
             variant="outline"

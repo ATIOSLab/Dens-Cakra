@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -16,21 +16,15 @@ import {
   Clock,
   Columns3,
   Eye,
-  FileText,
   ImageIcon,
-  Inbox,
   LayoutGrid,
   MapPin,
-  Network,
   RefreshCw,
   RotateCcw,
   Search,
   ShieldCheck,
   Table as TableIcon,
-  UserCheck,
   UserRound,
-  Users,
-  UserX,
   X,
   XCircle,
 } from "lucide-react";
@@ -38,13 +32,15 @@ import { toast } from "sonner";
 
 import { useRoleWorkspace } from "@/app/(main)/dashboard/_components/sidebar/role-workspace-provider";
 import {
+  findJaringArea,
+  type JaringAdministrativeArea,
   jaringCity,
   jaringDistrict,
   jaringVillage,
   type RegistrationJaring,
 } from "@/app/(main)/dashboard/field-coordinator/_components/jaring-types";
-import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
+import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,10 +74,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { buildAreaFilterSubtitle } from "@/lib/domain/area-filter";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { matchesPhoneSearch } from "@/lib/search/phone-search";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
@@ -89,6 +88,8 @@ import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 export type { RegistrationJaring } from "@/app/(main)/dashboard/field-coordinator/_components/jaring-types";
 
 const COLUMN_OPTIONS = [
+  { id: "registeredAt", label: "Waktu Terdaftar" },
+  { id: "photo", label: DOMAIN_TERMS.jaringAvatar },
   { id: "name", label: DOMAIN_TERMS.jaringName },
   { id: "whatsapp", label: DOMAIN_TERMS.jaringWhatsApp },
   { id: "alias", label: DOMAIN_TERMS.jaringCode },
@@ -98,13 +99,22 @@ const COLUMN_OPTIONS = [
   { id: "address", label: "Alamat" },
   { id: "district", label: "Kecamatan" },
   { id: "occupation", label: "Pekerjaan" },
-  { id: "status", label: "Status" },
-  { id: "kinerja", label: "Kinerja" },
+  { id: "status", label: "Status Registrasi" },
+  { id: "kinerja", label: DOMAIN_TERMS.jaringActivity90Days },
 ] as const;
 
 type JaringColumn = (typeof COLUMN_OPTIONS)[number]["id"];
 
-const DEFAULT_COLUMNS: JaringColumn[] = ["name", "whatsapp", "alias", "fieldOfficer", "village", "status"];
+const DEFAULT_COLUMNS: JaringColumn[] = [
+  "registeredAt",
+  "photo",
+  "name",
+  "alias",
+  "fieldOfficer",
+  "village",
+  "status",
+  "kinerja",
+];
 
 function formatDateOnly(value?: string | null) {
   if (!value) return "-";
@@ -138,6 +148,16 @@ function formatGender(value?: string | null) {
   return "-";
 }
 
+function formatPercent(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value);
+}
+
+function percentOf(value: number, total: number) {
+  return total <= 0 ? 0 : Math.round((value / total) * 1000) / 10;
+}
+
 function profilePhotoUrl(item: RegistrationJaring) {
   const fileId = item.profilePhotoFileId ?? item.profilePhotoFile?.id;
   return fileId ? `/api/files/${fileId}` : null;
@@ -159,11 +179,50 @@ function jaringAddedTime(item: RegistrationJaring) {
 }
 
 function jaringFullNameSortKey(item: RegistrationJaring) {
-  return item.fullName?.trim() || "";
+  return item.fullName?.trim() || item.aliasName?.trim() || item.id;
 }
 
 function jaringDisplayName(item: RegistrationJaring) {
-  return item.aliasName ?? item.fullName ?? item.id;
+  return item.fullName?.trim() || item.aliasName?.trim() || item.id;
+}
+
+function jaringIdentityNote(item: RegistrationJaring) {
+  const alias = item.aliasName?.trim();
+  const fullName = item.fullName?.trim();
+  if (fullName && alias && alias !== fullName) {
+    return alias;
+  }
+  return null;
+}
+
+function maskedWhatsappNumber(value?: string | null) {
+  const phone = value?.trim();
+  if (!phone) return "-";
+  if (phone.length <= 8) return phone;
+  return `${phone.slice(0, 5)}...${phone.slice(-4)}`;
+}
+
+function jaringPlacementRows(item: RegistrationJaring) {
+  const city = jaringCity(item);
+  const district = jaringDistrict(item);
+  const village = jaringVillage(item);
+  const rows = [
+    city ? { label: "Kota/Kabupaten", value: city.name } : null,
+    district ? { label: "Kecamatan", value: district.name } : null,
+    village ? { label: "Kelurahan/Desa", value: village.name } : null,
+  ].filter((row): row is { label: string; value: string } => Boolean(row?.value));
+
+  if (rows.length > 0) return rows;
+
+  return item.areaCoverages
+    .map((coverage) => coverage.area?.name)
+    .filter((name): name is string => Boolean(name))
+    .map((name) => ({ label: "Cakupan", value: name }));
+}
+
+function jaringPlacementSummary(item: RegistrationJaring) {
+  const rows = jaringPlacementRows(item);
+  return rows.length > 0 ? rows.map((row) => row.value).join(" / ") : "Belum ditetapkan";
 }
 
 function compareJaringFullName(left: RegistrationJaring, right: RegistrationJaring) {
@@ -174,7 +233,39 @@ function compareJaringFullName(left: RegistrationJaring, right: RegistrationJari
 }
 
 function areaNames(item: RegistrationJaring) {
-  return item.areaCoverages.map((coverage) => coverage.area.name).join(", ") || "-";
+  return jaringPlacementSummary(item);
+}
+
+type AreaFilterOption = {
+  id: string;
+  name: string;
+};
+
+function addAreaOption(options: Map<string, AreaFilterOption>, area?: JaringAdministrativeArea | null) {
+  if (area?.id && area.name) {
+    options.set(area.id, { id: area.id, name: area.name });
+  }
+}
+
+function hasAreaInHierarchy(item: RegistrationJaring, areaId: string, levels?: JaringAdministrativeArea["level"][]) {
+  if (areaId === "ALL") return true;
+  const acceptedLevels = levels ? new Set<JaringAdministrativeArea["level"]>(levels) : null;
+
+  for (const coverage of item.areaCoverages) {
+    let area: JaringAdministrativeArea | null | undefined = coverage.area;
+    while (area) {
+      if (area.id === areaId && (!acceptedLevels || acceptedLevels.has(area.level))) {
+        return true;
+      }
+      area = area.parent;
+    }
+  }
+
+  return false;
+}
+
+function sortedAreaOptions(options: Map<string, AreaFilterOption>) {
+  return [...options.values()].sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
 }
 
 function getInitials(name?: string | null) {
@@ -185,9 +276,9 @@ function getInitials(name?: string | null) {
 }
 
 function statusLabel(status: RegistrationJaring["registrationStatus"]) {
-  if (status === "APPROVED") return "Terverifikasi";
+  if (status === "APPROVED") return "Disetujui";
   if (status === "REJECTED") return "Ditolak";
-  return "Belum terverifikasi";
+  return "Menunggu Tinjauan";
 }
 
 function statusBadgeVariant(status: RegistrationJaring["registrationStatus"]) {
@@ -204,7 +295,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeRole } = useRoleWorkspace();
-  const canPerformAction = activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
+  const canPerformAction =
+    activeRole !== SYSTEM_ROLES.EXECUTIVE && activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
   const [items, setItems] = useState<RegistrationJaring[]>(initialItems);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(() => {
@@ -215,6 +307,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     const value = searchParams.get("activityStatus");
     return value === "ACTIVE" || value === "INACTIVE" ? value : "ALL";
   });
+  const [provinceFilter, setProvinceFilter] = useState<string>("ALL");
   const [cityFilter, setCityFilter] = useState<string>("ALL");
   const [districtFilter, setDistrictFilter] = useState<string>("ALL");
   const [villageFilter, setVillageFilter] = useState<string>("ALL");
@@ -237,111 +330,84 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
   // Region matching helpers
-  function matchesCity(item: RegistrationJaring, city: string) {
-    if (city === "ALL") return true;
-    const c = jaringCity(item);
-    if (c?.name) return c.name === city;
-    return item.areaCoverages.some((cov) => cov.area?.name === city);
-  }
+  const matchesProvince = useCallback((item: RegistrationJaring, province: string) => {
+    return hasAreaInHierarchy(item, province, ["PROVINCE"]);
+  }, []);
 
-  function matchesDistrict(item: RegistrationJaring, district: string) {
-    if (district === "ALL") return true;
-    const d = jaringDistrict(item);
-    if (d?.name) return d.name === district;
-    return item.areaCoverages.some((cov) => cov.area?.name === district);
-  }
+  const matchesCity = useCallback((item: RegistrationJaring, city: string) => {
+    return hasAreaInHierarchy(item, city, ["CITY", "REGENCY"]);
+  }, []);
 
-  function matchesVillage(item: RegistrationJaring, village: string) {
-    if (village === "ALL") return true;
-    const v = jaringVillage(item);
-    if (v?.name) return v.name === village;
-    return item.areaCoverages.some((cov) => cov.area?.name === village);
-  }
+  const matchesDistrict = useCallback((item: RegistrationJaring, district: string) => {
+    return hasAreaInHierarchy(item, district, ["DISTRICT"]);
+  }, []);
 
-  // Extract unique cities, districts, villages & officers for filter options
-  const uniqueCities = useMemo(() => {
-    const set = new Set<string>();
+  const matchesVillage = useCallback((item: RegistrationJaring, village: string) => {
+    return hasAreaInHierarchy(item, village, ["VILLAGE", "URBAN_VILLAGE"]);
+  }, []);
+
+  // Extract unique provinces, cities, districts, villages & officers for filter options
+  const uniqueProvinces = useMemo(() => {
+    const options = new Map<string, AreaFilterOption>();
     for (const item of items) {
-      const city = jaringCity(item)?.name;
-      if (city) set.add(city);
+      addAreaOption(options, findJaringArea(item, ["PROVINCE"]));
+      for (const cov of item.areaCoverages) {
+        let area: JaringAdministrativeArea | null | undefined = cov.area;
+        while (area) {
+          if (area.level === "PROVINCE") addAreaOption(options, area);
+          area = area.parent;
+        }
+      }
+    }
+    return sortedAreaOptions(options);
+  }, [items]);
+
+  const uniqueCities = useMemo(() => {
+    if (provinceFilter === "ALL") return [];
+    const options = new Map<string, AreaFilterOption>();
+    for (const item of items) {
+      if (!matchesProvince(item, provinceFilter)) continue;
+      addAreaOption(options, jaringCity(item));
       for (const cov of item.areaCoverages) {
         if (cov.area?.level === "CITY" || cov.area?.level === "REGENCY") {
-          if (cov.area.name) set.add(cov.area.name);
+          addAreaOption(options, cov.area);
         }
       }
     }
-    return Array.from(set).sort();
-  }, [items]);
+    return sortedAreaOptions(options);
+  }, [items, matchesProvince, provinceFilter]);
 
   const uniqueDistricts = useMemo(() => {
-    const set = new Set<string>();
+    if (cityFilter === "ALL") return [];
+    const options = new Map<string, AreaFilterOption>();
     for (const item of items) {
-      if (matchesCity(item, cityFilter)) {
-        const dist = jaringDistrict(item)?.name;
-        if (dist) set.add(dist);
+      if (matchesProvince(item, provinceFilter) && matchesCity(item, cityFilter)) {
+        addAreaOption(options, jaringDistrict(item));
         for (const cov of item.areaCoverages) {
           if (cov.area?.level === "DISTRICT") {
-            if (cov.area.name) set.add(cov.area.name);
+            addAreaOption(options, cov.area);
           }
         }
       }
     }
-    return Array.from(set).sort();
-  }, [items, cityFilter]);
+    return sortedAreaOptions(options);
+  }, [items, cityFilter, matchesCity, matchesProvince, provinceFilter]);
 
   const uniqueVillages = useMemo(() => {
-    const set = new Set<string>();
+    if (districtFilter === "ALL") return [];
+    const options = new Map<string, AreaFilterOption>();
     for (const item of items) {
-      if (matchesCity(item, cityFilter) && matchesDistrict(item, districtFilter)) {
-        const vill = jaringVillage(item)?.name;
-        if (vill) set.add(vill);
+      if (matchesProvince(item, provinceFilter) && matchesCity(item, cityFilter) && matchesDistrict(item, districtFilter)) {
+        addAreaOption(options, jaringVillage(item));
         for (const cov of item.areaCoverages) {
           if (cov.area?.level === "VILLAGE" || cov.area?.level === "URBAN_VILLAGE") {
-            if (cov.area.name) set.add(cov.area.name);
+            addAreaOption(options, cov.area);
           }
         }
       }
     }
-    return Array.from(set).sort();
-  }, [items, cityFilter, districtFilter]);
-
-  // Parent mapping helpers for auto-filling higher region levels
-  const villageToParentMap = useMemo(() => {
-    const map = new Map<string, { districtName?: string; cityName?: string }>();
-    for (const item of items) {
-      const vName = jaringVillage(item)?.name;
-      const dName = jaringDistrict(item)?.name;
-      const cName = jaringCity(item)?.name;
-
-      if (vName) {
-        if (!map.has(vName)) {
-          map.set(vName, { districtName: dName, cityName: cName });
-        } else {
-          const current = map.get(vName)!;
-          if (!current.districtName && dName) current.districtName = dName;
-          if (!current.cityName && cName) current.cityName = cName;
-        }
-      }
-    }
-    return map;
-  }, [items]);
-
-  const districtToParentMap = useMemo(() => {
-    const map = new Map<string, { cityName?: string }>();
-    for (const item of items) {
-      const dName = jaringDistrict(item)?.name;
-      const cName = jaringCity(item)?.name;
-
-      if (dName) {
-        if (!map.has(dName)) {
-          map.set(dName, { cityName: cName });
-        } else if (!map.get(dName)!.cityName && cName) {
-          map.get(dName)!.cityName = cName;
-        }
-      }
-    }
-    return map;
-  }, [items]);
+    return sortedAreaOptions(options);
+  }, [items, cityFilter, districtFilter, matchesCity, matchesDistrict, matchesProvince, provinceFilter]);
 
   const uniqueOfficers = useMemo(() => {
     const set = new Set<string>();
@@ -355,6 +421,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   // Base filtered items (non-status filters applied: City, District, Village, Officer, Search)
   const baseFilteredItems = useMemo(() => {
     return items.filter((item) => {
+      if (!matchesProvince(item, provinceFilter)) return false;
       if (!matchesCity(item, cityFilter)) return false;
       if (!matchesDistrict(item, districtFilter)) return false;
       if (!matchesVillage(item, villageFilter)) return false;
@@ -381,7 +448,19 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       }
       return true;
     });
-  }, [items, cityFilter, districtFilter, villageFilter, officerFilter, search]);
+  }, [
+    items,
+    provinceFilter,
+    cityFilter,
+    districtFilter,
+    villageFilter,
+    officerFilter,
+    search,
+    matchesProvince,
+    matchesCity,
+    matchesDistrict,
+    matchesVillage,
+  ]);
 
   // Dynamically calculate summary metrics from baseFilteredItems
   const summary = useMemo(() => {
@@ -389,8 +468,28 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     const pending = baseFilteredItems.filter((i) => i.registrationStatus === "PENDING").length;
     const approved = baseFilteredItems.filter((i) => i.registrationStatus === "APPROVED").length;
     const rejected = baseFilteredItems.filter((i) => i.registrationStatus === "REJECTED").length;
-    return { total, pending, approved, rejected };
+    const active = baseFilteredItems.filter(isJaringActive).length;
+    const inactive = Math.max(0, total - active);
+    return { total, pending, approved, rejected, active, inactive };
   }, [baseFilteredItems]);
+  const activeJaringShare = percentOf(summary.active, summary.total);
+  const inactiveJaringShare = percentOf(summary.inactive, summary.total);
+
+  const areaSubtitle = useMemo(() => {
+    const provinceName = uniqueProvinces.find((area) => area.id === provinceFilter)?.name;
+    if (provinceFilter !== "ALL" && cityFilter === "ALL" && provinceName) {
+      return `Jumlah Jaring Provinsi ${provinceName}`;
+    }
+    return buildAreaFilterSubtitle({
+      metricLabel: "Jumlah Jaring",
+      regencyFilter: cityFilter,
+      districtFilter,
+      villageFilter,
+      regencyOptions: uniqueCities,
+      districtOptions: uniqueDistricts,
+      villageOptions: uniqueVillages,
+    });
+  }, [cityFilter, districtFilter, provinceFilter, uniqueCities, uniqueDistricts, uniqueProvinces, uniqueVillages, villageFilter]);
 
   // Final filtered items with status filter applied
   const filteredItems = useMemo(() => {
@@ -430,6 +529,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     search.trim() !== "" ||
     statusFilter !== "ALL" ||
     activeStatusFilter !== "ALL" ||
+    provinceFilter !== "ALL" ||
     cityFilter !== "ALL" ||
     districtFilter !== "ALL" ||
     villageFilter !== "ALL" ||
@@ -439,6 +539,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     setSearch("");
     setStatusFilter("ALL");
     setActiveStatusFilter("ALL");
+    setProvinceFilter("ALL");
     setCityFilter("ALL");
     setDistrictFilter("ALL");
     setVillageFilter("ALL");
@@ -452,7 +553,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     router.refresh();
     setTimeout(() => {
       setIsRefreshing(false);
-      toast.success("Data verifikasi jaring diperbarui");
+      toast.success("Data Jaring diperbarui.");
     }, 600);
   }
 
@@ -490,12 +591,12 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
 
       toast.success(
         action === "approve"
-          ? `Pengajuan ${jaringDisplayName(item)} terverifikasi.`
+          ? `Pengajuan ${jaringDisplayName(item)} disetujui.`
           : `Pengajuan ${jaringDisplayName(item)} ditolak.`,
       );
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Gagal memproses verifikasi.");
+      toast.error(error instanceof Error ? error.message : "Gagal memproses keputusan registrasi.");
     } finally {
       setIsSubmittingAction(false);
       setSelectedItemForAction(null);
@@ -508,186 +609,213 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       {/* HEADER SECTION */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="font-bold text-3xl tracking-tight text-foreground">Daftar Jaring</h1>
-          <p className="mt-1.5 text-muted-foreground text-sm max-w-2xl">
-            Kelola dan verifikasi data Jaring yang diajukan oleh Petugas Wilayah (Gaswil).
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>Daftar Jaring</h1>
+          <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
+            Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan aktivitas
+            pelaporan 90 hari.
           </p>
+          <p className="mt-2 text-sm font-medium text-foreground">{areaSubtitle}</p>
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
-          {/* Total Pengajuan */}
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3 lg:w-auto">
+          {/* Total Jaring */}
           <button
             type="button"
             onClick={() => {
               setStatusFilter("ALL");
+              setActiveStatusFilter("ALL");
               setPage(1);
             }}
             className={cn(
-              "flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs min-w-[140px] text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
-              statusFilter === "ALL"
+              "flex min-w-[170px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
+              statusFilter === "ALL" && activeStatusFilter === "ALL"
                 ? "border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
                 : "border-slate-200/80 dark:border-white/10 hover:border-sky-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
             )}
           >
-            <div className="flex size-10 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-[#38BDF8] shrink-0">
-              <FileText className="size-5" />
+            <div className="flex size-10 items-center justify-center rounded-md bg-sky-500/10 text-sky-600 dark:text-[#38BDF8] shrink-0">
+              <DOMAIN_VISUALS.jaring.Icon className="size-5" />
             </div>
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total</p>
-              <p className="text-xl font-bold tracking-tight text-foreground">{summary.total}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total Jaring</p>
+              <p className="font-bold text-foreground text-xl tracking-normal">{summary.total}</p>
             </div>
           </button>
 
-          {/* Terverifikasi */}
+          {/* Aktif */}
           <button
             type="button"
             onClick={() => {
-              setStatusFilter("APPROVED");
+              setActiveStatusFilter("ACTIVE");
               setPage(1);
             }}
             className={cn(
-              "flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs min-w-[140px] text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
-              statusFilter === "APPROVED"
-                ? "border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10"
-                : "border-slate-200/80 dark:border-white/10 hover:border-emerald-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
+              "flex min-w-[170px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
+              activeStatusFilter === "ACTIVE"
+                ? "border-emerald-500 bg-emerald-500/5 ring-2 ring-emerald-500/30 dark:bg-emerald-500/10"
+                : "border-slate-200/80 hover:border-emerald-500/40 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
             )}
           >
-            <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <UserCheck className="size-5" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <DOMAIN_VISUALS.jaring.Icon className="size-5" />
             </div>
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Terverifikasi</p>
-              <p className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-                {summary.approved}
+              <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
+                {DOMAIN_TERMS.jaringActive90Days}
+              </p>
+              <p className="font-bold text-emerald-600 text-xl tracking-normal dark:text-emerald-400">
+                {summary.active}
+              </p>
+              <p className="mt-1 font-mono font-semibold text-[11px] text-emerald-600 tabular-nums dark:text-emerald-400">
+                {formatPercent(activeJaringShare)}% dari total
               </p>
             </div>
           </button>
 
-          {/* Menunggu / Belum Terverifikasi */}
+          {/* Tidak Aktif */}
           <button
             type="button"
             onClick={() => {
-              setStatusFilter("PENDING");
+              setActiveStatusFilter("INACTIVE");
               setPage(1);
             }}
             className={cn(
-              "flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs min-w-[140px] text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
-              statusFilter === "PENDING"
-                ? "border-amber-500 ring-2 ring-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10"
-                : "border-slate-200/80 dark:border-white/10 hover:border-amber-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
+              "flex min-w-[170px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
+              activeStatusFilter === "INACTIVE"
+                ? "border-slate-500 bg-slate-500/5 ring-2 ring-slate-500/25 dark:bg-slate-500/10"
+                : "border-slate-200/80 hover:border-slate-500/40 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-slate-900/50",
             )}
           >
-            <div className="flex size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-slate-500/10 text-slate-600 dark:text-slate-400">
               <Clock className="size-5" />
             </div>
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Belum Terverifikasi
+              <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
+                {DOMAIN_TERMS.jaringInactive90Days}
               </p>
-              <p className="text-xl font-bold tracking-tight text-amber-600 dark:text-amber-400">{summary.pending}</p>
+              <p className="font-bold text-slate-600 text-xl tracking-normal dark:text-slate-300">
+                {summary.inactive}
+              </p>
+              <p className="mt-1 font-mono font-semibold text-[11px] text-muted-foreground tabular-nums">
+                {formatPercent(inactiveJaringShare)}% dari total
+              </p>
             </div>
           </button>
 
-          {/* Ditolak */}
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter("REJECTED");
-              setPage(1);
-            }}
-            className={cn(
-              "flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs min-w-[140px] text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
-              statusFilter === "REJECTED"
-                ? "border-rose-500 ring-2 ring-rose-500/30 bg-rose-500/5 dark:bg-rose-500/10"
-                : "border-slate-200/80 dark:border-white/10 hover:border-rose-500/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/50",
-            )}
-          >
-            <div className="flex size-10 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
-              <UserX className="size-5" />
-            </div>
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Ditolak</p>
-              <p className="text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400">{summary.rejected}</p>
-            </div>
-          </button>
         </div>
       </div>
 
       {/* FILTER TOOLBAR CONTAINER */}
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-4 shadow-xs">
+      <div className="flex flex-col gap-3 rounded-md border border-slate-200/80 dark:border-white/10 bg-card p-4 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3">
+          <div>
+            <p className={cn(DC_TYPOGRAPHY.cardTitle, "flex items-center gap-2")}>
+              <Search className="size-4 text-primary" />
+              Filter Daftar Jaring
+            </p>
+            <p className="mt-1 text-muted-foreground text-xs">
+              Urutan wilayah: Provinsi, Kota/Kabupaten, Kecamatan, lalu Kelurahan/Desa.
+            </p>
+          </div>
+          <Badge variant="outline" className="rounded-full font-mono text-[11px]">
+            {hasActiveFilters ? "Filter aktif" : "Tanpa filter"}
+          </Badge>
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3 flex-1">
-            {/* Filter Kota / Kabupaten */}
-            <NativeSelect
-              value={cityFilter}
-              onChange={(e) => {
-                setCityFilter(e.target.value);
+            {/* Filter Provinsi */}
+            <SearchableSelect
+              aria-label="Filter Provinsi"
+              value={provinceFilter}
+              options={[
+                { value: "ALL", label: "Semua Provinsi" },
+                ...uniqueProvinces.map((province) => ({ value: province.id, label: province.name })),
+              ]}
+              onValueChange={(value) => {
+                setProvinceFilter(value);
+                setCityFilter("ALL");
                 setDistrictFilter("ALL");
                 setVillageFilter("ALL");
                 setPage(1);
               }}
-              className="w-full sm:w-auto min-w-[150px]"
-            >
-              <option value="ALL">Semua Kota/Kab</option>
-              {uniqueCities.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </NativeSelect>
+              placeholder="Semua Provinsi"
+              searchPlaceholder="Cari provinsi..."
+              emptyText="Provinsi tidak ditemukan."
+              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+            />
+
+            {/* Filter Kota / Kabupaten */}
+            <SearchableSelect
+              aria-label="Filter Kota/Kabupaten"
+              value={cityFilter}
+              options={[
+                {
+                  value: "ALL",
+                  label: provinceFilter === "ALL" ? "Pilih provinsi dahulu" : "Semua Kota/Kabupaten",
+                  disabled: provinceFilter === "ALL",
+                },
+                ...uniqueCities.map((city) => ({ value: city.id, label: city.name })),
+              ]}
+              onValueChange={(value) => {
+                setCityFilter(value);
+                setDistrictFilter("ALL");
+                setVillageFilter("ALL");
+                setPage(1);
+              }}
+              disabled={provinceFilter === "ALL"}
+              placeholder={provinceFilter === "ALL" ? "Pilih provinsi dahulu" : "Semua Kota/Kabupaten"}
+              searchPlaceholder="Cari kota/kabupaten..."
+              emptyText="Kota/Kabupaten tidak ditemukan."
+              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+            />
 
             {/* Filter Kecamatan */}
-            <NativeSelect
+            <SearchableSelect
+              aria-label="Filter Kecamatan"
               value={districtFilter}
-              onChange={(e) => {
-                const val = e.target.value;
-                setDistrictFilter(val);
+              options={[
+                {
+                  value: "ALL",
+                  label: cityFilter === "ALL" ? "Pilih kota/kabupaten dahulu" : "Semua Kecamatan",
+                  disabled: cityFilter === "ALL",
+                },
+                ...uniqueDistricts.map((dist) => ({ value: dist.id, label: dist.name })),
+              ]}
+              onValueChange={(value) => {
+                setDistrictFilter(value);
                 setVillageFilter("ALL");
-                if (val !== "ALL") {
-                  const parent = districtToParentMap.get(val);
-                  if (parent?.cityName) {
-                    setCityFilter(parent.cityName);
-                  }
-                }
                 setPage(1);
               }}
-              className="w-full sm:w-auto min-w-[150px]"
-            >
-              <option value="ALL">Semua Kecamatan</option>
-              {uniqueDistricts.map((dist) => (
-                <option key={dist} value={dist}>
-                  {dist}
-                </option>
-              ))}
-            </NativeSelect>
+              disabled={cityFilter === "ALL"}
+              placeholder={cityFilter === "ALL" ? "Pilih kota/kabupaten dahulu" : "Semua Kecamatan"}
+              searchPlaceholder="Cari kecamatan..."
+              emptyText="Kecamatan tidak ditemukan."
+              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+            />
 
             {/* Filter Kelurahan / Desa */}
-            <NativeSelect
+            <SearchableSelect
+              aria-label="Filter Kelurahan/Desa"
               value={villageFilter}
-              onChange={(e) => {
-                const val = e.target.value;
-                setVillageFilter(val);
-                if (val !== "ALL") {
-                  const parent = villageToParentMap.get(val);
-                  if (parent?.districtName) {
-                    setDistrictFilter(parent.districtName);
-                  }
-                  if (parent?.cityName) {
-                    setCityFilter(parent.cityName);
-                  }
-                }
+              options={[
+                {
+                  value: "ALL",
+                  label: districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa",
+                  disabled: districtFilter === "ALL",
+                },
+                ...uniqueVillages.map((vill) => ({ value: vill.id, label: vill.name })),
+              ]}
+              onValueChange={(value) => {
+                setVillageFilter(value);
                 setPage(1);
               }}
-              className="w-full sm:w-auto min-w-[150px]"
-            >
-              <option value="ALL">Semua Kelurahan</option>
-              {uniqueVillages.map((vill) => (
-                <option key={vill} value={vill}>
-                  {vill}
-                </option>
-              ))}
-            </NativeSelect>
+              disabled={districtFilter === "ALL"}
+              placeholder={districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"}
+              searchPlaceholder="Cari kelurahan/desa..."
+              emptyText="Kelurahan/Desa tidak ditemukan."
+              className="h-9 w-full min-w-[150px] text-xs sm:w-auto"
+            />
 
             {/* Filter Status */}
             <NativeSelect
@@ -698,13 +826,13 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               }}
               className="w-full sm:w-auto min-w-[140px]"
             >
-              <option value="ALL">Semua Status</option>
-              <option value="PENDING">Belum Terverifikasi</option>
-              <option value="APPROVED">Terverifikasi</option>
+              <option value="ALL">Semua Status Registrasi</option>
+              <option value="PENDING">Menunggu Tinjauan</option>
+              <option value="APPROVED">Disetujui</option>
               <option value="REJECTED">Ditolak</option>
             </NativeSelect>
 
-            {/* Filter Kinerja (Pelaporan 3 Bulan) */}
+            {/* Filter Aktivitas Laporan 90 Hari */}
             <NativeSelect
               value={activeStatusFilter}
               onChange={(e) => {
@@ -713,27 +841,28 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               }}
               className="w-full sm:w-auto min-w-[150px]"
             >
-              <option value="ALL">Semua Kinerja</option>
-              <option value="ACTIVE">Aktif</option>
-              <option value="INACTIVE">Tidak Aktif</option>
+              <option value="ALL">Semua Aktivitas Laporan 90 Hari</option>
+              <option value="ACTIVE">{DOMAIN_TERMS.jaringActive90Days}</option>
+              <option value="INACTIVE">{DOMAIN_TERMS.jaringInactive90Days}</option>
             </NativeSelect>
 
             {/* Filter Petugas Wilayah (Gaswil) */}
-            <NativeSelect
+            <SearchableSelect
+              aria-label="Filter Petugas Wilayah (Gaswil)"
               value={officerFilter}
-              onChange={(e) => {
-                setOfficerFilter(e.target.value);
+              options={[
+                { value: "ALL", label: "Semua Petugas Wilayah (Gaswil)" },
+                ...uniqueOfficers.map((officer) => ({ value: officer, label: officer })),
+              ]}
+              onValueChange={(value) => {
+                setOfficerFilter(value);
                 setPage(1);
               }}
-              className="w-full sm:w-auto min-w-[160px]"
-            >
-              <option value="ALL">Semua Petugas Wilayah (Gaswil)</option>
-              {uniqueOfficers.map((fo) => (
-                <option key={fo} value={fo}>
-                  {fo}
-                </option>
-              ))}
-            </NativeSelect>
+              placeholder="Semua Petugas Wilayah (Gaswil)"
+              searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
+              emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
+              className="h-9 w-full min-w-[160px] text-xs sm:w-auto"
+            />
           </div>
 
           <div className="flex items-center gap-2 self-end lg:self-auto">
@@ -777,7 +906,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       </div>
 
       {/* SEARCH BAR CONTAINER (SEPARATED & POSITIONED BELOW FILTER TOOLBAR) */}
-      <div className="relative w-full rounded-xl border border-slate-200/80 dark:border-white/10 bg-card p-3 shadow-xs">
+      <div className="relative w-full rounded-md border border-slate-200/80 dark:border-white/10 bg-card p-3 shadow-xs">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -786,8 +915,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Cari alias, nama, nomor HP, pekerjaan, petugas wilayah, atau wilayah penugasan..."
-            className="pl-10 pr-9 h-10 text-sm rounded-lg bg-background border-border"
+            placeholder="Cari alias, nama, nomor HP, pekerjaan, Petugas Wilayah (Gaswil), atau wilayah penugasan..."
+            className={cn(DC_CONTROLS.input, "h-10 pl-10 pr-9")}
           />
           {search ? (
             <button
@@ -802,18 +931,18 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
       </div>
 
       {/* MAIN CARD CONTAINER */}
-      <Card className="overflow-hidden rounded-[18px] border border-slate-200/80 dark:border-white/10 shadow-xs">
+      <Card className="overflow-hidden rounded-md border border-slate-200/80 dark:border-white/10 shadow-xs">
         {/* CARD HEADER */}
         <CardHeader className="border-b border-border/80 bg-slate-50/80 dark:bg-white/[0.02] p-5 md:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-                <ShieldCheck className="size-5" />
+              <div className="flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/20 shrink-0">
+                <DOMAIN_VISUALS.jaring.Icon className="size-5" />
               </div>
               <div>
-                <CardTitle className="text-lg font-semibold tracking-tight text-foreground">Daftar Jaring</CardTitle>
+                <CardTitle className="font-semibold text-foreground text-lg tracking-normal">Daftar Jaring</CardTitle>
                 <CardDescription className="mt-0.5 text-xs text-muted-foreground">
-                  {summary.pending} pengajuan belum terverifikasi.
+                  {filteredItems.length} Jaring dalam cakupan. {summary.pending} menunggu tinjauan registrasi.
                 </CardDescription>
               </div>
             </div>
@@ -850,65 +979,75 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
 
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-border/80 bg-slate-100/60 dark:bg-zinc-900/60 hover:bg-slate-100/60">
+            <Table className="w-full min-w-[1180px]">
+              <TableHeader className="bg-slate-50 dark:bg-white/5">
+                <TableRow className="border-b border-slate-200 dark:border-slate-800">
+                  {isColumnVisible("registeredAt") ? (
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "py-3.5 whitespace-nowrap")}>
+                      Waktu Terdaftar
+                    </TableHead>
+                  ) : null}
+                  {isColumnVisible("photo") ? (
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "w-12 py-3.5 text-center")}>
+                      Foto
+                    </TableHead>
+                  ) : null}
                   {isColumnVisible("name") ? (
-                    <TableHead className="pl-6 py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[210px]">
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[190px] py-3.5")}>
                       {DOMAIN_TERMS.jaringName}
                     </TableHead>
                   ) : null}
                   {isColumnVisible("whatsapp") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[170px]">
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[170px] py-3.5")}>
                       {DOMAIN_TERMS.jaringWhatsApp}
                     </TableHead>
                   ) : null}
                   {isColumnVisible("alias") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[150px]">
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[150px] py-3.5")}>
                       {DOMAIN_TERMS.jaringCode}
                     </TableHead>
                   ) : null}
                   {isColumnVisible("fieldOfficer") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[210px]">
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[210px] py-3.5")}>
                       {DOMAIN_TERMS.jaringCaretaker}
                     </TableHead>
                   ) : null}
                   {isColumnVisible("village") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[220px]">
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[260px] py-3.5")}>
                       {DOMAIN_TERMS.jaringPlacementArea}
                     </TableHead>
                   ) : null}
                   {isColumnVisible("gender") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[130px]">
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[130px] py-3.5")}>
                       Jenis Kelamin
                     </TableHead>
                   ) : null}
                   {isColumnVisible("address") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[260px]">
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[260px] py-3.5")}>
                       Alamat
                     </TableHead>
                   ) : null}
                   {isColumnVisible("district") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[170px]">
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[170px] py-3.5")}>
                       Kecamatan
                     </TableHead>
                   ) : null}
                   {isColumnVisible("occupation") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[190px]">
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[190px] py-3.5")}>
                       Pekerjaan
                     </TableHead>
                   ) : null}
                   {isColumnVisible("status") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[150px]">
-                      Status
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[150px] py-3.5 text-center")}>
+                      Status Registrasi
                     </TableHead>
                   ) : null}
                   {isColumnVisible("kinerja") ? (
-                    <TableHead className="py-3.5 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[130px]">
-                      Kinerja
+                    <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[190px] py-3.5")}>
+                      {DOMAIN_TERMS.jaringActivity90Days}
                     </TableHead>
                   ) : null}
-                  <TableHead className="pr-6 py-3.5 text-right font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[180px]">
+                  <TableHead className={cn(DC_TYPOGRAPHY.tableHeader, "min-w-[160px] py-3.5 pr-6 text-right")}>
                     Aksi
                   </TableHead>
                 </TableRow>
@@ -917,39 +1056,54 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                 {paginatedItems.map((item) => {
                   const photo = profilePhotoUrl(item);
                   const foName = officerName(item);
-                  const village = jaringVillage(item);
                   const district = jaringDistrict(item);
-                  const villageName = village ? village.name : "-";
+                  const placementRows = jaringPlacementRows(item);
                   const districtName = district ? district.name : "-";
+                  const identityNote = jaringIdentityNote(item);
                   const isPending = item.registrationStatus === "PENDING";
                   return (
                     <TableRow
                       key={item.id}
-                      className="h-16 transition-colors duration-180 hover:bg-slate-50/80 dark:hover:bg-zinc-800/40 border-b border-border/50"
+                      className="border-b border-slate-100 transition-colors duration-180 hover:bg-slate-50/50 dark:border-slate-800 dark:hover:bg-white/5"
                     >
-                      {isColumnVisible("name") ? (
-                        <TableCell className="pl-6 py-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="size-9 border border-border">
-                              {photo ? (
+                      {isColumnVisible("registeredAt") ? (
+                        <TableCell className="align-middle py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                          {formatDateTime(item.registeredAt ?? item.createdAt)}
+                        </TableCell>
+                      ) : null}
+
+                      {isColumnVisible("photo") ? (
+                        <TableCell className="align-middle py-3">
+                          <div className="size-8 overflow-hidden border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900 flex items-center justify-center">
+                            {photo ? (
+                              <Avatar className="size-full rounded-none">
                                 <AvatarImage src={photo} alt={jaringDisplayName(item)} />
-                              ) : (
-                                <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
+                                <AvatarFallback className="rounded-none bg-primary/10 text-primary font-semibold text-[10px]">
                                   {getInitials(jaringDisplayName(item))}
                                 </AvatarFallback>
-                              )}
-                            </Avatar>
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-semibold text-sm text-foreground truncate">
-                                {item.fullName || "Belum tersedia"}
-                              </span>
-                            </div>
+                              </Avatar>
+                            ) : (
+                              <ImageIcon className="size-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </TableCell>
+                      ) : null}
+
+                      {isColumnVisible("name") ? (
+                        <TableCell className="align-middle py-3 font-mono font-bold text-xs text-foreground">
+                          <div className="min-w-0 max-w-[220px]">
+                            <p className="truncate">{jaringDisplayName(item)}</p>
+                            {identityNote ? (
+                              <p className="mt-0.5 truncate font-normal text-[11px] text-muted-foreground">
+                                {identityNote}
+                              </p>
+                            ) : null}
                           </div>
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("whatsapp") ? (
-                        <TableCell className="py-3">
+                        <TableCell className="align-middle py-3 font-mono text-xs">
                           {item.whatsappNumber ? (
                             <a
                               href={`https://wa.me/${item.whatsappNumber.replace(/\D/g, "")}`}
@@ -957,7 +1111,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                               rel="noopener noreferrer"
                               className="font-mono text-xs font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
                             >
-                              {item.whatsappNumber}
+                              {maskedWhatsappNumber(item.whatsappNumber)}
                             </a>
                           ) : (
                             <span className="text-xs text-muted-foreground">Belum tersedia</span>
@@ -966,13 +1120,13 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                       ) : null}
 
                       {isColumnVisible("alias") ? (
-                        <TableCell className="py-3 font-mono text-xs font-semibold text-violet-700 dark:text-violet-400">
+                        <TableCell className="align-middle py-3 font-mono text-xs font-semibold text-violet-700 dark:text-violet-400">
                           {item.aliasName || item.id}
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("fieldOfficer") ? (
-                        <TableCell className="py-3">
+                        <TableCell className="align-middle py-3 font-mono text-xs">
                           <div className="flex items-center gap-2.5 max-w-[220px]">
                             <div className="flex size-7 items-center justify-center rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-semibold shrink-0 dark:text-amber-400">
                               {getInitials(foName)}
@@ -991,20 +1145,35 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                       ) : null}
 
                       {isColumnVisible("village") ? (
-                        <TableCell className="py-3">
-                          <div className="flex items-start gap-1.5 text-sm text-foreground">
+                        <TableCell className="align-middle py-3 text-xs font-mono text-foreground">
+                          <div className="flex items-start gap-1.5 max-w-[320px]">
                             <MapPin className="mt-0.5 size-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
-                            <span>{[villageName, districtName].filter((value) => value !== "-").join(", ") || "Belum ditetapkan"}</span>
+                            {placementRows.length > 0 ? (
+                              <div className="space-y-0.5">
+                                {placementRows.map((row) => (
+                                  <div key={`${row.label}-${row.value}`} className="flex flex-wrap gap-x-1.5">
+                                    <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                                      {row.label}
+                                    </span>
+                                    <span className="font-medium text-foreground">{row.value}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Belum ditetapkan</span>
+                            )}
                           </div>
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("gender") ? (
-                        <TableCell className="py-3 text-sm text-foreground">{formatGender(item.gender)}</TableCell>
+                        <TableCell className="align-middle py-3 text-sm text-foreground">
+                          {formatGender(item.gender)}
+                        </TableCell>
                       ) : null}
 
                       {isColumnVisible("address") ? (
-                        <TableCell className="py-3">
+                        <TableCell className="align-middle py-3">
                           <div
                             className="max-w-[260px] truncate text-sm text-foreground"
                             title={item.address ?? undefined}
@@ -1014,22 +1183,21 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                         </TableCell>
                       ) : null}
 
-
                       {isColumnVisible("district") ? (
-                        <TableCell className="py-3">
+                        <TableCell className="align-middle py-3">
                           <span className="text-sm font-medium text-foreground">{districtName}</span>
                         </TableCell>
                       ) : null}
 
                       {isColumnVisible("occupation") ? (
-                        <TableCell className="py-3">
+                        <TableCell className="align-middle py-3">
                           <div className="flex flex-col min-w-0 max-w-[200px]">
                             <span className="font-medium text-sm text-foreground truncate">
                               {item.occupation?.name ?? "-"}
                             </span>
                             {item.workplace || item.jobTitle ? (
                               <span className="text-xs text-muted-foreground truncate">
-                                {[item.jobTitle, item.workplace].filter(Boolean).join(" • ")}
+                                {[item.jobTitle, item.workplace].filter(Boolean).join(" - ")}
                               </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">-</span>
@@ -1038,9 +1206,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                         </TableCell>
                       ) : null}
 
-
                       {isColumnVisible("status") ? (
-                        <TableCell className="py-3">
+                        <TableCell className="align-middle py-3 text-center">
                           <span
                             className={cn(
                               "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-semibold text-[11px] uppercase tracking-[0.08em]",
@@ -1056,23 +1223,19 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
                       ) : null}
 
                       {isColumnVisible("kinerja") ? (
-                        <TableCell className="py-3">
+                        <TableCell className="align-middle py-3">
                           <span
                             className={cn(
                               "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold text-[10px] uppercase tracking-[0.06em]",
-                              item.registrationStatus === "APPROVED" && item.status === "ACTIVE"
-                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                : "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-400",
+                              operationalStatusTone(item),
                             )}
                           >
-                            {item.registrationStatus === "APPROVED" && item.status === "ACTIVE"
-                              ? "AKTIF"
-                              : "TIDAK AKTIF"}
+                            {operationalStatusLabel(item)}
                           </span>
                         </TableCell>
                       ) : null}
 
-                      <TableCell className="pr-6 py-3 text-right">
+                      <TableCell className="align-middle pr-6 py-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
                             asChild
@@ -1124,10 +1287,10 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
           {!paginatedItems.length ? (
             <div className="flex flex-col items-center justify-center p-12 text-center my-6 space-y-4">
               <div className="flex size-16 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground border border-border/50 shadow-xs">
-                <Inbox className="size-8 stroke-[1.5]" />
+                <DOMAIN_VISUALS.jaring.Icon className="size-8 stroke-[1.5]" />
               </div>
               <div className="max-w-md space-y-1.5">
-                <h3 className="font-semibold text-base text-foreground">Belum ada pengajuan verifikasi</h3>
+                <h3 className="font-semibold text-base text-foreground">Belum ada pengajuan Jaring</h3>
                 <p className="text-xs text-muted-foreground">
                   {hasActiveFilters
                     ? "Tidak ada data pengajuan yang cocok dengan filter pencarian Anda."
@@ -1189,8 +1352,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
               {selectedItemForAction?.action === "approve"
-                ? `Status pengajuan untuk "${jaringDisplayName(selectedItemForAction.item)}" (${selectedItemForAction.item.fullName ?? "-"}) akan diubah menjadi Terverifikasi.`
-                : `Status pengajuan untuk "${selectedItemForAction ? jaringDisplayName(selectedItemForAction.item) : "Jaring"}" (${selectedItemForAction?.item.fullName ?? "-"}) akan diubah menjadi Ditolak.`}
+                ? `Pengajuan "${jaringDisplayName(selectedItemForAction.item)}" akan disetujui dan masuk ke jaringan operasional.`
+                : `Pengajuan "${selectedItemForAction ? jaringDisplayName(selectedItemForAction.item) : "Jaring"}" akan ditolak dan alasan penolakan akan dicatat.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -1302,12 +1465,12 @@ export function JaringReportCardItem({
     ...(rep.submittedMessage?.attachments ?? []),
     ...(rep.submittedMessage?.photos ?? []),
     ...(rep.submittedMessage?.media ?? []),
-];
+  ];
 
-function reportAttachmentThumbnailUrl(src: string) {
-  if (!src.startsWith("/api/files/") && !src.startsWith("/api/field-officer/files/")) return src;
-  return `${src}${src.includes("?") ? "&" : "?"}thumbnail=1`;
-}
+  function reportAttachmentThumbnailUrl(src: string) {
+    if (!src.startsWith("/api/files/") && !src.startsWith("/api/field-officer/files/")) return src;
+    return `${src}${src.includes("?") ? "&" : "?"}thumbnail=1`;
+  }
   for (const item of rawItems) {
     const url = item?.fileUrl || item?.url || item?.path;
     if (url && typeof url === "string" && !photos.includes(url)) {
@@ -1315,10 +1478,10 @@ function reportAttachmentThumbnailUrl(src: string) {
     }
   }
 
-  const refNum = rep.referenceNumber || rep.submittedMessage?.referenceNumber || rep.id.slice(0, 8);
-  const displayTitle = rep.displayTitle || "Laporan sedang dibuat";
-  const content = rep.content || rep.submittedMessage?.content || "";
-  const categoryName = rep.submittedMessage?.category?.name || rep.convertedBaket?.reportCategory?.name;
+  const refNum = rep.referenceNumber ?? rep.submittedMessage?.referenceNumber ?? rep.id.slice(0, 8);
+  const displayTitle = rep.displayTitle ?? "Laporan sedang dibuat";
+  const content = rep.content ?? rep.submittedMessage?.content ?? "";
+  const categoryName = rep.convertedBaket?.reportCategory?.name;
   const targetHref = detailHref ?? `/dashboard/laporan-jaring/${rep.id}`;
 
   return (
@@ -1334,7 +1497,7 @@ function reportAttachmentThumbnailUrl(src: string) {
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs text-sky-600 dark:text-[#38BDF8] font-bold shrink-0">{refNum}</span>
             <Badge variant="outline" className="text-[10px] font-mono shrink-0">
-              {rep.status || rep.currentState || "SUBMITTED"}
+              {rep.status ?? rep.currentState ?? "SUBMITTED"}
             </Badge>
             {photos.length > 0 && (
               <span className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
@@ -1349,7 +1512,7 @@ function reportAttachmentThumbnailUrl(src: string) {
 
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-[11px] text-muted-foreground font-mono hidden sm:inline-block">
-            {formatDateTime(rep.reportedAt || rep.submittedAt || rep.createdAt)}
+            {formatDateTime(rep.reportedAt ?? rep.submittedAt ?? rep.createdAt)}
           </span>
           <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md">
             {isExpanded ? (
@@ -1412,7 +1575,7 @@ function reportAttachmentThumbnailUrl(src: string) {
             <div className="flex flex-wrap items-center gap-3">
               {categoryName && (
                 <span>
-                  Kategori: <strong className="text-foreground">{categoryName}</strong>
+                  Kategori Baket: <strong className="text-foreground">{categoryName}</strong>
                 </span>
               )}
               <span>Waktu Pelaporan: {formatDateTime(rep.reportedAt)}</span>
@@ -1457,7 +1620,8 @@ function reportAttachmentThumbnailUrl(src: string) {
 export function JaringVerificationDetailClient({ item }: { item: RegistrationJaring }) {
   const router = useRouter();
   const { activeRole } = useRoleWorkspace();
-  const canPerformAction = activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
+  const canPerformAction =
+    activeRole !== SYSTEM_ROLES.EXECUTIVE && activeRole !== SYSTEM_ROLES.REGIONAL_COMMANDER;
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
@@ -1565,7 +1729,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
         action === "reject" ? { reason: reason.trim() || undefined } : undefined,
         { idempotent: true },
       );
-      toast.success(action === "approve" ? "Jaring terverifikasi." : "Pengajuan Jaring ditolak.");
+      toast.success(action === "approve" ? "Pengajuan Jaring disetujui." : "Pengajuan Jaring ditolak.");
       router.push("/dashboard/daftar-jaring");
       router.refresh();
     } catch (error) {
@@ -1598,8 +1762,8 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             </Link>
           </Button>
           <div className="hidden h-4 w-px bg-slate-200 dark:bg-blue-400/12 sm:block" />
-          <h1 className="flex min-w-0 items-center gap-2 font-heading font-bold text-xl tracking-tight text-slate-900 dark:text-[#F8FAFC]">
-            <Users className="size-5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />
+          <h1 className="flex min-w-0 items-center gap-2 font-heading font-bold text-slate-900 text-xl tracking-normal dark:text-[#F8FAFC]">
+            <DOMAIN_VISUALS.jaring.Icon className={`size-5 shrink-0 stroke-[1.5] ${DOMAIN_VISUALS.jaring.iconClass}`} />
             <span className="shrink-0">DETAIL JARING:</span>
             <span className="min-w-0 truncate font-mono tracking-wide">{jaringDisplayName(item)}</span>
           </h1>
@@ -1621,7 +1785,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
           LAPORAN JARING
         </DetailTabButton>
         <DetailTabButton active={activeTab === "coaching"} onClick={() => setActiveTab("coaching")}>
-          HISTORY PEMBINAAN
+          Riwayat Pembinaan
         </DetailTabButton>
       </div>
 
@@ -1629,7 +1793,11 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
         {activeTab === "information" && (
           <div className="space-y-6">
             <DetailSection
-              icon={<Network className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
+              icon={
+                <DOMAIN_VISUALS.jaring.Icon
+                  className={`size-4.5 shrink-0 stroke-[1.5] ${DOMAIN_VISUALS.jaring.iconClass}`}
+                />
+              }
               title="Profil & Data Pribadi"
             >
               <DetailRow label="Foto">
@@ -1678,15 +1846,15 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                 />
               </div>
               <DetailRow label="NIK / KTP">
-                <span className="font-mono">{item.nationalIdNumber || "-"}</span>
+                <span className="font-mono">{item.nationalIdNumber ?? "-"}</span>
               </DetailRow>
               <DetailRow label="Jenis Kelamin">{item.gender ? formatGender(item.gender) : "-"}</DetailRow>
-              <DetailRow label="Tempat Lahir">{item.birthPlace || "-"}</DetailRow>
+              <DetailRow label="Tempat Lahir">{item.birthPlace ?? "-"}</DetailRow>
               <DetailRow label="Tanggal Lahir">{item.birthDate ? formatDateOnly(item.birthDate) : "-"}</DetailRow>
               <DetailRow label="Alamat">
-                <span className="whitespace-pre-wrap">{item.address || "-"}</span>
+                <span className="whitespace-pre-wrap">{item.address ?? "-"}</span>
               </DetailRow>
-              <DetailRow label="Kinerja">
+              <DetailRow label={DOMAIN_TERMS.jaringActivity90Days}>
                 <StatusPill tone={operationalStatusTone(item)}>{operationalStatusLabel(item)}</StatusPill>
               </DetailRow>
               <DetailRow label="Terakhir Melapor">
@@ -1694,7 +1862,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
                   {item.lastReportAt ? formatDateTime(item.lastReportAt) : "Belum pernah melapor"}
                 </span>
               </DetailRow>
-              <DetailRow label="Status Verifikasi">
+              <DetailRow label="Status Registrasi">
                 <StatusPill tone={statusBadgeVariant(item.registrationStatus)}>
                   {detailRegistrationStatusLabel(item.registrationStatus)}
                 </StatusPill>
@@ -1713,22 +1881,22 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               title="Pekerjaan & Karir"
             >
               <DetailRow label="Pekerjaan">{item.occupation?.name ?? "-"}</DetailRow>
-              <DetailRow label="Tempat Kerja">{item.workplace || "-"}</DetailRow>
-              <DetailRow label="Jabatan">{item.jobTitle || "-"}</DetailRow>
+              <DetailRow label="Tempat Kerja">{item.workplace ?? "-"}</DetailRow>
+              <DetailRow label="Jabatan">{item.jobTitle ?? "-"}</DetailRow>
             </DetailSection>
 
             <DetailSection
               icon={<ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />}
               title="Afiliasi & Catatan"
             >
-              <DetailRow label="Organisasi">{item.organizationName || "-"}</DetailRow>
-              <DetailRow label="Afiliasi Politik">{item.politicalAffiliation || "-"}</DetailRow>
+              <DetailRow label="Organisasi">{item.organizationName ?? "-"}</DetailRow>
+              <DetailRow label="Afiliasi Politik">{item.politicalAffiliation ?? "-"}</DetailRow>
               <DetailRow label="Tanggal Bergabung">{item.joinedAt ? formatDateOnly(item.joinedAt) : "-"}</DetailRow>
               <div className="flex flex-col pt-3.5 pb-2">
                 <span className="mb-2 font-medium text-[13px] text-slate-500 tracking-wide dark:text-[#94A3B8]">
                   Kebermanfaatan
                 </span>
-                <NotesBox>{item.notes || "Belum ada kebermanfaatan"}</NotesBox>
+                <NotesBox>{item.notes ?? "Belum ada kebermanfaatan"}</NotesBox>
               </div>
             </DetailSection>
           </div>
@@ -1738,7 +1906,9 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b dark:border-blue-400/12 border-slate-200 pb-3">
               <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                <FileText className="size-4 text-sky-600 dark:text-[#38BDF8]" />
+                <DOMAIN_VISUALS.jaringReport.Icon
+                  className={`size-4 ${DOMAIN_VISUALS.jaringReport.iconClass}`}
+                />
                 Daftar Laporan Jaring ({filteredReports.length})
               </h3>
 
@@ -1849,8 +2019,8 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               </div>
             ) : reports.length > 0 ? (
               <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
-                <FileText className="size-8 text-muted-foreground mx-auto" />
-                <div className="font-semibold text-sm text-foreground">Tidak Ada Laporan Ditemukan</div>
+                <DOMAIN_VISUALS.jaringReport.Icon className="mx-auto size-8 text-muted-foreground" />
+                <div className="font-semibold text-sm text-foreground">Tidak ada laporan ditemukan</div>
                 <p className="text-xs text-muted-foreground">
                   Tidak ada laporan yang sesuai dengan filter tanggal yang dipilih.
                 </p>
@@ -1871,7 +2041,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
-                <FileText className="size-8 text-muted-foreground mx-auto" />
+                <DOMAIN_VISUALS.jaringReport.Icon className="mx-auto size-8 text-muted-foreground" />
                 <div className="font-semibold text-sm text-foreground">Belum Ada Laporan</div>
                 <p className="text-xs text-muted-foreground">Jaring ini belum membuat laporan di sistem.</p>
               </div>
@@ -1881,7 +2051,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
 
         {activeTab === "coaching" && (
           <div className="rounded-lg border border-dashed border-slate-200 dark:border-blue-400/12 p-8 text-center space-y-2">
-            <Users className="size-8 text-muted-foreground mx-auto" />
+            <DOMAIN_VISUALS.jaring.Icon className="mx-auto size-8 text-muted-foreground" />
             <div className="font-semibold text-sm text-foreground">Belum Ada Laporan Pembinaan</div>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
               Histori laporan pembinaan Jaring belum tersedia.
@@ -1896,7 +2066,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             <div className="flex w-full items-center gap-3 border-b border-slate-200 pb-2.5 dark:border-blue-400/12">
               <ShieldCheck className="size-4.5 shrink-0 stroke-[1.5] text-sky-600 dark:text-[#38BDF8]" />
               <h2 className="shrink-0 font-bold text-[14px] text-slate-800 uppercase tracking-[0.08em] dark:text-[#F8FAFC]">
-                Keputusan Verifikasi
+                Keputusan Registrasi
               </h2>
               <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent dark:from-blue-400/12 dark:to-transparent" />
             </div>
@@ -1938,7 +2108,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             <DialogHeader className="pr-10">
               <DialogTitle>Foto Profil Jaring</DialogTitle>
               <DialogDescription className="text-white/60">
-                {jaringDisplayName(item)} {item.fullName ? `- ${item.fullName}` : ""}
+                {jaringIdentityNote(item) ?? jaringDisplayName(item)}
               </DialogDescription>
             </DialogHeader>
             <div className="grid min-h-0 place-items-center overflow-auto rounded-md border border-white/10 bg-black">
@@ -1966,7 +2136,7 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingAction === "approve"
-                ? "Status pengajuan akan berubah menjadi terverifikasi dan Jaring masuk ke jaringan operasional."
+                ? "Pengajuan akan disetujui dan Jaring masuk ke jaringan operasional."
                 : "Status pengajuan akan berubah menjadi ditolak. Alasan penolakan akan dicatat."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1997,27 +2167,23 @@ export function JaringVerificationDetailClient({ item }: { item: RegistrationJar
 }
 
 function detailRegistrationStatusLabel(status: RegistrationJaring["registrationStatus"]) {
-  if (status === "PENDING") return "BELUM TERVERIFIKASI";
+  if (status === "PENDING") return "MENUNGGU TINJAUAN";
   if (status === "REJECTED") return "DITOLAK / REVISI";
-  return "TERVERIFIKASI";
+  return "DISETUJUI";
 }
 
 function isJaringActive(item: RegistrationJaring): boolean {
-  if (item.registrationStatus !== "APPROVED") return false;
-  if (item.status) return item.status === "ACTIVE";
   if (!item.lastReportAt) return false;
   const threeMonthsAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
   return new Date(item.lastReportAt).getTime() >= threeMonthsAgo;
 }
 
 function operationalStatusLabel(item: RegistrationJaring) {
-  if (item.registrationStatus === "REJECTED") return "TIDAK AKTIF";
-  if (item.registrationStatus === "PENDING") return "BELUM TERVERIFIKASI";
-  return isJaringActive(item) ? "AKTIF" : "TIDAK AKTIF";
+  return isJaringActive(item) ? DOMAIN_TERMS.jaringActive90Days : DOMAIN_TERMS.jaringInactive90Days;
 }
 
 function operationalStatusTone(item: RegistrationJaring) {
-  if (item.registrationStatus !== "APPROVED" || !isJaringActive(item)) {
+  if (!isJaringActive(item)) {
     return "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
   }
   return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-950/40 dark:text-[#22C55E]";

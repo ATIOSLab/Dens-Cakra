@@ -8,16 +8,17 @@ import type { DashboardBriefingData } from "./dashboard-stats-types";
 
 type DashboardStatsPageProps = {
   role: SystemRole;
+  searchParams?: Record<string, string | string[] | undefined>;
 };
 
-export async function DashboardStatsPage({ role }: DashboardStatsPageProps) {
+export async function DashboardStatsPage({ role, searchParams }: DashboardStatsPageProps) {
   if (
     role === "executive" ||
     role === "regional_commander" ||
     role === "operational_intelligence_manager" ||
     role === "field_coordinator"
   ) {
-    return <ExecutiveDashboardPage role={role} />;
+    return <ExecutiveDashboardPage role={role} searchParams={searchParams} />;
   }
 
   await requireRole(role);

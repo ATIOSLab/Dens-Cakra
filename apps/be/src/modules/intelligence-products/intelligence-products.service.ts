@@ -1,6 +1,8 @@
-import { OrganizationType, PositionCode } from '../../common/constants/legacy-operational-code.js';
 import {
-  Injectable } from '@nestjs/common';
+  OrganizationType,
+  PositionCode,
+} from '../../common/constants/legacy-operational-code.js';
+import { Injectable } from '@nestjs/common';
 import {
   AlertSeverity,
   AlertStatus,
@@ -23,6 +25,7 @@ import {
   TaskAssignmentStatus,
   TaskStatus,
   WhatsAppMessageStatus,
+  WhatsAppReportSessionStatus,
   Classification,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
@@ -1128,16 +1131,17 @@ export class IntelligenceProductsService {
   }
 
   private async buildWorkflowTargets(assignmentId: string) {
-    const creator = await this.prisma.userOperationalAssignment.findUniqueOrThrow({
-      where: { id: assignmentId },
-      include: {
-        role: true,
-        areaScopes: {
-          where: { validUntil: null },
-          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+    const creator =
+      await this.prisma.userOperationalAssignment.findUniqueOrThrow({
+        where: { id: assignmentId },
+        include: {
+          role: true,
+          areaScopes: {
+            where: { validUntil: null },
+            orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+          },
         },
-      },
-    });
+      });
 
     const areaIds = creator.areaScopes.map((scope) => scope.areaId);
     if (!areaIds.length) {
@@ -1523,7 +1527,9 @@ export class IntelligenceProductsService {
       ...(query.status ? { status: query.status } : {}),
       ...(query.classification ? { classification: query.classification } : {}),
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
-      ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
+      ...(query.ownerAssignmentId
+        ? { ownerAssignmentId: query.ownerAssignmentId }
+        : {}),
       ...(query.createdByAssignmentId
         ? { createdByAssignmentId: query.createdByAssignmentId }
         : {}),
@@ -2262,7 +2268,10 @@ export class IntelligenceProductsService {
             : { in: [ApprovalStepStatus.ACTIVE, ApprovalStepStatus.WAITING] },
         },
         ...(query.stage ? [{ stage: query.stage }] : []),
-        ...(query.from || query.to || query.routeType || Object.keys(productWhere).length
+        ...(query.from ||
+        query.to ||
+        query.routeType ||
+        Object.keys(productWhere).length
           ? [
               {
                 workflow: {
@@ -2270,7 +2279,9 @@ export class IntelligenceProductsService {
                     ...(query.from || query.to
                       ? {
                           startedAt: {
-                            ...(query.from ? { gte: new Date(query.from) } : {}),
+                            ...(query.from
+                              ? { gte: new Date(query.from) }
+                              : {}),
                             ...(query.to ? { lte: new Date(query.to) } : {}),
                           },
                         }
@@ -2471,7 +2482,7 @@ export class IntelligenceProductsService {
       workflow.productVersion.createdByAssignmentId,
       NotificationType.PRODUCT,
       'Produk disetujui',
-      `Produk ${workflow.productVersion.product.title} telah disetujui Regional Commander dan tersedia untuk Executive.`,
+      `Produk ${workflow.productVersion.product.title} telah disetujui Komandan Regional dan tersedia untuk Deputi II.`,
       `/products/${workflow.productVersion.productId}`,
     );
     await this.audit(
@@ -2802,7 +2813,9 @@ export class IntelligenceProductsService {
   async listDistributions(query: DistributionQuery) {
     const where: Prisma.ProductDistributionWhereInput = {
       ...(query.status ? { status: query.status } : {}),
-      ...(query.targetAssignmentId ? { targetAssignmentId: query.targetAssignmentId } : {}),
+      ...(query.targetAssignmentId
+        ? { targetAssignmentId: query.targetAssignmentId }
+        : {}),
       ...(query.targetUserProfileId
         ? { targetUserProfileId: query.targetUserProfileId }
         : {}),
@@ -3482,7 +3495,8 @@ export class IntelligenceProductsService {
                 assignment.userProfile.username,
               positionTitle: assignment.role.name,
               organizationUnit:
-                assignment.areaScopes.find((scope: any) => scope.isPrimary)?.area ??
+                assignment.areaScopes.find((scope: any) => scope.isPrimary)
+                  ?.area ??
                 assignment.areaScopes[0]?.area ??
                 null,
             }
@@ -3756,7 +3770,8 @@ export class IntelligenceProductsService {
         currentVersionNumber: report.currentVersionNumber,
         category: report.reportCategory,
         jaring: report.primaryJaringId
-          ? (jaringIdentityById.get(report.primaryJaringId) ?? report.primaryJaring)
+          ? (jaringIdentityById.get(report.primaryJaringId) ??
+            report.primaryJaring)
           : report.primaryJaring,
         version: report.versions[0]
           ? {
@@ -3838,9 +3853,7 @@ export class IntelligenceProductsService {
               id: report.id,
               status: report.status,
               createdAt: report.createdAt,
-              displayTitle: deriveReportDisplayTitle(
-                version?.originalContent,
-              ),
+              displayTitle: deriveReportDisplayTitle(version?.originalContent),
               urgency: version?.urgency ?? null,
               reportedAt: version?.createdAt ?? report.createdAt,
               originalContent: version?.originalContent ?? null,
@@ -3855,7 +3868,8 @@ export class IntelligenceProductsService {
               coordinateSource: version?.coordinateSource ?? null,
               category: report.reportCategory,
               jaring: report.primaryJaringId
-                ? (jaringIdentityById.get(report.primaryJaringId) ?? report.primaryJaring)
+                ? (jaringIdentityById.get(report.primaryJaringId) ??
+                  report.primaryJaring)
                 : report.primaryJaring,
               areaName: version?.eventArea?.name ?? null,
               areaLevel: version?.eventArea?.level ?? null,
@@ -4056,29 +4070,47 @@ export class IntelligenceProductsService {
       : new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
     const scope = await this.scope.resolve(context);
     const dateWhere = { gte: from, lte: to };
-    const [assignments, taskAssignments, bakets] = await Promise.all([
+    const activityFrom = new Date(to.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const [baketScopeWhere, jaringScopeWhere] = await Promise.all([
+      this.scope.baketWhere(context),
+      this.scope.jaringWhere(context),
+    ]);
+    const activeAssignmentWhere = {
+      isActive: true,
+      OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+    };
+    const [
+      assignments,
+      taskAssignments,
+      bakets,
+      jaringRecords,
+      periodReports,
+      activityReports,
+    ]: [any[], any[], any[], any[], any[], any[]] = await Promise.all([
       this.prisma.userOperationalAssignment.findMany({
-        where: { id: { in: scope.assignmentIds }, isActive: true },
-        orderBy: [{ position: { organizationUnit: { name: 'asc' } } }],
+        where: {
+          id: { in: scope.assignmentIds },
+          ...activeAssignmentWhere,
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         select: {
           id: true,
+          branch: true,
           userProfile: { select: { id: true, fullName: true, username: true } },
-          position: {
-            select: {
-              id: true,
-              title: true,
-              code: true,
-              organizationUnit: {
-                select: { id: true, code: true, name: true, type: true },
-              },
-            },
-          },
+          role: { select: { code: true, name: true } },
           areaScopes: {
             where: { validUntil: null },
             select: {
               isPrimary: true,
               area: {
-                select: { id: true, code: true, name: true, level: true },
+                select: {
+                  id: true,
+                  code: true,
+                  officialCode: true,
+                  name: true,
+                  level: true,
+                  parentId: true,
+                },
               },
             },
           },
@@ -4107,11 +4139,12 @@ export class IntelligenceProductsService {
         where: {
           deletedAt: null,
           createdAt: dateWhere,
-          ...(await this.scope.baketWhere(context)),
+          ...baketScopeWhere,
         },
         select: {
           id: true,
           createdByFieldOfficerAssignmentId: true,
+          primaryJaringId: true,
           createdAt: true,
           taskAssignment: {
             select: { dueDate: true, task: { select: { dueDate: true } } },
@@ -4142,6 +4175,109 @@ export class IntelligenceProductsService {
           },
         },
       }),
+      this.prisma.jaring.findMany({
+        where: jaringScopeWhere,
+        orderBy: [{ aliasName: 'asc' }, { fullName: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          aliasName: true,
+          fullName: true,
+          status: true,
+          registrationStatus: true,
+          caretakerAssignments: {
+            where: {
+              isActive: true,
+              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+            },
+            take: 1,
+            select: {
+              fieldOfficerAssignmentId: true,
+              fieldOfficerAssignment: {
+                select: {
+                  id: true,
+                  userProfile: {
+                    select: { fullName: true, username: true },
+                  },
+                  role: { select: { code: true, name: true } },
+                  areaScopes: {
+                    where: { validUntil: null },
+                    select: {
+                      isPrimary: true,
+                      area: {
+                        select: {
+                          id: true,
+                          code: true,
+                          officialCode: true,
+                          name: true,
+                          level: true,
+                          parentId: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          areaCoverages: {
+            where: { validUntil: null },
+            select: {
+              isPrimary: true,
+              area: {
+                select: {
+                  id: true,
+                  code: true,
+                  officialCode: true,
+                  name: true,
+                  level: true,
+                  parentId: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.whatsAppReportSession.findMany({
+        where: {
+          fieldOfficerAssignmentId: { in: scope.assignmentIds },
+          OR: [{ submittedAt: dateWhere }, { startedAt: dateWhere }],
+        },
+        select: {
+          id: true,
+          jaringId: true,
+          fieldOfficerAssignmentId: true,
+          content: true,
+          latitude: true,
+          longitude: true,
+          status: true,
+          startedAt: true,
+          submittedAt: true,
+          closedAt: true,
+          media: {
+            where: { deletedAt: null },
+            select: { id: true },
+          },
+          submittedMessage: {
+            select: {
+              convertedBaketId: true,
+              validationSummary: true,
+              status: true,
+            },
+          },
+        },
+      }),
+      this.prisma.whatsAppReportSession.findMany({
+        where: {
+          fieldOfficerAssignmentId: { in: scope.assignmentIds },
+          submittedAt: { gte: activityFrom, lte: to },
+        },
+        select: {
+          id: true,
+          jaringId: true,
+          fieldOfficerAssignmentId: true,
+          submittedAt: true,
+        },
+      }),
     ]);
 
     const tasksByAssignment = new Map<string, typeof taskAssignments>();
@@ -4151,11 +4287,81 @@ export class IntelligenceProductsService {
       tasksByAssignment.set(task.assigneeAssignmentId, items);
     }
     const baketsByAssignment = new Map<string, typeof bakets>();
+    const baketsByJaring = new Map<string, typeof bakets>();
     for (const baket of bakets) {
       const items =
         baketsByAssignment.get(baket.createdByFieldOfficerAssignmentId) ?? [];
       items.push(baket);
       baketsByAssignment.set(baket.createdByFieldOfficerAssignmentId, items);
+      if (baket.primaryJaringId) {
+        const jaringItems = baketsByJaring.get(baket.primaryJaringId) ?? [];
+        jaringItems.push(baket);
+        baketsByJaring.set(baket.primaryJaringId, jaringItems);
+      }
+    }
+    const reportsByAssignment = new Map<string, typeof periodReports>();
+    const reportsByJaring = new Map<string, typeof periodReports>();
+    for (const report of periodReports) {
+      const assignmentItems =
+        reportsByAssignment.get(report.fieldOfficerAssignmentId) ?? [];
+      assignmentItems.push(report);
+      reportsByAssignment.set(report.fieldOfficerAssignmentId, assignmentItems);
+
+      const jaringItems = reportsByJaring.get(report.jaringId) ?? [];
+      jaringItems.push(report);
+      reportsByJaring.set(report.jaringId, jaringItems);
+    }
+    const activeJaringIds = new Set(
+      activityReports
+        .filter((report) => Boolean(report.submittedAt))
+        .map((report) => report.jaringId),
+    );
+    const allAreaIds = [
+      ...new Set(
+        [
+          ...assignments.flatMap((assignment) =>
+            assignment.areaScopes.map((scopeItem: any) => scopeItem.area.id),
+          ),
+          ...jaringRecords.flatMap((jaring) =>
+            jaring.areaCoverages.map((coverage: any) => coverage.area.id),
+          ),
+        ].filter(Boolean),
+      ),
+    ];
+    const areaLinks = allAreaIds.length
+      ? await this.prisma.administrativeAreaClosure.findMany({
+          where: {
+            descendantId: { in: allAreaIds },
+            ancestor: {
+              level: {
+                in: ['PROVINCE', 'REGENCY', 'CITY', 'DISTRICT'],
+              },
+              isActive: true,
+              deletedAt: null,
+            },
+          },
+          orderBy: [{ depth: 'asc' }],
+          select: {
+            descendantId: true,
+            depth: true,
+            ancestor: {
+              select: {
+                id: true,
+                code: true,
+                officialCode: true,
+                name: true,
+                level: true,
+                parentId: true,
+              },
+            },
+          },
+        })
+      : [];
+    const ancestorsByArea = new Map<string, typeof areaLinks>();
+    for (const link of areaLinks) {
+      const links = ancestorsByArea.get(link.descendantId) ?? [];
+      links.push(link);
+      ancestorsByArea.set(link.descendantId, links);
     }
 
     const average = (values: number[]) =>
@@ -4165,13 +4371,64 @@ export class IntelligenceProductsService {
               10,
           ) / 10
         : null;
-    const scoreFor = (assignmentIds: string[]) => {
-      const tasks = assignmentIds.flatMap(
+    const unique = (values: Array<string | null | undefined>) => [
+      ...new Set(values.filter((value): value is string => Boolean(value))),
+    ];
+    const pickPrimaryArea = <
+      T extends {
+        id: string;
+        code?: string | null;
+        officialCode?: string | null;
+        name?: string | null;
+        level?: string | null;
+        parentId?: string | null;
+      },
+    >(
+      scopes: Array<{ isPrimary?: boolean | null; area: T }>,
+    ) =>
+      (scopes.find((scopeItem) => scopeItem.isPrimary) ?? scopes[0])?.area ??
+      null;
+    const areaAtLevel = (
+      areaId: string | null | undefined,
+      levels: string[],
+    ) => {
+      if (!areaId) return null;
+      return (
+        ancestorsByArea
+          .get(areaId)
+          ?.map((link: any) => link.ancestor)
+          .find((area: any) => levels.includes(area.level)) ?? null
+      );
+    };
+    const areaLabel = (area: { name: string; level: string } | null) =>
+      area ? `${area.name}` : 'Wilayah belum ditentukan';
+    const assignmentName = (assignment: (typeof assignments)[number]) =>
+      assignment.userProfile.fullName ??
+      assignment.userProfile.username ??
+      assignment.role.name ??
+      'Personel tanpa nama';
+    const scoreFor = (assignmentIds: string[], jaringIds: string[] = []) => {
+      const scopedAssignmentIds = unique(assignmentIds);
+      const scopedJaringIds = unique(jaringIds);
+      const tasks = scopedAssignmentIds.flatMap(
         (id) => tasksByAssignment.get(id) ?? [],
       );
-      const reports = assignmentIds.flatMap(
-        (id) => baketsByAssignment.get(id) ?? [],
+      const reportsById = new Map(
+        [
+          ...scopedAssignmentIds.flatMap((id) => baketsByAssignment.get(id) ?? []),
+          ...scopedJaringIds.flatMap((id) => baketsByJaring.get(id) ?? []),
+        ].map((baket) => [baket.id, baket]),
       );
+      const reports = [...reportsById.values()];
+      const reportSessionsById = new Map(
+        [
+          ...scopedAssignmentIds.flatMap(
+            (id) => reportsByAssignment.get(id) ?? [],
+          ),
+          ...scopedJaringIds.flatMap((id) => reportsByJaring.get(id) ?? []),
+        ].map((report) => [report.id, report]),
+      );
+      const jaringReports = [...reportSessionsById.values()];
       const taskTimeliness = tasks
         .filter(
           (task) => task.completedAt && (task.dueDate ?? task.task.dueDate),
@@ -4190,13 +4447,16 @@ export class IntelligenceProductsService {
             ? 100
             : 40,
         );
-      const verifications = reports
+      const jaringActivityScores = scopedJaringIds.map((id) =>
+        activeJaringIds.has(id) ? 100 : 0,
+      );
+      const baketAssessments = reports
         .map((baket) => baket.versions[0]?.verification)
         .filter(
           (verification): verification is NonNullable<typeof verification> =>
             Boolean(verification),
         );
-      const qualityScores = verifications.map((verification) => {
+      const qualityScores = baketAssessments.map((verification) => {
         const statusScore =
           verification.status === 'VERIFIED'
             ? 100
@@ -4206,15 +4466,31 @@ export class IntelligenceProductsService {
                 ? 20
                 : 45;
         const applicableChecks = verification.checks.filter(
-          (check) => check.status !== 'NOT_APPLICABLE',
+          (check: any) => check.status !== 'NOT_APPLICABLE',
         );
         const checkScore = applicableChecks.length
-          ? (applicableChecks.filter((check) => check.status === 'PASS')
+          ? (applicableChecks.filter((check: any) => check.status === 'PASS')
               .length /
               applicableChecks.length) *
             100
           : statusScore;
         return statusScore * 0.65 + checkScore * 0.35;
+      });
+      const reportQualityScores = jaringReports.map((report) => {
+        const hasContent = Boolean(report.content?.trim());
+        const hasCoordinate =
+          report.latitude !== null && report.longitude !== null;
+        const hasMedia = report.media.length > 0;
+        const hasSubmitted =
+          report.status === WhatsAppReportSessionStatus.SUBMITTED ||
+          report.status === WhatsAppReportSessionStatus.CLOSED ||
+          Boolean(report.submittedAt);
+        return (
+          (hasContent ? 25 : 0) +
+          (hasCoordinate ? 25 : 0) +
+          (hasMedia ? 25 : 0) +
+          (hasSubmitted ? 25 : 0)
+        );
       });
       const reliabilityScore: Record<string, number> = {
         A: 100,
@@ -4232,7 +4508,7 @@ export class IntelligenceProductsService {
         FIVE: 35,
         SIX: 15,
       };
-      const validityScores = verifications
+      const validityScores = baketAssessments
         .filter(
           (verification) =>
             verification.sourceReliability &&
@@ -4244,11 +4520,14 @@ export class IntelligenceProductsService {
               (credibilityScore[verification.informationCredibility!] ?? 0)) /
             2,
         );
-      const contributionScores = verifications.map((verification) =>
+      const contributionScores = baketAssessments.map((verification) =>
         verification.productSources.length ||
         verification.analysisSources.length
           ? 100
           : 35,
+      );
+      const reportContributionScores = jaringReports.map((report) =>
+        report.submittedMessage?.convertedBaketId ? 85 : 35,
       );
       const responseScores = tasks.flatMap((task) => {
         const values: number[] = [];
@@ -4267,16 +4546,29 @@ export class IntelligenceProductsService {
         }
         return values;
       });
+      const reportResponseScores = jaringReports.map((report) => {
+        if (report.submittedAt) return 100;
+        if (report.closedAt) return 70;
+        if (report.status === WhatsAppReportSessionStatus.ACTIVE) return 45;
+        return 20;
+      });
       const indicators = [
         {
           code: 'IDX.1',
-          score: average([...taskTimeliness, ...reportTimeliness]),
-          sample: taskTimeliness.length + reportTimeliness.length,
+          score: average([
+            ...taskTimeliness,
+            ...reportTimeliness,
+            ...jaringActivityScores,
+          ]),
+          sample:
+            taskTimeliness.length +
+            reportTimeliness.length +
+            jaringActivityScores.length,
         },
         {
           code: 'IDX.2',
-          score: average(qualityScores),
-          sample: qualityScores.length,
+          score: average([...qualityScores, ...reportQualityScores]),
+          sample: qualityScores.length + reportQualityScores.length,
         },
         {
           code: 'IDX.3',
@@ -4285,13 +4577,16 @@ export class IntelligenceProductsService {
         },
         {
           code: 'IDX.4',
-          score: average(contributionScores),
-          sample: contributionScores.length,
+          score: average([
+            ...contributionScores,
+            ...reportContributionScores,
+          ]),
+          sample: contributionScores.length + reportContributionScores.length,
         },
         {
           code: 'IDX.5',
-          score: average(responseScores),
-          sample: responseScores.length,
+          score: average([...responseScores, ...reportResponseScores]),
+          sample: responseScores.length + reportResponseScores.length,
         },
       ];
       const measured = indicators.filter(
@@ -4314,49 +4609,233 @@ export class IntelligenceProductsService {
         evidence: {
           tasks: tasks.length,
           reports: reports.length,
-          verifications: verifications.length,
+          jaringReports: jaringReports.length,
+          jaring: scopedJaringIds.length,
+          activeJaring90Days: scopedJaringIds.filter((id) =>
+            activeJaringIds.has(id),
+          ).length,
+          baketAssessments: baketAssessments.length,
+          verifications: baketAssessments.length,
           measuredIndicators: measured.length,
         },
       };
     };
 
-    const unitGroups = new Map<
+    const hierarchyNodes = new Map<
       string,
       {
-        unit: (typeof assignments)[number]['position']['organizationUnit'];
-        assignmentIds: string[];
+        id: string;
+        code: string;
+        name: string;
+        type: string;
+        hierarchyLevel: 'BINDA' | 'KORWIL' | 'GASWIL' | 'JARING';
+        levelLabel: string;
+        parentId: string | null;
+        scopeArea: { id: string; code: string; name: string; level: string } | null;
+        assignmentIds: Set<string>;
+        jaringIds: Set<string>;
       }
     >();
+    const getNode = (
+      input: Omit<
+        (typeof hierarchyNodes extends Map<string, infer T> ? T : never),
+        'assignmentIds' | 'jaringIds'
+      >,
+    ) => {
+      const existing = hierarchyNodes.get(input.id);
+      if (existing) return existing;
+      const created = {
+        ...input,
+        assignmentIds: new Set<string>(),
+        jaringIds: new Set<string>(),
+      };
+      hierarchyNodes.set(input.id, created);
+      return created;
+    };
+    const ensureAreaNodes = (areaId: string | null | undefined) => {
+      const district = areaAtLevel(areaId, ['DISTRICT']);
+      const regency = areaAtLevel(areaId, ['REGENCY', 'CITY']);
+      const province = areaAtLevel(areaId, ['PROVINCE']);
+      const binda = province
+        ? getNode({
+            id: `binda:${province.id}`,
+            code: province.officialCode ?? province.code,
+            name: `BIN Daerah (Binda) ${province.name}`,
+            type: 'BINDA',
+            hierarchyLevel: 'BINDA',
+            levelLabel: 'Kinerja Binda',
+            parentId: null,
+            scopeArea: province,
+          })
+        : null;
+      const korwil = regency
+        ? getNode({
+            id: `korwil:${regency.id}`,
+            code: regency.officialCode ?? regency.code,
+            name: `Koordinator Wilayah (Korwil) ${regency.name}`,
+            type: 'KORWIL',
+            hierarchyLevel: 'KORWIL',
+            levelLabel: 'Kinerja Korwil',
+            parentId: binda?.id ?? null,
+            scopeArea: regency,
+          })
+        : null;
+      const gaswilArea = district
+        ? {
+            id: district.id,
+            code: district.officialCode ?? district.code,
+            name: district.name,
+            level: district.level,
+          }
+        : null;
+      return { province, regency, district, binda, korwil, gaswilArea };
+    };
     for (const assignment of assignments) {
-      const unit = assignment.position.organizationUnit;
-      const group = unitGroups.get(unit.id) ?? { unit, assignmentIds: [] };
-      group.assignmentIds.push(assignment.id);
-      unitGroups.set(unit.id, group);
+      const primaryArea = pickPrimaryArea(assignment.areaScopes);
+      const nodes = ensureAreaNodes(primaryArea?.id);
+      if (assignment.role.code === RoleCode.REGIONAL_COMMANDER && nodes.binda) {
+        nodes.binda.assignmentIds.add(assignment.id);
+      }
+      if (assignment.role.code === RoleCode.FIELD_COORDINATOR && nodes.korwil) {
+        nodes.korwil.assignmentIds.add(assignment.id);
+      }
+      if (assignment.role.code === RoleCode.FIELD_OFFICER) {
+        const gaswil = getNode({
+          id: `gaswil:${assignment.id}`,
+          code: primaryArea?.officialCode ?? primaryArea?.code ?? assignment.id,
+          name: assignmentName(assignment),
+          type: 'GASWIL',
+          hierarchyLevel: 'GASWIL',
+          levelLabel: 'Kinerja Gaswil',
+          parentId: nodes.korwil?.id ?? nodes.binda?.id ?? null,
+          scopeArea: nodes.gaswilArea,
+        });
+        gaswil.assignmentIds.add(assignment.id);
+      }
     }
-    const summary = scoreFor(assignments.map((assignment) => assignment.id));
-    const units = [...unitGroups.values()]
+    for (const jaring of jaringRecords) {
+      const primaryCoverage = pickPrimaryArea(jaring.areaCoverages);
+      const nodes = ensureAreaNodes(primaryCoverage?.id);
+      const caretaker = jaring.caretakerAssignments[0];
+      const gaswilAssignment = caretaker?.fieldOfficerAssignment;
+      const gaswilId = caretaker?.fieldOfficerAssignmentId
+        ? `gaswil:${caretaker.fieldOfficerAssignmentId}`
+        : null;
+      const gaswil = gaswilAssignment
+        ? (hierarchyNodes.get(gaswilId!) ??
+          getNode({
+            id: gaswilId!,
+            code:
+              nodes.gaswilArea?.code ??
+              caretaker.fieldOfficerAssignmentId,
+            name:
+              gaswilAssignment.userProfile.fullName ??
+              gaswilAssignment.userProfile.username ??
+              'Petugas Wilayah (Gaswil) tanpa nama',
+            type: 'GASWIL',
+            hierarchyLevel: 'GASWIL',
+            levelLabel: 'Kinerja Gaswil',
+            parentId: nodes.korwil?.id ?? nodes.binda?.id ?? null,
+            scopeArea: nodes.gaswilArea,
+          }))
+        : null;
+      const jaringLabel =
+        jaring.aliasName ?? jaring.fullName ?? `Jaring ${jaring.id}`;
+      const jaringNode = getNode({
+        id: `jaring:${jaring.id}`,
+        code: jaring.aliasName ?? jaring.id,
+        name: jaringLabel,
+        type: jaring.status,
+        hierarchyLevel: 'JARING',
+        levelLabel: 'Kinerja Jaring',
+        parentId: gaswil?.id ?? nodes.korwil?.id ?? nodes.binda?.id ?? null,
+        scopeArea: primaryCoverage
+          ? {
+              id: primaryCoverage.id,
+              code:
+                primaryCoverage.officialCode ??
+                primaryCoverage.code ??
+                primaryCoverage.id,
+              name: primaryCoverage.name ?? 'Wilayah belum ditentukan',
+              level: primaryCoverage.level ?? 'UNKNOWN',
+            }
+          : null,
+      });
+      jaringNode.jaringIds.add(jaring.id);
+      if (caretaker?.fieldOfficerAssignmentId) {
+        jaringNode.assignmentIds.add(caretaker.fieldOfficerAssignmentId);
+        gaswil?.assignmentIds.add(caretaker.fieldOfficerAssignmentId);
+      }
+      for (const node of [gaswil, nodes.korwil, nodes.binda]) {
+        node?.jaringIds.add(jaring.id);
+        if (caretaker?.fieldOfficerAssignmentId) {
+          node?.assignmentIds.add(caretaker.fieldOfficerAssignmentId);
+        }
+      }
+    }
+    const summary = scoreFor(
+      assignments.map((assignment) => assignment.id),
+      jaringRecords.map((jaring) => jaring.id),
+    );
+    const levelOrder = new Map([
+      ['BINDA', 1],
+      ['KORWIL', 2],
+      ['GASWIL', 3],
+      ['JARING', 4],
+    ]);
+    const units = [...hierarchyNodes.values()]
       .map((group) => ({
-        id: group.unit.id,
-        code: group.unit.code,
-        name: group.unit.name,
-        type: group.unit.type,
-        personnelCount: group.assignmentIds.length,
-        ...scoreFor(group.assignmentIds),
+        id: group.id,
+        code: group.code,
+        name: group.name,
+        type: group.type,
+        hierarchyLevel: group.hierarchyLevel,
+        levelLabel: group.levelLabel,
+        parentId: group.parentId,
+        scopeArea: group.scopeArea,
+        personnelCount: group.assignmentIds.size,
+        jaringCount: group.jaringIds.size,
+        ...scoreFor([...group.assignmentIds], [...group.jaringIds]),
       }))
-      .sort((left, right) => (right.score ?? -1) - (left.score ?? -1));
+      .sort(
+        (left, right) =>
+          (levelOrder.get(left.hierarchyLevel) ?? 99) -
+            (levelOrder.get(right.hierarchyLevel) ?? 99) ||
+          (right.score ?? -1) - (left.score ?? -1) ||
+          left.name.localeCompare(right.name, 'id-ID'),
+      );
     const personnel = assignments
       .filter((assignment) => assignment.id !== context.primaryAssignmentId)
       .map((assignment) => ({
         id: assignment.id,
-        name:
-          assignment.userProfile.fullName ??
-          assignment.userProfile.username ??
-          'Personel tanpa nama',
-        position: assignment.position.title,
-        positionCode: assignment.position.code,
-        unit: assignment.position.organizationUnit,
-        areas: assignment.areaScopes.map((scopeItem) => scopeItem.area),
-        ...scoreFor([assignment.id]),
+        name: assignmentName(assignment),
+        position: assignment.role.name,
+        positionCode: assignment.role.code,
+        hierarchyLevel:
+          assignment.role.code === RoleCode.REGIONAL_COMMANDER
+            ? 'BINDA'
+            : assignment.role.code === RoleCode.FIELD_COORDINATOR
+              ? 'KORWIL'
+              : assignment.role.code === RoleCode.FIELD_OFFICER
+                ? 'GASWIL'
+                : 'PERSONEL',
+        unit: {
+          id: assignment.areaScopes[0]?.area.id ?? assignment.id,
+          code: assignment.areaScopes[0]?.area.officialCode ?? assignment.areaScopes[0]?.area.code ?? assignment.id,
+          name: areaLabel(assignment.areaScopes[0]?.area ?? null),
+          type: assignment.branch,
+        },
+        areas: assignment.areaScopes.map((scopeItem: any) => scopeItem.area),
+        ...scoreFor(
+          [assignment.id],
+          jaringRecords
+            .filter(
+              (jaring) =>
+                jaring.caretakerAssignments[0]?.fieldOfficerAssignmentId ===
+                assignment.id,
+            )
+            .map((jaring) => jaring.id),
+        ),
       }))
       .sort((left, right) => (right.score ?? -1) - (left.score ?? -1));
     const lowest = summary.indicators
@@ -4365,15 +4844,15 @@ export class IntelligenceProductsService {
     const recommendations = [
       lowest
         ? `Prioritas pembinaan adalah ${lowest.code} karena menjadi indikator terendah pada periode ini.`
-        : 'Belum cukup bukti untuk menetapkan prioritas pembinaan. Pastikan tugas, Baket, dan verifikasi tercatat pada periode yang sama.',
-      summary.evidence.verifications < summary.evidence.reports
-        ? 'Percepat verifikasi formal dan Neraca A-F / 1-6 agar laporan tidak berhenti sebagai volume tanpa validitas.'
-        : 'Pertahankan audit kualitas dan telusur sumber sebelum memakai laporan sebagai dasar keputusan.',
+        : 'Belum cukup bukti untuk menetapkan prioritas pembinaan. Pastikan Laporan Jaring, Baket, dan tugas tercatat pada periode yang sama.',
+      summary.evidence.baketAssessments < summary.evidence.reports
+        ? 'Lengkapi penilaian Baket dan Neraca A-F / 1-6 agar validitas informasi dapat dihitung.'
+        : 'Pertahankan audit kualitas dan telusur sumber sebelum memakai Baket sebagai dasar keputusan.',
       summary.indicators.find((indicator) => indicator.code === 'IDX.4')
         ?.score !== null &&
       (summary.indicators.find((indicator) => indicator.code === 'IDX.4')
         ?.score ?? 100) < 70
-        ? 'Hubungkan Baket terverifikasi ke analisis atau produk strategis untuk menaikkan dampak terhadap isu prioritas.'
+        ? 'Hubungkan Baket ke analisis atau Produk Intelijen untuk menaikkan dampak terhadap isu prioritas.'
         : 'Pantau distribusi kontribusi agar isu nasional tidak hanya ditopang oleh sedikit unit atau personel.',
     ];
 
@@ -4381,45 +4860,58 @@ export class IntelligenceProductsService {
       period: {
         from: from.toISOString(),
         to: to.toISOString(),
+        activityFrom: activityFrom.toISOString(),
         days: Math.max(
           1,
           Math.ceil((to.getTime() - from.getTime()) / 86_400_000),
         ),
       },
       hierarchy: [
-        'NASIONAL',
-        'BINDA',
-        'KABUPATEN_KOTA',
-        'KECAMATAN',
-        'UNIT',
-        'PERSONEL',
+        'Kinerja Binda',
+        'Kinerja Korwil',
+        'Kinerja Gaswil',
+        'Kinerja Jaring',
       ],
       indicatorDefinitions: [
         {
           code: 'IDX.1',
-          name: 'Ketepatan waktu pelaporan',
-          evidence: 'Waktu Baket dan penyelesaian tugas terhadap tenggat.',
+          name: 'Aktivitas dan ketepatan pelaporan',
+          evidence:
+            'Jaring Aktif 90 Hari, pembuatan Baket, dan penyelesaian tugas terhadap tenggat.',
+          formula:
+            'Rerata skor: Jaring aktif 90 hari = 100, tidak aktif = 0; Baket/tugas tepat tenggat = 100, terlambat = 40.',
         },
         {
           code: 'IDX.2',
           name: 'Kualitas dan kedalaman laporan',
-          evidence: 'Status verifikasi serta kelulusan checklist formal.',
+          evidence:
+            'Kualitas isi Laporan Jaring, Live Location, media pendukung, serta checklist penilaian Baket bila tersedia.',
+          formula:
+            'Rerata skor: Laporan Jaring memakai isi, Live Location, media, dan status kirim masing-masing 25; Baket memakai status penilaian 65% + checklist 35%.',
         },
         {
           code: 'IDX.3',
-          name: 'Tingkat validasi informasi',
-          evidence: 'Neraca sumber A-F dan kredibilitas informasi 1-6.',
+          name: 'Validitas informasi',
+          evidence:
+            'Neraca sumber A-F dan kredibilitas informasi 1-6 pada Baket.',
+          formula:
+            'Rerata skor Baket: reliabilitas sumber A=100 sampai F=15 dan kredibilitas informasi 1=100 sampai 6=15; skor adalah rata-rata keduanya.',
         },
         {
           code: 'IDX.4',
           name: 'Kontribusi terhadap isu strategis',
           evidence:
-            'Baket terverifikasi yang digunakan dalam analisis atau produk.',
+            'Baket yang digunakan dalam analisis atau Produk Intelijen.',
+          formula:
+            'Rerata skor: Baket dipakai dalam analisis/produk = 100, belum dipakai = 35; Laporan Jaring yang sudah menjadi Baket = 85, belum menjadi Baket = 35.',
         },
         {
           code: 'IDX.5',
           name: 'Kecepatan respons tugas UUK/STR',
-          evidence: 'Waktu acknowledge dan penyelesaian penugasan.',
+          evidence:
+            'Waktu acknowledge, penyelesaian penugasan, dan status pengiriman Laporan Jaring.',
+          formula:
+            'Rerata skor: acknowledge <=6 jam 100, <=24 jam 85, <=48 jam 65, selebihnya 35; tugas selesai tepat waktu 100, terlambat 45; Laporan Jaring terkirim 100, aktif belum terkirim 45.',
         },
       ],
       summary,
@@ -4807,7 +5299,7 @@ export class IntelligenceProductsService {
       recentBakets,
       assignedAreas,
     ] = await Promise.all([
-      // Total Jaring binaan aktif di bawah Field Officer
+      // Total Jaring binaan aktif di bawah Petugas Wilayah (Gaswil)
       this.prisma.jaringCaretakerAssignment.count({
         where: {
           fieldOfficerAssignmentId: assignmentId,
@@ -4816,7 +5308,7 @@ export class IntelligenceProductsService {
         },
       }),
 
-      // Daftar Tugas Aktif yang ditugaskan ke Field Officer
+      // Daftar Tugas Aktif yang ditugaskan ke Petugas Wilayah (Gaswil)
       this.prisma.taskAssignment.findMany({
         where: {
           assigneeAssignmentId: assignmentId,
@@ -4875,7 +5367,7 @@ export class IntelligenceProductsService {
         },
       }),
 
-      // Laporan Informasi / Baket yang Dibuat Field Officer
+      // Laporan Informasi / Baket yang Dibuat Petugas Wilayah (Gaswil)
       this.prisma.baket.findMany({
         where: {
           createdByFieldOfficerAssignmentId: assignmentId,
@@ -4901,7 +5393,7 @@ export class IntelligenceProductsService {
         },
       }),
 
-      // Scope Wilayah Tugas Field Officer
+      // Cakupan Wilayah Tugas Petugas Wilayah (Gaswil)
       this.prisma.userAreaScope.findMany({
         where: {
           operationalAssignmentId: assignmentId,
@@ -4993,17 +5485,23 @@ export class IntelligenceProductsService {
     context: AuthorizationContext,
   ) {
     this.ensureDateOrder(query.from, query.to);
-    const [overview, kpis, productStatus, alerts, emergencies, fieldOfficerDashboardData] =
-      await Promise.all([
-        this.dashboardOverview(query, context),
-        this.dashboardKpis(query, context),
-        this.dashboardProductStatus(query, context),
-        this.listAlerts({ ...query, limit: 5 }, context),
-        this.listEmergencyIncidents({ ...query, limit: 5 }, context),
-        context.roleCode === 'FIELD_OFFICER'
-          ? this.fieldOfficerDashboard(context)
-          : Promise.resolve(null),
-      ]);
+    const [
+      overview,
+      kpis,
+      productStatus,
+      alerts,
+      emergencies,
+      fieldOfficerDashboardData,
+    ] = await Promise.all([
+      this.dashboardOverview(query, context),
+      this.dashboardKpis(query, context),
+      this.dashboardProductStatus(query, context),
+      this.listAlerts({ ...query, limit: 5 }, context),
+      this.listEmergencyIncidents({ ...query, limit: 5 }, context),
+      context.roleCode === 'FIELD_OFFICER'
+        ? this.fieldOfficerDashboard(context)
+        : Promise.resolve(null),
+    ]);
 
     return {
       appliedScope: query,
@@ -5178,9 +5676,7 @@ export class IntelligenceProductsService {
         properties: {
           baketId: item.baketId,
           status: item.status,
-          displayTitle: deriveReportDisplayTitle(
-            item.version.originalContent,
-          ),
+          displayTitle: deriveReportDisplayTitle(item.version.originalContent),
           urgency: item.version.urgency,
           reportedAt: item.version.createdAt,
           reportCategoryId: item.reportCategory?.id ?? null,
@@ -5399,9 +5895,7 @@ export class IntelligenceProductsService {
         this.spatial.getActiveBoundaryGeoJson(query.areaId),
       ]);
     const units = new Set(
-      personnelAssignments.map(
-        (assignment) => assignment.branch,
-      ),
+      personnelAssignments.map((assignment) => assignment.branch),
     ).size;
 
     return {
@@ -5423,7 +5917,9 @@ export class IntelligenceProductsService {
       where: {
         deletedAt: null,
         ...(query.status ? { status: query.status as TaskStatus } : {}),
-        ...(query.ownerAssignmentId ? { ownerAssignmentId: query.ownerAssignmentId } : {}),
+        ...(query.ownerAssignmentId
+          ? { ownerAssignmentId: query.ownerAssignmentId }
+          : {}),
         ...this.buildCommonDateWhere('createdAt', query.from, query.to),
       },
       include: {
@@ -5910,7 +6406,10 @@ export class IntelligenceProductsService {
     );
   }
 
-  async listAlerts(query: AlertQuery, context: AuthorizationContext): Promise<any> {
+  async listAlerts(
+    query: AlertQuery,
+    context: AuthorizationContext,
+  ): Promise<any> {
     const scope = await this.scope.resolve(context);
     if (query.areaId) await this.scope.assertArea(context, query.areaId);
     const items = await this.prisma.alert.findMany({
@@ -6173,9 +6672,10 @@ export class IntelligenceProductsService {
     context: AuthorizationContext,
   ) {
     this.ensureCoordinatePair(body.latitude, body.longitude);
-    const assignment = await this.prisma.userOperationalAssignment.findUniqueOrThrow({
-      where: { id: body.operationalAssignmentId },
-    });
+    const assignment =
+      await this.prisma.userOperationalAssignment.findUniqueOrThrow({
+        where: { id: body.operationalAssignmentId },
+      });
     if (
       assignment.userProfileId !== context.userProfileId ||
       !assignment.isActive

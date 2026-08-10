@@ -1,10 +1,12 @@
-import { BackButton } from "@/components/ui/back-button";
+import { CheckCircle2, CircleDashed, ListChecks, ShieldCheck } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 type DensModulePageProps = {
   title: string;
-  role: string;
+  roleLabel: string;
   description: string;
   highlights: string[];
   nextSteps?: string[];
@@ -18,39 +20,46 @@ const defaultNextSteps = [
 
 export function DensModulePage({
   title,
-  role,
+  roleLabel,
   description,
   highlights,
   nextSteps = defaultNextSteps,
 }: DensModulePageProps) {
+  const summaryCards = [
+    { label: "Cakupan", value: highlights.length, icon: ShieldCheck },
+    { label: "Tahapan", value: nextSteps.length, icon: ListChecks },
+    { label: "Status", value: "Disiapkan", icon: CircleDashed },
+  ];
+
   return (
     <div className="dc-page @container/main">
-      {/* Back Button */}
-      <div className="flex items-center">
-        <BackButton />
-      </div>
+      <PageHeader
+        title={title}
+        description={description}
+        backButton
+        badge={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{roleLabel}</Badge>
+            <Badge className="gap-1.5 border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+              <CircleDashed className="size-3.5" />
+              Disiapkan
+            </Badge>
+          </div>
+        }
+      />
 
-      <section className="grid gap-3 md:grid-cols-[1.4fr_repeat(3,minmax(0,0.6fr))]">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{role}</Badge>
-              <Badge>Belum Aktif</Badge>
-            </div>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </CardHeader>
-        </Card>
-        {[
-          ["Cakupan", highlights.length],
-          ["Tahapan", nextSteps.length],
-          ["Status", "Disiapkan"],
-        ].map(([label, value]) => (
-          <Card key={label} size="sm">
+      <section className="grid gap-3 md:grid-cols-3">
+        {summaryCards.map(({ label, value, icon: Icon }) => (
+          <Card key={label} size="sm" className="border-border/70">
             <CardHeader>
-              <CardDescription className="uppercase tracking-[0.08em] [font-family:var(--dc-font-metadata)]">
-                {label}
-              </CardDescription>
+              <div className="flex items-center justify-between gap-3">
+                <CardDescription className="uppercase tracking-[0.08em] [font-family:var(--dc-font-metadata)]">
+                  {label}
+                </CardDescription>
+                <span className="grid size-8 place-items-center rounded-md border border-border/70 bg-muted/40 text-primary">
+                  <Icon className="size-4" />
+                </span>
+              </div>
               <CardTitle className="text-xl [font-family:var(--dc-font-metadata)]">{value}</CardTitle>
             </CardHeader>
           </Card>
@@ -59,8 +68,11 @@ export function DensModulePage({
 
       <Card>
         <CardContent>
-          <div className="border border-dashed bg-muted/25 px-3 py-3">
-            <p className="font-medium text-sm">Modul belum diaktifkan pada ruang kerja ini.</p>
+          <div className="border border-dashed bg-muted/25 px-4 py-3">
+            <p className="flex items-center gap-2 font-medium text-sm">
+              <CircleDashed className="size-4 text-amber-500" />
+              Modul sedang disiapkan pada ruang kerja ini.
+            </p>
             <p className="mt-1 text-muted-foreground text-sm">
               Gunakan menu aktif yang tersedia atau hubungi administrator sistem untuk informasi akses.
             </p>
@@ -79,7 +91,8 @@ export function DensModulePage({
           <CardContent>
             <ul className="space-y-2 text-muted-foreground text-sm">
               {highlights.map((item) => (
-                <li key={item} className="rounded-md border bg-muted/25 px-3 py-2 text-foreground/80">
+                <li key={item} className="flex items-start gap-2 rounded-md border bg-muted/25 px-3 py-2 text-foreground/80">
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
                   {item}
                 </li>
               ))}
@@ -97,7 +110,8 @@ export function DensModulePage({
           <CardContent>
             <ul className="space-y-2 text-muted-foreground text-sm">
               {nextSteps.map((item) => (
-                <li key={item} className="rounded-md border border-dashed bg-background/50 px-3 py-2">
+                <li key={item} className="flex items-start gap-2 rounded-md border border-dashed bg-background/50 px-3 py-2">
+                  <CircleDashed className="mt-0.5 size-4 shrink-0 text-amber-500" />
                   {item}
                 </li>
               ))}

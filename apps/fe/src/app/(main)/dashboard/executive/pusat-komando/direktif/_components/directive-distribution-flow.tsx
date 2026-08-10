@@ -171,14 +171,14 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
   return [
     {
       id: "executive",
-      role: "Executive",
+      role: "Deputi II",
       title: "Deputi II",
       status: executiveComplete ? "done" : directive.status === "FAILED" ? "failed" : "pending",
       statusLabel: executiveComplete ? "Sudah dikirim" : translateStatus(directive.status),
       progress: executiveComplete ? 100 : 0,
       stats: [
-        { label: "Pemberi perintah", value: version?.commandIssuer || "-" },
-        { label: "Penerbit", value: directive.createdByAssignment?.userProfile?.fullName || "-" },
+        { label: "Pemberi perintah", value: version?.commandIssuer ?? "-" },
+        { label: "Penerbit", value: directive.createdByAssignment?.userProfile?.fullName ?? "-" },
         { label: "Tanggal dibuat", value: version?.commandDate ? formatDate(version.commandDate) : "-" },
         {
           label: "Tanggal dikirim",
@@ -194,7 +194,7 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     // ==========================================
     {
       id: "regional_binda",
-      role: "Regional Commander",
+      role: "Komandan Regional",
       title: "Kabinda",
       status: statusFromCounts(regionalBindaCount, regionalBindaForwarded, regionalBindaFailed),
       statusLabel:
@@ -216,7 +216,7 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     },
     {
       id: "oim_binda",
-      role: "Operational Intelligence Manager",
+      role: "Manajer Intelijen Operasional",
       title: "OIM Binda",
       status: statusFromCounts(regionalBindaCount, oimBindaForwarded),
       statusLabel: STATUS_STYLES[statusFromCounts(regionalBindaCount, oimBindaForwarded)].label,
@@ -234,7 +234,7 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     },
     {
       id: "coordinator_binda",
-      role: "Field Coordinator",
+      role: "Koordinator Wilayah (Korwil)",
       title: "Kabagops",
       status: statusFromCounts(
         bindaCoordinators.length,
@@ -265,7 +265,7 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     },
     {
       id: "officer_binda",
-      role: "Field Officer",
+      role: "Petugas Wilayah (Gaswil)",
       title: "Korwil",
       status: statusFromCounts(bindaOfficers.length, bindaOfficersCompleted),
       statusLabel: STATUS_STYLES[statusFromCounts(bindaOfficers.length, bindaOfficersCompleted)].label,
@@ -284,7 +284,7 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     // ==========================================
     {
       id: "regional_dir",
-      role: "Regional Commander",
+      role: "Komandan Regional",
       title: "Direktur Wilayah",
       status: statusFromCounts(regionalDirCount, regionalDirForwarded, regionalDirFailed),
       statusLabel: STATUS_STYLES[statusFromCounts(regionalDirCount, regionalDirForwarded, regionalDirFailed)].label,
@@ -305,7 +305,7 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     },
     {
       id: "oim_dir",
-      role: "Operational Intelligence Manager",
+      role: "Manajer Intelijen Operasional",
       title: "OIM Direktorat",
       status: statusFromCounts(regionalDirCount, oimDirForwarded),
       statusLabel: STATUS_STYLES[statusFromCounts(regionalDirCount, oimDirForwarded)].label,
@@ -323,7 +323,7 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     },
     {
       id: "coordinator_dir",
-      role: "Field Coordinator",
+      role: "Koordinator Wilayah (Korwil)",
       title: "Staf Subdit",
       status: statusFromCounts(
         dirCoordinators.length,
@@ -354,17 +354,17 @@ function createStageDetails(directive: DirectiveDetail, tracking: DirectiveTrack
     },
     {
       id: "officer_dir",
-      role: "Field Officer",
-      title: "Agen",
+      role: "Petugas Wilayah (Gaswil)",
+      title: "Personel Lapangan",
       status: statusFromCounts(dirOfficers.length, dirOfficersCompleted),
       statusLabel: STATUS_STYLES[statusFromCounts(dirOfficers.length, dirOfficersCompleted)].label,
       progress: percent(dirOfficersCompleted, dirOfficers.length),
       stats: [
-        { label: "Jumlah Agen", value: dirOfficers.length },
+        { label: "Jumlah Personel Lapangan", value: dirOfficers.length },
         { label: "Sudah menyelesaikan", value: dirOfficersCompleted },
       ],
       items: dirOfficers.map((c) => ({
-        label: c.assignee?.organizationUnitName ?? c.assignee?.fullName ?? "Agen",
+        label: c.assignee?.organizationUnitName ?? c.assignee?.fullName ?? "Personel Lapangan",
         status: translateStatus(c.status),
       })),
     },
@@ -543,7 +543,7 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
 
     const nodes: FlowNode[] = [];
 
-    // Executive Stage
+    // Tahap Deputi II
     const execStage = stages[0];
     const executiveComplete = execStage.status === "done";
     nodes.push({
@@ -629,7 +629,7 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
     const dirStageIds = ["regional_dir", "oim_dir", "coordinator_dir", "officer_dir"];
     const activeDirSubIdx = findActiveStageIndex(dirStageIds, stages);
 
-    // 1. Executive to Binda Branch
+    // 1. Deputi II ke cabang Binda
     {
       const targetBindaNode = stages.find((s) => s.id === "regional_binda");
       const bindaActive = activeBindaSubIdx === 0;
@@ -660,7 +660,7 @@ function DistributionFlowCanvas({ stages }: { stages: StageDetail[] }) {
       });
     }
 
-    // 2. Executive to Direktorat Branch
+    // 2. Deputi II ke cabang Direktorat
     {
       const targetDirNode = stages.find((s) => s.id === "regional_dir");
       const dirActive = activeDirSubIdx === 0;
@@ -838,7 +838,7 @@ export function DirectiveDistributionFlow({
             Alur Distribusi STR
           </div>
           <p className="mt-1 text-muted-foreground text-sm">
-            Perjalanan satu STR dari pemberi perintah sampai Field Officer.
+            Perjalanan satu STR dari pemberi perintah sampai Petugas Wilayah (Gaswil).
           </p>
         </div>
         <ChevronRight className="mt-1 hidden size-5 text-muted-foreground sm:block" />

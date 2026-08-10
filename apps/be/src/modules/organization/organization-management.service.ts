@@ -122,6 +122,7 @@ export class OrganizationManagementService {
           select: {
             id: true,
             code: true,
+            officialCode: true,
             name: true,
             level: true,
             isActive: true,
@@ -211,6 +212,7 @@ export class OrganizationManagementService {
                       select: {
                         id: true,
                         code: true,
+                        officialCode: true,
                         name: true,
                         level: true,
                       },
@@ -230,6 +232,7 @@ export class OrganizationManagementService {
           province: {
             id: province.id,
             code: province.code,
+            officialCode: province.officialCode,
             name: province.name,
             level: province.level,
             isActive: province.isActive,
@@ -296,6 +299,7 @@ export class OrganizationManagementService {
         unit.directorateProfile?.coverageAreas.map((coverage) => ({
           areaId: coverage.province.id,
           code: coverage.province.code,
+          officialCode: coverage.province.officialCode,
           name: coverage.province.name,
           level: coverage.province.level,
           isPrimary: coverage.isPrimary,
@@ -495,6 +499,7 @@ export class OrganizationManagementService {
                     select: {
                       id: true,
                       code: true,
+                      officialCode: true,
                       name: true,
                       level: true,
                     },

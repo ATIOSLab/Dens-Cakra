@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { CheckCircle2, ChevronLeft, FileText, Grid2X2, List, Printer, RotateCcw, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Grid2X2, List, Printer, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { SortableTableHeader } from "@/app/(main)/dashboard/_components/sortable-table-header";
@@ -34,6 +34,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { classificationBadgeClass, isClassification } from "@/lib/classification";
 import { jakartaBoundaryIso, jakartaDateKey } from "@/lib/domain/date-time";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 type DataRecord = Record<string, unknown>;
@@ -466,7 +467,7 @@ function ProductBrowser({
                   <CardContent className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
                     <div className="flex items-start gap-3">
                       <div className="mt-1 grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
-                        <FileText className="size-5" />
+                        <DOMAIN_VISUALS.intelligenceReport.Icon className="size-5" />
                       </div>
                       <div>
                         <div className="flex flex-wrap gap-2">
@@ -636,7 +637,7 @@ function _ProductRows({
             <CardContent className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
               <div className="flex items-start gap-3">
                 <div className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <FileText className="size-5" />
+                  <DOMAIN_VISUALS.intelligenceReport.Icon className="size-5" />
                 </div>
                 <div>
                   <div className="flex flex-wrap gap-2">
@@ -796,7 +797,7 @@ function ProductDocument({ product }: { product: DataRecord }) {
       <div className="mt-8">
         <JournalTable items={items} />
       </div>
-      <p className="mt-14 text-right text-xs">Autentikasi: persetujuan Regional Commander</p>
+      <p className="mt-14 text-right text-xs">Autentikasi: persetujuan Komandan Regional</p>
       <p className="mt-16 text-center font-bold text-xs">{statusLabel(product.classification)}</p>
     </article>
   );
@@ -896,8 +897,8 @@ function ApprovalActions({ step }: { step: DataRecord }) {
   return (
     <Card className="print:hidden">
       <CardHeader>
-        <CardTitle>Keputusan Regional Commander</CardTitle>
-        <CardDescription>Approval adalah keputusan final sebelum produk tersedia untuk Executive.</CardDescription>
+        <CardTitle>Keputusan Komandan Regional</CardTitle>
+        <CardDescription>Persetujuan adalah keputusan final sebelum produk tersedia untuk Deputi II.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div>
@@ -977,7 +978,7 @@ export function IntelligenceProductDetail({
         <div>
           <BackButton className="print:hidden mb-2.5" />
           <p className="font-semibold text-muted-foreground text-xs uppercase tracking-[0.18em]">
-            {executive ? "Executive" : approvalStep ? "Regional Commander" : "Produk Intelijen"}
+            {executive ? "Deputi II" : approvalStep ? "Komandan Regional" : "Produk Intelijen"}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <StatusBadge value={product.classification} />
@@ -988,7 +989,7 @@ export function IntelligenceProductDetail({
         </div>
         <Button className="print:hidden" variant="outline" onClick={() => window.print()}>
           <Printer />
-          Cetak / Save as PDF
+          Cetak / Simpan sebagai PDF
         </Button>
       </div>
       <div className="grid gap-4 xl:grid-cols-[1fr_360px]">

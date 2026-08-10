@@ -4,7 +4,7 @@ export function VerifikasiNeracaPenilaianPage() {
   return (
     <DensModulePage
       title="Verifikasi & Neraca Penilaian"
-      role="Manajer Intelijen Operasional"
+      roleLabel="Manajer Intelijen Operasional"
       description="Halaman ini menyiapkan verifikasi 5W+1H, validitas sumber, dan penguncian hasil verifikasi."
       highlights={[
         "Kepercayaan sumber dan kebenaran informasi.",

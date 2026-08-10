@@ -35,17 +35,15 @@ Fungsi frontend pembuat koordinat semu telah dihapus. Data tanpa koordinat tetap
 
 | Card | Definisi |
 |---|---|
-| Total Laporan Jaring | Jumlah Laporan Jaring Lengkap + Tidak Lengkap yang belum dikonversi menjadi Baket |
-| Laporan Jaring Lengkap | Submitted message belum menjadi Baket serta memiliki isi, pengirim, FK Jaring, latitude, longitude, resolved area, dan bukti foto |
-| Laporan Jaring Tidak Lengkap | Submitted message belum menjadi Baket tetapi tidak memenuhi definisi lengkap |
-| Bahan Keterangan (Baket) | Laporan Jaring valid yang telah memiliki relasi konversi ke entitas `Baket` |
+| Total Laporan Jaring | Jumlah Laporan Jaring yang sudah dikirim melalui bot WhatsApp dan belum dikonversi menjadi Baket |
+| Bahan Keterangan (Baket) | Laporan Jaring yang telah memiliki relasi konversi ke entitas `Baket` |
 
-Kelengkapan adalah pembagian biner Laporan Jaring. Validitas tetap menjadi tahap verifikasi/filter, bukan jenis card. Setelah laporan valid dikonversi menjadi Baket, laporan tersebut keluar dari hitungan Laporan Jaring dan masuk ke card Baket sehingga tidak dihitung ganda. Card dapat diklik, mempunyai state aktif, periode, persentase yang relevan, definisi, dan tombol **Tampilkan Semua**. Summary dihitung sebelum pembatasan viewport dan `limitPerType`.
+Live Location wajib diberikan oleh Jaring sebelum Laporan Jaring dapat masuk ke sistem. Laporan Jaring tidak lagi dibagi berdasarkan kategori kelengkapan. Setelah laporan dikonversi menjadi Baket, laporan tersebut keluar dari hitungan Laporan Jaring dan masuk ke card Baket sehingga tidak dihitung ganda. Card dapat diklik, mempunyai state aktif, periode, persentase yang relevan, definisi, dan tombol **Tampilkan Semua**. Summary dihitung sebelum pembatasan viewport dan `limitPerType`.
 
 ## 5. Layer dan mode peta
 
 - Base map existing: dark, light, terrain, satellite, dan OSM.
-- Marker laporan: circle; warna mengikuti kelengkapan, validitas, urgensi, atau kategori.
+- Marker laporan: circle; warna mengikuti validitas, urgensi, atau domain Laporan Jaring.
 - Marker Baket: simbol berlian ungu agar berbeda bentuk, bukan hanya warna.
 - Cluster: GeoJSON source MapLibre dengan `cluster=true`, jumlah titik, radius proporsional, dan klik untuk expansion zoom.
 - Heatmap: layer MapLibre `heatmap` dari koordinat aktual dengan gradasi biru-hijau-kuning-oranye.

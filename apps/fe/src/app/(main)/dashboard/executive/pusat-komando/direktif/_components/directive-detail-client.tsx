@@ -26,6 +26,7 @@ import { parseDirectiveCommandDescription } from "@/features/directives/structur
 import type { DirectiveDetail, DirectiveTracking } from "@/features/directives/types";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { classificationBadgeClass } from "@/lib/classification";
+import { getUrgencyLabel } from "@/lib/domain/operational-presentation";
 import { cn } from "@/lib/utils";
 
 import { formatDate, getCurrentVersion } from "./directive-shared";
@@ -213,17 +214,17 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
               className="dc-priority rounded-md px-2 py-0.5 font-bold font-mono text-[10px] tracking-wider"
               data-priority={(currentVersion?.urgency ?? "NORMAL").toUpperCase()}
             >
-              URGENSI: {currentVersion?.urgency ?? "NORMAL"}
+              URGENSI: {getUrgencyLabel(currentVersion?.urgency)}
             </Badge>
           </div>
         }
         actions={
           <div className="flex shrink-0 flex-wrap gap-2">
             <Button asChild variant="outline" size="sm" className="cursor-pointer">
-              <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}/edit`}>Edit Draft</Link>
+              <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}/edit`}>Ubah Draf</Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="cursor-pointer">
-              <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}/tracking`}>Tracking</Link>
+              <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}/tracking`}>Lacak Distribusi</Link>
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -232,7 +233,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
                   disabled={isActionDisabled}
                   className="cursor-pointer border-[#2563EB] bg-[#2563EB] text-white shadow-[0_0_0_1px_rgba(37,99,235,0.65),0_8px_20px_rgba(37,99,235,0.16)] hover:bg-[#1d4ed8] focus-visible:border-[#2563EB] focus-visible:ring-blue-500/30 dark:bg-[#2563EB] dark:hover:bg-[#1d4ed8]"
                 >
-                  {isSubmitting === "publish" ? "Memproses..." : "Publish"}
+                  {isSubmitting === "publish" ? "Memproses..." : "Terbitkan"}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -247,7 +248,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
                     onClick={() => triggerAction("publish")}
                     className="border-[#2563EB] bg-[#2563EB] text-white shadow-[0_0_0_1px_rgba(37,99,235,0.65),0_8px_20px_rgba(37,99,235,0.16)] hover:bg-[#1d4ed8] focus-visible:border-[#2563EB] focus-visible:ring-blue-500/30 dark:bg-[#2563EB] dark:hover:bg-[#1d4ed8]"
                   >
-                    Ya, Publish
+                    Ya, Terbitkan
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -310,12 +311,12 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
         <div className="grid gap-5 p-5 text-xs sm:grid-cols-2 lg:grid-cols-6">
           <div>
             <p className="text-[10px] text-muted-foreground uppercase">Pemberi Perintah</p>
-            <p className="mt-1 font-semibold text-foreground">{currentVersion?.commandIssuer || "-"}</p>
+            <p className="mt-1 font-semibold text-foreground">{currentVersion?.commandIssuer ?? "-"}</p>
           </div>
           <div>
             <p className="text-[10px] text-muted-foreground uppercase">Penerbit</p>
             <p className="mt-1 font-semibold text-foreground">
-              {directive.createdByAssignment?.userProfile?.fullName || "-"}
+              {directive.createdByAssignment?.userProfile?.fullName ?? "-"}
             </p>
           </div>
           <div>
@@ -332,7 +333,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
           </div>
           <div>
             <p className="text-[10px] text-muted-foreground uppercase">Tingkat Urgensi</p>
-            <p className="mt-1 font-semibold text-foreground">{currentVersion?.urgency ?? "NORMAL"}</p>
+            <p className="mt-1 font-semibold text-foreground">{getUrgencyLabel(currentVersion?.urgency)}</p>
           </div>
           <div>
             <p className="text-[10px] text-muted-foreground uppercase">Progress Dokumen</p>
@@ -406,7 +407,7 @@ export function DirectiveDetailClient({ directive, tracking }: DirectiveDetailCl
                 </span>
                 <span>|</span>
                 <span>
-                  Urgensi: <strong className="text-foreground">{currentVersion?.urgency ?? "NORMAL"}</strong>
+                  Urgensi: <strong className="text-foreground">{getUrgencyLabel(currentVersion?.urgency)}</strong>
                 </span>
               </div>
               <div className="border-border border-t pt-5">{formatContent(activeSection.content)}</div>

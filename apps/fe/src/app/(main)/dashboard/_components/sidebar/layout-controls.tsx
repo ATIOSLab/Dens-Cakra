@@ -57,12 +57,12 @@ export function LayoutControls() {
       <PopoverContent align="end">
         <div className="flex flex-col gap-5">
           <div className="space-y-1.5">
-            <h4 className="font-medium text-sm leading-none">Preferensi Tampilan</h4>
+            <h4 className="font-medium text-sm leading-none">Preferensi tampilan</h4>
             <p className="text-muted-foreground text-xs">Atur tema dan perilaku tata letak dashboard.</p>
           </div>
           <div className="space-y-3 **:data-[slot=toggle-group]:w-full **:data-[slot=toggle-group-item]:flex-1 **:data-[slot=toggle-group-item]:text-xs">
             <div className="space-y-1">
-              <Label className="font-medium text-xs">Theme Mode</Label>
+              <Label className="font-medium text-xs">Mode tema</Label>
               <ToggleGroup
                 size="sm"
                 spacing={0}
@@ -71,20 +71,20 @@ export function LayoutControls() {
                 value={themeMode}
                 onValueChange={onThemeModeChange}
               >
-                <ToggleGroupItem value="light" aria-label="Toggle light">
-                  Light
+                <ToggleGroupItem value="light" aria-label="Pilih tema terang">
+                  Terang
                 </ToggleGroupItem>
-                <ToggleGroupItem value="dark" aria-label="Toggle dark">
-                  Dark
+                <ToggleGroupItem value="dark" aria-label="Pilih tema gelap">
+                  Gelap
                 </ToggleGroupItem>
-                <ToggleGroupItem value="system" aria-label="Toggle system">
-                  System
+                <ToggleGroupItem value="system" aria-label="Ikuti tema sistem">
+                  Sistem
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             <div className="space-y-1">
-              <Label className="font-medium text-xs">Navbar Behavior</Label>
+              <Label className="font-medium text-xs">Perilaku bar navigasi</Label>
               <ToggleGroup
                 size="sm"
                 spacing={0}
@@ -93,17 +93,17 @@ export function LayoutControls() {
                 value={navbarStyle}
                 onValueChange={onNavbarStyleChange}
               >
-                <ToggleGroupItem value="sticky" aria-label="Toggle sticky">
-                  Sticky
+                <ToggleGroupItem value="sticky" aria-label="Gunakan bar navigasi melekat">
+                  Melekat
                 </ToggleGroupItem>
-                <ToggleGroupItem value="scroll" aria-label="Toggle scroll">
+                <ToggleGroupItem value="scroll" aria-label="Gunakan bar navigasi mengikuti scroll">
                   Scroll
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             <div className="space-y-1">
-              <Label className="font-medium text-xs">Sidebar Style</Label>
+              <Label className="font-medium text-xs">Gaya bilah navigasi</Label>
               <ToggleGroup
                 size="sm"
                 spacing={0}
@@ -112,20 +112,20 @@ export function LayoutControls() {
                 value={variant}
                 onValueChange={onSidebarStyleChange}
               >
-                <ToggleGroupItem value="inset" aria-label="Toggle inset">
+                <ToggleGroupItem value="inset" aria-label="Gunakan gaya inset">
                   Inset
                 </ToggleGroupItem>
-                <ToggleGroupItem value="sidebar" aria-label="Toggle sidebar">
-                  Sidebar
+                <ToggleGroupItem value="sidebar" aria-label="Gunakan gaya standar">
+                  Standar
                 </ToggleGroupItem>
-                <ToggleGroupItem value="floating" aria-label="Toggle floating">
-                  Floating
+                <ToggleGroupItem value="floating" aria-label="Gunakan gaya mengambang">
+                  Mengambang
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             <div className="space-y-1">
-              <Label className="font-medium text-xs">Sidebar Collapse Mode</Label>
+              <Label className="font-medium text-xs">Mode lipat bilah navigasi</Label>
               <ToggleGroup
                 size="sm"
                 spacing={0}
@@ -134,17 +134,17 @@ export function LayoutControls() {
                 value={collapsible}
                 onValueChange={onSidebarCollapseModeChange}
               >
-                <ToggleGroupItem value="icon" aria-label="Toggle icon">
-                  Icon
+                <ToggleGroupItem value="icon" aria-label="Lipat menjadi ikon">
+                  Ikon
                 </ToggleGroupItem>
-                <ToggleGroupItem value="offcanvas" aria-label="Toggle offcanvas">
-                  OffCanvas
+                <ToggleGroupItem value="offcanvas" aria-label="Sembunyikan keluar layar">
+                  Off-canvas
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             <Button type="button" size="sm" variant="outline" className="w-full text-xs" onClick={resetPreferences}>
-              Restore Defaults
+              Pulihkan bawaan
             </Button>
           </div>
         </div>

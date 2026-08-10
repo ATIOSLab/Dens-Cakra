@@ -123,7 +123,7 @@ const initialReports: ApprovalReport[] = [
     history: [
       {
         role: "Satgas Intelijen Perbatasan",
-        actor: "FO-14 / Kapten inf Yudi",
+        actor: "Petugas Wilayah (Gaswil) 14 / Kapten Inf Yudi",
         action: "Submit Draft Laporan Awal (v1.0)",
         time: "10 Jul 2026, 21.00 WIB",
       },
@@ -136,7 +136,7 @@ const initialReports: ApprovalReport[] = [
       {
         role: "Deputi II BIN",
         actor: "Mayjen Joko W.",
-        action: "Verifikasi & Penerusan ke Eksekutif",
+        action: "Verifikasi & Penerusan ke Deputi II",
         time: "11 Jul 2026, 08.45 WIB",
         note: "Rekomendasi persetujuan prioritas tinggi.",
       },
@@ -222,8 +222,8 @@ const initialReports: ApprovalReport[] = [
         time: "09 Jul 2026, 09.00 WIB",
       },
       {
-        role: "Eksekutif Demo",
-        actor: "Executive Demo",
+        role: "Deputi II Demo",
+        actor: "Deputi II Demo",
         action: "Disetujui & TTD Elektronik",
         time: "09 Jul 2026, 14.00 WIB",
         note: "Segera koordinasikan dengan BSSN.",
@@ -287,8 +287,8 @@ export function PersetujuanPage() {
             status: "Disetujui",
             history: [
               {
-                role: "Eksekutif",
-                actor: "Executive Demo",
+                role: "Deputi II",
+                actor: "Deputi II Demo",
                 action: "Persetujuan Akhir & Tanda Tangan Elektronik Tersemat",
                 time: "Sekarang",
               },
@@ -321,8 +321,8 @@ export function PersetujuanPage() {
           revisionNote: revisionNote.trim(),
           history: [
             {
-              role: "Eksekutif",
-              actor: "Executive Demo",
+              role: "Deputi II",
+              actor: "Deputi II Demo",
               action: `Dikembalikan untuk revisi. Catatan: ${revisionNote.trim()}`,
               time: "Sekarang",
             },
@@ -521,10 +521,10 @@ export function PersetujuanPage() {
                       </div>
                     </div>
 
-                    {/* Neraca Penilaian Intelijen Read-Only */}
+                    {/* Neraca Penilaian Intelijen hanya baca */}
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-foreground tracking-wider uppercase flex items-center gap-2">
-                        <ShieldAlert className="size-4 text-amber-500" /> Neraca Penilaian Laporan (Read-Only)
+                        <ShieldAlert className="size-4 text-amber-500" /> Neraca Penilaian Laporan (Hanya Baca)
                       </h3>
                       <div className="grid gap-4 md:grid-cols-2">
                         {/* Keandalan Sumber */}
@@ -580,7 +580,7 @@ export function PersetujuanPage() {
                     <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-500 flex items-center gap-2">
                       <AlertCircle className="size-4" />
                       <span>
-                        Eksekutif membandingkan modifikasi naskah draf awal (v1.0) dengan perbaikan analis (v1.1).
+                        Deputi II membandingkan modifikasi naskah draf awal (v1.0) dengan perbaikan analis (v1.1).
                       </span>
                     </div>
 

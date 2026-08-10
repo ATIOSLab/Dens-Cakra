@@ -19,6 +19,7 @@ import type { DirectiveSummary } from "@/features/directives/types";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import { classificationBadgeClass } from "@/lib/classification";
 import { jakartaBoundaryIso } from "@/lib/domain/date-time";
+import { getUrgencyLabel } from "@/lib/domain/operational-presentation";
 
 import { badgeVariant, formatDate, getCurrentVersion } from "./directive-shared";
 
@@ -283,6 +284,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
       .sort((a, b) => a - b);
   }, [safePage, totalPages]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset pagination when directive filter state changes.
   useEffect(() => {
     setPage(1);
   }, [searchQuery, filterClassification, filterRegion, filterStartDate, filterEndDate, filterUnitType]);
@@ -293,7 +295,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
         <div className="max-w-3xl space-y-1.5">
           <div className="executive-command-page__eyebrow flex items-center gap-2">
             <RadioTower className="size-4" />
-            Pusat Komando Eksekutif
+            Pusat Komando Deputi II
           </div>
           <div className="space-y-1">
             <h1 className="font-semibold text-xl tracking-tight md:text-2xl">STR / Direktif Strategis</h1>
@@ -317,7 +319,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
             <div className="space-y-1">
               <CardTitle className="font-semibold text-lg">Daftar STR Aktif</CardTitle>
               <CardDescription className="max-w-2xl text-[var(--dc-text-secondary)]">
-                Gunakan tabel ini untuk review draft, publish, distribusi, dan tracking tindak lanjut.
+                Gunakan tabel ini untuk meninjau draf, menerbitkan, mendistribusikan, dan melacak tindak lanjut.
               </CardDescription>
             </div>
             <div className="relative w-full md:w-72">
@@ -334,10 +336,14 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
 
           <div className="grid gap-3 pt-3 border-t border-[var(--dc-border-subtle)]/50 sm:grid-cols-2 md:grid-cols-5 items-end">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor="directive-filter-start-date"
+                className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Mulai Tanggal
               </label>
               <Input
+                id="directive-filter-start-date"
                 type="date"
                 value={filterStartDate}
                 onChange={(e) => setFilterStartDate(e.target.value)}
@@ -346,10 +352,14 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor="directive-filter-end-date"
+                className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Sampai Tanggal
               </label>
               <Input
+                id="directive-filter-end-date"
                 type="date"
                 value={filterEndDate}
                 onChange={(e) => setFilterEndDate(e.target.value)}
@@ -358,14 +368,20 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor="directive-filter-classification"
+                className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Klasifikasi
               </label>
               <Select
                 value={filterClassification || "ALL"}
                 onValueChange={(val) => setFilterClassification(val === "ALL" ? "" : val)}
               >
-                <SelectTrigger className="h-9 text-xs bg-background/50 border-[var(--dc-border-subtle)] focus:border-[var(--dc-primary)]/50 focus:ring-0 text-[var(--dc-text-primary)]">
+                <SelectTrigger
+                  id="directive-filter-classification"
+                  className="h-9 text-xs bg-background/50 border-[var(--dc-border-subtle)] focus:border-[var(--dc-primary)]/50 focus:ring-0 text-[var(--dc-text-primary)]"
+                >
                   {filterClassification ? (
                     <span
                       className={`inline-flex rounded-md px-2 py-0.5 ${classificationBadgeClass(filterClassification)}`}
@@ -390,11 +406,17 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor="directive-filter-region"
+                className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Wilayah
               </label>
               <Select value={filterRegion || "ALL"} onValueChange={(val) => setFilterRegion(val === "ALL" ? "" : val)}>
-                <SelectTrigger className="h-9 text-xs bg-background/50 border-[var(--dc-border-subtle)] focus:border-[var(--dc-primary)]/50 focus:ring-0 text-[var(--dc-text-primary)]">
+                <SelectTrigger
+                  id="directive-filter-region"
+                  className="h-9 text-xs bg-background/50 border-[var(--dc-border-subtle)] focus:border-[var(--dc-primary)]/50 focus:ring-0 text-[var(--dc-text-primary)]"
+                >
                   <SelectValue placeholder="Semua Wilayah" />
                 </SelectTrigger>
                 <SelectContent position="popper" className="max-h-[300px] overflow-y-auto">
@@ -409,14 +431,20 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor="directive-filter-unit-type"
+                className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 Tipe Unit
               </label>
               <Select
                 value={filterUnitType || "ALL"}
                 onValueChange={(val) => setFilterUnitType(val === "ALL" ? "" : val)}
               >
-                <SelectTrigger className="h-9 text-xs bg-background/50 border-[var(--dc-border-subtle)] focus:border-[var(--dc-primary)]/50 focus:ring-0 text-[var(--dc-text-primary)]">
+                <SelectTrigger
+                  id="directive-filter-unit-type"
+                  className="h-9 text-xs bg-background/50 border-[var(--dc-border-subtle)] focus:border-[var(--dc-primary)]/50 focus:ring-0 text-[var(--dc-text-primary)]"
+                >
                   <SelectValue placeholder="Semua Unit" />
                 </SelectTrigger>
                 <SelectContent position="popper">
@@ -493,7 +521,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                             className="dc-priority font-mono font-bold tracking-wider"
                             data-priority={(currentVersion?.urgency ?? "NORMAL").toUpperCase()}
                           >
-                            {currentVersion?.urgency ?? "NORMAL"}
+                            {getUrgencyLabel(currentVersion?.urgency)}
                           </Badge>
                         </TableCell>
                         <TableCell className="max-w-[18rem] whitespace-normal text-[var(--dc-text-secondary)]">
@@ -522,7 +550,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                               className="border-[var(--dc-border-subtle)] bg-[var(--dc-surface)] text-[var(--dc-text-primary)] hover:bg-[var(--dc-surface-hover)]"
                             >
                               <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}`}>
-                                Detail
+                                Lihat Detail
                                 <ArrowUpRight className="size-3.5" />
                               </Link>
                             </Button>
@@ -543,7 +571,7 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                               className="border-[var(--dc-primary)]/40 text-[var(--dc-primary)] hover:bg-[var(--dc-primary-soft)] hover:text-[var(--dc-primary-pressed)]"
                             >
                               <Link href={`/dashboard/executive/pusat-komando/direktif/${directive.id}/tracking`}>
-                                Tracking
+                                Lacak Distribusi
                               </Link>
                             </Button>
                           </div>
@@ -557,8 +585,8 @@ export function DirectiveListClient({ directives }: DirectiveListClientProps) {
                       {loading
                         ? "Memuat daftar STR..."
                         : searchQuery
-                        ? "Tidak ada direktif atau STR yang cocok dengan kata kunci pencarian Anda."
-                        : "Belum ada STR yang dibuat pada unit eksekutif ini."}
+                          ? "Tidak ada direktif atau STR yang cocok dengan kata kunci pencarian Anda."
+                          : "Belum ada STR yang dibuat pada unit eksekutif ini."}
                     </TableCell>
                   </TableRow>
                 )}

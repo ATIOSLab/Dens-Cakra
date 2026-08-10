@@ -12,9 +12,11 @@ import type {
   AdminLevel,
   AgentOperationalStatus,
   DateRangeOption,
+  DistributionEntityMode,
   JaringDistributionCity,
   JaringDistributionVillage,
 } from "./sebaran-jaring-types";
+import { DISTRIBUTION_ENTITY_COPY, statusPresentationForMode } from "./sebaran-jaring-types";
 
 type Props = {
   isOpen: boolean;
@@ -45,6 +47,7 @@ type Props = {
     pending: number;
     rejected: number;
   };
+  mode?: DistributionEntityMode;
 };
 
 export function SebaranJaringLeftPanel({
@@ -69,8 +72,10 @@ export function SebaranJaringLeftPanel({
   onDateRangeChange,
   onResetFilters,
   summaryStats,
+  mode = "jaring",
 }: Props) {
   const selectedCity = cities.find((c) => c.id === selectedCityId) ?? null;
+  const copy = DISTRIBUTION_ENTITY_COPY[mode];
 
   if (!isOpen) return null;
 
@@ -103,7 +108,7 @@ export function SebaranJaringLeftPanel({
             <Input
               value={searchQuery}
               onChange={(e) => onSearchQueryChange(e.target.value)}
-              placeholder="Cari wilayah, jaring, atau kode..."
+              placeholder={copy.searchPlaceholder}
               className="pl-8 bg-slate-50 dark:bg-slate-950/80 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 text-xs h-8 focus:border-cyan-500/50 placeholder:text-slate-400 dark:placeholder:text-slate-600"
             />
           </div>
@@ -118,9 +123,9 @@ export function SebaranJaringLeftPanel({
             {allowedAdminLevels.map((level) => {
               const labels: Record<AdminLevel, string> = {
                 PROVINCE: "Provinsi",
-                CITY: "Kota / Kabupaten",
+                CITY: "Kota/Kabupaten",
                 DISTRICT: "Kecamatan",
-                VILLAGE: "Kelurahan",
+                VILLAGE: "Kelurahan/Desa",
               };
               return (
                 <label
@@ -144,7 +149,7 @@ export function SebaranJaringLeftPanel({
         {/* CASCADING REGION SELECTORS */}
         <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800/60">
           <div className="space-y-1">
-            <span className="text-[10px] text-slate-500 font-mono">KOTA / KABUPATEN</span>
+            <span className="text-[10px] text-slate-500 font-mono">KOTA/KABUPATEN</span>
             <select
               value={selectedCityId}
               onChange={(e) => onSelectCity(e.target.value)}
@@ -191,15 +196,15 @@ export function SebaranJaringLeftPanel({
           </div>
 
           <div className="space-y-1">
-            <span className="text-[10px] text-slate-500 font-mono">KELURAHAN</span>
+            <span className="text-[10px] text-slate-500 font-mono">KELURAHAN/DESA</span>
             <select
               value={selectedVillageId ?? ""}
               onChange={(e) => onSelectVillage(e.target.value)}
-              disabled={!selectedCity}
+              disabled={!selectedDistrictId}
               className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-slate-800 dark:text-slate-300 text-xs focus:border-cyan-500 cursor-pointer"
             >
               <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                Semua Kelurahan
+                {selectedDistrictId ? "Semua Kelurahan/Desa" : "Pilih Kecamatan dahulu"}
               </option>
               {availableVillages.map((village) => (
                 <option
@@ -237,19 +242,27 @@ export function SebaranJaringLeftPanel({
           <div className="grid grid-cols-4 gap-1.5 text-center">
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
               <div className="font-bold text-sm text-cyan-600 dark:text-cyan-400">{summaryStats.total}</div>
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">Total Jaring</div>
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">
+                {copy.totalSummaryLabel}
+              </div>
             </div>
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900/60">
               <div className="font-bold text-sm text-emerald-600 dark:text-emerald-400">{summaryStats.verified}</div>
-              <div className="text-[9px] text-emerald-600/80 dark:text-emerald-500/80 font-mono">Terverifikasi</div>
+              <div className="text-[9px] text-emerald-600/80 dark:text-emerald-500/80 font-mono">
+                {copy.statusLabels.VERIFIED}
+              </div>
             </div>
-            <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60">
-              <div className="font-bold text-sm text-blue-600 dark:text-blue-400">{summaryStats.pending}</div>
-              <div className="text-[9px] text-blue-600/80 dark:text-blue-500/80 font-mono">Belum Terverifikasi</div>
+            <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <div className="font-bold text-sm text-slate-600 dark:text-slate-300">{summaryStats.pending}</div>
+              <div className="text-[9px] text-slate-600/80 dark:text-slate-400 font-mono">
+                {copy.statusLabels.PENDING}
+              </div>
             </div>
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/60">
               <div className="font-bold text-sm text-red-600 dark:text-red-400">{summaryStats.rejected}</div>
-              <div className="text-[9px] text-red-600/80 dark:text-red-500/80 font-mono">Ditolak</div>
+              <div className="text-[9px] text-red-600/80 dark:text-red-500/80 font-mono">
+                {copy.statusLabels.REJECTED}
+              </div>
             </div>
           </div>
         </div>
@@ -274,16 +287,16 @@ export function SebaranJaringLeftPanel({
                 }
                 className="size-3.5 border-slate-300 dark:border-slate-700 data-[state=checked]:bg-cyan-600"
               />
-              <span>Semua Status</span>
+              <span>Semua status</span>
             </label>
 
             {(
               [
-                ["VERIFIED", "Terverifikasi", "#22c55e"],
-                ["PENDING", "Belum Terverifikasi", "#3b82f6"],
-                ["REJECTED", "Ditolak", "#ef4444"],
+                ["VERIFIED", copy.statusLabels.VERIFIED],
+                ["PENDING", copy.statusLabels.PENDING],
+                ["REJECTED", copy.statusLabels.REJECTED],
               ] as const
-            ).map(([key, label, color]) => (
+            ).map(([key, label]) => (
               <label
                 key={key}
                 htmlFor={`sebaran-status-${key.toLowerCase()}`}
@@ -301,7 +314,7 @@ export function SebaranJaringLeftPanel({
                   }
                   className="size-3 border-slate-300 dark:border-slate-700 data-[state=checked]:bg-cyan-600"
                 />
-                <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: statusPresentationForMode(mode, key).bg }} />
                 <span className="text-[11px] truncate">{label}</span>
               </label>
             ))}
@@ -311,7 +324,7 @@ export function SebaranJaringLeftPanel({
         {/* FILTER AKTIVITAS */}
         <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800/60">
           <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            AKTIVITAS LAPORAN
+            {mode === "gaswil" ? "SINYAL LOKASI" : "AKTIVITAS LAPORAN"}
           </p>
           <NativeSelect
             value={dateRange}
@@ -319,16 +332,16 @@ export function SebaranJaringLeftPanel({
             className="bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs h-8"
           >
             <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-              Semua Jaring
+              {copy.allDateLabel}
             </option>
             <option value="24H" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-              Melapor 24 Jam Terakhir
+              {mode === "gaswil" ? "Sinyal 24 Jam Terakhir" : "Melapor 24 Jam Terakhir"}
             </option>
             <option value="7D" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-              Melapor 7 Hari Terakhir
+              {mode === "gaswil" ? "Sinyal 7 Hari Terakhir" : "Melapor 7 Hari Terakhir"}
             </option>
             <option value="30D" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-              Melapor 30 Hari Terakhir
+              {mode === "gaswil" ? "Sinyal 30 Hari Terakhir" : "Melapor 30 Hari Terakhir"}
             </option>
           </NativeSelect>
         </div>

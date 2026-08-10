@@ -1,8 +1,8 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-
 import { getBackendInternalUrl } from "@/lib/auth/backend-url";
+
+import { randomUUID } from "node:crypto";
 
 type BackendEnvelope<T> = {
   success: boolean;
@@ -22,6 +22,17 @@ type BackendRequestOptions = {
   method?: string;
   query?: Record<string, string | number | boolean | null | undefined>;
 };
+
+export class BackendApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "BackendApiError";
+  }
+}
 
 function buildUrl(path: string, query?: BackendRequestOptions["query"]) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -70,14 +81,17 @@ export async function backendApi<T>(
   const payload = (await response.json().catch(() => null)) as BackendEnvelope<T> | T | null;
 
   if (!response.ok) {
-    const envelopeError =
-      payload && typeof payload === "object" && "error" in payload ? payload.error?.message : undefined;
+    const envelopeError = payload && typeof payload === "object" && "error" in payload ? payload.error : undefined;
+    const envelopeMessage = envelopeError?.message;
     const fallbackMessage =
       payload && typeof payload === "object" && "message" in payload
         ? String((payload as { message?: unknown }).message)
         : undefined;
+    const backendMessage = envelopeMessage ?? fallbackMessage ?? `Backend request failed with ${response.status}.`;
+    const publicMessage =
+      response.status >= 500 ? "Layanan backend belum dapat memproses permintaan saat ini." : backendMessage;
 
-    throw new Error(envelopeError || fallbackMessage || `Backend request failed with ${response.status}.`);
+    throw new BackendApiError(publicMessage, response.status, envelopeError?.code);
   }
 
   if (payload && typeof payload === "object" && "success" in payload) {

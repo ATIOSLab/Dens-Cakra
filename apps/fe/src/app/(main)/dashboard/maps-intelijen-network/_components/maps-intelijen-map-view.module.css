@@ -1,8 +1,10 @@
+/* biome-ignore lint/correctness/noUnknownPseudoClass: CSS Modules global selector is required for MapLibre popup chrome. */
 .root :global(.maplibregl-popup) {
   z-index: 40;
   max-width: none !important;
 }
 
+/* biome-ignore lint/correctness/noUnknownPseudoClass: CSS Modules global selector is required for MapLibre popup chrome. */
 .root :global(.maplibregl-popup-content) {
   padding: 0;
   overflow: hidden;
@@ -11,10 +13,12 @@
   box-shadow: 0 20px 45px rgb(2 6 23 / 45%);
 }
 
+/* biome-ignore lint/correctness/noUnknownPseudoClass: CSS Modules global selector is required for MapLibre popup chrome. */
 .root :global(.maplibregl-popup-tip) {
   display: none;
 }
 
+/* biome-ignore lint/correctness/noUnknownPseudoClass: CSS Modules global selector is required for shared map marker styling. */
 .root :global(.dc-map-marker)::before {
   inset: -4px;
   border-width: 1px;

@@ -6,6 +6,15 @@ Studio Admin is a responsive admin dashboard built with Next.js 16, React 19, Ty
 
 This repository uses the shadcn `radix-nova` style. The shadcn CLI reports `base: "radix"`, which refers to Radix UI. Always inspect the local components in `src/components/ui/` because individual wrappers may use different primitives.
 
+## Bahasa dan glosarium sistem
+
+For every user-facing UI/copy change, follow `../../docs/DENS_CAKRA_GLOSSARY_SYSTEM.md` and keep shared labels aligned with `src/lib/domain/terminology.ts`.
+
+- Default visible application language to Bahasa Indonesia.
+- Keep English only for brand names, common technical terms, or glossary-approved labels.
+- After editing a page, align the same term across touched navigation, headings, tabs, filters, form labels, table columns, badges, loading, empty, error, toast, dialogs, exports, and docs.
+- Preserve technical role codes, route segments, API fields, enum values, and database identifiers unless the user explicitly requests a technical rename.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # Next.js: ALWAYS read docs before coding

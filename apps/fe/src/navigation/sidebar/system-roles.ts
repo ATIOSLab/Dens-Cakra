@@ -12,12 +12,12 @@ export const SYSTEM_ROLES = {
 export type SystemRole = (typeof SYSTEM_ROLES)[keyof typeof SYSTEM_ROLES];
 
 export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
-  [SYSTEM_ROLES.EXECUTIVE]: "Eksekutif",
-  [SYSTEM_ROLES.REGIONAL_COMMANDER]: "Komandan Regional",
-  [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: "Manajer Intelijen Operasional",
-  [SYSTEM_ROLES.FIELD_COORDINATOR]: "Koordinator Lapangan",
+  [SYSTEM_ROLES.EXECUTIVE]: DOMAIN_TERMS.executiveRole,
+  [SYSTEM_ROLES.REGIONAL_COMMANDER]: DOMAIN_TERMS.regionalCommanderRole,
+  [SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER]: DOMAIN_TERMS.operationalIntelligenceManagerRole,
+  [SYSTEM_ROLES.FIELD_COORDINATOR]: DOMAIN_TERMS.fieldCoordinatorRole,
   [SYSTEM_ROLES.FIELD_OFFICER]: DOMAIN_TERMS.fieldOfficer,
-  [SYSTEM_ROLES.ADMIN_SYSTEM]: "Admin Sistem",
+  [SYSTEM_ROLES.ADMIN_SYSTEM]: DOMAIN_TERMS.adminSystemRole,
 };
 
 export const SYSTEM_ROLE_HOME_ROUTES: Record<SystemRole, string> = {

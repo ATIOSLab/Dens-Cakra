@@ -42,7 +42,7 @@ export class BaketVerificationService {
     if (!verificationReadyStatuses.includes(version.baket.status)) {
       throw new ApiException(
         'VERIFICATION_SOURCE_NOT_READY',
-        'Baket must be sent to OIM before canonical verification can be created.',
+        'Baket harus dikirim ke Manajer Intelijen Operasional (OIM) sebelum verifikasi kanonis dibuat.',
         409,
       );
     }

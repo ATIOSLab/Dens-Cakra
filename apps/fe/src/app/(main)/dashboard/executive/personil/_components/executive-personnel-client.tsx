@@ -6,16 +6,29 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Eye, Layers, List, Map as MapIcon, Search, ShieldAlert } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  Eye,
+  Layers,
+  List,
+  type LucideIcon,
+  Map as MapIcon,
+  Search,
+  ShieldAlert,
+  Signal,
+} from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
 import { Button } from "@/components/ui/button";
 // biome-ignore lint/suspicious/noShadowRestrictedNames: Map component shadow
 import { Map, MapControls, MapMarker, MapMarkerPopup } from "@/components/ui/map";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -27,18 +40,67 @@ import type {
 } from "./executive-personnel-types";
 
 type PersonnelPageConfig = NonNullable<PersonnelListProps["pageConfig"]>;
+type PersonnelTextConfig = Required<
+  Pick<
+    PersonnelPageConfig,
+    | "layoutVariant"
+    | "searchPlaceholder"
+    | "scopeLabel"
+    | "totalPersonnelLabel"
+    | "personnelColumnLabel"
+    | "jaringKpiLabel"
+    | "onlineKpiLabel"
+    | "offlineKpiLabel"
+    | "emptyTitle"
+    | "emptyDescription"
+    | "mapLegendTitle"
+  >
+>;
+type ResolvedPersonnelPageConfig = PersonnelPageConfig & PersonnelTextConfig;
 
-const DEFAULT_PAGE_CONFIG: PersonnelPageConfig = {
-  basePath: "/dashboard/executive/personil",
-  title: "Daftar Personel",
+const DEFAULT_PAGE_CONFIG: ResolvedPersonnelPageConfig = {
+  basePath: "/dashboard/personel-lapangan",
+  title: "Petugas Wilayah (Gaswil)",
   description:
-    "Konsolidasi personel nasional dari user aktif, jabatan, wilayah penugasan, lokasi petugas organik, laporan, dan aktivitas operasional.",
-  tableTabLabel: "DAFTAR PERSONIL",
-  mapTabLabel: "PETA NASIONAL",
+    "Konsolidasi Petugas Wilayah (Gaswil), wilayah penugasan, Jaring binaan, status sinyal, dan aktivitas operasional.",
+  tableTabLabel: "Daftar Petugas Wilayah",
+  mapTabLabel: "Peta Penugasan",
   detailTarget: "userProfile",
+  showMapTab: true,
   showExecutiveSummary: true,
   showProvinceFilter: true,
+  layoutVariant: "tactical",
+  searchPlaceholder: `Cari nama, nomor HP, jabatan, wilayah penugasan, atau ${DOMAIN_TERMS.jaring}...`,
+  scopeLabel: "Cakupan data",
+  totalPersonnelLabel: "Total Petugas Wilayah",
+  personnelColumnLabel: "Petugas Wilayah",
+  jaringKpiLabel: `${DOMAIN_TERMS.jaring} Binaan`,
+  onlineKpiLabel: "Aktif / Terhubung",
+  offlineKpiLabel: "Tidak Terhubung / Tanpa Sinyal",
+  emptyTitle: "Tidak ada Petugas Wilayah aktif",
+  emptyDescription:
+    "Pencarian tidak menemukan Petugas Wilayah yang cocok dengan parameter kueri yang ditentukan. Silakan atur ulang filter.",
+  mapLegendTitle: "Keterangan Marker",
 };
+
+function resolvePageConfig(pageConfig?: PersonnelListProps["pageConfig"]): ResolvedPersonnelPageConfig {
+  const merged = { ...DEFAULT_PAGE_CONFIG, ...pageConfig };
+
+  return {
+    ...merged,
+    layoutVariant: merged.layoutVariant ?? DEFAULT_PAGE_CONFIG.layoutVariant,
+    searchPlaceholder: merged.searchPlaceholder ?? DEFAULT_PAGE_CONFIG.searchPlaceholder,
+    scopeLabel: merged.scopeLabel ?? DEFAULT_PAGE_CONFIG.scopeLabel,
+    totalPersonnelLabel: merged.totalPersonnelLabel ?? DEFAULT_PAGE_CONFIG.totalPersonnelLabel,
+    personnelColumnLabel: merged.personnelColumnLabel ?? DEFAULT_PAGE_CONFIG.personnelColumnLabel,
+    jaringKpiLabel: merged.jaringKpiLabel ?? DEFAULT_PAGE_CONFIG.jaringKpiLabel,
+    onlineKpiLabel: merged.onlineKpiLabel ?? DEFAULT_PAGE_CONFIG.onlineKpiLabel,
+    offlineKpiLabel: merged.offlineKpiLabel ?? DEFAULT_PAGE_CONFIG.offlineKpiLabel,
+    emptyTitle: merged.emptyTitle ?? DEFAULT_PAGE_CONFIG.emptyTitle,
+    emptyDescription: merged.emptyDescription ?? DEFAULT_PAGE_CONFIG.emptyDescription,
+    mapLegendTitle: merged.mapLegendTitle ?? DEFAULT_PAGE_CONFIG.mapLegendTitle,
+  };
+}
 
 function _formatDate(value?: string | null) {
   if (!value) return "-";
@@ -62,9 +124,42 @@ function isPersonnelOnline(
   return ageMs <= recentWithinHours * 3_600_000;
 }
 
+function connectionStatusLabel(isConnected: boolean) {
+  return isConnected ? "Terhubung" : "Tidak Terhubung";
+}
+
 function primaryArea(item: PersonnelListItem) {
   const areas = item.assignment ? item.assignment.areas : [];
   return areas.find((area) => area.isPrimary) ?? areas[0] ?? null;
+}
+
+function areaHierarchy(item: PersonnelListItem) {
+  const area = primaryArea(item);
+  const areas = area ? [...(area.ancestors ?? []), area] : [];
+  const province = areas.find((item) => item.level === "PROVINCE") ?? null;
+  const regency = areas.find((item) => item.level === "REGENCY" || item.level === "CITY") ?? null;
+  const district = areas.find((item) => item.level === "DISTRICT") ?? null;
+
+  return { province, regency, district, fallback: area };
+}
+
+function assignmentAreaColumnLabel(queryState: PersonnelListQueryState) {
+  if (queryState.districtId) return "Kecamatan Penugasan";
+  if (queryState.regencyId) return "Kecamatan";
+  if (queryState.provinceId) return "Kabupaten/Kota / Kecamatan";
+  return "Provinsi / Kabupaten/Kota / Kecamatan";
+}
+
+function assignmentAreaRows(item: PersonnelListItem, queryState: PersonnelListQueryState) {
+  const hierarchy = areaHierarchy(item);
+  const rows = [
+    !queryState.provinceId && hierarchy.province ? { label: "Provinsi", value: hierarchy.province.name } : null,
+    !queryState.regencyId && hierarchy.regency ? { label: "Kabupaten/Kota", value: hierarchy.regency.name } : null,
+    !queryState.districtId && hierarchy.district ? { label: "Kecamatan", value: hierarchy.district.name } : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
+
+  if (rows.length) return rows;
+  return hierarchy.fallback ? [{ label: "Wilayah", value: hierarchy.fallback.name }] : [];
 }
 
 function statusClass(status: string) {
@@ -102,6 +197,35 @@ function personnelStatusLabel(status: string) {
   return status;
 }
 
+function findAreaName(options: Array<{ id: string; name: string }>, id?: string) {
+  return id ? (options.find((option) => option.id === id)?.name ?? "") : "";
+}
+
+function buildScopeDescription({
+  queryState,
+  areaFilters,
+  config,
+  totalPersonnel,
+}: {
+  queryState: PersonnelListQueryState;
+  areaFilters: PersonnelListProps["areaFilters"];
+  config: ResolvedPersonnelPageConfig;
+  totalPersonnel: number;
+}) {
+  const parts: string[] = [];
+  const provinceName = config.showProvinceFilter ? findAreaName(areaFilters.provinces, queryState.provinceId) : "";
+  const regencyName = findAreaName(areaFilters.regencies, queryState.regencyId);
+  const districtName = findAreaName(areaFilters.districts, queryState.districtId);
+
+  if (provinceName) parts.push(`Provinsi ${provinceName}`);
+  if (regencyName) parts.push(regencyName);
+  if (districtName) parts.push(`Kecamatan ${districtName}`);
+  if (queryState.q) parts.push(`kata kunci "${queryState.q}"`);
+
+  const scopeText = parts.length ? parts.join(" / ") : "seluruh wilayah dalam hak akses";
+  return `${config.scopeLabel}: ${scopeText}. ${config.totalPersonnelLabel}: ${totalPersonnel}.`;
+}
+
 function buildPersonnelHref(
   basePath: string,
   queryState: PersonnelListQueryState,
@@ -137,6 +261,16 @@ function _formatSyncTime(dateStr?: string) {
 
 function formatSystemClock(date: Date) {
   return `${date.toISOString().replace("T", " ").substring(0, 19)} UTC`;
+}
+
+function formatPercent(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value);
+}
+
+function percentOf(value: number, total: number) {
+  return total <= 0 ? 0 : Math.round((value / total) * 1000) / 10;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -292,6 +426,7 @@ function KpiCard({
   const accentColor = ACCENT_COLORS[variant] || ACCENT_COLORS.cyan;
   const hoverStyle = HOVER_STYLES[variant] || HOVER_STYLES.cyan;
   const barColor = BAR_COLORS[variant] || BAR_COLORS.cyan;
+  const safeProgress = progress === undefined ? undefined : Math.max(0, Math.min(100, progress));
 
   return (
     <div
@@ -324,13 +459,17 @@ function KpiCard({
       </div>
 
       {/* Miniature tactical bar */}
-      {progress !== undefined && (
+      {safeProgress !== undefined && (
         <div className="mt-4 space-y-1">
+          <div className="flex items-center justify-between font-mono text-[9px] text-[var(--dc-text-muted)] uppercase tracking-wider">
+            <span>Persentase</span>
+            <span>{formatPercent(safeProgress)}%</span>
+          </div>
           <div className="h-[3px] w-full overflow-hidden border border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] dark:border-slate-900 dark:bg-slate-950">
             <motion.div
               className={cn("h-full", barColor)}
               initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
+              animate={{ width: `${safeProgress}%` }}
               transition={{ duration: 1.5, ease: "easeOut" }}
             />
           </div>
@@ -340,7 +479,47 @@ function KpiCard({
   );
 }
 
-function TableSkeleton() {
+function DirectorySummaryCard({
+  label,
+  value,
+  percentageLabel,
+  icon: Icon,
+  tone = "sky",
+}: {
+  label: string;
+  value: number;
+  percentageLabel?: string;
+  icon: LucideIcon;
+  tone?: "sky" | "emerald" | "amber" | "slate";
+}) {
+  const toneClass = {
+    sky: "bg-sky-500/10 text-sky-600 dark:text-[#38BDF8]",
+    emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    slate: "bg-slate-500/10 text-slate-600 dark:text-slate-300",
+  }[tone];
+
+  return (
+    <div className="flex min-w-[150px] items-center gap-3 rounded-xl border border-slate-200/80 bg-card p-3.5 text-left shadow-xs dark:border-white/10">
+      <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", toneClass)}>
+        <Icon className="size-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="truncate font-medium text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="font-bold text-xl text-foreground tracking-tight">
+          <AnimatedCounter value={value} />
+        </p>
+        {percentageLabel ? (
+          <p className="mt-1 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
+            {percentageLabel}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function TableSkeleton({ config }: { config: ResolvedPersonnelPageConfig }) {
   const skeletonRows = ["one", "two", "three", "four", "five"];
 
   return (
@@ -349,7 +528,7 @@ function TableSkeleton() {
         <TableHeader className="border-[var(--dc-border-subtle)] border-b bg-[var(--dc-surface-raised)] dark:border-slate-850 dark:bg-slate-950/80">
           <TableRow className="border-[var(--dc-border-subtle)] border-b hover:bg-transparent dark:border-slate-800">
             <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
-              Personel
+              {config.personnelColumnLabel}
             </TableHead>
             <TableHead className="h-10 text-center font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider">
               Wilayah
@@ -396,7 +575,7 @@ function TableSkeleton() {
   );
 }
 
-function RadarEmptyState({ onReset }: { onReset?: () => void }) {
+function RadarEmptyState({ onReset, config }: { onReset?: () => void; config: ResolvedPersonnelPageConfig }) {
   return (
     <div className="relative flex select-none flex-col items-center justify-center overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/40 px-4 py-16 text-center dark:border-slate-800 dark:bg-[#080d14]/40">
       {/* Radar rings visualization */}
@@ -421,11 +600,10 @@ function RadarEmptyState({ onReset }: { onReset?: () => void }) {
       </div>
 
       <h3 className="mt-6 font-bold font-mono text-[var(--dc-text-primary)] text-xs uppercase tracking-widest">
-        Tidak ada personel aktif
+        {config.emptyTitle}
       </h3>
       <p className="mt-2 max-w-md font-mono text-[11px] text-[var(--dc-text-secondary)] leading-relaxed">
-        Pencarian tidak menemukan sinyal personel yang cocok dengan parameter kueri yang ditentukan. Silakan setel ulang
-        filter.
+        {config.emptyDescription}
       </p>
 
       {onReset && (
@@ -472,87 +650,182 @@ function LocationMarker({ feature, config }: { feature: PersonnelMapFeature; con
   );
 }
 
+function personnelDisplayName(item: Pick<PersonnelListItem, "email" | "fullName" | "username">) {
+  if (item.fullName?.trim()) return item.fullName;
+  if (item.username?.trim() && !item.username.includes("@")) return item.username;
+  return "Petugas Wilayah";
+}
+
 function PersonnelTable({
   items,
   isPending,
   onReset,
   config,
   freshness,
+  queryState,
 }: {
   items: PersonnelListItem[];
   isPending: boolean;
   onReset?: () => void;
-  config: PersonnelPageConfig;
+  config: ResolvedPersonnelPageConfig;
   freshness?: PersonnelMapPayload["meta"]["freshness"];
+  queryState: PersonnelListQueryState;
 }) {
+  const isDirectoryLayout = config.layoutVariant === "directory";
+
   if (isPending) {
-    return <TableSkeleton />;
+    return <TableSkeleton config={config} />;
   }
 
   if (!items.length) {
-    return <RadarEmptyState onReset={onReset} />;
+    return <RadarEmptyState onReset={onReset} config={config} />;
   }
 
   return (
-    <div className="select-none overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 dark:border-slate-800 dark:bg-[#080d14]/70">
+    <div
+      className={cn(
+        "select-none overflow-hidden border bg-card",
+        isDirectoryLayout
+          ? "rounded-[18px] border-slate-200/80 shadow-xs dark:border-white/10"
+          : "rounded-none border-[var(--dc-border-subtle)] dark:border-slate-800 dark:bg-[#080d14]/70",
+      )}
+    >
       <Table>
-        <TableHeader className="sticky top-0 z-10 border-[var(--dc-border-subtle)] border-b bg-[var(--dc-surface-raised)] dark:border-slate-850 dark:bg-slate-950/90">
-          <TableRow className="border-[var(--dc-border-subtle)] border-b hover:bg-transparent dark:border-slate-800">
-            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-              Personel
+        <TableHeader
+          className={cn(
+            "sticky top-0 z-10 border-b",
+            isDirectoryLayout
+              ? "border-border/80 bg-slate-100/60 dark:bg-zinc-900/60"
+              : "border-[var(--dc-border-subtle)] bg-[var(--dc-surface-raised)] dark:border-slate-850 dark:bg-slate-950/90",
+          )}
+        >
+          <TableRow
+            className={cn(
+              "border-b hover:bg-transparent",
+              isDirectoryLayout ? "border-border/80" : "border-[var(--dc-border-subtle)] dark:border-slate-800",
+            )}
+          >
+            <TableHead
+              className={cn(
+                "h-11 text-[10px] uppercase tracking-wider",
+                isDirectoryLayout
+                  ? "pl-6 text-left font-semibold text-muted-foreground"
+                  : "text-center font-mono text-[var(--dc-text-secondary)]",
+              )}
+            >
+              {config.personnelColumnLabel}
             </TableHead>
-            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
-              Wilayah
+            <TableHead
+              className={cn(
+                "h-11 text-[10px] uppercase tracking-wider",
+                isDirectoryLayout
+                  ? "text-left font-semibold text-muted-foreground"
+                  : "text-center font-mono text-[var(--dc-text-secondary)]",
+              )}
+            >
+              {assignmentAreaColumnLabel(queryState)}
             </TableHead>
-            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+            <TableHead
+              className={cn(
+                "h-11 text-[10px] uppercase tracking-wider",
+                isDirectoryLayout
+                  ? "text-left font-semibold text-muted-foreground"
+                  : "text-center font-mono text-[var(--dc-text-secondary)]",
+              )}
+            >
               Jumlah Jaring
             </TableHead>
-            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+            <TableHead
+              className={cn(
+                "h-11 text-[10px] uppercase tracking-wider",
+                isDirectoryLayout
+                  ? "text-left font-semibold text-muted-foreground"
+                  : "text-center font-mono text-[var(--dc-text-secondary)]",
+              )}
+            >
               Status
             </TableHead>
-            <TableHead className="h-11 text-center font-mono text-[10px] text-[var(--dc-text-secondary)] uppercase tracking-wider">
+            <TableHead
+              className={cn(
+                "h-11 text-[10px] uppercase tracking-wider",
+                isDirectoryLayout
+                  ? "pr-6 text-right font-semibold text-muted-foreground"
+                  : "text-center font-mono text-[var(--dc-text-secondary)]",
+              )}
+            >
               Akses
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.map((item) => {
-            const area = primaryArea(item);
+            const areaRows = assignmentAreaRows(item, queryState);
             const detailHref = personnelDetailHref(item, config);
+            const displayName = personnelDisplayName(item);
             return (
               <TableRow
                 key={item.id}
-                className="group relative border-[var(--dc-border-subtle)] border-b transition-colors hover:bg-[var(--dc-primary-soft)]/20 dark:border-slate-900"
+                className={cn(
+                  "group relative border-b transition-colors",
+                  isDirectoryLayout
+                    ? "h-16 border-border/50 hover:bg-slate-50/80 dark:hover:bg-zinc-800/40"
+                    : "border-[var(--dc-border-subtle)] hover:bg-[var(--dc-primary-soft)]/20 dark:border-slate-900",
+                )}
               >
                 {/* Left Cyan Indicator on Hover */}
-                <TableCell className="relative py-3.5 text-center">
-                  <div className="absolute top-0 bottom-0 left-0 w-[2.5px] bg-[var(--dc-primary)] opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
+                <TableCell className={cn("relative py-3.5", isDirectoryLayout ? "pl-6 text-left" : "text-center")}>
+                  {!isDirectoryLayout && (
+                    <div className="absolute top-0 bottom-0 left-0 w-[2.5px] bg-[var(--dc-primary)] opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
+                  )}
                   <Link href={detailHref} className="block min-w-56">
-                    <span className="block font-bold font-mono text-foreground text-xs transition-colors group-hover:text-[var(--dc-primary)]">
-                      {item.fullName ?? item.username ?? item.email}
-                    </span>
-                    <span className="mt-0.5 block font-mono text-[10px] text-[var(--dc-text-secondary)]">
-                      {item.email}
+                    <span
+                      className={cn(
+                        "block font-bold text-foreground transition-colors group-hover:text-[var(--dc-primary)]",
+                        isDirectoryLayout ? "text-sm" : "font-mono text-xs",
+                      )}
+                    >
+                      {displayName}
                     </span>
                   </Link>
                 </TableCell>
-                <TableCell className="text-center">
-                  <span className="block max-w-56 mx-auto truncate font-mono text-[var(--dc-text-primary)] text-xs">
-                    {area?.name ?? "-"}
-                  </span>
+                <TableCell className={cn("min-w-64", isDirectoryLayout ? "text-left" : "text-center")}>
+                  {areaRows.length ? (
+                    <div className={cn("space-y-1", !isDirectoryLayout && "mx-auto max-w-72 font-mono")}>
+                      {areaRows.map((row) => (
+                        <div
+                          key={`${item.id}-${row.label}`}
+                          className={cn(
+                            "grid min-w-0 gap-2",
+                            isDirectoryLayout ? "grid-cols-[7.5rem_1fr] text-sm" : "grid-cols-[6.5rem_1fr] text-xs",
+                          )}
+                        >
+                          <span className="truncate text-[var(--dc-text-muted)]">{row.label}</span>
+                          <span className="truncate font-medium text-[var(--dc-text-primary)]">{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-[var(--dc-text-muted)]">-</span>
+                  )}
                 </TableCell>
-                <TableCell className="text-center">
-                  <span className="inline-flex min-w-8 items-center justify-center border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 font-mono font-semibold text-xs text-cyan-600 dark:text-cyan-300">
+                <TableCell className={cn(isDirectoryLayout ? "text-left" : "text-center")}>
+                  <span
+                    className={cn(
+                      "inline-flex min-w-8 items-center justify-center border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 font-semibold text-cyan-600 dark:text-cyan-300",
+                      isDirectoryLayout ? "rounded-full text-xs" : "font-mono text-xs",
+                    )}
+                  >
                     {item.jaringCount ?? 0}
                   </span>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className={cn(isDirectoryLayout ? "text-left" : "text-center")}>
                   {(() => {
                     const online = isPersonnelOnline(item, freshness);
                     return (
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-none border px-2 py-0.5 font-mono font-semibold text-[9px] uppercase tracking-wider",
+                          "inline-flex items-center gap-1.5 border px-2 py-0.5 font-semibold uppercase tracking-wider",
+                          isDirectoryLayout ? "rounded-full text-[10px]" : "rounded-none font-mono text-[9px]",
                           online
                             ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-950/20"
                             : "border-slate-500/40 bg-slate-500/10 text-slate-500 dark:text-slate-400 dark:bg-slate-900/20",
@@ -566,17 +839,22 @@ function PersonnelTable({
                               : "bg-slate-500 dark:bg-slate-400",
                           )}
                         />
-                        {online ? "Online" : "Offline"}
+                        {connectionStatusLabel(online)}
                       </span>
                     );
                   })()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className={cn(isDirectoryLayout ? "pr-6 text-right" : "text-center")}>
                   <Button
                     variant="outline"
                     size="sm"
                     asChild
-                    className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
+                    className={cn(
+                      "h-8 gap-1.5 rounded-lg px-2.5 font-medium text-xs",
+                      isDirectoryLayout
+                        ? "border-border hover:border-primary hover:bg-primary/5 hover:text-primary"
+                        : "border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]",
+                    )}
                   >
                     <Link href={detailHref}>
                       <Eye className="size-3.5" />
@@ -603,16 +881,23 @@ function PersonnelCardGrid({
   items: PersonnelListItem[];
   isPending: boolean;
   onReset?: () => void;
-  config: PersonnelPageConfig;
+  config: ResolvedPersonnelPageConfig;
   freshness?: PersonnelMapPayload["meta"]["freshness"];
 }) {
+  const isDirectoryLayout = config.layoutVariant === "directory";
+
   if (isPending) {
     return (
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {["one", "two", "three", "four", "five", "six"].map((rowId) => (
           <div
             key={`personnel-card-skeleton-${rowId}`}
-            className="h-40 animate-pulse rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 dark:border-slate-800"
+            className={cn(
+              "h-40 animate-pulse border bg-card",
+              isDirectoryLayout
+                ? "rounded-xl border-slate-200/80 dark:border-white/10"
+                : "rounded-none border-[var(--dc-border-subtle)] dark:border-slate-800",
+            )}
           />
         ))}
       </div>
@@ -620,7 +905,7 @@ function PersonnelCardGrid({
   }
 
   if (!items.length) {
-    return <RadarEmptyState onReset={onReset} />;
+    return <RadarEmptyState onReset={onReset} config={config} />;
   }
 
   return (
@@ -629,35 +914,55 @@ function PersonnelCardGrid({
         const area = primaryArea(item);
         const detailHref = personnelDetailHref(item, config);
         const online = isPersonnelOnline(item, freshness);
+        const displayName = personnelDisplayName(item);
 
         return (
           <Link
             key={item.id}
             href={detailHref}
-            className="group relative min-w-0 overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-[var(--dc-primary)]/50 hover:bg-[var(--dc-primary-soft)]/10 dark:border-slate-800 dark:bg-[#080d14]/70"
+            className={cn(
+              "group relative min-w-0 overflow-hidden border bg-card p-4 transition-all duration-150 hover:-translate-y-0.5",
+              isDirectoryLayout
+                ? "rounded-xl border-slate-200/80 shadow-xs hover:border-primary/40 hover:bg-slate-50/50 dark:border-white/10 dark:hover:bg-zinc-900/60"
+                : "rounded-none border-[var(--dc-border-subtle)] hover:border-[var(--dc-primary)]/50 hover:bg-[var(--dc-primary-soft)]/10 dark:border-slate-800 dark:bg-[#080d14]/70",
+            )}
           >
-            <div className="absolute top-0 left-0 h-full w-[3px] bg-[var(--dc-primary)] opacity-0 transition-opacity group-hover:opacity-100" />
+            {!isDirectoryLayout && (
+              <div className="absolute top-0 left-0 h-full w-[3px] bg-[var(--dc-primary)] opacity-0 transition-opacity group-hover:opacity-100" />
+            )}
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="truncate font-bold font-mono text-foreground text-xs group-hover:text-[var(--dc-primary)]">
-                  {item.fullName ?? item.username ?? item.email}
+                <h3
+                  className={cn(
+                    "truncate font-bold text-foreground group-hover:text-primary",
+                    isDirectoryLayout ? "text-sm" : "font-mono text-xs",
+                  )}
+                >
+                  {displayName}
                 </h3>
-                <p className="mt-1 truncate font-mono text-[10px] text-[var(--dc-text-secondary)]">{item.email}</p>
               </div>
               <span
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-none border px-2 py-0.5 font-mono font-semibold text-[9px] uppercase tracking-wider",
+                  "inline-flex shrink-0 items-center gap-1.5 border px-2 py-0.5 font-semibold uppercase tracking-wider",
+                  isDirectoryLayout ? "rounded-full text-[10px]" : "rounded-none font-mono text-[9px]",
                   online
                     ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-950/20"
                     : "border-slate-500/40 bg-slate-500/10 text-slate-500 dark:text-slate-400 dark:bg-slate-900/20",
                 )}
               >
                 <span className={cn("size-1 rounded-full", online ? "animate-pulse bg-emerald-500" : "bg-slate-500")} />
-                {online ? "Online" : "Offline"}
+                {connectionStatusLabel(online)}
               </span>
             </div>
 
-            <div className="mt-4 space-y-2 border-[var(--dc-border-subtle)] border-t pt-3 font-mono text-[10px] text-[var(--dc-text-secondary)]">
+            <div
+              className={cn(
+                "mt-4 space-y-2 border-t pt-3",
+                isDirectoryLayout
+                  ? "border-border/70 text-muted-foreground text-xs"
+                  : "border-[var(--dc-border-subtle)] font-mono text-[10px] text-[var(--dc-text-secondary)]",
+              )}
+            >
               <div>
                 <span className="block text-[var(--dc-text-muted)] uppercase">Jabatan</span>
                 <span className="block truncate text-[var(--dc-text-primary)]">{item.assignment?.title ?? "-"}</span>
@@ -668,11 +973,20 @@ function PersonnelCardGrid({
               </div>
               <div>
                 <span className="block text-[var(--dc-text-muted)] uppercase">Jumlah Jaring</span>
-                <span className="block text-[var(--dc-text-primary)] font-semibold">{item.jaringCount ?? 0} Jaring</span>
+                <span className="block text-[var(--dc-text-primary)] font-semibold">
+                  {item.jaringCount ?? 0} Jaring
+                </span>
               </div>
             </div>
 
-            <span className="mt-4 inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs transition-colors group-hover:bg-sky-500/10 dark:text-[#38BDF8]">
+            <span
+              className={cn(
+                "mt-4 inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border px-2.5 font-medium text-xs transition-colors",
+                isDirectoryLayout
+                  ? "border-border group-hover:border-primary group-hover:bg-primary/5 group-hover:text-primary"
+                  : "border-sky-500/30 text-sky-600 group-hover:bg-sky-500/10 dark:text-[#38BDF8]",
+              )}
+            >
               <Eye className="size-3.5" />
               Detail
             </span>
@@ -688,7 +1002,8 @@ function PersonnelCardGrid({
 /* -------------------------------------------------------------------------- */
 
 export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, pageConfig }: PersonnelListProps) {
-  const config = { ...DEFAULT_PAGE_CONFIG, ...pageConfig };
+  const config = resolvePageConfig(pageConfig);
+  const showMapTab = config.showMapTab !== false;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [_systemClock, setSystemClock] = useState("SYNCING...");
@@ -739,32 +1054,92 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   // KPI Calculations
   const onlinePercentage = (onlineCount / (totalPersonnel || 1)) * 100;
   const offlinePercentage = (offlineCount / (totalPersonnel || 1)) * 100;
+  const scopeDescription = buildScopeDescription({ queryState, areaFilters, config, totalPersonnel });
+  const isDirectoryLayout = config.layoutVariant === "directory";
+  const dynamicFilterClassName = cn(
+    "h-10 w-full border px-3 text-foreground outline-none transition-all",
+    isDirectoryLayout
+      ? "rounded-lg border-border bg-background text-sm focus:border-primary focus:ring-2 focus:ring-primary/15"
+      : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] font-mono text-xs focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 dark:border-slate-800 dark:bg-slate-950/80",
+  );
+  const dynamicFilterContentClassName =
+    "z-50 rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] font-mono text-foreground text-xs";
 
   return (
-    <main className="relative min-h-screen space-y-6 p-6">
+    <main
+      className={cn(
+        isDirectoryLayout
+          ? "mx-auto w-full max-w-[1600px] space-y-5 sm:space-y-6"
+          : "relative min-h-screen space-y-6 p-6",
+      )}
+    >
       {/* Dynamic Command Center Background Grid and Scanning Line */}
-      <TacticalBackground />
+      {!isDirectoryLayout && <TacticalBackground />}
 
-      <div className="relative z-10 space-y-6 text-foreground">
+      <div className={cn("space-y-6 text-foreground", !isDirectoryLayout && "relative z-10")}>
         {/* Command Center Title Header */}
-        <header className="relative select-none overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-5 dark:border-slate-800 dark:bg-[#080d14]/80">
-          <div className="absolute top-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-[var(--dc-primary)]/20 to-transparent" />
-          <div className="absolute top-0 left-0 h-full w-[4px] bg-[var(--dc-primary)]" />
-
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-1">
-              <h1 className="mt-2 flex items-baseline gap-2 font-bold font-mono text-2xl text-foreground uppercase tracking-tight">
-                <span>{config.title}</span>
-              </h1>
-              <p className="max-w-3xl font-mono text-[11px] text-[var(--dc-text-secondary)] leading-relaxed">
-                {config.description}
-              </p>
+        {isDirectoryLayout ? (
+          <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h1 className="font-bold text-3xl text-foreground tracking-tight">{config.title}</h1>
+              <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">{config.description}</p>
+              <p className="mt-2 text-foreground text-sm font-medium">{scopeDescription}</p>
             </div>
-          </div>
-        </header>
+            <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-4 lg:w-auto">
+              <DirectorySummaryCard
+                label={config.totalPersonnelLabel}
+                value={totalPersonnel}
+                icon={DOMAIN_VISUALS.gaswil.Icon}
+              />
+              <DirectorySummaryCard
+                label={config.jaringKpiLabel}
+                value={totalJaring}
+                icon={DOMAIN_VISUALS.jaring.Icon}
+                tone="sky"
+              />
+              <DirectorySummaryCard
+                label={config.onlineKpiLabel}
+                value={onlineCount}
+                percentageLabel={`${formatPercent(percentOf(onlineCount, totalPersonnel))}% dari personel`}
+                icon={Signal}
+                tone="emerald"
+              />
+              <DirectorySummaryCard
+                label={config.offlineKpiLabel}
+                value={offlineCount}
+                percentageLabel={`${formatPercent(percentOf(offlineCount, totalPersonnel))}% dari personel`}
+                icon={ShieldAlert}
+                tone="amber"
+              />
+            </div>
+          </header>
+        ) : (
+          <header className="relative select-none overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-5 dark:border-slate-800 dark:bg-[#080d14]/80">
+            <div className="absolute top-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-[var(--dc-primary)]/20 to-transparent" />
+            <div className="absolute top-0 left-0 h-full w-[4px] bg-[var(--dc-primary)]" />
+
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-1">
+                <h1 className="mt-2 flex items-baseline gap-2 font-bold font-mono text-2xl text-foreground uppercase tracking-tight">
+                  <span>{config.title}</span>
+                </h1>
+                <p className="max-w-3xl font-mono text-[11px] text-[var(--dc-text-secondary)] leading-relaxed">
+                  {config.description}
+                </p>
+              </div>
+            </div>
+          </header>
+        )}
 
         {/* Grouped Filter Panel Section */}
-        <section className="space-y-3 rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 p-4 dark:border-slate-800 dark:bg-[#080d14]/60">
+        <section
+          className={cn(
+            "space-y-3 border p-4",
+            isDirectoryLayout
+              ? "rounded-xl border-slate-200/80 bg-card shadow-xs dark:border-white/10"
+              : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 dark:border-slate-800 dark:bg-[#080d14]/60",
+          )}
+        >
           <form
             className={cn(
               "grid w-full items-end gap-4",
@@ -787,8 +1162,13 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 <input
                   name="q"
                   defaultValue={queryState.q}
-                  placeholder="Cari nama, nomor HP, jabatan, wilayah, atau Jaring..."
-                  className="h-10 w-full rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] pr-3 pl-9 font-mono text-foreground text-xs outline-none transition-all placeholder:text-[var(--dc-text-muted)] focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 dark:border-slate-800 dark:bg-slate-950/80"
+                  placeholder={config.searchPlaceholder}
+                  className={cn(
+                    "h-10 w-full border pr-3 pl-9 text-foreground outline-none transition-all",
+                    isDirectoryLayout
+                      ? "rounded-lg border-border bg-background text-sm placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
+                      : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] font-mono text-xs placeholder:text-[var(--dc-text-muted)] focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 dark:border-slate-800 dark:bg-slate-950/80",
+                  )}
                 />
               </div>
             </div>
@@ -798,9 +1178,13 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 <div className="font-mono text-[9px] text-[var(--dc-text-muted)] uppercase tracking-wider">
                   PROVINSI
                 </div>
-                <Select
-                  name="provinceId"
+                <SearchableSelect
+                  aria-label="Filter Provinsi"
                   value={queryState.provinceId || "ALL"}
+                  options={[
+                    { value: "ALL", label: "Semua Provinsi" },
+                    ...areaFilters.provinces.map((area) => ({ value: area.id, label: area.name })),
+                  ]}
                   onValueChange={(val) =>
                     applyFilter({
                       provinceId: val === "ALL" ? "" : val,
@@ -808,23 +1192,12 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                       districtId: "",
                     })
                   }
-                >
-                  <SelectTrigger className="h-10 w-full rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] px-3 font-mono text-foreground text-xs outline-none transition-all focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 dark:border-slate-800 dark:bg-slate-950/80">
-                    <SelectValue placeholder="Semua provinsi" />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    className="relative z-50 max-h-[300px] select-none overflow-y-auto rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] font-mono text-foreground text-xs"
-                  >
-                    <SelectItem value="ALL">Semua provinsi</SelectItem>
-                    {areaFilters.provinces.map((area) => (
-                      <SelectItem key={area.id} value={area.id}>
-                        {area.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Semua Provinsi"
+                  searchPlaceholder="Cari Provinsi..."
+                  emptyText="Provinsi tidak ditemukan."
+                  className={dynamicFilterClassName}
+                  contentClassName={dynamicFilterContentClassName}
+                />
               </div>
             )}
 
@@ -833,92 +1206,122 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
               <div className="font-mono text-[9px] text-[var(--dc-text-muted)] uppercase tracking-wider">
                 KABUPATEN / KOTA
               </div>
-              <Select
-                name="regencyId"
+              <SearchableSelect
+                aria-label="Filter Kota/Kabupaten"
                 value={queryState.regencyId || "ALL"}
                 disabled={config.showProvinceFilter ? !queryState.provinceId : false}
+                options={[
+                  {
+                    value: "ALL",
+                    label:
+                      config.showProvinceFilter && !queryState.provinceId
+                          ? "Pilih Provinsi dahulu"
+                        : "Semua Kota/Kabupaten",
+                    disabled: config.showProvinceFilter && !queryState.provinceId,
+                  },
+                  ...areaFilters.regencies.map((area) => ({ value: area.id, label: area.name })),
+                ]}
                 onValueChange={(val) =>
                   applyFilter({
                     regencyId: val === "ALL" ? "" : val,
                     districtId: "",
                   })
                 }
-              >
-                <SelectTrigger className="h-10 w-full rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] px-3 font-mono text-foreground text-xs outline-none transition-all focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-800 dark:bg-slate-950/80">
-                  <SelectValue placeholder="Semua kab/kota" />
-                </SelectTrigger>
-                <SelectContent
-                  position="popper"
-                  side="bottom"
-                  className="relative z-50 max-h-[300px] select-none overflow-y-auto rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] font-mono text-foreground text-xs"
-                >
-                  <SelectItem value="ALL">Semua kab/kota</SelectItem>
-                  {areaFilters.regencies.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
-                      {area.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={
+                  config.showProvinceFilter && !queryState.provinceId
+                    ? "Pilih Provinsi dahulu"
+                    : "Semua Kota/Kabupaten"
+                }
+                searchPlaceholder="Cari Kota/Kabupaten..."
+                emptyText="Kota/Kabupaten tidak ditemukan."
+                className={cn(dynamicFilterClassName, "disabled:cursor-not-allowed disabled:opacity-30")}
+                contentClassName={dynamicFilterContentClassName}
+              />
             </div>
 
             {/* District selection */}
             <div className="space-y-1.5">
               <div className="font-mono text-[9px] text-[var(--dc-text-muted)] uppercase tracking-wider">KECAMATAN</div>
-              <Select
-                name="districtId"
+              <SearchableSelect
+                aria-label="Filter Kecamatan"
                 value={queryState.districtId || "ALL"}
                 disabled={!queryState.regencyId}
+                options={[
+                  {
+                    value: "ALL",
+                      label: queryState.regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu",
+                    disabled: !queryState.regencyId,
+                  },
+                  ...areaFilters.districts.map((area) => ({ value: area.id, label: area.name })),
+                ]}
                 onValueChange={(val) =>
                   applyFilter({
                     districtId: val === "ALL" ? "" : val,
                   })
                 }
-              >
-                <SelectTrigger className="h-10 w-full rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-canvas)] px-3 font-mono text-foreground text-xs outline-none transition-all focus:border-[var(--dc-primary)] focus:shadow-[0_0_8px_color-mix(in_srgb,var(--dc-primary)_15%,transparent)] focus:ring-1 focus:ring-[var(--dc-primary)]/20 disabled:cursor-not-allowed disabled:opacity-30 dark:border-slate-800 dark:bg-slate-950/80">
-                  <SelectValue placeholder="Semua kecamatan" />
-                </SelectTrigger>
-                <SelectContent
-                  position="popper"
-                  side="bottom"
-                  className="relative z-50 max-h-[300px] select-none overflow-y-auto rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)] font-mono text-foreground text-xs"
-                >
-                  <SelectItem value="ALL">Semua kecamatan</SelectItem>
-                  {areaFilters.districts.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
-                      {area.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  placeholder={queryState.regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu"}
+                  searchPlaceholder="Cari Kecamatan..."
+                emptyText="Kecamatan tidak ditemukan."
+                className={cn(dynamicFilterClassName, "disabled:cursor-not-allowed disabled:opacity-30")}
+                contentClassName={dynamicFilterContentClassName}
+              />
             </div>
           </form>
+          {!isDirectoryLayout && (
+            <p className="border-[var(--dc-border-subtle)] border-t pt-3 font-mono text-[10px] text-[var(--dc-text-secondary)] leading-relaxed">
+              {scopeDescription}
+            </p>
+          )}
         </section>
 
         {/* Tactical Tabs Interface */}
         <Tabs defaultValue="daftar" className="space-y-4">
-          <TabsList className="h-11 w-full justify-start rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 p-1 md:w-auto dark:border-slate-800 dark:bg-[#080d14]/60">
+          <TabsList
+            className={cn(
+              "h-11 w-full justify-start border p-1 md:w-auto",
+              isDirectoryLayout
+                ? "rounded-xl border-slate-200/80 bg-card shadow-xs dark:border-white/10"
+                : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 dark:border-slate-800 dark:bg-[#080d14]/60",
+            )}
+          >
             <TabsTrigger
               value="daftar"
-              className="cursor-pointer rounded-none border border-transparent px-6 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider transition-all hover:text-foreground data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800"
+              className={cn(
+                "cursor-pointer border border-transparent px-6 text-[10px] uppercase tracking-wider transition-all hover:text-foreground",
+                isDirectoryLayout
+                  ? "rounded-lg font-semibold text-muted-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs"
+                  : "rounded-none font-mono text-[var(--dc-text-muted)] data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800",
+              )}
             >
               <List className="mr-2 size-3.5 text-[var(--dc-primary)]" />
               {config.tableTabLabel}
             </TabsTrigger>
-            <TabsTrigger
-              value="peta"
-              className="cursor-pointer rounded-none border border-transparent px-6 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider transition-all hover:text-foreground data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800"
-            >
-              <MapIcon className="mr-2 size-3.5 text-[var(--dc-primary)]" />
-              {config.mapTabLabel}
-            </TabsTrigger>
+            {showMapTab && (
+              <TabsTrigger
+                value="peta"
+                className={cn(
+                  "cursor-pointer border border-transparent px-6 text-[10px] uppercase tracking-wider transition-all hover:text-foreground",
+                  isDirectoryLayout
+                    ? "rounded-lg font-semibold text-muted-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs"
+                    : "rounded-none font-mono text-[var(--dc-text-muted)] data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800",
+                )}
+              >
+                <MapIcon className="mr-2 size-3.5 text-[var(--dc-primary)]" />
+                {config.mapTabLabel}
+              </TabsTrigger>
+            )}
             {config.showExecutiveSummary && (
               <TabsTrigger
                 value="eksekutif"
-                className="cursor-pointer rounded-none border border-transparent px-6 font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-wider transition-all hover:text-foreground data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800"
+                className={cn(
+                  "cursor-pointer border border-transparent px-6 text-[10px] uppercase tracking-wider transition-all hover:text-foreground",
+                  isDirectoryLayout
+                    ? "rounded-lg font-semibold text-muted-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs"
+                    : "rounded-none font-mono text-[var(--dc-text-muted)] data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800",
+                )}
               >
                 <BarChart3 className="mr-2 size-3.5 text-[var(--dc-primary)]" />
-                EXECUTIVE
+                Deputi II
               </TabsTrigger>
             )}
           </TabsList>
@@ -926,17 +1329,24 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
           {/* Database List Tab View */}
           <TabsContent value="daftar" className="space-y-4 outline-none">
             {/* Redesigned statistics indicators */}
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <KpiCard label="Total Personel" value={totalPersonnel} progress={100} variant="cyan" />
-              <KpiCard label="Jaring Binaan" value={totalJaring} progress={100} variant="cyan" />
-              <KpiCard label="Aktif / Online" value={onlineCount} progress={onlinePercentage} variant="emerald" />
-              <KpiCard
-                label="Offline / Tanpa Sinyal"
-                value={offlineCount}
-                progress={offlinePercentage}
-                variant="amber"
-              />
-            </section>
+            {!isDirectoryLayout && (
+              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <KpiCard label={config.totalPersonnelLabel} value={totalPersonnel} variant="cyan" />
+                <KpiCard label={config.jaringKpiLabel} value={totalJaring} variant="cyan" />
+                <KpiCard
+                  label={config.onlineKpiLabel}
+                  value={onlineCount}
+                  progress={onlinePercentage}
+                  variant="emerald"
+                />
+                <KpiCard
+                  label={config.offlineKpiLabel}
+                  value={offlineCount}
+                  progress={offlinePercentage}
+                  variant="amber"
+                />
+              </section>
+            )}
 
             <div className="flex items-center justify-end gap-3">
               <span className="font-bold font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-[0.28em]">
@@ -945,8 +1355,12 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
               <ViewModeToggle
                 value={viewMode}
                 onValueChange={setViewMode}
-                className="rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80"
-                buttonClassName="size-8 rounded-none"
+                className={cn(
+                  isDirectoryLayout
+                    ? "rounded-lg border-border bg-card"
+                    : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80",
+                )}
+                buttonClassName={cn("size-8", isDirectoryLayout ? "rounded-md" : "rounded-none")}
               />
             </div>
 
@@ -957,6 +1371,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 onReset={resetFilters}
                 config={config}
                 freshness={map.meta.freshness}
+                queryState={queryState}
               />
             ) : (
               <PersonnelCardGrid
@@ -978,68 +1393,102 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 setRowsPerPage(limit);
                 setPage(1);
               }}
-              className="rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 px-6 py-3.5 dark:border-slate-800 dark:bg-[#080d14]/80"
+              className={cn(
+                "px-6 py-3.5",
+                isDirectoryLayout
+                  ? "rounded-xl border border-slate-200/80 bg-card shadow-xs dark:border-white/10"
+                  : "rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 dark:border-slate-800 dark:bg-[#080d14]/80",
+              )}
             />
           </TabsContent>
 
           {/* Geospatial Map Tab View */}
-          <TabsContent value="peta" className="space-y-4 outline-none">
-            <section className="grid gap-4 lg:grid-cols-[1fr_320px]">
-              <div className="relative h-[640px] overflow-hidden rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/40 dark:border-slate-800">
-                {/* Border corner decorations for the map window */}
-                <div className="pointer-events-none absolute top-0 left-0 z-10 h-3 w-3 border-[var(--dc-primary)] border-t-2 border-l-2" />
-                <div className="pointer-events-none absolute top-0 right-0 z-10 h-3 w-3 border-[var(--dc-primary)] border-t-2 border-r-2" />
-                <div className="pointer-events-none absolute bottom-0 left-0 z-10 h-3 w-3 border-[var(--dc-primary)] border-b-2 border-l-2" />
-                <div className="pointer-events-none absolute right-0 bottom-0 z-10 h-3 w-3 border-[var(--dc-primary)] border-r-2 border-b-2" />
+          {showMapTab && (
+            <TabsContent value="peta" className="space-y-4 outline-none">
+              <section className="grid gap-4 lg:grid-cols-[1fr_320px]">
+                <div
+                  className={cn(
+                    "relative h-[640px] overflow-hidden border bg-card",
+                    isDirectoryLayout
+                      ? "rounded-[18px] border-slate-200/80 shadow-xs dark:border-white/10"
+                      : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/40 dark:border-slate-800",
+                  )}
+                >
+                  {/* Border corner decorations for the map window */}
+                  {!isDirectoryLayout && (
+                    <>
+                      <div className="pointer-events-none absolute top-0 left-0 z-10 h-3 w-3 border-[var(--dc-primary)] border-t-2 border-l-2" />
+                      <div className="pointer-events-none absolute top-0 right-0 z-10 h-3 w-3 border-[var(--dc-primary)] border-t-2 border-r-2" />
+                      <div className="pointer-events-none absolute bottom-0 left-0 z-10 h-3 w-3 border-[var(--dc-primary)] border-b-2 border-l-2" />
+                      <div className="pointer-events-none absolute right-0 bottom-0 z-10 h-3 w-3 border-[var(--dc-primary)] border-r-2 border-b-2" />
+                    </>
+                  )}
 
-                <Map center={[118, -2.5]} zoom={4.2} minZoom={3} maxZoom={15}>
-                  <MapControls showZoom showCompass position="top-right" />
-                  {map.features.map((feature) => (
-                    <LocationMarker key={feature.id} feature={feature} config={config} />
-                  ))}
-                </Map>
-              </div>
-
-              {/* Sidebar Legend and stats info */}
-              <aside className="space-y-4">
-                <div className="relative select-none rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-4 dark:border-slate-800 dark:bg-[#080d14]/80">
-                  <div className="absolute top-0 left-0 h-2.5 w-2.5 border-[var(--dc-border-subtle)] border-t border-l dark:border-slate-700" />
-                  <div className="absolute top-0 right-0 h-2.5 w-2.5 border-[var(--dc-border-subtle)] border-t border-r dark:border-slate-700" />
-
-                  <div className="mb-3 flex items-center gap-1.5 border-[var(--dc-border-subtle)] border-b pb-2 dark:border-slate-900">
-                    <Layers className="size-3.5 text-[var(--dc-primary)]" />
-                    <h2 className="font-bold font-mono text-[10px] text-[var(--dc-text-muted)] uppercase tracking-widest">
-                      Keterangan Marker
-                    </h2>
-                  </div>
-
-                  <div className="space-y-3">
-                    {map.meta.legend.map((item) => (
-                      <div
-                        key={item.code}
-                        className="flex items-center gap-3 border-[var(--dc-border-subtle)] border-b pb-2 last:border-b-0 dark:border-slate-900/40"
-                      >
-                        <span
-                          className="grid size-8 select-none place-items-center rounded-full border border-slate-800 font-bold text-[0.62rem] text-slate-950 shadow-[0_0_10px_rgba(20,184,255,0.15)]"
-                          style={{ backgroundColor: item.color }}
-                        >
-                          {item.code}
-                        </span>
-                        <div>
-                          <p className="font-bold font-mono text-[var(--dc-text-primary)] text-xs">{item.label}</p>
-                          <p className="mt-0.5 font-mono text-[10px] text-[var(--dc-text-secondary)] leading-relaxed">
-                            {item.description}
-                          </p>
-                        </div>
-                      </div>
+                  <Map center={[118, -2.5]} zoom={4.2} minZoom={3} maxZoom={15}>
+                    <MapControls showZoom showCompass position="top-right" />
+                    {map.features.map((feature) => (
+                      <LocationMarker key={feature.id} feature={feature} config={config} />
                     ))}
-                  </div>
+                  </Map>
                 </div>
-              </aside>
-            </section>
-          </TabsContent>
 
-          {/* Executive Summary Analytics Tab View */}
+                {/* Sidebar Legend and stats info */}
+                <aside className="space-y-4">
+                  <div
+                    className={cn(
+                      "relative select-none border bg-card p-4",
+                      isDirectoryLayout
+                        ? "rounded-xl border-slate-200/80 shadow-xs dark:border-white/10"
+                        : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 dark:border-slate-800 dark:bg-[#080d14]/80",
+                    )}
+                  >
+                    {!isDirectoryLayout && (
+                      <>
+                        <div className="absolute top-0 left-0 h-2.5 w-2.5 border-[var(--dc-border-subtle)] border-t border-l dark:border-slate-700" />
+                        <div className="absolute top-0 right-0 h-2.5 w-2.5 border-[var(--dc-border-subtle)] border-t border-r dark:border-slate-700" />
+                      </>
+                    )}
+
+                    <div className="mb-3 flex items-center gap-1.5 border-[var(--dc-border-subtle)] border-b pb-2 dark:border-slate-900">
+                      <Layers className="size-3.5 text-[var(--dc-primary)]" />
+                      <h2
+                        className={cn(
+                          "font-bold text-[10px] uppercase tracking-widest",
+                          isDirectoryLayout ? "text-muted-foreground" : "font-mono text-[var(--dc-text-muted)]",
+                        )}
+                      >
+                        {config.mapLegendTitle}
+                      </h2>
+                    </div>
+
+                    <div className="space-y-3">
+                      {map.meta.legend.map((item) => (
+                        <div
+                          key={item.code}
+                          className="flex items-center gap-3 border-[var(--dc-border-subtle)] border-b pb-2 last:border-b-0 dark:border-slate-900/40"
+                        >
+                          <span
+                            className="grid size-8 select-none place-items-center rounded-full border border-slate-800 font-bold text-[0.62rem] text-slate-950 shadow-[0_0_10px_rgba(20,184,255,0.15)]"
+                            style={{ backgroundColor: item.color }}
+                          >
+                            {item.code}
+                          </span>
+                          <div>
+                            <p className="font-bold font-mono text-[var(--dc-text-primary)] text-xs">{item.label}</p>
+                            <p className="mt-0.5 font-mono text-[10px] text-[var(--dc-text-secondary)] leading-relaxed">
+                              {item.description}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </aside>
+              </section>
+            </TabsContent>
+          )}
+
+          {/* Tampilan tab ringkasan analitik Deputi II */}
           {config.showExecutiveSummary && (
             <TabsContent value="eksekutif" className="outline-none">
               <section className="relative rounded-none border border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/80 p-6 dark:border-slate-800 dark:bg-[#080d14]/70">
@@ -1051,7 +1500,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 <div className="mb-5 flex items-center gap-1.5 border-[var(--dc-border-subtle)] border-b pb-3 dark:border-slate-900">
                   <Activity className="size-4 text-[var(--dc-primary)]" />
                   <h2 className="font-bold font-mono text-[var(--dc-text-primary)] text-sm uppercase tracking-widest">
-                    Ringkasan Eksekutif Analitik
+                    Ringkasan Analitik Deputi II
                   </h2>
                 </div>
 
@@ -1059,14 +1508,13 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                   <KpiCard
                     label="Total Petugas Wilayah"
                     value={map.meta.counts.totalFieldOfficers}
-                    trend="Agen Aktif"
-                    progress={100}
+                    trend="Personel Aktif"
                     variant="cyan"
                   />
                   <KpiCard
-                    label="Lokasi Live / Recent"
+                    label="Lokasi Aktif / Terbaru"
                     value={(map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0)}
-                    trend="Cakupan Online"
+                    trend="Cakupan Terhubung"
                     progress={
                       (((map.meta.counts.byStatus.LIVE ?? 0) + (map.meta.counts.byStatus.RECENT ?? 0)) /
                         (map.meta.counts.totalFieldOfficers || 1)) *

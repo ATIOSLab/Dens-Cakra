@@ -50,6 +50,7 @@ import { useGenerateLoading } from "@/hooks/useGenerateLoading";
 import { apiBrowserMutation } from "@/lib/api/browser-client";
 import { ApiClientError } from "@/lib/api/errors";
 import { classificationBadgeClass } from "@/lib/classification";
+import { getUrgencyLabel } from "@/lib/domain/operational-presentation";
 
 import { deriveDirectiveRecipients, deriveRegionalRecipientPreview } from "./directive-distribution";
 import { getCurrentVersion, normalizeProvinceSelection } from "./directive-shared";
@@ -150,7 +151,7 @@ function buildAllModePreviewRows(
           scopeCode: item.provinceCode,
           targetLabel: recipient.positionTitle,
           targetSubLabel: recipient.organizationUnitName,
-          targetKind: "Regional Commander",
+          targetKind: "Komandan Regional",
           coverageNames: [item.provinceName],
           targetPositionId: recipient.positionId,
         }))
@@ -160,8 +161,8 @@ function buildAllModePreviewRows(
             scopeLabel: item.provinceName,
             scopeCode: item.provinceCode,
             targetLabel: null,
-            targetSubLabel: "Belum ada Regional Commander yang terhubung.",
-            targetKind: "Regional Commander",
+            targetSubLabel: "Belum ada Komandan Regional yang terhubung.",
+            targetKind: "Komandan Regional",
             coverageNames: [item.provinceName],
             missing: true,
           },
@@ -687,7 +688,7 @@ export function DirectiveFormClient({
   return (
     <div className="space-y-6">
       <PageHeader
-        title={mode === "create" ? "Buat Draft STR Baru" : "Edit Draft STR"}
+        title={mode === "create" ? "Buat Draf STR Baru" : "Ubah Draf STR"}
         description={
           mode === "create"
             ? "Masukkan data instruksi strategis dan bagian UUK/KIQ/PIR baru."
@@ -790,7 +791,7 @@ export function DirectiveFormClient({
                       className="dc-priority inline-flex rounded-md border px-2 py-0.5 font-mono font-semibold text-[10px] uppercase tracking-wider"
                       data-priority={urgency}
                     >
-                      {urgency}
+                      {getUrgencyLabel(urgency)}
                     </span>
                   </SelectTrigger>
                   <SelectContent position="popper">
@@ -800,7 +801,7 @@ export function DirectiveFormClient({
                           className="dc-priority inline-flex rounded-md border px-2 py-0.5 font-mono font-semibold text-[10px] uppercase tracking-wider"
                           data-priority={item}
                         >
-                          {item}
+                          {getUrgencyLabel(item)}
                         </span>
                       </SelectItem>
                     ))}
@@ -840,9 +841,9 @@ export function DirectiveFormClient({
 
           <Card>
             <CardHeader>
-              <CardTitle>Preview Distribusi</CardTitle>
+              <CardTitle>Pratinjau Distribusi</CardTitle>
               <CardDescription>
-                Mode `Semua` menurunkan distribusi ke Regional Commander. Mode `Binda` dan `Direktorat` langsung
+                Mode `Semua` menurunkan distribusi ke Komandan Regional. Mode `Binda` dan `Direktorat` langsung
                 menargetkan organisasi yang dipilih dari peta.
               </CardDescription>
             </CardHeader>
@@ -1046,7 +1047,7 @@ export function DirectiveFormClient({
           </CardContent>
           <CardFooter className="justify-between">
             <div className="text-muted-foreground text-xs">
-              Publish dan distribusi tetap dijalankan terpisah setelah draft STR selesai direview.
+              Penerbitan dan distribusi tetap dijalankan terpisah setelah draf STR selesai ditinjau.
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -1057,8 +1058,8 @@ export function DirectiveFormClient({
                   <AlertDialogTitle>{mode === "create" ? "Simpan Draft STR?" : "Perbarui Draft STR?"}</AlertDialogTitle>
                   <AlertDialogDescription>
                     {mode === "create"
-                      ? "Apakah Anda yakin ingin menyimpan draft STR baru ini?"
-                      : "Apakah Anda yakin ingin memperbarui draft STR ini?"}
+                      ? "Apakah Anda yakin ingin menyimpan draf STR baru ini?"
+                      : "Apakah Anda yakin ingin memperbarui draf STR ini?"}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

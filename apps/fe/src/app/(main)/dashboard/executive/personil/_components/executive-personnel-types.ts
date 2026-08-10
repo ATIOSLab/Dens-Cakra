@@ -6,6 +6,12 @@ export type PersonnelArea = {
   name: string;
   level: string;
   isPrimary?: boolean;
+  ancestors?: Array<{
+    id: string;
+    code: string;
+    name: string;
+    level: string;
+  }>;
 };
 
 export type PersonnelAssignment = {
@@ -115,6 +121,7 @@ export type PersonnelJaringItem = {
   address?: string | null;
   whatsappNumber?: string | null;
   status?: string | null;
+  lastReportAt?: string | null;
   registrationStatus?: "PENDING" | "APPROVED" | "REJECTED" | string | null;
   registeredAt?: string | null;
   createdAt?: string | null;
@@ -211,7 +218,19 @@ export type PersonnelListProps = {
     tableTabLabel: string;
     mapTabLabel: string;
     detailTarget: "userProfile" | "assignment";
+    showMapTab?: boolean;
     showExecutiveSummary?: boolean;
     showProvinceFilter?: boolean;
+    layoutVariant?: "tactical" | "directory";
+    searchPlaceholder?: string;
+    scopeLabel?: string;
+    totalPersonnelLabel?: string;
+    personnelColumnLabel?: string;
+    jaringKpiLabel?: string;
+    onlineKpiLabel?: string;
+    offlineKpiLabel?: string;
+    emptyTitle?: string;
+    emptyDescription?: string;
+    mapLegendTitle?: string;
   };
 };

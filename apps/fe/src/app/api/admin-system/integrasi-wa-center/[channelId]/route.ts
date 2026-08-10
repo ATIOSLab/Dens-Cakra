@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { apiRouteErrorResponse } from "@/server/api-route-error";
 import { removeWhatsappControlChannel, updateWhatsappControlChannel } from "@/server/field-ops/repository";
 
 type Params = {
@@ -20,10 +21,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(await updateWhatsappControlChannel(request.headers.get("cookie") ?? "", channelId, body));
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal memperbarui kontrol WhatsApp." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal memperbarui kontrol WhatsApp.");
   }
 }
 
@@ -32,9 +30,6 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const { channelId } = await params;
     return NextResponse.json(await removeWhatsappControlChannel(request.headers.get("cookie") ?? "", channelId));
   } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Gagal menghapus koneksi WhatsApp." },
-      { status: 500 },
-    );
+    return apiRouteErrorResponse(error, "Gagal menghapus koneksi WhatsApp.");
   }
 }

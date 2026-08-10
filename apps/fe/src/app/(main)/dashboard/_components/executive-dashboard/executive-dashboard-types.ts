@@ -31,8 +31,7 @@ export type DashboardReportItem = {
   area: { id: string; name: string; level: string } | null;
   category: { id: string; name: string } | null;
   urgency: string | null;
-  completeness: string;
-  verification: string;
+  stage: string;
   workflow: string;
   reportedAt: string;
   ageHours: number;
@@ -55,10 +54,14 @@ export type ExecutiveDashboardData = {
   scope: {
     role: string;
     roleCode: string;
+    commandRouteType: string;
     organizationUnitId: string;
     organizationUnitName: string;
+    supervisionMode: "DKI_REGENCY_CITY" | "PROVINCE" | "NATIONAL" | "COMMAND_AREA" | string;
+    supervisionLabel: string;
+    scopeDescription: string;
     label: string;
-    areas: Array<{ id: string; code: string; name: string; level: string }>;
+    areas: Array<{ id: string; code: string; name: string; level: string; isDkiJakarta?: boolean }>;
   };
   appliedFilters: Record<string, string>;
   metrics: Array<{
@@ -87,14 +90,11 @@ export type ExecutiveDashboardData = {
       points: Array<{
         bucket: string;
         total: number;
-        complete: number;
-        incomplete: number;
         verified: number;
       }>;
     };
     workflow: DistributionItem[];
-    completeness: DistributionItem[];
-    verification: DistributionItem[];
+    reportStage: DistributionItem[];
     urgency: DistributionItem[];
     categories: DistributionItem[];
     source: DistributionItem[];
@@ -115,12 +115,13 @@ export type ExecutiveDashboardData = {
       jaringWithoutArea: number;
       incompleteOrganizationRelation: number;
       unavailableFields: Array<{ key: string; label: string; reason: string }>;
-      completenessRate: number;
     };
   };
   operations: {
     networkSummary: {
       total: number;
+      korwilCount: number;
+      gaswilCount: number;
       active: number;
       inactive: number;
       otherStatus: number;
@@ -128,7 +129,6 @@ export type ExecutiveDashboardData = {
       reporting: number;
       withoutReports: number;
       averageReports: number;
-      completenessRate: number;
     };
     regionalRanking: Array<{
       id: string;
@@ -139,8 +139,6 @@ export type ExecutiveDashboardData = {
       verified: number;
       draftBakets: number;
       validatedBakets: number;
-      complete: number;
-      completenessRate: number;
       urgent: number;
       outsideScope: number;
       attentionReasons: string[];
@@ -153,10 +151,8 @@ export type ExecutiveDashboardData = {
       gaswil: string | null;
       area: string | null;
       reports: number;
-      complete: number;
       verified: number;
       draftBakets: number;
-      completenessRate: number;
       lastReportAt: string | null;
       drilldown: string;
     }>;
@@ -168,11 +164,8 @@ export type ExecutiveDashboardData = {
       jaring: number;
       activeJaring: number;
       reports: number;
-      complete: number;
-      incomplete: number;
       verified: number;
       draftBakets: number;
-      completenessRate: number;
       averageVerificationHours: number | null;
       lastActivityAt: string | null;
       drilldown: string;
@@ -254,7 +247,6 @@ export type ExecutiveDashboardFilters = {
   options: {
     urgency: string[];
     reportStatus: string[];
-    completeness: string[];
     verificationStatus: string[];
     workflowStatus: string[];
     validationStatus: string[];
@@ -276,7 +268,6 @@ export type DashboardQueryState = {
   fieldOfficerAssignmentId: string;
   urgency: string;
   reportStatus: string;
-  completeness: string;
   verificationStatus: string;
   workflowStatus: string;
   validationStatus: string;

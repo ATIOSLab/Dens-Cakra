@@ -25,6 +25,7 @@ import {
   ReasonDto,
   ResetUserPasswordDto,
   SuspendUserDto,
+  UpdateDkiSupervisionScopeDto,
   UpdateUserProfileDto,
   UserProfileListQueryDto,
 } from './dto/user-profile.dto.js';
@@ -55,7 +56,7 @@ export class UserProfileController {
   @ApiContract({
     operationId: 'apiUsr002',
     contractId: 'API-USR-002',
-    summary: 'Provision akun, profile, role dan scope wilayah',
+    summary: 'Provision akun, profile, role, dan cakupan wilayah',
     roles: ['admin_system'],
     successStatus: 201,
     idempotent: true,
@@ -68,6 +69,17 @@ export class UserProfileController {
       await this.users.provision(input, actor),
       'User was provisioned.',
     );
+  }
+
+  @Get('dki-supervision')
+  @ApiContract({
+    operationId: 'apiUsrDkiSupervision001',
+    contractId: 'API-USR-DKI-SUPERVISION-001',
+    summary: 'Daftar mapping supervisi DKI Direktorat/Ditwil',
+    roles: ['admin_system'],
+  })
+  async dkiSupervisionMappings() {
+    return apiResult(await this.users.dkiSupervisionMappings());
   }
 
   @Get(':userProfileId')
@@ -211,6 +223,25 @@ export class UserProfileController {
   ) {
     return apiResult(
       await this.users.changePrimaryAssignment(id, input, actor),
+    );
+  }
+
+  @Post(':userProfileId/dki-supervision-scope')
+  @ApiContract({
+    operationId: 'apiUsrDkiSupervision002',
+    contractId: 'API-USR-DKI-SUPERVISION-002',
+    summary: 'Ubah cakupan supervisi DKI Direktorat/Ditwil',
+    roles: ['admin_system'],
+    successStatus: 201,
+    idempotent: true,
+  })
+  async updateDkiSupervisionScope(
+    @Param('userProfileId', ParseUUIDPipe) id: string,
+    @Body() input: UpdateDkiSupervisionScopeDto,
+    @CurrentAccessContext() actor: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.users.updateDkiSupervisionScope(id, input, actor),
     );
   }
 

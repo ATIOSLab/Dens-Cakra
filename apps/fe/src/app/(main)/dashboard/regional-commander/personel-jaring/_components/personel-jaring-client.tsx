@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
@@ -14,14 +14,12 @@ import {
   Compass,
   Mail,
   MapPin,
-  Network,
   Phone,
   Radio,
   Search,
   ShieldCheck,
   Star,
   User,
-  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Map as BaseMap, MapControls, MapMarker, type MapRef } from "@/components/ui/map";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { JaringIdentityArea, JaringIdentitySource } from "@/lib/domain/jaring-identity";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { matchesPhoneSearch } from "@/lib/search/phone-search";
 import { cn } from "@/lib/utils";
 
@@ -110,6 +109,16 @@ function formatTime(value: unknown) {
   return Number.isNaN(date.getTime())
     ? "Waktu tidak valid"
     : new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function formatPercent(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value);
+}
+
+function percentOf(value: number, total: number) {
+  return total <= 0 ? 0 : Math.round((value / total) * 1000) / 10;
 }
 
 function formatTimeAgo(value: unknown) {
@@ -233,13 +242,14 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 2 | 4>(1);
 
   // Reset timeline on selected point change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Reset playback intentionally follows selected GIS point changes.
   useEffect(() => {
     setTimelineIndex(3);
     setIsPlaying(false);
   }, [selectedGisPoint]);
 
   // Easing history path data points helper
-  const getTravelHistoryForCoords = (coords: [number, number] | null, status: string) => {
+  const getTravelHistoryForCoords = useCallback((coords: [number, number] | null, status: string) => {
     if (!coords) return [];
     const [lng, lat] = coords;
     return [
@@ -257,7 +267,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
       },
       {
         time: "08:37",
-        label: "Agent Transit Lokasi",
+        label: "Transit Lokasi Personel",
         coords: [lng - 0.004, lat - 0.002] as [number, number],
         status: status === "OFFLINE" ? "offline" : "online",
       },
@@ -268,7 +278,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
         status: status === "EMERGENCY" ? "emergency" : status === "OFFLINE" ? "offline" : "online",
       },
     ];
-  };
+  }, []);
 
   // Auto easeTo timeline index coordinates
   useEffect(() => {
@@ -285,7 +295,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
         duration: 800,
       });
     }
-  }, [timelineIndex]);
+  }, [getTravelHistoryForCoords, selectedGisPoint, timelineIndex]);
 
   // Replay interval driver
   useEffect(() => {
@@ -775,7 +785,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
     const loc = locationMap.get(text(item.id, ""));
     return Boolean(loc?.hasLiveLocation);
   }).length;
-  const activeJaring = visibleJaring.filter((item) => item.status === "ACTIVE").length;
+  const operationalJaring = visibleJaring.filter((item) => item.status === "ACTIVE").length;
 
   // Selected object references
   const selectedAssignment = useMemo(() => {
@@ -802,8 +812,8 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
       <header className="border-b pb-4">
         <h1 className="mt-1 font-heading text-2xl font-semibold">Personel, Organisasi & Jaring</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-          Seluruh data di bawah berasal dari assignment aktif yang berada dalam rantai komando Anda. Lokasi stealth
-          tidak ditampilkan.
+          Seluruh data di bawah berasal dari penugasan aktif yang berada dalam rantai komando Anda. Lokasi yang
+          dirahasiakan tidak ditampilkan.
         </p>
       </header>
 
@@ -829,16 +839,39 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
           {/* Stats row */}
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan command network">
             {[
-              { label: "Personel bawahan", value: visibleAssignments.length, icon: Users },
-              { label: "Unit organisasi", value: unitCount, icon: Building2 },
-              { label: "Lokasi aktual tersedia", value: liveCount, icon: Radio },
-              { label: "Jaring aktif", value: activeJaring, icon: Network },
+              {
+                label: "Personel bawahan",
+                value: visibleAssignments.length,
+                helper: "Personel dalam cakupan komando aktif",
+                icon: DOMAIN_VISUALS.gaswil.Icon,
+              },
+              {
+                label: "Unit organisasi",
+                value: unitCount,
+                helper: "Unit yang muncul pada hasil filter",
+                icon: Building2,
+              },
+              {
+                label: "Lokasi aktual tersedia",
+                value: liveCount,
+                helper: `${formatPercent(percentOf(liveCount, visibleAssignments.length))}% dari personel`,
+                icon: Radio,
+              },
+              {
+                label: "Status operasional aktif",
+                value: operationalJaring,
+                helper: `${formatPercent(percentOf(operationalJaring, visibleJaring.length))}% dari total Jaring`,
+                icon: DOMAIN_VISUALS.jaring.Icon,
+              },
             ].map((metric) => (
               <Card key={metric.label} size="sm" className="rounded-[8px]">
                 <CardContent className="flex items-center justify-between p-4">
                   <div>
                     <p className="text-xs text-muted-foreground">{metric.label}</p>
                     <p className="mt-1 font-mono text-2xl font-semibold">{metric.value}</p>
+                    <p className="mt-1 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
+                      {metric.helper}
+                    </p>
                   </div>
                   <metric.icon className="size-5 text-primary" aria-hidden="true" />
                 </CardContent>
@@ -1096,7 +1129,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
 
                             <div className="space-y-2 border-t border-border/20 pt-3">
                               <span className="flex items-center gap-1 text-muted-foreground/60 block font-mono text-[9px] uppercase">
-                                <Network className="size-3" /> Jaring Binaan ({attachedJaring.length})
+                                <DOMAIN_VISUALS.jaring.Icon className="size-3" /> Jaring Binaan ({attachedJaring.length})
                               </span>
                               {attachedJaring.length ? (
                                 <div className="grid gap-2 sm:grid-cols-2">
@@ -1301,12 +1334,10 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                                 {text(item.status)}
                               </Badge>
                             </div>
-                            <JaringIdentitySummary
-                              compact
-                              linkWhatsApp={false}
-                              source={jaringIdentitySource(item)}
-                            />
-                            <div className="text-[9px] font-mono truncate opacity-70">Cluster: {text(cluster.name)}</div>
+                            <JaringIdentitySummary compact linkWhatsApp={false} source={jaringIdentitySource(item)} />
+                            <div className="text-[9px] font-mono truncate opacity-70">
+                              Cluster: {text(cluster.name)}
+                            </div>
                           </button>
                         );
                       })
@@ -1463,7 +1494,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                     })()
                   ) : (
                     <div className="flex flex-col items-center justify-center py-20 bg-card border border-border rounded-[8px] text-muted-foreground/60 text-center space-y-2">
-                      <Network className="size-10 stroke-[1.25] text-muted-foreground/35" />
+                      <DOMAIN_VISUALS.jaring.Icon className="size-10 stroke-[1.25] text-muted-foreground/35" />
                       <span className="font-mono text-[10px] uppercase">Detail Jaring</span>
                       <p className="text-[11px] max-w-[240px]">
                         Silakan pilih jaring dari daftar di panel kiri untuk menampilkan data relasi detail.
@@ -1628,7 +1659,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
                         }}
                         className="flex items-center justify-between px-2 h-7 rounded-[3px] bg-slate-900 border border-sky-400 text-sky-400 font-mono text-[10px] font-bold shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                       >
-                        <Users className="size-3 mr-1" />
+                        <DOMAIN_VISUALS.gaswil.Icon className="size-3 mr-1" />
                         {node.count} PERSONEL
                       </button>
                     </MapMarker>
@@ -1678,10 +1709,10 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
           {selectedGisPoint && (
             <div className="border border-border bg-card p-3 rounded-[3px] font-mono text-[10px] space-y-2 select-none">
               <div className="flex justify-between items-center text-muted-foreground">
-                <span>TIMELINE PLAYBACK // HISTORI PERJALANAN AKTIF</span>
+                <span>TIMELINE PLAYBACK - HISTORI PERJALANAN AKTIF</span>
                 <span className="text-primary font-bold">
                   WAKTU AKTIF:{" "}
-                  {getTravelHistoryForCoords(selectedGisPoint.coords, selectedGisPoint.status)[timelineIndex]?.time ||
+                  {getTravelHistoryForCoords(selectedGisPoint.coords, selectedGisPoint.status)[timelineIndex]?.time ??
                     "08:00"}
                 </span>
               </div>
@@ -1698,10 +1729,10 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
               </div>
 
               <div className="flex justify-between text-[9px] text-muted-foreground px-1">
-                <span>08.00 // DEPARTURE</span>
-                <span>08.30 // TRANSIT</span>
-                <span>09.00 // ARRIVED</span>
-                <span>10.00 // CURRENT</span>
+                <span>08.00 - DEPARTURE</span>
+                <span>08.30 - TRANSIT</span>
+                <span>09.00 - ARRIVED</span>
+                <span>10.00 - CURRENT</span>
               </div>
             </div>
           )}
@@ -1756,7 +1787,7 @@ export function PersonelJaringClient({ network, locations }: { network: unknown;
             <div className="p-4 flex flex-col justify-between">
               {selectedGisPoint ? (
                 <div className="flex gap-4">
-                  {/* Photo & Profile metadata */}
+                  {/* Foto dan metadata profil */}
                   <div className="size-14 rounded-[3px] border border-border bg-secondary/15 flex items-center justify-center text-muted-foreground shrink-0 overflow-hidden">
                     {selectedGisPoint.photo ? (
                       // eslint-disable-next-line @next/next/no-img-element

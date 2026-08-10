@@ -13,8 +13,8 @@ export const users: DashboardUser[] = [
   {
     id: "1",
     name: "Deputi II Demo",
-    username: "kabinda-demo",
-    email: "executive@denscakra.local",
+    username: "deputi.2.bin",
+    email: "deputi@denscakra.local",
     avatar: "",
     role: SYSTEM_ROLES.EXECUTIVE,
   },

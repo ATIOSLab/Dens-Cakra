@@ -3,16 +3,22 @@
 import Link from "next/link";
 
 import {
+  Activity,
   AlertTriangle,
+  ArchiveX,
   ArrowRight,
+  BarChart3,
   CheckCircle2,
+  ClipboardCheck,
   ClipboardList,
   Clock3,
   DatabaseZap,
+  FileX2,
+  Gauge,
+  type LucideIcon,
   MapPin,
-  Network,
   ShieldAlert,
-  UsersRound,
+  UserPlus,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +26,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
   dashboardActionLabel,
+  dashboardStatusColor,
   dashboardStatusLabel,
   formatDashboardDate,
   formatDashboardDuration,
@@ -31,6 +40,24 @@ import {
   formatDashboardPercent,
 } from "./executive-dashboard-format";
 import type { DashboardReportItem, ExecutiveDashboardData } from "./executive-dashboard-types";
+
+type DashboardTone = "primary" | "success" | "warning" | "danger" | "neutral";
+
+function toneClass(tone: DashboardTone) {
+  if (tone === "success") {
+    return "border-[color-mix(in_srgb,var(--dc-success)_35%,transparent)] bg-[var(--dc-success-soft)] text-[var(--dc-success)]";
+  }
+  if (tone === "warning") {
+    return "border-[color-mix(in_srgb,var(--dc-warning)_35%,transparent)] bg-[var(--dc-warning-soft)] text-[var(--dc-warning)]";
+  }
+  if (tone === "danger") {
+    return "border-[color-mix(in_srgb,var(--dc-danger)_35%,transparent)] bg-[var(--dc-danger-soft)] text-[var(--dc-danger)]";
+  }
+  if (tone === "neutral") {
+    return "border-[var(--dc-border-subtle)] bg-muted/30 text-muted-foreground";
+  }
+  return "border-[color-mix(in_srgb,var(--dc-primary)_35%,transparent)] bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]";
+}
 
 function EmptyState({ children }: { children: string }) {
   return (
@@ -40,8 +67,13 @@ function EmptyState({ children }: { children: string }) {
   );
 }
 
+function percent(value: number, total: number) {
+  return total <= 0 ? 0 : Math.round((value / total) * 1000) / 10;
+}
+
 function ReportRow({ item, buildHref }: { item: DashboardReportItem; buildHref: (href: string) => string }) {
   const areaName = item.area ? item.area.name : "Wilayah belum ditentukan";
+  const urgencyTone = item.urgency === "URGENT" ? "destructive" : item.urgency === "HIGH" ? "secondary" : "outline";
   return (
     <Link
       href={buildHref(item.drilldown)}
@@ -52,16 +84,12 @@ function ReportRow({ item, buildHref }: { item: DashboardReportItem; buildHref: 
           <span className="font-mono text-[0.68rem] text-[var(--dc-primary)]">
             {item.referenceNumber ?? "Tanpa referensi"}
           </span>
-          {item.urgency && (
-            <Badge variant={item.urgency === "URGENT" ? "destructive" : "secondary"}>
-              {dashboardStatusLabel(item.urgency)}
-            </Badge>
-          )}
+          {item.urgency && <Badge variant={urgencyTone}>{dashboardStatusLabel(item.urgency)}</Badge>}
           <Badge variant="outline">{dashboardStatusLabel(item.workflow)}</Badge>
         </div>
         <p className="mt-1 line-clamp-2 font-medium text-sm">{item.title}</p>
         <p className="mt-1 text-muted-foreground text-xs">
-          {item.jaring.name} · {areaName}
+          {item.jaring.name} - {areaName}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
@@ -69,13 +97,11 @@ function ReportRow({ item, buildHref }: { item: DashboardReportItem; buildHref: 
         <span className="text-right">{formatDashboardDate(item.reportedAt)}</span>
         <span className="text-muted-foreground">Usia</span>
         <span className="text-right">{formatDashboardDuration(item.ageHours)}</span>
-        <span className="text-muted-foreground">Kelengkapan</span>
-        <span className="text-right">{dashboardStatusLabel(item.completeness)}</span>
       </div>
       <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
       {item.priorityReasons.length > 0 && (
         <p className="text-[0.7rem] text-muted-foreground lg:col-span-3">
-          Dasar prioritas: {item.priorityReasons.join(" · ")}
+          Dasar prioritas: {item.priorityReasons.join(" - ")}
         </p>
       )}
     </Link>
@@ -124,11 +150,11 @@ export function LeadershipAttentionPanel({
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-sm">{item.reason}</p>
                   <p className="mt-1 line-clamp-1 text-muted-foreground text-xs">
-                    {item.referenceNumber ?? item.title} · {item.area?.name ?? item.jaring.name}
+                    {item.referenceNumber ?? item.title} - {item.area?.name ?? item.jaring.name}
                   </p>
                   <p className="mt-2 text-muted-foreground text-xs">
                     {formatDashboardDuration(item.ageHours)}
-                    {item.dueAt ? ` · Tenggat ${formatDashboardDate(item.dueAt)}` : ""}
+                    {item.dueAt ? ` - Tenggat ${formatDashboardDate(item.dueAt)}` : ""}
                   </p>
                 </div>
                 <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
@@ -148,45 +174,122 @@ export function NetworkSummaryPanel({
   summary: ExecutiveDashboardData["operations"]["networkSummary"];
   buildHref: (href: string) => string;
 }) {
-  const items = [
-    ["Total Jaring", summary.total, "number", "/dashboard/daftar-jaring"],
-    ["Jaring Aktif", summary.active, "number", "/dashboard/daftar-jaring?activityStatus=ACTIVE"],
-    ["Jaring Tidak Aktif", summary.inactive, "number", "/dashboard/daftar-jaring?activityStatus=INACTIVE"],
-    ["Jaring Baru", summary.newlyRegistered, "number", "/dashboard/daftar-jaring?sortBy=newest"],
-    ["Mengirim Laporan", summary.reporting, "number", "/dashboard/laporan-jaring"],
-    ["Tanpa Laporan", summary.withoutReports, "number", "/dashboard/daftar-jaring"],
-    ["Rata-rata Laporan", summary.averageReports, "number", "/dashboard/laporan-jaring"],
-    ["Kelengkapan Laporan", summary.completenessRate, "percent", "/dashboard/laporan-jaring?completeness=COMPLETE"],
-  ] as const;
+  const activeRate = percent(summary.active, summary.total);
+  const inactiveRate = percent(summary.inactive, summary.total);
+  const newRate = percent(summary.newlyRegistered, summary.total);
+  const reportingRate = percent(summary.reporting, summary.total);
+  const withoutReportsRate = percent(summary.withoutReports, summary.total);
+  const items: Array<{
+    label: string;
+    value: number;
+    format: "number" | "percent";
+    href: string;
+    icon: LucideIcon;
+    tone: DashboardTone;
+    helper: string;
+  }> = [
+    {
+      label: "Total Jaring",
+      value: summary.total,
+      format: "number",
+      href: "/dashboard/daftar-jaring",
+      icon: DOMAIN_VISUALS.jaring.Icon,
+      tone: "primary",
+      helper: "Seluruh Jaring dalam cakupan hak akses aktif.",
+    },
+    {
+      label: DOMAIN_TERMS.jaringActive90Days,
+      value: summary.active,
+      format: "number",
+      href: "/dashboard/daftar-jaring?activityStatus=ACTIVE",
+      icon: Activity,
+      tone: "success",
+      helper: `${formatDashboardPercent(activeRate)} dari total Jaring.`,
+    },
+    {
+      label: DOMAIN_TERMS.jaringInactive90Days,
+      value: summary.inactive,
+      format: "number",
+      href: "/dashboard/daftar-jaring?activityStatus=INACTIVE",
+      icon: ArchiveX,
+      tone: "warning",
+      helper: `${formatDashboardPercent(inactiveRate)} dari total Jaring.`,
+    },
+    {
+      label: "Jaring Baru",
+      value: summary.newlyRegistered,
+      format: "number",
+      href: "/dashboard/daftar-jaring?sortBy=newest",
+      icon: UserPlus,
+      tone: "primary",
+      helper: `${formatDashboardPercent(newRate)} dari total Jaring.`,
+    },
+    {
+      label: "Mengirim Laporan",
+      value: summary.reporting,
+      format: "number",
+      href: "/dashboard/laporan-jaring",
+      icon: DOMAIN_VISUALS.jaringReport.Icon,
+      tone: "success",
+      helper: `${formatDashboardPercent(reportingRate)} dari total Jaring.`,
+    },
+    {
+      label: "Tanpa Laporan",
+      value: summary.withoutReports,
+      format: "number",
+      href: "/dashboard/daftar-jaring",
+      icon: FileX2,
+      tone: "warning",
+      helper: `${formatDashboardPercent(withoutReportsRate)} dari total Jaring.`,
+    },
+    {
+      label: "Rata-rata Laporan",
+      value: summary.averageReports,
+      format: "number",
+      href: "/dashboard/laporan-jaring",
+      icon: Gauge,
+      tone: "neutral",
+      helper: "Rata-rata laporan per Jaring pelapor.",
+    },
+  ];
   return (
     <section aria-labelledby="network-summary-heading">
       <div className="mb-3 flex items-center gap-2">
-        <Network className="size-5 text-[var(--dc-primary)]" />
+        <DOMAIN_VISUALS.jaring.Icon className={`size-5 ${DOMAIN_VISUALS.jaring.iconClass}`} />
         <h2 id="network-summary-heading" className="font-semibold text-lg">
           Ringkasan Jaring
         </h2>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-        {items.map(([label, value, format, href]) => (
-          <Link
-            key={label}
-            href={buildHref(href)}
-            className="group rounded-[var(--dc-radius-lg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={`Buka data ${label}`}
-          >
-            <Card className="h-full min-h-28 border-[var(--dc-border-subtle)] transition-[border-color,transform,box-shadow] group-hover:-translate-y-0.5 group-hover:border-[var(--dc-primary)] group-hover:shadow-[var(--dc-shadow-soft)] motion-reduce:group-hover:translate-y-0">
-              <CardContent className="flex h-full flex-col justify-between p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-muted-foreground text-xs">{label}</p>
-                  <ArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </div>
-                <strong className="mt-3 font-mono text-2xl tabular-nums">
-                  {format === "percent" ? formatDashboardPercent(value) : formatDashboardNumber(value)}
-                </strong>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.label}
+              href={buildHref(item.href)}
+              className="group rounded-[var(--dc-radius-lg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`Buka data ${item.label}`}
+            >
+              <Card className="h-full min-h-36 border-[var(--dc-border-subtle)] transition-[border-color,transform,box-shadow] group-hover:-translate-y-0.5 group-hover:border-[var(--dc-primary)] group-hover:shadow-[var(--dc-shadow-soft)] motion-reduce:group-hover:translate-y-0">
+                <CardContent className="flex h-full flex-col p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <span
+                      className={cn("grid size-8 shrink-0 place-items-center rounded-lg border", toneClass(item.tone))}
+                    >
+                      <Icon className="size-4" />
+                    </span>
+                    <ArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                  <p className="mt-3 text-muted-foreground text-xs">{item.label}</p>
+                  <strong className="mt-1 font-mono text-2xl tabular-nums">
+                    {item.format === "percent" ? formatDashboardPercent(item.value) : formatDashboardNumber(item.value)}
+                  </strong>
+                  <p className="mt-auto pt-2 text-[0.66rem] leading-4 text-muted-foreground">{item.helper}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
@@ -241,7 +344,6 @@ function RankingTables({
         <TabsTrigger value="jaring">Jaring</TabsTrigger>
         <TabsTrigger value="gaswil">Petugas Wilayah</TabsTrigger>
         <TabsTrigger value="wilayah">Wilayah</TabsTrigger>
-        <TabsTrigger value="unavailable">Korwil & Binda</TabsTrigger>
       </TabsList>
       <TabsContent value="jaring">
         {operations.jaringRanking.length === 0 ? (
@@ -258,12 +360,10 @@ function RankingTables({
                       {item.name}
                     </Link>
                   }
-                  subtitle={`${item.gaswil ?? "Petugas Wilayah belum tersedia"} · ${item.area ?? "Wilayah belum tersedia"}`}
+                  subtitle={`${item.gaswil ?? "Petugas Wilayah belum tersedia"} - ${item.area ?? "Wilayah belum tersedia"}`}
                   metrics={[
                     { label: "Laporan", value: formatDashboardNumber(item.reports) },
-                    { label: "Lengkap", value: formatDashboardNumber(item.complete) },
-                    { label: "Terverifikasi", value: formatDashboardNumber(item.verified) },
-                    { label: "Kelengkapan", value: formatDashboardPercent(item.completenessRate) },
+                    { label: "Baket Dibuat", value: formatDashboardNumber(item.verified) },
                   ]}
                 />
               ))}
@@ -277,10 +377,8 @@ function RankingTables({
                     <TableHead>Petugas Wilayah</TableHead>
                     <TableHead>Wilayah</TableHead>
                     <TableHead className="text-right">Laporan</TableHead>
-                    <TableHead className="text-right">Lengkap</TableHead>
-                    <TableHead className="text-right">Terverifikasi</TableHead>
+                    <TableHead className="text-right">Baket Dibuat</TableHead>
                     <TableHead className="text-right">Draf Baket</TableHead>
-                    <TableHead className="text-right">Kelengkapan</TableHead>
                     <TableHead>Aktivitas Terakhir</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -293,16 +391,14 @@ function RankingTables({
                           {item.name}
                         </Link>
                         <p className="mt-1 text-muted-foreground">
-                          {dashboardStatusLabel(item.status)} · {dashboardStatusLabel(item.registrationStatus)}
+                          {dashboardStatusLabel(item.status)} - {dashboardStatusLabel(item.registrationStatus)}
                         </p>
                       </TableCell>
                       <TableCell>{item.gaswil ?? "Belum tersedia"}</TableCell>
                       <TableCell>{item.area ?? "Belum tersedia"}</TableCell>
                       <NumericCell>{formatDashboardNumber(item.reports)}</NumericCell>
-                      <NumericCell>{formatDashboardNumber(item.complete)}</NumericCell>
                       <NumericCell>{formatDashboardNumber(item.verified)}</NumericCell>
                       <NumericCell>{formatDashboardNumber(item.draftBakets)}</NumericCell>
-                      <NumericCell>{formatDashboardPercent(item.completenessRate)}</NumericCell>
                       <TableCell className="whitespace-nowrap">{formatDashboardDate(item.lastReportAt)}</TableCell>
                     </TableRow>
                   ))}
@@ -329,10 +425,10 @@ function RankingTables({
                   }
                   subtitle={item.area ?? "Wilayah penugasan belum tersedia"}
                   metrics={[
-                    { label: "Jaring Aktif", value: formatDashboardNumber(item.activeJaring) },
+                    { label: DOMAIN_TERMS.jaringActive90Days, value: formatDashboardNumber(item.activeJaring) },
                     { label: "Laporan", value: formatDashboardNumber(item.reports) },
-                    { label: "Terverifikasi", value: formatDashboardNumber(item.verified) },
-                    { label: "Waktu Verifikasi", value: formatDashboardDuration(item.averageVerificationHours) },
+                    { label: "Baket Dibuat", value: formatDashboardNumber(item.verified) },
+                    { label: "Respons Rata-rata", value: formatDashboardDuration(item.averageVerificationHours) },
                   ]}
                 />
               ))}
@@ -345,12 +441,11 @@ function RankingTables({
                     <TableHead>Petugas Wilayah</TableHead>
                     <TableHead>Wilayah Penugasan</TableHead>
                     <TableHead className="text-right">Jaring</TableHead>
-                    <TableHead className="text-right">Jaring Aktif</TableHead>
+                    <TableHead className="text-right">{DOMAIN_TERMS.jaringActive90Days}</TableHead>
                     <TableHead className="text-right">Laporan</TableHead>
-                    <TableHead className="text-right">Lengkap</TableHead>
-                    <TableHead className="text-right">Terverifikasi</TableHead>
+                    <TableHead className="text-right">Baket Dibuat</TableHead>
                     <TableHead className="text-right">Draf Baket</TableHead>
-                    <TableHead className="text-right">Waktu Verifikasi</TableHead>
+                    <TableHead className="text-right">Respons Rata-rata</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -366,7 +461,6 @@ function RankingTables({
                       <NumericCell>{formatDashboardNumber(item.jaring)}</NumericCell>
                       <NumericCell>{formatDashboardNumber(item.activeJaring)}</NumericCell>
                       <NumericCell>{formatDashboardNumber(item.reports)}</NumericCell>
-                      <NumericCell>{formatDashboardNumber(item.complete)}</NumericCell>
                       <NumericCell>{formatDashboardNumber(item.verified)}</NumericCell>
                       <NumericCell>{formatDashboardNumber(item.draftBakets)}</NumericCell>
                       <NumericCell>{formatDashboardDuration(item.averageVerificationHours)}</NumericCell>
@@ -399,9 +493,8 @@ function RankingTables({
                   subtitle={dashboardStatusLabel(item.level)}
                   metrics={[
                     { label: "Laporan", value: formatDashboardNumber(item.reports) },
-                    { label: "Jaring Aktif", value: formatDashboardNumber(item.activeJaring) },
-                    { label: "Terverifikasi", value: formatDashboardNumber(item.verified) },
-                    { label: "Kelengkapan", value: formatDashboardPercent(item.completenessRate) },
+                    { label: DOMAIN_TERMS.jaringActive90Days, value: formatDashboardNumber(item.activeJaring) },
+                    { label: "Baket Dibuat", value: formatDashboardNumber(item.verified) },
                   ]}
                 />
               ))}
@@ -413,11 +506,9 @@ function RankingTables({
                     <TableHead className="w-12 text-center">#</TableHead>
                     <TableHead>Wilayah</TableHead>
                     <TableHead className="text-right">Laporan</TableHead>
-                    <TableHead className="text-right">Jaring Aktif</TableHead>
-                    <TableHead className="text-right">Terverifikasi</TableHead>
+                    <TableHead className="text-right">{DOMAIN_TERMS.jaringActive90Days}</TableHead>
+                    <TableHead className="text-right">Baket Dibuat</TableHead>
                     <TableHead className="text-right">Draf Baket</TableHead>
-                    <TableHead className="text-right">Baket Tervalidasi</TableHead>
-                    <TableHead className="text-right">Kelengkapan</TableHead>
                     <TableHead>Perlu Perhatian</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -438,11 +529,9 @@ function RankingTables({
                       <NumericCell>{formatDashboardNumber(item.activeJaring)}</NumericCell>
                       <NumericCell>{formatDashboardNumber(item.verified)}</NumericCell>
                       <NumericCell>{formatDashboardNumber(item.draftBakets)}</NumericCell>
-                      <NumericCell>{formatDashboardNumber(item.validatedBakets)}</NumericCell>
-                      <NumericCell>{formatDashboardPercent(item.completenessRate)}</NumericCell>
                       <TableCell className="max-w-72 text-muted-foreground">
                         {item.attentionReasons.length > 0
-                          ? item.attentionReasons.join(" · ")
+                          ? item.attentionReasons.join(" - ")
                           : "Tidak ada indikator perhatian"}
                       </TableCell>
                     </TableRow>
@@ -456,7 +545,7 @@ function RankingTables({
       <TabsContent value="unavailable" className="space-y-3">
         {operations.unavailableRankings.map((item) => (
           <div key={item.key} className="rounded-lg border border-dashed p-4">
-            <p className="font-medium text-sm">{item.label} · Belum tersedia</p>
+            <p className="font-medium text-sm">{item.label} - Belum tersedia</p>
             <p className="mt-1 text-muted-foreground text-xs">{item.reason}</p>
           </div>
         ))}
@@ -476,11 +565,11 @@ export function PerformanceRankingPanel({
     <Card className="border-[var(--dc-border-subtle)]">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <UsersRound className="size-5 text-[var(--dc-primary)]" />
+          <DOMAIN_VISUALS.gaswil.Icon className={`size-5 ${DOMAIN_VISUALS.gaswil.iconClass}`} />
           <CardTitle>Aktivitas Pelaporan Wilayah dan Jaring</CardTitle>
         </div>
         <CardDescription>
-          Seluruh ranking menggunakan record laporan unik pada dataset terfilter; tidak ada skor kinerja buatan.
+          Seluruh peringkat menggunakan laporan unik pada dataset terfilter; tidak ada skor kinerja buatan.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -549,12 +638,29 @@ function StatusList({ title, items }: { title: string; items: Array<{ key: strin
           <p className="text-muted-foreground text-xs">Belum ada data.</p>
         ) : (
           items.map((item) => (
-            <div key={item.key} className="flex items-center justify-between gap-3 text-xs">
-              <span className="truncate text-muted-foreground">{dashboardStatusLabel(item.label)}</span>
-              <span className="font-mono tabular-nums">
-                {formatDashboardNumber(item.value)}{" "}
-                <span className="text-muted-foreground">/ {formatDashboardNumber(total)}</span>
-              </span>
+            <div key={item.key} className="space-y-1 rounded-md p-1.5">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                  <span
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: dashboardStatusColor(item.key) }}
+                  />
+                  <span className="truncate">{dashboardStatusLabel(item.label)}</span>
+                </span>
+                <span className="font-mono tabular-nums">
+                  {formatDashboardNumber(item.value)}{" "}
+                  <span className="text-muted-foreground">/ {formatDashboardNumber(total)}</span>
+                </span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${total === 0 ? 0 : Math.round((item.value / total) * 100)}%`,
+                    backgroundColor: dashboardStatusColor(item.key),
+                  }}
+                />
+              </div>
             </div>
           ))
         )}
@@ -584,7 +690,10 @@ export function FollowUpAndQualityPanel({
     <div className="grid gap-4 xl:grid-cols-2">
       <Card className="border-[var(--dc-border-subtle)]">
         <CardHeader>
-          <CardTitle>Arahan dan Tindak Lanjut</CardTitle>
+          <div className="flex items-center gap-2">
+            <ClipboardList className="size-5 text-[var(--dc-primary)]" />
+            <CardTitle>Arahan dan Tindak Lanjut</CardTitle>
+          </div>
           <CardDescription>
             Tenggat mendekat berarti maksimal {followUp.approachingDueDefinitionHours} jam dari waktu pemuatan data.
           </CardDescription>
@@ -592,7 +701,7 @@ export function FollowUpAndQualityPanel({
         <CardContent className="space-y-5">
           <div className="grid gap-2 sm:grid-cols-3">
             {summary.map(([label, value]) => (
-              <div key={label} className="min-h-20 rounded-lg border border-[var(--dc-border-subtle)] p-3">
+              <div key={label} className="min-h-20 rounded-lg border border-[var(--dc-border-subtle)] bg-muted/10 p-3">
                 <p className="text-muted-foreground text-xs">{label}</p>
                 <strong className="mt-2 block font-mono text-xl tabular-nums">{formatDashboardNumber(value)}</strong>
               </div>
@@ -603,7 +712,7 @@ export function FollowUpAndQualityPanel({
             <StatusList title="Direktif" items={followUp.directives} />
           </div>
           <div className="flex min-h-16 items-center justify-between rounded-lg border border-[var(--dc-border-subtle)] p-3">
-            <span className="text-muted-foreground text-sm">Approval produk ditugaskan kepada Anda</span>
+            <span className="text-muted-foreground text-sm">Persetujuan produk ditugaskan kepada Anda</span>
             <strong className="font-mono text-xl tabular-nums">
               {formatDashboardNumber(followUp.pendingApprovals)}
             </strong>
@@ -622,7 +731,7 @@ export function FollowUpAndQualityPanel({
                     <div className="min-w-0">
                       <p className="line-clamp-2 font-medium text-sm">{item.title}</p>
                       <p className="mt-1 text-muted-foreground text-xs">
-                        {item.sender} → {item.recipient ?? "Penerima belum tersedia"}
+                        {item.sender} ke {item.recipient ?? "Penerima belum tersedia"}
                       </p>
                     </div>
                     <Badge variant={item.overdue ? "destructive" : "outline"}>
@@ -647,30 +756,21 @@ export function FollowUpAndQualityPanel({
         <CardHeader>
           <div className="flex items-center gap-2">
             <DatabaseZap className="size-5 text-[var(--dc-primary)]" />
-            <CardTitle>Kualitas dan Kelengkapan Data</CardTitle>
+            <CardTitle>Kualitas Data Operasional</CardTitle>
           </div>
           <CardDescription>Semua angka memakai definisi yang sama dengan filter dan kartu utama.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-5 flex items-end justify-between rounded-lg bg-muted/25 p-4">
-            <div>
-              <p className="text-muted-foreground text-xs">Tingkat kelengkapan</p>
-              <strong className="font-mono text-3xl tabular-nums">
-                {formatDashboardPercent(quality.completenessRate)}
-              </strong>
-            </div>
-            <MapPin className="size-7 text-[var(--dc-primary)]" />
-          </div>
           <dl className="grid grid-cols-2 gap-3 text-sm">
             {[
               ["Tanpa uraian", quality.missingDescription],
-              ["Tanpa kategori", quality.missingCategory],
+              ["Baket tanpa kategori", quality.missingCategory],
               ["Lokasi belum terselesaikan", quality.missingLocation],
               ["Tanpa lampiran", quality.missingAttachment],
               ["Lokasi belum diperiksa", quality.notCheckedLocation],
               ["Jaring tanpa Petugas Wilayah", quality.jaringWithoutFieldOfficer],
               ["Jaring tanpa Wilayah Penugasan", quality.jaringWithoutArea],
-              ["Relasi organisasi tidak lengkap", quality.incompleteOrganizationRelation],
+              ["Relasi organisasi belum tersambung", quality.incompleteOrganizationRelation],
             ].map(([label, value]) => (
               <div key={String(label)} className="min-h-24 rounded-lg border border-[var(--dc-border-subtle)] p-3">
                 <dt className="text-muted-foreground text-xs">{label}</dt>
@@ -703,11 +803,11 @@ export function RecentActivityPanel({
           <Clock3 className="size-5 text-[var(--dc-primary)]" />
           <CardTitle>Aktivitas Terbaru</CardTitle>
         </div>
-        <CardDescription>Audit trail penting yang objeknya berada dalam periode dan cakupan aktif.</CardDescription>
+        <CardDescription>Jejak aktivitas penting yang berada dalam periode dan cakupan aktif.</CardDescription>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <EmptyState>Belum ada audit trail yang relevan pada periode dan cakupan aktif.</EmptyState>
+          <EmptyState>Belum ada jejak aktivitas yang relevan pada periode dan cakupan aktif.</EmptyState>
         ) : (
           <ol className="divide-y divide-[var(--dc-border-subtle)]">
             {items.map((item) => {
@@ -721,11 +821,11 @@ export function RecentActivityPanel({
                     </div>
                     <p className="mt-1 line-clamp-1 text-muted-foreground text-xs">{item.title}</p>
                     <p className="mt-1 text-muted-foreground text-xs">
-                      {item.actor} · {item.role ?? "Sistem"} · {item.unit ?? "Unit tidak tersedia"}
+                      {item.actor} - {item.role ?? "Sistem"} - {item.unit ?? "Unit tidak tersedia"}
                     </p>
                     {item.statusChange && (
                       <p className="mt-1 text-muted-foreground text-xs">
-                        {dashboardStatusLabel(item.statusChange.before)} →{" "}
+                        {dashboardStatusLabel(item.statusChange.before)} menjadi{" "}
                         {dashboardStatusLabel(item.statusChange.after)}
                       </p>
                     )}

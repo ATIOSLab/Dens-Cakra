@@ -7,7 +7,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
-  FileText,
   Layers3,
   LoaderCircle,
   Radio,
@@ -15,7 +14,6 @@ import {
   Search,
   ShieldAlert,
   SlidersHorizontal,
-  UserRound,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +31,7 @@ import {
   type MapViewport,
 } from "@/components/ui/map";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import { MapInspector, type SelectionType } from "./MapInspector";
@@ -89,10 +88,10 @@ const REPORT_STATUSES = ["SENT_TO_OIM", "UNDER_VERIFICATION", "NEEDS_DEVELOPMENT
 const REPORT_URGENCIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
 
 const REPORT_STATUS_LABELS: Record<(typeof REPORT_STATUSES)[number], string> = {
-  SENT_TO_OIM: "Dikirim ke OIM",
-  UNDER_VERIFICATION: "Dalam Verifikasi",
+  SENT_TO_OIM: "Dikirim untuk Analisa",
+  UNDER_VERIFICATION: "Dalam Tinjauan",
   NEEDS_DEVELOPMENT: "Perlu Pengembangan",
-  VERIFIED: "Terverifikasi",
+  VERIFIED: "Disetujui",
   REJECTED: "Ditolak",
 };
 
@@ -134,7 +133,7 @@ function getReportAreaName(properties: Record<string, unknown>) {
 
 function getReportCategoryName(properties: Record<string, unknown>) {
   return (
-    stringOrNull(properties.reportCategoryName) ?? stringOrNull(record(properties.category).name) ?? "Tanpa kategori"
+    stringOrNull(properties.reportCategoryName) ?? stringOrNull(record(properties.category).name) ?? "Kategori Baket belum ditetapkan"
   );
 }
 
@@ -1105,8 +1104,13 @@ export function NationalMap() {
       {/* Metric Cards Section */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { key: "reports" as const, label: "Baket terpetakan", value: counts.reports, icon: FileText },
-          { key: "personnel" as const, label: "Personel dalam cakupan", value: counts.personnel, icon: UserRound },
+          { key: "reports" as const, label: "Baket terpetakan", value: counts.reports, icon: DOMAIN_VISUALS.baket.Icon },
+          {
+            key: "personnel" as const,
+            label: "Petugas Wilayah (Gaswil)",
+            value: counts.personnel,
+            icon: DOMAIN_VISUALS.gaswil.Icon,
+          },
           { key: "alerts" as const, label: "Peringatan pada peta", value: counts.alerts, icon: AlertTriangle },
           { key: "emergencies" as const, label: "Insiden darurat", value: counts.emergencies, icon: ShieldAlert },
         ].map((metric) => (
@@ -1457,7 +1461,7 @@ export function NationalMap() {
             ) : (
               <Card className="rounded-[8px] border-dashed">
                 <CardContent className="flex min-h-36 flex-col items-center justify-center gap-2 p-6 text-center">
-                  <FileText className="size-6 text-muted-foreground/50" />
+                  <DOMAIN_VISUALS.baket.Icon className={`size-6 ${DOMAIN_VISUALS.baket.iconClass} opacity-60`} />
                   <p className="text-sm font-medium">Tidak ada Baket sesuai filter</p>
                   <p className="max-w-md text-xs text-muted-foreground">
                     Atur ulang filter atau ubah cakupan wilayah untuk menampilkan Baket pada peta dan daftar ini.
@@ -1544,7 +1548,7 @@ function ReportCard({ feature, onSelect }: { feature: NationalMapFeature; onSele
               <dd className="mt-0.5 truncate font-medium text-foreground">{getReportAreaName(properties)}</dd>
             </div>
             <div className="min-w-0">
-              <dt className="text-[10px] text-muted-foreground">Kategori</dt>
+              <dt className="text-[10px] text-muted-foreground">Kategori Baket</dt>
               <dd className="mt-0.5 truncate font-medium text-foreground">{getReportCategoryName(properties)}</dd>
             </div>
             <div className="min-w-0 sm:col-span-2">
@@ -1608,7 +1612,7 @@ function ReportMarker({ feature, onSelect }: { feature: any; onSelect: () => voi
                 <dd className="truncate font-medium">{getReportStatusLabel(status)}</dd>
               </div>
               <div className="min-w-0">
-                <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Kategori</dt>
+                <dt className="text-[9px] uppercase tracking-wide text-muted-foreground">Kategori Baket</dt>
                 <dd className="truncate font-medium">{getReportCategoryName(properties)}</dd>
               </div>
               <div className="col-span-2 min-w-0">

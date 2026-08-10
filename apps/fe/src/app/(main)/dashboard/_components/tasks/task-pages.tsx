@@ -221,7 +221,7 @@ export async function OimTaskDetailPage({ taskId }: { taskId: string }) {
       task={task}
       assignmentHref={`/dashboard/oim/direktif-tugas/${task.id}/penugasan`}
       hideTargetAreas
-      assignmentTitle="Daftar Koordinator Lapangan"
+      assignmentTitle="Daftar Koordinator Wilayah (Korwil)"
     />
   );
 }
@@ -242,11 +242,11 @@ export async function OimTaskAssignmentPage({ taskId }: { taskId: string }) {
 
   return (
     <div className="space-y-6">
-      <TaskDetailClient task={task} hideTargetAreas assignmentTitle="Daftar Koordinator Lapangan" />
+      <TaskDetailClient task={task} hideTargetAreas assignmentTitle="Daftar Koordinator Wilayah (Korwil)" />
       <AssignmentBoardClient
         task={task}
         candidates={candidates}
-        submitLabel="Distribusikan ke Koordinator Lapangan"
+        submitLabel="Distribusikan ke Koordinator Wilayah (Korwil)"
         mode="assign"
       />
     </div>

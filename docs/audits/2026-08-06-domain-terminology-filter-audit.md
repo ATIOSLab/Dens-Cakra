@@ -11,11 +11,11 @@ Inventaris mencakup 176 route `page.tsx`: 168 route dashboard utama, satu dashbo
 Perubahan utama:
 
 - Jaring, Laporan Jaring, Laporan Pembinaan, Tugas, Produk Intelijen, Direktif, dan UUK/STR mendapat query server-side additive, pagination, sorting stabil, dan total hasil terfilter.
-- Daftar Jaring Field Officer, laporan koordinator, penugasan/monitoring Field Coordinator, Tugas Saya, dan inbox persetujuan produk tidak lagi memfilter batch 50–100 sebagai seluruh dataset.
+- Daftar Jaring Petugas Wilayah (Gaswil), laporan koordinator, penugasan/monitoring Koordinator Wilayah (Korwil), Tugas Saya, dan inbox persetujuan produk tidak lagi memfilter batch 50–100 sebagai seluruh dataset.
 - Pencarian Jaring mencakup identitas dan nomor WhatsApp yang dinormalisasi; pencarian tugas mencakup judul, isi, nomor direktif, instruksi, dan nama penerima.
 - Lokasi Aktual Laporan, Lokasi Terdaftar Jaring, dan Gaswil/Wilayah Cakupan dipisahkan secara istilah dan query.
 - Status kesesuaian lokasi memakai status coverage yang sudah tersimpan. Laporan tanpa data coverage yang sah selalu menjadi `NOT_DETERMINED`, bukan ditebak sebagai di luar Gaswil.
-- Receipt baca global tidak lagi ditampilkan sebagai status baca khusus Field Officer pada Laporan Jaring dan Baket koordinator.
+- Receipt baca global tidak lagi ditampilkan sebagai status baca khusus Petugas Wilayah (Gaswil) pada Laporan Jaring dan Baket koordinator.
 - Tidak ada schema/migration, dependency, enum, role, permission, route, atau implementasi internal peta yang diubah.
 
 ## Kondisi Git
@@ -53,7 +53,7 @@ Role autentikasi bukan jabatan. Satu role teknis masih dapat mewakili beberapa p
 | Laporan Pembinaan | coaching report, Jaring, assigned area | search, Jaring, area, periode WIB, sort | global coaching endpoint + scoped Jaring | server query + pagination; ekspor seluruh hasil |
 | Baket Koordinator | Baket dari laporan | search, urgensi, kategori, wilayah, periode | report/Baket endpoint | seluruh halaman sumber dimuat; receipt baca palsu dihapus |
 | Tugas OIM/Koordinator | Task, TaskAssignment, Direktif/UUK | search, status, priority, classification, source urgency, due/effective due, area, related assignment, sort | task API dan assignment relation | server query + pagination + summary |
-| Tugas Saya Field Officer | TaskAssignment | search tugas/direktif, status assignment, due date | task API scoped ke assignment aktif | server query + pagination |
+| Tugas Saya Petugas Wilayah (Gaswil) | TaskAssignment | search tugas/direktif, status assignment, due date | task API scoped ke assignment aktif | server query + pagination |
 | Produk Intelijen | Product | search, periode produk, product type, classification, owner assignment, sort | product API | server query + pagination |
 | Inbox persetujuan regional | ProductApprovalStep/Product | search, periode produk, type, classification, owner assignment | approval inbox scoped target assignment | server query + pagination |
 | Direktif Executive | Directive/current version | search, status, classification, urgency, recipient branch, area, deadline, assigned state, sort | directive API dan area scope | server query + pagination + summary |
@@ -103,7 +103,7 @@ Tidak ada string matching nama wilayah sebagai keputusan spasial. Helper fronten
 | Kandidat | Alasan |
 | --- | --- |
 | Status “dekat batas” baru | Belum ada toleransi meter/aturan bisnis baru; hanya status `BORDER_AMBIGUOUS` yang sudah tersimpan yang dapat ditampilkan |
-| Receipt baca per Field Officer | Model saat ini hanya mempunyai `readAt` global; tidak valid untuk menyimpulkan petugas tertentu sudah membaca |
+| Receipt baca per Petugas Wilayah (Gaswil) | Model saat ini hanya mempunyai `readAt` global; tidak valid untuk menyimpulkan petugas tertentu sudah membaca |
 | Anev sebagai role baru | Anev adalah fungsi/jabatan tambahan dan belum mempunyai kontrak data kanonis |
 | Filter data sensitif pada audit/WA payload | Berisiko mengekspos data di luar permission dan tidak dibutuhkan untuk alur operasional ini |
 | Filter baru di dalam mesin peta | Brief melarang perubahan marker/layer/cluster/koordinat/zoom/event map |
@@ -121,7 +121,7 @@ Backend:
 Frontend:
 
 - renderer Laporan Jaring umum/koordinator/detail dan Laporan Pembinaan.
-- Field Officer operations serta shared task pages/clients.
+- Petugas Wilayah (Gaswil) operations serta shared task pages/clients.
 - intelligence product browser, directive list, dan regional UUK clients.
 - helper `lib/domain/date-time.ts` dan `lib/domain/spatial-location-matcher.ts`.
 - Baket coordinator untuk menghapus status baca petugas yang tidak dapat dibuktikan.

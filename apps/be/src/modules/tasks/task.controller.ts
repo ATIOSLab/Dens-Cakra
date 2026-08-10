@@ -307,7 +307,7 @@ export class TaskController {
   @ApiContract({
     operationId: 'apiTask019',
     contractId: 'API-TASK-019',
-    summary: 'Forward instruksi Field Officer ke Jaring',
+    summary: 'Teruskan instruksi Petugas Wilayah (Gaswil) ke Jaring',
     roles: ['field_officer'],
     successStatus: 201,
     idempotent: true,

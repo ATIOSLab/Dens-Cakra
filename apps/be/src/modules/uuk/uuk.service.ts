@@ -541,13 +541,13 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Only Regional Commander can create UUK/STR elaboration.',
+      'Hanya Komandan Regional yang dapat membuat penjabaran UUK/STR.',
     );
 
     if (body.ownerAssignmentId !== context.primaryAssignmentId) {
       throw new ApiException(
         'UUK_OWNER_UNIT_OUT_OF_SCOPE',
-        'UUK/STR can only be created for the current organization unit.',
+        'UUK/STR hanya dapat dibuat untuk unit organisasi saat ini.',
         403,
       );
     }
@@ -587,7 +587,7 @@ export class UukService {
     ) {
       throw new ApiException(
         'UUK_DIRECTIVE_NOT_MUTABLE',
-        'Cannot create UUK/STR under cancelled or completed directive.',
+        'UUK/STR tidak dapat dibuat dari arahan strategis yang sudah dibatalkan atau selesai.',
         409,
       );
     }
@@ -603,7 +603,7 @@ export class UukService {
     if (!hasRecipient) {
       throw new ApiException(
         'UUK_DIRECTIVE_NOT_ASSIGNED',
-        'UUK/STR can only be elaborated from a directive received by the current command.',
+        'UUK/STR hanya dapat dijabarkan dari arahan strategis yang diterima komando saat ini.',
         403,
       );
     }
@@ -611,7 +611,7 @@ export class UukService {
     if (!this.isComplete(body.sections)) {
       throw new ApiException(
         'UUK_FORWARDING_INCOMPLETE',
-        'Regional forwarding must carry the complete published STR content without omissions.',
+        'Penerusan regional harus membawa seluruh isi STR terbit tanpa pengurangan.',
         422,
       );
     }
@@ -675,7 +675,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Only Regional Commander can revise UUK/STR.',
+      'Hanya Komandan Regional yang dapat merevisi UUK/STR.',
     );
 
     void uukStrId;
@@ -696,7 +696,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Only Regional Commander can edit UUK/STR drafts.',
+      'Hanya Komandan Regional yang dapat mengubah draf UUK/STR.',
     );
 
     void versionId;
@@ -713,7 +713,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Only Regional Commander can edit UUK/STR sections.',
+      'Hanya Komandan Regional yang dapat mengubah bagian UUK/STR.',
     );
 
     void versionId;
@@ -730,13 +730,13 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Only Regional Commander can publish UUK/STR.',
+      'Hanya Komandan Regional yang dapat menerbitkan UUK/STR.',
     );
 
     if (body.confirmation !== 'PUBLISH') {
       throw new ApiException(
         'UUK_PUBLISH_CONFIRMATION_REQUIRED',
-        'Confirmation must be PUBLISH.',
+        'Konfirmasi harus bernilai PUBLISH.',
         422,
       );
     }
@@ -761,7 +761,7 @@ export class UukService {
     ) {
       throw new ApiException(
         'UUK_INCOMPLETE',
-        'All required UUK/STR section types must be completed before publish.',
+        'Semua jenis bagian UUK/STR wajib dilengkapi sebelum diterbitkan.',
         422,
       );
     }
@@ -783,7 +783,7 @@ export class UukService {
     this.assertRole(
       context,
       [RoleCode.REGIONAL_COMMANDER],
-      'Only Regional Commander can cancel UUK/STR.',
+      'Hanya Komandan Regional yang dapat membatalkan UUK/STR.',
     );
 
     const uuk = await this.detail(uukStrId, context);

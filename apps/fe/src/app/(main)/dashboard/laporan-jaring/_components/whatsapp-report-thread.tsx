@@ -84,6 +84,7 @@ export function WhatsAppReportThread({
                       fileName={message.fileName || "Lampiran laporan Jaring"}
                       mimeType={message.mimeType}
                       caption={message.caption}
+                      className="w-full max-w-sm"
                     />
                     {message.caption ? (
                       <p className="whitespace-pre-wrap text-sm text-foreground">{message.caption}</p>

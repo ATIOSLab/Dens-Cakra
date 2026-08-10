@@ -4,7 +4,7 @@ export function TugasDiterimaPage() {
   return (
     <DensModulePage
       title="Tugas Diterima"
-      role="Koordinator Lapangan"
+      roleLabel="Koordinator Wilayah (Korwil)"
       description="Halaman ini menyiapkan daftar direktif teknis, target tugas, dan konfirmasi penerimaan dari Korwil."
       highlights={[
         "UUK/PIR terkait, sasaran, dan wilayah tugas.",

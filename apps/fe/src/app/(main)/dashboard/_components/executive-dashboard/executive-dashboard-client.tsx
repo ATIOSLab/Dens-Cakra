@@ -1,36 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { AlertCircle, BookOpen, LoaderCircle } from "lucide-react";
+import { AlertCircle, LoaderCircle } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ApiEnvelope } from "@/lib/api/types";
 import type { SystemRole } from "@/navigation/sidebar/system-roles";
+import { getSystemRoleLabel } from "@/navigation/sidebar/system-roles";
 
 import { DashboardHeaderFilter } from "./dashboard-header-filter";
-import { ExecutiveCommandPulse } from "./executive-command-pulse";
-import { CategoryPanel, CompositionPanel, ReportTrendPanel, WorkflowPanel } from "./executive-dashboard-charts";
-import { dashboardStatusLabel, formatDashboardNumber } from "./executive-dashboard-format";
+import { ExecutiveDashboardAnalysisOverview } from "./executive-dashboard-analysis-overview";
+import { CategoryPanel, ReportTrendPanel } from "./executive-dashboard-charts";
 import {
-  FollowUpAndQualityPanel,
   LeadershipAttentionPanel,
-  NetworkSummaryPanel,
   PerformanceRankingPanel,
   PriorityReportPanel,
-  RecentActivityPanel,
 } from "./executive-dashboard-operations";
-import type {
-  DashboardQueryState,
-  ExecutiveDashboardData,
-  ExecutiveDashboardFilters,
-} from "./executive-dashboard-types";
-import { ExecutiveSummaryCards } from "./executive-summary-cards";
+import type { DashboardQueryState, ExecutiveDashboardData, ExecutiveDashboardFilters } from "./executive-dashboard-types";
 
 const DEFAULT_QUERY: DashboardQueryState = {
   period: "LAST_30_DAYS",
@@ -43,7 +34,6 @@ const DEFAULT_QUERY: DashboardQueryState = {
   fieldOfficerAssignmentId: "",
   urgency: "",
   reportStatus: "",
-  completeness: "",
   verificationStatus: "",
   workflowStatus: "",
   validationStatus: "",
@@ -55,9 +45,12 @@ const DEFAULT_QUERY: DashboardQueryState = {
 
 function queryParams(query: DashboardQueryState) {
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
-    if (value) params.set(key, value);
+  if (query.period) params.set("period", query.period);
+  if (query.period === "CUSTOM") {
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
   }
+  if (query.areaId) params.set("areaId", query.areaId);
   return params;
 }
 
@@ -97,7 +90,7 @@ function directiveDetailRoute(role: SystemRole, directiveId: string | undefined)
 
 function fieldOfficerDetailRoute(role: SystemRole, assignmentId: string | undefined, userProfileId: string | null) {
   if (role === "executive") {
-    return userProfileId ? `/dashboard/executive/personil/${userProfileId}` : "/dashboard/executive/personil";
+    return userProfileId ? `/dashboard/personel-lapangan/${userProfileId}` : "/dashboard/personel-lapangan";
   }
   if (role === "operational_intelligence_manager") {
     return assignmentId
@@ -109,12 +102,10 @@ function fieldOfficerDetailRoute(role: SystemRole, assignmentId: string | undefi
 
 export function ExecutiveDashboardClient({
   initialData,
-  initialFilters,
   initialError,
   role,
 }: {
   initialData: ExecutiveDashboardData | null;
-  initialFilters: ExecutiveDashboardFilters | null;
   initialError: string | null;
   role: SystemRole;
 }) {
@@ -123,55 +114,35 @@ export function ExecutiveDashboardClient({
   const searchParams = useSearchParams();
   const [query, setQuery] = useState<DashboardQueryState>(() => {
     const next = { ...DEFAULT_QUERY };
-    for (const key of Object.keys(next) as Array<keyof DashboardQueryState>) {
-      next[key] = searchParams.get(key) ?? next[key];
+    next.period = searchParams.get("period") ?? next.period;
+    next.areaId = searchParams.get("areaId") ?? "";
+    if (next.period === "CUSTOM") {
+      next.from = searchParams.get("from") ?? "";
+      next.to = searchParams.get("to") ?? "";
     }
     return next;
   });
   const [data, setData] = useState(initialData);
-  const [filters, setFilters] = useState(initialFilters);
   const [error, setError] = useState(initialError);
+  const [filters, setFilters] = useState<ExecutiveDashboardFilters | null>(null);
+  const [filtersLoading, setFiltersLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const initialRequest = useRef(true);
 
-  const activeFilterCount = useMemo(
-    () =>
-      Object.entries(query).filter(([key, value]) => {
-        if (!value || key === "period") return false;
-        if ((key === "from" || key === "to") && query.period !== "CUSTOM") return false;
-        return true;
-      }).length,
-    [query],
-  );
-
   const loadData = useCallback(
-    async (signal?: AbortSignal, includeFilters = false) => {
+    async (signal?: AbortSignal) => {
       if (query.period === "CUSTOM" && (!query.from || !query.to)) return;
       setLoading(true);
       setError(null);
       try {
         const params = queryParams(query);
-        const requests: [Promise<ExecutiveDashboardData>, Promise<ExecutiveDashboardFilters> | null] = [
-          fetch(`/api/v1/dashboard/executive?${params}`, {
-            cache: "no-store",
-            credentials: "include",
-            signal,
-          }).then(readApi<ExecutiveDashboardData>),
-          includeFilters
-            ? fetch(
-                `/api/v1/dashboard/executive/filters${query.areaId ? `?areaId=${encodeURIComponent(query.areaId)}` : ""}`,
-                {
-                  cache: "no-store",
-                  credentials: "include",
-                  signal,
-                },
-              ).then(readApi<ExecutiveDashboardFilters>)
-            : null,
-        ];
-        const [nextData, nextFilters] = await Promise.all([requests[0], requests[1] ?? Promise.resolve(null)]);
+        const nextData = await fetch(`/api/v1/dashboard/executive?${params}`, {
+          cache: "no-store",
+          credentials: "include",
+          signal,
+        }).then(readApi<ExecutiveDashboardData>);
         setData(nextData);
-        if (nextFilters) setFilters(nextFilters);
       } catch (cause) {
         if (cause instanceof DOMException && cause.name === "AbortError") return;
         setError(cause instanceof Error ? cause.message : "Gagal memuat dashboard.");
@@ -182,21 +153,40 @@ export function ExecutiveDashboardClient({
     [query],
   );
 
+  const loadFilters = useCallback(async (signal?: AbortSignal) => {
+    setFiltersLoading(true);
+    try {
+      const nextFilters = await fetch("/api/v1/dashboard/executive/filters", {
+        cache: "no-store",
+        credentials: "include",
+        signal,
+      }).then(readApi<ExecutiveDashboardFilters>);
+      setFilters(nextFilters);
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === "AbortError") return;
+    } finally {
+      setFiltersLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const params = queryParams(query);
     router.replace(params.size ? `${pathname}?${params}` : pathname, { scroll: false });
 
     const controller = new AbortController();
-    const timeout = window.setTimeout(
-      () => void loadData(controller.signal, !initialRequest.current || Boolean(query.areaId)),
-      initialRequest.current ? 0 : 250,
-    );
+    const timeout = window.setTimeout(() => void loadData(controller.signal), initialRequest.current ? 0 : 250);
     initialRequest.current = false;
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
     };
   }, [loadData, pathname, query, router]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadFilters(controller.signal);
+    return () => controller.abort();
+  }, [loadFilters]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -208,10 +198,12 @@ export function ExecutiveDashboardClient({
 
   const changeQuery = useCallback((key: keyof DashboardQueryState, value: string) => {
     setQuery((current) => ({
-      ...current,
-      [key]: value,
+      ...DEFAULT_QUERY,
+      period: key === "period" ? value : current.period,
+      from: key === "from" ? value : current.from,
+      to: key === "to" ? value : current.to,
+      areaId: key === "areaId" ? value : current.areaId,
       ...(key === "period" && value !== "CUSTOM" ? { from: "", to: "" } : {}),
-      ...(key === "areaId" ? { jaringId: "", fieldOfficerAssignmentId: "" } : {}),
     }));
   }, []);
 
@@ -219,7 +211,8 @@ export function ExecutiveDashboardClient({
     (href: string) => {
       const url = new URL(href, "http://dashboard.local");
       const isReportRoute = url.pathname.startsWith("/dashboard/laporan-jaring");
-      const isProductRoute = url.pathname.startsWith("/dashboard/produk-intelijen");
+      const isProductRoute =
+        url.pathname.startsWith("/dashboard/produk-intelijen") || url.pathname.startsWith("/dashboard/baket");
       if (url.pathname === "/dashboard/produk-intelijen") {
         url.pathname = productListRoute(role);
       }
@@ -245,31 +238,12 @@ export function ExecutiveDashboardClient({
       if ((isReportRoute || isProductRoute) && !url.searchParams.has("to") && data?.period.to) {
         url.searchParams.set("to", data.period.to);
       }
-      let applicableKeys: Array<keyof DashboardQueryState> = ["areaId"];
-      if (isReportRoute) {
-        applicableKeys = [
-          "areaId",
-          "categoryId",
-          "jaringId",
-          "fieldOfficerAssignmentId",
-          "urgency",
-          "reportStatus",
-          "completeness",
-          "verificationStatus",
-          "workflowStatus",
-          "hasAttachment",
-          "coordinateSource",
-          "locationSuitability",
-        ];
-      } else if (isProductRoute) {
-        applicableKeys = ["productTypeId"];
-      }
-      for (const key of applicableKeys) {
-        if (query[key] && !url.searchParams.has(key)) url.searchParams.set(key, query[key]);
+      if ((isReportRoute || isProductRoute) && query.areaId && !url.searchParams.has("areaId")) {
+        url.searchParams.set("areaId", query.areaId);
       }
       return `${url.pathname}${url.search}`;
     },
-    [data?.period.from, data?.period.to, query, role],
+    [data?.period.from, data?.period.to, query.areaId, role],
   );
 
   if (!data) {
@@ -277,10 +251,10 @@ export function ExecutiveDashboardClient({
       <div className="grid min-h-[60dvh] place-items-center">
         <Alert variant="destructive" className="max-w-xl">
           <AlertCircle />
-          <AlertTitle>Dashboard eksekutif tidak tersedia</AlertTitle>
+          <AlertTitle>Dashboard tidak tersedia</AlertTitle>
           <AlertDescription className="space-y-3">
             <p>{error ?? "Layanan belum mengembalikan data."}</p>
-            <Button variant="outline" onClick={() => void loadData(undefined, true)} disabled={loading}>
+            <Button variant="outline" onClick={() => void loadData()} disabled={loading}>
               Coba Lagi
             </Button>
           </AlertDescription>
@@ -302,12 +276,12 @@ export function ExecutiveDashboardClient({
       <DashboardHeaderFilter
         data={data}
         filters={filters}
+        filtersLoading={filtersLoading}
         query={query}
         loading={loading}
-        activeFilterCount={activeFilterCount}
         onChange={changeQuery}
         onReset={() => setQuery(DEFAULT_QUERY)}
-        onRefresh={() => void loadData(undefined, true)}
+        onRefresh={() => void loadData()}
         autoRefresh={autoRefresh}
         onToggleAutoRefresh={() => setAutoRefresh((current) => !current)}
       />
@@ -320,104 +294,58 @@ export function ExecutiveDashboardClient({
         </Alert>
       )}
 
-      <ExecutiveCommandPulse data={data} />
       <div id="executive-summary" className="scroll-mt-24">
-        <ExecutiveSummaryCards cards={data.overview.cards} buildHref={buildHref} />
-      </div>
-      <div id="leadership-attention" className="scroll-mt-24">
-        <LeadershipAttentionPanel items={data.overview.attention} buildHref={buildHref} />
+        <ExecutiveDashboardAnalysisOverview data={data} role={role} buildHref={buildHref} />
       </div>
 
       <section aria-labelledby="analytics-heading">
         <div className="mb-3">
           <p className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--dc-primary)]">
-            Analisis situasi
+            Analisis utama
           </p>
           <h2 id="analytics-heading" className="mt-1 text-lg font-semibold">
-            Tren dan Komposisi Laporan
+            Tren Laporan dan Isu Dominan
           </h2>
         </div>
         <div className="grid gap-4 xl:grid-cols-3">
           <ReportTrendPanel trend={data.analytics.trend} />
-          <WorkflowPanel
-            items={data.analytics.workflow}
-            selectedKey={query.workflowStatus}
-            onSelect={(value) => changeQuery("workflowStatus", query.workflowStatus === value ? "" : value)}
-          />
-          <CategoryPanel
-            items={data.analytics.categories}
-            selectedKey={query.categoryId}
-            onSelect={(value) => changeQuery("categoryId", query.categoryId === value ? "" : value)}
-          />
-          <Card className="border-[var(--dc-border-subtle)]">
-            <CardHeader>
-              <CardTitle>Perkembangan Produk Informasi</CardTitle>
-              <CardDescription>Status produk yang tersedia dalam scope pengguna.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="font-mono text-4xl tabular-nums">{formatDashboardNumber(data.analytics.products.total)}</p>
-              {data.analytics.products.byStatus.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Belum ada Produk Informasi pada periode aktif.</p>
-              ) : (
-                data.analytics.products.byStatus.map((item) => (
-                  <div key={item.key} className="flex justify-between gap-3 text-xs">
-                    <span className="text-muted-foreground">{dashboardStatusLabel(item.label)}</span>
-                    <strong className="font-mono">{formatDashboardNumber(item.value)}</strong>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+          <CategoryPanel items={data.analytics.categories} />
         </div>
       </section>
 
-      <CompositionPanel analytics={data.analytics} query={query} onChange={changeQuery} />
-      <div id="network-summary" className="scroll-mt-24">
-        <NetworkSummaryPanel summary={data.operations.networkSummary} buildHref={buildHref} />
-      </div>
+      <section aria-labelledby="priority-heading" className="grid gap-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <div className="xl:col-span-2">
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--dc-primary)]">
+            Prioritas pimpinan
+          </p>
+          <h2 id="priority-heading" className="mt-1 text-lg font-semibold">
+            Laporan yang Perlu Didahulukan
+          </h2>
+        </div>
+        <div id="leadership-attention" className="scroll-mt-24">
+          <LeadershipAttentionPanel items={data.overview.attention} buildHref={buildHref} />
+        </div>
+        <div id="priority-reports" className="scroll-mt-24">
+          <PriorityReportPanel operations={data.operations} buildHref={buildHref} />
+        </div>
+      </section>
 
       <section aria-labelledby="operations-heading">
         <div className="mb-3">
           <p className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--dc-primary)]">
-            Operasi pelaporan
+            Peringkat operasional
           </p>
           <h2 id="operations-heading" className="mt-1 text-lg font-semibold">
             Wilayah, Jaring, dan Petugas Wilayah
           </h2>
         </div>
-        <div className="grid gap-4">
+        <div id="operations-ranking" className="scroll-mt-24">
           <PerformanceRankingPanel operations={data.operations} buildHref={buildHref} />
-          <div id="priority-reports" className="scroll-mt-24">
-            <PriorityReportPanel operations={data.operations} buildHref={buildHref} />
-          </div>
         </div>
       </section>
 
-      <div id="follow-up-quality" className="scroll-mt-24">
-        <FollowUpAndQualityPanel data={data} buildHref={buildHref} />
-      </div>
-      <RecentActivityPanel items={data.operations.recentActivity} buildHref={buildHref} />
-
-      <details className="rounded-xl border border-[var(--dc-border-subtle)] bg-card p-4">
-        <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold">
-          <BookOpen className="size-4 text-[var(--dc-primary)]" />
-          Definisi indikator dan sumber data
-        </summary>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {data.metrics.map((metric) => (
-            <div key={metric.key} className="rounded-lg border border-[var(--dc-border-subtle)] p-3">
-              <p className="text-sm font-medium">{metric.label}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{metric.description}</p>
-              <p className="mt-2 font-mono text-[0.65rem] text-muted-foreground">
-                {metric.entity} · {metric.dateField}
-              </p>
-            </div>
-          ))}
-        </div>
-      </details>
-
       <p className="text-center text-xs text-muted-foreground">
-        Peran aktif: {role} · Pemantauan otomatis berjalan setiap 60 detik saat tab aktif.
+        Peran aktif: {getSystemRoleLabel(role)} - Pemantauan otomatis berjalan setiap 60 detik saat tab aktif.
       </p>
     </main>
   );

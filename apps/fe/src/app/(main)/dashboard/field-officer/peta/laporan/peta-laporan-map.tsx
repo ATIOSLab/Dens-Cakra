@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AlertTriangle, ChevronsUpDown, ExternalLink, FileText, FilterX, RefreshCw } from "lucide-react";
+import { AlertTriangle, ChevronsUpDown, ExternalLink, FilterX, RefreshCw } from "lucide-react";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import type { FieldOfficerIncoming, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
 function formatDateTime(value?: string | null) {
@@ -140,17 +141,17 @@ export function PetaLaporanMap() {
     hasFitInitialBoundsRef.current = false;
   };
 
-  const fetchWorkspace = async () => {
+  const fetchWorkspace = useCallback(async () => {
     setError(null);
     const response = await fetch("/api/field-officer/workspace", { cache: "no-store" });
 
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { message?: string } | null;
-      throw new Error(body?.message || "Gagal membaca laporan jaring.");
+      throw new Error(body?.message ?? "Gagal membaca laporan jaring.");
     }
 
     setWorkspace((await response.json()) as FieldOfficerWorkspace);
-  };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -174,7 +175,7 @@ export function PetaLaporanMap() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchWorkspace]);
 
   useEffect(() => {
     let removed = false;
@@ -321,7 +322,7 @@ export function PetaLaporanMap() {
         <Card className="border-white/10 bg-white/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <FileText className="size-4 text-cyan-300" />
+              <DOMAIN_VISUALS.jaringReport.Icon className={`size-4 ${DOMAIN_VISUALS.jaringReport.iconClass}`} />
               Daftar Laporan Jaring
             </CardTitle>
             <CardDescription className="text-white/65">
@@ -330,9 +331,10 @@ export function PetaLaporanMap() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid gap-3 rounded-lg border border-white/10 bg-black/20 p-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[1fr_1fr_1.1fr_1.1fr_auto]">
-              <label className="space-y-1.5 text-xs text-white/65">
+              <label htmlFor="report-map-period-from" className="space-y-1.5 text-xs text-white/65">
                 <span>Periode Awal</span>
                 <Input
+                  id="report-map-period-from"
                   className="border-white/10 bg-white/5 text-white [color-scheme:dark]"
                   max={periodTo || undefined}
                   type="date"
@@ -343,9 +345,10 @@ export function PetaLaporanMap() {
                   }}
                 />
               </label>
-              <label className="space-y-1.5 text-xs text-white/65">
+              <label htmlFor="report-map-period-to" className="space-y-1.5 text-xs text-white/65">
                 <span>Periode Akhir</span>
                 <Input
+                  id="report-map-period-to"
                   className="border-white/10 bg-white/5 text-white [color-scheme:dark]"
                   min={periodFrom || undefined}
                   type="date"
@@ -356,7 +359,7 @@ export function PetaLaporanMap() {
                   }}
                 />
               </label>
-              <label className="space-y-1.5 text-xs text-white/65">
+              <div className="space-y-1.5 text-xs text-white/65">
                 <span>Kategori</span>
                 <SearchableFilter
                   value={categoryId}
@@ -375,8 +378,8 @@ export function PetaLaporanMap() {
                     setCategoryId(value);
                   }}
                 />
-              </label>
-              <label className="space-y-1.5 text-xs text-white/65">
+              </div>
+              <div className="space-y-1.5 text-xs text-white/65">
                 <span>Urgensi</span>
                 <Select
                   value={urgency}
@@ -397,7 +400,7 @@ export function PetaLaporanMap() {
                     <SelectItem value="URGENT">URGENT</SelectItem>
                   </SelectContent>
                 </Select>
-              </label>
+              </div>
               <Button
                 className="self-end border-white/10 bg-white/5 text-white hover:bg-white/10"
                 type="button"

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { GeoJSONSource, MapLayerMouseEvent, Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
 
+import { PERSONNEL_LOCATION_VISUALS } from "@/lib/domain/visual-system";
+
 import {
   DATA_TYPE_PRESENTATION,
   getMarkerPresentation,
@@ -79,8 +81,6 @@ function heatWeight(feature: MapNetworkFeature, weight: HeatmapWeight) {
     return 0.5;
   }
   if (weight === "valid") return properties.validity === "VALID" ? 1 : 0.1;
-  if (weight === "complete") return properties.completeness === "COMPLETE" ? 1 : 0.1;
-  if (weight === "incomplete") return properties.completeness === "INCOMPLETE" ? 1 : 0.1;
   if (weight === "baket") return properties.markerType === "baket" ? 1 : 0.1;
   return 1;
 }
@@ -216,10 +216,15 @@ export function MapsIntelijenDataLayers({
         source: SOURCE_ID,
         filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "markerType"], "agent"]],
         paint: {
-          "circle-color": ["case", ["==", ["get", "agentState"], "active"], "#3b82f6", "#94a3b8"],
+          "circle-color": [
+            "case",
+            ["==", ["get", "agentState"], "active"],
+            PERSONNEL_LOCATION_VISUALS.ONLINE.markerColor,
+            PERSONNEL_LOCATION_VISUALS.OFFLINE.markerColor,
+          ],
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 14, 7],
           "circle-stroke-width": 2,
-          "circle-stroke-color": ["case", ["==", ["get", "agentState"], "active"], "#bfdbfe", "#e2e8f0"],
+          "circle-stroke-color": ["case", ["==", ["get", "agentState"], "active"], "#bbf7d0", "#e2e8f0"],
         },
       });
     };

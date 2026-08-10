@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   type OnApplicationBootstrap,
+  type OnApplicationShutdown,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
@@ -79,6 +80,7 @@ const REPORT_TRIGGER = '1945';
 const MAX_CONTENT_ENTRIES = 30;
 const MAX_MEDIA = 10;
 const MAX_CONTENT_LENGTH = 10_000;
+const CAPTURE_ACK_DEBOUNCE_MS = 5_000;
 
 const REFERENCE_AREA_CODE_OVERRIDES = new Map<string, string>([
   ['DAERAH KHUSUS IBUKOTA JAKARTA', 'JKT'],
@@ -106,7 +108,7 @@ const WELCOME_MESSAGE = `*KANAL INFORMASI*
 Silakan sampaikan informasi dengan urutan berikut:
 
 1. Kirim *Live Location* melalui fitur WhatsApp.
-2. Tulis isi informasi secara jelas dan lengkap.
+2. Tulis isi informasi secara jelas dan runtut.
 3. Lampirkan foto atau video sebagai dokumentasi pendukung.
 4. Jika seluruh informasi telah selesai disampaikan, ketik *SELESAI*.
 
@@ -121,14 +123,20 @@ Silakan sampaikan informasi dengan urutan berikut:
 const CAPTURE_RESPONSE = `Terima kasih Informasi telah masuk.
 Anda masih dapat menambahkan informasi jika ada.
 
-Balas *SELESAI* jika informasi telah lengkap dan siap dikirimkan.
+Balas *SELESAI* jika informasi siap dikirimkan.
 
 Balas *BATAL* untuk membatalkan.`;
 
 @Injectable()
-export class WhatsAppReportFlowService implements OnApplicationBootstrap {
+export class WhatsAppReportFlowService
+  implements OnApplicationBootstrap, OnApplicationShutdown
+{
   private readonly logger = new Logger(WhatsAppReportFlowService.name);
   private readonly senderQueues = new Map<string, Promise<void>>();
+  private readonly pendingCaptureAcks = new Map<
+    string,
+    { timer: ReturnType<typeof setTimeout>; reply: ReplySender }
+  >();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -144,6 +152,13 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
         `Initial WhatsApp draft cleanup failed: ${this.messageOf(error)}`,
       );
     });
+  }
+
+  onApplicationShutdown() {
+    for (const pending of this.pendingCaptureAcks.values()) {
+      clearTimeout(pending.timer);
+    }
+    this.pendingCaptureAcks.clear();
   }
 
   @Cron('5 0 * * *', { timeZone: 'Asia/Jakarta' })
@@ -246,6 +261,7 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
     }
 
     if (this.hasLocationMessage(message)) {
+      this.cancelCaptureAck(payload.senderPhone);
       await reply([
         'Lokasi tidak diterima. Kirim melalui fitur *Live Location*, bukan lokasi biasa atau share location statis.',
       ]);
@@ -256,10 +272,12 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
 
     const command = text.toLocaleUpperCase('id-ID');
     if (command === REPORT_TRIGGER) {
+      this.cancelCaptureAck(payload.senderPhone);
       await reply([this.progressText(session)]);
       return;
     }
     if (command === 'BATAL') {
+      this.cancelCaptureAck(payload.senderPhone);
       await this.purgeDraftSession(session.id);
       await reply([
         'Seluruh informasi yang sedang dibuat telah dibatalkan dan dihapus.',
@@ -267,6 +285,7 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
       return;
     }
     if (command === 'SELESAI') {
+      this.cancelCaptureAck(payload.senderPhone);
       await this.finishSession(session, payload, reply);
       return;
     }
@@ -328,10 +347,12 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
       session.contentParts.length +
       session.media.filter((item) => Boolean(item.caption?.trim())).length;
     if (entryCount >= MAX_CONTENT_ENTRIES) {
+      this.cancelCaptureAck(payload.senderPhone);
       await reply([`Maksimal ${MAX_CONTENT_ENTRIES} bagian informasi.`]);
       return;
     }
     if ((session.content?.length ?? 0) + text.length > MAX_CONTENT_LENGTH) {
+      this.cancelCaptureAck(payload.senderPhone);
       await reply([`Isi informasi maksimal ${MAX_CONTENT_LENGTH} karakter.`]);
       return;
     }
@@ -367,7 +388,7 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
       if (!this.isUniqueConstraint(error)) throw error;
     }
 
-    await reply([CAPTURE_RESPONSE]);
+    this.scheduleCaptureAck(payload.senderPhone, reply);
   }
 
   private async captureMedia(
@@ -382,6 +403,7 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
     captionText: string,
   ) {
     if (session.media.length >= MAX_MEDIA) {
+      this.cancelCaptureAck(input.payload.senderPhone);
       await input.reply([`Dokumentasi maksimal ${MAX_MEDIA} file.`]);
       return;
     }
@@ -389,6 +411,7 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
       captionText &&
       (session.content?.length ?? 0) + captionText.length > MAX_CONTENT_LENGTH
     ) {
+      this.cancelCaptureAck(input.payload.senderPhone);
       await input.reply([
         `Isi informasi maksimal ${MAX_CONTENT_LENGTH} karakter. Perpendek caption lalu kirim ulang media.`,
       ]);
@@ -443,7 +466,7 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
       if (!this.isUniqueConstraint(error)) throw error;
     }
 
-    await input.reply([CAPTURE_RESPONSE]);
+    this.scheduleCaptureAck(input.payload.senderPhone, input.reply);
   }
 
   private async captureLiveLocation(
@@ -478,7 +501,7 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
       }),
     ]);
 
-    await reply([CAPTURE_RESPONSE]);
+    this.scheduleCaptureAck(payload.senderPhone, reply);
   }
 
   private async finishSession(
@@ -492,7 +515,7 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
     const missing = this.missingRequirements(session);
     if (missing.length > 0) {
       await reply([
-        `Informasi belum dapat dikirim karena belum lengkap. Lengkapi terlebih dahulu:\n${missing.map((item) => `• ${item}`).join('\n')}\n\nSilakan kirim komponen tersebut. Setelah lengkap, ketik *SELESAI* kembali.`,
+        `Informasi belum dapat dikirim karena komponen wajib belum terpenuhi:\n${missing.map((item) => `• ${item}`).join('\n')}\n\nSilakan kirim komponen tersebut. Setelah siap, ketik *SELESAI* kembali.`,
       ]);
       return;
     }
@@ -606,6 +629,26 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
     return missing;
   }
 
+  private scheduleCaptureAck(senderPhone: string, reply: ReplySender) {
+    this.cancelCaptureAck(senderPhone);
+    const timer = setTimeout(() => {
+      this.pendingCaptureAcks.delete(senderPhone);
+      reply([CAPTURE_RESPONSE]).catch((error: unknown) => {
+        this.logger.error(
+          `Failed to send WhatsApp capture acknowledgement for ${senderPhone}: ${this.messageOf(error)}`,
+        );
+      });
+    }, CAPTURE_ACK_DEBOUNCE_MS);
+    this.pendingCaptureAcks.set(senderPhone, { timer, reply });
+  }
+
+  private cancelCaptureAck(senderPhone: string) {
+    const pending = this.pendingCaptureAcks.get(senderPhone);
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    this.pendingCaptureAcks.delete(senderPhone);
+  }
+
   private async referenceAreaCodes(resolvedAreaId: string | null) {
     if (!resolvedAreaId) return { region: 'WLY', city: 'UNK' };
 
@@ -701,9 +744,9 @@ export class WhatsAppReportFlowService implements OnApplicationBootstrap {
   private progressText(session: LoadedSession) {
     const missing = this.missingRequirements(session);
     if (missing.length === 0) {
-      return 'Informasi sudah lengkap. Anda masih dapat melanjutkan mengirim teks, foto, video, atau pembaruan Live Location. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.';
+      return 'Semua komponen wajib sudah diterima. Anda masih dapat melanjutkan mengirim teks, foto, video, atau pembaruan Live Location. Jika sudah selesai, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.';
     }
-    return `Informasi masih dalam proses. Komponen yang belum lengkap:\n${missing.map((item) => `• ${item}`).join('\n')}\n\nSilakan lanjut kirimkan informasi. Setelah seluruh komponen lengkap, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.`;
+    return `Informasi masih dalam proses. Komponen wajib yang belum terpenuhi:\n${missing.map((item) => `• ${item}`).join('\n')}\n\nSilakan lanjut kirimkan informasi. Setelah seluruh komponen siap, ketik *SELESAI*. Untuk membatalkan, ketik *BATAL*.`;
   }
 
   private async purgeDraftSession(id: string) {
