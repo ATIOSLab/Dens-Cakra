@@ -10,6 +10,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 COPY . .
+RUN mkdir -p storage
 
 RUN DATABASE_URL=postgresql://build:build@localhost:5432/build npm run prisma:generate
 RUN npm run build
