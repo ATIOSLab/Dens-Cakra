@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AlertTriangle, Info, MapPinOff } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
@@ -44,7 +44,7 @@ function scopeAreaToMapArea(area: AdministrativeAreaScope): MapArea {
 
 const INITIAL_FILTERS: MapNetworkFilters = {
   search: "",
-  period: "LAST_30_DAYS",
+  period: "TODAY",
   startDate: "",
   endDate: "",
   dataType: "ALL",
@@ -62,7 +62,7 @@ const INITIAL_FILTERS: MapNetworkFilters = {
   lastKnownWithinHours: 168,
 };
 
-const INITIAL_MAP_LIMIT_PER_TYPE = 240;
+const INITIAL_MAP_LIMIT_PER_TYPE = 160;
 const FOCUSED_MAP_LIMIT_PER_TYPE = 600;
 const MAP_REQUEST_TIMEOUT_MS = 45_000;
 const MAP_SUMMARY_TIMEOUT_MS = 15_000;
@@ -202,6 +202,7 @@ function buildQuery(
       ? FOCUSED_MAP_LIMIT_PER_TYPE
       : INITIAL_MAP_LIMIT_PER_TYPE,
     includeAreaHierarchy: true,
+    hasCoordinates: true,
     ...(debouncedSearch ? { q: debouncedSearch } : {}),
     ...periodRange(filters),
     ...(filters.urgency !== "ALL" ? { urgencies: filters.urgency } : {}),
@@ -263,8 +264,6 @@ function mergeEntityFilterOptions(
     addJaring(properties.jaring);
     for (const jaring of properties.jarings ?? []) addJaring(jaring);
   }
-  for (const item of response.meta.unlocatedItems) addJaring(item.jaring);
-
   const sortByLabel = (
     left: MapEntityFilterOption,
     right: MapEntityFilterOption,
@@ -298,8 +297,8 @@ export function MapsIntelijenNetworkClient() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [cardFilter, setCardFilter] = useState<SummaryCardFilter>("ALL");
   const [visualization, setVisualization] =
-    useState<VisualizationMode>("marker");
-  const [colorMode, setColorMode] = useState<MarkerColorMode>("validity");
+    useState<VisualizationMode>("cluster");
+  const [colorMode, setColorMode] = useState<MarkerColorMode>("urgency");
   const [heatmapWeight, setHeatmapWeight] = useState<HeatmapWeight>("count");
   const [mapLayer, setMapLayer] = useState<
     "dark" | "satellite" | "terrain" | "light" | "osm"
@@ -322,6 +321,12 @@ export function MapsIntelijenNetworkClient() {
     );
     return () => window.clearTimeout(timeout);
   }, [filters.search]);
+
+  useEffect(() => {
+    if (filters.provinceId === "ALL" && visualization === "marker") {
+      setVisualization("cluster");
+    }
+  }, [filters.provinceId, visualization]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -582,7 +587,31 @@ export function MapsIntelijenNetworkClient() {
   const resetFilters = useCallback(() => {
     setFilters(INITIAL_FILTERS);
     setCardFilter("ALL");
+    setVisualization("cluster");
   }, []);
+
+  const handleVisualizationChange = useCallback(
+    (value: VisualizationMode) => {
+      setVisualization(
+        value === "marker" && filters.provinceId === "ALL"
+          ? "cluster"
+          : value,
+      );
+    },
+    [filters.provinceId],
+  );
+
+  const activeJaringTotal = useMemo(() => {
+    const jarings = new Set<string>();
+    for (const feature of response.features) {
+      const jaring = feature.properties.jaring;
+      if (jaring?.id) jarings.add(jaring.id);
+      for (const item of feature.properties.jarings ?? []) {
+        if (item.id) jarings.add(item.id);
+      }
+    }
+    return jarings.size;
+  }, [response.features]);
 
   const activePeriodLabel = periodLabel(filters);
   const activeAreaSubtitle = useMemo(
@@ -596,10 +625,6 @@ export function MapsIntelijenNetworkClient() {
     (response.meta.summary.reports.mappable ?? 0) +
     (response.meta.summary.bakets.mappable ?? 0) +
     response.meta.counts.agent;
-  const activeUnlocatedTotal =
-    (response.meta.summary.reports.unlocated ?? 0) +
-    (response.meta.summary.bakets.unlocated ?? 0) +
-    response.meta.counts.unlocatedAgent;
 
   return (
     <main className="mx-auto flex w-full max-w-[1680px] flex-col gap-5 p-3 sm:p-5 lg:p-7">
@@ -629,6 +654,7 @@ export function MapsIntelijenNetworkClient() {
       ) : null}
       <MapsIntelijenStats
         meta={summaryMeta}
+        jaringTotal={activeJaringTotal}
         active={cardFilter}
         onChange={setCardFilter}
         loading={loading}
@@ -651,9 +677,7 @@ export function MapsIntelijenNetworkClient() {
           <strong>{response.meta.counts.agent.toLocaleString("id-ID")}</strong>{" "}
           personel termuat;{" "}
           <strong>{activeMappableTotal.toLocaleString("id-ID")}</strong> data
-          dapat dipetakan dan{" "}
-          <strong>{activeUnlocatedTotal.toLocaleString("id-ID")}</strong> tanpa
-          koordinat.
+          berkoordinat dapat dipetakan.
         </p>
         <div className="flex shrink-0 flex-wrap gap-2 text-muted-foreground text-xs">
           <span>
@@ -665,15 +689,6 @@ export function MapsIntelijenNetworkClient() {
           </span>
         </div>
       </div>
-      {activeUnlocatedTotal > 0 ? (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-800 text-xs dark:text-amber-200">
-          <MapPinOff className="mt-0.5 size-4 shrink-0" />
-          <span>
-            Sebagian data tidak ditampilkan sebagai marker karena tidak memiliki
-            koordinat yang dapat digunakan.
-          </span>
-        </div>
-      ) : null}
       <MapsIntelijenMapView
         mapCardRef={mapCardRef}
         isFullscreen={isFullscreen}
@@ -685,8 +700,12 @@ export function MapsIntelijenNetworkClient() {
         activeFilterCount={activeFilterCount}
         visibleCount={visibleCount}
         onRefresh={() => setReloadKey((value) => value + 1)}
-        mode={visualization}
-        onVisualizationChange={setVisualization}
+        mode={
+          filters.provinceId === "ALL" && visualization === "marker"
+            ? "cluster"
+            : visualization
+        }
+        onVisualizationChange={handleVisualizationChange}
         colorMode={colorMode}
         heatmapWeight={heatmapWeight}
         onHeatmapWeightChange={setHeatmapWeight}
@@ -704,9 +723,9 @@ export function MapsIntelijenNetworkClient() {
       <div className="flex items-start gap-2 rounded-lg border bg-card p-3 text-muted-foreground text-xs">
         <Info className="mt-0.5 size-4 shrink-0 text-sky-500" />
         <p>
-          Marker dan heatmap hanya memakai latitude/longitude aktual. Heatmap
-          mengabaikan data tanpa koordinat; mode bobot “Jumlah Data” memberi
-          bobot setara untuk setiap titik Laporan Jaring maupun Baket.
+          Peta hanya memuat titik berkoordinat sesuai filter aktif. Mode klaster
+          menjadi tampilan awal agar sebaran seluruh wilayah tetap ringan; marker
+          rinci tersedia setelah provinsi dipilih.
         </p>
       </div>
       <MapsIntelijenDetailSheet

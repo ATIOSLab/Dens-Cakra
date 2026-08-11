@@ -252,6 +252,29 @@ export function MapsIntelijenMapView({
     );
     map.fitBounds(bounds, { padding: 72, maxZoom: 14, duration: 450 });
   }, [displayedFeatures, map]);
+  const navigationKey = [
+    filters.period,
+    filters.startDate,
+    filters.endDate,
+    filters.dataType,
+    filters.urgency,
+    filters.categoryId,
+    filters.fieldOfficerAssignmentId,
+    filters.jaringId,
+    filters.provinceId,
+    filters.regencyId,
+    filters.districtId,
+    filters.villageId,
+    filters.suitability,
+    filters.agentState,
+  ].join(":");
+
+  useEffect(() => {
+    if (!map || loading) return;
+    const timeout = window.setTimeout(fitVisibleFeatures, 140);
+    return () => window.clearTimeout(timeout);
+  }, [fitVisibleFeatures, loading, map, navigationKey]);
+
   const resetMap = useCallback(
     () => map?.easeTo({ center: INITIAL_CENTER, zoom: 9.5, pitch: 0, bearing: 0, duration: 450 }),
     [map],
@@ -476,7 +499,7 @@ export function MapsIntelijenMapView({
             <NoCoordinatesIcon className={`mx-auto size-8 ${noCoordinatesPresentation.iconClass}`} aria-hidden />
             <p className="mt-2 font-semibold">Tidak ada titik yang dapat dipetakan</p>
             <p className="mt-1 text-muted-foreground text-xs">
-              Ubah filter atau lihat daftar data tanpa koordinat di bawah peta.
+              Ubah periode, wilayah, atau jenis data untuk menampilkan titik berkoordinat.
             </p>
           </div>
         </div>

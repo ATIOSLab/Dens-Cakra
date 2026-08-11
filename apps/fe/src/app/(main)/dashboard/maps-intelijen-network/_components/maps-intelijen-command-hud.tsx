@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import {
   Activity,
-  AlertTriangle,
   Crosshair,
   Database,
   Eye,
@@ -12,7 +12,6 @@ import {
   Layers3,
   type LucideIcon,
   MapPin,
-  MapPinOff,
   Minimize2,
   RefreshCw,
   RotateCcw,
@@ -168,12 +167,14 @@ export function MapsIntelijenCommandHud({
     const reportTotal = meta.summary.reports.total ?? meta.counts.report ?? 0;
     const baketTotal = meta.summary.bakets.total ?? 0;
     const agentTotal = meta.counts.agent ?? 0;
-    const unlocated =
-      (meta.summary.reports.unlocated ?? 0) +
-      (meta.summary.bakets.unlocated ?? 0) +
-      (meta.counts.unlocatedAgent ?? 0);
-    const urgent = features.filter(({ properties }) => properties.urgency === "URGENT").length;
-    const high = features.filter(({ properties }) => properties.urgency === "HIGH").length;
+    const jaringIds = new Set<string>();
+    for (const feature of features) {
+      const jaring = feature.properties.jaring;
+      if (jaring?.id) jaringIds.add(jaring.id);
+      for (const item of feature.properties.jarings ?? []) {
+        if (item.id) jaringIds.add(item.id);
+      }
+    }
     const areaCounts = countByEntries(features, (feature) => feature.properties.primaryArea?.name ?? "Belum ditentukan");
     const categoryCounts = countByEntries(
       features.filter((feature) => feature.properties.markerType !== "agent"),
@@ -186,27 +187,26 @@ export function MapsIntelijenCommandHud({
     const layerCounts = countBy(features, featureLayer);
     const total = reportTotal + baketTotal + agentTotal;
     const mapped = (meta.summary.reports.mappable ?? 0) + (meta.summary.bakets.mappable ?? 0) + agentTotal;
+    const sortedFeed = [...features].sort((left, right) => {
+      const leftTime = new Date(getMapFeatureTimestamp(left) ?? 0).getTime();
+      const rightTime = new Date(getMapFeatureTimestamp(right) ?? 0).getTime();
+      return rightTime - leftTime;
+    });
 
     return {
+      jaringTotal: jaringIds.size,
       reportTotal,
       baketTotal,
       agentTotal,
       total,
-      unlocated,
-      urgent,
-      high,
       coverage: total > 0 ? Math.round((mapped / total) * 100) : 0,
       areaCounts,
       categoryCounts,
       urgencyCounts,
       layerCounts,
-      feed: [...features]
-        .sort((left, right) => {
-          const leftTime = new Date(getMapFeatureTimestamp(left) ?? 0).getTime();
-          const rightTime = new Date(getMapFeatureTimestamp(right) ?? 0).getTime();
-          return rightTime - leftTime;
-        })
-        .slice(0, 8),
+      feed: sortedFeed.slice(0, 10),
+      reportFeed: sortedFeed.filter((feature) => feature.properties.markerType === "report").slice(0, 10),
+      baketFeed: sortedFeed.filter((feature) => feature.properties.markerType === "baket").slice(0, 10),
     };
   }, [features, meta]);
 
@@ -214,8 +214,8 @@ export function MapsIntelijenCommandHud({
     return (
       <div className="pointer-events-none absolute bottom-3 left-14 z-20 hidden grid-cols-3 gap-2 xl:grid">
         <CompactMetric label="Titik viewport" value={visibleCount} icon={MapPin} tone="cyan" />
-        <CompactMetric label="Mendesak terpetakan" value={intelligence.urgent} icon={AlertTriangle} tone="red" />
-        <CompactMetric label="Tanpa koordinat" value={intelligence.unlocated} icon={MapPinOff} tone="amber" />
+        <CompactMetric label="Total Jaring" value={intelligence.jaringTotal} icon={DOMAIN_VISUALS.jaring.Icon} tone="cyan" />
+        <CompactMetric label="Baket terpetakan" value={intelligence.baketTotal} icon={DOMAIN_VISUALS.baket.Icon} tone="amber" />
       </div>
     );
   }
@@ -260,10 +260,10 @@ export function MapsIntelijenCommandHud({
 
   const kpiCards = [
     {
-      label: "Total Data Peta",
-      value: intelligence.total,
-      detail: `${intelligence.reportTotal} Laporan Jaring + ${intelligence.baketTotal} Bahan Keterangan + ${intelligence.agentTotal} Petugas Wilayah`,
-      icon: Database,
+      label: "Total Jaring",
+      value: intelligence.jaringTotal,
+      detail: "Jaring unik pada titik berkoordinat",
+      icon: DOMAIN_VISUALS.jaring.Icon,
       tone: "cyan",
     },
     {
@@ -293,13 +293,6 @@ export function MapsIntelijenCommandHud({
       detail: "Dalam cakupan akses",
       icon: MapPin,
       tone: "emerald",
-    },
-    {
-      label: "Mendesak dan Tinggi",
-      value: intelligence.urgent + intelligence.high,
-      detail: `${intelligence.urgent} mendesak`,
-      icon: Siren,
-      tone: "red",
     },
   ].filter((card) => card.value > 0);
 
@@ -536,11 +529,14 @@ export function MapsIntelijenCommandHud({
           Semua Lapisan
         </button>
         <select value={visualization} onChange={(event) => onVisualizationChange(event.target.value as VisualizationMode)} aria-label="Mode visualisasi" className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100">
-          {Object.entries(visualizationLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
+          {Object.entries(visualizationLabels).map(([value, label]) => {
+            const markerUnavailable = value === "marker" && filters.provinceId === "ALL";
+            return (
+              <option key={value} value={value} disabled={markerUnavailable}>
+                {markerUnavailable ? `${label} (pilih provinsi)` : label}
+              </option>
+            );
+          })}
         </select>
         <select value={mapLayer} onChange={(event) => onMapLayerChange(event.target.value as BaseMapLayer)} aria-label="Peta dasar" className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100">
           {Object.entries(baseMapLayerLabels).map(([value, label]) => (
@@ -573,9 +569,15 @@ export function MapsIntelijenCommandHud({
             {layerCards.map((layer) => (
               <LayerSummary key={layer.key} label={layer.label} count={layer.count} active={layerVisibility[layer.key]} tone={layer.tone} />
             ))}
-            {intelligence.unlocated > 0 ? (
-              <LayerSummary label="Tanpa Koordinat" count={intelligence.unlocated} active tone="amber" />
-            ) : null}
+            <div className="mt-2 border-t border-slate-800 pt-2">
+              <p className="mb-1 text-[9px] uppercase tracking-[0.1em] text-slate-500">Warna urgensi</p>
+              <div className="grid grid-cols-2 gap-1">
+                <UrgencyLayerSummary label="Mendesak" count={intelligence.urgencyCounts.URGENT ?? 0} tone="red" />
+                <UrgencyLayerSummary label="Tinggi" count={intelligence.urgencyCounts.HIGH ?? 0} tone="amber" />
+                <UrgencyLayerSummary label="Normal" count={intelligence.urgencyCounts.NORMAL ?? 0} tone="emerald" />
+                <UrgencyLayerSummary label="Rendah" count={intelligence.urgencyCounts.LOW ?? 0} tone="cyan" />
+              </div>
+            </div>
           </div>
           <p className="mt-2 border-t border-slate-800 pt-2 text-[9px] leading-relaxed text-slate-500">
             Lokasi yang dirahasiakan dikecualikan oleh kebijakan keamanan endpoint.
@@ -584,14 +586,24 @@ export function MapsIntelijenCommandHud({
 
         <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 shadow-2xl backdrop-blur-xl">
           <div className="flex items-center justify-between border-b border-slate-800 p-3">
-            <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]"><Activity className="size-3.5 text-cyan-300" /> Umpan Intelijen</h3>
+            <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]"><Activity className="size-3.5 text-cyan-300" /> Umpan Data</h3>
             <span className="text-[9px] text-slate-500">Terbaru</span>
           </div>
-          <div className="h-full space-y-2 overflow-y-auto p-2 pb-12">
-            {intelligence.feed.map((feature) => (
-              <FeedItem key={feature.id} feature={feature} onClick={() => onOpenDetail(feature)} />
-            ))}
-            {intelligence.feed.length === 0 ? <p className="p-4 text-center text-xs text-slate-500">Belum ada data sesuai filter.</p> : null}
+          <div className="h-full space-y-3 overflow-y-auto p-2 pb-12">
+            <FeedSection
+              title="Laporan Jaring Terbaru"
+              href="/dashboard/laporan-jaring"
+              features={intelligence.reportFeed}
+              emptyLabel="Belum ada Laporan Jaring sesuai filter."
+              onOpenDetail={onOpenDetail}
+            />
+            <FeedSection
+              title="Baket Terbaru"
+              href="/dashboard/baket"
+              features={intelligence.baketFeed}
+              emptyLabel="Belum ada Baket sesuai filter."
+              onOpenDetail={onOpenDetail}
+            />
           </div>
         </section>
         </aside>
@@ -615,14 +627,15 @@ export function MapsIntelijenCommandHud({
           ["Mendesak", intelligence.urgencyCounts.URGENT ?? 0, "red"],
           ["Tinggi", intelligence.urgencyCounts.HIGH ?? 0, "amber"],
           ["Normal", intelligence.urgencyCounts.NORMAL ?? 0, "emerald"],
-        ]} />
+          ["Rendah", intelligence.urgencyCounts.LOW ?? 0, "cyan"],
+        ]} showEmpty />
         <MiniAnalytics title="Top Kategori" icon={Layers3} items={intelligence.categoryCounts.slice(0, 3).map(([label, count]) => [label, count, "violet"] as [string, number, string])} />
         <MiniAnalytics title="Wilayah Teratas" icon={MapPin} items={intelligence.areaCounts.slice(0, 3).map(([label, count]) => [label, count, "cyan"] as [string, number, string])} />
         </section>
       ) : null}
 
       <section
-        aria-label="Umpan intelijen bergerak"
+        aria-label="Umpan data bergerak"
         className="pointer-events-auto absolute inset-x-3 bottom-3 z-50 flex h-8 overflow-hidden rounded-md border border-slate-700/90 bg-slate-100 text-slate-900 shadow-2xl"
       >
         <div className="relative z-10 flex shrink-0 items-center gap-2 bg-cyan-500 px-3 font-bold font-mono text-[10px] text-slate-950 uppercase tracking-[0.12em] shadow-[8px_0_16px_rgba(34,211,238,0.2)]">
@@ -648,7 +661,7 @@ export function MapsIntelijenCommandHud({
             </div>
           ) : (
             <p className="flex h-full items-center px-4 font-mono text-[10px] text-slate-500">
-              Belum ada umpan intelijen sesuai filter.
+              Belum ada data terbaru sesuai filter.
             </p>
           )}
         </div>
@@ -789,29 +802,89 @@ function LayerSummary({ label, count, active, tone }: { label: string; count: nu
   );
 }
 
+function UrgencyLayerSummary({ label, count, tone }: { label: string; count: number; tone: string }) {
+  return (
+    <div className="flex min-w-0 items-center gap-1.5 text-[9px] text-slate-300">
+      <span className={cn("size-2 shrink-0 rounded-full", toneClasses(tone, "dot"))} />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <strong className="font-mono tabular-nums text-slate-100">{count.toLocaleString("id-ID")}</strong>
+    </div>
+  );
+}
+
+function FeedSection({
+  title,
+  href,
+  features,
+  emptyLabel,
+  onOpenDetail,
+}: {
+  title: string;
+  href: string;
+  features: MapNetworkFeature[];
+  emptyLabel: string;
+  onOpenDetail: (feature: MapNetworkFeature) => void;
+}) {
+  return (
+    <section className="rounded-lg border border-slate-800/80 bg-slate-950/60">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-800 px-2 py-1.5">
+        <h4 className="min-w-0 truncate font-semibold text-[10px] uppercase tracking-[0.08em] text-slate-300">
+          {title}
+        </h4>
+        <Link
+          href={href}
+          className="shrink-0 rounded border border-cyan-400/30 px-2 py-1 text-[9px] font-semibold text-cyan-300 hover:bg-cyan-400/10"
+        >
+          Selengkapnya
+        </Link>
+      </div>
+      <div className="max-h-72 space-y-2 overflow-y-auto p-2">
+        {features.map((feature) => (
+          <FeedItem key={feature.id} feature={feature} onClick={() => onOpenDetail(feature)} />
+        ))}
+        {features.length === 0 ? <p className="p-3 text-center text-xs text-slate-500">{emptyLabel}</p> : null}
+      </div>
+    </section>
+  );
+}
+
 function FeedItem({ feature, onClick }: { feature: MapNetworkFeature; onClick: () => void }) {
   const properties = feature.properties;
+  const urgencyPresentation = getUrgencyPresentation(properties.urgency);
   const statusLabel =
     properties.markerType === "agent"
       ? properties.agentState === "active"
         ? "Aktif"
         : "Lokasi Terakhir"
-      : getUrgencyPresentation(properties.urgency).label;
+      : urgencyPresentation.label;
+  const statusClass =
+    properties.markerType === "agent"
+      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+      : urgencyPresentation.badgeClass;
   return (
-    <button type="button" onClick={onClick} className={cn("block w-full rounded-lg border border-slate-800 bg-slate-900/65 p-2 text-left transition hover:border-cyan-400/40 hover:bg-slate-900", properties.urgency === "URGENT" && "border-red-500/40", properties.urgency === "HIGH" && "border-amber-500/40")}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "block w-full rounded-lg border border-slate-800 bg-slate-900/65 p-2 text-left transition hover:border-cyan-400/40 hover:bg-slate-900",
+        properties.markerType !== "agent" && urgencyPresentation.surfaceClass,
+      )}
+    >
       <div className="flex items-center justify-between gap-2 text-[9px]">
         <span className="font-mono text-slate-500">{formatDateTime(getMapFeatureTimestamp(feature))}</span>
-        <span className={cn("rounded px-1.5 py-0.5 font-semibold", properties.urgency === "URGENT" ? "bg-red-500/15 text-red-300" : properties.urgency === "HIGH" ? "bg-amber-500/15 text-amber-300" : properties.markerType === "agent" ? "bg-emerald-500/15 text-emerald-300" : "bg-emerald-500/15 text-emerald-300")}>{statusLabel}</span>
+        <span className={cn("rounded border px-1.5 py-0.5 font-semibold", statusClass)}>{statusLabel}</span>
       </div>
       <p className="mt-1 line-clamp-1 font-semibold text-[11px] text-slate-100">{getMapFeatureTitle(feature)}</p>
-      <p className="mt-0.5 line-clamp-1 text-[9px] text-slate-400">{properties.primaryArea?.name ?? "Wilayah belum ditentukan"} · {getMapFeatureReference(feature)}</p>
+      <p className="mt-0.5 line-clamp-1 text-[9px] text-slate-400">
+        {properties.primaryArea?.name ?? "Wilayah belum ditentukan"} - {getMapFeatureReference(feature)}
+      </p>
       <span className="mt-1 inline-flex items-center gap-1 text-[9px] text-cyan-300"><Eye className="size-3" /> Lihat detail</span>
     </button>
   );
 }
 
-function MiniAnalytics({ title, icon: Icon, items }: { title: string; icon: LucideIcon; items: Array<[string, number, string]> }) {
-  const visibleItems = items.filter((item) => item[1] > 0);
+function MiniAnalytics({ title, icon: Icon, items, showEmpty = false }: { title: string; icon: LucideIcon; items: Array<[string, number, string]>; showEmpty?: boolean }) {
+  const visibleItems = showEmpty ? items : items.filter((item) => item[1] > 0);
   if (visibleItems.length === 0) return null;
 
   const maximum = Math.max(1, ...visibleItems.map((item) => item[1]));

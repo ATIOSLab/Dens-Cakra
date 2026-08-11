@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { AlertTriangle, ShieldCheck, TrendingUp, UserRoundCheck } from "lucide-react";
+import { ChevronRight, ShieldCheck, TrendingUp, UserRoundCheck, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,6 @@ export function MapsIntelijenLeadershipBrief({
     const agentTotal = meta.counts.agent ?? 0;
     const total = reportTotal + baketTotal + agentTotal;
     const mappable = (meta.summary.reports.mappable ?? 0) + (meta.summary.bakets.mappable ?? 0) + agentTotal;
-    const urgent = features.filter(({ properties }) => properties.urgency === "URGENT").length;
     const outsideScope = features.filter(({ properties }) => properties.locationSuitability === "OUTSIDE_SCOPE").length;
 
     const areaCounts = new Map<string, number>();
@@ -58,7 +57,6 @@ export function MapsIntelijenLeadershipBrief({
       total,
       mappable,
       coordinateCoverage: percentage(mappable, total),
-      urgent,
       outsideScope,
       topArea,
     };
@@ -117,21 +115,7 @@ export function MapsIntelijenLeadershipBrief({
             <TrendingUp className="size-5 text-[var(--dc-primary)]" aria-hidden />
           </div>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-            <AttentionButton
-              icon={AlertTriangle}
-              label="Titik mendesak"
-              value={intelligence.urgent}
-              tone="red"
-              disabled={loading}
-              onClick={() => {
-                onCardFilterChange("ALL");
-                onFilterChange({
-                  dataType: "ALL",
-                  urgency: "URGENT",
-                });
-              }}
-            />
+          <div className="mt-3 grid gap-2">
             <AttentionButton
               icon={UserRoundCheck}
               label="Personel aktif"
@@ -158,7 +142,7 @@ export function MapsIntelijenLeadershipBrief({
               onClick={() => onFilterChange({ suitability: "OUTSIDE_SCOPE" })}
             >
               <span>{intelligence.outsideScope.toLocaleString("id-ID")} titik di luar cakupan penempatan</span>
-              <span aria-hidden>→</span>
+              <ChevronRight className="size-4" aria-hidden />
             </Button>
           ) : null}
         </div>
@@ -210,10 +194,10 @@ function AttentionButton({
   disabled,
   onClick,
 }: {
-  icon: typeof AlertTriangle;
+  icon: LucideIcon;
   label: string;
   value: number;
-  tone: "red" | "amber" | "slate";
+  tone: "amber" | "slate";
   disabled: boolean;
   onClick: () => void;
 }) {
@@ -224,7 +208,6 @@ function AttentionButton({
       disabled={disabled}
       className={cn(
         "flex min-h-14 items-center gap-3 rounded-xl border bg-background/75 px-3 text-left transition hover:-translate-y-px hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60 motion-reduce:transform-none",
-        tone === "red" && "border-red-500/25",
         tone === "amber" && "border-amber-500/25",
         tone === "slate" && "border-slate-500/25",
       )}
@@ -232,7 +215,6 @@ function AttentionButton({
       <Icon
         className={cn(
           "size-4 shrink-0",
-          tone === "red" && "text-red-500",
           tone === "amber" && "text-amber-500",
           tone === "slate" && "text-slate-500",
         )}
@@ -242,9 +224,7 @@ function AttentionButton({
         <span className="block truncate text-[11px] text-muted-foreground">{label}</span>
         <span className="block font-bold font-mono text-base tabular-nums">{value.toLocaleString("id-ID")}</span>
       </span>
-      <span className="text-muted-foreground text-xs" aria-hidden>
-        →
-      </span>
+      <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
     </button>
   );
 }

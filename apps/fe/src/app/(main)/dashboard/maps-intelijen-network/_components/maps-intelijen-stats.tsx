@@ -11,16 +11,25 @@ import type { MapNetworkResponse, SummaryCardFilter } from "./maps-intelijen-typ
 
 interface MapsIntelijenStatsProps {
   meta: MapNetworkResponse["meta"];
+  jaringTotal: number;
   active: SummaryCardFilter;
   onChange: (value: SummaryCardFilter) => void;
   loading: boolean;
   periodLabel: string;
 }
 
-export function MapsIntelijenStats({ meta, active, onChange, loading, periodLabel }: MapsIntelijenStatsProps) {
+export function MapsIntelijenStats({ meta, jaringTotal, active, onChange, loading, periodLabel }: MapsIntelijenStatsProps) {
   const reports = meta.summary.reports;
   const total = reports.total ?? 0;
   const cards = [
+    {
+      key: "ALL" as const,
+      label: "Total Jaring",
+      value: jaringTotal,
+      percentage: null,
+      definition: "Jumlah Jaring unik yang memiliki titik berkoordinat sesuai filter aktif.",
+      presentation: SUMMARY_CARD_PRESENTATION.ALL,
+    },
     {
       key: "REPORT" as const,
       label: "Laporan Jaring",
@@ -41,7 +50,7 @@ export function MapsIntelijenStats({ meta, active, onChange, loading, periodLabe
 
   return (
     <section aria-label="Ringkasan data peta" className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {cards.map(({ key, label, value, percentage, definition, presentation }) => {
           const selected = active === key;
           const Icon = presentation.icon;
