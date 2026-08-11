@@ -1,25 +1,8 @@
-import type {
-  MapArea,
-  MapAreaFilterOptions,
-  MapNetworkFilters,
-} from "./maps-intelijen-types";
+import type { MapArea, MapAreaFilterOptions, MapNetworkFilters } from "./maps-intelijen-types";
 
 export type MapAreaSelectOption = [value: string, label: string];
 
-const AREA_LEVEL_LABELS: Record<string, string> = {
-  PROVINCE: "Provinsi",
-  REGENCY: "Kabupaten",
-  CITY: "Kota",
-  DISTRICT: "Kecamatan",
-  VILLAGE: "Desa",
-  URBAN_VILLAGE: "Kelurahan",
-};
-
-export function normalizeMapAreas(
-  areas: MapArea[],
-  levels: string[],
-  parentId?: string,
-) {
+export function normalizeMapAreas(areas: MapArea[], levels: string[], parentId?: string) {
   const acceptedLevels = new Set(levels);
   const uniqueAreas = new Map<string, MapArea>();
 
@@ -29,14 +12,11 @@ export function normalizeMapAreas(
     uniqueAreas.set(area.id, area);
   }
 
-  return [...uniqueAreas.values()].sort((left, right) =>
-    left.name.localeCompare(right.name, "id-ID"),
-  );
+  return [...uniqueAreas.values()].sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
 }
 
-function optionLabel(area: MapArea, parent?: MapArea) {
-  const level = AREA_LEVEL_LABELS[area.level] ?? area.level;
-  return `[${level}] ${area.name}${parent ? ` — ${parent.name}` : ""}`;
+function optionLabel(area: MapArea) {
+  return area.name;
 }
 
 function loadingOrAllLabel(
@@ -51,19 +31,14 @@ function loadingOrAllLabel(
   return `${allLabel} di ${selectedParent.name}`;
 }
 
-export function buildMapAreaHierarchyOptions(
-  areaOptions: MapAreaFilterOptions,
-  filters: MapNetworkFilters,
-) {
+export function buildMapAreaHierarchyOptions(areaOptions: MapAreaFilterOptions, filters: MapNetworkFilters) {
   const provinces = normalizeMapAreas(areaOptions.provinces, ["PROVINCE"]);
   const selectedProvince = provinces.find((area) => area.id === filters.provinceId);
   const regencies = selectedProvince
     ? normalizeMapAreas(areaOptions.regencies, ["REGENCY", "CITY"], selectedProvince.id)
     : [];
   const selectedRegency = regencies.find((area) => area.id === filters.regencyId);
-  const districts = selectedRegency
-    ? normalizeMapAreas(areaOptions.districts, ["DISTRICT"], selectedRegency.id)
-    : [];
+  const districts = selectedRegency ? normalizeMapAreas(areaOptions.districts, ["DISTRICT"], selectedRegency.id) : [];
   const selectedDistrict = districts.find((area) => area.id === filters.districtId);
   const villages = selectedDistrict
     ? normalizeMapAreas(areaOptions.villages, ["VILLAGE", "URBAN_VILLAGE"], selectedDistrict.id)
@@ -71,15 +46,8 @@ export function buildMapAreaHierarchyOptions(
 
   return {
     provinces: [
-      [
-        "ALL",
-        areaOptions.loadingLevel === "province"
-          ? "Memuat provinsi..."
-          : "Seluruh provinsi dalam cakupan",
-      ],
-      ...provinces.map(
-        (area) => [area.id, optionLabel(area)] as MapAreaSelectOption,
-      ),
+      ["ALL", areaOptions.loadingLevel === "province" ? "Memuat provinsi..." : "Seluruh provinsi dalam cakupan"],
+      ...provinces.map((area) => [area.id, optionLabel(area)] as MapAreaSelectOption),
     ] satisfies MapAreaSelectOption[],
     regencies: [
       [
@@ -92,10 +60,7 @@ export function buildMapAreaHierarchyOptions(
           "Seluruh Kota/Kabupaten",
         ),
       ],
-      ...regencies.map(
-        (area) =>
-          [area.id, optionLabel(area, selectedProvince)] as MapAreaSelectOption,
-      ),
+      ...regencies.map((area) => [area.id, optionLabel(area)] as MapAreaSelectOption),
     ] satisfies MapAreaSelectOption[],
     districts: [
       [
@@ -108,10 +73,7 @@ export function buildMapAreaHierarchyOptions(
           "Seluruh kecamatan",
         ),
       ],
-      ...districts.map(
-        (area) =>
-          [area.id, optionLabel(area, selectedRegency)] as MapAreaSelectOption,
-      ),
+      ...districts.map((area) => [area.id, optionLabel(area)] as MapAreaSelectOption),
     ] satisfies MapAreaSelectOption[],
     villages: [
       [
@@ -124,10 +86,7 @@ export function buildMapAreaHierarchyOptions(
           "Seluruh kelurahan/desa",
         ),
       ],
-      ...villages.map(
-        (area) =>
-          [area.id, optionLabel(area, selectedDistrict)] as MapAreaSelectOption,
-      ),
+      ...villages.map((area) => [area.id, optionLabel(area)] as MapAreaSelectOption),
     ] satisfies MapAreaSelectOption[],
   };
 }
