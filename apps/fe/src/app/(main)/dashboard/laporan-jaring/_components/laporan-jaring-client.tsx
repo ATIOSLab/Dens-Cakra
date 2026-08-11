@@ -5,18 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import {
-  Check,
-  ChevronDown,
-  Eye,
-  FileCheck,
-  MapPin,
-  Paperclip,
-  RefreshCw,
-  Search,
-  User,
-  X,
-} from "lucide-react";
+import { Check, ChevronDown, Eye, FileCheck, MapPin, Paperclip, RefreshCw, Search, User, X } from "lucide-react";
 
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
@@ -46,7 +35,7 @@ import {
   resolveJakartaPeriodRange,
 } from "@/lib/domain/date-time";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
-import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -485,10 +474,10 @@ export function LaporanJaringClient() {
   return (
     <main className="mx-auto w-full max-w-[1600px] space-y-5 transition-colors duration-150 sm:space-y-6">
       {/* HEADER */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Laporan Jaring</h1>
-          <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>Laporan Jaring</h1>
+          <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
             Kelola daftar laporan masuk dari Jaring, sumber informasi, lokasi aktual, dan tindak lanjut menjadi Bahan
             Keterangan (Baket).
           </p>
@@ -507,33 +496,48 @@ export function LaporanJaringClient() {
       </div>
 
       {/* KPI METRIC SUMMARY CARDS */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <button
           type="button"
           onClick={() => applyCategoryFilter("TOTAL")}
           className={cn(
-            "flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs text-left transition-all duration-150 cursor-pointer active:scale-[0.98]",
+            "flex min-h-[104px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
             isJaringReportCategoryFilterActive("TOTAL", categoryFilterState)
               ? "border-sky-500 ring-2 ring-sky-500/30 bg-sky-500/5 dark:bg-sky-500/10"
               : "border-slate-200/80 dark:border-white/10 hover:border-sky-500/40",
           )}
         >
-          <div className="flex size-10 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-[#38BDF8] shrink-0">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-sky-500/10 text-sky-600 dark:text-[#38BDF8]">
             <DOMAIN_VISUALS.jaringReport.Icon className="size-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               {JARING_REPORT_CATEGORY_FILTERS.TOTAL.label}
             </p>
-            <p className="text-xl font-bold tracking-tight text-foreground">{alignedSummary.totalJaringReports}</p>
+            <p className="font-bold text-foreground text-xl tracking-normal">{alignedSummary.totalJaringReports}</p>
           </div>
         </button>
-
       </div>
 
       {/* FULL TABLE VIEW CONTAINER */}
-      <Card className="border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden">
-        <CardHeader className="p-3 border-b border-slate-200/80 dark:border-white/10 space-y-0">
+      <Card className="overflow-hidden rounded-md border border-slate-200/80 bg-card shadow-xs dark:border-white/10">
+        <CardHeader className="space-y-0 border-slate-200/80 border-b p-4 dark:border-white/10">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-border/70 border-b pb-3">
+            <div>
+              <p className={cn(DC_TYPOGRAPHY.cardTitle, "flex items-center gap-2")}>
+                <Search className="size-4 text-primary" />
+                Filter Laporan Jaring
+              </p>
+              <p className="mt-1 text-muted-foreground text-xs">
+                Gunakan pencarian, Jaring, dan periode untuk memusatkan daftar laporan.
+              </p>
+            </div>
+            <Badge variant="outline" className="rounded-full font-mono text-[11px]">
+              {search || jaringFilter !== "ALL" || periodPreset !== "ALL" || startDate || endDate
+                ? "Filter aktif"
+                : "Tanpa filter"}
+            </Badge>
+          </div>
           {/* Controls Bar - Uniform design matching Jaring page */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
@@ -547,7 +551,7 @@ export function LaporanJaringClient() {
                     setPage(1);
                   }}
                   placeholder="Cari referensi, judul..."
-                  className="pl-8 h-8 text-xs bg-background"
+                  className={cn(DC_CONTROLS.input, "h-8 pl-8 text-xs")}
                 />
                 {search ? (
                   <button
@@ -585,7 +589,7 @@ export function LaporanJaringClient() {
                     setPeriodPreset(e.target.value as DashboardDetailPeriodPreset);
                     setPage(1);
                   }}
-                  className="h-8 text-xs bg-background min-w-[150px]"
+                  className={cn(DC_CONTROLS.selectTrigger, "h-8 min-w-[150px] text-xs")}
                 >
                   <option value="ALL">Semua Periode</option>
                   <option value="TODAY">Hari Ini</option>
@@ -608,7 +612,7 @@ export function LaporanJaringClient() {
                         setStartDate(val);
                         setPage(1);
                       }}
-                      className="h-8 text-xs bg-background w-[130px]"
+                      className={cn(DC_CONTROLS.input, "h-8 w-[130px] text-xs")}
                       title="Dari Tanggal Masuk"
                     />
                   </div>
@@ -623,7 +627,7 @@ export function LaporanJaringClient() {
                         setEndDate(val);
                         setPage(1);
                       }}
-                      className="h-8 text-xs bg-background w-[130px]"
+                      className={cn(DC_CONTROLS.input, "h-8 w-[130px] text-xs")}
                       title="Sampai Tanggal Masuk"
                     />
                   </div>
@@ -637,11 +641,7 @@ export function LaporanJaringClient() {
                 visibleColumns={visibleColumns}
                 onChange={setVisibleColumns}
               />
-              {(search ||
-                jaringFilter !== "ALL" ||
-                periodPreset !== "ALL" ||
-                startDate ||
-                endDate) && (
+              {(search || jaringFilter !== "ALL" || periodPreset !== "ALL" || startDate || endDate) && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -811,7 +811,7 @@ export function LaporanJaringClient() {
                               </p>
                             ) : null}
                             <p className="text-[10px] text-muted-foreground">
-                              {messageCount} pesan · {mediaCount} media
+                              {messageCount} pesan - {mediaCount} media
                             </p>
                           </div>
                         </TableCell>

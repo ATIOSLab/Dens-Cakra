@@ -1,18 +1,12 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { IntelligenceReportComingSoonPage } from "@/app/(main)/dashboard/_components/intelligence-products/intelligence-report-coming-soon-page";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function Page({ params, searchParams }: PageProps) {
+export default function Page() {
   return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/oim/produk-intelijen/buat-produk/[productId]/edit"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
+    <IntelligenceReportComingSoonPage
+      title="Buat Laporan Intelijen Dalam Pengembangan"
+      description="Penyusunan Laporan Intelijen belum difungsikan. Draft, penyuntingan, dan alur peninjauan akan diaktifkan setelah modul siap digunakan."
     />
   );
 }

@@ -56,7 +56,7 @@ import {
 } from "@/lib/domain/area-filter";
 import { jakartaBoundaryIso, resolveJakartaPeriodRange } from "@/lib/domain/date-time";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
-import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -714,10 +714,10 @@ export function LaporanJaringCoordinatorClient() {
       </Breadcrumb>
 
       {/* HEADER */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Laporan Jaring</h1>
-          <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
+          <h1 className={DC_TYPOGRAPHY.pageTitle}>Laporan Jaring</h1>
+          <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
             Monitoring arus Laporan Jaring dalam cakupan hak akses dan wilayah penugasan.
           </p>
           <p className="mt-2 text-sm font-medium text-foreground">{areaSubtitle}</p>
@@ -761,8 +761,8 @@ export function LaporanJaringCoordinatorClient() {
         </div>
       </div>
 
-      {/* KPI STATUS LAPORAN — klik untuk menerapkan atau melepas filter */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      {/* KPI status laporan: klik untuk menerapkan atau melepas filter */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {statusKpiCards.map((item) => {
           const Icon = item.icon;
           const isActive = item.isActive;
@@ -781,70 +781,85 @@ export function LaporanJaringCoordinatorClient() {
                 }
               }}
               className={cn(
-                "flex items-center justify-between rounded-md border p-4 text-left transition-all duration-200 cursor-pointer",
+                "flex min-h-[104px] cursor-pointer items-center gap-3 rounded-md border bg-card p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]",
                 isActive ? item.styles.activeCard : item.styles.inactiveCard,
               )}
             >
-              <div className="flex flex-col gap-2">
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "w-fit uppercase tracking-wider text-[10px] px-2 py-0.5 font-semibold",
-                    isActive ? item.styles.activeBadge : item.styles.inactiveBadge,
-                  )}
-                >
-                  {item.label}
-                </Badge>
-                <div>
-                  <p
-                    className={cn(
-                      "text-3xl font-extrabold tracking-tight transition-colors",
-                      isActive ? item.styles.countText : "text-foreground",
-                    )}
-                  >
-                    {item.count}
-                  </p>
-                  <p className="text-xs text-muted-foreground font-medium">{item.description}</p>
-                </div>
-              </div>
               <div
                 className={cn(
-                  "flex size-11 shrink-0 items-center justify-center rounded-md transition-all duration-200",
+                  "flex size-10 shrink-0 items-center justify-center rounded-md transition-all duration-150",
                   isActive ? item.styles.activeIcon : item.styles.inactiveIcon,
                 )}
               >
                 <Icon className="size-5" />
               </div>
+              <div className="min-w-0">
+                <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
+                <p
+                  className={cn(
+                    "font-bold text-xl tracking-normal transition-colors",
+                    isActive ? item.styles.countText : "text-foreground",
+                  )}
+                >
+                  {item.count}
+                </p>
+                <p className="mt-0.5 truncate font-medium text-muted-foreground text-xs">{item.description}</p>
+              </div>
             </button>
           );
         })}
 
-        <div className="flex items-center justify-between rounded-md border border-emerald-200/80 bg-card p-4 text-left shadow-xs transition-colors dark:border-emerald-900/30">
-          <div className="flex flex-col gap-2">
-            <Badge
-              variant="outline"
-              className="w-fit border-emerald-200 bg-emerald-100/80 px-2 py-0.5 font-semibold text-[10px] text-emerald-700 uppercase tracking-wider dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400"
-            >
-              Jaring
-            </Badge>
-            <div>
-              <p className="font-extrabold text-3xl text-emerald-700 tracking-tight dark:text-emerald-400">
-                {activeJaringCount}
-              </p>
-              <p className="font-medium text-muted-foreground text-xs">
-                {jaringFilter === "ALL" ? "Sesuai wilayah/Gaswil aktif" : "Jaring terpilih"}
-              </p>
-            </div>
-          </div>
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-emerald-100 text-emerald-600 transition-colors dark:bg-emerald-950/60 dark:text-emerald-400">
+        <div className="flex min-h-[104px] items-center gap-3 rounded-md border border-emerald-200/80 bg-card p-3.5 text-left shadow-xs transition-colors dark:border-emerald-900/30">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 transition-colors dark:text-emerald-400">
             <DOMAIN_VISUALS.jaring.Icon className="size-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">Jaring</p>
+            <p className="font-bold text-emerald-600 text-xl tracking-normal dark:text-emerald-400">
+              {activeJaringCount}
+            </p>
+            <p className="mt-0.5 truncate font-medium text-muted-foreground text-xs">
+              {jaringFilter === "ALL" ? "Sesuai wilayah/Gaswil aktif" : "Jaring terpilih"}
+            </p>
           </div>
         </div>
       </div>
 
       {/* FILTER & TOOLBAR BAR */}
-      <Card className="border-slate-200/80 dark:border-white/10 shadow-xs">
-        <CardContent className="p-4 space-y-3.5">
+      <div className="flex flex-col gap-3 rounded-md border border-slate-200/80 bg-card p-4 shadow-xs dark:border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-border/70 border-b pb-3">
+          <div>
+            <p className={cn(DC_TYPOGRAPHY.cardTitle, "flex items-center gap-2")}>
+              <Search className="size-4 text-primary" />
+              Filter Laporan Jaring
+            </p>
+            <p className="mt-1 text-muted-foreground text-xs">
+              Urutan wilayah: Provinsi, Kota/Kabupaten, Kecamatan, lalu Kelurahan/Desa.
+            </p>
+          </div>
+          <Badge variant="outline" className="rounded-full font-mono text-[11px]">
+            {search ||
+            urgencyFilter !== "ALL" ||
+            statusFilter !== "ALL" ||
+            jaringFilter !== "ALL" ||
+            provinceFilter !== "ALL" ||
+            regencyFilter !== "ALL" ||
+            districtFilter !== "ALL" ||
+            villageFilter !== "ALL" ||
+            categoryFilter ||
+            areaFilter ||
+            fieldOfficerFilter ||
+            attachmentFilter ||
+            coordinateSourceFilter ||
+            locationFilter ||
+            periodPreset !== "ALL" ||
+            startDate ||
+            endDate
+              ? "Filter aktif"
+              : "Tanpa filter"}
+          </Badge>
+        </div>
+        <div className="space-y-3.5">
           {/* TOP ROW: Search input + View Mode Switcher */}
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             {/* Search Input */}
@@ -857,7 +872,7 @@ export function LaporanJaringCoordinatorClient() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="pl-9 h-9 text-xs border-slate-200 dark:border-white/10"
+                className={cn(DC_CONTROLS.input, "h-9 pl-9 text-xs")}
               />
               {search && (
                 <button
@@ -902,7 +917,7 @@ export function LaporanJaringCoordinatorClient() {
                 placeholder="Semua Provinsi"
                 searchPlaceholder="Cari Provinsi..."
                 emptyText="Provinsi tidak ditemukan."
-                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
               />
             )}
 
@@ -940,7 +955,7 @@ export function LaporanJaringCoordinatorClient() {
                 }
                 searchPlaceholder="Cari Kota/Kabupaten..."
                 emptyText="Kota/Kabupaten tidak ditemukan."
-                className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+                className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
               />
             )}
 
@@ -965,7 +980,7 @@ export function LaporanJaringCoordinatorClient() {
               placeholder={regencyFilter === "ALL" ? "Pilih Kota/Kabupaten dahulu" : "Semua Kecamatan"}
               searchPlaceholder="Cari Kecamatan..."
               emptyText="Kecamatan tidak ditemukan."
-              className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
             />
 
             {/* 4. Filter Kelurahan/Desa */}
@@ -977,7 +992,7 @@ export function LaporanJaringCoordinatorClient() {
                 setPage(1);
               }}
               disabled={districtFilter === "ALL"}
-              className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
             >
               <option value="ALL">
                 {districtFilter === "ALL" ? "Pilih Kecamatan dahulu" : "Semua Kelurahan/Desa"}
@@ -985,7 +1000,7 @@ export function LaporanJaringCoordinatorClient() {
               {villageOptions.map((village) => (
                 <option key={village.id} value={village.id}>
                   {village.name}
-                  {districtFilter === "ALL" && village.districtName ? ` — ${village.districtName}` : ""}
+                  {districtFilter === "ALL" && village.districtName ? ` - ${village.districtName}` : ""}
                 </option>
               ))}
             </NativeSelect>
@@ -1011,7 +1026,7 @@ export function LaporanJaringCoordinatorClient() {
               }
               searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
               emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
-              className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
             />
 
             {/* 6. Jaring Filter Popover */}
@@ -1038,7 +1053,7 @@ export function LaporanJaringCoordinatorClient() {
                 setPeriodPreset(event.target.value as any);
                 setPage(1);
               }}
-              className="h-9 text-xs border-slate-200 dark:border-white/10 w-full"
+              className={cn(DC_CONTROLS.selectTrigger, "h-9 w-full text-xs")}
             >
               <option value="ALL">Semua Periode</option>
               <option value="TODAY">Hari Ini</option>
@@ -1081,7 +1096,7 @@ export function LaporanJaringCoordinatorClient() {
                       setStartDate(e.target.value);
                       setPage(1);
                     }}
-                    className="h-8 text-xs w-[135px] px-2 border-slate-200 dark:border-white/10"
+                    className={cn(DC_CONTROLS.input, "h-8 w-[135px] px-2 text-xs")}
                   />
                   <span className="text-muted-foreground font-medium">s.d</span>
                   <Input
@@ -1091,7 +1106,7 @@ export function LaporanJaringCoordinatorClient() {
                       setEndDate(e.target.value);
                       setPage(1);
                     }}
-                    className="h-8 text-xs w-[135px] px-2 border-slate-200 dark:border-white/10"
+                    className={cn(DC_CONTROLS.input, "h-8 w-[135px] px-2 text-xs")}
                   />
                 </div>
               ) : (
@@ -1126,8 +1141,8 @@ export function LaporanJaringCoordinatorClient() {
               )}
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* DATA CONTENT (CARD VIEW VS TABLE VIEW) */}
       {loadingList ? (
@@ -1439,7 +1454,7 @@ export function LaporanJaringCoordinatorClient() {
                           </p>
                           <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{item.content || "-"}</p>
                           <p className="mt-0.5 text-[10px] text-muted-foreground">
-                            {messageCount} pesan · {mediaCount} media
+                            {messageCount} pesan - {mediaCount} media
                           </p>
                         </TableCell>
                       )}
