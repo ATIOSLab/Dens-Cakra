@@ -356,12 +356,11 @@ export function LaporanJaringCoordinatorClient() {
       const params = new URLSearchParams({
         page: String(currentPage),
         limit: "100",
+        registrationStatus: "APPROVED",
       });
       if (jaringAreaId) params.set("areaId", jaringAreaId);
 
-      const response = await apiBrowserFetch<PaginatedJaringResponse | RawJaringItem[]>(
-        `/jaring?${params.toString()}`,
-      );
+      const response = await apiBrowserFetch<PaginatedJaringResponse | RawJaringItem[]>(`/jaring?${params.toString()}`);
       const pageItems = Array.isArray(response) ? response : response.items || [];
       allJaring.push(...pageItems);
       if (Array.isArray(response)) {
@@ -544,6 +543,11 @@ export function LaporanJaringCoordinatorClient() {
     );
   }, [areaFilteredJaringList, fieldOfficerFilter]);
 
+  const activeJaringCount = useMemo(() => {
+    if (jaringFilter === "ALL") return connectedJaringList.length;
+    return connectedJaringList.some((jaring) => jaring.id === jaringFilter) ? 1 : 0;
+  }, [connectedJaringList, jaringFilter]);
+
   const popoverJaringOptions: JaringOption[] = useMemo(() => {
     return connectedJaringList.map((j) => ({
       id: j.id,
@@ -620,7 +624,8 @@ export function LaporanJaringCoordinatorClient() {
     (isDkiScoped
       ? "Cakupan laporan mengikuti wilayah supervisi DKI berbasis kota/kabupaten yang ditetapkan admin."
       : "Cakupan laporan mengikuti wilayah komando atau supervisi yang melekat pada hak akses pengguna.");
-  const scopeLabel = reportScope?.supervisionLabel ?? (isDkiScoped ? "Supervisi DKI Kota/Kabupaten" : "Cakupan Hak Akses");
+  const scopeLabel =
+    reportScope?.supervisionLabel ?? (isDkiScoped ? "Supervisi DKI Kota/Kabupaten" : "Cakupan Hak Akses");
 
   const paginatedReports = reports;
 
@@ -722,7 +727,9 @@ export function LaporanJaringCoordinatorClient() {
               {scopeLabel}
             </Badge>
             <span>{scopeDescription}</span>
-            {reportScope?.label ? <span className="font-medium text-foreground">Cakupan: {reportScope.label}</span> : null}
+            {reportScope?.label ? (
+              <span className="font-medium text-foreground">Cakupan: {reportScope.label}</span>
+            ) : null}
             {selectedAreaFromQuery ? (
               <span className="font-medium text-foreground">Filter dashboard: {selectedAreaFromQuery.name}</span>
             ) : null}
@@ -811,6 +818,28 @@ export function LaporanJaringCoordinatorClient() {
             </button>
           );
         })}
+
+        <div className="flex items-center justify-between rounded-md border border-emerald-200/80 bg-card p-4 text-left shadow-xs transition-colors dark:border-emerald-900/30">
+          <div className="flex flex-col gap-2">
+            <Badge
+              variant="outline"
+              className="w-fit border-emerald-200 bg-emerald-100/80 px-2 py-0.5 font-semibold text-[10px] text-emerald-700 uppercase tracking-wider dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400"
+            >
+              Jaring
+            </Badge>
+            <div>
+              <p className="font-extrabold text-3xl text-emerald-700 tracking-tight dark:text-emerald-400">
+                {activeJaringCount}
+              </p>
+              <p className="font-medium text-muted-foreground text-xs">
+                {jaringFilter === "ALL" ? "Sesuai wilayah/Gaswil aktif" : "Jaring terpilih"}
+              </p>
+            </div>
+          </div>
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-emerald-100 text-emerald-600 transition-colors dark:bg-emerald-950/60 dark:text-emerald-400">
+            <DOMAIN_VISUALS.jaring.Icon className="size-5" />
+          </div>
+        </div>
       </div>
 
       {/* FILTER & TOOLBAR BAR */}
@@ -977,7 +1006,9 @@ export function LaporanJaringCoordinatorClient() {
                 setPage(1);
               }}
               disabled={gaswilOptions.length === 0}
-              placeholder={gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)"}
+              placeholder={
+                gaswilOptions.length === 0 ? "Petugas Wilayah belum tersedia" : "Semua Petugas Wilayah (Gaswil)"
+              }
               searchPlaceholder="Cari Petugas Wilayah (Gaswil)..."
               emptyText="Petugas Wilayah (Gaswil) tidak ditemukan."
               className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
@@ -1070,9 +1101,9 @@ export function LaporanJaringCoordinatorClient() {
               {(search ||
                 urgencyFilter !== "ALL" ||
                 statusFilter !== "ALL" ||
-              jaringFilter !== "ALL" ||
-              provinceFilter !== "ALL" ||
-              regencyFilter !== "ALL" ||
+                jaringFilter !== "ALL" ||
+                provinceFilter !== "ALL" ||
+                regencyFilter !== "ALL" ||
                 districtFilter !== "ALL" ||
                 villageFilter !== "ALL" ||
                 categoryFilter ||
@@ -1242,7 +1273,7 @@ export function LaporanJaringCoordinatorClient() {
                       className="w-full h-9 text-xs font-bold gap-2 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors uppercase tracking-wider"
                     >
                       <Link href={`/dashboard/laporan-jaring/${item.id}`}>
-                          <Eye className="size-4" /> Lihat Detail
+                        <Eye className="size-4" /> Lihat Detail
                       </Link>
                     </Button>
                   </div>
@@ -1270,25 +1301,49 @@ export function LaporanJaringCoordinatorClient() {
             <Table className="w-full min-w-[1350px]">
               <TableHeader className="bg-slate-50 dark:bg-white/5">
                 <TableRow className="border-b border-slate-200 dark:border-slate-800">
-                  {isColVisible("waktuMasuk") && <TableHead className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">Waktu Masuk</TableHead>}
-                  {isColVisible("foto") && <TableHead className="w-12 text-center text-xs font-bold uppercase tracking-wider">Foto</TableHead>}
-                  {isColVisible("namaJaring") && <TableHead className="text-xs font-bold uppercase tracking-wider">Nama Jaring</TableHead>}
-                  {isColVisible("kodeJaring") && <TableHead className="text-xs font-bold uppercase tracking-wider">Kode Jaring</TableHead>}
-                  {isColVisible("gaswil") && <TableHead className="text-xs font-bold uppercase tracking-wider">Petugas Wilayah (Gaswil)</TableHead>}
-                  {isColVisible("whatsapp") && <TableHead className="text-xs font-bold uppercase tracking-wider">Nomor WhatsApp</TableHead>}
+                  {isColVisible("waktuMasuk") && (
+                    <TableHead className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                      Waktu Masuk
+                    </TableHead>
+                  )}
+                  {isColVisible("foto") && (
+                    <TableHead className="w-12 text-center text-xs font-bold uppercase tracking-wider">Foto</TableHead>
+                  )}
+                  {isColVisible("namaJaring") && (
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Nama Jaring</TableHead>
+                  )}
+                  {isColVisible("kodeJaring") && (
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Kode Jaring</TableHead>
+                  )}
+                  {isColVisible("gaswil") && (
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">
+                      Petugas Wilayah (Gaswil)
+                    </TableHead>
+                  )}
+                  {isColVisible("whatsapp") && (
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Nomor WhatsApp</TableHead>
+                  )}
                   {isColVisible("judulIsi") && (
                     <TableHead className="min-w-[200px] text-xs font-bold uppercase tracking-wider">
                       Judul & Isi Laporan
                     </TableHead>
                   )}
-                  {isColVisible("wilayahSumber") && <TableHead className="text-xs font-bold uppercase tracking-wider">Lokasi Aktual Laporan</TableHead>}
-                  {isColVisible("wilayahPenempatan") && <TableHead className="text-xs font-bold uppercase tracking-wider">Wilayah Penempatan Jaring</TableHead>}
+                  {isColVisible("wilayahSumber") && (
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Lokasi Aktual Laporan</TableHead>
+                  )}
+                  {isColVisible("wilayahPenempatan") && (
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">
+                      Wilayah Penempatan Jaring
+                    </TableHead>
+                  )}
                   {isColVisible("statusProses") && (
                     <TableHead className="text-xs font-bold uppercase tracking-wider text-center">
                       Status Proses
                     </TableHead>
                   )}
-                  {isColVisible("refNum") && <TableHead className="text-xs font-bold uppercase tracking-wider">Nomor Referensi</TableHead>}
+                  {isColVisible("refNum") && (
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Nomor Referensi</TableHead>
+                  )}
                   <TableHead className="text-xs font-bold uppercase tracking-wider text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1315,7 +1370,10 @@ export function LaporanJaringCoordinatorClient() {
                   });
 
                   return (
-                    <TableRow key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800">
+                    <TableRow
+                      key={item.id}
+                      className="hover:bg-slate-50/50 dark:hover:bg-white/5 border-b border-slate-100 dark:border-slate-800"
+                    >
                       {isColVisible("waktuMasuk") && (
                         <TableCell className="align-middle text-xs font-mono text-muted-foreground whitespace-nowrap">
                           {formatDateTime(item.reportedAt)}
