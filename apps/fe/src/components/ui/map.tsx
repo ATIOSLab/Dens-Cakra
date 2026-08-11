@@ -93,6 +93,7 @@ type MapPopupProps = {
   className?: string;
   closeButton?: boolean;
   onClose?: () => void;
+  offset?: PopupOptions["offset"];
   padding?: PopupOptions["padding"];
 };
 
@@ -553,6 +554,7 @@ export function MapPopup({
   className,
   closeButton = false,
   onClose,
+  offset = 16,
   padding,
 }: MapPopupProps) {
   const context = useMapContext();
@@ -575,7 +577,7 @@ export function MapPopup({
     const popup = new Popup({
       closeButton,
       closeOnClick: false,
-      offset: 16,
+      offset,
       padding,
     })
       .setLngLat([longitude, latitude])
@@ -595,7 +597,7 @@ export function MapPopup({
       popup.remove();
       popupRef.current = null;
     };
-  }, [className, closeButton, container, context?.map, latitude, longitude, onClose, padding]);
+  }, [className, closeButton, container, context?.map, latitude, longitude, offset, onClose, padding]);
 
   useEffect(() => {
     popupRef.current?.setLngLat([longitude, latitude]);

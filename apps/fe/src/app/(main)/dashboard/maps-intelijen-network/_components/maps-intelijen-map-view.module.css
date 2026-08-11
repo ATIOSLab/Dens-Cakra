@@ -7,7 +7,7 @@
 /* biome-ignore lint/correctness/noUnknownPseudoClass: CSS Modules global selector is required for MapLibre popup chrome. */
 .root :global(.maplibregl-popup-content) {
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 0.5rem;
   background: #020617;
   box-shadow: 0 20px 45px rgb(2 6 23 / 45%);
