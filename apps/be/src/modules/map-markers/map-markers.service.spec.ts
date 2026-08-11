@@ -90,6 +90,7 @@ describe('MapMarkersService', () => {
 
     expect(prisma.whatsAppReportSession.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        take: 3000,
         where: expect.objectContaining({
           AND: expect.arrayContaining([
             {

@@ -76,6 +76,10 @@ const CATEGORY_COLORS = [
   '#ec4899',
 ] as const;
 
+const MAP_MARKER_CANDIDATE_OVERFETCH = 3;
+const MAP_MARKER_MIN_CANDIDATES_PER_TYPE = 250;
+const MAP_MARKER_MAX_CANDIDATES_PER_TYPE = 5_000;
+
 @Injectable()
 export class MapMarkersService {
   constructor(
@@ -219,6 +223,7 @@ export class MapMarkersService {
     const phoneSearchVariants = filters.search
       ? getIndonesianPhoneSearchVariants(filters.search)
       : [];
+    const candidateLimit = this.candidateLimit(query);
     const candidates = await this.prisma.whatsAppReportSession.findMany({
       where: {
         AND: [
@@ -525,6 +530,7 @@ export class MapMarkersService {
         },
       },
       orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
+      take: candidateLimit,
     });
 
     const reportCoordinates = new Map(
@@ -781,6 +787,7 @@ export class MapMarkersService {
     filters: ReturnType<MapMarkersService['normalizeFilters']>,
   ) {
     const scopedWhere = await this.scope.baketWhere(context);
+    const candidateLimit = this.candidateLimit(query);
     const candidates = await this.prisma.baket.findMany({
       where: {
         AND: [
@@ -1011,6 +1018,7 @@ export class MapMarkersService {
         },
       },
       orderBy: { updatedAt: 'desc' },
+      take: candidateLimit,
     });
 
     const withVersions = candidates.map((baket) => ({
@@ -1560,6 +1568,16 @@ export class MapMarkersService {
       search: query.q?.trim().toLowerCase() || null,
       types: new Set(query.types ?? [MapMarkerType.BAKET, MapMarkerType.AGENT]),
     };
+  }
+
+  private candidateLimit(query: MapMarkersQuery) {
+    return Math.min(
+      MAP_MARKER_MAX_CANDIDATES_PER_TYPE,
+      Math.max(
+        MAP_MARKER_MIN_CANDIDATES_PER_TYPE,
+        query.limitPerType * MAP_MARKER_CANDIDATE_OVERFETCH,
+      ),
+    );
   }
 
   private reportDateWhere(

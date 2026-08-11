@@ -62,9 +62,10 @@ const INITIAL_FILTERS: MapNetworkFilters = {
   lastKnownWithinHours: 168,
 };
 
-const INITIAL_MAP_LIMIT_PER_TYPE = 350;
-const FOCUSED_MAP_LIMIT_PER_TYPE = 1000;
-const MAP_REQUEST_TIMEOUT_MS = 20_000;
+const INITIAL_MAP_LIMIT_PER_TYPE = 240;
+const FOCUSED_MAP_LIMIT_PER_TYPE = 600;
+const MAP_REQUEST_TIMEOUT_MS = 45_000;
+const MAP_SUMMARY_TIMEOUT_MS = 15_000;
 
 function periodRange(filters: MapNetworkFilters) {
   const now = new Date();
@@ -80,20 +81,33 @@ function periodRange(filters: MapNetworkFilters) {
     return { from: new Date(`${value}T00:00:00+07:00`).toISOString(), to: end };
   }
   if (filters.period === "LAST_7_DAYS")
-    return { from: new Date(now.getTime() - 7 * 86_400_000).toISOString(), to: end };
+    return {
+      from: new Date(now.getTime() - 7 * 86_400_000).toISOString(),
+      to: end,
+    };
   if (filters.period === "LAST_30_DAYS")
-    return { from: new Date(now.getTime() - 30 * 86_400_000).toISOString(), to: end };
+    return {
+      from: new Date(now.getTime() - 30 * 86_400_000).toISOString(),
+      to: end,
+    };
   if (filters.period === "THIS_MONTH") {
     const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Jakarta",
       year: "numeric",
       month: "2-digit",
     }).format(now);
-    return { from: new Date(`${parts}-01T00:00:00+07:00`).toISOString(), to: end };
+    return {
+      from: new Date(`${parts}-01T00:00:00+07:00`).toISOString(),
+      to: end,
+    };
   }
   return {
-    ...(filters.startDate ? { from: new Date(`${filters.startDate}T00:00:00+07:00`).toISOString() } : {}),
-    ...(filters.endDate ? { to: new Date(`${filters.endDate}T23:59:59.999+07:00`).toISOString() } : {}),
+    ...(filters.startDate
+      ? { from: new Date(`${filters.startDate}T00:00:00+07:00`).toISOString() }
+      : {}),
+    ...(filters.endDate
+      ? { to: new Date(`${filters.endDate}T23:59:59.999+07:00`).toISOString() }
+      : {}),
   };
 }
 
@@ -121,7 +135,10 @@ function findAreaName(areaOptions: MapAreaFilterOptions, id: string) {
   ].find((area) => area.id === id)?.name;
 }
 
-function buildMapAreaSubtitle(filters: MapNetworkFilters, areaOptions: MapAreaFilterOptions) {
+function buildMapAreaSubtitle(
+  filters: MapNetworkFilters,
+  areaOptions: MapAreaFilterOptions,
+) {
   const regencyName = findAreaName(areaOptions, filters.regencyId);
   const districtName = findAreaName(areaOptions, filters.districtId);
   const villageName = findAreaName(areaOptions, filters.villageId);
@@ -130,24 +147,40 @@ function buildMapAreaSubtitle(filters: MapNetworkFilters, areaOptions: MapAreaFi
   if (filters.villageId !== "ALL" && villageName) {
     return `Jumlah data Kecamatan ${districtName ?? "-"}, Kelurahan/Desa ${villageName}`;
   }
-  if (filters.districtId !== "ALL" && districtName) return `Jumlah data Kecamatan ${districtName}`;
-  if (filters.regencyId !== "ALL" && regencyName) return `Jumlah data Kota/Kabupaten ${regencyName}`;
-  if (filters.provinceId !== "ALL" && provinceName) return `Jumlah data Provinsi ${provinceName}`;
+  if (filters.districtId !== "ALL" && districtName)
+    return `Jumlah data Kecamatan ${districtName}`;
+  if (filters.regencyId !== "ALL" && regencyName)
+    return `Jumlah data Kota/Kabupaten ${regencyName}`;
+  if (filters.provinceId !== "ALL" && provinceName)
+    return `Jumlah data Provinsi ${provinceName}`;
   return "Jumlah data semua wilayah";
 }
 
-function buildQuery(filters: MapNetworkFilters, card: SummaryCardFilter, debouncedSearch: string) {
+function buildQuery(
+  filters: MapNetworkFilters,
+  card: SummaryCardFilter,
+  debouncedSearch: string,
+) {
   const reportSpecific = card === "REPORT";
   let types = "report,baket,agent";
   if (filters.dataType === "REPORT") types = "report";
   if (filters.dataType === "BAKET") types = "baket";
   if (filters.dataType === "AGENT") types = "agent";
   if (card === "BAKET") types = "baket";
-  else if (card !== "ALL" || (filters.dataType === "ALL" && reportSpecific)) types = "report";
-  const selectedAreaId = [filters.villageId, filters.districtId, filters.regencyId, filters.provinceId].find(
-    (areaId) => areaId !== "ALL",
-  );
-  const hasNarrowedPeriod = ["TODAY", "LAST_7_DAYS", "THIS_MONTH", "CUSTOM"].includes(filters.period);
+  else if (card !== "ALL" || (filters.dataType === "ALL" && reportSpecific))
+    types = "report";
+  const selectedAreaId = [
+    filters.villageId,
+    filters.districtId,
+    filters.regencyId,
+    filters.provinceId,
+  ].find((areaId) => areaId !== "ALL");
+  const hasNarrowedPeriod = [
+    "TODAY",
+    "LAST_7_DAYS",
+    "THIS_MONTH",
+    "CUSTOM",
+  ].includes(filters.period);
   const hasFocusedFilter =
     card !== "ALL" ||
     Boolean(debouncedSearch) ||
@@ -165,19 +198,27 @@ function buildQuery(filters: MapNetworkFilters, card: SummaryCardFilter, debounc
 
   return {
     types,
-    limitPerType: hasFocusedFilter ? FOCUSED_MAP_LIMIT_PER_TYPE : INITIAL_MAP_LIMIT_PER_TYPE,
+    limitPerType: hasFocusedFilter
+      ? FOCUSED_MAP_LIMIT_PER_TYPE
+      : INITIAL_MAP_LIMIT_PER_TYPE,
     includeAreaHierarchy: true,
     ...(debouncedSearch ? { q: debouncedSearch } : {}),
     ...periodRange(filters),
     ...(filters.urgency !== "ALL" ? { urgencies: filters.urgency } : {}),
-    ...(filters.categoryId !== "ALL" ? { categoryIds: filters.categoryId } : {}),
+    ...(filters.categoryId !== "ALL"
+      ? { categoryIds: filters.categoryId }
+      : {}),
     ...(filters.fieldOfficerAssignmentId !== "ALL"
       ? { fieldOfficerAssignmentIds: filters.fieldOfficerAssignmentId }
       : {}),
     ...(filters.jaringId !== "ALL" ? { jaringIds: filters.jaringId } : {}),
     ...(selectedAreaId ? { areaIds: selectedAreaId } : {}),
-    ...(filters.suitability !== "ALL" ? { locationSuitability: filters.suitability } : {}),
-    ...(filters.agentState !== "ALL" ? { agentStates: filters.agentState } : {}),
+    ...(filters.suitability !== "ALL"
+      ? { locationSuitability: filters.suitability }
+      : {}),
+    ...(filters.agentState !== "ALL"
+      ? { agentStates: filters.agentState }
+      : {}),
     activeWithinMinutes: filters.activeWithinMinutes,
     lastKnownWithinHours: filters.lastKnownWithinHours,
   };
@@ -192,7 +233,9 @@ function mergeEntityFilterOptions(
   current: MapEntityFilterOptions,
   response: MapNetworkResponse,
 ): MapEntityFilterOptions {
-  const fieldOfficers = new Map(current.fieldOfficers.map((item) => [item.id, item]));
+  const fieldOfficers = new Map(
+    current.fieldOfficers.map((item) => [item.id, item]),
+  );
   const jarings = new Map(current.jarings.map((item) => [item.id, item]));
 
   const addFieldOfficer = (id?: string | null, name?: string | null) => {
@@ -212,15 +255,20 @@ function mergeEntityFilterOptions(
 
   for (const feature of response.features) {
     const properties = feature.properties;
-    addFieldOfficer(properties.fieldOfficer?.assignmentId, properties.fieldOfficer?.name);
+    addFieldOfficer(
+      properties.fieldOfficer?.assignmentId,
+      properties.fieldOfficer?.name,
+    );
     addFieldOfficer(properties.assignmentId, properties.userName);
     addJaring(properties.jaring);
     for (const jaring of properties.jarings ?? []) addJaring(jaring);
   }
   for (const item of response.meta.unlocatedItems) addJaring(item.jaring);
 
-  const sortByLabel = (left: MapEntityFilterOption, right: MapEntityFilterOption) =>
-    left.label.localeCompare(right.label, "id-ID");
+  const sortByLabel = (
+    left: MapEntityFilterOption,
+    right: MapEntityFilterOption,
+  ) => left.label.localeCompare(right.label, "id-ID");
   return {
     fieldOfficers: [...fieldOfficers.values()].sort(sortByLabel),
     jarings: [...jarings.values()].sort(sortByLabel),
@@ -228,13 +276,17 @@ function mergeEntityFilterOptions(
 }
 
 export function MapsIntelijenNetworkClient() {
-  const [response, setResponse] = useState<MapNetworkResponse>(EMPTY_MAP_RESPONSE);
-  const [summaryMeta, setSummaryMeta] = useState<MapNetworkResponse["meta"]>(EMPTY_MAP_RESPONSE.meta);
+  const [response, setResponse] =
+    useState<MapNetworkResponse>(EMPTY_MAP_RESPONSE);
+  const [summaryMeta, setSummaryMeta] = useState<MapNetworkResponse["meta"]>(
+    EMPTY_MAP_RESPONSE.meta,
+  );
   const [filters, setFilters] = useState<MapNetworkFilters>(INITIAL_FILTERS);
-  const [entityFilterOptions, setEntityFilterOptions] = useState<MapEntityFilterOptions>({
-    fieldOfficers: [],
-    jarings: [],
-  });
+  const [entityFilterOptions, setEntityFilterOptions] =
+    useState<MapEntityFilterOptions>({
+      fieldOfficers: [],
+      jarings: [],
+    });
   const [areaOptions, setAreaOptions] = useState<MapAreaFilterOptions>({
     provinces: [],
     regencies: [],
@@ -245,10 +297,13 @@ export function MapsIntelijenNetworkClient() {
   });
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [cardFilter, setCardFilter] = useState<SummaryCardFilter>("ALL");
-  const [visualization, setVisualization] = useState<VisualizationMode>("marker");
+  const [visualization, setVisualization] =
+    useState<VisualizationMode>("marker");
   const [colorMode, setColorMode] = useState<MarkerColorMode>("validity");
   const [heatmapWeight, setHeatmapWeight] = useState<HeatmapWeight>("count");
-  const [mapLayer, setMapLayer] = useState<"dark" | "satellite" | "terrain" | "light" | "osm">("dark");
+  const [mapLayer, setMapLayer] = useState<
+    "dark" | "satellite" | "terrain" | "light" | "osm"
+  >("dark");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(0);
@@ -261,14 +316,21 @@ export function MapsIntelijenNetworkClient() {
   const loadedSummaryQueryRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setDebouncedSearch(filters.search.trim()), 350);
+    const timeout = window.setTimeout(
+      () => setDebouncedSearch(filters.search.trim()),
+      350,
+    );
     return () => window.clearTimeout(timeout);
   }, [filters.search]);
 
   useEffect(() => {
     const controller = new AbortController();
     const loadScopedAreaHierarchy = async () => {
-      setAreaOptions((current) => ({ ...current, loading: true, loadingLevel: "province" }));
+      setAreaOptions((current) => ({
+        ...current,
+        loading: true,
+        loadingLevel: "province",
+      }));
       try {
         const [directScopes, scopedAreas] = await Promise.all([
           apiBrowserFetch<AdministrativeAreaScope[]>("/me/area-scopes", {
@@ -312,14 +374,21 @@ export function MapsIntelijenNetworkClient() {
             provinces: normalizeMapAreas(accessibleAreas, ["PROVINCE"]),
             regencies: normalizeMapAreas(accessibleAreas, ["CITY", "REGENCY"]),
             districts: normalizeMapAreas(accessibleAreas, ["DISTRICT"]),
-            villages: normalizeMapAreas(accessibleAreas, ["VILLAGE", "URBAN_VILLAGE"]),
+            villages: normalizeMapAreas(accessibleAreas, [
+              "VILLAGE",
+              "URBAN_VILLAGE",
+            ]),
             loading: false,
             loadingLevel: null,
           }));
         }
       } catch {
         if (!controller.signal.aborted) {
-          setAreaOptions((current) => ({ ...current, loading: false, loadingLevel: null }));
+          setAreaOptions((current) => ({
+            ...current,
+            loading: false,
+            loadingLevel: null,
+          }));
         }
       }
     };
@@ -327,15 +396,23 @@ export function MapsIntelijenNetworkClient() {
     return () => controller.abort();
   }, []);
 
-  const query = useMemo(() => buildQuery(filters, cardFilter, debouncedSearch), [cardFilter, debouncedSearch, filters]);
+  const query = useMemo(
+    () => buildQuery(filters, cardFilter, debouncedSearch),
+    [cardFilter, debouncedSearch, filters],
+  );
   const summaryQuery = useMemo(
     () => ({ ...buildQuery(filters, "ALL", debouncedSearch), limitPerType: 1 }),
     [debouncedSearch, filters],
   );
-  const summaryQueryKey = useMemo(() => JSON.stringify(summaryQuery), [summaryQuery]);
+  const summaryQueryKey = useMemo(
+    () => JSON.stringify(summaryQuery),
+    [summaryQuery],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
+    const summaryController = new AbortController();
+    let summaryTimeout: number | null = null;
     const timeout = window.setTimeout(
       async () => {
         let timedOut = false;
@@ -349,32 +426,59 @@ export function MapsIntelijenNetworkClient() {
         setError(null);
         try {
           const shouldLoadSummary =
-            cardFilter !== "ALL" && loadedSummaryQueryRef.current !== summaryQueryKey;
-          const [data, summaryData] = await Promise.all([
-            apiBrowserFetch<MapNetworkResponse>("/map/markers", {
+            cardFilter !== "ALL" &&
+            loadedSummaryQueryRef.current !== summaryQueryKey;
+          const data = await apiBrowserFetch<MapNetworkResponse>(
+            "/map/markers",
+            {
               query,
               init: { signal: controller.signal },
-            }),
-            shouldLoadSummary
-              ? apiBrowserFetch<MapNetworkResponse>("/map/markers", {
-                  query: summaryQuery,
-                  init: { signal: controller.signal },
-                })
-              : Promise.resolve(null),
-          ]);
+            },
+          );
           if (!controller.signal.aborted) {
             setResponse(data);
-            if (summaryData || cardFilter === "ALL") {
-              setSummaryMeta((summaryData ?? data).meta);
+            if (cardFilter === "ALL") {
+              setSummaryMeta(data.meta);
               loadedSummaryQueryRef.current = summaryQueryKey;
             }
-            setEntityFilterOptions((current) => mergeEntityFilterOptions(current, data));
+            setEntityFilterOptions((current) =>
+              mergeEntityFilterOptions(current, data),
+            );
+
+            if (shouldLoadSummary) {
+              summaryTimeout = window.setTimeout(() => {
+                summaryController.abort();
+              }, MAP_SUMMARY_TIMEOUT_MS);
+              void apiBrowserFetch<MapNetworkResponse>("/map/markers", {
+                query: summaryQuery,
+                init: { signal: summaryController.signal },
+              })
+                .then((summaryData) => {
+                  if (!summaryController.signal.aborted) {
+                    setSummaryMeta(summaryData.meta);
+                    loadedSummaryQueryRef.current = summaryQueryKey;
+                  }
+                })
+                .catch(() => undefined)
+                .finally(() => {
+                  if (summaryTimeout !== null) {
+                    window.clearTimeout(summaryTimeout);
+                    summaryTimeout = null;
+                  }
+                });
+            }
           }
         } catch (cause) {
           if (timedOut) {
-            setError("Pemuatan data peta melewati batas waktu. Persempit periode atau wilayah, lalu muat ulang.");
+            setError(
+              "Pemuatan data peta melewati batas waktu. Persempit periode atau wilayah, lalu muat ulang.",
+            );
           } else if (!controller.signal.aborted) {
-            setError(cause instanceof Error ? cause.message : "Data peta gagal dimuat.");
+            setError(
+              cause instanceof Error
+                ? cause.message
+                : "Data peta gagal dimuat.",
+            );
           }
         } finally {
           window.clearTimeout(requestTimeout);
@@ -389,7 +493,10 @@ export function MapsIntelijenNetworkClient() {
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
-      if (activeMapRequestRef.current === controller) activeMapRequestRef.current = null;
+      summaryController.abort();
+      if (summaryTimeout !== null) window.clearTimeout(summaryTimeout);
+      if (activeMapRequestRef.current === controller)
+        activeMapRequestRef.current = null;
     };
   }, [cardFilter, query, reloadKey, summaryQuery, summaryQueryKey]);
 
@@ -404,7 +511,10 @@ export function MapsIntelijenNetworkClient() {
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible" && !activeMapRequestRef.current) {
+      if (
+        document.visibilityState === "visible" &&
+        !activeMapRequestRef.current
+      ) {
         setReloadKey((value) => value + 1);
       }
     }, 60_000);
@@ -412,7 +522,8 @@ export function MapsIntelijenNetworkClient() {
   }, []);
 
   const toggleFullscreen = useCallback(() => {
-    if (!isFullscreen) setVisualization((mode) => (mode === "marker" ? "cluster" : mode));
+    if (!isFullscreen)
+      setVisualization((mode) => (mode === "marker" ? "cluster" : mode));
     setIsFullscreen(!isFullscreen);
   }, [isFullscreen]);
 
@@ -422,32 +533,46 @@ export function MapsIntelijenNetworkClient() {
         if (key === "search") return Boolean(value);
         if (key === "period") return value !== "LAST_30_DAYS";
         if (key === "startDate" || key === "endDate") return Boolean(value);
-        if (key === "activeWithinMinutes") return value !== INITIAL_FILTERS.activeWithinMinutes;
-        if (key === "lastKnownWithinHours") return value !== INITIAL_FILTERS.lastKnownWithinHours;
+        if (key === "activeWithinMinutes")
+          return value !== INITIAL_FILTERS.activeWithinMinutes;
+        if (key === "lastKnownWithinHours")
+          return value !== INITIAL_FILTERS.lastKnownWithinHours;
         return value !== "ALL";
       }).length + (cardFilter === "ALL" ? 0 : 1),
     [cardFilter, filters],
   );
 
-  const handleFilterChange = useCallback((patch: Partial<MapNetworkFilters>) => {
-    setFilters((current) => {
-      const next = { ...current, ...patch };
+  const handleFilterChange = useCallback(
+    (patch: Partial<MapNetworkFilters>) => {
+      setFilters((current) => {
+        const next = { ...current, ...patch };
 
-      if (patch.provinceId !== undefined && patch.provinceId !== current.provinceId) {
-        next.regencyId = "ALL";
-        next.districtId = "ALL";
-        next.villageId = "ALL";
-      } else if (patch.regencyId !== undefined && patch.regencyId !== current.regencyId) {
-        next.districtId = "ALL";
-        next.villageId = "ALL";
-      } else if (patch.districtId !== undefined && patch.districtId !== current.districtId) {
-        next.villageId = "ALL";
-      }
+        if (
+          patch.provinceId !== undefined &&
+          patch.provinceId !== current.provinceId
+        ) {
+          next.regencyId = "ALL";
+          next.districtId = "ALL";
+          next.villageId = "ALL";
+        } else if (
+          patch.regencyId !== undefined &&
+          patch.regencyId !== current.regencyId
+        ) {
+          next.districtId = "ALL";
+          next.villageId = "ALL";
+        } else if (
+          patch.districtId !== undefined &&
+          patch.districtId !== current.districtId
+        ) {
+          next.villageId = "ALL";
+        }
 
-      return next;
-    });
-    if (patch.dataType) setCardFilter("ALL");
-  }, []);
+        return next;
+      });
+      if (patch.dataType) setCardFilter("ALL");
+    },
+    [],
+  );
 
   const openDetail = useCallback((feature: MapNetworkFeature) => {
     setSelected(feature);
@@ -460,8 +585,12 @@ export function MapsIntelijenNetworkClient() {
   }, []);
 
   const activePeriodLabel = periodLabel(filters);
-  const activeAreaSubtitle = useMemo(() => buildMapAreaSubtitle(filters, areaOptions), [areaOptions, filters]);
-  const activeReportTotal = response.meta.summary.reports.total ?? response.meta.counts.report ?? 0;
+  const activeAreaSubtitle = useMemo(
+    () => buildMapAreaSubtitle(filters, areaOptions),
+    [areaOptions, filters],
+  );
+  const activeReportTotal =
+    response.meta.summary.reports.total ?? response.meta.counts.report ?? 0;
   const activeBaketTotal = response.meta.summary.bakets.total ?? 0;
   const activeMappableTotal =
     (response.meta.summary.reports.mappable ?? 0) +
@@ -490,7 +619,10 @@ export function MapsIntelijenNetworkClient() {
             <AlertTriangle className="size-5" />
             {error}
           </span>
-          <Button variant="outline" onClick={() => setReloadKey((value) => value + 1)}>
+          <Button
+            variant="outline"
+            onClick={() => setReloadKey((value) => value + 1)}
+          >
             Coba Lagi
           </Button>
         </div>
@@ -513,23 +645,32 @@ export function MapsIntelijenNetworkClient() {
       <div className="flex flex-col gap-2 rounded-xl border bg-muted/20 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p>
           {activeAreaSubtitle}.{" "}
-          <strong>{activeReportTotal.toLocaleString("id-ID")}</strong> Laporan Jaring dan{" "}
-          <strong>{activeBaketTotal.toLocaleString("id-ID")}</strong> Baket sesuai filter;{" "}
-          <strong>{response.meta.counts.agent.toLocaleString("id-ID")}</strong> personel termuat;{" "}
-          <strong>{activeMappableTotal.toLocaleString("id-ID")}</strong> data dapat dipetakan dan{" "}
-          <strong>{activeUnlocatedTotal.toLocaleString("id-ID")}</strong> tanpa koordinat.
+          <strong>{activeReportTotal.toLocaleString("id-ID")}</strong> Laporan
+          Jaring dan <strong>{activeBaketTotal.toLocaleString("id-ID")}</strong>{" "}
+          Baket sesuai filter;{" "}
+          <strong>{response.meta.counts.agent.toLocaleString("id-ID")}</strong>{" "}
+          personel termuat;{" "}
+          <strong>{activeMappableTotal.toLocaleString("id-ID")}</strong> data
+          dapat dipetakan dan{" "}
+          <strong>{activeUnlocatedTotal.toLocaleString("id-ID")}</strong> tanpa
+          koordinat.
         </p>
         <div className="flex shrink-0 flex-wrap gap-2 text-muted-foreground text-xs">
-          <span>{visibleCount.toLocaleString("id-ID")} titik pada viewport</span>
+          <span>
+            {visibleCount.toLocaleString("id-ID")} titik pada viewport
+          </span>
           <span>·</span>
-          <span>{response.features.length.toLocaleString("id-ID")} marker dimuat</span>
+          <span>
+            {response.features.length.toLocaleString("id-ID")} marker dimuat
+          </span>
         </div>
       </div>
       {activeUnlocatedTotal > 0 ? (
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-800 text-xs dark:text-amber-200">
           <MapPinOff className="mt-0.5 size-4 shrink-0" />
           <span>
-            Sebagian data tidak ditampilkan sebagai marker karena tidak memiliki koordinat yang dapat digunakan.
+            Sebagian data tidak ditampilkan sebagai marker karena tidak memiliki
+            koordinat yang dapat digunakan.
           </span>
         </div>
       ) : null}
@@ -563,11 +704,16 @@ export function MapsIntelijenNetworkClient() {
       <div className="flex items-start gap-2 rounded-lg border bg-card p-3 text-muted-foreground text-xs">
         <Info className="mt-0.5 size-4 shrink-0 text-sky-500" />
         <p>
-          Marker dan heatmap hanya memakai latitude/longitude aktual. Heatmap mengabaikan data tanpa koordinat; mode
-          bobot “Jumlah Data” memberi bobot setara untuk setiap titik Laporan Jaring maupun Baket.
+          Marker dan heatmap hanya memakai latitude/longitude aktual. Heatmap
+          mengabaikan data tanpa koordinat; mode bobot “Jumlah Data” memberi
+          bobot setara untuk setiap titik Laporan Jaring maupun Baket.
         </p>
       </div>
-      <MapsIntelijenDetailSheet feature={selected} open={detailOpen} onOpenChange={setDetailOpen} />
+      <MapsIntelijenDetailSheet
+        feature={selected}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </main>
   );
 }
