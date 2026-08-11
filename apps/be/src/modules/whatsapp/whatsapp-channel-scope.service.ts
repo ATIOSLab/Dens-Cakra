@@ -6,6 +6,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 
 type ChannelScopeRecord = { config: unknown };
+type AssignmentScopeRecord = {
+  id: string;
+  areaScopes: Array<{ areaId: string }>;
+};
 
 @Injectable()
 export class WhatsAppChannelScopeService {
@@ -23,12 +27,16 @@ export class WhatsAppChannelScopeService {
         : null;
     const scopeAreaId =
       typeof config.scopeAreaId === 'string' ? config.scopeAreaId : null;
+    const explicitScopeAreaIds = this.uniqueAreaIds([
+      ...(Array.isArray(config.scopeAreaIds) ? config.scopeAreaIds : []),
+      scopeAreaId,
+    ]);
 
     if (!userId || jaringAreaIds.length === 0) {
       return false;
     }
 
-    const channelUser = await this.prisma.userProfile.findUnique({
+    const channelUser = (await this.prisma.userProfile.findUnique({
       where: { id: userId },
       include: {
         operationalAssignments: {
@@ -41,7 +49,7 @@ export class WhatsAppChannelScopeService {
           },
         },
       },
-    });
+    })) as { operationalAssignments?: AssignmentScopeRecord[] } | null;
     const activeAssignments = channelUser?.operationalAssignments ?? [];
     const scopedAssignments = operationalAssignmentId
       ? activeAssignments.filter(
@@ -56,24 +64,26 @@ export class WhatsAppChannelScopeService {
       return false;
     }
 
-    if (scopeAreaId) {
-      const scopeAllowed =
-        channelAreaIds.includes(scopeAreaId) ||
-        Boolean(
-          await this.prisma.administrativeAreaClosure.findFirst({
-            where: {
-              ancestorId: { in: channelAreaIds },
-              descendantId: scopeAreaId,
-            },
-            select: { ancestorId: true },
-          }),
-        );
+    if (explicitScopeAreaIds.length > 0) {
+      for (const areaId of explicitScopeAreaIds) {
+        const scopeAllowed =
+          channelAreaIds.includes(areaId) ||
+          Boolean(
+            await this.prisma.administrativeAreaClosure.findFirst({
+              where: {
+                ancestorId: { in: channelAreaIds },
+                descendantId: areaId,
+              },
+              select: { ancestorId: true },
+            }),
+          );
 
-      if (!scopeAllowed) {
-        return false;
+        if (!scopeAllowed) {
+          return false;
+        }
       }
 
-      channelAreaIds = [scopeAreaId];
+      channelAreaIds = explicitScopeAreaIds;
     }
 
     if (jaringAreaIds.some((areaId) => channelAreaIds.includes(areaId))) {
@@ -91,6 +101,16 @@ export class WhatsAppChannelScopeService {
     );
 
     return Boolean(ancestorMatch);
+  }
+
+  private uniqueAreaIds(values: unknown[]) {
+    return [
+      ...new Set(
+        values
+          .map((value) => (typeof value === 'string' ? value.trim() : ''))
+          .filter(Boolean),
+      ),
+    ];
   }
 
   private readConfig(config: unknown) {

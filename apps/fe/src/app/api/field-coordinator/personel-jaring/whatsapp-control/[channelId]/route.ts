@@ -16,6 +16,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       name?: string;
       botLabel?: string;
       provider?: string;
+      scopeAreaIds?: string[];
       senderNumbers?: string[];
     };
 

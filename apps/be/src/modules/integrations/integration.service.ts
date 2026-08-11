@@ -19,6 +19,46 @@ import type {
 } from './integration.dto.js';
 import { WhatsappBotRuntimeService } from './whatsapp-bot-runtime.service.js';
 
+type AssignmentAreaScopeRecord = { areaId: string };
+type AssignmentScopeRecord = {
+  id: string;
+  isActive?: boolean;
+  areaScopes: AssignmentAreaScopeRecord[];
+};
+type ControlScopeAreaRecord = {
+  id: string;
+  code: string;
+  officialCode: string | null;
+  name: string;
+  level: string;
+  parent?: { name: string } | null;
+};
+type ControlAreaScopeRecord = {
+  isPrimary?: boolean;
+  area?: ControlScopeAreaRecord | null;
+};
+type ControlAssignmentRecord = {
+  id: string;
+  isActive?: boolean;
+  areaScopes?: ControlAreaScopeRecord[];
+};
+type ControlUserRecord = {
+  id: string;
+  fullName?: string | null;
+  operationalAssignments?: ControlAssignmentRecord[];
+};
+type ScopeHierarchyLinkRecord = {
+  descendantId: string;
+  depth: number;
+  ancestor: {
+    id: string;
+    code: string;
+    officialCode: string | null;
+    name: string;
+    level: string;
+  };
+};
+
 @Injectable()
 export class IntegrationService {
   constructor(
@@ -69,6 +109,116 @@ export class IntegrationService {
     return `${code.slice(0, 80 - suffix.length)}${suffix}`;
   }
 
+  private configStringArray(config: Record<string, unknown>, key: string) {
+    return this.uniqueStringArray(config[key]);
+  }
+
+  private uniqueStringArray(value: unknown) {
+    return Array.isArray(value)
+      ? [
+          ...new Set(
+            value
+              .map((item) => (typeof item === 'string' ? item.trim() : ''))
+              .filter(Boolean),
+          ),
+        ]
+      : [];
+  }
+
+  private async validateWhatsappScopeConfig(config: Record<string, unknown>) {
+    const legacyScopeAreaId =
+      typeof config.scopeAreaId === 'string' ? config.scopeAreaId.trim() : '';
+    const scopeAreaIds = [
+      ...new Set([
+        ...this.configStringArray(config, 'scopeAreaIds'),
+        ...(legacyScopeAreaId ? [legacyScopeAreaId] : []),
+      ]),
+    ];
+
+    if (scopeAreaIds.length === 0) {
+      return;
+    }
+
+    const userId = typeof config.userId === 'string' ? config.userId : null;
+    const operationalAssignmentId =
+      typeof config.operationalAssignmentId === 'string'
+        ? config.operationalAssignmentId
+        : null;
+
+    if (!userId) {
+      throw new ApiException(
+        'WHATSAPP_SCOPE_USER_REQUIRED',
+        'Pengelola koneksi WhatsApp wajib dipilih sebelum wilayah pelaporan ditetapkan.',
+        400,
+      );
+    }
+
+    const channelUser = (await this.prisma.userProfile.findUnique({
+      where: { id: userId },
+      include: {
+        operationalAssignments: {
+          where: { isActive: true, validUntil: null },
+          include: {
+            areaScopes: {
+              where: { validUntil: null },
+              select: { areaId: true },
+            },
+          },
+        },
+      },
+    })) as { operationalAssignments?: AssignmentScopeRecord[] } | null;
+    const activeAssignments = channelUser?.operationalAssignments ?? [];
+    const scopedAssignments = operationalAssignmentId
+      ? activeAssignments.filter(
+          (assignment) => assignment.id === operationalAssignmentId,
+        )
+      : activeAssignments;
+    const assignmentAreaIds = [
+      ...new Set(
+        scopedAssignments.flatMap((assignment) =>
+          assignment.areaScopes.map((scope) => scope.areaId),
+        ),
+      ),
+    ];
+
+    if (assignmentAreaIds.length === 0) {
+      throw new ApiException(
+        'WHATSAPP_SCOPE_ASSIGNMENT_REQUIRED',
+        'Penugasan aktif pengelola belum memiliki cakupan wilayah.',
+        400,
+      );
+    }
+
+    const directAreaIds = new Set(assignmentAreaIds);
+    const candidateDescendantIds = scopeAreaIds.filter(
+      (areaId) => !directAreaIds.has(areaId),
+    );
+    const descendantLinks =
+      candidateDescendantIds.length > 0
+        ? ((await this.prisma.administrativeAreaClosure.findMany({
+            where: {
+              ancestorId: { in: assignmentAreaIds },
+              descendantId: { in: candidateDescendantIds },
+            },
+            select: { descendantId: true },
+          })) as Array<{ descendantId: string }>)
+        : [];
+    const allowedDescendantIds = new Set(
+      descendantLinks.map((link) => link.descendantId),
+    );
+    const invalidAreaIds = candidateDescendantIds.filter(
+      (areaId) => !allowedDescendantIds.has(areaId),
+    );
+
+    if (invalidAreaIds.length > 0) {
+      throw new ApiException(
+        'WHATSAPP_SCOPE_OUTSIDE_ASSIGNMENT',
+        'Wilayah pelaporan WhatsApp harus berada di dalam cakupan penugasan aktif pengelola.',
+        400,
+      );
+    }
+  }
+
   private whatsappControlView(channel: {
     id: string;
     code: string;
@@ -107,6 +257,14 @@ export class IntegrationService {
             .map((item) => (typeof item === 'string' ? item.trim() : ''))
             .filter(Boolean)
         : []);
+    const legacyScopeAreaId =
+      typeof config.scopeAreaId === 'string' ? config.scopeAreaId : null;
+    const scopeAreaIds = [
+      ...new Set([
+        ...this.configStringArray(config, 'scopeAreaIds'),
+        ...(legacyScopeAreaId ? [legacyScopeAreaId] : []),
+      ]),
+    ];
 
     return {
       id: channel.id,
@@ -137,14 +295,31 @@ export class IntegrationService {
         typeof config.operationalAssignmentId === 'string'
           ? config.operationalAssignmentId
           : null,
-      scopeAreaId:
-        typeof config.scopeAreaId === 'string' ? config.scopeAreaId : null,
+      scopeAreaIds,
+      scopeAreas: [] as Array<{
+        id: string;
+        code: string;
+        officialCode: string | null;
+        name: string;
+        level: string;
+        parentName: string | null;
+        hierarchy: Array<{
+          id: string;
+          code: string;
+          officialCode: string | null;
+          name: string;
+          level: string;
+        }>;
+      }>,
+      scopeAreaId: legacyScopeAreaId ?? scopeAreaIds[0] ?? null,
       scopeAreaCode:
         typeof config.scopeAreaCode === 'string' ? config.scopeAreaCode : null,
       scopeAreaName:
         typeof config.scopeAreaName === 'string' ? config.scopeAreaName : null,
       scopeAreaLevel:
-        typeof config.scopeAreaLevel === 'string' ? config.scopeAreaLevel : null,
+        typeof config.scopeAreaLevel === 'string'
+          ? config.scopeAreaLevel
+          : null,
       scopeAreaParentName:
         typeof config.scopeAreaParentName === 'string'
           ? config.scopeAreaParentName
@@ -234,18 +409,19 @@ export class IntegrationService {
         },
       });
 
-      const userMap = new Map((users as any[]).map((u) => [u.id, u]));
+      const userMap = new Map(
+        (users as ControlUserRecord[]).map((user) => [user.id, user]),
+      );
 
       for (const view of views) {
         if (view.userId && userMap.has(view.userId)) {
           const user = userMap.get(view.userId);
           if (user) {
-            view['coordinatorName'] = user.fullName;
+            view.coordinatorName = user.fullName ?? null;
             const activeAssignment =
               user.operationalAssignments?.find(
                 (pa) => pa.id === view.operationalAssignmentId && pa.isActive,
-              ) ??
-              user.operationalAssignments?.find((pa) => pa.isActive);
+              ) ?? user.operationalAssignments?.find((pa) => pa.isActive);
             const selectedScope =
               activeAssignment?.areaScopes?.find(
                 (scope) => scope.area?.id === view.scopeAreaId,
@@ -256,11 +432,13 @@ export class IntegrationService {
 
             if (selectedScope?.area && !view.scopeAreaId) {
               view.scopeAreaId = selectedScope.area.id;
+              view.scopeAreaIds = [selectedScope.area.id];
               view.scopeAreaCode =
                 selectedScope.area.officialCode ?? selectedScope.area.code;
               view.scopeAreaName = selectedScope.area.name;
               view.scopeAreaLevel = selectedScope.area.level;
-              view.scopeAreaParentName = selectedScope.area.parent?.name ?? null;
+              view.scopeAreaParentName =
+                selectedScope.area.parent?.name ?? null;
             }
 
             view['coordinatorRegion'] =
@@ -271,12 +449,31 @@ export class IntegrationService {
     }
 
     const scopeAreaIds = [
-      ...new Set(views.map((view) => view.scopeAreaId).filter(Boolean)),
+      ...new Set(
+        views.flatMap((view) =>
+          view.scopeAreaIds.length > 0
+            ? view.scopeAreaIds
+            : view.scopeAreaId
+              ? [view.scopeAreaId]
+              : [],
+        ),
+      ),
     ] as string[];
 
     if (scopeAreaIds.length > 0) {
-      const hierarchyLinks =
-        await this.prisma.administrativeAreaClosure.findMany({
+      const [rawAreas, rawHierarchyLinks] = await Promise.all([
+        this.prisma.administrativeArea.findMany({
+          where: { id: { in: scopeAreaIds }, isActive: true, deletedAt: null },
+          select: {
+            id: true,
+            code: true,
+            officialCode: true,
+            name: true,
+            level: true,
+            parent: { select: { name: true } },
+          },
+        }),
+        this.prisma.administrativeAreaClosure.findMany({
           where: { descendantId: { in: scopeAreaIds } },
           select: {
             descendantId: true,
@@ -291,8 +488,15 @@ export class IntegrationService {
               },
             },
           },
-        });
-      const hierarchyMap = new Map<string, typeof views[number]['scopeHierarchy']>();
+        }),
+      ]);
+      const areas = rawAreas as ControlScopeAreaRecord[];
+      const hierarchyLinks = rawHierarchyLinks as ScopeHierarchyLinkRecord[];
+      const hierarchyMap = new Map<
+        string,
+        (typeof views)[number]['scopeHierarchy']
+      >();
+      const areaMap = new Map(areas.map((area) => [area.id, area]));
 
       for (const link of hierarchyLinks.sort((left, right) => {
         if (left.descendantId !== right.descendantId) {
@@ -306,8 +510,40 @@ export class IntegrationService {
       }
 
       for (const view of views) {
-        if (view.scopeAreaId) {
-          view.scopeHierarchy = hierarchyMap.get(view.scopeAreaId) ?? [];
+        const selectedScopeAreaIds =
+          view.scopeAreaIds.length > 0
+            ? view.scopeAreaIds
+            : view.scopeAreaId
+              ? [view.scopeAreaId]
+              : [];
+        view.scopeAreas = selectedScopeAreaIds.flatMap((areaId) => {
+          const area = areaMap.get(areaId);
+          if (!area) return [];
+          return [
+            {
+              id: area.id,
+              code: area.code,
+              officialCode: area.officialCode,
+              name: area.name,
+              level: area.level,
+              parentName: area.parent?.name ?? null,
+              hierarchy: hierarchyMap.get(area.id) ?? [],
+            },
+          ];
+        });
+        if (view.scopeAreas.length > 0) {
+          const primaryArea = view.scopeAreas[0];
+          view.scopeAreaId = primaryArea.id;
+          view.scopeAreaCode = primaryArea.officialCode ?? primaryArea.code;
+          view.scopeAreaName = primaryArea.name;
+          view.scopeAreaLevel = primaryArea.level;
+          view.scopeAreaParentName = primaryArea.parentName;
+          view.scopeHierarchy = primaryArea.hierarchy;
+          view.coordinatorRegion = view.scopeAreas
+            .map((area) =>
+              area.parentName ? `${area.parentName} / ${area.name}` : area.name,
+            )
+            .join(', ');
         }
       }
     }
@@ -325,6 +561,10 @@ export class IntegrationService {
               : context.userProfileId,
         }
       : body.config;
+    if (this.whatsappBotRuntime.isWhatsAppChannel(body.channelType)) {
+      await this.validateWhatsappScopeConfig(config);
+    }
+
     const channel = await this.prisma.integrationChannel.create({
       data: { ...body, config: this.vault.encrypt(config) },
     });
@@ -375,6 +615,14 @@ export class IntegrationService {
     const senderNumbers = body.senderNumbers
       ?.map((item) => normalizeIndonesianPhoneNumber(item.trim()))
       .filter(Boolean);
+    const scopeAreaIds =
+      body.scopeAreaIds !== undefined
+        ? [
+            ...new Set(
+              body.scopeAreaIds.map((item) => item.trim()).filter(Boolean),
+            ),
+          ]
+        : undefined;
 
     const mergedConfig = {
       ...currentConfig,
@@ -393,7 +641,15 @@ export class IntegrationService {
         : {}),
       ...(body.userId !== undefined ? { userId: body.userId } : {}),
       ...(senderNumbers !== undefined ? { senderNumbers } : {}),
+      ...(scopeAreaIds !== undefined
+        ? {
+            scopeAreaIds,
+            scopeAreaId: scopeAreaIds[0] ?? null,
+          }
+        : {}),
     };
+
+    await this.validateWhatsappScopeConfig(mergedConfig);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.integrationChannel.update({
@@ -435,6 +691,7 @@ export class IntegrationService {
 
     await this.audit(context, 'INTEGRATION.WHATSAPP_CONTROL.UPDATE', id, {
       senderCount: senderNumbers?.length ?? null,
+      scopeAreaCount: scopeAreaIds?.length ?? null,
       configRecovered,
     });
     return this.whatsappControlDetail(id);

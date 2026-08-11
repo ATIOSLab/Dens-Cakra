@@ -225,6 +225,22 @@ export type WhatsappControlChannel = {
   senderNumbers: string[];
   userId?: string | null;
   operationalAssignmentId?: string | null;
+  scopeAreaIds?: string[];
+  scopeAreas?: Array<{
+    id: string;
+    code: string;
+    officialCode: string | null;
+    name: string;
+    level: string;
+    parentName: string | null;
+    hierarchy: Array<{
+      id: string;
+      code: string;
+      officialCode: string | null;
+      name: string;
+      level: string;
+    }>;
+  }>;
   scopeAreaId?: string | null;
   scopeAreaCode?: string | null;
   scopeAreaName?: string | null;

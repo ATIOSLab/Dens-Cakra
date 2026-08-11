@@ -44,6 +44,10 @@ export class UpdateWhatsappControlDto {
   @IsOptional() @IsIn(['qr', 'code']) pairingMethod?: 'qr' | 'code';
   @IsOptional()
   @IsArray()
+  @IsUUID('4', { each: true })
+  scopeAreaIds?: string[];
+  @IsOptional()
+  @IsArray()
   @IsString({ each: true })
   @Matches(/^\+?\d[\d\s-]{7,30}$/, { each: true })
   senderNumbers?: string[];

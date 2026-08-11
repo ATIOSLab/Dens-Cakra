@@ -293,11 +293,7 @@ function oimPositionTitleFrom(position?: PositionRecord | null) {
     const roleCode = current.role?.code?.toUpperCase();
     const positionCode = current.code?.toUpperCase();
 
-    if (
-      roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER" ||
-      positionCode === "KABAGOPS" ||
-      positionCode === "KASUBDIT"
-    ) {
+    if (roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER" || positionCode === "KABAGOPS" || positionCode === "KASUBDIT") {
       return current.title ?? null;
     }
 
@@ -325,13 +321,8 @@ async function getAccess(cookie: string) {
   };
 }
 
-function mapTask(
-  record: TaskRecord,
-  assignmentId: string,
-): FieldOfficerTask | null {
-  const assignment = record.assignments?.find(
-    (item) => item.assigneeAssignmentId === assignmentId,
-  );
+function mapTask(record: TaskRecord, assignmentId: string): FieldOfficerTask | null {
+  const assignment = record.assignments?.find((item) => item.assigneeAssignmentId === assignmentId);
 
   if (!assignment) {
     return null;
@@ -345,10 +336,7 @@ function mapTask(
     record.directiveVersion?.commandSource ??
     null;
 
-  const classification =
-    record.directiveVersion?.classification ??
-    record.uukStrVersion?.classification ??
-    null;
+  const classification = record.directiveVersion?.classification ?? record.uukStrVersion?.classification ?? null;
 
   return {
     assignmentId: assignment.id,
@@ -361,24 +349,18 @@ function mapTask(
     taskStatus: record.status,
     assignmentStatus: assignment.status,
     sourceLabel,
-    targetAreas: (record.targetAreas ?? [])
-      .map((item) => item.area?.name)
-      .filter(Boolean) as string[],
+    targetAreas: (record.targetAreas ?? []).map((item) => item.area?.name).filter(Boolean) as string[],
     assignerName: assignment.assigner?.userProfile?.fullName ?? null,
     assignerPositionTitle: assignment.assigner?.position?.title ?? null,
     progressSummary:
-      assignment.progressPercent !== null &&
-      assignment.progressPercent !== undefined
+      assignment.progressPercent !== null && assignment.progressPercent !== undefined
         ? `${assignment.progressPercent}%`
         : assignment.status,
     classification,
   };
 }
 
-function mapIncoming(
-  record: MessageRecord,
-  jaring: FieldOfficerJaring,
-): FieldOfficerIncoming {
+function mapIncoming(record: MessageRecord, jaring: FieldOfficerJaring): FieldOfficerIncoming {
   const rawPayload = asRecord(record.rawPayload);
   const photoMessageId = asString(rawPayload?.photoMessageId);
   const photoCaption = asString(rawPayload?.photoCaption);
@@ -404,8 +386,7 @@ function mapIncoming(
 
   return {
     id: record.id,
-    referenceNumber:
-      record.referenceNumber ?? asString(rawPayload?.referenceNumber),
+    referenceNumber: record.referenceNumber ?? asString(rawPayload?.referenceNumber),
     jaringId: jaring.id,
     jaringCode: jaring.aliasName ?? jaring.id,
     jaringAlias: jaring.aliasName ?? jaring.id,
@@ -413,11 +394,7 @@ function mapIncoming(
     displayTitle: deriveDisplayTitle(record.content),
     content: record.content ?? null,
     contentAmendments: (record.reportAmendments ?? [])
-      .filter(
-        (amendment) =>
-          amendment.amendmentType === "CONTENT_ADDITION" &&
-          Boolean(amendment.content),
-      )
+      .filter((amendment) => amendment.amendmentType === "CONTENT_ADDITION" && Boolean(amendment.content))
       .map((amendment) => ({
         id: amendment.id,
         versionNumber: amendment.versionNumber,
@@ -426,25 +403,14 @@ function mapIncoming(
       })),
     status: record.status,
     validationSummary: record.validationSummary,
-    categoryId:
-      record.categoryId ??
-      record.category?.id ??
-      record.convertedBaket?.reportCategory?.id ??
-      null,
-    categoryName:
-      record.category?.name ??
-      record.convertedBaket?.reportCategory?.name ??
-      null,
+    categoryId: record.categoryId ?? record.category?.id ?? record.convertedBaket?.reportCategory?.id ?? null,
+    categoryName: record.category?.name ?? record.convertedBaket?.reportCategory?.name ?? null,
     urgency: record.convertedBaket?.versions?.[0]?.urgency ?? null,
     receivedAt: record.receivedAt,
     reportedAt: record.receivedAt,
-    gpsSharedAt:
-      asString(rawPayload?.gpsSharedAt) ?? record.locationCapturedAt ?? null,
+    gpsSharedAt: asString(rawPayload?.gpsSharedAt) ?? record.locationCapturedAt ?? null,
     processedAt: record.processedAt ?? null,
-    reportTimestamp:
-      asString(rawPayload?.timestamp) ??
-      record.processedAt ??
-      record.receivedAt,
+    reportTimestamp: asString(rawPayload?.timestamp) ?? record.processedAt ?? record.receivedAt,
     areaName: record.resolvedArea?.name ?? null,
     latitude: asNumber(record.latitude),
     longitude: asNumber(record.longitude),
@@ -459,10 +425,7 @@ function mapIncoming(
   };
 }
 
-function mapDraftReport(
-  report: JaringReportSessionRecord,
-  jaring: FieldOfficerJaring,
-): FieldOfficerIncoming {
+function mapDraftReport(report: JaringReportSessionRecord, jaring: FieldOfficerJaring): FieldOfficerIncoming {
   const evidenceFiles = (report.media ?? []).map((item) => ({
     fileId: item.fileId,
     url: `/api/field-officer/files/${item.fileId}`,
@@ -512,15 +475,12 @@ function mapJaringRecord(item: JaringRecord): FieldOfficerJaring {
     aliasName: item.aliasName,
     whatsappNumber: item.whatsappNumber,
     status: item.registrationStatus === "APPROVED" ? item.status : "INACTIVE",
-    lastReportAt:
-      (item as unknown as { lastReportAt?: string | null }).lastReportAt ?? null,
+    lastReportAt: (item as unknown as { lastReportAt?: string | null }).lastReportAt ?? null,
     registrationStatus: item.registrationStatus ?? "APPROVED",
     rejectionReason: item.rejectionReason ?? null,
     reviewedAt: asIsoString(item.reviewedAt),
     notes: item.notes ?? null,
-    areaNames: (item.areaCoverages ?? [])
-      .map((coverage) => coverage.area?.name)
-      .filter(Boolean) as string[],
+    areaNames: (item.areaCoverages ?? []).map((coverage) => coverage.area?.name).filter(Boolean) as string[],
     areaIds: (item.areaCoverages ?? []).map((coverage) => coverage.areaId),
     messageCount: item._count?.messages ?? 0,
     baketCount: item._count?.primaryBakets ?? 0,
@@ -531,8 +491,7 @@ function mapJaringRecord(item: JaringRecord): FieldOfficerJaring {
     birthDate: asIsoString(item.birthDate),
     gender: item.gender ?? null,
     occupationName: item.occupation?.name ?? null,
-    profilePhotoFileId:
-      item.profilePhotoFileId ?? item.profilePhotoFile?.id ?? null,
+    profilePhotoFileId: item.profilePhotoFileId ?? item.profilePhotoFile?.id ?? null,
     profilePhotoUrl:
       item.profilePhotoFileId || item.profilePhotoFile?.id
         ? `/api/field-officer/files/${item.profilePhotoFileId ?? item.profilePhotoFile?.id}`
@@ -545,9 +504,7 @@ function mapJaringRecord(item: JaringRecord): FieldOfficerJaring {
   };
 }
 
-function emptyWorkspace(
-  access: Awaited<ReturnType<typeof getAccess>>,
-): FieldOfficerWorkspace {
+function emptyWorkspace(access: Awaited<ReturnType<typeof getAccess>>): FieldOfficerWorkspace {
   return {
     context: access.context,
     profile: access.profile,
@@ -568,9 +525,7 @@ function emptyWorkspace(
 function ownJaring(records: JaringRecord[], assignmentId: string) {
   return records
     .filter((item) =>
-      (item.caretakerAssignments ?? []).some(
-        (caretaker) => caretaker.fieldOfficerAssignment?.id === assignmentId,
-      ),
+      (item.caretakerAssignments ?? []).some((caretaker) => caretaker.fieldOfficerAssignment?.id === assignmentId),
     )
     .map(mapJaringRecord);
 }
@@ -609,11 +564,7 @@ function messageJaring(record: MessageRecord): FieldOfficerJaring | null {
   };
 }
 
-function mapCategories(
-  categories: Array<
-    ReportCategory & { _count?: { whatsAppMessages?: number } }
-  >,
-) {
+function mapCategories(categories: Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>) {
   return categories.map((category) => ({
     id: category.id,
     code: category.code,
@@ -624,10 +575,7 @@ function mapCategories(
   }));
 }
 
-function mapBakets(
-  items: BaketRecord[],
-  jaringIndex: Map<string, FieldOfficerJaring>,
-) {
+function mapBakets(items: BaketRecord[], jaringIndex: Map<string, FieldOfficerJaring>) {
   return items.map<FieldOfficerBaket>((item) => ({
     id: item.id,
     status: item.status,
@@ -636,20 +584,13 @@ function mapBakets(
     primaryJaringCode: item.primaryJaringId
       ? (jaringIndex.get(item.primaryJaringId)?.aliasName ?? item.primaryJaringId)
       : null,
-    primaryJaringAlias: item.primaryJaringId
-      ? (jaringIndex.get(item.primaryJaringId)?.aliasName ?? null)
-      : null,
+    primaryJaringAlias: item.primaryJaringId ? (jaringIndex.get(item.primaryJaringId)?.aliasName ?? null) : null,
     currentVersionId: item.versions?.[0]?.id ?? null,
-    currentVersionDisplayTitle: deriveDisplayTitle(
-      item.versions?.[0]?.originalContent,
-      "Baket tanpa isi",
-    ),
+    currentVersionDisplayTitle: deriveDisplayTitle(item.versions?.[0]?.originalContent, "Baket tanpa isi"),
     summary: item.versions?.[0]?.fieldOfficerNote ?? null,
     categoryName: item.reportCategory?.name ?? null,
     urgency: item.versions?.[0]?.urgency ?? null,
-    sentToPositionTitle:
-      oimPositionTitleFrom(item.createdByFieldOfficerAssignment?.position) ??
-      null,
+    sentToPositionTitle: oimPositionTitleFrom(item.createdByFieldOfficerAssignment?.position) ?? null,
   }));
 }
 
@@ -711,56 +652,42 @@ export async function getFieldOfficerView(
       }),
     ]);
     workspace.jaring = ownJaring(approvedJaring, assignmentId);
-    const jaringIndex = new Map(
-      workspace.jaring.map((item) => [item.id, item] as const),
-    );
+    const jaringIndex = new Map(workspace.jaring.map((item) => [item.id, item] as const));
     const mappedMessages = messages.flatMap((message) => {
-      const sourceJaring = message.jaring?.id
-        ? jaringIndex.get(message.jaring.id)
-        : undefined;
+      const sourceJaring = message.jaring?.id ? jaringIndex.get(message.jaring.id) : undefined;
       return sourceJaring ? [mapIncoming(message, sourceJaring)] : [];
     });
-    workspace.jaringReports = mappedMessages.sort((left, right) =>
-      right.receivedAt.localeCompare(left.receivedAt),
-    );
+    workspace.jaringReports = mappedMessages.sort((left, right) => right.receivedAt.localeCompare(left.receivedAt));
     workspace.incoming = workspace.jaringReports.filter(
-      (item) =>
-        !["READY_FOR_BAKET", "PROCESSED", "SPAM", "DUPLICATE"].includes(
-          item.status,
-        ),
+      (item) => !["READY_FOR_BAKET", "PROCESSED", "SPAM", "DUPLICATE"].includes(item.status),
     );
     return { view, data: workspace };
   }
 
   if (view === "jaring") {
-    const [pending, approved, rejected, occupations, scopedAreas] =
-      await Promise.all([
-        backendApi<JaringRecord[]>("/jaring", {
-          cookie,
-          query: { limit: 100, registrationStatus: "PENDING" },
-        }),
-        backendApi<JaringRecord[]>("/jaring", {
-          cookie,
-          query: { limit: 100, registrationStatus: "APPROVED" },
-        }),
-        backendApi<JaringRecord[]>("/jaring", {
-          cookie,
-          query: { limit: 100, registrationStatus: "REJECTED" },
-        }),
-        backendApi<Array<JaringOccupation & { _count?: { jaring?: number } }>>(
-          "/jaring/occupations",
-          { cookie, query: { limit: 200 } },
-        ),
-        backendApi<AreaScopeRecord[]>("/me/area-scopes", {
-          cookie,
-          query: { includeDescendants: true },
-        }),
-      ]);
-    const unique = Array.from(
-      new Map(
-        [...pending, ...approved, ...rejected].map((item) => [item.id, item]),
-      ).values(),
-    );
+    const [pending, approved, rejected, occupations, scopedAreas] = await Promise.all([
+      backendApi<JaringRecord[]>("/jaring", {
+        cookie,
+        query: { limit: 100, registrationStatus: "PENDING" },
+      }),
+      backendApi<JaringRecord[]>("/jaring", {
+        cookie,
+        query: { limit: 100, registrationStatus: "APPROVED" },
+      }),
+      backendApi<JaringRecord[]>("/jaring", {
+        cookie,
+        query: { limit: 100, registrationStatus: "REJECTED" },
+      }),
+      backendApi<Array<JaringOccupation & { _count?: { jaring?: number } }>>("/jaring/occupations", {
+        cookie,
+        query: { limit: 200 },
+      }),
+      backendApi<AreaScopeRecord[]>("/me/area-scopes", {
+        cookie,
+        query: { includeDescendants: true },
+      }),
+    ]);
+    const unique = Array.from(new Map([...pending, ...approved, ...rejected].map((item) => [item.id, item])).values());
     workspace.jaring = ownJaring(unique, assignmentId);
     workspace.occupations = occupations.map((occupation) => ({
       id: occupation.id,
@@ -770,72 +697,57 @@ export async function getFieldOfficerView(
       isActive: occupation.isActive,
       jaringCount: occupation._count?.jaring ?? occupation.jaringCount,
     }));
-    workspace.districtAreas = scopedAreas.filter(
-      (area) => area.level === "DISTRICT",
-    );
-    workspace.villageAreas = scopedAreas.filter(
-      (area) => area.level === "VILLAGE" || area.level === "URBAN_VILLAGE",
-    );
+    workspace.districtAreas = scopedAreas.filter((area) => area.level === "DISTRICT");
+    workspace.villageAreas = scopedAreas.filter((area) => area.level === "VILLAGE" || area.level === "URBAN_VILLAGE");
     return { view, data: workspace };
   }
 
   if (view === "baket" || view === "reports") {
     const includeCandidates = view === "baket";
-    const [approvedJaring, reportCategories, baketResponse, messages, tasks] =
-      await Promise.all([
-        backendApi<JaringRecord[]>("/jaring", {
-          cookie,
-          query: { limit: 100, registrationStatus: "APPROVED" },
-        }),
-        backendApi<
-          Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>
-        >("/jaring/report-categories", { cookie, query: { limit: 200 } }),
-        backendApi<BaketRecord[] | PagedResponse<BaketRecord>>("/bakets", {
-          cookie,
-          query: {
-            createdByAssignmentId: assignmentId,
-            categoryId: filters.categoryId,
-            from: filters.from
-              ? `${filters.from}T00:00:00.000+07:00`
-              : undefined,
-            to: filters.to ? `${filters.to}T23:59:59.999+07:00` : undefined,
-            limit: 50,
-          },
-        }),
-        includeCandidates
-          ? backendApi<MessageRecord[]>("/whatsapp-messages", {
-              cookie,
-              query: { limit: 100 },
-            })
-          : Promise.resolve([]),
-        includeCandidates
-          ? backendApi<TaskRecord[]>("/tasks", {
-              cookie,
-              query: { assigneeAssignmentId: assignmentId, limit: 50 },
-            })
-          : Promise.resolve([]),
-      ]);
+    const [approvedJaring, reportCategories, baketResponse, messages, tasks] = await Promise.all([
+      backendApi<JaringRecord[]>("/jaring", {
+        cookie,
+        query: { limit: 100, registrationStatus: "APPROVED" },
+      }),
+      backendApi<Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>>("/jaring/report-categories", {
+        cookie,
+        query: { limit: 200 },
+      }),
+      backendApi<BaketRecord[] | PagedResponse<BaketRecord>>("/bakets", {
+        cookie,
+        query: {
+          createdByAssignmentId: assignmentId,
+          categoryId: filters.categoryId,
+          from: filters.from ? `${filters.from}T00:00:00.000+07:00` : undefined,
+          to: filters.to ? `${filters.to}T23:59:59.999+07:00` : undefined,
+          limit: 50,
+        },
+      }),
+      includeCandidates
+        ? backendApi<MessageRecord[]>("/whatsapp-messages", {
+            cookie,
+            query: { limit: 100 },
+          })
+        : Promise.resolve([]),
+      includeCandidates
+        ? backendApi<TaskRecord[]>("/tasks", {
+            cookie,
+            query: { assigneeAssignmentId: assignmentId, limit: 50 },
+          })
+        : Promise.resolve([]),
+    ]);
     workspace.jaring = ownJaring(approvedJaring, assignmentId);
-    const jaringIndex = new Map(
-      workspace.jaring.map((item) => [item.id, item] as const),
-    );
+    const jaringIndex = new Map(workspace.jaring.map((item) => [item.id, item] as const));
     workspace.reportCategories = mapCategories(reportCategories);
     workspace.tasks = tasks
       .map((record) => mapTask(record, assignmentId))
       .filter((value): value is FieldOfficerTask => Boolean(value));
     workspace.baketCandidates = messages.flatMap((message) => {
-      const source = message.jaring?.id
-        ? jaringIndex.get(message.jaring.id)
-        : undefined;
+      const source = message.jaring?.id ? jaringIndex.get(message.jaring.id) : undefined;
       const mapped = source ? mapIncoming(message, source) : null;
-      return mapped?.status === "READY_FOR_BAKET" &&
-        mapped.validationSummary === "VALID"
-        ? [mapped]
-        : [];
+      return mapped?.status === "READY_FOR_BAKET" && mapped.validationSummary === "VALID" ? [mapped] : [];
     });
-    const ownBakets = Array.isArray(baketResponse)
-      ? baketResponse
-      : (baketResponse.items ?? []);
+    const ownBakets = Array.isArray(baketResponse) ? baketResponse : (baketResponse.items ?? []);
     workspace.bakets = mapBakets(ownBakets, jaringIndex);
     return { view, data: workspace };
   }
@@ -909,16 +821,11 @@ export async function getFieldOfficerWorkspace(
       cookie,
       query: { limit: 100, registrationStatus: "REJECTED" },
     }),
-    backendApi<Array<JaringOccupation & { _count?: { jaring?: number } }>>(
-      "/jaring/occupations",
-      {
-        cookie,
-        query: { limit: 200 },
-      },
-    ),
-    backendApi<
-      Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>
-    >("/jaring/report-categories", {
+    backendApi<Array<JaringOccupation & { _count?: { jaring?: number } }>>("/jaring/occupations", {
+      cookie,
+      query: { limit: 200 },
+    }),
+    backendApi<Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>>("/jaring/report-categories", {
       cookie,
       query: { limit: 200 },
     }),
@@ -944,12 +851,8 @@ export async function getFieldOfficerWorkspace(
       query: {
         createdByAssignmentId: assignmentId,
         categoryId: baketFilters.categoryId,
-        from: baketFilters.from
-          ? `${baketFilters.from}T00:00:00.000+07:00`
-          : undefined,
-        to: baketFilters.to
-          ? `${baketFilters.to}T23:59:59.999+07:00`
-          : undefined,
+        from: baketFilters.from ? `${baketFilters.from}T00:00:00.000+07:00` : undefined,
+        to: baketFilters.to ? `${baketFilters.to}T23:59:59.999+07:00` : undefined,
         limit: 50,
       },
     }),
@@ -963,26 +866,15 @@ export async function getFieldOfficerWorkspace(
   ]);
 
   const allJaring = Array.from(
-    new Map(
-      [...pendingJaring, ...approvedJaring, ...rejectedJaring].map((item) => [
-        item.id,
-        item,
-      ]),
-    ).values(),
+    new Map([...pendingJaring, ...approvedJaring, ...rejectedJaring].map((item) => [item.id, item])).values(),
   );
-  const ownBakets = Array.isArray(baketResponse)
-    ? baketResponse
-    : (baketResponse.items ?? []);
+  const ownBakets = Array.isArray(baketResponse) ? baketResponse : (baketResponse.items ?? []);
   const districtAreas = scopedAreas.filter((area) => area.level === "DISTRICT");
-  const villageAreas = scopedAreas.filter(
-    (area) => area.level === "VILLAGE" || area.level === "URBAN_VILLAGE",
-  );
+  const villageAreas = scopedAreas.filter((area) => area.level === "VILLAGE" || area.level === "URBAN_VILLAGE");
 
   const jaring = allJaring
     .filter((item) =>
-      (item.caretakerAssignments ?? []).some(
-        (caretaker) => caretaker.fieldOfficerAssignment?.id === assignmentId,
-      ),
+      (item.caretakerAssignments ?? []).some((caretaker) => caretaker.fieldOfficerAssignment?.id === assignmentId),
     )
     .map(mapJaringRecord);
 
@@ -991,9 +883,7 @@ export async function getFieldOfficerWorkspace(
     baketIndex.set(item.id, item);
   }
   const mappedMessages = messages.flatMap((message) => {
-    const sourceJaring = message.jaring?.id
-      ? baketIndex.get(message.jaring.id)
-      : undefined;
+    const sourceJaring = message.jaring?.id ? baketIndex.get(message.jaring.id) : undefined;
     return sourceJaring ? [mapIncoming(message, sourceJaring)] : [];
   });
   const activeDrafts = (reportSessionsResponse.items ?? []).flatMap((report) => {
@@ -1025,23 +915,12 @@ export async function getFieldOfficerWorkspace(
       isActive: category.isActive,
       messageCount: category._count?.whatsAppMessages ?? category.messageCount,
     })),
-    jaringReports: reportsWithDrafts.sort((left, right) =>
-      right.receivedAt.localeCompare(left.receivedAt),
-    ),
+    jaringReports: reportsWithDrafts.sort((left, right) => right.receivedAt.localeCompare(left.receivedAt)),
     incoming: reportsWithDrafts
-      .filter(
-        (item) =>
-          !["READY_FOR_BAKET", "PROCESSED", "SPAM", "DUPLICATE"].includes(
-            item.status,
-          ),
-      )
+      .filter((item) => !["READY_FOR_BAKET", "PROCESSED", "SPAM", "DUPLICATE"].includes(item.status))
       .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt)),
     baketCandidates: mappedMessages
-      .filter(
-        (item) =>
-          item.status === "READY_FOR_BAKET" &&
-          item.validationSummary === "VALID",
-      )
+      .filter((item) => item.status === "READY_FOR_BAKET" && item.validationSummary === "VALID")
       .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt)),
     tasks: tasks
       .map((record) => mapTask(record, assignmentId))
@@ -1054,20 +933,13 @@ export async function getFieldOfficerWorkspace(
       primaryJaringCode: item.primaryJaringId
         ? (baketIndex.get(item.primaryJaringId)?.aliasName ?? item.primaryJaringId)
         : null,
-      primaryJaringAlias: item.primaryJaringId
-        ? (baketIndex.get(item.primaryJaringId)?.aliasName ?? null)
-        : null,
+      primaryJaringAlias: item.primaryJaringId ? (baketIndex.get(item.primaryJaringId)?.aliasName ?? null) : null,
       currentVersionId: item.versions?.[0]?.id ?? null,
-      currentVersionDisplayTitle: deriveDisplayTitle(
-        item.versions?.[0]?.originalContent,
-        "Baket tanpa isi",
-      ),
+      currentVersionDisplayTitle: deriveDisplayTitle(item.versions?.[0]?.originalContent, "Baket tanpa isi"),
       summary: item.versions?.[0]?.fieldOfficerNote ?? null,
       categoryName: item.reportCategory?.name ?? null,
       urgency: item.versions?.[0]?.urgency ?? null,
-      sentToPositionTitle:
-        oimPositionTitleFrom(item.createdByFieldOfficerAssignment?.position) ??
-        null,
+      sentToPositionTitle: oimPositionTitleFrom(item.createdByFieldOfficerAssignment?.position) ?? null,
     })),
     latestLocation: latestLocation
       ? {
@@ -1147,10 +1019,7 @@ export async function updateFieldOfficerJaringStatus(
   });
 }
 
-export async function validateIncomingMessage(
-  cookie: string,
-  messageId: string,
-) {
+export async function validateIncomingMessage(cookie: string, messageId: string) {
   return backendApi(`/whatsapp-messages/${messageId}/validate`, {
     cookie,
     method: "POST",
@@ -1158,11 +1027,7 @@ export async function validateIncomingMessage(
   });
 }
 
-export async function assignIncomingMessageCategory(
-  cookie: string,
-  messageId: string,
-  categoryId: string,
-) {
+export async function assignIncomingMessageCategory(cookie: string, messageId: string, categoryId: string) {
   return backendApi(`/whatsapp-messages/${messageId}/category`, {
     cookie,
     method: "PATCH",
@@ -1288,15 +1153,12 @@ export async function forwardTaskInstructionToJaring(
     jaringIds?: string[];
   },
 ) {
-  return backendApi<JaringInstructionDispatch>(
-    `/task-assignments/${assignmentId}/jaring-instructions`,
-    {
-      cookie,
-      method: "POST",
-      body,
-      idempotent: true,
-    },
-  );
+  return backendApi<JaringInstructionDispatch>(`/task-assignments/${assignmentId}/jaring-instructions`, {
+    cookie,
+    method: "POST",
+    body,
+    idempotent: true,
+  });
 }
 
 export async function createOwnLocationPing(
@@ -1322,12 +1184,9 @@ export async function createOwnLocationPing(
 }
 
 export async function getWhatsappControlChannels(cookie: string) {
-  return backendApi<WhatsappControlChannel[]>(
-    "/integration-channels/whatsapp-control",
-    {
-      cookie,
-    },
-  );
+  return backendApi<WhatsappControlChannel[]>("/integration-channels/whatsapp-control", {
+    cookie,
+  });
 }
 
 export async function createWhatsappControlChannel(
@@ -1337,6 +1196,7 @@ export async function createWhatsappControlChannel(
     name: string;
     config: {
       userId: string;
+      scopeAreaIds?: string[];
       [key: string]: unknown;
     };
   },
@@ -1364,6 +1224,7 @@ export async function updateWhatsappControlChannel(
     provider?: string;
     botPhoneNumber?: string;
     pairingMethod?: "qr" | "code";
+    scopeAreaIds?: string[];
     senderNumbers?: string[];
   },
 ) {
@@ -1381,15 +1242,12 @@ export async function activateWhatsappControlChannel(
   options: { resetSession?: boolean } = {},
 ) {
   if (mode === "request-qr") {
-    return backendApi(
-      `/integration-channels/whatsapp-control/${channelId}/request-qr`,
-      {
-        cookie,
-        method: "POST",
-        body: { resetSession: options.resetSession === true },
-        idempotent: true,
-      },
-    );
+    return backendApi(`/integration-channels/whatsapp-control/${channelId}/request-qr`, {
+      cookie,
+      method: "POST",
+      body: { resetSession: options.resetSession === true },
+      idempotent: true,
+    });
   }
 
   if (mode === "test") {
@@ -1411,10 +1269,7 @@ export async function activateWhatsappControlChannel(
   });
 }
 
-export async function removeWhatsappControlChannel(
-  cookie: string,
-  channelId: string,
-) {
+export async function removeWhatsappControlChannel(cookie: string, channelId: string) {
   return backendApi(`/integration-channels/${channelId}`, {
     cookie,
     method: "DELETE",

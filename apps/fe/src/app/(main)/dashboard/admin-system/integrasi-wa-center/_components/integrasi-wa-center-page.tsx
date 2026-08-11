@@ -60,6 +60,16 @@ type ChannelGroup = {
   channels: WhatsappControlChannel[];
 };
 
+const REPORT_SCOPE_LEVELS = new Set(["PROVINCE", "REGENCY", "CITY"]);
+
+function areaOptionKey(area: CoordinatorAreaOption) {
+  return `${area.id}:${area.branch ?? "default"}:${area.assignmentId}`;
+}
+
+function sameAssignment(left: CoordinatorAreaOption, right: CoordinatorAreaOption) {
+  return left.userId === right.userId && left.assignmentId === right.assignmentId;
+}
+
 function tone(status: string) {
   const normalized = status.toUpperCase();
 
@@ -127,6 +137,11 @@ function areaLevelSortOrder(level?: string | null) {
 }
 
 function compactAreaHierarchy(channel: WhatsappControlChannel) {
+  const areas = channelScopeAreas(channel);
+  if (areas.length > 1) {
+    return areas.map((area) => (area.parentName ? `${area.parentName} / ${area.name}` : area.name)).join(", ");
+  }
+
   const hierarchy = channel.scopeHierarchy ?? [];
   const visibleHierarchy = hierarchy.filter((area) => area.level !== "COUNTRY");
 
@@ -139,6 +154,33 @@ function compactAreaHierarchy(channel: WhatsappControlChannel) {
   }
 
   return channel.scopeAreaName ?? channel.coordinatorRegion ?? "Belum terpetakan";
+}
+
+function channelScopeAreas(channel: WhatsappControlChannel) {
+  const areas = channel.scopeAreas ?? [];
+  if (areas.length > 0) {
+    return [...areas].sort((left, right) => {
+      const levelDiff = areaLevelSortOrder(left.level) - areaLevelSortOrder(right.level);
+      if (levelDiff !== 0) return levelDiff;
+      const leftLabel = left.parentName ? `${left.parentName} / ${left.name}` : left.name;
+      const rightLabel = right.parentName ? `${right.parentName} / ${right.name}` : right.name;
+      return leftLabel.localeCompare(rightLabel, "id-ID");
+    });
+  }
+
+  return channel.scopeAreaId
+    ? [
+        {
+          id: channel.scopeAreaId,
+          code: channel.scopeAreaCode ?? channel.scopeAreaId,
+          officialCode: channel.scopeAreaCode ?? null,
+          name: channel.scopeAreaName ?? channel.coordinatorRegion ?? "Wilayah belum terpetakan",
+          level: channel.scopeAreaLevel ?? "PROVINCE",
+          parentName: channel.scopeAreaParentName ?? null,
+          hierarchy: channel.scopeHierarchy ?? [],
+        },
+      ]
+    : [];
 }
 
 function makeCodePart(value: string) {
@@ -159,7 +201,7 @@ export function AdminWaCenterPage() {
   const [pairingChannelId, setPairingChannelId] = useState<string | null>(null);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedArea, setSelectedArea] = useState<CoordinatorAreaOption | null>(null);
+  const [selectedAreas, setSelectedAreas] = useState<CoordinatorAreaOption[]>([]);
 
   const [areaQuery, setAreaQuery] = useState("");
   const [allCoordinatorAreas, setAllCoordinatorAreas] = useState<CoordinatorAreaOption[]>([]);
@@ -205,7 +247,7 @@ export function AdminWaCenterPage() {
             assignments.forEach((assignment) => {
               const branch = assignment.branch || assignment.seat?.branch || assignment.position?.branch || null;
               assignment.areaScopes?.forEach((scope) => {
-                if (scope.area) {
+                if (scope.area && REPORT_SCOPE_LEVELS.has(scope.area.level)) {
                   const area = scope.area as AreaSearchResult;
                   const key = `${area.id}-${branch || "default"}-${assignment.id}`;
                   if (!optionMap.has(key)) {
@@ -250,21 +292,46 @@ export function AdminWaCenterPage() {
 
   const areaQueryStr = deferredAreaQuery.trim().toLowerCase();
   const areaResults = useMemo(() => {
-    if (!areaQueryStr) return allCoordinatorAreas;
-    return allCoordinatorAreas.filter(
+    const source = selectedAreas[0]
+      ? allCoordinatorAreas.filter((area) => sameAssignment(area, selectedAreas[0]))
+      : allCoordinatorAreas;
+    if (!areaQueryStr) return source;
+    return source.filter(
       (a) =>
         a.label.toLowerCase().includes(areaQueryStr) ||
         (a.parent?.name && a.parent.name.toLowerCase().includes(areaQueryStr)),
     );
-  }, [allCoordinatorAreas, areaQueryStr]);
+  }, [allCoordinatorAreas, areaQueryStr, selectedAreas]);
+
+  const selectedAreaKeys = useMemo(() => new Set(selectedAreas.map(areaOptionKey)), [selectedAreas]);
+
+  const toggleSelectedArea = (area: CoordinatorAreaOption) => {
+    setSelectedAreas((current) => {
+      const key = areaOptionKey(area);
+      if (current.some((item) => areaOptionKey(item) === key)) {
+        return current.filter((item) => areaOptionKey(item) !== key);
+      }
+      if (current[0] && !sameAssignment(current[0], area)) {
+        return [area];
+      }
+      return [...current, area].sort((left, right) => {
+        const levelDiff = areaLevelSortOrder(left.level) - areaLevelSortOrder(right.level);
+        if (levelDiff !== 0) return levelDiff;
+        return left.label.localeCompare(right.label, "id-ID");
+      });
+    });
+  };
 
   const handleCreate = async () => {
-    if (!selectedArea) return;
+    const primaryArea = selectedAreas[0];
+    if (!primaryArea) return;
     try {
       setBusyKey("create");
 
-      const codeBase = makeCodePart(`${selectedArea.coordinatorName}_${selectedArea.code}`);
-      const nameBase = `${selectedArea.coordinatorName} - ${selectedArea.name}`;
+      const codeBase = makeCodePart(`${primaryArea.coordinatorName}_${primaryArea.code}`);
+      const areaSuffix =
+        selectedAreas.length > 1 ? `${primaryArea.name} + ${selectedAreas.length - 1} wilayah` : primaryArea.name;
+      const nameBase = `${primaryArea.coordinatorName} - ${areaSuffix}`;
 
       const response = await fetch("/api/admin-system/integrasi-wa-center", {
         method: "POST",
@@ -272,14 +339,15 @@ export function AdminWaCenterPage() {
         body: JSON.stringify({
           code: `WA_${codeBase}`,
           name: `Bot WA ${nameBase}`,
-          userId: selectedArea.userId,
-          operationalAssignmentId: selectedArea.assignmentId,
-          scopeAreaId: selectedArea.id,
-          scopeAreaCode: selectedArea.officialCode ?? selectedArea.code,
-          scopeAreaName: selectedArea.name,
-          scopeAreaLevel: selectedArea.level,
-          scopeAreaParentName: selectedArea.parent?.name ?? null,
-          scopeBranch: selectedArea.branch,
+          userId: primaryArea.userId,
+          operationalAssignmentId: primaryArea.assignmentId,
+          scopeAreaIds: selectedAreas.map((area) => area.id),
+          scopeAreaId: primaryArea.id,
+          scopeAreaCode: primaryArea.officialCode ?? primaryArea.code,
+          scopeAreaName: primaryArea.name,
+          scopeAreaLevel: primaryArea.level,
+          scopeAreaParentName: primaryArea.parent?.name ?? null,
+          scopeBranch: primaryArea.branch,
         }),
       });
 
@@ -289,7 +357,7 @@ export function AdminWaCenterPage() {
         throw new Error((body as { message?: string }).message ?? "Gagal membuat kanal WhatsApp.");
       }
       setIsAddOpen(false);
-      setSelectedArea(null);
+      setSelectedAreas([]);
       await loadChannels();
 
       // Auto request QR setelah ditambahkan
@@ -369,6 +437,7 @@ export function AdminWaCenterPage() {
           provider: channel.provider,
           botPhoneNumber: channel.botPhoneNumber,
           pairingMethod: channel.pairingMethod,
+          scopeAreaIds: channel.scopeAreaIds,
           senderNumbers: channel.senderNumbers,
         }),
       });
@@ -438,27 +507,43 @@ export function AdminWaCenterPage() {
     for (const channel of channels) {
       const branch = channel.scopeBranch ?? "UNMAPPED";
       const branchText = branchLabel(channel.scopeBranch);
+      const scopeAreas = channelScopeAreas(channel);
+      const displayAreas = scopeAreas.length > 0 ? scopeAreas : [null];
       const hierarchyText = compactAreaHierarchy(channel);
-      const groupKey = `${branch}:${channel.scopeAreaId ?? hierarchyText}`;
-      const title = channel.scopeAreaName ?? channel.coordinatorRegion ?? "Belum terpetakan";
-      const subtitleParts = [branchText, hierarchyText !== title ? hierarchyText : null].filter(Boolean);
-      const sortKey = [
-        branchSortOrder(channel.scopeBranch).toString().padStart(2, "0"),
-        areaLevelSortOrder(channel.scopeAreaLevel).toString().padStart(2, "0"),
-        hierarchyText,
-      ].join(":");
-      const current =
-        groups.get(groupKey) ??
-        ({
-          key: groupKey,
-          title,
-          subtitle: subtitleParts.join(" / "),
-          sortKey,
-          channels: [],
-        } satisfies ChannelGroup);
 
-      current.channels.push(channel);
-      groups.set(groupKey, current);
+      for (const scopeArea of displayAreas) {
+        const groupKey = `${branch}:${scopeArea?.id ?? channel.scopeAreaId ?? hierarchyText}`;
+        const title = scopeArea?.parentName
+          ? `${scopeArea.parentName} / ${scopeArea.name}`
+          : (scopeArea?.name ?? channel.scopeAreaName ?? channel.coordinatorRegion ?? "Belum terpetakan");
+        const subtitleParts = [
+          branchText,
+          scopeAreas.length > 1
+            ? `${scopeAreas.length} wilayah cakupan koneksi`
+            : hierarchyText !== title
+              ? hierarchyText
+              : null,
+        ].filter(Boolean);
+        const sortKey = [
+          branchSortOrder(channel.scopeBranch).toString().padStart(2, "0"),
+          areaLevelSortOrder(scopeArea?.level ?? channel.scopeAreaLevel)
+            .toString()
+            .padStart(2, "0"),
+          title,
+        ].join(":");
+        const current =
+          groups.get(groupKey) ??
+          ({
+            key: groupKey,
+            title,
+            subtitle: subtitleParts.join(" / "),
+            sortKey,
+            channels: [],
+          } satisfies ChannelGroup);
+
+        current.channels.push(channel);
+        groups.set(groupKey, current);
+      }
     }
 
     return Array.from(groups.values())
@@ -496,16 +581,16 @@ export function AdminWaCenterPage() {
                   Tambah Koneksi
                 </Button>
               </DialogTrigger>
-              <DialogContent className="border-slate-200 dark:border-white/10 bg-card text-card-foreground sm:max-w-[425px] !top-[35%]">
+              <DialogContent className="border-slate-200 bg-card text-card-foreground dark:border-white/10 sm:max-w-[560px] !top-[35%]">
                 <DialogHeader>
                   <DialogTitle>Tambah Koneksi WhatsApp</DialogTitle>
                   <DialogDescription>
-                    Tambahkan koneksi bot WhatsApp baru untuk Koordinator Wilayah (Korwil) atau unit.
+                    Pilih satu atau beberapa Provinsi/Kota/Kabupaten yang pelaporan Jaringnya memakai koneksi ini.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label>Wilayah Koordinator Wilayah (Korwil)</Label>
+                    <Label>Wilayah Pelaporan Jaring</Label>
                     <Popover open={comboOpen} onOpenChange={setComboOpen}>
                       <PopoverTrigger asChild>
                         <Button
@@ -514,7 +599,7 @@ export function AdminWaCenterPage() {
                           aria-expanded={comboOpen}
                           className="w-full justify-between bg-transparent border-slate-200 dark:border-white/10 text-foreground hover:bg-slate-100 dark:hover:bg-white/10 font-normal"
                         >
-                          {selectedArea ? selectedArea.label : "Pilih wilayah..."}
+                          {selectedAreas.length > 0 ? `${selectedAreas.length} wilayah dipilih` : "Pilih wilayah..."}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -533,23 +618,20 @@ export function AdminWaCenterPage() {
                             <CommandGroup>
                               {areaResults.map((area) => (
                                 <CommandItem
-                                  key={`${area.id}-${area.branch || "default"}`}
+                                  key={areaOptionKey(area)}
                                   value={area.label}
                                   onSelect={() => {
-                                    setSelectedArea(area);
-                                    setComboOpen(false);
+                                    toggleSelectedArea(area);
                                   }}
                                   className="text-foreground/80 focus:bg-slate-100 dark:focus:bg-white/10"
                                 >
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      selectedArea?.id === area.id && selectedArea?.branch === area.branch
-                                        ? "opacity-100"
-                                        : "opacity-0",
+                                      selectedAreaKeys.has(areaOptionKey(area)) ? "opacity-100" : "opacity-0",
                                     )}
                                   />
-                                  <span>
+                                  <span className="min-w-0 flex-1 truncate">
                                     {area.label} {area.parent ? `(${area.parent.name})` : ""}
                                   </span>
                                 </CommandItem>
@@ -559,6 +641,20 @@ export function AdminWaCenterPage() {
                         </Command>
                       </PopoverContent>
                     </Popover>
+                    {selectedAreas.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 rounded-md border border-slate-200 p-2 dark:border-white/10">
+                        {selectedAreas.map((area) => (
+                          <Badge key={areaOptionKey(area)} variant="outline" className="gap-1">
+                            {area.parent?.name ? `${area.parent.name} / ${area.name}` : area.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Satu wilayah boleh dipakai lebih dari satu koneksi WhatsApp. Pilihan berikutnya dibatasi pada
+                        penugasan koordinator yang sama.
+                      </p>
+                    )}
                   </div>
                 </div>
                 <DialogFooter>
@@ -567,7 +663,7 @@ export function AdminWaCenterPage() {
                   </Button>
                   <Button
                     className="bg-cyan-500 text-white hover:bg-cyan-600 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
-                    disabled={!selectedArea || busyKey === "create"}
+                    disabled={selectedAreas.length === 0 || busyKey === "create"}
                     onClick={() => void handleCreate()}
                   >
                     Simpan
@@ -588,7 +684,7 @@ export function AdminWaCenterPage() {
 
       {channels.length === 0 ? (
         <Alert>
-          <AlertTitle>Belum ada channel WhatsApp</AlertTitle>
+          <AlertTitle>Belum ada koneksi WhatsApp</AlertTitle>
           <AlertDescription>Belum ada Integrasi WhatsApp yang dapat dikonfigurasi saat ini.</AlertDescription>
         </Alert>
       ) : null}
@@ -608,6 +704,7 @@ export function AdminWaCenterPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {group.channels.map((channel) => {
                 const isConnected = channel.connectionStatus === "CONNECTED";
+                const scopeAreas = channelScopeAreas(channel);
 
                 return (
                   <Card key={channel.id} className="flex flex-col justify-between shadow-sm">
@@ -636,8 +733,8 @@ export function AdminWaCenterPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Hapus Koneksi WhatsApp?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Tindakan ini tidak dapat dibatalkan. Ini akan menghapus koneksi WhatsApp secara
-                                  permanen dari sistem.
+                                  Tindakan ini akan menonaktifkan koneksi WhatsApp dan melepas sesi perangkat dari
+                                  sistem.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -651,7 +748,11 @@ export function AdminWaCenterPage() {
                         </div>
                         <div>
                           <CardTitle className="text-lg">{channel.coordinatorName || channel.name}</CardTitle>
-                          <CardDescription>{channel.coordinatorRegion || channel.code}</CardDescription>
+                          <CardDescription>
+                            {scopeAreas.length > 1
+                              ? `${scopeAreas.length} wilayah pelaporan`
+                              : channel.coordinatorRegion || channel.code}
+                          </CardDescription>
                         </div>
                       </div>
                     </CardHeader>
@@ -668,6 +769,21 @@ export function AdminWaCenterPage() {
                       {channel.lastError ? (
                         <div className="rounded border border-destructive/25 bg-destructive/10 p-2 text-xs text-destructive">
                           {channel.lastError}
+                        </div>
+                      ) : null}
+
+                      {scopeAreas.length > 0 ? (
+                        <div className="grid gap-1.5 rounded-md border border-slate-200 p-2 dark:border-white/10">
+                          <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                            Cakupan pelaporan
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {scopeAreas.map((area) => (
+                              <Badge key={area.id} variant="outline" className="max-w-full truncate">
+                                {area.parentName ? `${area.parentName} / ${area.name}` : area.name}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       ) : null}
                     </CardContent>
@@ -721,7 +837,7 @@ export function AdminWaCenterPage() {
                                   <DialogHeader>
                                     <DialogTitle>Koneksikan ke WhatsApp</DialogTitle>
                                     <DialogDescription>
-                                      Scan QR Code di bawah menggunakan aplikasi WhatsApp di perangkat seluler Anda.
+                                      Pindai QR Code di bawah menggunakan aplikasi WhatsApp di perangkat seluler Anda.
                                     </DialogDescription>
                                   </DialogHeader>
                                   <div className="flex min-h-64 flex-col items-center justify-center p-6">
@@ -735,7 +851,7 @@ export function AdminWaCenterPage() {
                                       </div>
                                     ) : channel.pairingCode ? (
                                       <div className="text-center">
-                                        <p className="mb-2 text-sm text-muted-foreground">Pairing Code Anda:</p>
+                                        <p className="mb-2 text-sm text-muted-foreground">Kode pairing Anda:</p>
                                         <span className="text-4xl font-bold tracking-[0.3em] text-cyan-600">
                                           {channel.pairingCode}
                                         </span>
@@ -787,7 +903,7 @@ export function AdminWaCenterPage() {
                                 <DialogHeader>
                                   <DialogTitle>Koneksikan ke WhatsApp</DialogTitle>
                                   <DialogDescription>
-                                    Scan QR Code di bawah menggunakan aplikasi WhatsApp di perangkat seluler Anda.
+                                    Pindai QR Code di bawah menggunakan aplikasi WhatsApp di perangkat seluler Anda.
                                   </DialogDescription>
                                 </DialogHeader>
                                 <div className="flex min-h-64 flex-col items-center justify-center p-6">
@@ -801,7 +917,7 @@ export function AdminWaCenterPage() {
                                     </div>
                                   ) : channel.pairingCode ? (
                                     <div className="text-center">
-                                      <p className="mb-2 text-sm text-muted-foreground">Pairing Code Anda:</p>
+                                      <p className="mb-2 text-sm text-muted-foreground">Kode pairing Anda:</p>
                                       <span className="text-4xl font-bold tracking-[0.3em] text-cyan-600">
                                         {channel.pairingCode}
                                       </span>

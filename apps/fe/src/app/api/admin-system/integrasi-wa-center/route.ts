@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       name: string;
       userId: string;
       operationalAssignmentId?: string | null;
+      scopeAreaIds?: string[];
       scopeAreaId?: string | null;
       scopeAreaCode?: string | null;
       scopeAreaName?: string | null;
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
         config: {
           userId: body.userId,
           operationalAssignmentId: body.operationalAssignmentId,
+          scopeAreaIds: body.scopeAreaIds,
           scopeAreaId: body.scopeAreaId,
           scopeAreaCode: body.scopeAreaCode,
           scopeAreaName: body.scopeAreaName,

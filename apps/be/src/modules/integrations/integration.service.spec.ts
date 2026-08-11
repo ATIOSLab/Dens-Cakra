@@ -111,7 +111,7 @@ describe('IntegrationService', () => {
       const update = jest.fn(() => Promise.resolve({ id: 'channel-id' }));
       const auditCreate = jest.fn(() => Promise.resolve({ id: 'audit-id' }));
       const findFirstOrThrow = jest
-        .fn()
+        .fn<() => Promise<unknown>>()
         .mockResolvedValueOnce({
           id: 'channel-id',
           code: 'WA_LEGACY',
@@ -193,6 +193,132 @@ describe('IntegrationService', () => {
         requiresReconfiguration: false,
       });
     });
+
+    it('saves multiple wilayah pelaporan for one WhatsApp connection', async () => {
+      const encryptedConfig = {
+        algorithm: 'aes-256-gcm',
+        keyVersion: 1,
+        iv: 'new-iv',
+        authTag: 'new-tag',
+        ciphertext: 'new-ciphertext',
+      };
+      const mergedConfig = {
+        provider: 'baileys',
+        userId: 'coordinator-id',
+        operationalAssignmentId: 'assignment-id',
+        scopeAreaIds: ['area-kota-a', 'area-kota-b'],
+        scopeAreaId: 'area-kota-a',
+      };
+      const decrypt = jest
+        .fn<() => Record<string, unknown>>()
+        .mockReturnValueOnce({
+          provider: 'baileys',
+          userId: 'coordinator-id',
+          operationalAssignmentId: 'assignment-id',
+        })
+        .mockReturnValueOnce(mergedConfig);
+      const encrypt = jest.fn(() => encryptedConfig);
+      const update = jest.fn(() => Promise.resolve({ id: 'channel-id' }));
+      const auditCreate = jest.fn(() => Promise.resolve({ id: 'audit-id' }));
+      const findFirstOrThrow = jest
+        .fn<() => Promise<unknown>>()
+        .mockResolvedValueOnce({
+          id: 'channel-id',
+          code: 'WA_MULTI_SCOPE',
+          name: 'WA Multi Scope',
+          channelType: 'WHATSAPP',
+          status: IntegrationStatus.ACTIVE,
+          config: encryptedConfig,
+          lastHealthAt: null,
+          updatedAt: new Date('2026-08-11T00:00:00.000Z'),
+        })
+        .mockResolvedValueOnce({
+          id: 'channel-id',
+          code: 'WA_MULTI_SCOPE',
+          name: 'WA Multi Scope',
+          channelType: 'WHATSAPP',
+          status: IntegrationStatus.ACTIVE,
+          config: encryptedConfig,
+          lastHealthAt: null,
+          updatedAt: new Date('2026-08-11T00:00:00.000Z'),
+          botState: null,
+          senderNumbers: [],
+        });
+      const prisma = {
+        integrationChannel: {
+          findFirstOrThrow,
+        },
+        userProfile: {
+          findUnique: jest.fn(() =>
+            Promise.resolve({
+              operationalAssignments: [
+                {
+                  id: 'assignment-id',
+                  areaScopes: [{ areaId: 'area-provinsi' }],
+                },
+              ],
+            }),
+          ),
+        },
+        administrativeAreaClosure: {
+          findMany: jest.fn(() =>
+            Promise.resolve([
+              { descendantId: 'area-kota-a' },
+              { descendantId: 'area-kota-b' },
+            ]),
+          ),
+        },
+        auditLog: {
+          create: auditCreate,
+        },
+        $transaction: (callback: (tx: unknown) => Promise<unknown>) =>
+          callback({
+            integrationChannel: { update },
+            whatsAppSenderNumber: {
+              updateMany: jest.fn(),
+              upsert: jest.fn(),
+            },
+          }),
+      };
+      const service = new IntegrationService(
+        prisma as never,
+        { decrypt, encrypt } as never,
+        {} as never,
+        {} as never,
+      );
+
+      const result = await service.updateWhatsappControl(
+        'channel-id',
+        {
+          scopeAreaIds: ['area-kota-a', 'area-kota-b', 'area-kota-a'],
+        },
+        {
+          userProfileId: 'operator-id',
+          primaryAssignmentId: 'operator-assignment-id',
+        } as never,
+      );
+
+      expect(prisma.administrativeAreaClosure.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            ancestorId: { in: ['area-provinsi'] },
+            descendantId: { in: ['area-kota-a', 'area-kota-b'] },
+          }),
+        }),
+      );
+      expect(encrypt).toHaveBeenCalledWith(mergedConfig);
+      expect(auditCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            metadata: expect.objectContaining({ scopeAreaCount: 2 }),
+          }),
+        }),
+      );
+      expect(result).toMatchObject({
+        id: 'channel-id',
+        scopeAreaIds: ['area-kota-a', 'area-kota-b'],
+      });
+    });
   });
 
   describe('remove', () => {
@@ -237,7 +363,7 @@ describe('IntegrationService', () => {
         },
       };
       const whatsappBotRuntime = {
-        deleteChannelSession: jest.fn<(channelId: string) => Promise<void>>(
+        removeChannelConnection: jest.fn<(channelId: string) => Promise<void>>(
           () => Promise.resolve(),
         ),
       };
@@ -253,7 +379,7 @@ describe('IntegrationService', () => {
         primaryAssignmentId: 'assignment-id',
       } as never);
 
-      expect(whatsappBotRuntime.deleteChannelSession).toHaveBeenCalledWith(
+      expect(whatsappBotRuntime.removeChannelConnection).toHaveBeenCalledWith(
         channel.id,
       );
       expect(deleteChannel).not.toHaveBeenCalled();
