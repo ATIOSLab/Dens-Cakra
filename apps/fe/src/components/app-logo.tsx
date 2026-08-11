@@ -10,11 +10,13 @@ type AppLogoProps = {
 };
 
 const logoSizes = {
-  sm: { box: "size-7", image: 28, src: "/brand/bin-logo-64.png" },
-  md: { box: "size-9", image: 36, src: "/brand/bin-logo-96.png" },
-  lg: { box: "size-12", image: 48, src: "/brand/bin-logo-128.png" },
-  xl: { box: "size-16", image: 64, src: "/brand/bin-logo-192.png" },
+  sm: { box: "size-7", image: 28 },
+  md: { box: "size-9", image: 36 },
+  lg: { box: "size-12", image: 48 },
+  xl: { box: "size-16", image: 64 },
 } as const;
+
+const BRAND_LOGO_SRC = "/brand/bin-logo.svg";
 
 export function AppLogo({ size = "md", className, imageClassName, priority = false }: AppLogoProps) {
   const config = logoSizes[size];
@@ -28,12 +30,13 @@ export function AppLogo({ size = "md", className, imageClassName, priority = fal
       )}
     >
       <Image
-        src={config.src}
+        src={BRAND_LOGO_SRC}
         alt="Logo Badan Intelijen Negara"
         width={config.image}
         height={config.image}
         sizes={`${config.image}px`}
         priority={priority}
+        unoptimized
         className={cn("size-full object-contain p-[2px]", imageClassName)}
       />
     </span>

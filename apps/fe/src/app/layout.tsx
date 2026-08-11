@@ -28,12 +28,13 @@ export const metadata: Metadata = {
   category: "national performance management and situational awareness dashboard",
   icons: {
     icon: [
+      { url: "/brand/bin-logo.svg", type: "image/svg+xml" },
       { url: "/brand/favicon.ico", sizes: "any" },
       { url: "/brand/bin-logo-32.png", sizes: "32x32", type: "image/png" },
       { url: "/brand/bin-logo-192.png", sizes: "192x192", type: "image/png" },
       { url: "/brand/bin-logo-512.png", sizes: "512x512", type: "image/png" },
     ],
-    shortcut: "/brand/favicon.ico",
+    shortcut: [{ url: "/brand/bin-logo.svg", type: "image/svg+xml" }, { url: "/brand/favicon.ico" }],
     apple: [{ url: "/brand/bin-logo-180.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
