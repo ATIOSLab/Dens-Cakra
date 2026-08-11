@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+
 import Link from "next/link";
 
 import {
@@ -175,7 +176,10 @@ export function MapsIntelijenCommandHud({
         if (item.id) jaringIds.add(item.id);
       }
     }
-    const areaCounts = countByEntries(features, (feature) => feature.properties.primaryArea?.name ?? "Belum ditentukan");
+    const areaCounts = countByEntries(
+      features,
+      (feature) => feature.properties.primaryArea?.name ?? "Belum ditentukan",
+    );
     const categoryCounts = countByEntries(
       features.filter((feature) => feature.properties.markerType !== "agent"),
       (feature) => feature.properties.category?.name ?? "Belum dikategorikan",
@@ -214,8 +218,18 @@ export function MapsIntelijenCommandHud({
     return (
       <div className="pointer-events-none absolute bottom-3 left-14 z-20 hidden grid-cols-3 gap-2 xl:grid">
         <CompactMetric label="Titik viewport" value={visibleCount} icon={MapPin} tone="cyan" />
-        <CompactMetric label="Total Jaring" value={intelligence.jaringTotal} icon={DOMAIN_VISUALS.jaring.Icon} tone="cyan" />
-        <CompactMetric label="Baket terpetakan" value={intelligence.baketTotal} icon={DOMAIN_VISUALS.baket.Icon} tone="amber" />
+        <CompactMetric
+          label="Total Jaring"
+          value={intelligence.jaringTotal}
+          icon={DOMAIN_VISUALS.jaring.Icon}
+          tone="cyan"
+        />
+        <CompactMetric
+          label="Baket terpetakan"
+          value={intelligence.baketTotal}
+          icon={DOMAIN_VISUALS.baket.Icon}
+          tone="amber"
+        />
       </div>
     );
   }
@@ -306,9 +320,7 @@ export function MapsIntelijenCommandHud({
           </span>
           <div className="min-w-0">
             <p className="truncate font-bold text-sm tracking-[0.08em] sm:text-base">DENS CAKRA</p>
-            <p className="truncate text-[9px] text-slate-400 uppercase tracking-[0.2em]">
-              Peta Jejaring Intelijen
-            </p>
+            <p className="truncate text-[9px] text-slate-400 uppercase tracking-[0.2em]">Peta Jejaring Intelijen</p>
           </div>
         </div>
 
@@ -404,113 +416,194 @@ export function MapsIntelijenCommandHud({
 
       {leftPanelOpen ? (
         <aside className="pointer-events-auto absolute bottom-[3.35rem] left-3 top-[9.9rem] hidden w-64 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 shadow-2xl backdrop-blur-xl xl:flex xl:flex-col">
-        <div className="border-b border-slate-800 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]">
-              <Filter className="size-3.5 text-cyan-300" /> Filter dan Pencarian
-            </h3>
-            <span className="rounded bg-cyan-400/10 px-1.5 py-0.5 text-[9px] text-cyan-300">{activeFilterCount} aktif</span>
-          </div>
-        </div>
-        <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-3">
-          <div className="grid gap-1 text-[10px] text-slate-400">
-            <span>Pencarian</span>
-            <span className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-2.5 size-3.5" />
-              <Input
-                aria-label="Pencarian"
-                value={filters.search}
-                onChange={(event) => onFilterChange({ search: event.target.value })}
-                placeholder="Referensi, judul, Jaring, wilayah..."
-                className="h-9 border-slate-700 bg-slate-950/90 pl-8 text-xs text-slate-100 placeholder:text-slate-600"
-              />
-            </span>
-          </div>
-          <HudSelect label="Periode" value={filters.period} onChange={(value) => onFilterChange({ period: value as MapNetworkFilters["period"] })} options={[["ALL", "Semua waktu"], ["TODAY", "Hari ini"], ["LAST_7_DAYS", "7 hari terakhir"], ["LAST_30_DAYS", "30 hari terakhir"], ["THIS_MONTH", "Bulan berjalan"], ["CUSTOM", "Rentang kustom"]]} />
-          {filters.period === "CUSTOM" ? (
-            <div className="grid grid-cols-2 gap-2">
-              <HudDate label="Mulai" value={filters.startDate} onChange={(value) => onFilterChange({ startDate: value })} />
-              <HudDate label="Selesai" value={filters.endDate} onChange={(value) => onFilterChange({ endDate: value })} />
+          <div className="border-b border-slate-800 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]">
+                <Filter className="size-3.5 text-cyan-300" /> Filter dan Pencarian
+              </h3>
+              <span className="rounded bg-cyan-400/10 px-1.5 py-0.5 text-[9px] text-cyan-300">
+                {activeFilterCount} aktif
+              </span>
             </div>
-          ) : null}
-          <HudSelect label="Jenis Data" value={filters.dataType} onChange={(value) => onFilterChange({ dataType: value as MapNetworkFilters["dataType"] })} options={[["ALL", "Semua Lapisan"], ["REPORT", DOMAIN_TERMS.jaringReport], ["BAKET", DOMAIN_TERMS.baket], ["AGENT", DOMAIN_TERMS.fieldOfficer]]} />
-          <HudSelect label="Urgensi" value={filters.urgency} onChange={(value) => onFilterChange({ urgency: value as MapNetworkFilters["urgency"] })} options={[["ALL", "Semua"], ["URGENT", "Mendesak"], ["HIGH", "Tinggi"], ["NORMAL", "Normal"], ["LOW", "Rendah"]]} />
-          <HudSelect label="Kategori Baket" value={filters.categoryId} onChange={(value) => onFilterChange({ categoryId: value })} options={[["ALL", "Semua Kategori Baket"], ...meta.facets.categories.map((item) => [item.id, item.name] as [string, string])]} />
-          <HudSelect
-            label="Petugas Wilayah (Gaswil)"
-            value={filters.fieldOfficerAssignmentId}
-            onChange={(fieldOfficerAssignmentId) => onFilterChange({ fieldOfficerAssignmentId })}
-            options={[
-              ["ALL", "Semua Petugas Wilayah"],
-              ...fieldOfficerOptions.map((item) => [item.id, item.label] as [string, string]),
-            ]}
-          />
-          <HudSelect
-            label="Jaring"
-            value={filters.jaringId}
-            onChange={(jaringId) => onFilterChange({ jaringId })}
-            options={[
-              ["ALL", "Semua Jaring"],
-              ...jaringOptions.map((item) => [item.id, item.label] as [string, string]),
-            ]}
-          />
-          <HudSelect
-            label="Provinsi"
-            value={filters.provinceId}
-            disabled={areaOptions.loadingLevel === "province"}
-            onChange={(provinceId) =>
-              onFilterChange({ provinceId, regencyId: "ALL", districtId: "ALL", villageId: "ALL" })
-            }
-            options={areaHierarchyOptions.provinces}
-          />
-          <HudSelect
-            label="Kota/Kabupaten"
-            value={filters.regencyId}
-            disabled={filters.provinceId === "ALL" || areaOptions.loadingLevel === "regency"}
-            onChange={(regencyId) => onFilterChange({ regencyId, districtId: "ALL", villageId: "ALL" })}
-            options={areaHierarchyOptions.regencies}
-          />
-          <HudSelect
-            label="Kecamatan"
-            value={filters.districtId}
-            disabled={filters.regencyId === "ALL" || areaOptions.loadingLevel === "district"}
-            onChange={(districtId) => onFilterChange({ districtId, villageId: "ALL" })}
-            options={areaHierarchyOptions.districts}
-          />
-          <HudSelect
-            label="Kelurahan/Desa"
-            value={filters.villageId}
-            disabled={filters.districtId === "ALL" || areaOptions.loadingLevel === "village"}
-            onChange={(villageId) => onFilterChange({ villageId })}
-            options={areaHierarchyOptions.villages}
-          />
-          <HudSelect label="Kesesuaian Wilayah" value={filters.suitability} onChange={(value) => onFilterChange({ suitability: value })} options={[["ALL", "Semua"], ["WITHIN_SCOPE", "Dalam penugasan"], ["OUTSIDE_SCOPE", "Di luar penugasan"], ["BORDER_AMBIGUOUS", "Area perbatasan"], ["NOT_DETERMINED", "Belum ditentukan"]]} />
-          <HudSelect label="Status Petugas Wilayah" value={filters.agentState} onChange={(value) => onFilterChange({ agentState: value as MapNetworkFilters["agentState"] })} options={[["ALL", "Semua"], ["active", "Aktif"], ["last_known", "Lokasi terakhir"]]} />
-          <div className="grid grid-cols-2 gap-2">
-            <HudNumber
-              label="Aktif (menit)"
-              value={filters.activeWithinMinutes}
-              min={1}
-              max={Math.min(1440, filters.lastKnownWithinHours * 60)}
-              onChange={(value) => onFilterChange({ activeWithinMinutes: value })}
-            />
-            <HudNumber
-              label="Lokasi terakhir (jam)"
-              value={filters.lastKnownWithinHours}
-              min={Math.ceil(filters.activeWithinMinutes / 60)}
-              max={2160}
-              onChange={(value) => onFilterChange({ lastKnownWithinHours: value })}
-            />
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2 border-t border-slate-800 p-3">
-          <Button variant="outline" size="sm" onClick={onResetFilters} className="border-slate-700 bg-slate-900 text-slate-200">
-            <RotateCcw className="size-3.5" /> Reset
-          </Button>
-          <Button size="sm" onClick={onRefresh} disabled={loading} className="bg-cyan-500 text-slate-950 hover:bg-cyan-400">
-            <RefreshCw className={cn("size-3.5", loading && "animate-spin")} /> Terapkan
-          </Button>
-        </div>
+          <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-3">
+            <div className="grid gap-1 text-[10px] text-slate-400">
+              <span>Pencarian</span>
+              <span className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-2.5 size-3.5" />
+                <Input
+                  aria-label="Pencarian"
+                  value={filters.search}
+                  onChange={(event) => onFilterChange({ search: event.target.value })}
+                  placeholder="Referensi, judul, Jaring, wilayah..."
+                  className="h-9 border-slate-700 bg-slate-950/90 pl-8 text-xs text-slate-100 placeholder:text-slate-600"
+                />
+              </span>
+            </div>
+            <HudSelect
+              label="Periode"
+              value={filters.period}
+              onChange={(value) => onFilterChange({ period: value as MapNetworkFilters["period"] })}
+              options={[
+                ["ALL", "Semua waktu"],
+                ["TODAY", "Hari ini"],
+                ["LAST_7_DAYS", "7 hari terakhir"],
+                ["LAST_30_DAYS", "30 hari terakhir"],
+                ["THIS_MONTH", "Bulan berjalan"],
+                ["CUSTOM", "Rentang kustom"],
+              ]}
+            />
+            {filters.period === "CUSTOM" ? (
+              <div className="grid grid-cols-2 gap-2">
+                <HudDate
+                  label="Mulai"
+                  value={filters.startDate}
+                  onChange={(value) => onFilterChange({ startDate: value })}
+                />
+                <HudDate
+                  label="Selesai"
+                  value={filters.endDate}
+                  onChange={(value) => onFilterChange({ endDate: value })}
+                />
+              </div>
+            ) : null}
+            <HudSelect
+              label="Jenis Data"
+              value={filters.dataType}
+              onChange={(value) => onFilterChange({ dataType: value as MapNetworkFilters["dataType"] })}
+              options={[
+                ["ALL", "Semua Lapisan"],
+                ["REPORT", DOMAIN_TERMS.jaringReport],
+                ["BAKET", DOMAIN_TERMS.baket],
+                ["AGENT", DOMAIN_TERMS.fieldOfficer],
+              ]}
+            />
+            <HudSelect
+              label="Urgensi"
+              value={filters.urgency}
+              onChange={(value) => onFilterChange({ urgency: value as MapNetworkFilters["urgency"] })}
+              options={[
+                ["ALL", "Semua"],
+                ["URGENT", "Mendesak"],
+                ["HIGH", "Tinggi"],
+                ["NORMAL", "Normal"],
+                ["LOW", "Rendah"],
+              ]}
+            />
+            <HudSelect
+              label="Kategori Baket"
+              value={filters.categoryId}
+              onChange={(value) => onFilterChange({ categoryId: value })}
+              options={[
+                ["ALL", "Semua Kategori Baket"],
+                ...meta.facets.categories.map((item) => [item.id, item.name] as [string, string]),
+              ]}
+            />
+            <HudSelect
+              label="Petugas Wilayah (Gaswil)"
+              value={filters.fieldOfficerAssignmentId}
+              onChange={(fieldOfficerAssignmentId) => onFilterChange({ fieldOfficerAssignmentId })}
+              options={[
+                ["ALL", "Semua Petugas Wilayah"],
+                ...fieldOfficerOptions.map((item) => [item.id, item.label] as [string, string]),
+              ]}
+            />
+            <HudSelect
+              label="Jaring"
+              value={filters.jaringId}
+              onChange={(jaringId) => onFilterChange({ jaringId })}
+              options={[
+                ["ALL", "Semua Jaring"],
+                ...jaringOptions.map((item) => [item.id, item.label] as [string, string]),
+              ]}
+            />
+            <HudSelect
+              label="Provinsi"
+              value={filters.provinceId}
+              disabled={areaOptions.loadingLevel === "province"}
+              onChange={(provinceId) =>
+                onFilterChange({ provinceId, regencyId: "ALL", districtId: "ALL", villageId: "ALL" })
+              }
+              options={areaHierarchyOptions.provinces}
+            />
+            <HudSelect
+              label="Kota/Kabupaten"
+              value={filters.regencyId}
+              disabled={filters.provinceId === "ALL" || areaOptions.loadingLevel === "regency"}
+              onChange={(regencyId) => onFilterChange({ regencyId, districtId: "ALL", villageId: "ALL" })}
+              options={areaHierarchyOptions.regencies}
+            />
+            <HudSelect
+              label="Kecamatan"
+              value={filters.districtId}
+              disabled={filters.regencyId === "ALL" || areaOptions.loadingLevel === "district"}
+              onChange={(districtId) => onFilterChange({ districtId, villageId: "ALL" })}
+              options={areaHierarchyOptions.districts}
+            />
+            <HudSelect
+              label="Kelurahan/Desa"
+              value={filters.villageId}
+              disabled={filters.districtId === "ALL" || areaOptions.loadingLevel === "village"}
+              onChange={(villageId) => onFilterChange({ villageId })}
+              options={areaHierarchyOptions.villages}
+            />
+            <HudSelect
+              label="Kesesuaian Wilayah"
+              value={filters.suitability}
+              onChange={(value) => onFilterChange({ suitability: value })}
+              options={[
+                ["ALL", "Semua"],
+                ["WITHIN_SCOPE", "Dalam penugasan"],
+                ["OUTSIDE_SCOPE", "Di luar penugasan"],
+                ["BORDER_AMBIGUOUS", "Area perbatasan"],
+                ["NOT_DETERMINED", "Belum ditentukan"],
+              ]}
+            />
+            <HudSelect
+              label="Status Petugas Wilayah"
+              value={filters.agentState}
+              onChange={(value) => onFilterChange({ agentState: value as MapNetworkFilters["agentState"] })}
+              options={[
+                ["ALL", "Semua"],
+                ["active", "Aktif"],
+                ["last_known", "Lokasi terakhir"],
+              ]}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <HudNumber
+                label="Aktif (menit)"
+                value={filters.activeWithinMinutes}
+                min={1}
+                max={Math.min(1440, filters.lastKnownWithinHours * 60)}
+                onChange={(value) => onFilterChange({ activeWithinMinutes: value })}
+              />
+              <HudNumber
+                label="Lokasi terakhir (jam)"
+                value={filters.lastKnownWithinHours}
+                min={Math.ceil(filters.activeWithinMinutes / 60)}
+                max={2160}
+                onChange={(value) => onFilterChange({ lastKnownWithinHours: value })}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 border-t border-slate-800 p-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onResetFilters}
+              className="border-slate-700 bg-slate-900 text-slate-200"
+            >
+              <RotateCcw className="size-3.5" /> Reset
+            </Button>
+            <Button
+              size="sm"
+              onClick={onRefresh}
+              disabled={loading}
+              className="bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+            >
+              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} /> Terapkan
+            </Button>
+          </div>
         </aside>
       ) : null}
 
@@ -525,10 +618,19 @@ export function MapsIntelijenCommandHud({
         {layerCards.map(({ key, ...rest }) => (
           <LayerButton key={key} {...rest} active={layerVisibility[key]} onClick={() => onLayerToggle(key)} />
         ))}
-        <button type="button" onClick={onShowAllLayers} className="ml-auto h-8 rounded-md border border-slate-700 px-2 text-[10px] text-slate-300 hover:bg-slate-800">
+        <button
+          type="button"
+          onClick={onShowAllLayers}
+          className="ml-auto h-8 rounded-md border border-slate-700 px-2 text-[10px] text-slate-300 hover:bg-slate-800"
+        >
           Semua Lapisan
         </button>
-        <select value={visualization} onChange={(event) => onVisualizationChange(event.target.value as VisualizationMode)} aria-label="Mode visualisasi" className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100">
+        <select
+          value={visualization}
+          onChange={(event) => onVisualizationChange(event.target.value as VisualizationMode)}
+          aria-label="Mode visualisasi"
+          className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100"
+        >
           {Object.entries(visualizationLabels).map(([value, label]) => {
             const markerUnavailable = value === "marker" && filters.provinceId === "ALL";
             return (
@@ -538,7 +640,12 @@ export function MapsIntelijenCommandHud({
             );
           })}
         </select>
-        <select value={mapLayer} onChange={(event) => onMapLayerChange(event.target.value as BaseMapLayer)} aria-label="Peta dasar" className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100">
+        <select
+          value={mapLayer}
+          onChange={(event) => onMapLayerChange(event.target.value as BaseMapLayer)}
+          aria-label="Peta dasar"
+          className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-slate-100"
+        >
           {Object.entries(baseMapLayerLabels).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -560,77 +667,108 @@ export function MapsIntelijenCommandHud({
 
       {rightPanelOpen ? (
         <aside className="pointer-events-auto absolute bottom-[3.35rem] right-3 top-[9.9rem] hidden w-[18rem] flex-col gap-2 xl:flex">
-        <section className="rounded-xl border border-slate-700/80 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-xl">
-          <h3 className="mb-2 flex items-center justify-between font-semibold text-xs uppercase tracking-[0.12em]">
-            <span className="flex items-center gap-2"><Layers3 className="size-3.5 text-cyan-300" /> Ringkasan Lapisan</span>
-            <span className="font-mono text-[10px] text-slate-500">{displayedFeatures.length}</span>
-          </h3>
-          <div className="space-y-1.5">
-            {layerCards.map((layer) => (
-              <LayerSummary key={layer.key} label={layer.label} count={layer.count} active={layerVisibility[layer.key]} tone={layer.tone} />
-            ))}
-            <div className="mt-2 border-t border-slate-800 pt-2">
-              <p className="mb-1 text-[9px] uppercase tracking-[0.1em] text-slate-500">Warna urgensi</p>
-              <div className="grid grid-cols-2 gap-1">
-                <UrgencyLayerSummary label="Mendesak" count={intelligence.urgencyCounts.URGENT ?? 0} tone="red" />
-                <UrgencyLayerSummary label="Tinggi" count={intelligence.urgencyCounts.HIGH ?? 0} tone="amber" />
-                <UrgencyLayerSummary label="Normal" count={intelligence.urgencyCounts.NORMAL ?? 0} tone="emerald" />
-                <UrgencyLayerSummary label="Rendah" count={intelligence.urgencyCounts.LOW ?? 0} tone="cyan" />
+          <section className="rounded-xl border border-slate-700/80 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-xl">
+            <h3 className="mb-2 flex items-center justify-between font-semibold text-xs uppercase tracking-[0.12em]">
+              <span className="flex items-center gap-2">
+                <Layers3 className="size-3.5 text-cyan-300" /> Ringkasan Lapisan
+              </span>
+              <span className="font-mono text-[10px] text-slate-500">{displayedFeatures.length}</span>
+            </h3>
+            <div className="space-y-1.5">
+              {layerCards.map((layer) => (
+                <LayerSummary
+                  key={layer.key}
+                  label={layer.label}
+                  count={layer.count}
+                  active={layerVisibility[layer.key]}
+                  tone={layer.tone}
+                />
+              ))}
+              <div className="mt-2 border-t border-slate-800 pt-2">
+                <p className="mb-1 text-[9px] uppercase tracking-[0.1em] text-slate-500">Warna urgensi</p>
+                <div className="grid grid-cols-2 gap-1">
+                  <UrgencyLayerSummary label="Mendesak" count={intelligence.urgencyCounts.URGENT ?? 0} tone="red" />
+                  <UrgencyLayerSummary label="Tinggi" count={intelligence.urgencyCounts.HIGH ?? 0} tone="amber" />
+                  <UrgencyLayerSummary label="Normal" count={intelligence.urgencyCounts.NORMAL ?? 0} tone="emerald" />
+                  <UrgencyLayerSummary label="Rendah" count={intelligence.urgencyCounts.LOW ?? 0} tone="cyan" />
+                </div>
               </div>
             </div>
-          </div>
-          <p className="mt-2 border-t border-slate-800 pt-2 text-[9px] leading-relaxed text-slate-500">
-            Lokasi yang dirahasiakan dikecualikan oleh kebijakan keamanan endpoint.
-          </p>
-        </section>
+            <p className="mt-2 border-t border-slate-800 pt-2 text-[9px] leading-relaxed text-slate-500">
+              Lokasi yang dirahasiakan dikecualikan oleh kebijakan keamanan endpoint.
+            </p>
+          </section>
 
-        <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 shadow-2xl backdrop-blur-xl">
-          <div className="flex items-center justify-between border-b border-slate-800 p-3">
-            <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]"><Activity className="size-3.5 text-cyan-300" /> Umpan Data</h3>
-            <span className="text-[9px] text-slate-500">Terbaru</span>
-          </div>
-          <div className="h-full space-y-3 overflow-y-auto p-2 pb-12">
-            <FeedSection
-              title="Laporan Jaring Terbaru"
-              href="/dashboard/laporan-jaring"
-              features={intelligence.reportFeed}
-              emptyLabel="Belum ada Laporan Jaring sesuai filter."
-              onOpenDetail={onOpenDetail}
-            />
-            <FeedSection
-              title="Baket Terbaru"
-              href="/dashboard/baket"
-              features={intelligence.baketFeed}
-              emptyLabel="Belum ada Baket sesuai filter."
-              onOpenDetail={onOpenDetail}
-            />
-          </div>
-        </section>
+          <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center justify-between border-b border-slate-800 p-3">
+              <h3 className="flex items-center gap-2 font-semibold text-xs uppercase tracking-[0.12em]">
+                <Activity className="size-3.5 text-cyan-300" /> Umpan Data
+              </h3>
+              <span className="text-[9px] text-slate-500">Terbaru</span>
+            </div>
+            <div className="h-full space-y-3 overflow-y-auto p-2 pb-12">
+              <FeedSection
+                title="Laporan Jaring Terbaru"
+                href="/dashboard/laporan-jaring"
+                features={intelligence.reportFeed}
+                emptyLabel="Belum ada Laporan Jaring sesuai filter."
+                onOpenDetail={onOpenDetail}
+              />
+              <FeedSection
+                title="Baket Terbaru"
+                href="/dashboard/baket"
+                features={intelligence.baketFeed}
+                emptyLabel="Belum ada Baket sesuai filter."
+                onOpenDetail={onOpenDetail}
+              />
+            </div>
+          </section>
         </aside>
       ) : null}
 
       {analyticsOpen ? (
         <section
           className={cn(
-            "pointer-events-auto absolute bottom-[3.35rem] hidden h-[7.9rem] grid-cols-4 gap-2 xl:grid",
+            "pointer-events-auto absolute bottom-[3.35rem] hidden h-[9.25rem] grid-cols-4 gap-2 xl:grid",
             leftPanelOpen ? "left-[17.25rem]" : "left-3",
             rightPanelOpen ? "right-[19.25rem]" : "right-3",
           )}
           aria-label="Analitik ringkas"
         >
-        <MiniAnalytics title="Distribusi Jenis Data" icon={Database} items={[
-          [DOMAIN_TERMS.jaringReport, intelligence.layerCounts.report ?? 0, DOMAIN_VISUALS.jaringReport.tone],
-          [DOMAIN_TERMS.baket, intelligence.layerCounts.baket ?? 0, DOMAIN_VISUALS.baket.tone],
-          [DOMAIN_TERMS.fieldOfficer, intelligence.agentTotal, DOMAIN_VISUALS.gaswil.tone],
-        ]} />
-        <MiniAnalytics title="Distribusi Urgensi" icon={Siren} items={[
-          ["Mendesak", intelligence.urgencyCounts.URGENT ?? 0, "red"],
-          ["Tinggi", intelligence.urgencyCounts.HIGH ?? 0, "amber"],
-          ["Normal", intelligence.urgencyCounts.NORMAL ?? 0, "emerald"],
-          ["Rendah", intelligence.urgencyCounts.LOW ?? 0, "cyan"],
-        ]} showEmpty />
-        <MiniAnalytics title="Top Kategori" icon={Layers3} items={intelligence.categoryCounts.slice(0, 3).map(([label, count]) => [label, count, "violet"] as [string, number, string])} />
-        <MiniAnalytics title="Wilayah Teratas" icon={MapPin} items={intelligence.areaCounts.slice(0, 3).map(([label, count]) => [label, count, "cyan"] as [string, number, string])} />
+          <MiniAnalytics
+            title="Distribusi Jenis Data"
+            icon={Database}
+            items={[
+              [DOMAIN_TERMS.jaringReport, intelligence.layerCounts.report ?? 0, DOMAIN_VISUALS.jaringReport.tone],
+              [DOMAIN_TERMS.baket, intelligence.layerCounts.baket ?? 0, DOMAIN_VISUALS.baket.tone],
+              [DOMAIN_TERMS.fieldOfficer, intelligence.agentTotal, DOMAIN_VISUALS.gaswil.tone],
+            ]}
+          />
+          <MiniAnalytics
+            title="Distribusi Urgensi"
+            icon={Siren}
+            items={[
+              ["Mendesak", intelligence.urgencyCounts.URGENT ?? 0, "red"],
+              ["Tinggi", intelligence.urgencyCounts.HIGH ?? 0, "amber"],
+              ["Normal", intelligence.urgencyCounts.NORMAL ?? 0, "emerald"],
+              ["Rendah", intelligence.urgencyCounts.LOW ?? 0, "cyan"],
+            ]}
+            showEmpty
+          />
+          <MiniAnalytics
+            title="Top Kategori"
+            icon={Layers3}
+            items={intelligence.categoryCounts
+              .slice(0, 3)
+              .map(([label, count]) => [label, count, "violet"] as [string, number, string])}
+          />
+          <MiniAnalytics
+            title="Wilayah Teratas"
+            icon={MapPin}
+            items={intelligence.areaCounts
+              .slice(0, 3)
+              .map(([label, count]) => [label, count, "cyan"] as [string, number, string])}
+          />
         </section>
       ) : null}
 
@@ -752,7 +890,11 @@ function HudSelect({
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
       >
-        {options.map(([key, text]) => <option key={key} value={key}>{text}</option>)}
+        {options.map(([key, text]) => (
+          <option key={key} value={key}>
+            {text}
+          </option>
+        ))}
       </select>
     </label>
   );
@@ -762,12 +904,30 @@ function HudDate({ label, value, onChange }: { label: string; value: string; onC
   return (
     <div className="grid gap-1 text-[10px] text-slate-400">
       <span>{label}</span>
-      <Input aria-label={label} type="date" value={value} onChange={(event) => onChange(event.target.value)} className="h-9 border-slate-700 bg-slate-950/90 px-1.5 text-[10px] text-slate-100" />
+      <Input
+        aria-label={label}
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-9 border-slate-700 bg-slate-950/90 px-1.5 text-[10px] text-slate-100"
+      />
     </div>
   );
 }
 
-function HudNumber({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
+function HudNumber({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
   return (
     <div className="grid gap-1 text-[10px] text-slate-400">
       <span>{label}</span>
@@ -784,10 +944,33 @@ function HudNumber({ label, value, min, max, onChange }: { label: string; value:
   );
 }
 
-function LayerButton({ label, icon: Icon, count, active, tone, onClick }: { label: string; icon: LucideIcon; count: number; active: boolean; tone: string; onClick: () => void }) {
+function LayerButton({
+  label,
+  icon: Icon,
+  count,
+  active,
+  tone,
+  onClick,
+}: {
+  label: string;
+  icon: LucideIcon;
+  count: number;
+  active: boolean;
+  tone: string;
+  onClick: () => void;
+}) {
   return (
-    <button type="button" aria-pressed={active} onClick={onClick} className={cn("flex h-8 items-center gap-1.5 rounded-md border px-2 text-[10px] transition", active ? toneClasses(tone, "button") : "border-slate-800 bg-slate-900/60 text-slate-500")}>
-      <Icon className="size-3.5" /> {label}<span className="font-mono tabular-nums opacity-80">{count.toLocaleString("id-ID")}</span>
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "flex h-8 items-center gap-1.5 rounded-md border px-2 text-[10px] transition",
+        active ? toneClasses(tone, "button") : "border-slate-800 bg-slate-900/60 text-slate-500",
+      )}
+    >
+      <Icon className="size-3.5" /> {label}
+      <span className="font-mono tabular-nums opacity-80">{count.toLocaleString("id-ID")}</span>
     </button>
   );
 }
@@ -878,27 +1061,50 @@ function FeedItem({ feature, onClick }: { feature: MapNetworkFeature; onClick: (
       <p className="mt-0.5 line-clamp-1 text-[9px] text-slate-400">
         {properties.primaryArea?.name ?? "Wilayah belum ditentukan"} - {getMapFeatureReference(feature)}
       </p>
-      <span className="mt-1 inline-flex items-center gap-1 text-[9px] text-cyan-300"><Eye className="size-3" /> Lihat detail</span>
+      <span className="mt-1 inline-flex items-center gap-1 text-[9px] text-cyan-300">
+        <Eye className="size-3" /> Lihat detail
+      </span>
     </button>
   );
 }
 
-function MiniAnalytics({ title, icon: Icon, items, showEmpty = false }: { title: string; icon: LucideIcon; items: Array<[string, number, string]>; showEmpty?: boolean }) {
+function MiniAnalytics({
+  title,
+  icon: Icon,
+  items,
+  showEmpty = false,
+}: {
+  title: string;
+  icon: LucideIcon;
+  items: Array<[string, number, string]>;
+  showEmpty?: boolean;
+}) {
   const visibleItems = showEmpty ? items : items.filter((item) => item[1] > 0);
   if (visibleItems.length === 0) return null;
 
   const maximum = Math.max(1, ...visibleItems.map((item) => item[1]));
   return (
-    <article className="overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 p-2.5 shadow-2xl backdrop-blur-xl">
-      <h3 className="mb-2 flex items-center gap-1.5 truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400"><Icon className="size-3 text-cyan-300" /> {title}</h3>
-      <div className="space-y-1.5">
+    <article className="flex min-h-[9.25rem] flex-col overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-xl">
+      <h3 className="mb-2 flex items-center gap-1.5 truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+        <Icon className="size-3 text-cyan-300" /> {title}
+      </h3>
+      <div className="min-h-0 flex-1 space-y-2">
         {visibleItems.map(([label, count, tone]) => (
           <div key={label} className="grid grid-cols-[minmax(0,1fr)_3.5rem] items-center gap-2 text-[9px]">
             <div className="min-w-0">
-              <div className="mb-0.5 truncate text-slate-300" title={label}>{label}</div>
-              <div className="h-1 overflow-hidden rounded-full bg-slate-800"><div className={cn("h-full rounded-full", toneClasses(tone, "bar"))} style={{ width: `${Math.max(3, (count / maximum) * 100)}%` }} /></div>
+              <div className="mb-0.5 truncate text-slate-300" title={label}>
+                {label}
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className={cn("h-full rounded-full", toneClasses(tone, "bar"))}
+                  style={{ width: `${Math.max(3, (count / maximum) * 100)}%` }}
+                />
+              </div>
             </div>
-            <strong className="text-right font-mono tabular-nums text-slate-100">{count.toLocaleString("id-ID")}</strong>
+            <strong className="text-right font-mono tabular-nums text-slate-100">
+              {count.toLocaleString("id-ID")}
+            </strong>
           </div>
         ))}
       </div>
@@ -909,20 +1115,43 @@ function MiniAnalytics({ title, icon: Icon, items, showEmpty = false }: { title:
 function toneClasses(tone: string, kind: "button" | "dot" | "bar") {
   const values: Record<string, { button: string; dot: string; bar: string }> = {
     cyan: { button: "border-cyan-400/40 bg-cyan-400/10 text-cyan-200", dot: "bg-cyan-400", bar: "bg-cyan-400" },
-    violet: { button: "border-violet-400/40 bg-violet-400/10 text-violet-200", dot: "bg-violet-400", bar: "bg-violet-400" },
+    violet: {
+      button: "border-violet-400/40 bg-violet-400/10 text-violet-200",
+      dot: "bg-violet-400",
+      bar: "bg-violet-400",
+    },
     amber: { button: "border-amber-400/40 bg-amber-400/10 text-amber-200", dot: "bg-amber-400", bar: "bg-amber-400" },
     blue: { button: "border-blue-400/40 bg-blue-400/10 text-blue-200", dot: "bg-blue-400", bar: "bg-blue-400" },
     slate: { button: "border-slate-500 bg-slate-500/10 text-slate-200", dot: "bg-slate-400", bar: "bg-slate-400" },
     red: { button: "border-red-400/40 bg-red-400/10 text-red-200", dot: "bg-red-400", bar: "bg-red-400" },
-    emerald: { button: "border-emerald-400/40 bg-emerald-400/10 text-emerald-200", dot: "bg-emerald-400", bar: "bg-emerald-400" },
+    emerald: {
+      button: "border-emerald-400/40 bg-emerald-400/10 text-emerald-200",
+      dot: "bg-emerald-400",
+      bar: "bg-emerald-400",
+    },
   };
   return values[tone]?.[kind] ?? values.slate[kind];
 }
 
-function KpiCard({ label, value, detail, icon: Icon, tone }: { label: string; value: number; detail: string; icon: LucideIcon; tone: string }) {
+function KpiCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  detail: string;
+  icon: LucideIcon;
+  tone: string;
+}) {
   return (
     <article className="rounded-xl border border-slate-700/80 bg-slate-950/95 p-2.5 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-2"><p className="truncate text-[9px] uppercase tracking-[0.08em] text-slate-400">{label}</p><Icon className={cn("size-3.5", toneClasses(tone, "button").split(" ").at(-1))} /></div>
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-[9px] uppercase tracking-[0.08em] text-slate-400">{label}</p>
+        <Icon className={cn("size-3.5", toneClasses(tone, "button").split(" ").at(-1))} />
+      </div>
       <p className="mt-1 font-bold font-mono text-lg leading-none tabular-nums">{value.toLocaleString("id-ID")}</p>
       <p className="mt-1 truncate text-[8px] text-slate-500">{detail}</p>
     </article>
@@ -930,18 +1159,60 @@ function KpiCard({ label, value, detail, icon: Icon, tone }: { label: string; va
 }
 
 function HudMapButton({ label, icon: Icon, onClick }: { label: string; icon: LucideIcon; onClick: () => void }) {
-  return <Button type="button" variant="outline" size="icon-sm" onClick={onClick} aria-label={label} title={label} className="border-slate-700 bg-slate-950/90 text-slate-200 hover:bg-slate-800"><Icon className="size-4" /></Button>;
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon-sm"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="border-slate-700 bg-slate-950/90 text-slate-200 hover:bg-slate-800"
+    >
+      <Icon className="size-4" />
+    </Button>
+  );
 }
 
-function CompactMetric({ label, value, icon: Icon, tone }: { label: string; value: number; icon: LucideIcon; tone: "cyan" | "red" | "amber" }) {
+function CompactMetric({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: LucideIcon;
+  tone: "cyan" | "red" | "amber";
+}) {
   return (
     <div className="min-w-32 rounded-lg border border-slate-700/80 bg-slate-950/90 px-3 py-2 text-slate-100 shadow-lg backdrop-blur-xl">
-      <div className="flex items-center gap-2"><Icon className={cn("size-3.5", tone === "cyan" && "text-cyan-300", tone === "red" && "text-red-400", tone === "amber" && "text-amber-300")} /><span className="text-[9px] text-slate-400 uppercase tracking-[0.1em]">{label}</span></div>
+      <div className="flex items-center gap-2">
+        <Icon
+          className={cn(
+            "size-3.5",
+            tone === "cyan" && "text-cyan-300",
+            tone === "red" && "text-red-400",
+            tone === "amber" && "text-amber-300",
+          )}
+        />
+        <span className="text-[9px] text-slate-400 uppercase tracking-[0.1em]">{label}</span>
+      </div>
       <p className="mt-1 font-bold font-mono text-lg tabular-nums">{value.toLocaleString("id-ID")}</p>
     </div>
   );
 }
 
 function StatusChip({ icon: Icon, label, active = false }: { icon: LucideIcon; label: string; active?: boolean }) {
-  return <span className={cn("inline-flex h-7 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/75 px-2.5 text-[9px] uppercase tracking-wide text-slate-300", active && "border-emerald-400/30 bg-emerald-400/10 text-emerald-300")}><Icon className="size-3" />{label}</span>;
+  return (
+    <span
+      className={cn(
+        "inline-flex h-7 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/75 px-2.5 text-[9px] uppercase tracking-wide text-slate-300",
+        active && "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+      )}
+    >
+      <Icon className="size-3" />
+      {label}
+    </span>
+  );
 }
