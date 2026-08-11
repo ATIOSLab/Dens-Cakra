@@ -138,7 +138,7 @@ function JaringFilterPopover({
           className={cn(
             "h-8 gap-2 justify-between text-xs font-normal border-slate-200 bg-background hover:bg-slate-50 dark:border-white/10 dark:hover:bg-slate-900 transition-colors min-w-[170px]",
             selectedId !== "ALL" &&
-              "border-sky-500/50 bg-sky-500/5 dark:bg-sky-500/10 font-semibold text-sky-700 dark:text-[#38BDF8]",
+              "border-sky-500/50 bg-sky-500/5 font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-400",
           )}
         >
           <div className="flex items-center gap-1.5 truncate max-w-[180px]">
@@ -171,7 +171,7 @@ function JaringFilterPopover({
       </PopoverTrigger>
 
       <PopoverContent
-        className="w-[290px] p-0 border-slate-200 dark:border-white/10 shadow-lg rounded-lg"
+        className="w-[290px] rounded-md border-slate-200 p-0 shadow-lg dark:border-white/10"
         align="start"
       >
         {/* Sticky Search Header */}
@@ -216,7 +216,7 @@ function JaringFilterPopover({
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 text-xs rounded-md transition-colors text-left cursor-pointer",
               selectedId === "ALL"
-                ? "bg-sky-500/10 text-sky-700 dark:text-[#38BDF8] font-semibold"
+                ? "bg-sky-500/10 font-semibold text-sky-700 dark:text-sky-400"
                 : "hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground",
             )}
           >
@@ -224,7 +224,7 @@ function JaringFilterPopover({
               <DOMAIN_VISUALS.jaring.Icon className="size-3.5 text-muted-foreground" />
               <span>Semua Jaring</span>
             </div>
-            {selectedId === "ALL" && <Check className="size-3.5 text-sky-600 dark:text-[#38BDF8]" />}
+            {selectedId === "ALL" && <Check className="size-3.5 text-sky-600 dark:text-sky-400" />}
           </button>
 
           {/* Filtered Jaring Options */}
@@ -243,7 +243,7 @@ function JaringFilterPopover({
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2 text-xs rounded-md transition-colors text-left cursor-pointer my-0.5",
                     isSelected
-                      ? "bg-sky-500/10 text-sky-700 dark:text-[#38BDF8] font-semibold"
+                      ? "bg-sky-500/10 font-semibold text-sky-700 dark:text-sky-400"
                       : "hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground",
                   )}
                 >
@@ -254,7 +254,7 @@ function JaringFilterPopover({
                     </div>
                   </div>
 
-                  {isSelected && <Check className="size-3.5 shrink-0 text-sky-600 dark:text-[#38BDF8]" />}
+                  {isSelected && <Check className="size-3.5 shrink-0 text-sky-600 dark:text-sky-400" />}
                 </button>
               );
             })
@@ -490,7 +490,7 @@ export function LaporanJaringClient() {
           disabled={loadingList}
           className="w-fit h-9 gap-2"
         >
-          <RefreshCw className={cn("size-4 text-sky-600 dark:text-[#38BDF8]", loadingList && "animate-spin")} />
+          <RefreshCw className={cn("size-4 text-sky-600 dark:text-sky-400", loadingList && "animate-spin")} />
           Muat Ulang
         </Button>
       </div>
@@ -507,7 +507,7 @@ export function LaporanJaringClient() {
               : "border-slate-200/80 dark:border-white/10 hover:border-sky-500/40",
           )}
         >
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-sky-500/10 text-sky-600 dark:text-[#38BDF8]">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400">
             <DOMAIN_VISUALS.jaringReport.Icon className="size-5" />
           </div>
           <div className="min-w-0">
@@ -724,7 +724,7 @@ export function LaporanJaringClient() {
                 <TableRow>
                   <TableCell colSpan={12} className="py-12 text-center text-xs text-muted-foreground font-mono">
                     <div className="flex justify-center items-center gap-2">
-                      <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-[#38BDF8]" />
+                      <RefreshCw className="size-4 animate-spin text-sky-600 dark:text-sky-400" />
                       Memuat data laporan...
                     </div>
                   </TableCell>
@@ -780,7 +780,7 @@ export function LaporanJaringClient() {
                       )}
                       {isColVisible("kodeJaring") && (
                         <TableCell>
-                          <span className="font-mono text-xs text-sky-600 dark:text-[#38BDF8] font-bold">
+                          <span className="font-mono font-bold text-sky-600 text-xs dark:text-sky-400">
                             {identity.code}
                           </span>
                         </TableCell>
@@ -849,7 +849,7 @@ export function LaporanJaringClient() {
                       {isColVisible("refNum") && (
                         <TableCell>
                           <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-bold text-xs text-sky-600 dark:text-[#38BDF8]">
+                            <span className="font-mono font-bold text-sky-600 text-xs dark:text-sky-400">
                               {item.referenceNumber || item.id.slice(0, 8)}
                             </span>
                             {isUnread && (
@@ -871,7 +871,7 @@ export function LaporanJaringClient() {
                           onClick={() => {
                             if (item.status === "SUBMITTED") void markReportAsRead(item.id);
                           }}
-                          className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
+                          className="h-8 gap-1.5 rounded-md border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
                         >
                           <Link href={`/dashboard/laporan-jaring/${item.id}`}>
                             <Eye className="size-3.5" />

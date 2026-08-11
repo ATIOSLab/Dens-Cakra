@@ -2,9 +2,10 @@
 
 import { useMemo } from "react";
 
-import { ChevronRight, ShieldCheck, TrendingUp, UserRoundCheck, type LucideIcon } from "lucide-react";
+import { ChevronRight, type LucideIcon, ShieldCheck, TrendingUp, UserRoundCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -65,7 +66,7 @@ export function MapsIntelijenLeadershipBrief({
   return (
     <section
       aria-labelledby="map-leadership-brief-title"
-      className="overflow-hidden rounded-2xl border border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]"
+      className="overflow-hidden rounded-md border border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]"
     >
       <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <div className="border-[var(--dc-divider)] p-4 lg:border-r lg:p-5">
@@ -74,7 +75,7 @@ export function MapsIntelijenLeadershipBrief({
               <p className="dc-eyebrow text-[0.68rem] text-[var(--dc-primary)] uppercase tracking-[0.1em]">
                 Pandangan pimpinan
               </p>
-              <h2 id="map-leadership-brief-title" className="mt-1 font-semibold text-lg tracking-tight">
+              <h2 id="map-leadership-brief-title" className={cn(DC_TYPOGRAPHY.sectionTitle, "mt-1")}>
                 Ringkasan Situasi Jaringan Intelijen
               </h2>
               <p className="mt-1 text-muted-foreground text-xs">
@@ -165,7 +166,7 @@ function Metric({
   compact?: boolean;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border bg-background/70 p-3">
+    <div className="min-w-0 rounded-md border bg-background/70 p-3">
       <p className="text-[10px] text-muted-foreground uppercase tracking-[0.08em]">{label}</p>
       <p
         className={cn(
@@ -207,17 +208,13 @@ function AttentionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex min-h-14 items-center gap-3 rounded-xl border bg-background/75 px-3 text-left transition hover:-translate-y-px hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60 motion-reduce:transform-none",
+        "flex min-h-14 items-center gap-3 rounded-md border bg-background/75 px-3 text-left transition hover:-translate-y-px hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60 motion-reduce:transform-none",
         tone === "amber" && "border-amber-500/25",
         tone === "slate" && "border-slate-500/25",
       )}
     >
       <Icon
-        className={cn(
-          "size-4 shrink-0",
-          tone === "amber" && "text-amber-500",
-          tone === "slate" && "text-slate-500",
-        )}
+        className={cn("size-4 shrink-0", tone === "amber" && "text-amber-500", tone === "slate" && "text-slate-500")}
         aria-hidden
       />
       <span className="min-w-0 flex-1">

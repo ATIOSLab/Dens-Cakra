@@ -252,28 +252,11 @@ export function MapsIntelijenMapView({
     );
     map.fitBounds(bounds, { padding: 72, maxZoom: 14, duration: 450 });
   }, [displayedFeatures, map]);
-  const navigationKey = [
-    filters.period,
-    filters.startDate,
-    filters.endDate,
-    filters.dataType,
-    filters.urgency,
-    filters.categoryId,
-    filters.fieldOfficerAssignmentId,
-    filters.jaringId,
-    filters.provinceId,
-    filters.regencyId,
-    filters.districtId,
-    filters.villageId,
-    filters.suitability,
-    filters.agentState,
-  ].join(":");
-
   useEffect(() => {
     if (!map || loading) return;
     const timeout = window.setTimeout(fitVisibleFeatures, 140);
     return () => window.clearTimeout(timeout);
-  }, [fitVisibleFeatures, loading, map, navigationKey]);
+  }, [fitVisibleFeatures, loading, map]);
 
   const resetMap = useCallback(
     () => map?.easeTo({ center: INITIAL_CENTER, zoom: 9.5, pitch: 0, bearing: 0, duration: 450 }),
@@ -292,7 +275,7 @@ export function MapsIntelijenMapView({
         "relative overflow-hidden bg-slate-950 shadow-lg",
         isFullscreen
           ? "fixed inset-0 z-[1000] rounded-none border-0"
-          : "rounded-2xl border border-[var(--dc-border-subtle)]",
+          : "rounded-md border border-[var(--dc-border-subtle)]",
       )}
     >
       <div className={isFullscreen ? "h-dvh" : "h-[min(68svh,52rem)] min-h-[26rem] sm:min-h-[34rem]"}>
@@ -383,7 +366,7 @@ export function MapsIntelijenMapView({
 
       <div
         className={cn(
-          "absolute left-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2 rounded-xl border p-2 shadow-lg backdrop-blur",
+          "absolute left-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2 rounded-md border p-2 shadow-lg backdrop-blur",
           isFullscreen
             ? "top-20 border-slate-700/80 bg-slate-950/90 text-slate-100 xl:hidden"
             : "top-3 bg-background/95",
@@ -487,14 +470,14 @@ export function MapsIntelijenMapView({
       {loading ? (
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-background/20">
           <span className="inline-flex items-center gap-2 rounded-full border bg-background/95 px-4 py-2 text-sm shadow">
-          <LoaderCircle className="size-4 animate-spin text-sky-600 dark:text-sky-400" /> Memuat lapisan peta…
+            <LoaderCircle className="size-4 animate-spin text-sky-600 dark:text-sky-400" /> Memuat lapisan peta...
           </span>
         </div>
       ) : null}
       {!loading && displayedFeatures.length === 0 ? (
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center p-6">
           <div
-            className={`max-w-md rounded-xl border bg-background/95 p-5 text-center shadow ${noCoordinatesPresentation.surfaceClass}`}
+            className={`max-w-md rounded-md border bg-background/95 p-5 text-center shadow ${noCoordinatesPresentation.surfaceClass}`}
           >
             <NoCoordinatesIcon className={`mx-auto size-8 ${noCoordinatesPresentation.iconClass}`} aria-hidden />
             <p className="mt-2 font-semibold">Tidak ada titik yang dapat dipetakan</p>

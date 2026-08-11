@@ -1146,7 +1146,7 @@ export function LaporanJaringCoordinatorClient() {
 
       {/* DATA CONTENT (CARD VIEW VS TABLE VIEW) */}
       {loadingList ? (
-        <div className="flex flex-col items-center justify-center p-12 text-center border rounded-xl bg-card border-slate-200 dark:border-white/10">
+        <div className="flex flex-col items-center justify-center rounded-md border border-slate-200 bg-card p-12 text-center dark:border-white/10">
           <RefreshCw className="size-8 animate-spin text-emerald-500 mb-3" />
           <p className="text-sm font-medium text-muted-foreground">Memuat data laporan Jaring...</p>
         </div>
@@ -1164,7 +1164,7 @@ export function LaporanJaringCoordinatorClient() {
           </CardContent>
         </Card>
       ) : reportTotal === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 text-center border rounded-xl bg-card border-slate-200 dark:border-white/10">
+        <div className="flex flex-col items-center justify-center rounded-md border border-slate-200 bg-card p-12 text-center dark:border-white/10">
           <DOMAIN_VISUALS.jaringReport.Icon className="size-10 text-muted-foreground/50 mb-3" />
           <p className="text-base font-semibold text-foreground">Tidak ada laporan ditemukan</p>
           <p className="text-xs text-muted-foreground mt-1 max-w-md">
@@ -1197,7 +1197,7 @@ export function LaporanJaringCoordinatorClient() {
                 <div
                   key={item.id}
                   className={cn(
-                    "flex flex-col justify-between rounded-xl border bg-card p-4 transition-all duration-200 hover:scale-[1.01]",
+                    "flex flex-col justify-between rounded-md border bg-card p-4 transition-all duration-200 hover:scale-[1.01]",
                     hasBaketUrgency ? urgencyStyle.border : "border-border",
                   )}
                 >
@@ -1234,9 +1234,7 @@ export function LaporanJaringCoordinatorClient() {
 
                     {/* Title */}
                     <div>
-                      <h3 className="font-heading font-bold text-base text-foreground leading-snug line-clamp-2">
-                        {title}
-                      </h3>
+                      <h3 className="font-semibold text-base text-foreground leading-snug line-clamp-2">{title}</h3>
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.content || "-"}</p>
                     </div>
                     <JaringIdentitySummary
@@ -1312,7 +1310,7 @@ export function LaporanJaringCoordinatorClient() {
       ) : (
         /* TABLE VIEW LAYOUT */
         <div className="space-y-4">
-          <div className="overflow-x-auto select-none rounded-xl border border-slate-200 dark:border-white/10 bg-card shadow-xs">
+          <div className="select-none overflow-x-auto rounded-md border border-slate-200 bg-card shadow-xs dark:border-white/10">
             <Table className="w-full min-w-[1350px]">
               <TableHeader className="bg-slate-50 dark:bg-white/5">
                 <TableRow className="border-b border-slate-200 dark:border-slate-800">
@@ -1496,7 +1494,7 @@ export function LaporanJaringCoordinatorClient() {
                           asChild
                           variant="outline"
                           size="sm"
-                          className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
+                          className="h-8 gap-1.5 rounded-md border-sky-500/30 px-2.5 font-medium text-sky-600 text-xs hover:bg-sky-500/10 dark:text-sky-400"
                         >
                           <Link href={`/dashboard/laporan-jaring/${item.id}`}>
                             <Eye className="size-3.5" /> Detail

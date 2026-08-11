@@ -3,7 +3,7 @@
 import { Clock3, RefreshCw, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
+import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 interface MapsIntelijenHeaderProps {
@@ -38,15 +38,15 @@ export function MapsIntelijenHeader({
   const HeaderIcon = DOMAIN_VISUALS.intelligenceNetworkMap.Icon;
 
   return (
-    <header className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-xs lg:flex-row lg:items-center lg:justify-between">
+    <header className="flex flex-col gap-4 rounded-md border bg-card p-5 shadow-xs lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
-        <h1 className="flex items-center gap-2 font-extrabold font-heading text-2xl tracking-tight md:text-3xl">
+        <h1 className={cn(DC_TYPOGRAPHY.pageTitle, "flex items-center gap-2")}>
           <HeaderIcon className={cn("size-7", DOMAIN_VISUALS.intelligenceNetworkMap.iconClass)} aria-hidden="true" />
           Peta Jejaring Intelijen
         </h1>
         <p className="mt-1 max-w-3xl text-muted-foreground text-sm">
-          Pusat kendali geografis Laporan Jaring dan Bahan Keterangan (Baket) berdasarkan lokasi aktual serta
-          cakupan kewenangan.
+          Pusat kendali geografis Laporan Jaring dan Bahan Keterangan (Baket) berdasarkan lokasi aktual serta cakupan
+          kewenangan.
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-muted-foreground text-xs">
           <span className="inline-flex items-center gap-1.5">
@@ -55,7 +55,7 @@ export function MapsIntelijenHeader({
           <span className="inline-flex items-center gap-1.5">
             <ShieldCheck className="size-3.5" /> Cakupan: {scopeLabel}
           </span>
-          <span>Diperbarui: {formatGeneratedAt(generatedAt)} · otomatis setiap 60 detik</span>
+          <span>Diperbarui: {formatGeneratedAt(generatedAt)} - otomatis setiap 60 detik</span>
         </div>
       </div>
       <Button variant="outline" onClick={onRefresh} disabled={loading} className="min-h-11 shrink-0 gap-2">
