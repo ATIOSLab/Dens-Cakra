@@ -1,18 +1,12 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { ComingSoonPage } from "@/app/(main)/dashboard/coming-soon/page";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function Page({ params, searchParams }: PageProps) {
+export default function Page() {
   return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/executive/laporan-briefing"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
+    <ComingSoonPage
+      title="Laporan & Briefing Dalam Pengembangan"
+      description="Menu Laporan & Briefing berada dalam kelompok Pusat Komando dan belum difungsikan. Penyusunan paket briefing pimpinan akan diaktifkan setelah alur komando siap digunakan."
     />
   );
 }

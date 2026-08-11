@@ -87,9 +87,22 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "executive-command-center",
         title: "Pusat Komando",
-        url: "/dashboard/executive/pusat-komando",
         icon: DOMAIN_VISUALS.command.Icon,
         roles: EXECUTIVE_ROLE,
+        subItems: [
+          {
+            id: "executive-command-center-overview",
+            title: "Pusat Komando",
+            url: "/dashboard/executive/pusat-komando",
+            roles: EXECUTIVE_ROLE,
+          },
+          {
+            id: "executive-briefing",
+            title: "Laporan & Briefing",
+            url: "/dashboard/executive/laporan-briefing",
+            roles: EXECUTIVE_ROLE,
+          },
+        ],
       },
       {
         id: "executive-intelligence-network-map",
@@ -110,13 +123,6 @@ export const sidebarItems: NavGroup[] = [
         title: "Kinerja & Evaluasi",
         url: "/dashboard/executive/kinerja-evaluasi",
         icon: DOMAIN_VISUALS.performance.Icon,
-        roles: EXECUTIVE_ROLE,
-      },
-      {
-        id: "executive-briefing",
-        title: "Laporan & Briefing",
-        url: "/dashboard/executive/laporan-briefing",
-        icon: DOMAIN_VISUALS.briefing.Icon,
         roles: EXECUTIVE_ROLE,
       },
       {
