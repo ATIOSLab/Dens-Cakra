@@ -121,7 +121,18 @@ export class LocalStorageService implements OnModuleInit {
   }
 
   async size(storageKey: string): Promise<number> {
-    return (await stat(this.resolvePath(storageKey))).size;
+    try {
+      return (await stat(this.resolvePath(storageKey))).size;
+    } catch (error) {
+      if (isFileNotFound(error)) {
+        throw new ApiException(
+          'STORAGE_FILE_NOT_FOUND',
+          'File storage tidak ditemukan.',
+          404,
+        );
+      }
+      throw error;
+    }
   }
 
   openReadRange(storageKey: string, start: number, end: number) {
@@ -142,4 +153,13 @@ export class LocalStorageService implements OnModuleInit {
     }
     return resolved;
   }
+}
+
+function isFileNotFound(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'ENOENT'
+  );
 }

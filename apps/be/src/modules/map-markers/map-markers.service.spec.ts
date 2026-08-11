@@ -141,7 +141,10 @@ describe('MapMarkersService', () => {
               {
                 id: 'source-message',
                 referenceNumber: 'LJ-001',
-                reportSession: { id: 'report-session', referenceNumber: 'LJ-001' },
+                reportSession: {
+                  id: 'report-session',
+                  referenceNumber: 'LJ-001',
+                },
               },
             ],
             _count: { convertedSourceMessages: 1 },
@@ -445,6 +448,114 @@ describe('MapMarkersService', () => {
             { submittedMessage: { is: { convertedBaketId: null } } },
           ]),
         }),
+      }),
+    );
+  });
+
+  it('uses submitted message coordinates when report session coordinates are empty', async () => {
+    const report = {
+      id: 'report-message-coordinate',
+      jaringId: 'jaring-1',
+      fieldOfficerAssignmentId: 'officer-assignment',
+      status: 'COMPLETED',
+      currentState: 'COMPLETED',
+      content: 'Laporan dengan koordinat dari pesan',
+      latitude: null,
+      longitude: null,
+      locationAccuracyMeters: null,
+      locationCapturedAt: null,
+      locationType: null,
+      referenceNumber: 'LJ-003',
+      submittedAt: new Date('2026-07-13T09:00:00.000Z'),
+      startedAt: new Date('2026-07-13T08:50:00.000Z'),
+      createdAt: new Date('2026-07-13T08:50:00.000Z'),
+      jaring: {
+        id: 'jaring-1',
+        aliasName: 'JR-001',
+        fullName: 'Jaring Satu',
+        whatsappNumber: '628123456789',
+        profilePhotoFileId: 'photo-1',
+        areaCoverages: [],
+        caretakerAssignments: [
+          {
+            fieldOfficerAssignment: {
+              id: 'officer-assignment',
+              userProfile: { id: 'officer-1', fullName: 'Petugas Satu' },
+            },
+          },
+        ],
+      },
+      submittedMessage: {
+        id: 'message-3',
+        referenceNumber: 'LJ-003',
+        content: 'Laporan dengan koordinat dari pesan',
+        senderPhone: '628123456789',
+        jaringId: 'jaring-1',
+        latitude: -6.9175,
+        longitude: 107.6191,
+        gpsAccuracyMeters: 12,
+        locationCapturedAt: new Date('2026-07-13T08:59:00.000Z'),
+        resolvedAreaId: BANDUNG.id,
+        rawPayload: {},
+        status: 'PROCESSED',
+        validationSummary: WhatsAppValidationSummary.VALID,
+        receivedAt: new Date('2026-07-13T09:00:00.000Z'),
+        coordinateSource: CoordinateSource.WHATSAPP_LOCATION,
+        resolvedArea: null,
+        convertedBaket: null,
+        _count: { media: 0 },
+      },
+      media: [],
+    };
+    const prisma = {
+      reportCategory: { findMany: jest.fn().mockResolvedValue([] as never) },
+      whatsAppReportSession: {
+        findMany: jest.fn().mockResolvedValue([report] as never),
+      },
+    };
+    const scope = {
+      jaringWhere: jest.fn().mockResolvedValue({ deletedAt: null } as never),
+    };
+    const spatial = {
+      matchCoordinates: jest
+        .fn()
+        .mockResolvedValue(
+          new Map([['report-message-coordinate', [BANDUNG]]]) as never,
+        ),
+    };
+    const service = new MapMarkersService(
+      prisma as never,
+      scope as never,
+      spatial as never,
+    );
+    const query = new MapMarkersQuery();
+    query.types = [MapMarkerType.REPORT];
+
+    const result = await service.list(query, {} as never);
+
+    expect(spatial.matchCoordinates).toHaveBeenCalledWith([
+      {
+        id: 'report-message-coordinate',
+        latitude: -6.9175,
+        longitude: 107.6191,
+      },
+    ]);
+    expect(result.features).toHaveLength(1);
+    expect(result.features[0]?.geometry.coordinates).toEqual([
+      107.6191, -6.9175,
+    ]);
+    expect(result.features[0]?.properties).toEqual(
+      expect.objectContaining({
+        coordinateSource: CoordinateSource.WHATSAPP_LOCATION,
+        gpsAccuracyMeters: 12,
+        locationCapturedAt: new Date('2026-07-13T08:59:00.000Z'),
+      }),
+    );
+    expect(result.meta.summary.reports).toEqual(
+      expect.objectContaining({
+        total: 1,
+        mappable: 1,
+        unlocated: 0,
       }),
     );
   });

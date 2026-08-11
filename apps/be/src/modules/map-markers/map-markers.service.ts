@@ -51,6 +51,14 @@ type MarkerResult = {
   unlocatedItems?: Array<Record<string, unknown>>;
 };
 
+type ReportCoordinate = {
+  latitude: number;
+  longitude: number;
+  gpsAccuracyMeters: number | null;
+  locationCapturedAt: Date | null;
+  coordinateSource: string | null;
+};
+
 type JaringReportVerificationStatus =
   | 'IN_PROGRESS_BY_JARING'
   | 'NOT_SUBMITTED'
@@ -411,7 +419,12 @@ export class MapMarkersService {
                             name: true,
                             level: true,
                             parent: {
-                              select: { id: true, code: true, name: true, level: true },
+                              select: {
+                                id: true,
+                                code: true,
+                                name: true,
+                                level: true,
+                              },
                             },
                           },
                         },
@@ -452,6 +465,8 @@ export class MapMarkersService {
             status: true,
             validationSummary: true,
             receivedAt: true,
+            gpsAccuracyMeters: true,
+            locationCapturedAt: true,
             coordinateSource: true,
             resolvedArea: {
               select: {
@@ -473,7 +488,9 @@ export class MapMarkersService {
                 id: true,
                 status: true,
                 currentVersionNumber: true,
-                reportCategory: { select: { id: true, code: true, name: true } },
+                reportCategory: {
+                  select: { id: true, code: true, name: true },
+                },
                 versions: {
                   orderBy: { versionNumber: 'desc' },
                   take: 1,
@@ -510,20 +527,30 @@ export class MapMarkersService {
       orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
     });
 
-    const withCoordinates = candidates.filter((report) =>
-      this.validCoordinates(report.latitude, report.longitude),
+    const reportCoordinates = new Map(
+      candidates.map((report) => [report.id, this.reportCoordinate(report)]),
     );
-    const matchedByReport = await this.spatial.matchCoordinates(
-      withCoordinates.map((report) => ({
+    const withCoordinates = candidates
+      .map((report) => ({
         id: report.id,
-        latitude: Number(report.latitude),
-        longitude: Number(report.longitude),
+        coordinate: reportCoordinates.get(report.id),
+      }))
+      .filter(
+        (item): item is { id: string; coordinate: ReportCoordinate } =>
+          item.coordinate !== null,
+      );
+    const matchedByReport = await this.spatial.matchCoordinates(
+      withCoordinates.map(({ id, coordinate }) => ({
+        id,
+        latitude: coordinate.latitude,
+        longitude: coordinate.longitude,
       })),
     );
 
     const prepared = candidates
       .map((report) => {
         const message = report.submittedMessage;
+        const coordinate = reportCoordinates.get(report.id) ?? null;
         const validity = this.reportValidity(message);
         const verificationStatus = this.reportVerificationStatus(
           report.status,
@@ -533,11 +560,8 @@ export class MapMarkersService {
         const suitability = this.reportLocationSuitability(
           baketVersion?.coverageValidationStatus,
         );
-        const hasCoordinates = this.validCoordinates(
-          report.latitude,
-          report.longitude,
-        );
-        const spatialAreas = hasCoordinates
+        const hasCoordinates = coordinate !== null;
+        const spatialAreas = coordinate
           ? (matchedByReport.get(report.id) ?? [])
           : [];
         const fallbackAreas = this.getFallbackAreas(
@@ -553,6 +577,7 @@ export class MapMarkersService {
           verificationStatus,
           suitability,
           baketVersion,
+          coordinate,
           hasCoordinates,
           hasSpatialMatch: spatialAreas.length > 0,
           areas,
@@ -594,10 +619,10 @@ export class MapMarkersService {
 
     const located = prepared.filter((item) => item.hasCoordinates);
     const visible = located
-      .filter(({ report }) =>
+      .filter(({ coordinate }) =>
         this.isInViewport(
-          Number(report.latitude),
-          Number(report.longitude),
+          coordinate?.latitude ?? 0,
+          coordinate?.longitude ?? 0,
           filters.viewport,
         ),
       )
@@ -628,7 +653,7 @@ export class MapMarkersService {
         id: `report:${report.id}`,
         geometry: {
           type: 'Point',
-          coordinates: [Number(report.longitude), Number(report.latitude)],
+          coordinates: [item.coordinate!.longitude, item.coordinate!.latitude],
         },
         properties: {
           markerType: MapMarkerType.REPORT,
@@ -649,12 +674,9 @@ export class MapMarkersService {
           category: message?.convertedBaket?.reportCategory ?? null,
           reportedAt: item.reportedAt,
           receivedAt: message?.receivedAt ?? null,
-          locationCapturedAt: report.locationCapturedAt,
-          coordinateSource: message?.coordinateSource ?? report.locationType,
-          gpsAccuracyMeters:
-            report.locationAccuracyMeters === null
-              ? null
-              : Number(report.locationAccuracyMeters),
+          locationCapturedAt: item.coordinate!.locationCapturedAt,
+          coordinateSource: item.coordinate!.coordinateSource,
+          gpsAccuracyMeters: item.coordinate!.gpsAccuracyMeters,
           areaResolutionMethod: item.hasSpatialMatch
             ? 'POLYGON_MATCH'
             : 'STORED_RELATION',
@@ -710,8 +732,8 @@ export class MapMarkersService {
       features,
       totalCount: prepared.length,
       unlocatedCount: prepared.length - located.length,
-        summary: {
-          total: prepared.length,
+      summary: {
+        total: prepared.length,
         valid: prepared.filter(
           (item) => item.validity === ReportValidityFilter.VALID,
         ).length,
@@ -743,9 +765,11 @@ export class MapMarkersService {
               report.jaring.caretakerAssignments?.[0]?.fieldOfficerAssignment
                 ?.userProfile.fullName ?? null,
             gaswilAssignmentId:
-              report.jaring.caretakerAssignments?.[0]?.fieldOfficerAssignment?.id ?? null,
+              report.jaring.caretakerAssignments?.[0]?.fieldOfficerAssignment
+                ?.id ?? null,
             gaswilUserProfileId:
-              report.jaring.caretakerAssignments?.[0]?.fieldOfficerAssignment?.userProfile.id ?? null,
+              report.jaring.caretakerAssignments?.[0]?.fieldOfficerAssignment
+                ?.userProfile.id ?? null,
           },
         })),
     };
@@ -893,7 +917,12 @@ export class MapMarkersService {
                             name: true,
                             level: true,
                             parent: {
-                              select: { id: true, code: true, name: true, level: true },
+                              select: {
+                                id: true,
+                                code: true,
+                                name: true,
+                                level: true,
+                              },
                             },
                           },
                         },
@@ -1275,7 +1304,8 @@ export class MapMarkersService {
       });
     const jaringsByAssignment = new Map<string, AssignedJaring['jaring'][]>();
     for (const caretaker of caretakerAssignments) {
-      const current = jaringsByAssignment.get(caretaker.fieldOfficerAssignmentId) ?? [];
+      const current =
+        jaringsByAssignment.get(caretaker.fieldOfficerAssignmentId) ?? [];
       current.push(caretaker.jaring);
       jaringsByAssignment.set(caretaker.fieldOfficerAssignmentId, current);
     }
@@ -1325,9 +1355,12 @@ export class MapMarkersService {
       .slice(0, query.limitPerType)
       .map(({ location, ageMinutes, agentState, areas }): MapFeature => {
         const visibleAreas = this.visibleAreas(areas, query);
-        const assignedJarings = (jaringsByAssignment.get(location.assignmentId) ?? []).map((jaring) => ({
+        const assignedJarings = (
+          jaringsByAssignment.get(location.assignmentId) ?? []
+        ).map((jaring) => ({
           id: jaring.id,
-          name: jaring.fullName ?? jaring.aliasName ?? 'Identitas Jaring terbatas',
+          name:
+            jaring.fullName ?? jaring.aliasName ?? 'Identitas Jaring terbatas',
           code: jaring.aliasName,
           whatsappNumber: jaring.whatsappNumber,
           profilePhotoFileId: jaring.profilePhotoFileId,
@@ -1380,19 +1413,70 @@ export class MapMarkersService {
   }
 
   private validCoordinates(latitude: unknown, longitude: unknown) {
-    if (latitude === null || latitude === undefined) return false;
-    if (longitude === null || longitude === undefined) return false;
-    const lat = Number(latitude);
-    const lng = Number(longitude);
-    return (
-      Number.isFinite(lat) &&
-      Number.isFinite(lng) &&
-      lat >= -90 &&
-      lat <= 90 &&
-      lng >= -180 &&
-      lng <= 180 &&
-      !(lat === 0 && lng === 0)
+    return this.coordinatePair(latitude, longitude) !== null;
+  }
+
+  private coordinatePair(latitude: unknown, longitude: unknown) {
+    const lat = this.numberOrNull(latitude);
+    const lng = this.numberOrNull(longitude);
+    if (lat === null || lng === null) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    if (lat === 0 && lng === 0) return null;
+    return { latitude: lat, longitude: lng };
+  }
+
+  private numberOrNull(value: unknown) {
+    if (value === null || value === undefined) return null;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : null;
+  }
+
+  private reportCoordinate(report: {
+    latitude: unknown;
+    longitude: unknown;
+    locationAccuracyMeters?: unknown;
+    locationCapturedAt?: Date | null;
+    locationType?: string | null;
+    submittedMessage?: {
+      latitude?: unknown;
+      longitude?: unknown;
+      gpsAccuracyMeters?: unknown;
+      locationCapturedAt?: Date | null;
+      receivedAt?: Date | null;
+      coordinateSource?: string | null;
+    } | null;
+  }): ReportCoordinate | null {
+    const sessionCoordinate = this.coordinatePair(
+      report.latitude,
+      report.longitude,
     );
+    if (sessionCoordinate) {
+      return {
+        ...sessionCoordinate,
+        gpsAccuracyMeters: this.numberOrNull(report.locationAccuracyMeters),
+        locationCapturedAt: report.locationCapturedAt ?? null,
+        coordinateSource:
+          report.submittedMessage?.coordinateSource ??
+          report.locationType ??
+          null,
+      };
+    }
+
+    const message = report.submittedMessage;
+    const messageCoordinate = this.coordinatePair(
+      message?.latitude,
+      message?.longitude,
+    );
+    if (!messageCoordinate) return null;
+
+    return {
+      ...messageCoordinate,
+      gpsAccuracyMeters: this.numberOrNull(message?.gpsAccuracyMeters),
+      locationCapturedAt:
+        message?.locationCapturedAt ?? message?.receivedAt ?? null,
+      coordinateSource:
+        message?.coordinateSource ?? report.locationType ?? null,
+    };
   }
 
   private reportValidity(
@@ -1489,10 +1573,7 @@ export class MapMarkersService {
       ...(to ? { lte: to } : {}),
     };
     return {
-      OR: [
-        { submittedAt: range },
-        { submittedAt: null, startedAt: range },
-      ],
+      OR: [{ submittedAt: range }, { submittedAt: null, startedAt: range }],
     };
   }
 
