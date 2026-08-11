@@ -23,7 +23,10 @@ services:
       # Keep container storage paths absolute so Dokploy volume mounts never
       # break when UI/.env values use local relative paths like ./storage.
       LOCAL_STORAGE_ROOT: /app/storage
+      # Keep WhatsApp credentials on a named volume so image updates do not
+      # force operators to scan QR again.
       WHATSAPP_AUTH_ROOT: /app/wa_auth
+      WHATSAPP_ALLOW_SESSION_RESET: ${WHATSAPP_ALLOW_SESSION_RESET:-false}
       RUN_MIGRATIONS_ON_STARTUP: ${RUN_MIGRATIONS_ON_STARTUP:-true}
       RUN_SEED_ON_STARTUP: ${RUN_SEED_ON_STARTUP:-false}
       RUN_JAKARTA_SEED_ON_STARTUP: ${RUN_JAKARTA_SEED_ON_STARTUP:-false}

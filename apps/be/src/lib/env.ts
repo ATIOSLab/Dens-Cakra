@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { resolve } from 'node:path';
 
 function getString(name: string, fallback?: string): string {
   const value = process.env[name] ?? fallback;
@@ -54,6 +55,11 @@ function getStringList(name: string, fallback: string[]): string[] {
     .filter(Boolean);
 }
 
+const localStorageRoot = getString('LOCAL_STORAGE_ROOT', './storage');
+const whatsappAuthRoot =
+  getOptionalString('WHATSAPP_AUTH_ROOT') ??
+  resolve(localStorageRoot, 'whatsapp-auth');
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: getNumber('PORT', 3001),
@@ -89,12 +95,16 @@ export const env = {
     leaseTimeoutMs: getNumber('WORKER_LEASE_TIMEOUT_MS', 60_000),
   },
   storage: {
-    root: getString('LOCAL_STORAGE_ROOT', './storage'),
+    root: localStorageRoot,
     signingSecret: getString(
       'STORAGE_SIGNING_SECRET',
       getString('BETTER_AUTH_SECRET'),
     ),
     maxFileSizeBytes: getNumber('MAX_FILE_SIZE_BYTES', 25 * 1024 * 1024),
+  },
+  whatsapp: {
+    authRoot: whatsappAuthRoot,
+    allowSessionReset: getBoolean('WHATSAPP_ALLOW_SESSION_RESET', false),
   },
   encryptionKey: getString(
     'APPLICATION_ENCRYPTION_KEY',

@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { AreaResolutionMethod } from '../../generated/prisma/client.js';
+import { env } from '../../lib/env.js';
 import { WhatsappBotRuntimeService } from './whatsapp-bot-runtime.service.js';
 
 describe('WhatsappBotRuntimeService report intake', () => {
@@ -73,6 +74,50 @@ describe('WhatsappBotRuntimeService report intake', () => {
     expect(isReportIntent('/lapor')).toBe(false);
     expect(isReportIntent('/laporan')).toBe(false);
     expect(isReportIntent('lapor sekarang')).toBe(false);
+  });
+
+  it('menolak reset session WhatsApp saat guard reset dimatikan', async () => {
+    const mutableEnv = env as unknown as {
+      whatsapp: { allowSessionReset: boolean };
+    };
+    const previousAllowSessionReset = mutableEnv.whatsapp.allowSessionReset;
+    mutableEnv.whatsapp.allowSessionReset = false;
+
+    const prisma = {
+      integrationChannel: {
+        findFirstOrThrow: jest.fn(() =>
+          Promise.resolve({
+            id: 'channel-id',
+            code: 'WHATSAPP-UTAMA',
+            channelType: 'WHATSAPP',
+            status: 'ACTIVE',
+            config: {},
+          }),
+        ),
+      },
+    };
+    const service = new WhatsappBotRuntimeService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const disconnectChannel = jest
+      .spyOn(service, 'disconnectChannel')
+      .mockResolvedValue(undefined);
+
+    try {
+      await expect(service.requestFreshQr('channel-id')).rejects.toMatchObject({
+        code: 'WHATSAPP_SESSION_RESET_DISABLED',
+      });
+      expect(disconnectChannel).not.toHaveBeenCalled();
+    } finally {
+      mutableEnv.whatsapp.allowSessionReset = previousAllowSessionReset;
+      disconnectChannel.mockRestore();
+    }
   });
 
   it('menolak lokasi statis dan menerima live location pada sesi laporan', async () => {

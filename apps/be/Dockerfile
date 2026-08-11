@@ -27,6 +27,7 @@ ENV NODE_ENV=production
 ENV PORT=3001
 ENV LOCAL_STORAGE_ROOT=/app/storage
 ENV WHATSAPP_AUTH_ROOT=/app/wa_auth
+ENV WHATSAPP_ALLOW_SESSION_RESET=false
 
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules

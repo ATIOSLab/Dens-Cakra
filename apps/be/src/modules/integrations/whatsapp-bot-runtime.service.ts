@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
-import { mkdir, rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { access, cp, mkdir, rm } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { Boom } from '@hapi/boom';
 import {
+  HttpStatus,
   Injectable,
   Logger,
   OnModuleDestroy,
@@ -36,7 +37,9 @@ import {
   WhatsAppMessageStatus,
   WhatsAppValidationSummary,
 } from '../../generated/prisma/client.js';
+import { ApiException } from '../../common/api/api-exception.js';
 import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
+import { env } from '../../lib/env.js';
 import {
   SecretVaultService,
   type EncryptedValue,
@@ -112,6 +115,7 @@ type ReportSession = {
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const LEGACY_WHATSAPP_AUTH_ROOT = 'wa_auth';
 
 const REPORT_REPLIES = {
   cancelled: [
@@ -306,6 +310,7 @@ export class WhatsappBotRuntimeService
 
   async requestFreshQr(channelId: string) {
     const channel = await this.getChannel(channelId);
+    this.assertSessionResetAllowed();
     await this.disconnectChannel(channel.id, true);
     await rm(this.authDirForChannel(channel.code), {
       recursive: true,
@@ -367,8 +372,7 @@ export class WhatsappBotRuntimeService
       await this.disconnectChannel(channel.id, false);
     }
 
-    const authDir = this.authDirForChannel(channel.code);
-    await mkdir(authDir, { recursive: true });
+    const authDir = await this.ensureAuthDir(channel.code);
 
     const runtime: RuntimeState = {
       connecting: true,
@@ -971,9 +975,64 @@ export class WhatsappBotRuntimeService
 
   private authDirForChannel(channelCode: string) {
     return resolve(
+      env.whatsapp.authRoot,
+      this.authDirNameForChannel(channelCode),
+    );
+  }
+
+  private legacyAuthDirForChannel(channelCode: string) {
+    return resolve(
       process.cwd(),
-      process.env.WHATSAPP_AUTH_ROOT || 'wa_auth',
-      channelCode,
+      LEGACY_WHATSAPP_AUTH_ROOT,
+      this.authDirNameForChannel(channelCode),
+    );
+  }
+
+  private authDirNameForChannel(channelCode: string) {
+    return (
+      channelCode
+        .trim()
+        .replace(/[\\/]+/g, '-')
+        .replace(/\.\.+/g, '-')
+        .replace(/^[-.\s]+|[-.\s]+$/g, '') || 'default'
+    );
+  }
+
+  private async ensureAuthDir(channelCode: string) {
+    const authDir = this.authDirForChannel(channelCode);
+    const legacyAuthDir = this.legacyAuthDirForChannel(channelCode);
+
+    if (
+      authDir !== legacyAuthDir &&
+      !(await this.pathExists(authDir)) &&
+      (await this.pathExists(legacyAuthDir))
+    ) {
+      await mkdir(dirname(authDir), { recursive: true });
+      await cp(legacyAuthDir, authDir, { recursive: true, force: false });
+      this.logger.warn(
+        `Migrated WhatsApp auth state from ${legacyAuthDir} to ${authDir}`,
+      );
+    }
+
+    await mkdir(authDir, { recursive: true });
+    return authDir;
+  }
+
+  private async pathExists(path: string) {
+    return access(path)
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  private assertSessionResetAllowed() {
+    if (env.whatsapp.allowSessionReset) {
+      return;
+    }
+
+    throw new ApiException(
+      'WHATSAPP_SESSION_RESET_DISABLED',
+      'Reset session WhatsApp dinonaktifkan untuk menjaga login tetap aktif. Aktifkan WHATSAPP_ALLOW_SESSION_RESET=true hanya saat operator benar-benar perlu scan QR ulang.',
+      HttpStatus.CONFLICT,
     );
   }
 
@@ -1071,6 +1130,7 @@ export class WhatsappBotRuntimeService
 
   async deleteChannelSession(channelId: string) {
     const channel = await this.getChannel(channelId);
+    this.assertSessionResetAllowed();
 
     if (!this.runtimes.has(channelId)) {
       await this.connectChannel(channel, { force: true }).catch(
