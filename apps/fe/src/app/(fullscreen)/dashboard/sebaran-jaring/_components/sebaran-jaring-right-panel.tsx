@@ -4,13 +4,14 @@ import { useState } from "react";
 
 import Link from "next/link";
 
-import { Search, Users, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
+import { DC_CONTROLS, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -54,15 +55,16 @@ export function SebaranJaringRightPanel({
   const [detailTab, setDetailTab] = useState<"info" | "reports" | "activities">("info");
   const copy = DISTRIBUTION_ENTITY_COPY[mode];
   const isGaswilMode = mode === "gaswil";
+  const visual = isGaswilMode ? DOMAIN_VISUALS.gaswil : DOMAIN_VISUALS.jaring;
 
   if (!isOpen) return null;
 
   return (
-    <aside className="absolute inset-y-0 right-0 z-20 flex h-full w-80 shrink-0 flex-col border-slate-200 border-l bg-white/95 shadow-2xl backdrop-blur-md transition-all lg:relative dark:border-slate-800 dark:bg-slate-900/95">
+    <aside className="absolute inset-y-0 right-0 z-20 flex h-full w-[min(26rem,calc(100vw-2rem))] shrink-0 flex-col border-slate-200 border-l bg-white/95 shadow-2xl backdrop-blur-md transition-all lg:relative dark:border-slate-800 dark:bg-slate-900/95">
       {/* Header */}
       <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className="size-4 text-cyan-600 dark:text-cyan-400" />
+          <visual.Icon className={cn("size-4", visual.iconClass)} />
           <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
             {copy.rightPanelTitle}
           </h2>
@@ -90,7 +92,7 @@ export function SebaranJaringRightPanel({
             placeholder={copy.rightSearchPlaceholder}
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            className="pl-8 text-xs h-8.5 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+            className={cn(DC_CONTROLS.input, "h-9 bg-slate-50 pl-8 text-xs dark:bg-slate-950")}
           />
         </div>
 
@@ -159,7 +161,7 @@ export function SebaranJaringRightPanel({
                   <div className="flex items-center gap-2">
                     <Badge
                       className={cn(
-                        "text-[9px] px-1.5 py-0 border-none font-semibold text-slate-950",
+                        "max-w-full whitespace-normal border-none px-1.5 py-0 text-[9px] text-slate-950 leading-3 font-semibold",
                         statusMeta.dotClass || "bg-emerald-500",
                       )}
                     >
@@ -168,7 +170,7 @@ export function SebaranJaringRightPanel({
                     {mode === "jaring" ? (
                       <Badge
                         className={cn(
-                          "text-[9px] px-1.5 py-0 border-none font-semibold text-white",
+                          "max-w-full whitespace-normal border-none px-1.5 py-0 text-[9px] text-white leading-3 font-semibold",
                           agent.isActive ? "bg-emerald-600" : "bg-red-600",
                         )}
                       >
@@ -207,7 +209,7 @@ export function SebaranJaringRightPanel({
                   </div>
                 )}
 
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   {agent.villageName}, {agent.districtName}
                 </p>
                 {isGaswilMode ? (
@@ -222,7 +224,9 @@ export function SebaranJaringRightPanel({
                     {agent.baketCount.toLocaleString("id-ID")} Baket
                   </p>
                 )}
-                {!isGaswilMode && coordinateSourceMode === "laporan" && (agent.latestReportLat == null || agent.latestReportLng == null) ? (
+                {!isGaswilMode &&
+                coordinateSourceMode === "laporan" &&
+                (agent.latestReportLat == null || agent.latestReportLng == null) ? (
                   <p className="text-[10px] text-amber-600 dark:text-amber-400">Lokasi laporan belum tersedia</p>
                 ) : null}
               </div>
@@ -234,7 +238,8 @@ export function SebaranJaringRightPanel({
           <div className="grid min-h-40 place-items-center p-5 text-center text-slate-500 text-xs">
             <span>
               {copy.emptyListText}
-              <br />Ubah filter untuk melihat data lainnya.
+              <br />
+              Ubah filter untuk melihat data lainnya.
             </span>
           </div>
         ) : null}
@@ -252,16 +257,17 @@ export function SebaranJaringRightPanel({
               </span>
               <Badge
                 className={cn(
-                  "text-[10px] px-1.5 py-0 border-none font-semibold text-slate-950",
+                  "max-w-full whitespace-normal border-none px-1.5 py-0 text-[10px] text-slate-950 leading-3 font-semibold",
                   statusPresentationForMode(mode, selectedJaring.status).dotClass,
                 )}
               >
-                {copy.statusLabels[selectedJaring.status] || statusPresentationForMode(mode, selectedJaring.status).label}
+                {copy.statusLabels[selectedJaring.status] ||
+                  statusPresentationForMode(mode, selectedJaring.status).label}
               </Badge>
               {!isGaswilMode ? (
                 <Badge
                   className={cn(
-                    "text-[10px] px-1.5 py-0 border-none font-semibold text-white",
+                    "max-w-full whitespace-normal border-none px-1.5 py-0 text-[10px] text-white leading-3 font-semibold",
                     selectedJaring.isActive ? "bg-emerald-600" : "bg-red-600",
                   )}
                 >
@@ -322,7 +328,7 @@ export function SebaranJaringRightPanel({
           {/* Key-Value Details */}
           {isGaswilMode ? (
             <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
-              <div className="rounded-lg border border-slate-200 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="rounded-md border border-slate-200 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-900">
                 <p className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Wilayah Penugasan
                 </p>
@@ -405,9 +411,7 @@ export function SebaranJaringRightPanel({
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  Laporan Terakhir
-                </span>
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">Laporan Terakhir</span>
                 <span className="text-slate-800 dark:text-slate-200">{selectedJaring.lastReportDate}</span>
               </div>
             </div>

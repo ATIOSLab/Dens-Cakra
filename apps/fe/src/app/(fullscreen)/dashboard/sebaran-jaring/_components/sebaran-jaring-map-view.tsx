@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { ChevronRight, MapPin, X } from "lucide-react";
-import type { Map as MapLibreMap, StyleSpecification } from "maplibre-gl";
+import type { Map as MapLibreMap, PopupOptions, StyleSpecification } from "maplibre-gl";
 
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +113,25 @@ export const MAP_TILE_STYLES: Record<MapStyleMode, StyleSpecification> = {
     ],
   },
 };
+
+const DISTRIBUTION_POPUP_PADDING = {
+  top: 96,
+  right: 32,
+  bottom: 176,
+  left: 32,
+} satisfies NonNullable<PopupOptions["padding"]>;
+
+const DISTRIBUTION_POPUP_OFFSET = {
+  center: [0, 0],
+  top: [0, 18],
+  "top-left": [14, 18],
+  "top-right": [-14, 18],
+  bottom: [0, -18],
+  "bottom-left": [14, -18],
+  "bottom-right": [-14, -18],
+  left: [18, 0],
+  right: [-18, 0],
+} satisfies NonNullable<PopupOptions["offset"]>;
 
 function agentCoordinate(agent: JaringDistributionEntry, source: CoordinateSourceMode): [number, number] | null {
   if (source === "laporan") {
@@ -336,11 +355,11 @@ export function SebaranJaringMapView({
                       className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
                       title={`Kota ${selectedCity.name}: ${selectedCity.total} ${copy.plural}`}
                     >
-                      <div className="h-7 px-3 rounded-full border border-cyan-500/80 font-mono font-bold text-xs text-white flex items-center justify-center shadow-md bg-slate-900/95 backdrop-blur-md gap-2">
+                      <div className="flex h-7 items-center justify-center gap-2 rounded-md border border-cyan-500/80 bg-slate-900/95 px-3 font-mono font-bold text-white text-xs shadow-md backdrop-blur-md">
                         <span className="text-cyan-300 font-extrabold uppercase tracking-wide">
                           {selectedCity.name}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-cyan-600 text-white font-bold text-xs">
+                        <span className="rounded-md bg-cyan-600 px-2 py-0.5 font-bold text-white text-xs">
                           {selectedCity.total} {copy.plural}
                         </span>
                       </div>
@@ -367,14 +386,14 @@ export function SebaranJaringMapView({
                       >
                         <div
                           className={cn(
-                            "h-7 px-3 rounded-full border font-mono font-bold text-xs text-white flex items-center justify-center shadow-md backdrop-blur-md gap-1.5",
+                            "flex h-7 items-center justify-center gap-1.5 rounded-md border px-3 font-mono font-bold text-white text-xs shadow-md backdrop-blur-md",
                             isSelected
                               ? "border-cyan-400 bg-cyan-950/95 text-cyan-200"
                               : "border-slate-700 bg-slate-900/90 hover:border-cyan-500",
                           )}
                         >
                           <span>{city.name}</span>
-                          <span className="px-1.5 py-0.2 rounded-full bg-cyan-600 text-white font-bold text-[11px]">
+                          <span className="rounded-md bg-cyan-600 px-1.5 py-0.5 font-bold text-[11px] text-white">
                             {city.total}
                           </span>
                         </div>
@@ -413,14 +432,14 @@ export function SebaranJaringMapView({
                       >
                         <div
                           className={cn(
-                            "h-6 px-2.5 rounded-full border font-mono font-semibold text-[10px] text-slate-100 flex items-center justify-center shadow-md backdrop-blur-md gap-1.5 transition-all",
+                            "flex h-7 items-center justify-center gap-1.5 rounded-md border px-2.5 font-mono font-semibold text-[10px] text-slate-100 shadow-md backdrop-blur-md transition-all",
                             isSelected
                               ? "border-cyan-400 bg-cyan-950/95 text-cyan-200 ring-2 ring-cyan-500/50"
                               : "border-slate-700/80 bg-slate-900/90 hover:border-cyan-500 hover:text-white",
                           )}
                         >
                           <span>{village.name}</span>
-                          <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-200 text-[9px] font-bold border border-slate-700">
+                          <span className="rounded-md border border-slate-700 bg-slate-800 px-1.5 py-0.5 font-bold text-[9px] text-slate-200">
                             {village.total}
                           </span>
                         </div>
@@ -446,9 +465,9 @@ export function SebaranJaringMapView({
                       className="group relative flex items-center justify-center cursor-pointer transition-transform duration-150 hover:scale-105"
                       title={`Kecamatan ${district.name}: ${district.total} ${copy.plural}`}
                     >
-                      <div className="h-6 px-2.5 rounded-full border border-slate-700/80 bg-slate-900/90 text-slate-100 font-mono font-semibold text-[11px] flex items-center justify-center shadow-md backdrop-blur-md hover:border-cyan-500 hover:text-white transition-all">
+                      <div className="flex h-7 items-center justify-center rounded-md border border-slate-700/80 bg-slate-900/90 px-2.5 font-mono font-semibold text-[11px] text-slate-100 shadow-md backdrop-blur-md transition-all hover:border-cyan-500 hover:text-white">
                         <span>{district.name}</span>
-                        <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-slate-800 text-cyan-300 border border-slate-700 text-[10px] font-bold">
+                        <span className="ml-1.5 rounded-md border border-slate-700 bg-slate-800 px-1.5 py-0.5 font-bold text-[10px] text-cyan-300">
                           {district.total}
                         </span>
                       </div>
@@ -498,9 +517,11 @@ export function SebaranJaringMapView({
               longitude={selectedCoordinate[0]}
               latitude={selectedCoordinate[1]}
               onClose={onClosePopup}
+              offset={DISTRIBUTION_POPUP_OFFSET}
+              padding={DISTRIBUTION_POPUP_PADDING}
               className="z-50"
             >
-              <div className="p-3.5 bg-slate-900/95 border border-slate-800 rounded-xl text-slate-100 min-w-[270px] space-y-2.5 shadow-2xl backdrop-blur-md">
+              <div className="w-[min(21rem,calc(100vw-2rem))] space-y-2.5 rounded-md border border-slate-800 bg-slate-900/95 p-3.5 text-slate-100 shadow-2xl backdrop-blur-md">
                 <div className="flex items-center justify-end border-b border-slate-800 pb-2.5">
                   <div className="flex items-center gap-1.5 self-start flex-wrap">
                     <Badge
@@ -509,7 +530,8 @@ export function SebaranJaringMapView({
                         statusPresentationForMode(mode, selectedJaring.status).dotClass,
                       )}
                     >
-                      {copy.statusLabels[selectedJaring.status] || statusPresentationForMode(mode, selectedJaring.status).label}
+                      {copy.statusLabels[selectedJaring.status] ||
+                        statusPresentationForMode(mode, selectedJaring.status).label}
                     </Badge>
                     {mode === "jaring" ? (
                       <Badge
@@ -614,7 +636,9 @@ export function SebaranJaringMapView({
                 <a
                   href={
                     selectedJaring.detailHref ??
-                    (mode === "gaswil" ? "/dashboard/personel-lapangan" : `/dashboard/daftar-jaring/${selectedJaring.id}`)
+                    (mode === "gaswil"
+                      ? "/dashboard/personel-lapangan"
+                      : `/dashboard/daftar-jaring/${selectedJaring.id}`)
                   }
                   target="_blank"
                   rel="noopener noreferrer"
@@ -629,7 +653,7 @@ export function SebaranJaringMapView({
         </BaseMap>
 
         {/* Map Floating Legend Box */}
-        <div className="absolute bottom-20 left-4 z-10 hidden sm:block p-3 bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800/90 backdrop-blur-md rounded-xl space-y-2 shadow-2xl text-xs w-48 transition-colors">
+        <div className="absolute bottom-[9.75rem] left-4 z-10 hidden w-52 space-y-2 rounded-md border border-slate-200 bg-white/95 p-3 text-xs shadow-2xl backdrop-blur-md transition-colors sm:block dark:border-slate-800/90 dark:bg-slate-900/95">
           <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
             LEGENDA
           </div>

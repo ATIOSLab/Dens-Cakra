@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { DC_CONTROLS } from "@/lib/domain/visual-system";
+import { cn } from "@/lib/utils";
 
 import type {
   AdminLevel,
@@ -76,14 +78,17 @@ export function SebaranJaringLeftPanel({
 }: Props) {
   const selectedCity = cities.find((c) => c.id === selectedCityId) ?? null;
   const copy = DISTRIBUTION_ENTITY_COPY[mode];
+  const toneTextClass =
+    mode === "gaswil" ? "text-emerald-700 dark:text-emerald-300" : "text-cyan-700 dark:text-cyan-300";
+  const controlClass = cn(DC_CONTROLS.selectTrigger, "w-full bg-slate-50 text-xs dark:bg-slate-950");
 
   if (!isOpen) return null;
 
   return (
-    <aside className="z-20 w-80 shrink-0 bg-white/95 dark:bg-slate-900/95 border-r border-slate-200 dark:border-slate-800/90 backdrop-blur-lg flex flex-col shadow-xl absolute lg:relative inset-y-0 left-0 transition-colors">
+    <aside className="absolute inset-y-0 left-0 z-20 flex w-[min(25rem,calc(100vw-2rem))] shrink-0 flex-col border-slate-200 border-r bg-white/95 shadow-xl backdrop-blur-lg transition-colors lg:relative dark:border-slate-800/90 dark:bg-slate-900/95">
       {/* Panel Header */}
       <div className="p-3.5 border-b border-slate-200 dark:border-slate-800/90 flex items-center justify-between bg-slate-100/70 dark:bg-slate-950/50">
-        <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-semibold text-xs tracking-wider">
+        <div className={cn("flex items-center gap-2 font-semibold text-xs tracking-wider", toneTextClass)}>
           <Filter className="size-3.5" />
           <span>FILTER & RINGKASAN</span>
         </div>
@@ -100,16 +105,14 @@ export function SebaranJaringLeftPanel({
       <div className="flex-1 overflow-y-auto p-3.5 pb-24 space-y-4 text-xs scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800">
         {/* PENCARIAN */}
         <div className="space-y-1.5">
-          <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            PENCARIAN
-          </p>
+          <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">PENCARIAN</p>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 size-3.5 text-slate-400 dark:text-slate-500" />
             <Input
               value={searchQuery}
               onChange={(e) => onSearchQueryChange(e.target.value)}
               placeholder={copy.searchPlaceholder}
-              className="pl-8 bg-slate-50 dark:bg-slate-950/80 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 text-xs h-8 focus:border-cyan-500/50 placeholder:text-slate-400 dark:placeholder:text-slate-600"
+              className={cn(DC_CONTROLS.input, "h-9 bg-slate-50 pl-8 text-xs dark:bg-slate-950/80")}
             />
           </div>
         </div>
@@ -150,11 +153,7 @@ export function SebaranJaringLeftPanel({
         <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800/60">
           <div className="space-y-1">
             <span className="text-[10px] text-slate-500 font-mono">KOTA/KABUPATEN</span>
-            <select
-              value={selectedCityId}
-              onChange={(e) => onSelectCity(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-slate-800 dark:text-slate-300 text-xs focus:border-cyan-500 cursor-pointer"
-            >
+            <select value={selectedCityId} onChange={(e) => onSelectCity(e.target.value)} className={controlClass}>
               {allowedAdminLevels.includes("PROVINCE") ? (
                 <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">
                   Seluruh Wilayah
@@ -178,7 +177,7 @@ export function SebaranJaringLeftPanel({
               value={selectedDistrictId ?? ""}
               onChange={(e) => onSelectDistrict(e.target.value)}
               disabled={!selectedCity}
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-slate-800 dark:text-slate-300 text-xs focus:border-cyan-500 cursor-pointer"
+              className={controlClass}
             >
               <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                 Semua Kecamatan
@@ -201,7 +200,7 @@ export function SebaranJaringLeftPanel({
               value={selectedVillageId ?? ""}
               onChange={(e) => onSelectVillage(e.target.value)}
               disabled={!selectedDistrictId}
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-slate-800 dark:text-slate-300 text-xs focus:border-cyan-500 cursor-pointer"
+              className={controlClass}
             >
               <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                 {selectedDistrictId ? "Semua Kelurahan/Desa" : "Pilih Kecamatan dahulu"}
@@ -220,14 +219,14 @@ export function SebaranJaringLeftPanel({
         </div>
 
         {/* RINGKASAN WILAYAH */}
-        <div className="p-3 bg-slate-100/80 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/90 rounded-lg space-y-2.5">
+        <div className="space-y-2.5 rounded-md border border-slate-200 bg-slate-100/80 p-3 dark:border-slate-800/90 dark:bg-slate-950/70">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               RINGKASAN WILAYAH
             </span>
           </div>
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-2">
-            <span className="font-bold text-sm text-cyan-700 dark:text-cyan-300 truncate max-w-[170px]">
+            <span className={cn("max-w-[210px] truncate font-bold text-sm", toneTextClass)}>
               {summaryStats.regionName}
             </span>
             <Badge
@@ -239,12 +238,10 @@ export function SebaranJaringLeftPanel({
           </div>
 
           {/* 4 Stat Metric Cards Grid */}
-          <div className="grid grid-cols-4 gap-1.5 text-center">
+          <div className="grid grid-cols-2 gap-2 text-center xl:grid-cols-4">
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
               <div className="font-bold text-sm text-cyan-600 dark:text-cyan-400">{summaryStats.total}</div>
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">
-                {copy.totalSummaryLabel}
-              </div>
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">{copy.totalSummaryLabel}</div>
             </div>
             <div className="p-1.5 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900/60">
               <div className="font-bold text-sm text-emerald-600 dark:text-emerald-400">{summaryStats.verified}</div>
@@ -273,7 +270,10 @@ export function SebaranJaringLeftPanel({
             FILTER STATUS
           </p>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <label htmlFor="sebaran-status-all" className="col-span-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 cursor-pointer font-medium">
+            <label
+              htmlFor="sebaran-status-all"
+              className="col-span-2 flex items-center gap-2 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
+            >
               <Checkbox
                 id="sebaran-status-all"
                 checked={statusFilter.ALL}
@@ -314,7 +314,10 @@ export function SebaranJaringLeftPanel({
                   }
                   className="size-3 border-slate-300 dark:border-slate-700 data-[state=checked]:bg-cyan-600"
                 />
-                <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: statusPresentationForMode(mode, key).bg }} />
+                <span
+                  className="size-2 rounded-full shrink-0"
+                  style={{ backgroundColor: statusPresentationForMode(mode, key).bg }}
+                />
                 <span className="text-[11px] truncate">{label}</span>
               </label>
             ))}
@@ -329,7 +332,7 @@ export function SebaranJaringLeftPanel({
           <NativeSelect
             value={dateRange}
             onChange={(e) => onDateRangeChange(e.target.value as DateRangeOption)}
-            className="bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs h-8"
+            className={controlClass}
           >
             <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
               {copy.allDateLabel}

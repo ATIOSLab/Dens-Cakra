@@ -1,12 +1,13 @@
 "use client";
 
-import { Clock, RefreshCw, SlidersHorizontal, Users } from "lucide-react";
+import { Clock, RefreshCw, SlidersHorizontal } from "lucide-react";
 
 import { ThemeSwitcher } from "@/app/(main)/dashboard/_components/sidebar/theme-switcher";
 import { AppLogo } from "@/components/app-logo";
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
+import { DC_CONTROLS, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
 import {
@@ -45,24 +46,43 @@ export function SebaranJaringHeader({
   mode = "jaring",
 }: Props) {
   const copy = DISTRIBUTION_ENTITY_COPY[mode];
+  const visual = mode === "gaswil" ? DOMAIN_VISUALS.gaswil : DOMAIN_VISUALS.jaring;
+  const tone = mode === "gaswil" ? "emerald" : "cyan";
+  const toneTextClass =
+    tone === "emerald" ? "text-emerald-700 dark:text-emerald-300" : "text-cyan-700 dark:text-cyan-300";
+  const toneBadgeClass =
+    tone === "emerald"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300"
+      : "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/80 dark:text-cyan-300";
 
   return (
-    <header className="z-30 h-14 shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between shadow-md transition-colors">
+    <header className="z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-slate-200 border-b bg-white px-4 shadow-md transition-colors dark:border-slate-800 dark:bg-slate-900">
       {/* Left Branding */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <BackButton
           href="/dashboard"
           label="Kembali"
           variant="ghost"
-          className="h-8 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 [&_span]:hidden xl:[&_span]:inline"
+          className="h-9 rounded-md bg-slate-100 px-2.5 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 [&_span]:hidden xl:[&_span]:inline"
         />
-        <div className="flex items-center gap-2.5">
-          <AppLogo size="sm" className="border-cyan-500/40 bg-cyan-500/10 shadow-[0_0_12px_rgba(6,182,212,0.22)]" />
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm tracking-wider text-slate-900 dark:text-slate-100 shrink-0">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <AppLogo
+            size="sm"
+            className={cn(
+              "border-cyan-500/40 bg-cyan-500/10 shadow-[0_0_12px_rgba(6,182,212,0.22)]",
+              mode === "gaswil" && "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_12px_rgba(34,197,94,0.18)]",
+            )}
+          />
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 font-bold text-sm tracking-normal text-slate-900 dark:text-slate-100">
               DENS CAKRA
             </span>
-            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-cyan-700 dark:text-cyan-400 font-semibold uppercase tracking-widest hidden xl:inline-block shrink-0">
+            <span
+              className={cn(
+                "hidden shrink-0 rounded border px-1.5 py-0.5 font-mono font-semibold text-[9px] uppercase tracking-widest xl:inline-block",
+                toneBadgeClass,
+              )}
+            >
               {copy.headerBadge}
             </span>
           </div>
@@ -70,14 +90,18 @@ export function SebaranJaringHeader({
       </div>
 
       {/* Center Administrative Dropdown Selector */}
-      <div className="hidden md:flex items-center gap-2 bg-slate-100 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-1 text-xs">
+      <div className="hidden min-w-[18rem] max-w-xl flex-1 items-center gap-2 rounded-md border border-slate-300 bg-slate-100 px-3 py-1 text-xs md:flex dark:border-slate-800 dark:bg-slate-950/80">
         <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px] uppercase tracking-wider">
           WILAYAH
         </span>
         <NativeSelect
           value={selectedCityId}
           onChange={(e) => onSelectCity(e.target.value)}
-          className="bg-transparent border-none text-cyan-700 dark:text-cyan-300 font-semibold focus:ring-0 cursor-pointer h-7 text-xs py-0"
+          className={cn(
+            DC_CONTROLS.selectTrigger,
+            "h-9 min-w-0 flex-1 border-none bg-transparent py-0 font-semibold text-sm focus:ring-0",
+            toneTextClass,
+          )}
         >
           {showAllCities ? (
             <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
@@ -90,7 +114,6 @@ export function SebaranJaringHeader({
               value={city.id}
               className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
             >
-              {city.provinceName ? `${city.provinceName} - ` : ""}
               {city.name}
             </option>
           ))}
@@ -98,7 +121,7 @@ export function SebaranJaringHeader({
       </div>
 
       {/* Right Telemetry Controls */}
-      <div className="flex items-center gap-2.5 font-mono text-xs">
+      <div className="flex shrink-0 items-center gap-2.5 font-mono text-xs">
         {/* Live WIB Clock */}
         <div className="hidden lg:flex items-center gap-2 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-950/90 px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-800 text-[11px]">
           <Clock className="size-3.5 text-cyan-600 dark:text-cyan-400" />
@@ -109,7 +132,7 @@ export function SebaranJaringHeader({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="flex items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-100 px-2.5 py-1 font-semibold text-[11px] text-emerald-700 transition hover:bg-emerald-200 disabled:opacity-70 dark:border-emerald-800/80 dark:bg-emerald-950/80 dark:text-emerald-400 dark:hover:bg-emerald-900/80"
+          className="flex h-9 items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-100 px-2.5 font-semibold text-[11px] text-emerald-700 transition hover:bg-emerald-200 disabled:opacity-70 dark:border-emerald-800/80 dark:bg-emerald-950/80 dark:text-emerald-400 dark:hover:bg-emerald-900/80"
           title={`Sinkronisasi terakhir ${lastSyncedAt.toLocaleTimeString("id-ID", {
             hour: "2-digit",
             minute: "2-digit",
@@ -122,8 +145,10 @@ export function SebaranJaringHeader({
         </button>
 
         {/* Entity Counter Badge */}
-        <div className="hidden items-center gap-1.5 rounded-md border border-cyan-300 bg-cyan-100 px-2.5 py-1 text-[11px] text-cyan-700 xl:flex dark:border-cyan-800/80 dark:bg-cyan-950/80 dark:text-cyan-300">
-          <Users className="size-3.5" />
+        <div
+          className={cn("hidden h-9 items-center gap-1.5 rounded-md border px-2.5 text-[11px] xl:flex", toneBadgeClass)}
+        >
+          <visual.Icon className="size-3.5" />
           <span>
             {totalEntities.toLocaleString("id-ID")} {copy.plural.toUpperCase()}
           </span>
@@ -140,14 +165,13 @@ export function SebaranJaringHeader({
           variant="outline"
           onClick={onToggleLeftPanel}
           className={cn(
-            "h-8 gap-1.5 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs cursor-pointer",
+            "h-9 gap-1.5 rounded-md border-slate-300 bg-slate-100 text-xs text-slate-800 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700",
             isLeftPanelOpen && "border-cyan-500 bg-cyan-50 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300",
           )}
         >
           <SlidersHorizontal className="size-3.5" />
           <span className="hidden xl:inline">FILTER & RINGKASAN</span>
         </Button>
-
       </div>
     </header>
   );

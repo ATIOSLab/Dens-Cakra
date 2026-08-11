@@ -58,7 +58,7 @@ export function SebaranJaringBottomBar({
         <button
           type="button"
           onClick={() => setIsCollapsed(false)}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 text-slate-200 border border-slate-700/80 backdrop-blur-md shadow-2xl text-xs font-mono font-medium hover:bg-slate-800 hover:text-cyan-400 transition-all cursor-pointer"
+          className="flex items-center gap-2 rounded-md border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 font-mono font-medium text-slate-200 text-xs shadow-2xl backdrop-blur-md transition-all hover:bg-slate-800 hover:text-cyan-400"
         >
           <SlidersHorizontal className="size-3.5 text-cyan-400" />
           <span>Panel Kontrol Peta</span>
@@ -69,12 +69,12 @@ export function SebaranJaringBottomBar({
   }
 
   return (
-    <div className="absolute bottom-3 left-3 right-3 z-10 bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 backdrop-blur-md px-3.5 py-2 rounded-xl flex flex-col gap-1.5 shadow-xl transition-colors">
+    <div className="absolute right-4 bottom-4 left-4 z-10 flex max-h-[38vh] flex-col gap-2 overflow-y-auto rounded-md border border-slate-200 bg-white/90 px-3.5 py-2 shadow-xl backdrop-blur-md transition-colors dark:border-slate-800 dark:bg-slate-900/90">
       <div className="flex flex-wrap items-center justify-between gap-4 text-xs pr-8 relative">
         <button
           type="button"
           onClick={() => setIsCollapsed(true)}
-          className="absolute -top-1 -right-1 p-1 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-lg transition-colors cursor-pointer"
+          className="absolute -top-1 -right-1 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-white"
           title="Tutup Panel Kontrol"
         >
           <X className="size-4" />
@@ -84,14 +84,14 @@ export function SebaranJaringBottomBar({
           <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             MODE TAMPILAN
           </span>
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-slate-950/80">
             {displayOptions.map(({ value, label, Icon }) => (
               <button
                 type="button"
                 key={value}
                 onClick={() => onDisplayModeChange(value)}
                 className={cn(
-                  "px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer",
+                  "flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors",
                   displayMode === value
                     ? "bg-cyan-600 text-white font-semibold shadow"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200",
@@ -123,7 +123,7 @@ export function SebaranJaringBottomBar({
                 key={style}
                 onClick={() => onMapStyleChange(style as MapStyleMode)}
                 className={cn(
-                  "px-2.5 py-1 rounded text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
+                  "flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all",
                   mapStyle === style
                     ? "border-cyan-500 bg-cyan-50 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 font-semibold ring-1 ring-cyan-500"
                     : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200",
@@ -145,11 +145,11 @@ export function SebaranJaringBottomBar({
             SUMBER TITIK
           </span>
           {mode === "gaswil" ? (
-            <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+            <span className="flex h-8 items-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
               {copy.sourceDomicileLabel}
             </span>
           ) : (
-            <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs dark:border-slate-800 dark:bg-slate-950/80">
+            <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100 p-1 text-xs dark:border-slate-800 dark:bg-slate-950/80">
               {(
                 [
                   ["domisili", copy.sourceDomicileLabel],
@@ -161,7 +161,7 @@ export function SebaranJaringBottomBar({
                   type="button"
                   onClick={() => onCoordinateSourceModeChange(sourceMode)}
                   className={cn(
-                    "rounded px-2.5 py-1 font-medium transition-colors",
+                    "h-8 rounded-md px-2.5 font-medium transition-colors",
                     coordinateSourceMode === sourceMode
                       ? "bg-cyan-600 text-white shadow"
                       : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200",
@@ -180,14 +180,14 @@ export function SebaranJaringBottomBar({
             {mode === "gaswil" ? "RENTANG WAKTU SINYAL" : "RENTANG WAKTU LAPORAN"}
           </span>
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-lg border border-slate-200 dark:border-slate-800 font-mono text-[11px]">
+            <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100 p-1 font-mono text-[11px] dark:border-slate-800 dark:bg-slate-950/80">
               {(["ALL", "24H", "7D", "30D"] as DateRangeOption[]).map((option) => (
                 <button
                   type="button"
                   key={option}
                   onClick={() => onDateRangeChange(option)}
                   className={cn(
-                    "px-2.5 py-0.5 rounded transition-colors cursor-pointer",
+                    "h-7 rounded-md px-2.5 transition-colors",
                     dateRange === option
                       ? "bg-cyan-100 dark:bg-cyan-950 border border-cyan-300 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 font-bold"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200",

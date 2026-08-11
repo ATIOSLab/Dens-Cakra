@@ -72,9 +72,9 @@ export function SebaranJaringLeadershipStrip({
   return (
     <section
       aria-label="Ringkasan situasi pimpinan"
-      className="pointer-events-none absolute top-3 right-14 left-3 z-20 mx-auto max-w-5xl"
+      className="pointer-events-none absolute top-4 right-16 left-4 z-20 mx-auto max-w-6xl"
     >
-      <div className="pointer-events-auto overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950/88 shadow-2xl backdrop-blur-xl">
+      <div className="pointer-events-auto overflow-hidden rounded-md border border-slate-700/80 bg-slate-950/88 shadow-2xl backdrop-blur-xl">
         <div className="flex items-center justify-between gap-3 border-slate-800 border-b px-3 py-2">
           <div className="min-w-0">
             <p className="font-mono text-[9px] text-cyan-400 uppercase tracking-[0.14em]">Pandangan Pimpinan</p>
@@ -89,7 +89,7 @@ export function SebaranJaringLeadershipStrip({
             <button
               type="button"
               onClick={onShowAll}
-              className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-medium text-[9px] text-cyan-300 transition hover:border-cyan-500"
+              className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 font-medium text-[9px] text-cyan-300 transition hover:border-cyan-500"
             >
               Buka daftar
             </button>
