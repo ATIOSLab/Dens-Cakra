@@ -165,9 +165,16 @@ export function MapsIntelijenCommandHud({
   }, [isFullscreen]);
 
   const intelligence = useMemo(() => {
-    const reportTotal = meta.summary.reports.total ?? meta.counts.report ?? 0;
-    const baketTotal = meta.summary.bakets.total ?? 0;
+    const reportTotal = meta.summary.reports.total ?? meta.counts.totalReports ?? meta.counts.report ?? 0;
+    const baketTotal = meta.summary.bakets.total ?? meta.counts.totalBakets ?? meta.counts.baket ?? 0;
     const agentTotal = meta.counts.agent ?? 0;
+    const baketCategoryLabels = new Map<string, string>();
+    for (const category of meta.facets.categories) {
+      baketCategoryLabels.set(category.id, category.name);
+      if (category.code) {
+        baketCategoryLabels.set(category.code, category.name);
+      }
+    }
     const jaringIds = new Set<string>();
     for (const feature of features) {
       const jaring = feature.properties.jaring;
@@ -180,10 +187,22 @@ export function MapsIntelijenCommandHud({
       features,
       (feature) => feature.properties.primaryArea?.name ?? "Belum ditentukan",
     );
-    const categoryCounts = countByEntries(
-      features.filter((feature) => feature.properties.markerType !== "agent"),
+    const featureBaketCategoryCounts = countByEntries(
+      features.filter((feature) => feature.properties.markerType === "baket"),
       (feature) => feature.properties.category?.name ?? "Belum dikategorikan",
     );
+    const sourceBaketCategoryCounts = Object.entries(meta.counts.byBaketCategory ?? {})
+      .map(
+        ([categoryKey, count]) =>
+          [
+            baketCategoryLabels.get(categoryKey) ??
+              (categoryKey === "uncategorized" ? "Belum dikategorikan" : categoryKey),
+            count,
+          ] as [string, number],
+      )
+      .sort((left, right) => right[1] - left[1]);
+    const categoryCounts =
+      sourceBaketCategoryCounts.length > 0 ? sourceBaketCategoryCounts : featureBaketCategoryCounts;
     const urgencyCounts = countBy(
       features.filter((feature) => feature.properties.markerType !== "agent"),
       (feature) => feature.properties.urgency ?? "NORMAL",
@@ -224,12 +243,7 @@ export function MapsIntelijenCommandHud({
           icon={DOMAIN_VISUALS.jaring.Icon}
           tone="cyan"
         />
-        <CompactMetric
-          label="Baket terpetakan"
-          value={intelligence.baketTotal}
-          icon={DOMAIN_VISUALS.baket.Icon}
-          tone="amber"
-        />
+        <CompactMetric label="Baket" value={intelligence.baketTotal} icon={DOMAIN_VISUALS.baket.Icon} tone="amber" />
       </div>
     );
   }
@@ -274,6 +288,7 @@ export function MapsIntelijenCommandHud({
 
   const kpiCards = [
     {
+      key: "jaring",
       label: "Total Jaring",
       value: intelligence.jaringTotal,
       detail: "Jaring unik pada titik berkoordinat",
@@ -281,6 +296,7 @@ export function MapsIntelijenCommandHud({
       tone: "cyan",
     },
     {
+      key: "report",
       label: DOMAIN_TERMS.jaringReport,
       value: intelligence.reportTotal,
       detail: "Sesuai filter aktif",
@@ -288,6 +304,7 @@ export function MapsIntelijenCommandHud({
       tone: DOMAIN_VISUALS.jaringReport.tone,
     },
     {
+      key: "baket",
       label: DOMAIN_TERMS.baket,
       value: intelligence.baketTotal,
       detail: "Sesuai filter aktif",
@@ -295,6 +312,7 @@ export function MapsIntelijenCommandHud({
       tone: DOMAIN_VISUALS.baket.tone,
     },
     {
+      key: "agent",
       label: "Petugas Wilayah Aktif",
       value: meta.counts.activeAgents,
       detail: `Aktif ${meta.freshness.activeWithinMinutes} menit`,
@@ -302,13 +320,14 @@ export function MapsIntelijenCommandHud({
       tone: DOMAIN_VISUALS.gaswil.tone,
     },
     {
+      key: "area",
       label: "Wilayah Terpantau",
       value: meta.facets.areas.length,
       detail: "Dalam cakupan akses",
       icon: MapPin,
       tone: "emerald",
     },
-  ].filter((card) => card.value > 0);
+  ].filter((card) => card.key !== "agent" || card.value > 0);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-30 font-sans text-slate-100">
@@ -409,8 +428,8 @@ export function MapsIntelijenCommandHud({
         className="absolute inset-x-3 top-[4.75rem] hidden h-[4.6rem] grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-2 xl:grid"
         aria-label="Indikator utama"
       >
-        {kpiCards.map((card) => (
-          <KpiCard key={card.label} {...card} />
+        {kpiCards.map(({ key, ...card }) => (
+          <KpiCard key={key} {...card} />
         ))}
       </section>
 
@@ -756,7 +775,7 @@ export function MapsIntelijenCommandHud({
             showEmpty
           />
           <MiniAnalytics
-            title="Top Kategori"
+            title="Top Kategori Baket"
             icon={Layers3}
             items={intelligence.categoryCounts
               .slice(0, 3)
