@@ -76,7 +76,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
     expect(isReportIntent('lapor sekarang')).toBe(false);
   });
 
-  it('menolak reset session WhatsApp saat guard reset dimatikan', async () => {
+  it('meminta QR WhatsApp tanpa menghapus session saat guard reset dimatikan', async () => {
     const mutableEnv = env as unknown as {
       whatsapp: { allowSessionReset: boolean };
     };
@@ -108,12 +108,39 @@ describe('WhatsappBotRuntimeService report intake', () => {
     const disconnectChannel = jest
       .spyOn(service, 'disconnectChannel')
       .mockResolvedValue(undefined);
+    const connectChannel = jest.fn(() => Promise.resolve());
+    const persistState = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        connectChannel: typeof connectChannel;
+        persistState: typeof persistState;
+      }
+    ).connectChannel = connectChannel;
+    (
+      service as unknown as {
+        connectChannel: typeof connectChannel;
+        persistState: typeof persistState;
+      }
+    ).persistState = persistState;
 
     try {
-      await expect(service.requestFreshQr('channel-id')).rejects.toMatchObject({
-        code: 'WHATSAPP_SESSION_RESET_DISABLED',
-      });
-      expect(disconnectChannel).not.toHaveBeenCalled();
+      await expect(
+        service.requestFreshQr('channel-id'),
+      ).resolves.toBeUndefined();
+      expect(disconnectChannel).toHaveBeenCalledWith('channel-id', false);
+      expect(persistState).toHaveBeenCalledWith(
+        'channel-id',
+        expect.objectContaining({
+          qrCodeText: null,
+          qrCodeDataUrl: null,
+          pairingCode: null,
+          lastError: null,
+        }),
+      );
+      expect(connectChannel).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'channel-id', code: 'WHATSAPP-UTAMA' }),
+        { force: true },
+      );
     } finally {
       mutableEnv.whatsapp.allowSessionReset = previousAllowSessionReset;
       disconnectChannel.mockRestore();

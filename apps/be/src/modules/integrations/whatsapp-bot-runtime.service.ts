@@ -310,12 +310,16 @@ export class WhatsappBotRuntimeService
 
   async requestFreshQr(channelId: string) {
     const channel = await this.getChannel(channelId);
-    this.assertSessionResetAllowed();
-    await this.disconnectChannel(channel.id, true);
-    await rm(this.authDirForChannel(channel.code), {
-      recursive: true,
-      force: true,
-    });
+    if (env.whatsapp.allowSessionReset) {
+      await this.disconnectChannel(channel.id, true);
+      await rm(this.authDirForChannel(channel.code), {
+        recursive: true,
+        force: true,
+      });
+    } else {
+      await this.disconnectChannel(channel.id, false);
+    }
+
     await this.persistState(channel.id, {
       connectionStatus: WhatsAppBotConnectionStatus.DISCONNECTED,
       qrCodeText: null,
