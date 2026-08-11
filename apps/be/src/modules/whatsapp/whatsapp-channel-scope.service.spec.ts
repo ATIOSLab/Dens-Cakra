@@ -8,6 +8,7 @@ function createService(channelAreaIds: string[], ancestorMatch = false) {
         Promise.resolve({
           operationalAssignments: [
             {
+              id: 'assignment-id',
               areaScopes: channelAreaIds.map((areaId) => ({ areaId })),
             },
           ],
@@ -78,5 +79,88 @@ describe('WhatsAppChannelScopeService', () => {
         'area-jaring',
       ]),
     ).resolves.toBe(false);
+  });
+
+  it('membatasi channel ke wilayah pilihan dalam assignment aktif', async () => {
+    const prisma = {
+      userProfile: {
+        findUnique: jest.fn(() =>
+          Promise.resolve({
+            operationalAssignments: [
+              {
+                id: 'assignment-id',
+                areaScopes: [{ areaId: 'area-provinsi' }],
+              },
+            ],
+          }),
+        ),
+      },
+      administrativeAreaClosure: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce({ ancestorId: 'area-provinsi' })
+          .mockResolvedValueOnce(null),
+      },
+    };
+    const service = new WhatsAppChannelScopeService(prisma as never, {} as never);
+
+    await expect(
+      service.isJaringAllowed(
+        {
+          config: {
+            userId: 'user-id',
+            operationalAssignmentId: 'assignment-id',
+            scopeAreaId: 'area-kota',
+          },
+        },
+        ['area-luar'],
+      ),
+    ).resolves.toBe(false);
+    expect(prisma.administrativeAreaClosure.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          ancestorId: { in: ['area-kota'] },
+          descendantId: { in: ['area-luar'] },
+        }),
+      }),
+    );
+  });
+
+  it('mengizinkan jaring turunan dari wilayah pilihan channel', async () => {
+    const prisma = {
+      userProfile: {
+        findUnique: jest.fn(() =>
+          Promise.resolve({
+            operationalAssignments: [
+              {
+                id: 'assignment-id',
+                areaScopes: [{ areaId: 'area-provinsi' }],
+              },
+            ],
+          }),
+        ),
+      },
+      administrativeAreaClosure: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce({ ancestorId: 'area-provinsi' })
+          .mockResolvedValueOnce({ ancestorId: 'area-kota' }),
+      },
+    };
+    const service = new WhatsAppChannelScopeService(prisma as never, {} as never);
+
+    await expect(
+      service.isJaringAllowed(
+        {
+          config: {
+            userId: 'user-id',
+            operationalAssignmentId: 'assignment-id',
+            scopeAreaId: 'area-kota',
+          },
+        },
+        ['area-kecamatan'],
+      ),
+    ).resolves.toBe(true);
   });
 });

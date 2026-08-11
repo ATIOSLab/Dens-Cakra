@@ -147,6 +147,145 @@ describe('WhatsappBotRuntimeService report intake', () => {
     }
   });
 
+  it('membuat QR baru dengan reset eksplisit walau guard reset global dimatikan', async () => {
+    const mutableEnv = env as unknown as {
+      whatsapp: { allowSessionReset: boolean };
+    };
+    const previousAllowSessionReset = mutableEnv.whatsapp.allowSessionReset;
+    mutableEnv.whatsapp.allowSessionReset = false;
+
+    const prisma = {
+      integrationChannel: {
+        findFirstOrThrow: jest.fn(() =>
+          Promise.resolve({
+            id: 'channel-id',
+            code: 'WHATSAPP-QR-BARU',
+            channelType: 'WHATSAPP',
+            status: 'INACTIVE',
+            config: {},
+          }),
+        ),
+      },
+      whatsAppBotChannelState: {
+        findUnique: jest.fn(() =>
+          Promise.resolve({ connectionStatus: 'DISCONNECTED' }),
+        ),
+      },
+    };
+    const service = new WhatsappBotRuntimeService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const disconnectChannel = jest
+      .spyOn(service, 'disconnectChannel')
+      .mockResolvedValue(undefined);
+    const connectChannel = jest.fn(() => Promise.resolve());
+    const persistState = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        connectChannel: typeof connectChannel;
+        persistState: typeof persistState;
+      }
+    ).connectChannel = connectChannel;
+    (
+      service as unknown as {
+        connectChannel: typeof connectChannel;
+        persistState: typeof persistState;
+      }
+    ).persistState = persistState;
+
+    try {
+      await expect(
+        service.requestFreshQr('channel-id', { resetSession: true }),
+      ).resolves.toBeUndefined();
+      expect(disconnectChannel).toHaveBeenCalledWith('channel-id', true);
+      expect(persistState).toHaveBeenCalledWith(
+        'channel-id',
+        expect.objectContaining({
+          connectionStatus: 'DISCONNECTED',
+          qrCodeText: null,
+          qrCodeDataUrl: null,
+          pairingCode: null,
+          lastError: null,
+        }),
+      );
+      expect(connectChannel).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'channel-id', code: 'WHATSAPP-QR-BARU' }),
+        { force: true },
+      );
+    } finally {
+      mutableEnv.whatsapp.allowSessionReset = previousAllowSessionReset;
+      disconnectChannel.mockRestore();
+    }
+  });
+
+  it('menghapus koneksi kanal tanpa logout agar session tetap dapat dipakai ulang', async () => {
+    const mutableEnv = env as unknown as {
+      whatsapp: { allowSessionReset: boolean };
+    };
+    const previousAllowSessionReset = mutableEnv.whatsapp.allowSessionReset;
+    mutableEnv.whatsapp.allowSessionReset = false;
+
+    const prisma = {
+      integrationChannel: {
+        findFirstOrThrow: jest.fn(() =>
+          Promise.resolve({
+            id: 'channel-id',
+            code: 'WHATSAPP-UTAMA',
+            channelType: 'WHATSAPP',
+            status: 'ACTIVE',
+            config: {},
+          }),
+        ),
+      },
+    };
+    const service = new WhatsappBotRuntimeService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const disconnectChannel = jest
+      .spyOn(service, 'disconnectChannel')
+      .mockResolvedValue(undefined);
+    const persistState = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        persistState: typeof persistState;
+      }
+    ).persistState = persistState;
+
+    try {
+      await expect(
+        service.removeChannelConnection('channel-id'),
+      ).resolves.toBeUndefined();
+      expect(disconnectChannel).toHaveBeenCalledWith('channel-id', false);
+      expect(persistState).toHaveBeenCalledWith(
+        'channel-id',
+        expect.objectContaining({
+          connectionStatus: 'DISCONNECTED',
+          qrCodeText: null,
+          qrCodeDataUrl: null,
+          pairingCode: null,
+          sessionJid: null,
+          lastError: null,
+        }),
+        'INACTIVE',
+      );
+    } finally {
+      mutableEnv.whatsapp.allowSessionReset = previousAllowSessionReset;
+      disconnectChannel.mockRestore();
+    }
+  });
+
   it('menolak lokasi statis dan menerima live location pada sesi laporan', async () => {
     const service = new WhatsappBotRuntimeService(
       {} as never,

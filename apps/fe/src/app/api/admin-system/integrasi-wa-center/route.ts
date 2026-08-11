@@ -17,6 +17,13 @@ export async function POST(request: NextRequest) {
       code: string;
       name: string;
       userId: string;
+      operationalAssignmentId?: string | null;
+      scopeAreaId?: string | null;
+      scopeAreaCode?: string | null;
+      scopeAreaName?: string | null;
+      scopeAreaLevel?: string | null;
+      scopeAreaParentName?: string | null;
+      scopeBranch?: string | null;
     };
 
     return NextResponse.json(
@@ -25,6 +32,13 @@ export async function POST(request: NextRequest) {
         name: body.name,
         config: {
           userId: body.userId,
+          operationalAssignmentId: body.operationalAssignmentId,
+          scopeAreaId: body.scopeAreaId,
+          scopeAreaCode: body.scopeAreaCode,
+          scopeAreaName: body.scopeAreaName,
+          scopeAreaLevel: body.scopeAreaLevel,
+          scopeAreaParentName: body.scopeAreaParentName,
+          scopeBranch: body.scopeBranch,
         },
       }),
     );

@@ -21,6 +21,7 @@ import {
   CreateIntegrationDto,
   IntegrationQuery,
   ReasonDto,
+  RequestWhatsappQrDto,
   TestIntegrationDto,
   UpdateIntegrationDto,
   UpdateWhatsappControlDto,
@@ -125,10 +126,11 @@ export class IntegrationController {
   })
   async requestWhatsappQr(
     @Param('channelId', ParseUUIDPipe) id: string,
+    @Body() body: RequestWhatsappQrDto,
     @CurrentAccessContext() context: AuthorizationContext,
   ) {
     return apiResult(
-      await this.integrationService.requestWhatsappQr(id, context),
+      await this.integrationService.requestWhatsappQr(id, body, context),
     );
   }
 

@@ -49,6 +49,10 @@ export class UpdateWhatsappControlDto {
   senderNumbers?: string[];
 }
 
+export class RequestWhatsappQrDto {
+  @IsOptional() @IsBoolean() resetSession?: boolean;
+}
+
 export class ReasonDto {
   @IsString() @MinLength(2) @MaxLength(1000) reason!: string;
 }

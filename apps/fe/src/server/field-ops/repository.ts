@@ -1378,6 +1378,7 @@ export async function activateWhatsappControlChannel(
   cookie: string,
   channelId: string,
   mode: "activate" | "deactivate" | "test" | "request-qr",
+  options: { resetSession?: boolean } = {},
 ) {
   if (mode === "request-qr") {
     return backendApi(
@@ -1385,6 +1386,7 @@ export async function activateWhatsappControlChannel(
       {
         cookie,
         method: "POST",
+        body: { resetSession: options.resetSession === true },
         idempotent: true,
       },
     );

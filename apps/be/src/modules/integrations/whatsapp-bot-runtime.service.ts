@@ -308,9 +308,31 @@ export class WhatsappBotRuntimeService
     );
   }
 
-  async requestFreshQr(channelId: string) {
+  async requestFreshQr(
+    channelId: string,
+    options: { resetSession?: boolean } = {},
+  ) {
     const channel = await this.getChannel(channelId);
-    if (env.whatsapp.allowSessionReset) {
+    if (options.resetSession) {
+      const botState = await this.prisma.whatsAppBotChannelState.findUnique({
+        where: { integrationChannelId: channel.id },
+        select: { connectionStatus: true },
+      });
+
+      if (botState?.connectionStatus === WhatsAppBotConnectionStatus.CONNECTED) {
+        throw new ApiException(
+          'WHATSAPP_ALREADY_CONNECTED',
+          'WhatsApp sudah terhubung. Putuskan koneksi terlebih dahulu sebelum membuat QR baru.',
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      await this.disconnectChannel(channel.id, true);
+      await rm(this.authDirForChannel(channel.code), {
+        recursive: true,
+        force: true,
+      });
+    } else if (env.whatsapp.allowSessionReset) {
       await this.disconnectChannel(channel.id, true);
       await rm(this.authDirForChannel(channel.code), {
         recursive: true,
@@ -328,6 +350,24 @@ export class WhatsappBotRuntimeService
       lastError: null,
     });
     await this.connectChannel(channel, { force: true });
+  }
+
+  async removeChannelConnection(channelId: string) {
+    const channel = await this.getChannel(channelId);
+    await this.disconnectChannel(channel.id, false);
+    await this.persistState(
+      channel.id,
+      {
+        connectionStatus: WhatsAppBotConnectionStatus.DISCONNECTED,
+        qrCodeText: null,
+        qrCodeDataUrl: null,
+        pairingCode: null,
+        sessionJid: null,
+        lastDisconnectedAt: new Date(),
+        lastError: null,
+      },
+      IntegrationStatus.INACTIVE,
+    );
   }
 
   async healthCheck(channelId: string) {

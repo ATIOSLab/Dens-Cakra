@@ -14,10 +14,13 @@ export async function POST(request: NextRequest, { params }: Params) {
     const { channelId } = await params;
     const body = (await request.json()) as {
       action: "activate" | "deactivate" | "test" | "request-qr";
+      resetSession?: boolean;
     };
 
     return NextResponse.json(
-      await activateWhatsappControlChannel(request.headers.get("cookie") ?? "", channelId, body.action),
+      await activateWhatsappControlChannel(request.headers.get("cookie") ?? "", channelId, body.action, {
+        resetSession: body.resetSession === true,
+      }),
     );
   } catch (error) {
     return apiRouteErrorResponse(error, "Gagal menjalankan aksi kanal WhatsApp.");

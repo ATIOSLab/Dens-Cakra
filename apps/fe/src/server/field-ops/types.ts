@@ -224,6 +224,20 @@ export type WhatsappControlChannel = {
   lastError: string | null;
   senderNumbers: string[];
   userId?: string | null;
+  operationalAssignmentId?: string | null;
+  scopeAreaId?: string | null;
+  scopeAreaCode?: string | null;
+  scopeAreaName?: string | null;
+  scopeAreaLevel?: string | null;
+  scopeAreaParentName?: string | null;
+  scopeBranch?: string | null;
+  scopeHierarchy?: Array<{
+    id: string;
+    code: string;
+    officialCode: string | null;
+    name: string;
+    level: string;
+  }>;
   coordinatorName?: string | null;
   coordinatorRegion?: string | null;
 };

@@ -47,6 +47,17 @@ import {
 type CoordinatorAreaOption = AreaSearchResult & {
   branch: CommandRouteType | null;
   label: string;
+  userId: string;
+  assignmentId: string;
+  coordinatorName: string;
+};
+
+type ChannelGroup = {
+  key: string;
+  title: string;
+  subtitle: string;
+  sortKey: string;
+  channels: WhatsappControlChannel[];
 };
 
 function tone(status: string) {
@@ -90,6 +101,54 @@ function formatDateTime(value?: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function branchLabel(branch?: string | null) {
+  if (branch === "BINDA") return "BIN Daerah (Binda)";
+  if (branch === "DIRECTORATE") return "Direktorat";
+  if (branch === "PUSAT") return "Pusat";
+  return null;
+}
+
+function branchSortOrder(branch?: string | null) {
+  if (branch === "PUSAT") return 0;
+  if (branch === "DIRECTORATE") return 1;
+  if (branch === "BINDA") return 2;
+  return 9;
+}
+
+function areaLevelSortOrder(level?: string | null) {
+  if (level === "COUNTRY") return 0;
+  if (level === "PROVINCE") return 1;
+  if (level === "CITY" || level === "REGENCY") return 2;
+  if (level === "DISTRICT") return 3;
+  if (level === "VILLAGE" || level === "URBAN_VILLAGE") return 4;
+  return 9;
+}
+
+function compactAreaHierarchy(channel: WhatsappControlChannel) {
+  const hierarchy = channel.scopeHierarchy ?? [];
+  const visibleHierarchy = hierarchy.filter((area) => area.level !== "COUNTRY");
+
+  if (visibleHierarchy.length > 0) {
+    return visibleHierarchy.map((area) => area.name).join(" / ");
+  }
+
+  if (channel.scopeAreaParentName && channel.scopeAreaName) {
+    return `${channel.scopeAreaParentName} / ${channel.scopeAreaName}`;
+  }
+
+  return channel.scopeAreaName ?? channel.coordinatorRegion ?? "Belum terpetakan";
+}
+
+function makeCodePart(value: string) {
+  return (
+    value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 24) || "KANAL"
+  );
 }
 
 export function AdminWaCenterPage() {
@@ -147,18 +206,22 @@ export function AdminWaCenterPage() {
               const branch = assignment.branch || assignment.seat?.branch || assignment.position?.branch || null;
               assignment.areaScopes?.forEach((scope) => {
                 if (scope.area) {
-                  const key = `${scope.area.id}-${branch || "default"}`;
+                  const area = scope.area as AreaSearchResult;
+                  const key = `${area.id}-${branch || "default"}-${assignment.id}`;
                   if (!optionMap.has(key)) {
-                    let branchLabel = "";
-                    if (branch === "BINDA") branchLabel = "Binda";
-                    if (branch === "DIRECTORATE") branchLabel = "Direktorat";
-
-                    const label = branchLabel ? `${scope.area.name} (${branchLabel})` : scope.area.name;
+                    const routeLabel = branchLabel(branch);
+                    const coordinatorName =
+                      user.fullName || user.username || user.authUser.name || "Koordinator Wilayah";
+                    const areaLabel = area.parent?.name ? `${area.parent.name} / ${area.name}` : area.name;
+                    const label = routeLabel ? `${areaLabel} (${routeLabel})` : areaLabel;
 
                     optionMap.set(key, {
-                      ...scope.area,
+                      ...area,
                       branch,
                       label,
+                      userId: user.id,
+                      assignmentId: assignment.id,
+                      coordinatorName,
                     });
                   }
                 }
@@ -166,7 +229,13 @@ export function AdminWaCenterPage() {
             });
           });
 
-          const sortedOptions = Array.from(optionMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+          const sortedOptions = Array.from(optionMap.values()).sort((a, b) => {
+            const branchDiff = branchSortOrder(a.branch) - branchSortOrder(b.branch);
+            if (branchDiff !== 0) return branchDiff;
+            const levelDiff = areaLevelSortOrder(a.level) - areaLevelSortOrder(b.level);
+            if (levelDiff !== 0) return levelDiff;
+            return a.label.localeCompare(b.label);
+          });
           setAllCoordinatorAreas(sortedOptions);
         }
       } catch (err) {
@@ -194,36 +263,8 @@ export function AdminWaCenterPage() {
     try {
       setBusyKey("create");
 
-      const users = await apiBrowserFetch<UserListItem[]>("/user-profiles", {
-        query: {
-          areaId: selectedArea.id,
-          roleCode: "FIELD_COORDINATOR",
-          limit: 10,
-        },
-      });
-
-      let selectedUser = null;
-      if (selectedArea.branch) {
-        selectedUser = users.find((u) =>
-          getUserAssignments(u).some(
-            (pa) =>
-              (pa.branch === selectedArea.branch ||
-                pa.seat?.branch === selectedArea.branch ||
-                pa.position?.branch === selectedArea.branch) &&
-              pa.areaScopes.some((s) => s.area?.id === selectedArea.id),
-          ),
-        );
-      }
-      if (!selectedUser) {
-        selectedUser = users[0];
-      }
-
-      if (!selectedUser) {
-        throw new Error(`Tidak ada Koordinator Wilayah (Korwil) di wilayah ${selectedArea.name}.`);
-      }
-
-      const codeBase = (selectedUser.username || selectedUser.id.split("-")[0]).toUpperCase();
-      const nameBase = selectedUser.fullName || selectedUser.username || selectedUser.authUser.name || "User";
+      const codeBase = makeCodePart(`${selectedArea.coordinatorName}_${selectedArea.code}`);
+      const nameBase = `${selectedArea.coordinatorName} - ${selectedArea.name}`;
 
       const response = await fetch("/api/admin-system/integrasi-wa-center", {
         method: "POST",
@@ -231,7 +272,14 @@ export function AdminWaCenterPage() {
         body: JSON.stringify({
           code: `WA_${codeBase}`,
           name: `Bot WA ${nameBase}`,
-          userId: selectedUser.id,
+          userId: selectedArea.userId,
+          operationalAssignmentId: selectedArea.assignmentId,
+          scopeAreaId: selectedArea.id,
+          scopeAreaCode: selectedArea.officialCode ?? selectedArea.code,
+          scopeAreaName: selectedArea.name,
+          scopeAreaLevel: selectedArea.level,
+          scopeAreaParentName: selectedArea.parent?.name ?? null,
+          scopeBranch: selectedArea.branch,
         }),
       });
 
@@ -338,13 +386,17 @@ export function AdminWaCenterPage() {
     }
   };
 
-  const runAction = async (channelId: string, action: "activate" | "deactivate" | "test" | "request-qr") => {
+  const runAction = async (
+    channelId: string,
+    action: "activate" | "deactivate" | "test" | "request-qr",
+    options: { resetSession?: boolean } = {},
+  ) => {
     try {
       setBusyKey(`${action}:${channelId}`);
       const response = await fetch(`/api/admin-system/integrasi-wa-center/${channelId}/actions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, resetSession: options.resetSession === true }),
       });
 
       if (!response.ok) {
@@ -379,6 +431,45 @@ export function AdminWaCenterPage() {
       setBusyKey(null);
     }
   };
+
+  const groupedChannels = useMemo<ChannelGroup[]>(() => {
+    const groups = new Map<string, ChannelGroup>();
+
+    for (const channel of channels) {
+      const branch = channel.scopeBranch ?? "UNMAPPED";
+      const branchText = branchLabel(channel.scopeBranch);
+      const hierarchyText = compactAreaHierarchy(channel);
+      const groupKey = `${branch}:${channel.scopeAreaId ?? hierarchyText}`;
+      const title = channel.scopeAreaName ?? channel.coordinatorRegion ?? "Belum terpetakan";
+      const subtitleParts = [branchText, hierarchyText !== title ? hierarchyText : null].filter(Boolean);
+      const sortKey = [
+        branchSortOrder(channel.scopeBranch).toString().padStart(2, "0"),
+        areaLevelSortOrder(channel.scopeAreaLevel).toString().padStart(2, "0"),
+        hierarchyText,
+      ].join(":");
+      const current =
+        groups.get(groupKey) ??
+        ({
+          key: groupKey,
+          title,
+          subtitle: subtitleParts.join(" / "),
+          sortKey,
+          channels: [],
+        } satisfies ChannelGroup);
+
+      current.channels.push(channel);
+      groups.set(groupKey, current);
+    }
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        channels: group.channels.sort((left, right) =>
+          (left.coordinatorName ?? left.name).localeCompare(right.coordinatorName ?? right.name),
+        ),
+      }))
+      .sort((left, right) => left.sortKey.localeCompare(right.sortKey));
+  }, [channels]);
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -502,243 +593,258 @@ export function AdminWaCenterPage() {
         </Alert>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {channels.map((channel) => {
-          const isConnected = channel.connectionStatus === "CONNECTED";
+      <div className="grid gap-5">
+        {groupedChannels.map((group) => (
+          <section key={group.key} className="grid gap-3">
+            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-2 dark:border-white/10">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{group.title}</h3>
+                {group.subtitle ? <p className="text-xs text-muted-foreground">{group.subtitle}</p> : null}
+              </div>
+              <Badge variant="outline" className="border-slate-200 dark:border-white/15">
+                {group.channels.length} koneksi
+              </Badge>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {group.channels.map((channel) => {
+                const isConnected = channel.connectionStatus === "CONNECTED";
 
-          return (
-            <Card key={channel.id} className="flex flex-col justify-between shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Badge className={tone(channel.status)}>{channel.status}</Badge>
-                      <Badge className={connectionTone(channel.connectionStatus)}>
-                        {channel.connectionStatus === "CONNECTED" && <CheckCircle2 className="mr-1 size-3" />}
-                        {channel.connectionStatus}
-                      </Badge>
-                    </div>
+                return (
+                  <Card key={channel.id} className="flex flex-col justify-between shadow-sm">
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge className={tone(channel.status)}>{channel.status}</Badge>
+                            <Badge className={connectionTone(channel.connectionStatus)}>
+                              {channel.connectionStatus === "CONNECTED" && <CheckCircle2 className="mr-1 size-3" />}
+                              {channel.connectionStatus}
+                            </Badge>
+                          </div>
 
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Hapus Koneksi WhatsApp?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus koneksi WhatsApp secara permanen
-                            dari sistem.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction variant="destructive" onClick={() => void deleteChannel(channel.id)}>
-                            Hapus
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{channel.coordinatorName || channel.name}</CardTitle>
-                    <CardDescription>{channel.coordinatorRegion || channel.code}</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Hapus Koneksi WhatsApp?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tindakan ini tidak dapat dibatalkan. Ini akan menghapus koneksi WhatsApp secara
+                                  permanen dari sistem.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction variant="destructive" onClick={() => void deleteChannel(channel.id)}>
+                                  Hapus
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{channel.coordinatorName || channel.name}</CardTitle>
+                          <CardDescription>{channel.coordinatorRegion || channel.code}</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
 
-              <CardContent className="grid gap-4 pb-4">
-                {isConnected && channel.sessionJid ? (
-                  <div className="flex items-center gap-2 rounded-md border border-emerald-400/25 bg-emerald-500/10 p-2 text-sm text-emerald-700 dark:text-emerald-200">
-                    <CheckCircle2 className="size-4 shrink-0" />
-                    <span>WhatsApp terhubung: </span>
-                    <span className="font-medium">{channel.sessionJid.split("@")[0]}</span>
-                  </div>
-                ) : null}
+                    <CardContent className="grid gap-4 pb-4">
+                      {isConnected && channel.sessionJid ? (
+                        <div className="flex items-center gap-2 rounded-md border border-emerald-400/25 bg-emerald-500/10 p-2 text-sm text-emerald-700 dark:text-emerald-200">
+                          <CheckCircle2 className="size-4 shrink-0" />
+                          <span>WhatsApp terhubung: </span>
+                          <span className="font-medium">{channel.sessionJid.split("@")[0]}</span>
+                        </div>
+                      ) : null}
 
-                {channel.lastError ? (
-                  <div className="rounded border border-destructive/25 bg-destructive/10 p-2 text-xs text-destructive">
-                    {channel.lastError}
-                  </div>
-                ) : null}
-              </CardContent>
+                      {channel.lastError ? (
+                        <div className="rounded border border-destructive/25 bg-destructive/10 p-2 text-xs text-destructive">
+                          {channel.lastError}
+                        </div>
+                      ) : null}
+                    </CardContent>
 
-              <CardFooter className="flex flex-col gap-2 pt-4">
-                {channel.status === "ACTIVE" ? (
-                  <>
-                    <div className="flex w-full flex-col gap-2">
-                      <Button
-                        size="sm"
-                        className="w-full"
-                        disabled={busyKey === `test:${channel.id}`}
-                        onClick={() => void runAction(channel.id, "test")}
-                      >
-                        <Activity className="mr-2 size-4" />
-                        Health Check
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="warning"
-                        className="w-full"
-                        disabled={busyKey === `deactivate:${channel.id}`}
-                        onClick={() => void runAction(channel.id, "deactivate")}
-                      >
-                        <Bot className="mr-2 size-4" />
-                        Nonaktifkan
-                      </Button>
-                    </div>
-                    {!isConnected &&
-                      (channel.connectionStatus === "DISCONNECTED" || channel.connectionStatus === "ERROR") && (
-                        <Dialog
-                          open={pairingChannelId === channel.id}
-                          onOpenChange={(open) => setPairingChannelId(open ? channel.id : null)}
-                        >
-                          <DialogTrigger asChild>
+                    <CardFooter className="flex flex-col gap-2 pt-4">
+                      {channel.status === "ACTIVE" ? (
+                        <>
+                          <div className="flex w-full flex-col gap-2">
                             <Button
                               size="sm"
-                              variant="outline"
                               className="w-full"
-                              disabled={busyKey === `request-qr:${channel.id}`}
-                              onClick={() => {
-                                setPairingChannelId(channel.id);
-                                void runAction(channel.id, "request-qr");
-                              }}
+                              disabled={busyKey === `test:${channel.id}`}
+                              onClick={() => void runAction(channel.id, "test")}
                             >
-                              <QrCode className="mr-2 size-4" />
-                              Hubungkan WhatsApp
+                              <Activity className="mr-2 size-4" />
+                              Health Check
                             </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                              <DialogTitle>Koneksikan ke WhatsApp</DialogTitle>
-                              <DialogDescription>
-                                Scan QR Code di bawah menggunakan aplikasi WhatsApp di perangkat seluler Anda.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="flex min-h-64 flex-col items-center justify-center p-6">
-                              {channel.qrCodeDataUrl ? (
-                                <div className="rounded-xl border bg-white p-4">
-                                  <img
-                                    alt={`QR ${channel.name}`}
-                                    className="size-64 rounded-lg object-contain"
-                                    src={channel.qrCodeDataUrl}
-                                  />
-                                </div>
-                              ) : channel.pairingCode ? (
-                                <div className="text-center">
-                                  <p className="mb-2 text-sm text-muted-foreground">Pairing Code Anda:</p>
-                                  <span className="text-4xl font-bold tracking-[0.3em] text-cyan-600">
-                                    {channel.pairingCode}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center gap-4 text-muted-foreground">
-                                  <Activity className="size-8 animate-spin" />
-                                  <p>Meminta QR Code...</p>
-                                </div>
-                              )}
-                            </div>
-                            <DialogFooter>
-                              <Button
-                                className="w-full"
-                                disabled={busyKey === `request-qr:${channel.id}`}
-                                onClick={() => void runAction(channel.id, "request-qr")}
-                              >
-                                <QrCode className="mr-2 size-4" />
-                                Request QR Baru
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      )}
-                  </>
-                ) : (
-                  <>
-                    {!isConnected ? (
-                      <Dialog
-                        open={pairingChannelId === channel.id}
-                        onOpenChange={(open) => setPairingChannelId(open ? channel.id : null)}
-                      >
-                        <DialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="success"
-                            className="w-full"
-                            disabled={busyKey === `request-qr:${channel.id}`}
-                            onClick={() => {
-                              setPairingChannelId(channel.id);
-                              void runAction(channel.id, "request-qr");
-                            }}
-                          >
-                            <QrCode className="mr-2 size-4" />
-                            Hubungkan WhatsApp
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
-                          <DialogHeader>
-                            <DialogTitle>Koneksikan ke WhatsApp</DialogTitle>
-                            <DialogDescription>
-                              Scan QR Code di bawah menggunakan aplikasi WhatsApp di perangkat seluler Anda.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="flex min-h-64 flex-col items-center justify-center p-6">
-                            {channel.qrCodeDataUrl ? (
-                              <div className="rounded-xl border bg-white p-4">
-                                <img
-                                  alt={`QR ${channel.name}`}
-                                  className="size-64 rounded-lg object-contain"
-                                  src={channel.qrCodeDataUrl}
-                                />
-                              </div>
-                            ) : channel.pairingCode ? (
-                              <div className="text-center">
-                                <p className="mb-2 text-sm text-muted-foreground">Pairing Code Anda:</p>
-                                <span className="text-4xl font-bold tracking-[0.3em] text-cyan-600">
-                                  {channel.pairingCode}
-                                </span>
-                              </div>
-                            ) : channel.connectionStatus === "CONNECTING" ? (
-                              <div className="flex flex-col items-center gap-4 text-muted-foreground">
-                                <Activity className="size-8 animate-spin" />
-                                <p>Menghubungkan...</p>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-center gap-4 text-muted-foreground">
-                                <Activity className="size-8 animate-spin" />
-                                <p>Meminta QR Code...</p>
-                              </div>
-                            )}
-                          </div>
-                          <DialogFooter>
                             <Button
+                              size="sm"
+                              variant="warning"
                               className="w-full"
-                              disabled={busyKey === `request-qr:${channel.id}`}
-                              onClick={() => void runAction(channel.id, "request-qr")}
+                              disabled={busyKey === `deactivate:${channel.id}`}
+                              onClick={() => void runAction(channel.id, "deactivate")}
                             >
-                              <QrCode className="mr-2 size-4" />
-                              Request QR Baru
+                              <Bot className="mr-2 size-4" />
+                              Nonaktifkan
                             </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    ) : (
-                      <div className="flex w-full items-center justify-center gap-2 rounded-md border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-200">
-                        <CheckCircle2 className="size-4" />
-                        WhatsApp sudah terhubung
-                      </div>
-                    )}
-                  </>
-                )}
-              </CardFooter>
-            </Card>
-          );
-        })}
+                          </div>
+                          {!isConnected &&
+                            (channel.connectionStatus === "DISCONNECTED" || channel.connectionStatus === "ERROR") && (
+                              <Dialog
+                                open={pairingChannelId === channel.id}
+                                onOpenChange={(open) => setPairingChannelId(open ? channel.id : null)}
+                              >
+                                <DialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full"
+                                    disabled={busyKey === `request-qr:${channel.id}`}
+                                    onClick={() => {
+                                      setPairingChannelId(channel.id);
+                                      void runAction(channel.id, "request-qr");
+                                    }}
+                                  >
+                                    <QrCode className="mr-2 size-4" />
+                                    Hubungkan WhatsApp
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md">
+                                  <DialogHeader>
+                                    <DialogTitle>Koneksikan ke WhatsApp</DialogTitle>
+                                    <DialogDescription>
+                                      Scan QR Code di bawah menggunakan aplikasi WhatsApp di perangkat seluler Anda.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="flex min-h-64 flex-col items-center justify-center p-6">
+                                    {channel.qrCodeDataUrl ? (
+                                      <div className="rounded-xl border bg-white p-4">
+                                        <img
+                                          alt={`QR ${channel.name}`}
+                                          className="size-64 rounded-lg object-contain"
+                                          src={channel.qrCodeDataUrl}
+                                        />
+                                      </div>
+                                    ) : channel.pairingCode ? (
+                                      <div className="text-center">
+                                        <p className="mb-2 text-sm text-muted-foreground">Pairing Code Anda:</p>
+                                        <span className="text-4xl font-bold tracking-[0.3em] text-cyan-600">
+                                          {channel.pairingCode}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                                        <Activity className="size-8 animate-spin" />
+                                        <p>Meminta QR Code...</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <DialogFooter>
+                                    <Button
+                                      className="w-full"
+                                      disabled={busyKey === `request-qr:${channel.id}`}
+                                      onClick={() => void runAction(channel.id, "request-qr", { resetSession: true })}
+                                    >
+                                      <QrCode className="mr-2 size-4" />
+                                      Buat QR Baru
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                        </>
+                      ) : (
+                        <>
+                          {!isConnected ? (
+                            <Dialog
+                              open={pairingChannelId === channel.id}
+                              onOpenChange={(open) => setPairingChannelId(open ? channel.id : null)}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="success"
+                                  className="w-full"
+                                  disabled={busyKey === `request-qr:${channel.id}`}
+                                  onClick={() => {
+                                    setPairingChannelId(channel.id);
+                                    void runAction(channel.id, "request-qr");
+                                  }}
+                                >
+                                  <QrCode className="mr-2 size-4" />
+                                  Hubungkan WhatsApp
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Koneksikan ke WhatsApp</DialogTitle>
+                                  <DialogDescription>
+                                    Scan QR Code di bawah menggunakan aplikasi WhatsApp di perangkat seluler Anda.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="flex min-h-64 flex-col items-center justify-center p-6">
+                                  {channel.qrCodeDataUrl ? (
+                                    <div className="rounded-xl border bg-white p-4">
+                                      <img
+                                        alt={`QR ${channel.name}`}
+                                        className="size-64 rounded-lg object-contain"
+                                        src={channel.qrCodeDataUrl}
+                                      />
+                                    </div>
+                                  ) : channel.pairingCode ? (
+                                    <div className="text-center">
+                                      <p className="mb-2 text-sm text-muted-foreground">Pairing Code Anda:</p>
+                                      <span className="text-4xl font-bold tracking-[0.3em] text-cyan-600">
+                                        {channel.pairingCode}
+                                      </span>
+                                    </div>
+                                  ) : channel.connectionStatus === "CONNECTING" ? (
+                                    <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                                      <Activity className="size-8 animate-spin" />
+                                      <p>Menghubungkan...</p>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                                      <Activity className="size-8 animate-spin" />
+                                      <p>Meminta QR Code...</p>
+                                    </div>
+                                  )}
+                                </div>
+                                <DialogFooter>
+                                  <Button
+                                    className="w-full"
+                                    disabled={busyKey === `request-qr:${channel.id}`}
+                                    onClick={() => void runAction(channel.id, "request-qr", { resetSession: true })}
+                                  >
+                                    <QrCode className="mr-2 size-4" />
+                                    Buat QR Baru
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          ) : (
+                            <div className="flex w-full items-center justify-center gap-2 rounded-md border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-200">
+                              <CheckCircle2 className="size-4" />
+                              WhatsApp sudah terhubung
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );

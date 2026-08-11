@@ -11,6 +11,7 @@ import type {
   CreateIntegrationDto,
   IntegrationQuery,
   ReasonDto,
+  RequestWhatsappQrDto,
   TestIntegrationDto,
   UpdateIntegrationDto,
   UpdateWhatsappControlDto,
@@ -132,6 +133,31 @@ export class IntegrationService {
       lastError: configurationError ?? channel.botState?.lastError ?? null,
       senderNumbers,
       userId: typeof config.userId === 'string' ? config.userId : null,
+      operationalAssignmentId:
+        typeof config.operationalAssignmentId === 'string'
+          ? config.operationalAssignmentId
+          : null,
+      scopeAreaId:
+        typeof config.scopeAreaId === 'string' ? config.scopeAreaId : null,
+      scopeAreaCode:
+        typeof config.scopeAreaCode === 'string' ? config.scopeAreaCode : null,
+      scopeAreaName:
+        typeof config.scopeAreaName === 'string' ? config.scopeAreaName : null,
+      scopeAreaLevel:
+        typeof config.scopeAreaLevel === 'string' ? config.scopeAreaLevel : null,
+      scopeAreaParentName:
+        typeof config.scopeAreaParentName === 'string'
+          ? config.scopeAreaParentName
+          : null,
+      scopeBranch:
+        typeof config.scopeBranch === 'string' ? config.scopeBranch : null,
+      scopeHierarchy: [] as Array<{
+        id: string;
+        code: string;
+        officialCode: string | null;
+        name: string;
+        level: string;
+      }>,
       coordinatorName: null as string | null,
       coordinatorRegion: null as string | null,
       requiresReconfiguration,
@@ -200,7 +226,7 @@ export class IntegrationService {
             include: {
               areaScopes: {
                 where: { validUntil: null },
-                include: { area: true },
+                include: { area: { include: { parent: true } } },
                 orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
               },
             },
@@ -215,12 +241,73 @@ export class IntegrationService {
           const user = userMap.get(view.userId);
           if (user) {
             view['coordinatorName'] = user.fullName;
-            const activeAssignment = user.operationalAssignments?.find(
-              (pa) => pa.isActive,
-            );
+            const activeAssignment =
+              user.operationalAssignments?.find(
+                (pa) => pa.id === view.operationalAssignmentId && pa.isActive,
+              ) ??
+              user.operationalAssignments?.find((pa) => pa.isActive);
+            const selectedScope =
+              activeAssignment?.areaScopes?.find(
+                (scope) => scope.area?.id === view.scopeAreaId,
+              ) ??
+              activeAssignment?.areaScopes?.find((scope) => scope.isPrimary) ??
+              activeAssignment?.areaScopes?.[0] ??
+              null;
+
+            if (selectedScope?.area && !view.scopeAreaId) {
+              view.scopeAreaId = selectedScope.area.id;
+              view.scopeAreaCode =
+                selectedScope.area.officialCode ?? selectedScope.area.code;
+              view.scopeAreaName = selectedScope.area.name;
+              view.scopeAreaLevel = selectedScope.area.level;
+              view.scopeAreaParentName = selectedScope.area.parent?.name ?? null;
+            }
+
             view['coordinatorRegion'] =
-              activeAssignment?.areaScopes?.[0]?.area?.name || null;
+              view.scopeAreaName ?? selectedScope?.area?.name ?? null;
           }
+        }
+      }
+    }
+
+    const scopeAreaIds = [
+      ...new Set(views.map((view) => view.scopeAreaId).filter(Boolean)),
+    ] as string[];
+
+    if (scopeAreaIds.length > 0) {
+      const hierarchyLinks =
+        await this.prisma.administrativeAreaClosure.findMany({
+          where: { descendantId: { in: scopeAreaIds } },
+          select: {
+            descendantId: true,
+            depth: true,
+            ancestor: {
+              select: {
+                id: true,
+                code: true,
+                officialCode: true,
+                name: true,
+                level: true,
+              },
+            },
+          },
+        });
+      const hierarchyMap = new Map<string, typeof views[number]['scopeHierarchy']>();
+
+      for (const link of hierarchyLinks.sort((left, right) => {
+        if (left.descendantId !== right.descendantId) {
+          return left.descendantId.localeCompare(right.descendantId);
+        }
+        return right.depth - left.depth;
+      })) {
+        const current = hierarchyMap.get(link.descendantId) ?? [];
+        current.push(link.ancestor);
+        hierarchyMap.set(link.descendantId, current);
+      }
+
+      for (const view of views) {
+        if (view.scopeAreaId) {
+          view.scopeHierarchy = hierarchyMap.get(view.scopeAreaId) ?? [];
         }
       }
     }
@@ -353,9 +440,17 @@ export class IntegrationService {
     return this.whatsappControlDetail(id);
   }
 
-  async requestWhatsappQr(id: string, context: AuthorizationContext) {
-    await this.whatsappBotRuntime.requestFreshQr(id);
-    await this.audit(context, 'INTEGRATION.WHATSAPP_CONTROL.REQUEST_QR', id);
+  async requestWhatsappQr(
+    id: string,
+    body: RequestWhatsappQrDto | undefined,
+    context: AuthorizationContext,
+  ) {
+    await this.whatsappBotRuntime.requestFreshQr(id, {
+      resetSession: body?.resetSession === true,
+    });
+    await this.audit(context, 'INTEGRATION.WHATSAPP_CONTROL.REQUEST_QR', id, {
+      resetSession: body?.resetSession === true,
+    });
     return this.whatsappControlDetail(id);
   }
 
@@ -514,7 +609,7 @@ export class IntegrationService {
       channel.channelType.includes('WHATSAPP') ||
       channel.channelType.includes('WA')
     ) {
-      await this.whatsappBotRuntime.deleteChannelSession(id);
+      await this.whatsappBotRuntime.removeChannelConnection(id);
     }
 
     const deletedAt = new Date();
