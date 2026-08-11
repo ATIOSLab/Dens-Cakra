@@ -1,18 +1,12 @@
-﻿import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
+import { ComingSoonPage } from "@/app/(main)/dashboard/coming-soon/page";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = {
-  params?: Promise<Record<string, string>>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function Page({ params, searchParams }: PageProps) {
+export default function Page() {
   return (
-    <UniversalDensRoutePage
-      routePattern="/dashboard/executive/pusat-komando"
-      params={(await params) ?? {}}
-      searchParams={(await searchParams) ?? {}}
+    <ComingSoonPage
+      title="Pusat Komando Dalam Pengembangan"
+      description="Menu Pusat Komando belum difungsikan. Fitur direktif, operasi darurat, dan kendali komando akan diaktifkan setelah alur operasional siap digunakan."
     />
   );
 }

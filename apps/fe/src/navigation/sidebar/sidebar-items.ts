@@ -87,22 +87,9 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "executive-command-center",
         title: "Pusat Komando",
+        url: "/dashboard/executive/pusat-komando",
         icon: DOMAIN_VISUALS.command.Icon,
         roles: EXECUTIVE_ROLE,
-        subItems: [
-          {
-            id: "executive-directives",
-            title: "Direktif Strategis",
-            url: "/dashboard/executive/pusat-komando/direktif",
-            roles: EXECUTIVE_ROLE,
-          },
-          {
-            id: "executive-emergency-operations",
-            title: "Operasi Darurat",
-            url: "/dashboard/executive/pusat-komando/operasi-darurat",
-            roles: EXECUTIVE_ROLE,
-          },
-        ],
       },
       {
         id: "executive-intelligence-network-map",
