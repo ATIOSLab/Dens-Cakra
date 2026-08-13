@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, MapPinned, RotateCcw, ShieldCheck } from "lucide-react";
+import { CalendarDays, MapPinned, RotateCcw, ShieldCheck, SlidersHorizontal } from "lucide-react";
 
 import { DashboardLiveStatus } from "@/app/(main)/dashboard/_components/dashboard-live-status";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
-import { formatDashboardDate } from "./executive-dashboard-format";
+import { dashboardStatusLabel, formatDashboardDate } from "./executive-dashboard-format";
 import type {
   DashboardAreaNode,
   DashboardQueryState,
@@ -48,6 +48,22 @@ type FlatAreaNode = {
 };
 
 const ALL_AREAS = "__ALL_AREAS__";
+const ALL_FILTERS = "__ALL_FILTERS__";
+
+const OPERATIONAL_FILTER_KEYS = [
+  "categoryId",
+  "productTypeId",
+  "jaringId",
+  "fieldOfficerAssignmentId",
+  "urgency",
+  "reportStatus",
+  "workflowStatus",
+  "validationStatus",
+  "hasAttachment",
+  "coordinateSource",
+  "locationSuitability",
+  "source",
+] as const satisfies Array<keyof DashboardQueryState>;
 
 function isProvince(area: Pick<FlatAreaNode, "level">) {
   return area.level === "PROVINCE";
@@ -109,6 +125,23 @@ function areaOption(area: FlatAreaNode): SearchableSelectOption {
   };
 }
 
+function namedOption(item: { id: string; name: string; code?: string }): SearchableSelectOption {
+  return {
+    value: item.id,
+    label: item.name,
+    description: item.code,
+    keywords: item.code ? [item.code] : undefined,
+  };
+}
+
+function enumOption(value: string): SearchableSelectOption {
+  return {
+    value,
+    label: dashboardStatusLabel(value),
+    keywords: [value],
+  };
+}
+
 function isExecutiveScope(scope: ExecutiveDashboardData["scope"]) {
   return scope.role === "executive";
 }
@@ -138,8 +171,12 @@ export function DashboardHeaderFilter({
 }) {
   const scopeAreas = data.scope.areas.slice(0, 6);
   const hasCustomRange = query.period === "CUSTOM";
-  const hasActiveFilter =
-    query.period !== "LAST_30_DAYS" || Boolean(query.from) || Boolean(query.to) || Boolean(query.areaId);
+  const activeFilterCount =
+    (query.period !== "LAST_30_DAYS" ? 1 : 0) +
+    (query.period === "CUSTOM" && (query.from || query.to) ? 1 : 0) +
+    (query.areaId ? 1 : 0) +
+    OPERATIONAL_FILTER_KEYS.filter((key) => Boolean(query[key])).length;
+  const hasActiveFilter = activeFilterCount > 0;
   const dataRange = `${formatDashboardDate(data.period.from)} - ${formatDashboardDate(data.period.to)}`;
   const flatAreas = flattenAreaTree(filters?.areaTree);
   const selectedArea = flatAreas.find((area) => area.id === query.areaId) ?? null;
@@ -194,6 +231,66 @@ export function DashboardHeaderFilter({
     (selectedArea && isProvince(selectedArea) ? selectedArea.name : null) ??
     allScopeLabel;
   const filterDisabled = loading || filtersLoading || !filters;
+  const categoryOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: "Semua kategori", description: "Laporan Jaring dan Baket" },
+    ...(filters?.categories ?? []).map(namedOption),
+  ];
+  const productTypeOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: "Semua jenis produk", description: "Produk intelijen" },
+    ...(filters?.productTypes ?? []).map(namedOption),
+  ];
+  const fieldOfficerOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: `Semua ${DOMAIN_TERMS.fieldOfficer}`, description: "Mengikuti wilayah aktif" },
+    ...(filters?.fieldOfficers ?? []).map(namedOption),
+  ];
+  const jaringOptions: SearchableSelectOption[] = [
+    {
+      value: ALL_FILTERS,
+      label: `Semua ${DOMAIN_TERMS.jaring}`,
+      description:
+        filters?.jaring.truncated && filters.jaring.total > filters.jaring.items.length
+          ? `${filters.jaring.items.length} dari ${filters.jaring.total} ditampilkan`
+          : "Mengikuti wilayah aktif",
+    },
+    ...(filters?.jaring.items ?? []).map(namedOption),
+  ];
+  const urgencyOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: "Semua urgensi" },
+    ...(filters?.options.urgency ?? []).map(enumOption),
+  ];
+  const reportStatusOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: `Semua status ${DOMAIN_TERMS.jaringReport}` },
+    ...(filters?.options.reportStatus ?? []).map(enumOption),
+  ];
+  const workflowStatusOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: `Semua status ${DOMAIN_TERMS.baket}` },
+    ...(filters?.options.workflowStatus ?? []).map(enumOption),
+  ];
+  const validationStatusOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: `Semua verifikasi ${DOMAIN_TERMS.baket}` },
+    ...(filters?.options.validationStatus ?? []).map(enumOption),
+  ];
+  const attachmentOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: "Semua kondisi lampiran" },
+    { value: "true", label: "Memiliki Lampiran" },
+    { value: "false", label: "Tanpa Lampiran" },
+  ];
+  const coordinateSourceOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: "Semua sumber lokasi" },
+    ...(filters?.options.coordinateSource ?? []).map(enumOption),
+  ];
+  const locationSuitabilityOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: "Semua kesesuaian lokasi" },
+    ...(filters?.options.locationSuitability ?? []).map(enumOption),
+  ];
+  const sourceOptions: SearchableSelectOption[] = [
+    { value: ALL_FILTERS, label: "Semua sumber laporan" },
+    ...(filters?.options.source ?? []).map(enumOption),
+  ];
+
+  const selectFilterValue = (key: keyof DashboardQueryState, value: string) => {
+    onChange(key, value === ALL_FILTERS ? "" : value);
+  };
 
   return (
     <section className="overflow-hidden rounded-xl border border-[var(--dc-border-subtle)] bg-card shadow-[var(--dc-shadow-card)]">
@@ -266,18 +363,22 @@ export function DashboardHeaderFilter({
             <div className="min-w-0">
               <h2 className="text-sm font-semibold">Filter Dashboard</h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                Periode dan wilayah disajikan sejajar.{" "}
-                {isDeputyScope
-                  ? "Default Deputi II mencakup seluruh Indonesia dan seluruh Binda."
-                  : "Wilayah mengikuti cakupan hak akses aktif."}
-                Periode aktif: {dataRange}.
+                Periode, wilayah, dan filter operasional memakai cakupan hak akses aktif. Default wilayah diarahkan ke
+                DKI Jakarta jika tersedia. Periode aktif: {dataRange}.
               </p>
             </div>
           </div>
-          <Button className="min-h-10" variant="ghost" onClick={onReset} disabled={!hasActiveFilter || loading}>
-            <RotateCcw className="size-4" />
-            Reset
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {activeFilterCount > 0 ? (
+              <Badge variant="outline" className="min-h-8 border-[var(--dc-primary)] text-[var(--dc-primary)]">
+                {activeFilterCount} filter aktif
+              </Badge>
+            ) : null}
+            <Button className="min-h-10" variant="ghost" onClick={onReset} disabled={!hasActiveFilter || loading}>
+              <RotateCcw className="size-4" />
+              Reset
+            </Button>
+          </div>
         </div>
 
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(13rem,0.8fr)_minmax(16rem,1.15fr)_minmax(16rem,1fr)_minmax(16rem,1fr)]">
@@ -371,6 +472,174 @@ export function DashboardHeaderFilter({
               disabled={filterDisabled || districtOptions.length <= 1}
               aria-label="Filter kecamatan dashboard"
             />
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-[var(--dc-border-subtle)] bg-background/55 p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <SlidersHorizontal className="size-4 text-[var(--dc-primary)]" />
+              <h3 className="truncate text-sm font-semibold">Filter Operasional</h3>
+            </div>
+            {filtersLoading ? <Badge variant="secondary">Memuat opsi</Badge> : null}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Kategori</span>
+              <SearchableSelect
+                value={query.categoryId || ALL_FILTERS}
+                options={categoryOptions}
+                onValueChange={(value) => selectFilterValue("categoryId", value)}
+                placeholder="Semua kategori"
+                searchPlaceholder="Cari kategori..."
+                emptyText="Kategori tidak ditemukan."
+                disabled={filterDisabled || categoryOptions.length <= 1}
+                aria-label="Filter kategori dashboard"
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>{DOMAIN_TERMS.fieldOfficer}</span>
+              <SearchableSelect
+                value={query.fieldOfficerAssignmentId || ALL_FILTERS}
+                options={fieldOfficerOptions}
+                onValueChange={(value) => selectFilterValue("fieldOfficerAssignmentId", value)}
+                placeholder={`Semua ${DOMAIN_TERMS.fieldOfficer}`}
+                searchPlaceholder={`Cari ${DOMAIN_TERMS.fieldOfficer}...`}
+                emptyText={`${DOMAIN_TERMS.fieldOfficer} tidak ditemukan.`}
+                disabled={filterDisabled || fieldOfficerOptions.length <= 1}
+                aria-label={`Filter ${DOMAIN_TERMS.fieldOfficer} dashboard`}
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>{DOMAIN_TERMS.jaring}</span>
+              <SearchableSelect
+                value={query.jaringId || ALL_FILTERS}
+                options={jaringOptions}
+                onValueChange={(value) => selectFilterValue("jaringId", value)}
+                placeholder={`Semua ${DOMAIN_TERMS.jaring}`}
+                searchPlaceholder={`Cari ${DOMAIN_TERMS.jaring}...`}
+                emptyText={`${DOMAIN_TERMS.jaring} tidak ditemukan.`}
+                disabled={filterDisabled || jaringOptions.length <= 1}
+                aria-label={`Filter ${DOMAIN_TERMS.jaring} dashboard`}
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Urgensi</span>
+              <SearchableSelect
+                value={query.urgency || ALL_FILTERS}
+                options={urgencyOptions}
+                onValueChange={(value) => selectFilterValue("urgency", value)}
+                placeholder="Semua urgensi"
+                searchPlaceholder="Cari urgensi..."
+                emptyText="Urgensi tidak ditemukan."
+                disabled={filterDisabled}
+                aria-label="Filter urgensi dashboard"
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Status {DOMAIN_TERMS.jaringReport}</span>
+              <SearchableSelect
+                value={query.reportStatus || ALL_FILTERS}
+                options={reportStatusOptions}
+                onValueChange={(value) => selectFilterValue("reportStatus", value)}
+                placeholder={`Semua status ${DOMAIN_TERMS.jaringReport}`}
+                searchPlaceholder="Cari status laporan..."
+                emptyText="Status laporan tidak ditemukan."
+                disabled={filterDisabled}
+                aria-label={`Filter status ${DOMAIN_TERMS.jaringReport}`}
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Status {DOMAIN_TERMS.baket}</span>
+              <SearchableSelect
+                value={query.workflowStatus || ALL_FILTERS}
+                options={workflowStatusOptions}
+                onValueChange={(value) => selectFilterValue("workflowStatus", value)}
+                placeholder={`Semua status ${DOMAIN_TERMS.baket}`}
+                searchPlaceholder="Cari status Baket..."
+                emptyText="Status Baket tidak ditemukan."
+                disabled={filterDisabled}
+                aria-label={`Filter status ${DOMAIN_TERMS.baket}`}
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Verifikasi {DOMAIN_TERMS.baket}</span>
+              <SearchableSelect
+                value={query.validationStatus || ALL_FILTERS}
+                options={validationStatusOptions}
+                onValueChange={(value) => selectFilterValue("validationStatus", value)}
+                placeholder={`Semua verifikasi ${DOMAIN_TERMS.baket}`}
+                searchPlaceholder="Cari verifikasi Baket..."
+                emptyText="Verifikasi Baket tidak ditemukan."
+                disabled={filterDisabled}
+                aria-label={`Filter verifikasi ${DOMAIN_TERMS.baket}`}
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Jenis Produk Intelijen</span>
+              <SearchableSelect
+                value={query.productTypeId || ALL_FILTERS}
+                options={productTypeOptions}
+                onValueChange={(value) => selectFilterValue("productTypeId", value)}
+                placeholder="Semua jenis produk"
+                searchPlaceholder="Cari jenis produk..."
+                emptyText="Jenis produk tidak ditemukan."
+                disabled={filterDisabled || productTypeOptions.length <= 1}
+                aria-label="Filter jenis produk intelijen"
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Lampiran</span>
+              <SearchableSelect
+                value={query.hasAttachment || ALL_FILTERS}
+                options={attachmentOptions}
+                onValueChange={(value) => selectFilterValue("hasAttachment", value)}
+                placeholder="Semua kondisi lampiran"
+                searchPlaceholder="Cari kondisi lampiran..."
+                emptyText="Kondisi lampiran tidak ditemukan."
+                disabled={filterDisabled}
+                aria-label="Filter lampiran dashboard"
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Sumber Lokasi</span>
+              <SearchableSelect
+                value={query.coordinateSource || ALL_FILTERS}
+                options={coordinateSourceOptions}
+                onValueChange={(value) => selectFilterValue("coordinateSource", value)}
+                placeholder="Semua sumber lokasi"
+                searchPlaceholder="Cari sumber lokasi..."
+                emptyText="Sumber lokasi tidak ditemukan."
+                disabled={filterDisabled}
+                aria-label="Filter sumber lokasi dashboard"
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Kesesuaian Lokasi</span>
+              <SearchableSelect
+                value={query.locationSuitability || ALL_FILTERS}
+                options={locationSuitabilityOptions}
+                onValueChange={(value) => selectFilterValue("locationSuitability", value)}
+                placeholder="Semua kesesuaian lokasi"
+                searchPlaceholder="Cari kesesuaian lokasi..."
+                emptyText="Kesesuaian lokasi tidak ditemukan."
+                disabled={filterDisabled}
+                aria-label="Filter kesesuaian lokasi dashboard"
+              />
+            </div>
+            <div className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+              <span>Sumber Laporan</span>
+              <SearchableSelect
+                value={query.source || ALL_FILTERS}
+                options={sourceOptions}
+                onValueChange={(value) => selectFilterValue("source", value)}
+                placeholder="Semua sumber laporan"
+                searchPlaceholder="Cari sumber laporan..."
+                emptyText="Sumber laporan tidak ditemukan."
+                disabled={filterDisabled || sourceOptions.length <= 1}
+                aria-label="Filter sumber laporan dashboard"
+              />
+            </div>
           </div>
         </div>
       </div>

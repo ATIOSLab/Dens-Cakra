@@ -44,6 +44,25 @@ const DEFAULT_QUERY: DashboardQueryState = {
   source: "",
 };
 
+const DASHBOARD_QUERY_KEYS = [
+  "period",
+  "from",
+  "to",
+  "areaId",
+  "categoryId",
+  "productTypeId",
+  "jaringId",
+  "fieldOfficerAssignmentId",
+  "urgency",
+  "reportStatus",
+  "workflowStatus",
+  "validationStatus",
+  "hasAttachment",
+  "coordinateSource",
+  "locationSuitability",
+  "source",
+] as const satisfies Array<keyof DashboardQueryState>;
+
 function queryParams(query: DashboardQueryState) {
   const params = new URLSearchParams();
   if (query.period) params.set("period", query.period);
@@ -51,7 +70,10 @@ function queryParams(query: DashboardQueryState) {
     if (query.from) params.set("from", query.from);
     if (query.to) params.set("to", query.to);
   }
-  if (query.areaId) params.set("areaId", query.areaId);
+  for (const key of DASHBOARD_QUERY_KEYS) {
+    if (key === "period" || key === "from" || key === "to") continue;
+    if (query[key]) params.set(key, query[key]);
+  }
   return params;
 }
 
@@ -127,11 +149,16 @@ export function ExecutiveDashboardClient({
   const searchParams = useSearchParams();
   const [query, setQuery] = useState<DashboardQueryState>(() => {
     const next = { ...DEFAULT_QUERY };
-    next.period = searchParams.get("period") ?? next.period;
-    next.areaId = searchParams.get("areaId") ?? "";
+    for (const key of DASHBOARD_QUERY_KEYS) {
+      const value = searchParams.get(key);
+      if (value) next[key] = value;
+    }
     if (next.period === "CUSTOM") {
       next.from = searchParams.get("from") ?? "";
       next.to = searchParams.get("to") ?? "";
+    } else {
+      next.from = "";
+      next.to = "";
     }
     return next;
   });
@@ -172,21 +199,26 @@ export function ExecutiveDashboardClient({
     [query],
   );
 
-  const loadFilters = useCallback(async (signal?: AbortSignal) => {
-    setFiltersLoading(true);
-    try {
-      const nextFilters = await fetch("/api/v1/dashboard/executive/filters", {
-        cache: "no-store",
-        credentials: "include",
-        signal,
-      }).then(readApi<ExecutiveDashboardFilters>);
-      setFilters(nextFilters);
-    } catch (cause) {
-      if (cause instanceof DOMException && cause.name === "AbortError") return;
-    } finally {
-      setFiltersLoading(false);
-    }
-  }, []);
+  const loadFilters = useCallback(
+    async (signal?: AbortSignal) => {
+      setFiltersLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (query.areaId) params.set("areaId", query.areaId);
+        const nextFilters = await fetch(`/api/v1/dashboard/executive/filters${params.size ? `?${params}` : ""}`, {
+          cache: "no-store",
+          credentials: "include",
+          signal,
+        }).then(readApi<ExecutiveDashboardFilters>);
+        setFilters(nextFilters);
+      } catch (cause) {
+        if (cause instanceof DOMException && cause.name === "AbortError") return;
+      } finally {
+        setFiltersLoading(false);
+      }
+    },
+    [query.areaId],
+  );
 
   useEffect(() => {
     const params = queryParams(query);
@@ -224,12 +256,10 @@ export function ExecutiveDashboardClient({
 
   const changeQuery = useCallback((key: keyof DashboardQueryState, value: string) => {
     setQuery((current) => ({
-      ...DEFAULT_QUERY,
-      period: key === "period" ? value : current.period,
-      from: key === "from" ? value : current.from,
-      to: key === "to" ? value : current.to,
-      areaId: key === "areaId" ? value : current.areaId,
+      ...current,
+      [key]: value,
       ...(key === "period" && value !== "CUSTOM" ? { from: "", to: "" } : {}),
+      ...(key === "areaId" ? { fieldOfficerAssignmentId: "", jaringId: "" } : {}),
     }));
   }, []);
 
@@ -267,9 +297,15 @@ export function ExecutiveDashboardClient({
       if ((isReportRoute || isProductRoute) && query.areaId && !url.searchParams.has("areaId")) {
         url.searchParams.set("areaId", query.areaId);
       }
+      for (const key of DASHBOARD_QUERY_KEYS) {
+        if (key === "period" || key === "from" || key === "to" || key === "areaId") continue;
+        if ((isReportRoute || isProductRoute) && query[key] && !url.searchParams.has(key)) {
+          url.searchParams.set(key, query[key]);
+        }
+      }
       return `${url.pathname}${url.search}`;
     },
-    [data?.period.from, data?.period.to, query.areaId, role],
+    [data?.period.from, data?.period.to, query, role],
   );
 
   if (!data) {

@@ -540,12 +540,18 @@ export class ExecutiveDashboardService {
       deletedAt: null,
       createdAt: { gte: range.from, lte: range.to },
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
+      ...(query.areaId
+        ? { AND: [this.productAreaFilter(query.areaId)] }
+        : {}),
     };
     const productPreviousWhere: Prisma.IntelligenceProductWhereInput = {
       ...productWhere,
       deletedAt: null,
       createdAt: { gte: range.previousFrom, lte: range.previousTo },
       ...(query.productTypeId ? { productTypeId: query.productTypeId } : {}),
+      ...(query.areaId
+        ? { AND: [this.productAreaFilter(query.areaId)] }
+        : {}),
     };
     const scopedJaringWhere: Prisma.JaringWhereInput = {
       ...jaringScope,
@@ -582,6 +588,7 @@ export class ExecutiveDashboardService {
     const taskWhere: Prisma.TaskWhereInput = {
       deletedAt: null,
       createdAt: { gte: range.from, lte: range.to },
+      ...(query.areaId ? { targetAreas: { some: this.targetAreaFilter(query.areaId) } } : {}),
       OR: [
         { ownerAssignmentId: { in: resolvedScope.assignmentIds } },
         {
@@ -594,6 +601,15 @@ export class ExecutiveDashboardService {
     const directiveWhere: Prisma.DirectiveWhereInput = {
       deletedAt: null,
       createdAt: { gte: range.from, lte: range.to },
+      ...(query.areaId
+        ? {
+            versions: {
+              some: {
+                targetAreas: { some: this.targetAreaFilter(query.areaId) },
+              },
+            },
+          }
+        : {}),
       OR: [
         { ownerAssignmentId: { in: resolvedScope.assignmentIds } },
         {
@@ -925,6 +941,37 @@ export class ExecutiveDashboardService {
           ? [{ submittedMessage: { is: { AND: messageFilters } } }]
           : []),
       ],
+    };
+  }
+
+  private areaWithinFilter(areaId: string): Prisma.AdministrativeAreaWhereInput {
+    return {
+      OR: [
+        { id: areaId },
+        { descendantLinks: { some: { ancestorId: areaId } } },
+      ],
+    };
+  }
+
+  private targetAreaFilter(areaId: string) {
+    return { area: { is: this.areaWithinFilter(areaId) } };
+  }
+
+  private productAreaFilter(areaId: string): Prisma.IntelligenceProductWhereInput {
+    return {
+      versions: {
+        some: {
+          sourceVerifications: {
+            some: {
+              verification: {
+                baketVersion: {
+                  eventArea: { is: this.areaWithinFilter(areaId) },
+                },
+              },
+            },
+          },
+        },
+      },
     };
   }
 

@@ -14,13 +14,31 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+const DASHBOARD_QUERY_KEYS = [
+  "areaId",
+  "categoryId",
+  "productTypeId",
+  "jaringId",
+  "fieldOfficerAssignmentId",
+  "urgency",
+  "reportStatus",
+  "workflowStatus",
+  "validationStatus",
+  "hasAttachment",
+  "coordinateSource",
+  "locationSuitability",
+  "source",
+] as const;
+
 function dashboardQuery(searchParams: ExecutiveDashboardPageProps["searchParams"]) {
   const params = new URLSearchParams();
   params.set("period", firstParam(searchParams?.period) ?? "LAST_30_DAYS");
-  const areaId = firstParam(searchParams?.areaId);
   const from = firstParam(searchParams?.from);
   const to = firstParam(searchParams?.to);
-  if (areaId) params.set("areaId", areaId);
+  for (const key of DASHBOARD_QUERY_KEYS) {
+    const value = firstParam(searchParams?.[key]);
+    if (value) params.set(key, value);
+  }
   if (params.get("period") === "CUSTOM") {
     if (from) params.set("from", from);
     if (to) params.set("to", to);
