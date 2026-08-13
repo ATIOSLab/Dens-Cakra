@@ -18,13 +18,16 @@ import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
+  CreateWhatsappNotificationRecipientDto,
   CreateIntegrationDto,
   IntegrationQuery,
   ReasonDto,
   RequestWhatsappQrDto,
   TestIntegrationDto,
+  UpdateWhatsappNotificationRecipientDto,
   UpdateIntegrationDto,
   UpdateWhatsappControlDto,
+  WhatsappDeviceActivityQuery,
   WebhookQuery,
 } from './integration.dto.js';
 import { IntegrationService } from './integration.service.js';
@@ -55,6 +58,95 @@ export class IntegrationController {
   })
   async whatsappControl() {
     return apiResult(await this.integrationService.whatsappControl());
+  }
+
+  @Get('integration-channels/whatsapp-activity-logs')
+  @ApiContract({
+    operationId: 'apiInt015',
+    contractId: 'API-INT-015',
+    summary: 'Log aktivitas perangkat WhatsApp',
+    roles: ['admin_system'],
+  })
+  async whatsappDeviceActivityLogs(
+    @Query() query: WhatsappDeviceActivityQuery,
+  ) {
+    return apiResult(
+      await this.integrationService.whatsappDeviceActivityLogs(query),
+    );
+  }
+
+  @Get('integration-channels/whatsapp-notification-recipients')
+  @ApiContract({
+    operationId: 'apiInt016',
+    contractId: 'API-INT-016',
+    summary: 'Daftar penerima notifikasi WhatsApp',
+    roles: ['admin_system'],
+  })
+  async whatsappNotificationRecipients() {
+    return apiResult(
+      await this.integrationService.whatsappNotificationRecipients(),
+    );
+  }
+
+  @Post('integration-channels/whatsapp-notification-recipients')
+  @ApiContract({
+    operationId: 'apiInt017',
+    contractId: 'API-INT-017',
+    summary: 'Tambah penerima notifikasi WhatsApp',
+    roles: ['admin_system'],
+    successStatus: 201,
+    idempotent: true,
+  })
+  async createWhatsappNotificationRecipients(
+    @Body() body: CreateWhatsappNotificationRecipientDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.integrationService.createWhatsappNotificationRecipients(
+        body,
+        context,
+      ),
+    );
+  }
+
+  @Patch('integration-channels/whatsapp-notification-recipients/:recipientId')
+  @ApiContract({
+    operationId: 'apiInt018',
+    contractId: 'API-INT-018',
+    summary: 'Ubah penerima notifikasi WhatsApp',
+    roles: ['admin_system'],
+  })
+  async updateWhatsappNotificationRecipient(
+    @Param('recipientId', ParseUUIDPipe) id: string,
+    @Body() body: UpdateWhatsappNotificationRecipientDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.integrationService.updateWhatsappNotificationRecipient(
+        id,
+        body,
+        context,
+      ),
+    );
+  }
+
+  @Delete('integration-channels/whatsapp-notification-recipients/:recipientId')
+  @ApiContract({
+    operationId: 'apiInt019',
+    contractId: 'API-INT-019',
+    summary: 'Hapus penerima notifikasi WhatsApp',
+    roles: ['admin_system'],
+  })
+  async removeWhatsappNotificationRecipient(
+    @Param('recipientId', ParseUUIDPipe) id: string,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(
+      await this.integrationService.removeWhatsappNotificationRecipient(
+        id,
+        context,
+      ),
+    );
   }
 
   @Post('integration-channels')

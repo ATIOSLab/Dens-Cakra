@@ -235,6 +235,8 @@ Kewenangan tindakan dipisahkan menjadi:
 | Riwayat Pembinaan Jaring | Riwayat Pembinaan Jaring | History Pembinaan Jaring | Hindari History di UI. |
 | Peta Jejaring Intelijen | Peta Jejaring Intelijen | Maps Intelijen Network | Maps/Network jangan dipakai untuk label UI utama. |
 | Integrasi WhatsApp | Integrasi WhatsApp | WA Integration | WhatsApp tetap nama produk. |
+| Log Aktivitas WhatsApp | Log Aktivitas WhatsApp | WA activity log | Untuk audit aktif, logout, terputus, dan error sesi WhatsApp. |
+| Notifikasi WhatsApp | Notifikasi WhatsApp | WA notification settings | Menu pengaturan penerima email notifikasi status sesi WhatsApp. |
 | Produk Intelijen | Produk Intelijen | intelligence product | Untuk UI utama. |
 | Laporan Intelijen | Laporan Intelijen | intelligence report | Label menu generik untuk akses lintas role. |
 | Laporan Intelijen Binda | Laporan Intelijen Binda | regional intelligence report | Sesuai produk/laporan level Binda. |

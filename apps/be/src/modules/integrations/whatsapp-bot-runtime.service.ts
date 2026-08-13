@@ -34,12 +34,14 @@ import {
   IntegrationStatus,
   Prisma,
   WhatsAppBotConnectionStatus,
+  WhatsAppDeviceEventType,
   WhatsAppMessageStatus,
   WhatsAppValidationSummary,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
 import { env } from '../../lib/env.js';
+import { queueMail } from '../../lib/email.js';
 import {
   SecretVaultService,
   type EncryptedValue,
@@ -66,6 +68,21 @@ type WhatsAppChannelRecord = {
   channelType: string;
   status: IntegrationStatus;
   config: unknown;
+};
+
+type WhatsAppDeviceActivityNotification = {
+  id: string;
+  channelCode: string;
+  channelName: string;
+  phoneNumber: string | null;
+  eventType: WhatsAppDeviceEventType;
+  connectionStatus: WhatsAppBotConnectionStatus;
+  previousConnectionStatus: WhatsAppBotConnectionStatus | null;
+  sessionJid: string | null;
+  scopeAreaName: string | null;
+  coordinatorName: string | null;
+  occurredAt: Date;
+  errorMessage: string | null;
 };
 
 type InboundMessagePayload = {
@@ -1108,6 +1125,168 @@ export class WhatsappBotRuntimeService
     }
   }
 
+  private eventTypeForStatus(
+    status: WhatsAppBotConnectionStatus,
+    previousStatus?: WhatsAppBotConnectionStatus | null,
+  ) {
+    if (status === WhatsAppBotConnectionStatus.CONNECTED) {
+      return WhatsAppDeviceEventType.LOGIN;
+    }
+    if (status === WhatsAppBotConnectionStatus.ERROR) {
+      return WhatsAppDeviceEventType.ERROR;
+    }
+    if (status === WhatsAppBotConnectionStatus.QR_READY) {
+      return WhatsAppDeviceEventType.QR_READY;
+    }
+    if (status === WhatsAppBotConnectionStatus.PAIRING_CODE_READY) {
+      return WhatsAppDeviceEventType.PAIRING_CODE_READY;
+    }
+    if (status === WhatsAppBotConnectionStatus.CONNECTING) {
+      return WhatsAppDeviceEventType.CONNECTING;
+    }
+    if (status === WhatsAppBotConnectionStatus.DISCONNECTED) {
+      return previousStatus === WhatsAppBotConnectionStatus.CONNECTED
+        ? WhatsAppDeviceEventType.LOGOUT
+        : WhatsAppDeviceEventType.DISCONNECTED;
+    }
+
+    return WhatsAppDeviceEventType.STATUS_UPDATE;
+  }
+
+  private shouldNotifyDeviceActivity(eventType: WhatsAppDeviceEventType) {
+    return (
+      eventType === WhatsAppDeviceEventType.LOGIN ||
+      eventType === WhatsAppDeviceEventType.LOGOUT ||
+      eventType === WhatsAppDeviceEventType.DISCONNECTED ||
+      eventType === WhatsAppDeviceEventType.ERROR
+    );
+  }
+
+  private deviceActivityTitle(eventType: WhatsAppDeviceEventType) {
+    if (eventType === WhatsAppDeviceEventType.LOGIN) {
+      return 'WhatsApp aktif';
+    }
+    if (eventType === WhatsAppDeviceEventType.ERROR) {
+      return 'WhatsApp bermasalah';
+    }
+    if (eventType === WhatsAppDeviceEventType.LOGOUT) {
+      return 'WhatsApp logout';
+    }
+    if (eventType === WhatsAppDeviceEventType.DISCONNECTED) {
+      return 'WhatsApp terputus';
+    }
+
+    return 'Aktivitas WhatsApp';
+  }
+
+  private escapeHtml(value: string) {
+    return value.replace(/[&<>"']/g, (character) => {
+      if (character === '&') return '&amp;';
+      if (character === '<') return '&lt;';
+      if (character === '>') return '&gt;';
+      if (character === '"') return '&quot;';
+      return '&#39;';
+    });
+  }
+
+  private queueDeviceActivityNotification(
+    log: WhatsAppDeviceActivityNotification | null,
+  ) {
+    if (!log || !this.shouldNotifyDeviceActivity(log.eventType)) {
+      return;
+    }
+
+    void (async () => {
+      const recipients =
+        await this.prisma.whatsAppNotificationRecipient.findMany({
+          where: {
+            isActive: true,
+            ...(log.eventType === WhatsAppDeviceEventType.LOGIN
+              ? { notifyOnConnected: true }
+              : {}),
+            ...(log.eventType === WhatsAppDeviceEventType.ERROR
+              ? { notifyOnError: true }
+              : {}),
+            ...(log.eventType === WhatsAppDeviceEventType.LOGOUT ||
+            log.eventType === WhatsAppDeviceEventType.DISCONNECTED
+              ? { notifyOnDisconnected: true }
+              : {}),
+          },
+          select: { email: true },
+        });
+
+      if (recipients.length === 0) {
+        return;
+      }
+
+      const title = this.deviceActivityTitle(log.eventType);
+      const occurredAt = new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Jakarta',
+      }).format(log.occurredAt);
+      const phoneNumber = log.phoneNumber ?? 'Nomor belum terbaca';
+      const area = log.scopeAreaName ?? 'Wilayah belum terpetakan';
+      const coordinator = log.coordinatorName ?? 'Pengelola belum terpetakan';
+      const statusLine = `${log.previousConnectionStatus ?? '-'} -> ${log.connectionStatus}`;
+      const htmlTitle = this.escapeHtml(title);
+      const htmlPhoneNumber = this.escapeHtml(phoneNumber);
+      const htmlChannel = this.escapeHtml(
+        `${log.channelName} (${log.channelCode})`,
+      );
+      const htmlStatusLine = this.escapeHtml(statusLine);
+      const htmlArea = this.escapeHtml(area);
+      const htmlCoordinator = this.escapeHtml(coordinator);
+      const htmlOccurredAt = this.escapeHtml(`${occurredAt} WIB`);
+      const htmlError = log.errorMessage
+        ? this.escapeHtml(log.errorMessage)
+        : null;
+      const text = [
+        `${title}: ${phoneNumber}`,
+        `Kanal: ${log.channelName} (${log.channelCode})`,
+        `Status: ${statusLine}`,
+        `Wilayah: ${area}`,
+        `Pengelola: ${coordinator}`,
+        `Waktu: ${occurredAt} WIB`,
+        log.errorMessage ? `Error: ${log.errorMessage}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 680px; margin: 0 auto; padding: 24px;">
+          <h2 style="margin: 0 0 16px;">${htmlTitle}</h2>
+          <p>Aktivitas perangkat WhatsApp terdeteksi pada server DENS CAKRA.</p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+            <tr><td style="padding: 8px; color: #6b7280;">Nomor</td><td style="padding: 8px; font-weight: 700;">${htmlPhoneNumber}</td></tr>
+            <tr><td style="padding: 8px; color: #6b7280;">Kanal</td><td style="padding: 8px;">${htmlChannel}</td></tr>
+            <tr><td style="padding: 8px; color: #6b7280;">Status</td><td style="padding: 8px;">${htmlStatusLine}</td></tr>
+            <tr><td style="padding: 8px; color: #6b7280;">Wilayah</td><td style="padding: 8px;">${htmlArea}</td></tr>
+            <tr><td style="padding: 8px; color: #6b7280;">Pengelola</td><td style="padding: 8px;">${htmlCoordinator}</td></tr>
+            <tr><td style="padding: 8px; color: #6b7280;">Waktu</td><td style="padding: 8px;">${htmlOccurredAt}</td></tr>
+            ${
+              htmlError
+                ? `<tr><td style="padding: 8px; color: #6b7280;">Error</td><td style="padding: 8px;">${htmlError}</td></tr>`
+                : ''
+            }
+          </table>
+        </div>
+      `;
+
+      for (const recipient of recipients) {
+        queueMail({
+          to: recipient.email,
+          subject: `[DENS CAKRA] ${title} - ${phoneNumber}`,
+          text,
+          html,
+        });
+      }
+    })().catch((error: unknown) => {
+      this.logger.warn(
+        `Failed to queue WhatsApp device notification: ${this.messageOf(error)}`,
+      );
+    });
+  }
+
   private async persistState(
     channelId: string,
     patch: {
@@ -1124,7 +1303,16 @@ export class WhatsappBotRuntimeService
     },
     channelStatus?: IntegrationStatus,
   ) {
-    await this.prisma.$transaction(async (tx) => {
+    const notification = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.whatsAppBotChannelState.findUnique({
+        where: { integrationChannelId: channelId },
+        select: {
+          connectionStatus: true,
+          botPhoneNumber: true,
+          sessionJid: true,
+        },
+      });
+
       if (channelStatus) {
         await tx.integrationChannel.update({
           where: { id: channelId },
@@ -1150,7 +1338,127 @@ export class WhatsappBotRuntimeService
         },
         update: patch,
       });
+
+      if (
+        !patch.connectionStatus ||
+        existing?.connectionStatus === patch.connectionStatus
+      ) {
+        return null;
+      }
+
+      const channel = await tx.integrationChannel.findUnique({
+        where: { id: channelId },
+        select: {
+          code: true,
+          name: true,
+          config: true,
+          senderNumbers: {
+            where: { isActive: true },
+            select: { id: true, phoneNumber: true, isPrimary: true },
+            orderBy: [{ isPrimary: 'desc' }, { phoneNumber: 'asc' }],
+          },
+        },
+      });
+
+      if (!channel) {
+        return null;
+      }
+
+      let config: Record<string, unknown> = {};
+      try {
+        config = this.readConfig(channel.config);
+      } catch {
+        config = {};
+      }
+      const configuredScopeAreaIds = Array.isArray(config.scopeAreaIds)
+        ? config.scopeAreaIds.filter(
+            (item): item is string =>
+              typeof item === 'string' && item.trim().length > 0,
+          )
+        : [];
+      const scopeAreaId =
+        configuredScopeAreaIds[0] ??
+        (typeof config.scopeAreaId === 'string' ? config.scopeAreaId : null);
+      const userProfileId =
+        typeof config.userId === 'string' ? config.userId : null;
+      const operationalAssignmentId =
+        typeof config.operationalAssignmentId === 'string'
+          ? config.operationalAssignmentId
+          : null;
+      const phoneNumber =
+        this.readPhone(patch.botPhoneNumber) ??
+        this.readPhone(existing?.botPhoneNumber) ??
+        this.readPhone(patch.sessionJid) ??
+        this.readPhone(existing?.sessionJid) ??
+        this.readPhone(config.botPhoneNumber) ??
+        channel.senderNumbers[0]?.phoneNumber ??
+        null;
+      const senderNumber =
+        phoneNumber && channel.senderNumbers.length > 0
+          ? channel.senderNumbers.find(
+              (item) => item.phoneNumber === phoneNumber,
+            )
+          : null;
+      const eventType = this.eventTypeForStatus(
+        patch.connectionStatus,
+        existing?.connectionStatus,
+      );
+      const occurredAt =
+        patch.connectionStatus === WhatsAppBotConnectionStatus.CONNECTED
+          ? (patch.lastConnectedAt ?? new Date())
+          : patch.connectionStatus ===
+                WhatsAppBotConnectionStatus.DISCONNECTED ||
+              patch.connectionStatus === WhatsAppBotConnectionStatus.ERROR
+            ? (patch.lastDisconnectedAt ?? new Date())
+            : new Date();
+      const activity = await tx.whatsAppDeviceActivityLog.create({
+        data: {
+          channelId,
+          senderNumberId: senderNumber?.id ?? null,
+          phoneNumber,
+          eventType,
+          connectionStatus: patch.connectionStatus,
+          previousConnectionStatus: existing?.connectionStatus ?? null,
+          sessionJid: patch.sessionJid ?? existing?.sessionJid ?? null,
+          scopeAreaId,
+          userProfileId,
+          operationalAssignmentId,
+          reason:
+            eventType === WhatsAppDeviceEventType.LOGIN
+              ? 'Sesi WhatsApp aktif pada server.'
+              : eventType === WhatsAppDeviceEventType.LOGOUT
+                ? 'Sesi WhatsApp keluar atau terputus dari server.'
+                : null,
+          errorMessage: patch.lastError ?? null,
+          metadata: {
+            channelStatus: channelStatus ?? null,
+            botPhoneNumber: patch.botPhoneNumber ?? null,
+          } satisfies Prisma.InputJsonValue,
+          occurredAt,
+        },
+        include: {
+          scopeArea: { select: { name: true } },
+          userProfile: { select: { fullName: true } },
+        },
+      });
+
+      return {
+        id: activity.id,
+        channelCode: channel.code,
+        channelName: channel.name,
+        phoneNumber: activity.phoneNumber,
+        eventType: activity.eventType,
+        connectionStatus: activity.connectionStatus,
+        previousConnectionStatus: activity.previousConnectionStatus,
+        sessionJid: activity.sessionJid,
+        scopeAreaName: activity.scopeArea?.name ?? null,
+        coordinatorName: activity.userProfile?.fullName ?? null,
+        occurredAt: activity.occurredAt,
+        errorMessage: activity.errorMessage,
+      } satisfies WhatsAppDeviceActivityNotification;
     });
+
+    this.queueDeviceActivityNotification(notification);
   }
 
   async disconnectChannel(channelId: string, logout: boolean) {

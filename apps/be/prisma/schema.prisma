@@ -407,6 +407,17 @@ enum WhatsAppBotConnectionStatus {
   ERROR
 }
 
+enum WhatsAppDeviceEventType {
+  CONNECTING
+  QR_READY
+  PAIRING_CODE_READY
+  LOGIN
+  LOGOUT
+  DISCONNECTED
+  ERROR
+  STATUS_UPDATE
+}
+
 enum FileLifecycleStatus {
   PENDING_UPLOAD
   UPLOADED
@@ -604,6 +615,7 @@ model UserProfile {
   notifications          Notification[]
   auditLogs              AuditLog[]                  @relation("AuditActor")
   receivedDistributions  ProductDistribution[]       @relation("DistributionTargetUser")
+  whatsappDeviceLogs     WhatsAppDeviceActivityLog[] @relation("WhatsAppDeviceActivityUser")
 
   @@index([isActive, deletedAt])
   @@index([status, deletedAt])
@@ -671,6 +683,7 @@ model UserOperationalAssignment {
   routedWhatsAppMessages      WhatsAppMessage[]           @relation("WhatsAppRoutedTo")
   whatsappRoutingLogs         WhatsAppRoutingLog[]
   whatsappReportSessions      WhatsAppReportSession[]     @relation("WhatsAppReportFieldOfficer")
+  whatsappDeviceLogs          WhatsAppDeviceActivityLog[] @relation("WhatsAppDeviceActivityAssignment")
   baketsCreated               Baket[]                     @relation("BaketCreatedBy")
   baketVersionsCreated        BaketVersion[]              @relation("BaketVersionCreatedBy")
   baketRevisionRequests       BaketRevisionRequest[]
@@ -760,6 +773,7 @@ model AdministrativeArea {
   emergencyIncidents       EmergencyIncident[]
   alerts                   Alert[]
   personnelLocationPings   PersonnelLocationPing[]
+  whatsappDeviceLogs       WhatsAppDeviceActivityLog[]  @relation("WhatsAppDeviceActivityArea")
 
   @@unique([parentId, level, code])
   @@index([parentId, level])
@@ -2113,7 +2127,7 @@ model AuditLog {
   ipAddress          String?  @db.VarChar(64)
   deviceInfo         String?  @db.Text
   deviceType         String?  @db.VarChar(40)
-  browser             String?  @db.VarChar(80)
+  browser            String?  @db.VarChar(80)
   operatingSystem    String?  @db.VarChar(80)
   locationLabel      String?  @db.VarChar(255)
   requestId          String?  @db.VarChar(120)
@@ -2161,6 +2175,7 @@ model IntegrationChannel {
   botState         WhatsAppBotChannelState?
   senderNumbers    WhatsAppSenderNumber[]
   reportSessions   WhatsAppReportSession[]
+  deviceLogs       WhatsAppDeviceActivityLog[]
 
   @@index([deletedAt])
 }
@@ -2196,10 +2211,57 @@ model WhatsAppSenderNumber {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  integrationChannel IntegrationChannel @relation(fields: [integrationChannelId], references: [id], onDelete: Cascade)
+  integrationChannel IntegrationChannel          @relation(fields: [integrationChannelId], references: [id], onDelete: Cascade)
+  deviceLogs         WhatsAppDeviceActivityLog[]
 
   @@unique([integrationChannelId, phoneNumber])
   @@index([integrationChannelId, isActive])
+}
+
+model WhatsAppDeviceActivityLog {
+  id                       String                       @id @default(uuid()) @db.Uuid
+  channelId                String                       @db.Uuid
+  senderNumberId           String?                      @db.Uuid
+  phoneNumber              String?                      @db.VarChar(30)
+  eventType                WhatsAppDeviceEventType
+  connectionStatus         WhatsAppBotConnectionStatus
+  previousConnectionStatus WhatsAppBotConnectionStatus?
+  sessionJid               String?                      @db.VarChar(160)
+  scopeAreaId              String?                      @db.Uuid
+  userProfileId            String?                      @db.Uuid
+  operationalAssignmentId  String?                      @db.Uuid
+  reason                   String?                      @db.Text
+  errorMessage             String?                      @db.Text
+  metadata                 Json?
+  occurredAt               DateTime                     @default(now())
+  createdAt                DateTime                     @default(now())
+
+  channel               IntegrationChannel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  senderNumber          WhatsAppSenderNumber?      @relation(fields: [senderNumberId], references: [id], onDelete: SetNull)
+  scopeArea             AdministrativeArea?        @relation("WhatsAppDeviceActivityArea", fields: [scopeAreaId], references: [id], onDelete: SetNull)
+  userProfile           UserProfile?               @relation("WhatsAppDeviceActivityUser", fields: [userProfileId], references: [id], onDelete: SetNull)
+  operationalAssignment UserOperationalAssignment? @relation("WhatsAppDeviceActivityAssignment", fields: [operationalAssignmentId], references: [id], onDelete: SetNull)
+
+  @@index([channelId, occurredAt])
+  @@index([phoneNumber, occurredAt])
+  @@index([connectionStatus, occurredAt])
+  @@index([eventType, occurredAt])
+  @@index([scopeAreaId, occurredAt])
+  @@index([userProfileId, occurredAt])
+}
+
+model WhatsAppNotificationRecipient {
+  id                   String   @id @default(uuid()) @db.Uuid
+  email                String   @unique @db.VarChar(250)
+  label                String?  @db.VarChar(160)
+  isActive             Boolean  @default(true)
+  notifyOnConnected    Boolean  @default(true)
+  notifyOnDisconnected Boolean  @default(true)
+  notifyOnError        Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 model IntegrationWebhookEvent {

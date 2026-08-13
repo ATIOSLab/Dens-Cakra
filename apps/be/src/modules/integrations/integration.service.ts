@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { IntegrationStatus, Prisma } from '../../generated/prisma/client.js';
+import {
+  IntegrationStatus,
+  Prisma,
+  WhatsAppBotConnectionStatus,
+  WhatsAppDeviceEventType,
+} from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
@@ -9,11 +14,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
 import type {
   CreateIntegrationDto,
+  CreateWhatsappNotificationRecipientDto,
   IntegrationQuery,
   ReasonDto,
   RequestWhatsappQrDto,
   TestIntegrationDto,
   UpdateIntegrationDto,
+  UpdateWhatsappNotificationRecipientDto,
+  WhatsappDeviceActivityQuery,
   UpdateWhatsappControlDto,
   WebhookQuery,
 } from './integration.dto.js';
@@ -549,6 +557,354 @@ export class IntegrationService {
     }
 
     return views;
+  }
+
+  private parseActivityDate(value: string | undefined, field: string) {
+    if (!value) {
+      return undefined;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new ApiException(
+        'INVALID_WHATSAPP_ACTIVITY_DATE',
+        `Format ${field} tidak valid.`,
+        400,
+      );
+    }
+
+    return date;
+  }
+
+  private normalizeNotificationEmail(email: string) {
+    return email.trim().toLowerCase();
+  }
+
+  async whatsappDeviceActivityLogs(query: WhatsappDeviceActivityQuery) {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(200, Math.max(1, query.limit ?? 50));
+    const skip = (page - 1) * limit;
+    const from = this.parseActivityDate(query.from, 'waktu mulai');
+    const to = this.parseActivityDate(query.to, 'waktu akhir');
+    const normalizedPhone = query.phoneNumber
+      ? normalizeIndonesianPhoneNumber(query.phoneNumber)
+      : null;
+    const keyword = query.q?.trim();
+
+    const where: Prisma.WhatsAppDeviceActivityLogWhereInput = {
+      ...(query.channelId ? { channelId: query.channelId } : {}),
+      ...(query.scopeAreaId ? { scopeAreaId: query.scopeAreaId } : {}),
+      ...(normalizedPhone ? { phoneNumber: { contains: normalizedPhone } } : {}),
+      ...(query.connectionStatus
+        ? { connectionStatus: query.connectionStatus }
+        : {}),
+      ...(query.eventType ? { eventType: query.eventType } : {}),
+      ...(from || to
+        ? {
+            occurredAt: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lte: to } : {}),
+            },
+          }
+        : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { phoneNumber: { contains: keyword, mode: 'insensitive' } },
+              { sessionJid: { contains: keyword, mode: 'insensitive' } },
+              { reason: { contains: keyword, mode: 'insensitive' } },
+              { errorMessage: { contains: keyword, mode: 'insensitive' } },
+              {
+                channel: {
+                  name: { contains: keyword, mode: 'insensitive' },
+                },
+              },
+              {
+                channel: {
+                  code: { contains: keyword, mode: 'insensitive' },
+                },
+              },
+              {
+                scopeArea: {
+                  name: { contains: keyword, mode: 'insensitive' },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total, activeCount, downCount, errorCount, facetLogs] =
+      await Promise.all([
+        this.prisma.whatsAppDeviceActivityLog.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+          include: {
+            channel: { select: { id: true, code: true, name: true } },
+            scopeArea: {
+              select: {
+                id: true,
+                code: true,
+                officialCode: true,
+                name: true,
+                level: true,
+                parent: { select: { name: true } },
+              },
+            },
+            userProfile: { select: { id: true, fullName: true, phone: true } },
+            operationalAssignment: { select: { id: true, branch: true } },
+          },
+        }),
+        this.prisma.whatsAppDeviceActivityLog.count({ where }),
+        this.prisma.whatsAppDeviceActivityLog.count({
+          where: {
+            ...where,
+            connectionStatus: WhatsAppBotConnectionStatus.CONNECTED,
+          },
+        }),
+        this.prisma.whatsAppDeviceActivityLog.count({
+          where: {
+            ...where,
+            connectionStatus: WhatsAppBotConnectionStatus.DISCONNECTED,
+          },
+        }),
+        this.prisma.whatsAppDeviceActivityLog.count({
+          where: {
+            ...where,
+            connectionStatus: WhatsAppBotConnectionStatus.ERROR,
+          },
+        }),
+        this.prisma.whatsAppDeviceActivityLog.findMany({
+          where,
+          take: 500,
+          orderBy: { occurredAt: 'desc' },
+          include: {
+            channel: { select: { id: true, code: true, name: true } },
+            scopeArea: {
+              select: {
+                id: true,
+                code: true,
+                officialCode: true,
+                name: true,
+                level: true,
+                parent: { select: { name: true } },
+              },
+            },
+          },
+        }),
+      ]);
+
+    const channelMap = new Map<string, { id: string; code: string; name: string }>();
+    const areaMap = new Map<
+      string,
+      {
+        id: string;
+        code: string;
+        officialCode: string | null;
+        name: string;
+        level: string;
+        parentName: string | null;
+      }
+    >();
+    const phoneNumbers = new Set<string>();
+
+    for (const item of facetLogs) {
+      channelMap.set(item.channel.id, item.channel);
+      if (item.scopeArea) {
+        areaMap.set(item.scopeArea.id, {
+          id: item.scopeArea.id,
+          code: item.scopeArea.code,
+          officialCode: item.scopeArea.officialCode,
+          name: item.scopeArea.name,
+          level: item.scopeArea.level,
+          parentName: item.scopeArea.parent?.name ?? null,
+        });
+      }
+      if (item.phoneNumber) {
+        phoneNumbers.add(item.phoneNumber);
+      }
+    }
+
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        channelId: item.channelId,
+        channelCode: item.channel.code,
+        channelName: item.channel.name,
+        phoneNumber: item.phoneNumber,
+        eventType: item.eventType,
+        connectionStatus: item.connectionStatus,
+        previousConnectionStatus: item.previousConnectionStatus,
+        sessionJid: item.sessionJid,
+        reason: item.reason,
+        errorMessage: item.errorMessage,
+        occurredAt: item.occurredAt,
+        metadata: item.metadata,
+        scopeArea: item.scopeArea
+          ? {
+              id: item.scopeArea.id,
+              code: item.scopeArea.code,
+              officialCode: item.scopeArea.officialCode,
+              name: item.scopeArea.name,
+              level: item.scopeArea.level,
+              parentName: item.scopeArea.parent?.name ?? null,
+            }
+          : null,
+        coordinator: item.userProfile
+          ? {
+              id: item.userProfile.id,
+              name: item.userProfile.fullName,
+              phone: item.userProfile.phone,
+              assignmentId: item.operationalAssignment?.id ?? null,
+              branch: item.operationalAssignment?.branch ?? null,
+            }
+          : null,
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+      summary: {
+        active: activeCount,
+        disconnected: downCount,
+        error: errorCount,
+      },
+      filters: {
+        channels: [...channelMap.values()].sort((left, right) =>
+          left.name.localeCompare(right.name, 'id-ID'),
+        ),
+        scopeAreas: [...areaMap.values()].sort((left, right) =>
+          left.name.localeCompare(right.name, 'id-ID'),
+        ),
+        phoneNumbers: [...phoneNumbers].sort((left, right) =>
+          left.localeCompare(right, 'id-ID'),
+        ),
+        connectionStatuses: Object.values(WhatsAppBotConnectionStatus),
+        eventTypes: Object.values(WhatsAppDeviceEventType),
+      },
+    };
+  }
+
+  async whatsappNotificationRecipients() {
+    return this.prisma.whatsAppNotificationRecipient.findMany({
+      orderBy: [{ isActive: 'desc' }, { email: 'asc' }],
+    });
+  }
+
+  async createWhatsappNotificationRecipients(
+    body: CreateWhatsappNotificationRecipientDto,
+    context: AuthorizationContext,
+  ) {
+    const emails = [
+      ...new Set(body.emails.map((email) => this.normalizeNotificationEmail(email))),
+    ].filter(Boolean);
+
+    if (emails.length === 0) {
+      throw new ApiException(
+        'WHATSAPP_NOTIFICATION_EMAIL_REQUIRED',
+        'Minimal satu email penerima notifikasi wajib diisi.',
+        400,
+      );
+    }
+
+    await this.prisma.$transaction(
+      emails.map((email) =>
+        this.prisma.whatsAppNotificationRecipient.upsert({
+          where: { email },
+          create: {
+            email,
+            label: body.label?.trim() || null,
+            isActive: body.isActive ?? true,
+            notifyOnConnected: body.notifyOnConnected ?? true,
+            notifyOnDisconnected: body.notifyOnDisconnected ?? true,
+            notifyOnError: body.notifyOnError ?? true,
+          },
+          update: {
+            ...(body.label !== undefined
+              ? { label: body.label?.trim() || null }
+              : {}),
+            ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
+            ...(body.notifyOnConnected !== undefined
+              ? { notifyOnConnected: body.notifyOnConnected }
+              : {}),
+            ...(body.notifyOnDisconnected !== undefined
+              ? { notifyOnDisconnected: body.notifyOnDisconnected }
+              : {}),
+            ...(body.notifyOnError !== undefined
+              ? { notifyOnError: body.notifyOnError }
+              : {}),
+          },
+        }),
+      ),
+    );
+
+    await this.audit(
+      context,
+      'INTEGRATION.WHATSAPP_NOTIFICATION_RECIPIENTS.UPSERT',
+      'whatsapp-notification',
+      { emails },
+    );
+
+    return this.whatsappNotificationRecipients();
+  }
+
+  async updateWhatsappNotificationRecipient(
+    id: string,
+    body: UpdateWhatsappNotificationRecipientDto,
+    context: AuthorizationContext,
+  ) {
+    const updated = await this.prisma.whatsAppNotificationRecipient.update({
+      where: { id },
+      data: {
+        ...(body.email !== undefined
+          ? { email: this.normalizeNotificationEmail(body.email) }
+          : {}),
+        ...(body.label !== undefined
+          ? { label: body.label?.trim() || null }
+          : {}),
+        ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
+        ...(body.notifyOnConnected !== undefined
+          ? { notifyOnConnected: body.notifyOnConnected }
+          : {}),
+        ...(body.notifyOnDisconnected !== undefined
+          ? { notifyOnDisconnected: body.notifyOnDisconnected }
+          : {}),
+        ...(body.notifyOnError !== undefined
+          ? { notifyOnError: body.notifyOnError }
+          : {}),
+      },
+    });
+
+    await this.audit(
+      context,
+      'INTEGRATION.WHATSAPP_NOTIFICATION_RECIPIENT.UPDATE',
+      id,
+      { email: updated.email },
+    );
+
+    return updated;
+  }
+
+  async removeWhatsappNotificationRecipient(
+    id: string,
+    context: AuthorizationContext,
+  ) {
+    const deleted = await this.prisma.whatsAppNotificationRecipient.delete({
+      where: { id },
+    });
+
+    await this.audit(
+      context,
+      'INTEGRATION.WHATSAPP_NOTIFICATION_RECIPIENT.DELETE',
+      id,
+      { email: deleted.email },
+    );
+
+    return { id };
   }
 
   async create(body: CreateIntegrationDto, context: AuthorizationContext) {

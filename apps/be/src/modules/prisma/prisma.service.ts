@@ -196,6 +196,14 @@ export class PrismaService
     return this.delegate('whatsAppReportSession');
   }
 
+  get whatsAppDeviceActivityLog(): any {
+    return this.delegate('whatsAppDeviceActivityLog');
+  }
+
+  get whatsAppNotificationRecipient(): any {
+    return this.delegate('whatsAppNotificationRecipient');
+  }
+
   get baket(): any {
     return this.delegate('baket');
   }

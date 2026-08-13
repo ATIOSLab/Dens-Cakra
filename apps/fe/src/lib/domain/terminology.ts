@@ -45,6 +45,8 @@ export const DOMAIN_TERMS = {
   jaringCoachingHistory: "Riwayat Pembinaan Jaring",
   intelligenceNetworkMap: "Peta Jejaring Intelijen",
   whatsappIntegration: "Integrasi WhatsApp",
+  whatsappActivityLog: "Log Aktivitas WhatsApp",
+  whatsappNotificationSettings: "Notifikasi WhatsApp",
   draftBaket: "Draf Baket",
   validatedBaket: "Baket Tervalidasi",
   intelligenceReport: "Laporan Intelijen",

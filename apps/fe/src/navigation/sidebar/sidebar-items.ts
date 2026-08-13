@@ -299,6 +299,20 @@ export const sidebarItems: NavGroup[] = [
         roles: ADMIN_SYSTEM_ROLE,
       },
       {
+        id: "admin-system-wa-activity-log",
+        title: DOMAIN_TERMS.whatsappActivityLog,
+        url: "/dashboard/admin-system/log-aktivitas-whatsapp",
+        icon: DOMAIN_VISUALS.monitoring.Icon,
+        roles: ADMIN_SYSTEM_ROLE,
+      },
+      {
+        id: "admin-system-wa-notification-settings",
+        title: DOMAIN_TERMS.whatsappNotificationSettings,
+        url: "/dashboard/admin-system/notifikasi-whatsapp",
+        icon: DOMAIN_VISUALS.notification.Icon,
+        roles: ADMIN_SYSTEM_ROLE,
+      },
+      {
         id: "beranda-field-officer",
         title: "Beranda",
         url: "/dashboard/field-officer",
@@ -364,6 +378,8 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
       "admin-system-dki-supervision",
       "admin-system-master-data",
       "admin-system-wa-center",
+      "admin-system-wa-activity-log",
+      "admin-system-wa-notification-settings",
       "admin-system-security",
       "admin-system-configuration",
     ];
@@ -382,6 +398,8 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
     "admin-system-users",
     "admin-system-dki-supervision",
     "admin-system-wa-center",
+    "admin-system-wa-activity-log",
+    "admin-system-wa-notification-settings",
     "admin-system-master-data",
     "admin-system-security",
     "admin-system-configuration",
