@@ -20,6 +20,7 @@ export type AreaScopeTreeNode = {
   id: string;
   parentId: string | null;
   code: string;
+  officialCode: string | null;
   name: string;
   level: string;
   children: AreaScopeTreeNode[];
@@ -149,7 +150,7 @@ export class DomainScopeService {
               OR: [
                 { id: { in: scope.areaRootIds } },
                 {
-                  ancestorLinks: {
+                  descendantLinks: {
                     some: { ancestorId: { in: scope.areaRootIds } },
                   },
                 },
@@ -161,7 +162,14 @@ export class DomainScopeService {
         level: { in: ['PROVINCE', 'REGENCY', 'CITY', 'DISTRICT'] },
       },
       orderBy: [{ level: 'asc' }, { name: 'asc' }],
-      select: { id: true, parentId: true, code: true, name: true, level: true },
+      select: {
+        id: true,
+        parentId: true,
+        code: true,
+        officialCode: true,
+        name: true,
+        level: true,
+      },
     });
     const nodes = new Map<string, AreaScopeTreeNode>(
       areas.map((area: Omit<AreaScopeTreeNode, 'children'>) => [

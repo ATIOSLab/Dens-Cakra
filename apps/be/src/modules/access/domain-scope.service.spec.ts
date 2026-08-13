@@ -10,6 +10,98 @@ import type { AuthorizationContext } from '../../common/types/authorization-cont
 import { DomainScopeService } from './domain-scope.service.js';
 
 describe('DomainScopeService', () => {
+  it('membangun tree wilayah dari descendant scope dan membawa officialCode untuk filter dashboard', async () => {
+    const userOperationalAssignmentFindMany = jest
+      .fn()
+      .mockResolvedValue([] as never);
+    const administrativeAreaFindMany = jest.fn().mockResolvedValue([
+      {
+        id: 'dki',
+        parentId: 'indonesia',
+        code: '31',
+        officialCode: '31',
+        name: 'Daerah Khusus Ibukota Jakarta',
+        level: AdministrativeLevel.PROVINCE,
+      },
+      {
+        id: 'jakarta-selatan',
+        parentId: 'dki',
+        code: '31.74',
+        officialCode: '31.74',
+        name: 'Kota Administrasi Jakarta Selatan',
+        level: AdministrativeLevel.CITY,
+      },
+    ] as never);
+    const cache = {
+      getOrSet: jest.fn((_key, loader: () => Promise<unknown>) => loader()),
+    };
+    const service = new DomainScopeService(
+      {
+        userOperationalAssignment: {
+          findMany: userOperationalAssignmentFindMany,
+        },
+        administrativeArea: {
+          findMany: administrativeAreaFindMany,
+        },
+      } as never,
+      cache as never,
+    );
+    const context: AuthorizationContext = {
+      authUserId: 'auth',
+      authRole: 'executive',
+      userProfileId: 'profile',
+      userProfileStatus: UserProfileStatus.ACTIVE,
+      primaryAssignmentId: 'executive-a',
+      operationalAssignmentId: 'executive-a',
+      positionId: 'executive',
+      positionCode: RoleCode.EXECUTIVE,
+      positionTitle: 'Deputi II',
+      roleCode: RoleCode.EXECUTIVE,
+      organizationUnitId: 'pusat',
+      organizationUnitName: 'PUSAT Indonesia',
+      organizationUnitType: CommandRouteType.PUSAT,
+      commandRouteType: CommandRouteType.PUSAT,
+      areaScopes: [
+        {
+          areaId: 'indonesia',
+          code: 'ID',
+          name: 'Indonesia',
+          level: AdministrativeLevel.COUNTRY,
+          isPrimary: true,
+        },
+      ],
+    };
+
+    const tree = await service.areaTree(context);
+
+    expect(administrativeAreaFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            { id: { in: ['indonesia'] } },
+            {
+              descendantLinks: {
+                some: { ancestorId: { in: ['indonesia'] } },
+              },
+            },
+          ]),
+        }),
+      }),
+    );
+    expect(tree.children).toEqual([
+      expect.objectContaining({
+        id: 'dki',
+        officialCode: '31',
+        children: [
+          expect.objectContaining({
+            id: 'jakarta-selatan',
+            officialCode: '31.74',
+          }),
+        ],
+      }),
+    ]);
+  });
+
   it('resolves reporting-line descendants and keeps administrative scope roots compact', async () => {
     const prisma = {
       position: {
