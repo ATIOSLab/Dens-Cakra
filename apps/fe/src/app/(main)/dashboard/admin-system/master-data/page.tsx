@@ -68,8 +68,8 @@ function entityApiPath(entity: MasterEntity) {
 }
 
 function entityLabel(entity: MasterEntity, detailed = false) {
-  if (entity === "occupation") return "Pekerjaan";
-  return detailed ? "Kategori Laporan" : "Kategori";
+  if (entity === "occupation") return detailed ? "Pekerjaan Jaring" : "Pekerjaan";
+  return detailed ? "Kategori Baket" : "Kategori";
 }
 
 function usageCount(item: MasterItem, entity: MasterEntity) {
@@ -78,8 +78,8 @@ function usageCount(item: MasterItem, entity: MasterEntity) {
 }
 
 function entityPlaceholder(entity: MasterEntity) {
-  if (entity === "occupation") return "Contoh: Analis Keuangan";
-  return "Contoh: Keamanan, Politik";
+  if (entity === "occupation") return "Contoh: Pedagang";
+  return "Contoh: Ideologi, Politik";
 }
 
 function validateMasterName(entity: MasterEntity, rawName: string) {
@@ -137,10 +137,9 @@ export default function AdminMasterDataPage() {
   // Dynamic Alert Dialog State
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
 
-  // Scalable entities listing (inspired by Palantir Foundry / Azure Admin)
   const entities: Array<{ id: MasterEntity; label: string; icon: typeof Tags }> = [
-    { id: "category", label: "Kategori Laporan", icon: Tags },
-    { id: "occupation", label: "Pekerjaan", icon: BriefcaseBusiness },
+    { id: "category", label: "Kategori Baket", icon: Tags },
+    { id: "occupation", label: "Pekerjaan Jaring", icon: BriefcaseBusiness },
   ];
 
   // Summary Metrics
@@ -154,7 +153,7 @@ export default function AdminMasterDataPage() {
       const body = (await response.json()) as CategoryResponse[] | { message?: string };
 
       if (!response.ok) {
-        throw new Error("message" in body ? body.message : "Gagal memuat kategori laporan.");
+        throw new Error("message" in body ? body.message : "Gagal memuat kategori Baket.");
       }
 
       setCategories(
@@ -171,7 +170,7 @@ export default function AdminMasterDataPage() {
       const now = new Date();
       setLastUpdate(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Gagal memuat kategori laporan.");
+      setError(loadError instanceof Error ? loadError.message : "Gagal memuat kategori Baket.");
     } finally {
       setBusyKey(null);
     }
@@ -580,12 +579,11 @@ export default function AdminMasterDataPage() {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      {/* HEADER SECTION WITH STATS COUNTER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Badge className="bg-cyan-500/10 text-cyan-600 dark:text-[#14B8FF] border border-cyan-500/20 dark:border-[#14B8FF]/20 font-mono tracking-wider text-[9px] uppercase">
-              WORKSPACE
+              ADMIN SISTEM
             </Badge>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground font-sans">Master Data</h1>
@@ -594,18 +592,17 @@ export default function AdminMasterDataPage() {
           </p>
         </div>
 
-        {/* Scalable Stat Block */}
         <div className="flex items-center gap-6 font-mono shrink-0">
           <div className="flex flex-col items-end border-r border-border/60 pr-6">
-            <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Tipe Entity</span>
+            <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Jenis Data</span>
             <span className="text-2xl font-bold text-foreground">{totalEntities}</span>
           </div>
           <div className="flex flex-col items-end border-r border-border/60 pr-6">
-            <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Rekord Terdaftar</span>
+            <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Total Data</span>
             <span className="text-2xl font-bold text-foreground">{totalDataCount}</span>
           </div>
           <div className="flex flex-col items-end">
-            <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Terakhir Sinkronisasi</span>
+            <span className="text-[10px] uppercase text-muted-foreground tracking-wider">Sinkron Terakhir</span>
             <span className="text-sm font-bold text-foreground flex items-center gap-1.5 mt-1">
               <RefreshCw className="size-3 text-emerald-500 animate-spin-slow" />
               {lastUpdate}
@@ -614,7 +611,6 @@ export default function AdminMasterDataPage() {
         </div>
       </div>
 
-      {/* HORIZONTAL TABS SWITCHER (Microsoft Azure / Palantir inspired) */}
       <div className="border-b border-border/50 flex items-center gap-1 overflow-x-auto select-none no-scrollbar pb-px">
         {entities.map((ent) => {
           const Icon = ent.icon;
@@ -784,23 +780,23 @@ export default function AdminMasterDataPage() {
                       onClick={() => handleSort("name")}
                       className="p-4 font-bold cursor-pointer hover:text-foreground transition-colors"
                     >
-                      Nama {sortField === "name" && (sortDirection === "asc" ? "▲" : "▼")}
+                      Nama {sortField === "name" ? `(${sortDirection.toUpperCase()})` : null}
                     </th>
                     <th className="p-4 font-bold">Deskripsi</th>
                     <th
                       onClick={() => handleSort("isActive")}
                       className="p-4 font-bold cursor-pointer hover:text-foreground transition-colors text-center w-28"
                     >
-                      Status {sortField === "isActive" && (sortDirection === "asc" ? "▲" : "▼")}
+                      Status {sortField === "isActive" ? `(${sortDirection.toUpperCase()})` : null}
                     </th>
-                    <th className="p-4 font-bold text-center w-28">Last Update</th>
+                    <th className="p-4 font-bold text-center w-32">Pemakaian</th>
                     <th className="p-4 font-bold text-center w-24">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {paginatedItems.map((item) => {
                     const count = usageCount(item, activeEntity);
-                    const usageLabel = activeEntity === "category" ? `${count} laporan` : `${count} jaring`;
+                    const usageLabel = activeEntity === "category" ? `${count} Baket` : `${count} Jaring`;
                     const isSelected = selectedIds.includes(item.id);
 
                     return (
@@ -844,7 +840,7 @@ export default function AdminMasterDataPage() {
                             {item.isActive ? "Aktif" : "Nonaktif"}
                           </Badge>
                         </td>
-                        <td className="p-4 text-center text-muted-foreground/75">13-07-2026 17:15</td>
+                        <td className="p-4 text-center text-muted-foreground/75">{usageLabel}</td>
                         <td className="p-4">
                           <div className="flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                             <button
@@ -889,20 +885,19 @@ export default function AdminMasterDataPage() {
           )}
         </CardContent>
 
-        {/* ENTERPRISE PAGINATION FOOTER */}
         {totalItems > 0 && (
           <div className="p-4 border-t border-border/40 bg-secondary/15 dark:bg-slate-950/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono select-none">
             <div className="text-muted-foreground flex items-center gap-4">
               <div>
-                Showing{" "}
+                Menampilkan{" "}
                 <span className="text-foreground font-semibold">
-                  {(currentPage - 1) * rowsPerPage + 1}–{Math.min(currentPage * rowsPerPage, totalItems)}
+                  {(currentPage - 1) * rowsPerPage + 1}-{Math.min(currentPage * rowsPerPage, totalItems)}
                 </span>{" "}
-                of <span className="text-foreground font-semibold">{totalItems}</span> records.
+                dari <span className="text-foreground font-semibold">{totalItems}</span> data.
               </div>
 
               <div className="flex items-center gap-2 border-l border-border/50 pl-4">
-                <span>Rows per page:</span>
+                <span>Baris per halaman:</span>
                 <Select value={String(rowsPerPage)} onValueChange={(val) => setRowsPerPage(Number(val))}>
                   <SelectTrigger
                     size="sm"

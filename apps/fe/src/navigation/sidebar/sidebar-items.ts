@@ -366,13 +366,6 @@ export const sidebarItems: NavGroup[] = [
         icon: DOMAIN_VISUALS.notification.Icon,
         roles: ADMIN_SYSTEM_ROLE,
       },
-      {
-        id: "admin-system-configuration",
-        title: "Konfigurasi Sistem",
-        url: "/dashboard/admin-system/konfigurasi-sistem",
-        icon: DOMAIN_VISUALS.command.Icon,
-        roles: ADMIN_SYSTEM_ROLE,
-      },
     ],
   },
 ];
@@ -417,7 +410,6 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
       "admin-system-wa-notification-settings",
       "admin-system-smtp-settings",
       "admin-system-security",
-      "admin-system-configuration",
     ];
     accessibleItems.sort((left, right) => adminOrder.indexOf(left.id) - adminOrder.indexOf(right.id));
   }
@@ -441,7 +433,6 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
     "admin-system-smtp-settings",
     "admin-system-master-data",
     "admin-system-security",
-    "admin-system-configuration",
   ]);
   const entityIds = new Set([
     "shared-laporan-jaring",

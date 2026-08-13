@@ -2,7 +2,7 @@ import type { ElementType } from "react";
 
 import Link from "next/link";
 
-import { ArrowRight, CheckCircle2, CircleDashed, Mail, Route, ShieldCheck, UserCog } from "lucide-react";
+import { ArrowRight, CheckCircle2, Mail, Route, ShieldCheck, UserCog } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,14 +14,11 @@ import { DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
-type AdminModuleStatus = "aktif" | "disiapkan";
-
 type AdminModule = {
   title: string;
   label: string;
   href: string;
   area: "Akun" | "Data" | "Integrasi" | "Audit" | "Konfigurasi";
-  status: AdminModuleStatus;
   Icon: ElementType;
   iconClass: string;
 };
@@ -32,7 +29,6 @@ const adminModules: AdminModule[] = [
     label: "Akun dan akses",
     href: "/dashboard/admin-system/pengguna",
     area: "Akun",
-    status: "aktif",
     Icon: DOMAIN_VISUALS.user.Icon,
     iconClass: DOMAIN_VISUALS.user.iconClass,
   },
@@ -41,7 +37,6 @@ const adminModules: AdminModule[] = [
     label: "Kewenangan sistem",
     href: "/dashboard/admin-system/role-hak-akses",
     area: "Akun",
-    status: "disiapkan",
     Icon: UserCog,
     iconClass: DOMAIN_VISUALS.admin.iconClass,
   },
@@ -50,7 +45,6 @@ const adminModules: AdminModule[] = [
     label: "Relasi jabatan",
     href: "/dashboard/admin-system/jabatan-reporting-line",
     area: "Akun",
-    status: "aktif",
     Icon: Route,
     iconClass: DOMAIN_VISUALS.admin.iconClass,
   },
@@ -59,7 +53,6 @@ const adminModules: AdminModule[] = [
     label: "Aturan cakupan",
     href: "/dashboard/admin-system/supervisi-dki",
     area: "Konfigurasi",
-    status: "aktif",
     Icon: DOMAIN_VISUALS.intelligenceNetworkMap.Icon,
     iconClass: DOMAIN_VISUALS.intelligenceNetworkMap.iconClass,
   },
@@ -68,7 +61,6 @@ const adminModules: AdminModule[] = [
     label: "Referensi sistem",
     href: "/dashboard/admin-system/master-data",
     area: "Data",
-    status: "aktif",
     Icon: DOMAIN_VISUALS.intelligenceReport.Icon,
     iconClass: DOMAIN_VISUALS.intelligenceReport.iconClass,
   },
@@ -77,7 +69,6 @@ const adminModules: AdminModule[] = [
     label: "Koneksi WA Center",
     href: "/dashboard/admin-system/integrasi-wa-center",
     area: "Integrasi",
-    status: "aktif",
     Icon: DOMAIN_VISUALS.jaringReport.Icon,
     iconClass: DOMAIN_VISUALS.jaringReport.iconClass,
   },
@@ -86,7 +77,6 @@ const adminModules: AdminModule[] = [
     label: "Aktivitas sesi WA",
     href: "/dashboard/admin-system/log-aktivitas-whatsapp",
     area: "Audit",
-    status: "aktif",
     Icon: DOMAIN_VISUALS.monitoring.Icon,
     iconClass: DOMAIN_VISUALS.monitoring.iconClass,
   },
@@ -95,7 +85,6 @@ const adminModules: AdminModule[] = [
     label: "Penerima notifikasi",
     href: "/dashboard/admin-system/notifikasi-whatsapp",
     area: "Integrasi",
-    status: "aktif",
     Icon: DOMAIN_VISUALS.notification.Icon,
     iconClass: DOMAIN_VISUALS.notification.iconClass,
   },
@@ -104,7 +93,6 @@ const adminModules: AdminModule[] = [
     label: "Server email custom",
     href: "/dashboard/admin-system/pengaturan-smtp",
     area: "Integrasi",
-    status: "aktif",
     Icon: Mail,
     iconClass: DOMAIN_VISUALS.notification.iconClass,
   },
@@ -113,55 +101,18 @@ const adminModules: AdminModule[] = [
     label: "Log dan sesi",
     href: "/dashboard/admin-system/keamanan-audit",
     area: "Audit",
-    status: "aktif",
     Icon: ShieldCheck,
     iconClass: DOMAIN_VISUALS.admin.iconClass,
   },
-  {
-    title: "Konfigurasi Sistem",
-    label: "Parameter aplikasi",
-    href: "/dashboard/admin-system/konfigurasi-sistem",
-    area: "Konfigurasi",
-    status: "disiapkan",
-    Icon: DOMAIN_VISUALS.command.Icon,
-    iconClass: DOMAIN_VISUALS.command.iconClass,
-  },
 ];
-
-const statusConfig = {
-  aktif: {
-    label: "Aktif",
-    Icon: CheckCircle2,
-    className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  },
-  disiapkan: {
-    label: "Disiapkan",
-    Icon: CircleDashed,
-    className: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  },
-} satisfies Record<AdminModuleStatus, { label: string; Icon: ElementType; className: string }>;
-
-function StatusBadge({ status }: { status: AdminModuleStatus }) {
-  const config = statusConfig[status];
-  const Icon = config.Icon;
-
-  return (
-    <Badge className={cn("gap-1", config.className)}>
-      <Icon className="size-3" />
-      {config.label}
-    </Badge>
-  );
-}
 
 export async function AdminSystemDashboardPage() {
   const principal = await requireRole(SYSTEM_ROLES.ADMIN_SYSTEM);
-  const activeModules = adminModules.filter((module) => module.status === "aktif").length;
-  const preparedModules = adminModules.length - activeModules;
 
   const summary = [
     { label: "Role Akun", value: DOMAIN_TERMS.adminSystemRole },
-    { label: "Modul Aktif", value: String(activeModules) },
-    { label: "Modul Disiapkan", value: String(preparedModules) },
+    { label: "Menu Aktif", value: String(adminModules.length) },
+    { label: "Jenis Akun", value: DOMAIN_TERMS.systemAccount },
   ];
 
   return (
@@ -251,9 +202,10 @@ export async function AdminSystemDashboardPage() {
                     <CardDescription className={DC_TYPOGRAPHY.tableHeader}>{module.area}</CardDescription>
                     <CardTitle className="mt-1 text-base">{module.title}</CardTitle>
                   </div>
-                  <div className="shrink-0">
-                    <StatusBadge status={module.status} />
-                  </div>
+                  <Badge className="shrink-0 gap-1 border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                    <CheckCircle2 className="size-3" />
+                    Aktif
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="flex items-center justify-between gap-3">

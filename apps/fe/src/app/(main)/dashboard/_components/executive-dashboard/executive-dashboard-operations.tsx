@@ -299,7 +299,20 @@ function NumericCell({ children }: { children: React.ReactNode }) {
   return <TableCell className="whitespace-nowrap text-right font-mono tabular-nums">{children}</TableCell>;
 }
 
-type JaringRankingItem = ExecutiveDashboardData["operations"]["jaringRanking"][number];
+type JaringRankingItem = {
+  id: string;
+  code: string | null;
+  name: string;
+  status: string;
+  registrationStatus: string;
+  gaswil: string | null;
+  area: string | null;
+  reports: number;
+  verified: number;
+  draftBakets: number;
+  lastReportAt: string | null;
+  drilldown: string;
+};
 
 function entityMeta(items: Array<string | null | undefined>) {
   return items.filter((item): item is string => Boolean(item?.trim()));
