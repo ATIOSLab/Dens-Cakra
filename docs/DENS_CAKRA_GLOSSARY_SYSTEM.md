@@ -36,6 +36,7 @@ Sebelum menganggap revisi selesai:
 | Petugas Wilayah | Petugas Wilayah (Gaswil) | `field_officer`, `FIELD_OFFICER` | Jangan pakai Handler untuk UI. |
 | Personel Lapangan | Personel Lapangan | assignment/personel operasional | Gunakan untuk label netral ketika data teknis belum membedakan Gaswil, Korwil, atau petugas organik. |
 | Admin Sistem | Admin Sistem | `admin_system`, `ADMIN_SYSTEM` | Untuk role pengelola sistem. |
+| Akun Sistem | Akun Sistem | akun superadmin/admin teknis | Akun khusus administrasi sistem; bukan jabatan struktural BIN. |
 | Badan Intelijen Negara | Badan Intelijen Negara | sesuai data organisasi | BIN boleh dipakai setelah label lengkap jelas. |
 | Kepala BIN | Kepala BIN (KaBIN) | sesuai data jabatan | Pertahankan kapitalisasi ini. |
 | Kedeputian II | Kedeputian II | branch/unit teknis | Jangan ganti menjadi Deputy di UI. |
@@ -141,6 +142,8 @@ Anev adalah fungsi analisis dan evaluasi, bukan tingkat wilayah. Fungsi Anev dap
 | Log Aktivitas WhatsApp | Log Aktivitas WhatsApp | Menu Admin Sistem untuk riwayat status login, logout, terputus, dan error sesi WhatsApp. |
 | Notifikasi WhatsApp | Notifikasi WhatsApp | Menu Admin Sistem untuk penerima email notifikasi status WhatsApp. |
 | Pengaturan SMTP | Pengaturan SMTP | Menu Admin Sistem untuk konfigurasi server email custom. SMTP tetap istilah teknis. |
+| Role dan Hak Akses | Role dan Hak Akses | Menu Admin Sistem untuk pengelolaan role, kewenangan tindakan, dan cakupan akses. |
+| Jabatan dan Alur Pelaporan | Jabatan dan Alur Pelaporan | Menu Admin Sistem untuk relasi jabatan dan alur pelaporan. |
 
 Contoh pemisahan jabatan dan fungsi:
 

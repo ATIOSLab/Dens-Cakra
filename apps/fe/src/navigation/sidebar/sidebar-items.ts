@@ -297,6 +297,20 @@ export const sidebarItems: NavGroup[] = [
         roles: ADMIN_SYSTEM_ROLE,
       },
       {
+        id: "admin-system-role-access",
+        title: DOMAIN_TERMS.roleAccessSettings,
+        url: "/dashboard/admin-system/role-hak-akses",
+        icon: DOMAIN_VISUALS.admin.Icon,
+        roles: ADMIN_SYSTEM_ROLE,
+      },
+      {
+        id: "admin-system-position-reporting-line",
+        title: DOMAIN_TERMS.positionReportingLine,
+        url: "/dashboard/admin-system/jabatan-reporting-line",
+        icon: DOMAIN_VISUALS.admin.Icon,
+        roles: ADMIN_SYSTEM_ROLE,
+      },
+      {
         id: "admin-system-dki-supervision",
         title: "Supervisi DKI",
         url: "/dashboard/admin-system/supervisi-dki",
@@ -394,6 +408,8 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
     const adminOrder = [
       "admin-system-home",
       "admin-system-users",
+      "admin-system-role-access",
+      "admin-system-position-reporting-line",
       "admin-system-dki-supervision",
       "admin-system-master-data",
       "admin-system-wa-center",
@@ -416,6 +432,8 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
   ]);
   const administrationIds = new Set([
     "admin-system-users",
+    "admin-system-role-access",
+    "admin-system-position-reporting-line",
     "admin-system-dki-supervision",
     "admin-system-wa-center",
     "admin-system-wa-activity-log",
