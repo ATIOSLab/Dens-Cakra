@@ -593,7 +593,8 @@ export class PositionMutationService {
       branch === CommandRouteType.DIRECTORATE &&
       (positionCode === PositionCode.KABINDA ||
         positionCode === PositionCode.KABAGOPS ||
-        positionCode === PositionCode.KORWIL)
+        positionCode === PositionCode.KORWIL ||
+        positionCode === PositionCode.PETUGAS_ORGANIK)
     ) {
       throw new ApiException(
         'POSITION_BRANCH_MISMATCH',

@@ -86,7 +86,7 @@ function defaultPositionForBranch(branch: BranchValue): PositionCode {
 function isPositionAllowedForBranch(positionCode: PositionCode, branch: BranchValue) {
   if (branch === "PUSAT") return positionCode === "DEPUTI_II";
   if (branch === "DIRECTORATE") {
-    return ["DIREKTUR_WILAYAH", "KASUBDIT", "STAF_SUBDIT", "PETUGAS_ORGANIK"].includes(positionCode);
+    return ["DIREKTUR_WILAYAH", "KASUBDIT", "STAF_SUBDIT"].includes(positionCode);
   }
   return ["KABINDA", "KABAGOPS", "KORWIL", "PETUGAS_ORGANIK"].includes(positionCode);
 }

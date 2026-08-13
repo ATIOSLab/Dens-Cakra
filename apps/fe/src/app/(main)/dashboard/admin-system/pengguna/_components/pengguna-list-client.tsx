@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import type { AreaSearchResult, UserDetail, UserListFacets, UserListItem, UserListQueryState } from "./pengguna-types";
 import {
   formatDateTime,
-  getAssignmentUnitSummary,
+  getAssignmentRbacSummary,
   getPrimaryAssignment,
   isUserLocked,
   ROLE_CODE_OPTIONS,
@@ -80,32 +80,6 @@ function formatPercent(value: number) {
 
 function percentOf(value: number, total: number) {
   return total <= 0 ? 0 : Math.round((value / total) * 1000) / 10;
-}
-
-function getUnitTypeLabel(user: UserListItem) {
-  const assignment = getPrimaryAssignment(user);
-  const unit = getAssignmentUnitSummary(assignment);
-  const rawBranch = (assignment?.branch || unit?.branch || unit?.type || "").toUpperCase();
-
-  if (rawBranch.includes("BINDA")) {
-    return "Binda";
-  }
-  if (rawBranch.includes("DIRECTORAT") || rawBranch.includes("DIRECTORATE")) {
-    return "Direktorat";
-  }
-  if (rawBranch.includes("PUSAT")) {
-    return "Pusat";
-  }
-
-  const positionTitle = (assignment?.position?.title || "").toUpperCase();
-  if (positionTitle.includes("BINDA") || positionTitle.includes("KABINDA") || positionTitle.includes("KORWIL")) {
-    return "Binda";
-  }
-  if (positionTitle.includes("DIREKTUR") || positionTitle.includes("SUBDIT") || positionTitle.includes("DEPUTI")) {
-    return "Direktorat";
-  }
-
-  return "Binda";
 }
 
 function StatCard({
@@ -533,7 +507,7 @@ export function PenggunaListClient({
                       Pengguna
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Unit
+                      Jalur / Fungsi
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Cakupan Wilayah
@@ -555,6 +529,7 @@ export function PenggunaListClient({
                     const areaScopes = assignment?.areaScopes ?? [];
                     const locked = isUserLocked(user);
                     const isSelected = selectedUser?.id === user.id;
+                    const rbac = getAssignmentRbacSummary(assignment, user.authUser.role);
 
                     return (
                       <TableRow
@@ -576,7 +551,27 @@ export function PenggunaListClient({
                         </TableCell>
 
                         <TableCell className="py-3">
-                          <div className="text-xs font-semibold text-foreground">{getUnitTypeLabel(user)}</div>
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-xs font-semibold text-foreground">{rbac.functionLabel}</span>
+                              <Badge
+                                variant={rbac.status === "valid" ? "secondary" : "outline"}
+                                className={cn(
+                                  "px-1.5 py-0 text-[10px]",
+                                  rbac.status === "valid"
+                                    ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                                    : "border-amber-500/40 bg-amber-500/10 text-amber-300",
+                                )}
+                                title={rbac.message}
+                              >
+                                {rbac.status === "valid" ? "Valid" : "Cek RBAC"}
+                              </Badge>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">{rbac.lineLabel}</div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {rbac.branchLabel} - {rbac.scopeRequirement}
+                            </div>
+                          </div>
                         </TableCell>
 
                         <TableCell className="py-3">

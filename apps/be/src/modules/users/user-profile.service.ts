@@ -1101,6 +1101,14 @@ export class UserProfileService {
         422,
       );
     }
+
+    if (authRole === 'field_officer' && branch !== CommandRouteType.BINDA) {
+      throw new ApiException(
+        'FIELD_OFFICER_BRANCH_REQUIRED',
+        'Petugas Wilayah (Gaswil) harus berada pada garis komando BINDA.',
+        422,
+      );
+    }
   }
 
   private async assertAreaScopesForRole(

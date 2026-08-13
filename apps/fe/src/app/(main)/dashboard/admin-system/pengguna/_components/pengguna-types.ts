@@ -240,6 +240,35 @@ export const ROLE_CODE_TO_AUTH_ROLE: Record<RoleCode, SystemRole> = {
   FIELD_OFFICER: SYSTEM_ROLES.FIELD_OFFICER,
 };
 
+const AUTH_ROLE_TO_ROLE_CODE = Object.fromEntries(
+  Object.entries(ROLE_CODE_TO_AUTH_ROLE).map(([roleCode, authRole]) => [authRole, roleCode]),
+) as Record<SystemRole, RoleCode>;
+
+const ROLE_CODE_SET = new Set<string>(ROLE_CODE_OPTIONS.map((option) => option.value));
+const DKI_JAKARTA_PROVINCE_CODES = new Set(["31", "31.00", "31.0000"]);
+const AREA_LEVEL_LABELS: Record<string, string> = {
+  COUNTRY: "Negara",
+  PROVINCE: "Provinsi",
+  REGENCY: "Kabupaten",
+  CITY: "Kota",
+  DISTRICT: "Kecamatan",
+  SUBDISTRICT: "Kelurahan/Desa",
+  VILLAGE: "Kelurahan/Desa",
+};
+
+export type RbacDisplayStatus = "valid" | "warning" | "missing";
+
+export type AssignmentRbacSummary = {
+  roleCode: RoleCode | null;
+  roleLabel: string;
+  lineLabel: string;
+  functionLabel: string;
+  branchLabel: string;
+  scopeRequirement: string;
+  status: RbacDisplayStatus;
+  message: string;
+};
+
 export function getUserAssignments(user: UserListItem | UserDetail) {
   return user.operationalAssignments ?? user.positionAssignments ?? [];
 }
@@ -282,6 +311,222 @@ export function getAssignmentUnitSummary(assignment?: UserPositionAssignment | n
   }
 
   return null;
+}
+
+export function isKnownRoleCode(value?: string | null): value is RoleCode {
+  return Boolean(value && ROLE_CODE_SET.has(value));
+}
+
+export function getRoleLabelByCode(roleCode?: string | null) {
+  const option = ROLE_CODE_OPTIONS.find((item) => item.value === roleCode);
+  return option?.label ?? "Role tidak terdaftar";
+}
+
+function getRoleCodeFromAuthRole(role?: string | null) {
+  if (!role) return null;
+  return role in AUTH_ROLE_TO_ROLE_CODE ? AUTH_ROLE_TO_ROLE_CODE[role as SystemRole] : null;
+}
+
+function getAssignmentRoleCode(assignment?: UserPositionAssignment | null, authRole?: string | null) {
+  const rawRoleCode = assignment?.role?.code ?? assignment?.position?.role?.code ?? assignment?.seat?.role?.code ?? null;
+  if (isKnownRoleCode(rawRoleCode)) return rawRoleCode;
+  return getRoleCodeFromAuthRole(authRole);
+}
+
+function getAssignmentBranch(assignment?: UserPositionAssignment | null) {
+  return assignment?.branch ?? assignment?.position?.branch ?? assignment?.seat?.branch ?? null;
+}
+
+function getBranchLabel(branch?: CommandRouteType | null) {
+  if (branch === "PUSAT") return "Pusat";
+  if (branch === "DIRECTORATE") return "Direktorat/Ditwil";
+  if (branch === "BINDA") return DOMAIN_TERMS.regionalUnit;
+  return "Belum ditetapkan";
+}
+
+function normalizedAreaCode(area: AreaSummary) {
+  return (area.officialCode ?? area.code ?? "").trim();
+}
+
+function normalizedAreaLevel(area: AreaSummary) {
+  return area.level.toUpperCase();
+}
+
+function isDkiJakartaProvinceArea(area: AreaSummary) {
+  const code = normalizedAreaCode(area);
+  const name = area.name.toLocaleLowerCase("id-ID");
+  return (
+    normalizedAreaLevel(area) === "PROVINCE" &&
+    (DKI_JAKARTA_PROVINCE_CODES.has(code) ||
+      name.includes("dki jakarta") ||
+      name.includes("daerah khusus ibukota jakarta"))
+  );
+}
+
+function isDkiRegencyCityArea(area: AreaSummary) {
+  const level = normalizedAreaLevel(area);
+  if (level !== "REGENCY" && level !== "CITY") return false;
+
+  const code = normalizedAreaCode(area);
+  const name = area.name.toLocaleLowerCase("id-ID");
+  return code.startsWith("31.") || name.includes("jakarta") || name.includes("kepulauan seribu");
+}
+
+function hasOnlyAreaLevels(areaScopes: UserAreaScope[], levels: string[]) {
+  const levelSet = new Set(levels);
+  return areaScopes.length > 0 && areaScopes.every((scope) => levelSet.has(normalizedAreaLevel(scope.area)));
+}
+
+function hasValidDirectorateScope(areaScopes: UserAreaScope[]) {
+  return (
+    areaScopes.length > 0 &&
+    areaScopes.every((scope) => {
+      const level = normalizedAreaLevel(scope.area);
+      if (isDkiJakartaProvinceArea(scope.area)) return false;
+      if (level === "PROVINCE") return true;
+      return isDkiRegencyCityArea(scope.area);
+    })
+  );
+}
+
+function formatAreaLevels(areaScopes: UserAreaScope[]) {
+  const labels = [
+    ...new Set(
+      areaScopes.map((scope) => AREA_LEVEL_LABELS[normalizedAreaLevel(scope.area)] ?? normalizedAreaLevel(scope.area)),
+    ),
+  ];
+  return labels.length ? labels.join(", ") : "Belum ada cakupan";
+}
+
+function buildSummary(input: Omit<AssignmentRbacSummary, "status" | "message">, valid: boolean, message: string) {
+  return {
+    ...input,
+    status: valid ? "valid" : "warning",
+    message,
+  } satisfies AssignmentRbacSummary;
+}
+
+export function getAssignmentRbacSummary(
+  assignment?: UserPositionAssignment | null,
+  authRole?: string | null,
+): AssignmentRbacSummary {
+  const roleCode = getAssignmentRoleCode(assignment, authRole);
+  const branch = getAssignmentBranch(assignment);
+  const areaScopes = assignment?.areaScopes ?? [];
+  const roleLabel = getRoleLabelByCode(roleCode);
+  const branchLabel = getBranchLabel(branch);
+
+  if (!roleCode) {
+    return {
+      roleCode: null,
+      roleLabel,
+      lineLabel: "Belum tervalidasi",
+      functionLabel: "Role tidak terdaftar",
+      branchLabel,
+      scopeRequirement: "Gunakan role resmi RBAC",
+      status: "missing",
+      message: "Role akun tidak terdaftar dalam matriks RBAC.",
+    };
+  }
+
+  if (roleCode === "ADMIN_SYSTEM") {
+    return buildSummary(
+      {
+        roleCode,
+        roleLabel,
+        lineLabel: "Administrasi Sistem",
+        functionLabel: DOMAIN_TERMS.systemAccount,
+        branchLabel,
+        scopeRequirement: "Akses sistem, bukan jabatan struktural BIN",
+      },
+      !branch || branch === "PUSAT",
+      "Admin Sistem adalah akun sistem dan tidak masuk garis komando atau supervisi operasional.",
+    );
+  }
+
+  if (roleCode === "EXECUTIVE") {
+    return buildSummary(
+      {
+        roleCode,
+        roleLabel,
+        lineLabel: DOMAIN_TERMS.centralSupervisionLine,
+        functionLabel: DOMAIN_TERMS.deputyUnit,
+        branchLabel,
+        scopeRequirement: "Cakupan nasional",
+      },
+      branch === "PUSAT" && hasOnlyAreaLevels(areaScopes, ["COUNTRY"]),
+      `Deputi II wajib jalur Pusat dengan cakupan Negara. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`,
+    );
+  }
+
+  if (roleCode === "REGIONAL_COMMANDER") {
+    const isDirectorate = branch === "DIRECTORATE";
+    return buildSummary(
+      {
+        roleCode,
+        roleLabel,
+        lineLabel: isDirectorate ? DOMAIN_TERMS.centralSupervisionLine : DOMAIN_TERMS.commandTerritorialLine,
+        functionLabel: isDirectorate ? "Direktorat/Ditwil" : `${DOMAIN_TERMS.regionalUnit} - ${DOMAIN_TERMS.regionalLeader}`,
+        branchLabel,
+        scopeRequirement: isDirectorate
+          ? "Provinsi non-DKI atau Kota/Kabupaten DKI"
+          : "Provinsi komando Binda",
+      },
+      isDirectorate ? hasValidDirectorateScope(areaScopes) : branch === "BINDA" && hasOnlyAreaLevels(areaScopes, ["PROVINCE"]),
+      isDirectorate
+        ? `Direktorat/Ditwil memakai supervisi provinsi non-DKI atau kota/kabupaten DKI. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`
+        : `Kabinda/Binda wajib jalur BINDA dengan cakupan Provinsi. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`,
+    );
+  }
+
+  if (roleCode === "OPERATIONAL_INTELLIGENCE_MANAGER") {
+    const isDirectorate = branch === "DIRECTORATE";
+    return buildSummary(
+      {
+        roleCode,
+        roleLabel,
+        lineLabel: isDirectorate ? DOMAIN_TERMS.centralSupervisionLine : DOMAIN_TERMS.commandTerritorialLine,
+        functionLabel: isDirectorate ? DOMAIN_TERMS.anevDirectorate : DOMAIN_TERMS.anevBinda,
+        branchLabel,
+        scopeRequirement: isDirectorate
+          ? "Provinsi non-DKI atau Kota/Kabupaten DKI"
+          : "Provinsi komando Binda",
+      },
+      isDirectorate ? hasValidDirectorateScope(areaScopes) : branch === "BINDA" && hasOnlyAreaLevels(areaScopes, ["PROVINCE"]),
+      isDirectorate
+        ? `Anev Direktorat mengikuti scope supervisi Direktorat/Ditwil. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`
+        : `Anev Binda wajib jalur BINDA dengan cakupan Provinsi. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`,
+    );
+  }
+
+  if (roleCode === "FIELD_COORDINATOR") {
+    const isDirectorate = branch === "DIRECTORATE";
+    return buildSummary(
+      {
+        roleCode,
+        roleLabel,
+        lineLabel: isDirectorate ? DOMAIN_TERMS.centralSupervisionLine : DOMAIN_TERMS.commandTerritorialLine,
+        functionLabel: isDirectorate ? "Staf Subdit" : DOMAIN_TERMS.regionalCoordinator,
+        branchLabel,
+        scopeRequirement: isDirectorate ? "Kota/Kabupaten supervisi" : "Kabupaten/Kota komando Korwil",
+      },
+      (branch === "BINDA" || branch === "DIRECTORATE") && hasOnlyAreaLevels(areaScopes, ["REGENCY", "CITY"]),
+      `Koordinator/Staf Subdit memakai cakupan Kabupaten/Kota. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`,
+    );
+  }
+
+  return buildSummary(
+    {
+      roleCode,
+      roleLabel,
+      lineLabel: DOMAIN_TERMS.commandTerritorialLine,
+      functionLabel: DOMAIN_TERMS.fieldOfficer,
+      branchLabel,
+      scopeRequirement: "Kecamatan penugasan Gaswil",
+    },
+    branch === "BINDA" && hasOnlyAreaLevels(areaScopes, ["DISTRICT"]),
+    `Petugas Wilayah (Gaswil) wajib jalur BINDA dengan cakupan Kecamatan. Cakupan saat ini: ${formatAreaLevels(areaScopes)}.`,
+  );
 }
 
 export function isUserLocked(user: UserListItem | UserDetail) {
