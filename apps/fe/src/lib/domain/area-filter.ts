@@ -33,6 +33,17 @@ export type VillageFilterOption = {
   districtName: string | null;
 };
 
+export type AreaFilterIdentity = {
+  id?: string;
+  areaId?: string;
+  code?: string | null;
+  officialCode?: string | null;
+  name: string;
+};
+
+const DKI_JAKARTA_PROVINCE_CODE = "31";
+const DKI_JAKARTA_NAME_MATCHERS = ["dki jakarta", "daerah khusus ibukota jakarta"] as const;
+
 export function areaScopeId(area: AdministrativeAreaFilterScope) {
   return area.areaId ?? area.id ?? "";
 }
@@ -286,6 +297,18 @@ export function isDkiAreaScope(area: AdministrativeAreaFilterScope) {
     name.includes("dki jakarta") ||
     name.includes("daerah khusus ibukota jakarta")
   );
+}
+
+export function isDkiJakartaProvinceOption(area: AreaFilterIdentity) {
+  const code = area.officialCode?.trim() || area.code?.trim() || "";
+  const name = String(area.name ?? "").toLocaleLowerCase("id-ID");
+
+  return code === DKI_JAKARTA_PROVINCE_CODE || DKI_JAKARTA_NAME_MATCHERS.some((matcher) => name.includes(matcher));
+}
+
+export function findDkiJakartaProvinceFilterId<T extends AreaFilterIdentity>(areas: T[]) {
+  const dkiProvince = areas.find(isDkiJakartaProvinceOption);
+  return dkiProvince ? (dkiProvince.areaId ?? dkiProvince.id ?? "") : "";
 }
 
 export function selectedAreaFilterId(input: {

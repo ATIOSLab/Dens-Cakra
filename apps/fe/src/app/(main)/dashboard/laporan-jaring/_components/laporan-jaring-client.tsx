@@ -69,12 +69,14 @@ type ReportListResponse = {
   summary?: {
     totalJaringReports: number;
     baketReports: number;
+    reportingJaringCount: number;
   };
 };
 
 const EMPTY_SUMMARY = {
   totalJaringReports: 0,
   baketReports: 0,
+  reportingJaringCount: 0,
 };
 
 function JaringFilterPopover({

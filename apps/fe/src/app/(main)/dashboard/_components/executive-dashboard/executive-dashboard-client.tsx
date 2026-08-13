@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ApiEnvelope } from "@/lib/api/types";
+import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import type { SystemRole } from "@/navigation/sidebar/system-roles";
 import { getSystemRoleLabel } from "@/navigation/sidebar/system-roles";
 
@@ -52,6 +53,18 @@ function queryParams(query: DashboardQueryState) {
   }
   if (query.areaId) params.set("areaId", query.areaId);
   return params;
+}
+
+function flattenDashboardAreaTree(root: ExecutiveDashboardFilters["areaTree"] | null | undefined) {
+  const result: Array<{ id: string; name: string }> = [];
+
+  function visit(node: ExecutiveDashboardFilters["areaTree"]) {
+    result.push({ id: node.id, name: node.name });
+    for (const child of node.children ?? []) visit(child);
+  }
+
+  if (root) visit(root);
+  return result;
 }
 
 async function readApi<T>(response: Response) {
@@ -129,6 +142,12 @@ export function ExecutiveDashboardClient({
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const initialRequest = useRef(true);
+  const didApplyDefaultAreaFilter = useRef(false);
+
+  const defaultAreaId = useMemo(
+    () => findDkiJakartaProvinceFilterId(flattenDashboardAreaTree(filters?.areaTree)),
+    [filters?.areaTree],
+  );
 
   const loadData = useCallback(
     async (signal?: AbortSignal) => {
@@ -187,6 +206,13 @@ export function ExecutiveDashboardClient({
     void loadFilters(controller.signal);
     return () => controller.abort();
   }, [loadFilters]);
+
+  useEffect(() => {
+    if (didApplyDefaultAreaFilter.current || searchParams.has("areaId") || query.areaId || !defaultAreaId) return;
+
+    setQuery((current) => (current.areaId ? current : { ...current, areaId: defaultAreaId }));
+    didApplyDefaultAreaFilter.current = true;
+  }, [defaultAreaId, query.areaId, searchParams]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -280,7 +306,7 @@ export function ExecutiveDashboardClient({
         query={query}
         loading={loading}
         onChange={changeQuery}
-        onReset={() => setQuery(DEFAULT_QUERY)}
+        onReset={() => setQuery({ ...DEFAULT_QUERY, areaId: defaultAreaId })}
         onRefresh={() => void loadData()}
         autoRefresh={autoRefresh}
         onToggleAutoRefresh={() => setAutoRefresh((current) => !current)}

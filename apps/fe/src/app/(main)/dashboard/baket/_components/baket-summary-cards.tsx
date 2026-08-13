@@ -2,9 +2,10 @@
 
 import { Activity, ArrowDown, ShieldAlert, TriangleAlert } from "lucide-react";
 
-import type { PriorityLevel } from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
+
+import type { PriorityLevel } from "./baket-data";
 
 export const BAKET_URGENCY_LABELS: Record<PriorityLevel, string> = {
   URGENT: "Mendesak",

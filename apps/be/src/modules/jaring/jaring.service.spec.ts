@@ -869,7 +869,10 @@ describe('JaringService registration security', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(1);
-    const groupBy = jest.fn(() => Promise.resolve([]));
+    const groupBy = jest
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ jaringId: 'jaring-id' }]);
     const jaringWhere = jest.fn(() =>
       Promise.resolve({ id: { in: ['jaring-id'] } }),
     );
@@ -936,6 +939,7 @@ describe('JaringService registration security', () => {
       totalSessions: 3,
       totalJaringReports: 2,
       baketReports: 1,
+      reportingJaringCount: 1,
     });
     expect(result.summary.baketReports).toBe(1);
   });

@@ -29,15 +29,20 @@ const IDENTITY_ROWS = [
   },
 ] as const;
 
+type IdentityRowKey = (typeof IDENTITY_ROWS)[number]["key"];
+type IdentityLabelOverrides = Partial<Record<IdentityRowKey, string>>;
+
 export function JaringIdentitySummary({
   source,
   compact = false,
   linkWhatsApp = true,
+  labelOverrides,
   className,
 }: {
   source: JaringIdentitySource;
   compact?: boolean;
   linkWhatsApp?: boolean;
+  labelOverrides?: IdentityLabelOverrides;
   className?: string;
 }) {
   const identity = resolveJaringIdentity(source);
@@ -63,6 +68,7 @@ export function JaringIdentitySummary({
           const value = identity[key];
           const isPhone = key === "whatsappNumber" && value !== "Belum tersedia";
           const isGaswil = key === "gaswilName";
+          const displayLabel = labelOverrides?.[key] ?? label;
           return (
             <div
               key={key}
@@ -73,7 +79,9 @@ export function JaringIdentitySummary({
             >
               <Icon className={cn("mt-0.5 size-3.5 shrink-0", tone)} aria-hidden="true" />
               <div className="min-w-0">
-                <dt className="font-semibold text-[10px] text-muted-foreground uppercase tracking-[0.08em]">{label}</dt>
+                <dt className="font-semibold text-[10px] text-muted-foreground uppercase tracking-[0.08em]">
+                  {displayLabel}
+                </dt>
                 <dd
                   className={cn(
                     "mt-0.5 min-w-0 font-medium text-foreground text-xs",

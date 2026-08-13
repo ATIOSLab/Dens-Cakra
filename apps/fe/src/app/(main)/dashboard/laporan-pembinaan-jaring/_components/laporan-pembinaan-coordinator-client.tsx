@@ -39,6 +39,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
 import {
   buildAreaFilterSubtitle,
+  findDkiJakartaProvinceFilterId,
   isDistrictLevel,
   isProvinceLevel,
   isRegencyLevel,
@@ -261,6 +262,7 @@ export function LaporanPembinaanCoordinatorClient() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);
   const requestSequence = useRef(0);
+  const didApplyDefaultProvinceFilter = useRef(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -394,6 +396,24 @@ export function LaporanPembinaanCoordinatorClient() {
 
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
   }, [areaScopes, jaringList]);
+
+  const defaultProvinceFilter = useMemo(
+    () => findDkiJakartaProvinceFilterId(provinceOptions),
+    [provinceOptions],
+  );
+
+  useEffect(() => {
+    if (didApplyDefaultProvinceFilter.current || !defaultProvinceFilter || provinceFilter !== "ALL") return;
+
+    setProvinceFilter(defaultProvinceFilter);
+    setRegencyFilter("ALL");
+    setDistrictFilter("ALL");
+    setVillageFilter("ALL");
+    setGaswilFilter("ALL");
+    setJaringFilter("ALL");
+    setPage(1);
+    didApplyDefaultProvinceFilter.current = true;
+  }, [defaultProvinceFilter, provinceFilter]);
 
   const regencyOptions = useMemo(() => {
     const map = new Map<string, { id: string; name: string }>();
@@ -581,7 +601,7 @@ export function LaporanPembinaanCoordinatorClient() {
     Boolean(search.trim()) ||
     jaringFilter !== "ALL" ||
     gaswilFilter !== "ALL" ||
-    provinceFilter !== "ALL" ||
+    provinceFilter !== (defaultProvinceFilter || "ALL") ||
     regencyFilter !== "ALL" ||
     districtFilter !== "ALL" ||
     villageFilter !== "ALL" ||
@@ -592,7 +612,7 @@ export function LaporanPembinaanCoordinatorClient() {
     search.trim(),
     jaringFilter !== "ALL",
     gaswilFilter !== "ALL",
-    provinceFilter !== "ALL",
+    provinceFilter !== (defaultProvinceFilter || "ALL"),
     regencyFilter !== "ALL",
     districtFilter !== "ALL",
     villageFilter !== "ALL",
@@ -605,7 +625,7 @@ export function LaporanPembinaanCoordinatorClient() {
     setSearch("");
     setJaringFilter("ALL");
     setGaswilFilter("ALL");
-    setProvinceFilter("ALL");
+    setProvinceFilter(defaultProvinceFilter || "ALL");
     setRegencyFilter("ALL");
     setDistrictFilter("ALL");
     setVillageFilter("ALL");

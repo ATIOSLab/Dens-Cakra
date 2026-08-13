@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -78,7 +78,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
-import { buildAreaFilterSubtitle } from "@/lib/domain/area-filter";
+import { buildAreaFilterSubtitle, findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DC_CONTROLS, DC_TYPOGRAPHY, DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { matchesPhoneSearch } from "@/lib/search/phone-search";
@@ -320,6 +320,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   const [limit, setLimit] = useState(10);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<JaringColumn[]>(DEFAULT_COLUMNS);
+  const didApplyDefaultProvinceFilter = useRef(false);
 
   // Quick Action Modal State
   const [selectedItemForAction, setSelectedItemForAction] = useState<{
@@ -361,6 +362,22 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     }
     return sortedAreaOptions(options);
   }, [items]);
+
+  const defaultProvinceFilter = useMemo(
+    () => findDkiJakartaProvinceFilterId(uniqueProvinces),
+    [uniqueProvinces],
+  );
+
+  useEffect(() => {
+    if (didApplyDefaultProvinceFilter.current || !defaultProvinceFilter || provinceFilter !== "ALL") return;
+
+    setProvinceFilter(defaultProvinceFilter);
+    setCityFilter("ALL");
+    setDistrictFilter("ALL");
+    setVillageFilter("ALL");
+    setPage(1);
+    didApplyDefaultProvinceFilter.current = true;
+  }, [defaultProvinceFilter, provinceFilter]);
 
   const uniqueCities = useMemo(() => {
     if (provinceFilter === "ALL") return [];
@@ -529,7 +546,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     search.trim() !== "" ||
     statusFilter !== "ALL" ||
     activeStatusFilter !== "ALL" ||
-    provinceFilter !== "ALL" ||
+    provinceFilter !== (defaultProvinceFilter || "ALL") ||
     cityFilter !== "ALL" ||
     districtFilter !== "ALL" ||
     villageFilter !== "ALL" ||
@@ -539,7 +556,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
     setSearch("");
     setStatusFilter("ALL");
     setActiveStatusFilter("ALL");
-    setProvinceFilter("ALL");
+    setProvinceFilter(defaultProvinceFilter || "ALL");
     setCityFilter("ALL");
     setDistrictFilter("ALL");
     setVillageFilter("ALL");
@@ -607,8 +624,8 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
   return (
     <main className="mx-auto w-full max-w-[1600px] space-y-5 sm:space-y-6">
       {/* HEADER SECTION */}
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+      <div className="space-y-5">
+        <div className="max-w-3xl">
           <h1 className={DC_TYPOGRAPHY.pageTitle}>Daftar Jaring</h1>
           <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">
             Kelola data Jaring, wilayah penempatan, Petugas Wilayah (Gaswil), status registrasi, dan aktivitas
@@ -618,7 +635,7 @@ export function JaringVerificationListClient({ initialItems }: { initialItems: R
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3 lg:w-auto">
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
           {/* Total Jaring */}
           <button
             type="button"

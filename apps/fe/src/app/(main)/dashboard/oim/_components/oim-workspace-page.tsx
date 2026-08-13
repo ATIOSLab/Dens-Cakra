@@ -2,13 +2,14 @@ import { apiServerGet } from "@/lib/api/server-client";
 import { requireRole } from "@/lib/auth/server-session";
 import { SYSTEM_ROLES } from "@/navigation/sidebar/system-roles";
 
-import type { OimPageData, OimView } from "./oim-types";
+import type { OimPageData, OimProductContext, OimView } from "./oim-types";
 import { OimWorkspaceClient } from "./oim-workspace-client";
 
 type Props = {
   view: OimView;
   params?: Record<string, string>;
   searchParams?: Record<string, string | string[] | undefined>;
+  productContext?: OimProductContext;
 };
 
 async function safe<T>(label: string, promise: Promise<T>, errors: string[]): Promise<T | undefined> {
@@ -20,7 +21,21 @@ async function safe<T>(label: string, promise: Promise<T>, errors: string[]): Pr
   }
 }
 
-export async function OimWorkspacePage({ view, params = {}, searchParams = {} }: Props) {
+function rows(value: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    );
+  }
+  if (value && typeof value === "object" && Array.isArray((value as { items?: unknown[] }).items)) {
+    return (value as { items: unknown[] }).items.filter(
+      (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    );
+  }
+  return [];
+}
+
+export async function OimWorkspacePage({ view, params = {}, searchParams = {}, productContext }: Props) {
   await requireRole(SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER);
   const errors: string[] = [];
   const page = typeof searchParams.page === "string" ? searchParams.page : "1";
@@ -47,7 +62,25 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
     errors,
     activeTab: typeof searchParams.tab === "string" ? searchParams.tab : undefined,
     activeStatus: requestedStatuses ?? commonQuery.status,
+    productContext,
   };
+  let scopedProductTypeId = typeof searchParams.productTypeId === "string" ? searchParams.productTypeId : undefined;
+
+  if (productContext?.productTypeCode) {
+    const productTypes = await safe("jenis laporan", apiServerGet("/product-types", { isActive: true }), errors);
+    data.productTypes = productTypes;
+    const selectedProductType = rows(productTypes).find((item) => item.code === productContext.productTypeCode);
+    const selectedId = typeof selectedProductType?.id === "string" ? selectedProductType.id : undefined;
+
+    if (selectedId) {
+      scopedProductTypeId = selectedId;
+      data.productContext = { ...productContext, productTypeId: selectedId };
+    } else {
+      data.productContext = productContext;
+      errors.push(`${productContext.label} belum tersedia pada master jenis laporan aktif.`);
+    }
+  }
+  const productTypeFilterReady = !productContext?.productTypeCode || Boolean(scopedProductTypeId);
 
   const listRequests = [
     safe("baket", apiServerGet("/bakets", commonQuery), errors).then((value) => {
@@ -94,7 +127,10 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
         data.analyses = value;
       }),
     );
-  if (["dashboard", "products", "product-list", "product-new", "approval", "monitoring"].includes(view))
+  if (["dashboard", "products", "product-list", "product-new", "approval", "monitoring"].includes(view)) {
+    if (!productTypeFilterReady) {
+      data.products = { items: [], pagination: { page: 1, limit: 25, total: 0, totalPages: 0 } };
+    } else {
     listRequests.push(
       safe(
         "produk",
@@ -107,6 +143,7 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
           periodFrom: commonQuery.from,
           periodTo: commonQuery.to,
           classification: typeof searchParams.classification === "string" ? searchParams.classification : undefined,
+          productTypeId: scopedProductTypeId,
           sortBy,
           sortOrder,
         }),
@@ -115,7 +152,9 @@ export async function OimWorkspacePage({ view, params = {}, searchParams = {} }:
         data.products = value;
       }),
     );
-  if (["products", "product-new", "product-edit"].includes(view))
+    }
+  }
+  if (["products", "product-new", "product-edit"].includes(view) && !data.productTypes)
     listRequests.push(
       safe("jenis produk", apiServerGet("/product-types", { isActive: true }), errors).then((value) => {
         data.productTypes = value;

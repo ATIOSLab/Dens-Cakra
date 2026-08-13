@@ -1,6 +1,7 @@
 import { ComingSoonPage } from "@/app/(main)/dashboard/coming-soon/page";
 import type { OimView } from "@/app/(main)/dashboard/oim/_components/oim-types";
 import { OimWorkspacePage } from "@/app/(main)/dashboard/oim/_components/oim-workspace-page";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
 type UniversalDensRoutePageProps = {
   routePattern: string;
@@ -32,6 +33,11 @@ function resolveOimView(route: string): OimView | null {
   if (route.includes("/produk-intelijen/buat-produk/[productId]/edit")) return "product-edit";
   if (route.includes("/produk-intelijen/buat-produk")) return "product-new";
   if (route.endsWith("/produk-intelijen")) return "products";
+  if (route.includes("/laporan-informasi/[productId]/versions/")) return "product-version";
+  if (route.includes("/laporan-informasi/[productId]/edit")) return "product-edit";
+  if (route.includes("/laporan-informasi/[productId]")) return "product-detail";
+  if (route.endsWith("/laporan-informasi/buat")) return "product-new";
+  if (route.endsWith("/laporan-informasi")) return "product-list";
   if (route.includes("/pengajuan-persetujuan/workflow/")) return "workflow-detail";
   if (route.includes("/pengajuan-persetujuan/[productId]")) return "approval-detail";
   if (route.endsWith("/pengajuan-persetujuan")) return "approval";
@@ -48,7 +54,29 @@ function resolveOimView(route: string): OimView | null {
 export function UniversalDensRoutePage({ routePattern, params = {}, searchParams = {} }: UniversalDensRoutePageProps) {
   const oimView = resolveOimView(routePattern);
   if (oimView) {
-    return <OimWorkspacePage view={oimView} params={params} searchParams={searchParams} />;
+    const isInformationReport = routePattern.includes("/laporan-informasi");
+
+    return (
+      <OimWorkspacePage
+        view={oimView}
+        params={params}
+        searchParams={searchParams}
+        productContext={
+          isInformationReport
+            ? {
+                productTypeCode: "LAPORAN_INFORMASI",
+                label: DOMAIN_TERMS.informationReport,
+                listTitle: `Daftar ${DOMAIN_TERMS.informationReport}`,
+                createTitle: `Buat ${DOMAIN_TERMS.informationReport}`,
+                detailTitle: `Detail ${DOMAIN_TERMS.informationReport}`,
+                listPath: "/dashboard/oim/laporan-informasi",
+                createPath: "/dashboard/oim/laporan-informasi/buat",
+                detailBasePath: "/dashboard/oim/laporan-informasi",
+              }
+            : undefined
+        }
+      />
+    );
   }
   return <ComingSoonPage title="Modul Belum Tersedia" description={buildDescription()} />;
 }

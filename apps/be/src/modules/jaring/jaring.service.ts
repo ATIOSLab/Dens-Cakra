@@ -1045,6 +1045,7 @@ export class JaringService {
       totalSessions,
       totalJaringReports,
       baketReports,
+      reportingJaringGroups,
     ] = await Promise.all([
       this.prisma.whatsAppReportSession.count({ where }),
       this.prisma.whatsAppReportSession.count({ where: jaringReportWhere }),
@@ -1062,12 +1063,17 @@ export class JaringService {
           ],
         },
       }),
+      this.prisma.whatsAppReportSession.groupBy({
+        by: ['jaringId'],
+        where: jaringReportWhere,
+      }),
     ]);
 
     return {
       totalSessions,
       totalJaringReports,
       baketReports,
+      reportingJaringCount: reportingJaringGroups.length,
     };
   }
 

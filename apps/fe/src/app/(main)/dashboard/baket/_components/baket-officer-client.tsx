@@ -5,16 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-import { Calendar, CheckCircle2, Clock, Eye, MapPin, RefreshCw, Search, User, X } from "lucide-react";
+import { Eye, MapPin, RefreshCw, Search, User, X } from "lucide-react";
 
-import {
-  formatFullAreaName,
-  type JaringReportSessionDetail,
-  type PriorityLevel,
-} from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
-import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
-import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,13 +17,13 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
-import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { apiBrowserFetch } from "@/lib/api/browser-client";
 import {
   type DashboardDetailPeriodPreset,
   dateInputFromSearchParams,
@@ -41,6 +34,22 @@ import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
+import {
+  ALL_BAKET_STATUS_QUERY,
+  type BaketRecord,
+  currentBaketVersion,
+  formatBaketAreaName,
+  getBaketCategoryId,
+  getBaketContent,
+  getBaketDate,
+  getBaketDisplayTitle,
+  getBaketHref,
+  getBaketJaringIdentitySource,
+  getBaketReferenceLabel,
+  getBaketStatusLabel,
+  getBaketVersionLabel,
+  type PriorityLevel,
+} from "./baket-data";
 import { BaketSummaryCards } from "./baket-summary-cards";
 
 export interface ReportCategoryItem {
@@ -70,32 +79,18 @@ function formatDateTime(value?: string | null) {
   }
 }
 
-function getSourceReportDate(item: JaringReportSessionDetail) {
-  return item.reportedAt ?? item.submittedAt ?? item.createdAt;
-}
-
-function getBaketDate(item: JaringReportSessionDetail) {
-  return item.baket?.latestVersion?.reportedAt ?? item.submittedAt ?? item.updatedAt ?? item.createdAt;
-}
-
-function getBaketVersionLabel(item: JaringReportSessionDetail) {
-  if (!item.baket) return "Baket";
-  return `Versi ${item.baket.currentVersionNumber}`;
-}
-
 const BAKET_OFFICER_COLUMNS: ColumnOption[] = [
   { id: "no", label: "No" },
-  { id: "refNum", label: "No. Referensi" },
-  { id: "foto", label: "Foto Jaring" },
-  { id: "namaJaring", label: "Nama Jaring", alwaysVisible: true },
-  { id: "kodeJaring", label: "Kode Jaring" },
+  { id: "refNum", label: "No. Baket" },
+  { id: "foto", label: "Foto Sumber" },
+  { id: "namaJaring", label: "Sumber", alwaysVisible: true },
+  { id: "kodeJaring", label: "Kode Sumber" },
   { id: "gaswil", label: "Petugas Wilayah (Gaswil)" },
   { id: "whatsapp", label: "Nomor WhatsApp" },
   { id: "judulIsi", label: "Judul & Isi Baket", alwaysVisible: true },
-  { id: "lokasiAktual", label: "Lokasi Aktual Laporan" },
-  { id: "wilayahPenempatan", label: "Wilayah Penempatan Jaring" },
+  { id: "lokasiAktual", label: "Lokasi Baket" },
+  { id: "wilayahPenempatan", label: "Wilayah Sumber" },
   { id: "statusVerifikasi", label: "Status Validasi" },
-  { id: "tanggalLaporan", label: "Tanggal Laporan Jaring" },
   { id: "tanggalBaket", label: "Tanggal Baket" },
 ];
 
@@ -103,7 +98,7 @@ export function BaketOfficerClient() {
   const searchParams = useSearchParams();
   const initialStartDate = dateInputFromSearchParams(searchParams, ["from", "periodStart"]);
   const initialEndDate = dateInputFromSearchParams(searchParams, ["to", "periodEnd"]);
-  const [reports, setReports] = useState<JaringReportSessionDetail[]>([]);
+  const [bakets, setBakets] = useState<BaketRecord[]>([]);
   const [categories, setCategories] = useState<ReportCategoryItem[]>([]);
   const [loadingList, setLoadingList] = useState(true);
 
@@ -111,38 +106,30 @@ export function BaketOfficerClient() {
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
   const isColVisible = (id: string) => visibleColumns[id] !== false;
 
-  // Read report IDs state from localStorage
-  const [readReportIds, setReadReportIds] = useState<Set<string>>(new Set());
+  const [readBaketIds, setReadBaketIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
-        const stored = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
-        setReadReportIds(new Set(stored));
+        const stored = JSON.parse(localStorage.getItem("read_bakets") || "[]");
+        setReadBaketIds(new Set(stored));
       } catch {
         // Abaikan cache lokal yang tidak valid.
       }
     }
   }, []);
 
-  const markReportAsRead = async (reportId: string) => {
-    if (reportId) {
+  const markBaketAsRead = (baketId: string) => {
+    if (baketId && typeof window !== "undefined") {
       try {
-        void apiBrowserMutation("PATCH", `/jaring/reports/${reportId}/read`);
-      } catch {
-        // Abaikan kegagalan penanda baca; status lokal tetap diproses.
-      }
-      if (typeof window !== "undefined") {
-        try {
-          const stored: string[] = JSON.parse(localStorage.getItem("read_reports_jaring") || "[]");
-          if (!stored.includes(reportId)) {
-            stored.push(reportId);
-            localStorage.setItem("read_reports_jaring", JSON.stringify(stored));
-            setReadReportIds(new Set(stored));
-          }
-        } catch {
-          // Abaikan cache lokal yang tidak dapat ditulis.
+        const stored: string[] = JSON.parse(localStorage.getItem("read_bakets") || "[]");
+        if (!stored.includes(baketId)) {
+          stored.push(baketId);
+          localStorage.setItem("read_bakets", JSON.stringify(stored));
+          setReadBaketIds(new Set(stored));
         }
+      } catch {
+        // Abaikan cache lokal yang tidak dapat ditulis.
       }
     }
   };
@@ -159,26 +146,37 @@ export function BaketOfficerClient() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  // Fetch list of reports (using same endpoint as Laporan Jaring)
-  async function fetchReports(overrideStart?: string, overrideEnd?: string) {
+  async function fetchBakets(overrideStart?: string, overrideEnd?: string) {
     setLoadingList(true);
     try {
-      let url = "/jaring/reports?registrationStatus=APPROVED&stage=ALL";
+      const allItems: BaketRecord[] = [];
+      let currentPage = 1;
+      let totalPages = 1;
       const sDate = overrideStart ?? startDate;
       const eDate = overrideEnd ?? endDate;
 
-      if (sDate && sDate.length === 10) {
-        url += `&from=${encodeURIComponent(jakartaBoundaryIso(sDate))}`;
-      }
-      if (eDate && eDate.length === 10) {
-        url += `&to=${encodeURIComponent(jakartaBoundaryIso(eDate, true))}`;
-      }
+      do {
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          limit: "100",
+          statuses: ALL_BAKET_STATUS_QUERY,
+        });
 
-      const res = await apiBrowserFetch<{ items?: JaringReportSessionDetail[] } | JaringReportSessionDetail[]>(url);
-      const itemsList = Array.isArray(res) ? res : res?.items || [];
-      setReports(itemsList);
+        if (sDate && sDate.length === 10) params.set("from", jakartaBoundaryIso(sDate));
+        if (eDate && eDate.length === 10) params.set("to", jakartaBoundaryIso(eDate, true));
+
+        const res = await apiBrowserFetch<
+          { items?: BaketRecord[]; pagination?: { totalPages?: number } } | BaketRecord[]
+        >(`/bakets?${params.toString()}`);
+        const pageItems = Array.isArray(res) ? res : res?.items || [];
+        allItems.push(...pageItems);
+        totalPages = Array.isArray(res) ? (pageItems.length < 100 ? currentPage : currentPage + 1) : Math.max(1, res.pagination?.totalPages ?? 1);
+        currentPage += 1;
+      } while (currentPage <= totalPages);
+
+      setBakets(Array.from(new Map(allItems.map((item) => [item.id, item])).values()));
     } catch (err) {
-      console.error("Gagal memuat daftar laporan:", err);
+      console.error("Gagal memuat daftar Baket:", err);
     } finally {
       setLoadingList(false);
     }
@@ -197,14 +195,13 @@ export function BaketOfficerClient() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: data awal dimuat sekali saat halaman dibuka
   useEffect(() => {
-    void fetchReports();
+    void fetchBakets();
     void fetchCategories();
   }, []);
 
-  // Filter laporan yang sudah memiliki Baket.
   const baketReports = useMemo(() => {
-    return reports.filter((r) => Boolean(r.baket) || r.processStatus === "BAKET_CREATED");
-  }, [reports]);
+    return bakets;
+  }, [bakets]);
 
   // Compute summary metrics based on Urgensi
   const urgencySummary = useMemo(() => {
@@ -216,7 +213,7 @@ export function BaketOfficerClient() {
     };
 
     for (const r of baketReports) {
-      const u = r.urgency || "NORMAL";
+      const u = currentBaketVersion(r)?.urgency ?? "NORMAL";
       if (u in summary) {
         summary[u as PriorityLevel] += 1;
       }
@@ -230,14 +227,13 @@ export function BaketOfficerClient() {
     return baketReports.filter((item) => {
       // Urgensi filter
       if (urgencyFilter !== "ALL") {
-        const itemUrgency = item.urgency || "NORMAL";
+        const itemUrgency = currentBaketVersion(item)?.urgency ?? "NORMAL";
         if (itemUrgency !== urgencyFilter) return false;
       }
 
       // Category filter
       if (categoryFilter !== "ALL") {
-        const itemCatId =
-          (item as any).categoryId || (item as any).category?.id || (item as any).convertedBaket?.reportCategoryId;
+        const itemCatId = getBaketCategoryId(item);
         if (itemCatId !== categoryFilter) return false;
       }
 
@@ -271,11 +267,11 @@ export function BaketOfficerClient() {
       // Search Query
       if (search.trim()) {
         const q = search.toLowerCase().trim();
-        const ref = (item.referenceNumber || "").toLowerCase();
-        const t = (item.displayTitle || "").toLowerCase();
-        const c = (item.content || "").toLowerCase();
-        const jAlias = (item.jaringAlias || "").toLowerCase();
-        const jCode = (item.jaringCode || "").toLowerCase();
+        const ref = getBaketReferenceLabel(item).toLowerCase();
+        const t = getBaketDisplayTitle(item).toLowerCase();
+        const c = getBaketContent(item).toLowerCase();
+        const jAlias = (item.primaryJaring?.aliasName || item.primaryJaring?.fullName || "").toLowerCase();
+        const jCode = (item.primaryJaringId || "").toLowerCase();
         return ref.includes(q) || t.includes(q) || c.includes(q) || jAlias.includes(q) || jCode.includes(q);
       }
       return true;
@@ -308,15 +304,15 @@ export function BaketOfficerClient() {
         <div>
           <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Bahan Keterangan (Baket)</h1>
           <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
-            Daftar Bahan Keterangan (Baket) yang telah diformalisasi dari laporan Jaring, lengkap dengan sumber,
-            tanggal, lokasi aktual laporan, dan wilayah penempatan Jaring.
+            Daftar Bahan Keterangan (Baket) yang telah dipilih, diberi kategori, urgensi, dan diproses sebagai bahan
+            operasional.
           </p>
         </div>
 
         <Button
           variant="outline"
           size="sm"
-          onClick={() => void fetchReports()}
+          onClick={() => void fetchBakets()}
           disabled={loadingList}
           className="w-fit h-9 gap-2"
         >
@@ -339,7 +335,6 @@ export function BaketOfficerClient() {
       {/* FULL TABLE VIEW CONTAINER */}
       <Card className="border border-slate-200/80 dark:border-white/10 bg-card rounded-xl shadow-xs overflow-hidden">
         <CardHeader className="p-3 border-b border-slate-200/80 dark:border-white/10 space-y-0">
-          {/* Controls Bar - Matching Laporan Jaring page */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
               {/* Search Input */}
@@ -439,7 +434,7 @@ export function BaketOfficerClient() {
                         setStartDate(val);
                         setPage(1);
                         if (val.length === 10 || val === "") {
-                          void fetchReports(val, endDate);
+                          void fetchBakets(val, endDate);
                         }
                       }}
                       className="h-8 text-xs bg-background w-[130px]"
@@ -457,7 +452,7 @@ export function BaketOfficerClient() {
                         setEndDate(val);
                         setPage(1);
                         if (val.length === 10 || val === "") {
-                          void fetchReports(startDate, val);
+                          void fetchBakets(startDate, val);
                         }
                       }}
                       className="h-8 text-xs bg-background w-[130px]"
@@ -491,7 +486,7 @@ export function BaketOfficerClient() {
                     setStartDate("");
                     setEndDate("");
                     setPage(1);
-                    void fetchReports("", "");
+                    void fetchBakets("", "");
                   }}
                   className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                   title="Reset Filter"
@@ -522,12 +517,12 @@ export function BaketOfficerClient() {
                 )}
                 {isColVisible("namaJaring") && (
                   <TableHead className="min-w-[150px] text-xs font-semibold uppercase tracking-wider">
-                    Nama Jaring
+                    Sumber
                   </TableHead>
                 )}
                 {isColVisible("kodeJaring") && (
                   <TableHead className="min-w-[120px] text-xs font-semibold uppercase tracking-wider">
-                    Kode Jaring
+                    Kode Sumber
                   </TableHead>
                 )}
                 {isColVisible("gaswil") && (
@@ -547,22 +542,17 @@ export function BaketOfficerClient() {
                 )}
                 {isColVisible("lokasiAktual") && (
                   <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">
-                    Lokasi Aktual Laporan
+                    Lokasi Baket
                   </TableHead>
                 )}
                 {isColVisible("wilayahPenempatan") && (
                   <TableHead className="min-w-[190px] text-xs font-semibold uppercase tracking-wider">
-                    Wilayah Penempatan Jaring
+                    Wilayah Sumber
                   </TableHead>
                 )}
                 {isColVisible("statusVerifikasi") && (
                   <TableHead className="w-48 text-xs font-semibold uppercase tracking-wider">
                     Status Validasi
-                  </TableHead>
-                )}
-                {isColVisible("tanggalLaporan") && (
-                  <TableHead className="w-44 text-xs font-semibold uppercase tracking-wider">
-                    Tanggal Laporan Jaring
                   </TableHead>
                 )}
                 {isColVisible("tanggalBaket") && (
@@ -574,7 +564,7 @@ export function BaketOfficerClient() {
             <TableBody className="divide-y divide-slate-100 dark:divide-white/5">
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={14} className="py-12 text-center text-xs text-muted-foreground font-mono">
+                  <TableCell colSpan={13} className="py-12 text-center text-xs text-muted-foreground font-mono">
                     <div className="flex justify-center items-center gap-2">
                       <RefreshCw className="size-4 animate-spin text-emerald-600 dark:text-emerald-400" />
                       Memuat data Baket...
@@ -584,20 +574,9 @@ export function BaketOfficerClient() {
               ) : paginatedReports.length > 0 ? (
                 paginatedReports.map((item, idx) => {
                   const itemIndex = (page - 1) * limit + idx + 1;
-                  const isUnread = !readReportIds.has(item.id);
-                  const identity = resolveJaringIdentity({
-                    id: item.jaringId,
-                    jaringFullName: item.jaringFullName,
-                    jaringAlias: item.jaringAlias,
-                    jaringCode: item.jaringCode,
-                    jaringWhatsAppNumber: item.jaringWhatsAppNumber,
-                    jaringProfilePhotoFileId: item.jaringProfilePhotoFileId,
-                    profilePhotoUrl: item.jaringProfilePhotoUrl,
-                    gaswilName: item.gaswilName,
-                    gaswilAssignmentId: item.gaswilAssignmentId,
-                    gaswilUserProfileId: item.gaswilUserProfileId,
-                    placementArea: item.placementArea,
-                  });
+                  const isUnread = !readBaketIds.has(item.id);
+                  const identity = resolveJaringIdentity(getBaketJaringIdentitySource(item));
+                  const version = currentBaketVersion(item);
 
                   return (
                     <TableRow
@@ -616,7 +595,7 @@ export function BaketOfficerClient() {
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono font-bold text-xs text-sky-600 dark:text-[#38BDF8]">
-                              {item.referenceNumber || item.id.slice(0, 8)}
+                              {getBaketReferenceLabel(item)}
                             </span>
                           </div>
                         </TableCell>
@@ -664,11 +643,11 @@ export function BaketOfficerClient() {
                         <TableCell className="max-w-xs">
                           <div className="space-y-0.5">
                             <p className="font-bold text-xs text-foreground line-clamp-1">
-                              {item.displayTitle || "Baket Intelijen"}
+                              {getBaketDisplayTitle(item)}
                             </p>
-                            {item.content ? (
+                            {getBaketContent(item) ? (
                               <p className="text-[11px] text-muted-foreground line-clamp-1 font-normal">
-                                {item.content}
+                                {getBaketContent(item)}
                               </p>
                             ) : null}
                           </div>
@@ -678,7 +657,7 @@ export function BaketOfficerClient() {
                         <TableCell>
                           <span className="flex items-start gap-1.5 text-xs text-foreground">
                             <MapPin className="mt-0.5 size-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
-                            <span className="line-clamp-2">{formatFullAreaName(item.resolvedArea)}</span>
+                            <span className="line-clamp-2">{formatBaketAreaName(version?.eventArea)}</span>
                           </span>
                         </TableCell>
                       )}
@@ -690,13 +669,8 @@ export function BaketOfficerClient() {
                       {isColVisible("statusVerifikasi") && (
                         <TableCell>
                           <span className="inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                            {getBaketVersionLabel(item)}
+                            {getBaketStatusLabel(item.status)}
                           </span>
-                        </TableCell>
-                      )}
-                      {isColVisible("tanggalLaporan") && (
-                        <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                          {formatDateTime(getSourceReportDate(item))}
                         </TableCell>
                       )}
                       {isColVisible("tanggalBaket") && (
@@ -710,10 +684,10 @@ export function BaketOfficerClient() {
                           variant="outline"
                           size="sm"
                           asChild
-                          onClick={() => markReportAsRead(item.id)}
+                          onClick={() => markBaketAsRead(item.id)}
                           className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
                         >
-                          <Link href={`/dashboard/laporan-jaring/${item.id}?from=baket`}>
+                          <Link href={getBaketHref(item)}>
                             <Eye className="size-3.5" />
                             Detail
                           </Link>
@@ -724,7 +698,7 @@ export function BaketOfficerClient() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={14} className="py-12 text-center text-xs text-muted-foreground space-y-2">
+                  <TableCell colSpan={13} className="py-12 text-center text-xs text-muted-foreground space-y-2">
                     <DOMAIN_VISUALS.baket.Icon className="size-8 mx-auto text-muted-foreground/40" />
                     <p>Tidak ada Baket yang sesuai filter.</p>
                   </TableCell>

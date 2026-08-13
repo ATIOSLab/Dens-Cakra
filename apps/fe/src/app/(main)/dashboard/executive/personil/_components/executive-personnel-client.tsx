@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,9 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Activity,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   BarChart3,
   Eye,
   Layers,
@@ -27,6 +30,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
@@ -40,6 +44,12 @@ import type {
 } from "./executive-personnel-types";
 
 type PersonnelPageConfig = NonNullable<PersonnelListProps["pageConfig"]>;
+type PersonnelSortColumn = "personnel" | "area" | "jaring" | "status" | "access";
+type PersonnelSortDirection = "asc" | "desc";
+type PersonnelSortState = {
+  column: PersonnelSortColumn;
+  direction: PersonnelSortDirection;
+};
 type PersonnelTextConfig = Required<
   Pick<
     PersonnelPageConfig,
@@ -57,6 +67,11 @@ type PersonnelTextConfig = Required<
   >
 >;
 type ResolvedPersonnelPageConfig = PersonnelPageConfig & PersonnelTextConfig;
+
+const PERSONNEL_SORT_COLLATOR = new Intl.Collator("id-ID", {
+  numeric: true,
+  sensitivity: "base",
+});
 
 const DEFAULT_PAGE_CONFIG: ResolvedPersonnelPageConfig = {
   basePath: "/dashboard/personel-lapangan",
@@ -656,6 +671,96 @@ function personnelDisplayName(item: Pick<PersonnelListItem, "email" | "fullName"
   return "Petugas Wilayah";
 }
 
+function personnelAreaSortValue(item: PersonnelListItem, queryState: PersonnelListQueryState) {
+  const rows = assignmentAreaRows(item, queryState);
+  return rows.map((row) => row.value).join(" / ");
+}
+
+function personnelSortValue(
+  item: PersonnelListItem,
+  column: PersonnelSortColumn,
+  config: ResolvedPersonnelPageConfig,
+  queryState: PersonnelListQueryState,
+  freshness?: PersonnelMapPayload["meta"]["freshness"],
+) {
+  if (column === "personnel") return personnelDisplayName(item);
+  if (column === "area") return personnelAreaSortValue(item, queryState);
+  if (column === "jaring") return item.jaringCount ?? 0;
+  if (column === "status") return connectionStatusLabel(isPersonnelOnline(item, freshness));
+  return personnelDetailHref(item, config);
+}
+
+function comparePersonnelBySort(
+  left: PersonnelListItem,
+  right: PersonnelListItem,
+  sort: PersonnelSortState,
+  config: ResolvedPersonnelPageConfig,
+  queryState: PersonnelListQueryState,
+  freshness?: PersonnelMapPayload["meta"]["freshness"],
+) {
+  const leftValue = personnelSortValue(left, sort.column, config, queryState, freshness);
+  const rightValue = personnelSortValue(right, sort.column, config, queryState, freshness);
+  const directionMultiplier = sort.direction === "asc" ? 1 : -1;
+  const baseCompare =
+    typeof leftValue === "number" && typeof rightValue === "number"
+      ? leftValue - rightValue
+      : PERSONNEL_SORT_COLLATOR.compare(String(leftValue), String(rightValue));
+
+  return (
+    baseCompare * directionMultiplier ||
+    PERSONNEL_SORT_COLLATOR.compare(personnelDisplayName(left), personnelDisplayName(right))
+  );
+}
+
+function PersonnelSortableHeader({
+  column,
+  sort,
+  onSortChange,
+  children,
+  className,
+  align = "left",
+}: {
+  readonly column: PersonnelSortColumn;
+  readonly sort: PersonnelSortState | null;
+  readonly onSortChange: (sort: PersonnelSortState) => void;
+  readonly children: ReactNode;
+  readonly className?: string;
+  readonly align?: "left" | "center" | "right";
+}) {
+  const active = sort?.column === column;
+  const direction = active ? sort.direction : null;
+  const Icon = active ? (direction === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+
+  return (
+    <TableHead
+      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
+      className={cn("h-11 text-[10px] uppercase tracking-wider", className)}
+    >
+      <Button
+        aria-label={`Urutkan ${String(children)} ${direction === "asc" ? "menurun" : "menaik"}`}
+        className={cn(
+          "h-auto w-full gap-1.5 bg-transparent p-0 text-inherit uppercase tracking-[inherit] hover:bg-transparent hover:text-[var(--dc-primary)]",
+          align === "center" && "justify-center",
+          align === "right" && "justify-end",
+          align === "left" && "justify-start",
+        )}
+        onClick={() =>
+          onSortChange({
+            column,
+            direction: active && direction === "asc" ? "desc" : "asc",
+          })
+        }
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        {children}
+        <Icon className="size-3.5 shrink-0" />
+      </Button>
+    </TableHead>
+  );
+}
+
 function PersonnelTable({
   items,
   isPending,
@@ -663,6 +768,8 @@ function PersonnelTable({
   config,
   freshness,
   queryState,
+  sort,
+  onSortChange,
 }: {
   items: PersonnelListItem[];
   isPending: boolean;
@@ -670,6 +777,8 @@ function PersonnelTable({
   config: ResolvedPersonnelPageConfig;
   freshness?: PersonnelMapPayload["meta"]["freshness"];
   queryState: PersonnelListQueryState;
+  sort: PersonnelSortState | null;
+  onSortChange: (sort: PersonnelSortState) => void;
 }) {
   const isDirectoryLayout = config.layoutVariant === "directory";
 
@@ -705,56 +814,71 @@ function PersonnelTable({
               isDirectoryLayout ? "border-border/80" : "border-[var(--dc-border-subtle)] dark:border-slate-800",
             )}
           >
-            <TableHead
+            <PersonnelSortableHeader
+              column="personnel"
+              sort={sort}
+              onSortChange={onSortChange}
               className={cn(
-                "h-11 text-[10px] uppercase tracking-wider",
                 isDirectoryLayout
                   ? "pl-6 text-left font-semibold text-muted-foreground"
                   : "text-center font-mono text-[var(--dc-text-secondary)]",
               )}
+              align={isDirectoryLayout ? "left" : "center"}
             >
               {config.personnelColumnLabel}
-            </TableHead>
-            <TableHead
+            </PersonnelSortableHeader>
+            <PersonnelSortableHeader
+              column="area"
+              sort={sort}
+              onSortChange={onSortChange}
               className={cn(
-                "h-11 text-[10px] uppercase tracking-wider",
                 isDirectoryLayout
                   ? "text-left font-semibold text-muted-foreground"
                   : "text-center font-mono text-[var(--dc-text-secondary)]",
               )}
+              align={isDirectoryLayout ? "left" : "center"}
             >
               {assignmentAreaColumnLabel(queryState)}
-            </TableHead>
-            <TableHead
+            </PersonnelSortableHeader>
+            <PersonnelSortableHeader
+              column="jaring"
+              sort={sort}
+              onSortChange={onSortChange}
               className={cn(
-                "h-11 text-[10px] uppercase tracking-wider",
                 isDirectoryLayout
                   ? "text-left font-semibold text-muted-foreground"
                   : "text-center font-mono text-[var(--dc-text-secondary)]",
               )}
+              align={isDirectoryLayout ? "left" : "center"}
             >
               Jumlah Jaring
-            </TableHead>
-            <TableHead
+            </PersonnelSortableHeader>
+            <PersonnelSortableHeader
+              column="status"
+              sort={sort}
+              onSortChange={onSortChange}
               className={cn(
-                "h-11 text-[10px] uppercase tracking-wider",
                 isDirectoryLayout
                   ? "text-left font-semibold text-muted-foreground"
                   : "text-center font-mono text-[var(--dc-text-secondary)]",
               )}
+              align={isDirectoryLayout ? "left" : "center"}
             >
               Status
-            </TableHead>
-            <TableHead
+            </PersonnelSortableHeader>
+            <PersonnelSortableHeader
+              column="access"
+              sort={sort}
+              onSortChange={onSortChange}
               className={cn(
-                "h-11 text-[10px] uppercase tracking-wider",
                 isDirectoryLayout
                   ? "pr-6 text-right font-semibold text-muted-foreground"
                   : "text-center font-mono text-[var(--dc-text-secondary)]",
               )}
+              align={isDirectoryLayout ? "right" : "center"}
             >
               Akses
-            </TableHead>
+            </PersonnelSortableHeader>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1010,6 +1134,12 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [sort, setSort] = useState<PersonnelSortState | null>(null);
+  const didApplyDefaultProvinceFilter = useRef(false);
+  const defaultProvinceFilter = useMemo(
+    () => (config.showProvinceFilter ? findDkiJakartaProvinceFilterId(areaFilters.provinces) : ""),
+    [areaFilters.provinces, config.showProvinceFilter],
+  );
 
   const totalPersonnel = items.length;
   const totalJaring = items.reduce((total, item) => total + (item.jaringCount ?? 0), 0);
@@ -1018,9 +1148,27 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   const totalPages = Math.max(1, Math.ceil(totalPersonnel / rowsPerPage));
   const safePage = Math.min(page, totalPages);
 
+  const sortedItems = useMemo(() => {
+    if (!sort) return items;
+
+    return items
+      .map((item, index) => ({ item, index }))
+      .sort(
+        (left, right) =>
+          comparePersonnelBySort(left.item, right.item, sort, config, queryState, map.meta.freshness) ||
+          left.index - right.index,
+      )
+      .map(({ item }) => item);
+  }, [config, items, map.meta.freshness, queryState, sort]);
+
   const paginatedItems = useMemo(() => {
-    return items.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
-  }, [items, safePage, rowsPerPage]);
+    return sortedItems.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+  }, [rowsPerPage, safePage, sortedItems]);
+
+  const handleSortChange = (nextSort: PersonnelSortState) => {
+    setSort(nextSort);
+    setPage(1);
+  };
 
   const applyFilter = (overrides: Partial<PersonnelListQueryState>) => {
     setPage(1);
@@ -1037,9 +1185,42 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   const resetFilters = () => {
     setPage(1);
     startTransition(() => {
-      router.push(`${config.basePath}?page=1&limit=20`);
+      router.push(
+        buildPersonnelHref(config.basePath, queryState, {
+          q: "",
+          provinceId: defaultProvinceFilter,
+          regencyId: "",
+          districtId: "",
+          page: 1,
+          limit: 20,
+        }),
+      );
     });
   };
+
+  useEffect(() => {
+    if (
+      didApplyDefaultProvinceFilter.current ||
+      !defaultProvinceFilter ||
+      queryState.provinceId ||
+      queryState.regencyId ||
+      queryState.districtId
+    ) {
+      return;
+    }
+
+    didApplyDefaultProvinceFilter.current = true;
+    startTransition(() => {
+      router.replace(
+        buildPersonnelHref(config.basePath, queryState, {
+          provinceId: defaultProvinceFilter,
+          regencyId: "",
+          districtId: "",
+          page: 1,
+        }),
+      );
+    });
+  }, [config.basePath, defaultProvinceFilter, queryState, router]);
 
   useEffect(() => {
     setSystemClock(formatSystemClock(new Date()));
@@ -1056,6 +1237,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
   const offlinePercentage = (offlineCount / (totalPersonnel || 1)) * 100;
   const scopeDescription = buildScopeDescription({ queryState, areaFilters, config, totalPersonnel });
   const isDirectoryLayout = config.layoutVariant === "directory";
+  const showTabNavigation = showMapTab || config.showExecutiveSummary;
   const dynamicFilterClassName = cn(
     "h-10 w-full border px-3 text-foreground outline-none transition-all",
     isDirectoryLayout
@@ -1079,13 +1261,13 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
       <div className={cn("space-y-6 text-foreground", !isDirectoryLayout && "relative z-10")}>
         {/* Command Center Title Header */}
         {isDirectoryLayout ? (
-          <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
+          <header className="space-y-5">
+            <div className="max-w-3xl">
               <h1 className="font-bold text-3xl text-foreground tracking-tight">{config.title}</h1>
               <p className="mt-1.5 max-w-2xl text-muted-foreground text-sm">{config.description}</p>
               <p className="mt-2 text-foreground text-sm font-medium">{scopeDescription}</p>
             </div>
-            <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-4 lg:w-auto">
+            <div className="grid w-full grid-cols-2 gap-3 lg:grid-cols-4">
               <DirectorySummaryCard
                 label={config.totalPersonnelLabel}
                 value={totalPersonnel}
@@ -1215,7 +1397,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                     value: "ALL",
                     label:
                       config.showProvinceFilter && !queryState.provinceId
-                          ? "Pilih Provinsi dahulu"
+                        ? "Pilih Provinsi dahulu"
                         : "Semua Kota/Kabupaten",
                     disabled: config.showProvinceFilter && !queryState.provinceId,
                   },
@@ -1249,7 +1431,7 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 options={[
                   {
                     value: "ALL",
-                      label: queryState.regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu",
+                    label: queryState.regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu",
                     disabled: !queryState.regencyId,
                   },
                   ...areaFilters.districts.map((area) => ({ value: area.id, label: area.name })),
@@ -1259,8 +1441,8 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                     districtId: val === "ALL" ? "" : val,
                   })
                 }
-                  placeholder={queryState.regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu"}
-                  searchPlaceholder="Cari Kecamatan..."
+                placeholder={queryState.regencyId ? "Semua Kecamatan" : "Pilih Kota/Kabupaten dahulu"}
+                searchPlaceholder="Cari Kecamatan..."
                 emptyText="Kecamatan tidak ditemukan."
                 className={cn(dynamicFilterClassName, "disabled:cursor-not-allowed disabled:opacity-30")}
                 contentClassName={dynamicFilterContentClassName}
@@ -1276,29 +1458,17 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
 
         {/* Tactical Tabs Interface */}
         <Tabs defaultValue="daftar" className="space-y-4">
-          <TabsList
-            className={cn(
-              "h-11 w-full justify-start border p-1 md:w-auto",
-              isDirectoryLayout
-                ? "rounded-xl border-slate-200/80 bg-card shadow-xs dark:border-white/10"
-                : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 dark:border-slate-800 dark:bg-[#080d14]/60",
-            )}
-          >
-            <TabsTrigger
-              value="daftar"
+          {showTabNavigation ? (
+            <TabsList
               className={cn(
-                "cursor-pointer border border-transparent px-6 text-[10px] uppercase tracking-wider transition-all hover:text-foreground",
+                "h-11 w-full justify-start border p-1 md:w-auto",
                 isDirectoryLayout
-                  ? "rounded-lg font-semibold text-muted-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs"
-                  : "rounded-none font-mono text-[var(--dc-text-muted)] data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800",
+                  ? "rounded-xl border-slate-200/80 bg-card shadow-xs dark:border-white/10"
+                  : "rounded-none border-[var(--dc-border-subtle)] bg-[var(--dc-card)]/50 dark:border-slate-800 dark:bg-[#080d14]/60",
               )}
             >
-              <List className="mr-2 size-3.5 text-[var(--dc-primary)]" />
-              {config.tableTabLabel}
-            </TabsTrigger>
-            {showMapTab && (
               <TabsTrigger
-                value="peta"
+                value="daftar"
                 className={cn(
                   "cursor-pointer border border-transparent px-6 text-[10px] uppercase tracking-wider transition-all hover:text-foreground",
                   isDirectoryLayout
@@ -1306,25 +1476,39 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                     : "rounded-none font-mono text-[var(--dc-text-muted)] data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800",
                 )}
               >
-                <MapIcon className="mr-2 size-3.5 text-[var(--dc-primary)]" />
-                {config.mapTabLabel}
+                <List className="mr-2 size-3.5 text-[var(--dc-primary)]" />
+                {config.tableTabLabel}
               </TabsTrigger>
-            )}
-            {config.showExecutiveSummary && (
-              <TabsTrigger
-                value="eksekutif"
-                className={cn(
-                  "cursor-pointer border border-transparent px-6 text-[10px] uppercase tracking-wider transition-all hover:text-foreground",
-                  isDirectoryLayout
-                    ? "rounded-lg font-semibold text-muted-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs"
-                    : "rounded-none font-mono text-[var(--dc-text-muted)] data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800",
-                )}
-              >
-                <BarChart3 className="mr-2 size-3.5 text-[var(--dc-primary)]" />
-                Deputi II
-              </TabsTrigger>
-            )}
-          </TabsList>
+              {showMapTab && (
+                <TabsTrigger
+                  value="peta"
+                  className={cn(
+                    "cursor-pointer border border-transparent px-6 text-[10px] uppercase tracking-wider transition-all hover:text-foreground",
+                    isDirectoryLayout
+                      ? "rounded-lg font-semibold text-muted-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs"
+                      : "rounded-none font-mono text-[var(--dc-text-muted)] data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800",
+                  )}
+                >
+                  <MapIcon className="mr-2 size-3.5 text-[var(--dc-primary)]" />
+                  {config.mapTabLabel}
+                </TabsTrigger>
+              )}
+              {config.showExecutiveSummary && (
+                <TabsTrigger
+                  value="eksekutif"
+                  className={cn(
+                    "cursor-pointer border border-transparent px-6 text-[10px] uppercase tracking-wider transition-all hover:text-foreground",
+                    isDirectoryLayout
+                      ? "rounded-lg font-semibold text-muted-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs"
+                      : "rounded-none font-mono text-[var(--dc-text-muted)] data-[state=active]:border-[var(--dc-border)] data-[state=active]:bg-[var(--dc-primary-soft)] data-[state=active]:text-[var(--dc-primary)] dark:data-[state=active]:border-slate-800",
+                  )}
+                >
+                  <BarChart3 className="mr-2 size-3.5 text-[var(--dc-primary)]" />
+                  Deputi II
+                </TabsTrigger>
+              )}
+            </TabsList>
+          ) : null}
 
           {/* Database List Tab View */}
           <TabsContent value="daftar" className="space-y-4 outline-none">
@@ -1372,6 +1556,8 @@ export function ExecutivePersonnelClient({ items, map, queryState, areaFilters, 
                 config={config}
                 freshness={map.meta.freshness}
                 queryState={queryState}
+                sort={sort}
+                onSortChange={handleSortChange}
               />
             ) : (
               <PersonnelCardGrid

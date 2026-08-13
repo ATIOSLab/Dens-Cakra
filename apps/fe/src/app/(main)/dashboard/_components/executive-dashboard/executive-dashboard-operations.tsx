@@ -485,7 +485,7 @@ function RankingTables({
                   title={
                     <Link
                       className="hover:underline"
-                      href={buildHref(`/dashboard/laporan-jaring?areaId=${encodeURIComponent(item.id)}`)}
+                      href={buildHref(`/dashboard/baket?areaId=${encodeURIComponent(item.id)}`)}
                     >
                       {item.name}
                     </Link>
@@ -519,7 +519,7 @@ function RankingTables({
                       <TableCell>
                         <Link
                           className="font-medium hover:underline"
-                          href={buildHref(`/dashboard/laporan-jaring?areaId=${encodeURIComponent(item.id)}`)}
+                          href={buildHref(`/dashboard/baket?areaId=${encodeURIComponent(item.id)}`)}
                         >
                           {item.name}
                         </Link>

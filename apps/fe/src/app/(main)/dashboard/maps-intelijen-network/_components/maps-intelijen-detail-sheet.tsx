@@ -373,7 +373,7 @@ export function MapsIntelijenDetailSheet({
             <Button asChild className="min-h-11 gap-2">
               <Link href={detailHref} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="size-4" />
-                {isAgent ? "Buka Halaman Personel" : "Buka Halaman Detail"}
+                {isAgent ? "Buka Halaman Personel" : "Lihat Detail"}
               </Link>
             </Button>
           </DialogFooter>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChevronRight } from "lucide-react";
 
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import { cn } from "@/lib/utils";
 
 import { DataTable } from "./data-table";
@@ -82,6 +83,16 @@ function unitOption(unit: DataRecord) {
     label: text(unit.name, areaName || "Unit wilayah"),
     description: optionDescriptionForLevel(level, areaName),
     keywords: [text(unit.code, ""), areaName, text(unit.levelLabel, "")].filter(Boolean),
+  };
+}
+
+function unitProvinceFilterIdentity(unit: DataRecord) {
+  const area = scopeArea(unit);
+  return {
+    id: text(unit.id, ""),
+    name: text(area.name, text(unit.name, "")),
+    code: typeof area.code === "string" ? area.code : null,
+    officialCode: typeof area.officialCode === "string" ? area.officialCode : null,
   };
 }
 
@@ -254,6 +265,7 @@ export function HierarchyExplorer({
   const [gradeFilter, setGradeFilter] = useState("ALL");
   const [levelFilter, setLevelFilter] = useState("ALL");
   const [sortOrder, setSortOrder] = useState("HIERARCHY_ASC");
+  const didApplyDefaultBindaFilter = useRef(false);
 
   // Pagination State - Default: 20 Rows per page
   const [currentPage, setCurrentPage] = useState(1);
@@ -265,10 +277,33 @@ export function HierarchyExplorer({
     setCurrentPage(1);
   };
 
+  const bindaUnits = useMemo(
+    () =>
+      units
+        .filter((unit) => hierarchyLevel(unit) === "BINDA")
+        .sort((left, right) => scopeAreaName(left).localeCompare(scopeAreaName(right), "id-ID")),
+    [units],
+  );
+
+  const defaultBindaFilter = useMemo(
+    () => findDkiJakartaProvinceFilterId(bindaUnits.map(unitProvinceFilterIdentity)),
+    [bindaUnits],
+  );
+
+  useEffect(() => {
+    if (didApplyDefaultBindaFilter.current || !defaultBindaFilter || bindaFilter !== "ALL") return;
+
+    didApplyDefaultBindaFilter.current = true;
+    setBindaFilter(defaultBindaFilter);
+    setKorwilFilter("ALL");
+    setGaswilFilter("ALL");
+    setCurrentPage(1);
+  }, [bindaFilter, defaultBindaFilter]);
+
   // Reset all filters callback
   const handleReset = () => {
     onSearchChange("");
-    setBindaFilter("ALL");
+    setBindaFilter(defaultBindaFilter || "ALL");
     setKorwilFilter("ALL");
     setGaswilFilter("ALL");
     setStatusFilter("ALL");
@@ -280,14 +315,6 @@ export function HierarchyExplorer({
   };
 
   const unitById = useMemo(() => new Map(units.map((unit) => [text(unit.id, ""), unit])), [units]);
-
-  const bindaUnits = useMemo(
-    () =>
-      units
-        .filter((unit) => hierarchyLevel(unit) === "BINDA")
-        .sort((left, right) => scopeAreaName(left).localeCompare(scopeAreaName(right), "id-ID")),
-    [units],
-  );
 
   const korwilUnits = useMemo(
     () =>
@@ -633,7 +660,7 @@ export function HierarchyExplorer({
   const activeLevelList = activeTab === "personnel" ? personnelLevelList : unitLevelList;
   const activeFilterCount =
     (search.trim() ? 1 : 0) +
-    (bindaFilter !== "ALL" ? 1 : 0) +
+    (bindaFilter !== (defaultBindaFilter || "ALL") ? 1 : 0) +
     (korwilFilter !== "ALL" ? 1 : 0) +
     (gaswilFilter !== "ALL" ? 1 : 0) +
     (levelFilter !== "ALL" ? 1 : 0) +

@@ -27,6 +27,18 @@ export type OimView =
   | "map-report"
   | "map-alert";
 
+export type OimProductContext = {
+  productTypeCode?: string;
+  productTypeId?: string;
+  label: string;
+  listTitle: string;
+  createTitle: string;
+  detailTitle: string;
+  listPath: string;
+  createPath: string;
+  detailBasePath: string;
+};
+
 export type OimPageData = {
   bakets?: unknown;
   baket?: unknown;
@@ -47,4 +59,5 @@ export type OimPageData = {
   errors?: string[];
   activeTab?: string;
   activeStatus?: string;
+  productContext?: OimProductContext;
 };

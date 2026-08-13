@@ -407,14 +407,16 @@ export function getMapFeatureTimestamp(feature: MapNetworkFeature) {
 export function getMapFeatureDetailHref(feature: MapNetworkFeature) {
   const properties = feature.properties;
   if (properties.markerType === "agent") return null;
-  const reportId =
-    properties.reportId ?? properties.sourceReports?.preview.find((source) => source.reportId)?.reportId ?? null;
 
-  if (reportId) {
-    return `/dashboard/laporan-jaring/${reportId}${properties.markerType === "baket" ? "?from=baket" : ""}`;
+  if (properties.markerType === "baket") {
+    return properties.baketId ? `/dashboard/baket/${properties.baketId}` : "/dashboard/baket";
   }
 
-  return "/dashboard/baket";
+  if (properties.reportId) {
+    return `/dashboard/laporan-jaring/${properties.reportId}`;
+  }
+
+  return "/dashboard/laporan-jaring";
 }
 
 export type MapNetworkResponse = {

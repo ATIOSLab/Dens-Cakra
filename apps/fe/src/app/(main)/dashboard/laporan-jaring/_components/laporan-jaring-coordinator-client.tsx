@@ -50,6 +50,7 @@ import {
   buildProvinceFilterOptions,
   buildRegencyFilterOptions,
   buildVillageFilterOptions,
+  findDkiJakartaProvinceFilterId,
   isDkiAreaScope,
   resolveAreaFilterSelection,
   selectedAreaFilterId,
@@ -146,6 +147,7 @@ type PaginatedReportResponse = {
     totalSessions: number;
     totalJaringReports: number;
     baketReports: number;
+    reportingJaringCount: number;
   };
 };
 
@@ -501,6 +503,11 @@ export function LaporanJaringCoordinatorClient() {
     return buildProvinceFilterOptions(areaScopes);
   }, [areaScopes]);
 
+  const defaultProvinceFilter = useMemo(
+    () => findDkiJakartaProvinceFilterId(provinceOptions),
+    [provinceOptions],
+  );
+
   const regencyOptions = useMemo(() => {
     return buildRegencyFilterOptions(areaScopes, provinceOptions.length > 0 ? provinceFilter : "ALL");
   }, [areaScopes, provinceFilter, provinceOptions.length]);
@@ -543,10 +550,7 @@ export function LaporanJaringCoordinatorClient() {
     );
   }, [areaFilteredJaringList, fieldOfficerFilter]);
 
-  const activeJaringCount = useMemo(() => {
-    if (jaringFilter === "ALL") return connectedJaringList.length;
-    return connectedJaringList.some((jaring) => jaring.id === jaringFilter) ? 1 : 0;
-  }, [connectedJaringList, jaringFilter]);
+  const reportingJaringCount = kpiSummary.reportingJaringCount;
 
   const popoverJaringOptions: JaringOption[] = useMemo(() => {
     return connectedJaringList.map((j) => ({
@@ -584,6 +588,17 @@ export function LaporanJaringCoordinatorClient() {
     if (selection.villageFilter !== "ALL") setVillageFilter(selection.villageFilter);
     didHydrateAreaHierarchy.current = true;
   }, [areaFilter, areaScopes]);
+
+  useEffect(() => {
+    if (areaFilter || didHydrateAreaHierarchy.current || !defaultProvinceFilter || provinceFilter !== "ALL") return;
+
+    setProvinceFilter(defaultProvinceFilter);
+    setRegencyFilter("ALL");
+    setDistrictFilter("ALL");
+    setVillageFilter("ALL");
+    setPage(1);
+    didHydrateAreaHierarchy.current = true;
+  }, [areaFilter, defaultProvinceFilter, provinceFilter]);
 
   const areaSubtitle = useMemo(
     () =>
@@ -634,7 +649,7 @@ export function LaporanJaringCoordinatorClient() {
     setUrgencyFilter("ALL");
     setStatusFilter("ALL");
     setJaringFilter("ALL");
-    setProvinceFilter("ALL");
+    setProvinceFilter(defaultProvinceFilter || "ALL");
     setRegencyFilter("ALL");
     setDistrictFilter("ALL");
     setVillageFilter("ALL");
@@ -816,10 +831,10 @@ export function LaporanJaringCoordinatorClient() {
           <div className="min-w-0">
             <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">Jaring</p>
             <p className="font-bold text-emerald-600 text-xl tracking-normal dark:text-emerald-400">
-              {activeJaringCount}
+              {reportingJaringCount}
             </p>
             <p className="mt-0.5 truncate font-medium text-muted-foreground text-xs">
-              {jaringFilter === "ALL" ? "Sesuai wilayah/Gaswil aktif" : "Jaring terpilih"}
+              {jaringFilter === "ALL" ? "Jaring pelapor sesuai laporan" : "Jaring pelapor terpilih"}
             </p>
           </div>
         </div>
@@ -842,7 +857,7 @@ export function LaporanJaringCoordinatorClient() {
             urgencyFilter !== "ALL" ||
             statusFilter !== "ALL" ||
             jaringFilter !== "ALL" ||
-            provinceFilter !== "ALL" ||
+            provinceFilter !== (defaultProvinceFilter || "ALL") ||
             regencyFilter !== "ALL" ||
             districtFilter !== "ALL" ||
             villageFilter !== "ALL" ||
@@ -1069,7 +1084,7 @@ export function LaporanJaringCoordinatorClient() {
           urgencyFilter !== "ALL" ||
           statusFilter !== "ALL" ||
           jaringFilter !== "ALL" ||
-          provinceFilter !== "ALL" ||
+          provinceFilter !== (defaultProvinceFilter || "ALL") ||
           regencyFilter !== "ALL" ||
           districtFilter !== "ALL" ||
           villageFilter !== "ALL" ||
@@ -1117,7 +1132,7 @@ export function LaporanJaringCoordinatorClient() {
                 urgencyFilter !== "ALL" ||
                 statusFilter !== "ALL" ||
                 jaringFilter !== "ALL" ||
-                provinceFilter !== "ALL" ||
+                provinceFilter !== (defaultProvinceFilter || "ALL") ||
                 regencyFilter !== "ALL" ||
                 districtFilter !== "ALL" ||
                 villageFilter !== "ALL" ||

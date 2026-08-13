@@ -12,7 +12,7 @@ type PageProps = {
 export default async function Page({ params, searchParams }: PageProps) {
   return (
     <UniversalDensRoutePage
-      routePattern="/dashboard/oim/produk-intelijen/buat-produk/[productId]/edit"
+      routePattern="/dashboard/oim/laporan-informasi/[productId]/edit"
       params={await params}
       searchParams={(await searchParams) ?? {}}
     />

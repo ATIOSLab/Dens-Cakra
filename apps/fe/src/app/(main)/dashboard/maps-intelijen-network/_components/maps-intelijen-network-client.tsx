@@ -6,6 +6,7 @@ import { AlertTriangle, Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 
 import { normalizeMapAreas } from "./maps-intelijen-area-hierarchy";
 import { MapsIntelijenDetailSheet } from "./maps-intelijen-detail-sheet";
@@ -313,6 +314,7 @@ export function MapsIntelijenNetworkClient() {
   const mapCardRef = useRef<HTMLDivElement>(null);
   const activeMapRequestRef = useRef<AbortController | null>(null);
   const loadedSummaryQueryRef = useRef<string | null>(null);
+  const didApplyDefaultProvinceFilter = useRef(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(
@@ -327,6 +329,24 @@ export function MapsIntelijenNetworkClient() {
       setVisualization("cluster");
     }
   }, [filters.provinceId, visualization]);
+
+  const defaultProvinceFilter = useMemo(
+    () => findDkiJakartaProvinceFilterId(areaOptions.provinces),
+    [areaOptions.provinces],
+  );
+
+  useEffect(() => {
+    if (didApplyDefaultProvinceFilter.current || !defaultProvinceFilter || filters.provinceId !== "ALL") return;
+
+    setFilters((current) => ({
+      ...current,
+      provinceId: defaultProvinceFilter,
+      regencyId: "ALL",
+      districtId: "ALL",
+      villageId: "ALL",
+    }));
+    didApplyDefaultProvinceFilter.current = true;
+  }, [defaultProvinceFilter, filters.provinceId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -585,10 +605,13 @@ export function MapsIntelijenNetworkClient() {
   }, []);
 
   const resetFilters = useCallback(() => {
-    setFilters(INITIAL_FILTERS);
+    setFilters({
+      ...INITIAL_FILTERS,
+      provinceId: defaultProvinceFilter || INITIAL_FILTERS.provinceId,
+    });
     setCardFilter("ALL");
     setVisualization("cluster");
-  }, []);
+  }, [defaultProvinceFilter]);
 
   const handleVisualizationChange = useCallback(
     (value: VisualizationMode) => {

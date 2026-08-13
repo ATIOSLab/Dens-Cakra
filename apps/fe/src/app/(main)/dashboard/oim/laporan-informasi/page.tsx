@@ -3,17 +3,15 @@ import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-rout
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params: Promise<{
-    productId: string;
-  }>;
+  params?: Promise<Record<string, string>>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function Page({ params, searchParams }: PageProps) {
   return (
     <UniversalDensRoutePage
-      routePattern="/dashboard/oim/produk-intelijen/buat-produk/[productId]/edit"
-      params={await params}
+      routePattern="/dashboard/oim/laporan-informasi"
+      params={(await params) ?? {}}
       searchParams={(await searchParams) ?? {}}
     />
   );

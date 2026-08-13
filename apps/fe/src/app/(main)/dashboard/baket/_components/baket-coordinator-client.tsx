@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -20,11 +20,6 @@ import {
 } from "lucide-react";
 
 import { ViewModeToggle } from "@/app/(main)/dashboard/_components/view-mode-toggle";
-import {
-  formatFullAreaName,
-  type JaringReportSessionDetail,
-  type PriorityLevel,
-} from "@/app/(main)/dashboard/laporan-jaring/_components/laporan-jaring-types";
 import { GaswilEntityLink } from "@/components/domain/gaswil-entity-link";
 import { JaringIdentitySummary } from "@/components/domain/jaring-identity-summary";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +35,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ColumnOption, ColumnVisibilityToggle } from "@/components/ui/column-visibility-toggle";
 import { Input } from "@/components/ui/input";
-import { type JaringOption, JaringSelectPopover } from "@/components/ui/jaring-select-popover";
 import { NativeSelect } from "@/components/ui/native-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -52,6 +46,7 @@ import {
   buildProvinceFilterOptions,
   buildRegencyFilterOptions,
   buildVillageFilterOptions,
+  findDkiJakartaProvinceFilterId,
   selectedAreaFilterId,
 } from "@/lib/domain/area-filter";
 import {
@@ -65,6 +60,20 @@ import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
+import {
+  ALL_BAKET_STATUS_QUERY,
+  type BaketRecord,
+  currentBaketVersion,
+  formatBaketAreaName,
+  getBaketContent,
+  getBaketDate,
+  getBaketDisplayTitle,
+  getBaketHref,
+  getBaketJaringIdentitySource,
+  getBaketReferenceLabel,
+  getBaketVersionLabel,
+  type PriorityLevel,
+} from "./baket-data";
 import { BAKET_URGENCY_LABELS, BaketSummaryCards } from "./baket-summary-cards";
 
 function formatDateTime(value?: string | null) {
@@ -80,31 +89,6 @@ function formatDateTime(value?: string | null) {
   } catch {
     return "-";
   }
-}
-
-function getSourceReportDate(item: JaringReportSessionDetail) {
-  return item.reportedAt ?? item.submittedAt ?? item.createdAt;
-}
-
-function getBaketDate(item: JaringReportSessionDetail) {
-  return item.baket?.latestVersion?.reportedAt ?? item.submittedAt ?? item.updatedAt ?? item.createdAt;
-}
-
-function getBaketVersionLabel(item: JaringReportSessionDetail) {
-  if (!item.baket) return "Baket";
-  return `Versi ${item.baket.currentVersionNumber}`;
-}
-
-interface RawJaringItem {
-  id: string;
-  aliasName?: string | null;
-  fullName?: string | null;
-  registrationStatus?: string | null;
-  areaCoverages?: Array<{
-    isPrimary?: boolean;
-    validUntil?: string | null;
-    area: JaringAdministrativeArea;
-  }>;
 }
 
 interface JaringAdministrativeArea {
@@ -173,16 +157,7 @@ export interface ReportCategoryItem {
 }
 
 type PaginatedReportResponse = {
-  items?: JaringReportSessionDetail[];
-  pagination?: {
-    page: number;
-    total: number;
-    totalPages: number;
-  };
-};
-
-type PaginatedJaringResponse = {
-  items?: RawJaringItem[];
+  items?: BaketRecord[];
   pagination?: {
     page: number;
     total: number;
@@ -197,30 +172,36 @@ type ReportCategoryResponse =
   | ReportCategoryItem[];
 
 const BAKET_COLUMNS: ColumnOption[] = [
-  { id: "refNum", label: "No. Ref / Sandi" },
-  { id: "foto", label: "Foto Jaring" },
-  { id: "namaJaring", label: "Nama Jaring", alwaysVisible: true },
-  { id: "kodeJaring", label: "Kode Jaring" },
+  { id: "refNum", label: "No. Baket" },
+  { id: "foto", label: "Foto Sumber" },
+  { id: "namaJaring", label: "Sumber", alwaysVisible: true },
+  { id: "kodeJaring", label: "Kode Sumber" },
   { id: "gaswil", label: "Petugas Wilayah (Gaswil)" },
   { id: "whatsapp", label: "Nomor WhatsApp" },
   { id: "judulIsi", label: "Judul & Isi Baket", alwaysVisible: true },
-  { id: "wilayahSumber", label: "Lokasi Aktual Laporan" },
-  { id: "wilayahPenempatan", label: "Wilayah Penempatan Jaring" },
+  { id: "wilayahSumber", label: "Lokasi Baket" },
+  { id: "wilayahPenempatan", label: "Wilayah Sumber" },
   { id: "urgensi", label: "Urgensi" },
-  { id: "tanggalLaporan", label: "Tanggal Laporan Jaring" },
   { id: "tanggalBaket", label: "Tanggal Baket" },
 ];
+
+const BAKET_SOURCE_LABELS = {
+  name: "Nama Sumber",
+  code: "Kode Sumber",
+  placementArea: "Wilayah Sumber",
+} as const;
 
 export function BaketCoordinatorClient() {
   const searchParams = useSearchParams();
   const initialStartDate = dateInputFromSearchParams(searchParams, ["from", "periodStart"]);
   const initialEndDate = dateInputFromSearchParams(searchParams, ["to", "periodEnd"]);
-  const [reports, setReports] = useState<JaringReportSessionDetail[]>([]);
-  const [jaringList, setJaringList] = useState<RawJaringItem[]>([]);
+  const initialAreaId = searchParams.get("areaId") ?? "ALL";
+  const [bakets, setBakets] = useState<BaketRecord[]>([]);
   const [categories, setCategories] = useState<ReportCategoryItem[]>([]);
   const [areaScopes, setAreaScopes] = useState<AdministrativeAreaScope[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const didApplyDefaultProvinceFilter = useRef(false);
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
@@ -233,7 +214,7 @@ export function BaketCoordinatorClient() {
   const [search, setSearch] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState<PriorityLevel | "ALL">("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
-  const [jaringFilter, setJaringFilter] = useState<string>("ALL");
+  const [directAreaFilter, setDirectAreaFilter] = useState<string>(() => initialAreaId);
   const [provinceFilter, setProvinceFilter] = useState<string>("ALL");
   const [regencyFilter, setRegencyFilter] = useState<string>("ALL");
   const [districtFilter, setDistrictFilter] = useState<string>("ALL");
@@ -252,15 +233,16 @@ export function BaketCoordinatorClient() {
     const params = new URLSearchParams({
       page: String(currentPage),
       limit: "100",
-      stage: "ALL",
+      statuses: ALL_BAKET_STATUS_QUERY,
     });
-    const areaId = selectedAreaFilterId({ provinceFilter, regencyFilter, districtFilter, villageFilter });
+    const areaId =
+      selectedAreaFilterId({ provinceFilter, regencyFilter, districtFilter, villageFilter }) ??
+      (directAreaFilter !== "ALL" ? directAreaFilter : null);
     const trimmedSearch = search.trim();
 
     if (areaId) params.set("areaId", areaId);
     if (urgencyFilter !== "ALL") params.set("urgency", urgencyFilter);
     if (categoryFilter !== "ALL") params.set("categoryId", categoryFilter);
-    if (jaringFilter !== "ALL") params.set("jaringId", jaringFilter);
     if (trimmedSearch) params.set("search", trimmedSearch);
 
     const periodRange = resolveJakartaPeriodRange(periodPreset, startDate, endDate);
@@ -270,19 +252,16 @@ export function BaketCoordinatorClient() {
     return params;
   }
 
-  // Fetch reports from /jaring/reports with server-side filters.
-  async function fetchAllReportPages() {
-    const allReports: JaringReportSessionDetail[] = [];
+  async function fetchAllBaketPages() {
+    const allBakets: BaketRecord[] = [];
     let currentPage = 1;
     let totalPages = 1;
 
     do {
       const params = buildReportQuery(currentPage);
-      const response = await apiBrowserFetch<PaginatedReportResponse | JaringReportSessionDetail[]>(
-        `/jaring/reports?${params.toString()}`,
-      );
+      const response = await apiBrowserFetch<PaginatedReportResponse | BaketRecord[]>(`/bakets?${params.toString()}`);
       const pageItems = Array.isArray(response) ? response : response.items || [];
-      allReports.push(...pageItems);
+      allBakets.push(...pageItems);
       if (Array.isArray(response)) {
         totalPages = pageItems.length < 100 ? currentPage : currentPage + 1;
       } else {
@@ -291,29 +270,7 @@ export function BaketCoordinatorClient() {
       currentPage += 1;
     } while (currentPage <= totalPages);
 
-    return Array.from(new Map(allReports.map((report) => [report.id, report])).values());
-  }
-
-  async function fetchAllJaringPages() {
-    const allJaring: RawJaringItem[] = [];
-    let currentPage = 1;
-    let totalPages = 1;
-
-    do {
-      const response = await apiBrowserFetch<PaginatedJaringResponse | RawJaringItem[]>(
-        `/jaring?page=${currentPage}&limit=100`,
-      );
-      const pageItems = Array.isArray(response) ? response : response.items || [];
-      allJaring.push(...pageItems);
-      if (Array.isArray(response)) {
-        totalPages = pageItems.length < 100 ? currentPage : currentPage + 1;
-      } else {
-        totalPages = Math.max(1, response.pagination?.totalPages ?? 1);
-      }
-      currentPage += 1;
-    } while (currentPage <= totalPages);
-
-    return Array.from(new Map(allJaring.map((jaring) => [jaring.id, jaring])).values());
+    return Array.from(new Map(allBakets.map((baket) => [baket.id, baket])).values());
   }
 
   async function fetchCategories() {
@@ -337,8 +294,8 @@ export function BaketCoordinatorClient() {
     setLoadingList(true);
     setLoadError(null);
     try {
-      const reportItems = await fetchAllReportPages();
-      setReports(reportItems);
+      const baketItems = await fetchAllBaketPages();
+      setBakets(baketItems);
     } catch (err) {
       console.error("Gagal memuat Baket (field-coordinator):", err);
       setLoadError(err instanceof Error ? err.message : "Daftar Baket gagal dimuat.");
@@ -349,13 +306,8 @@ export function BaketCoordinatorClient() {
 
   async function fetchReferenceData() {
     try {
-      const [jaringItems, categoryItems, areaScopeItems] = await Promise.all([
-        fetchAllJaringPages(),
-        fetchCategories(),
-        fetchAreaScopes(),
-      ]);
+      const [categoryItems, areaScopeItems] = await Promise.all([fetchCategories(), fetchAreaScopes()]);
 
-      setJaringList(jaringItems);
       setCategories(categoryItems);
       setAreaScopes(areaScopeItems);
     } catch (err) {
@@ -379,7 +331,7 @@ export function BaketCoordinatorClient() {
   }, [
     urgencyFilter,
     categoryFilter,
-    jaringFilter,
+    directAreaFilter,
     provinceFilter,
     regencyFilter,
     districtFilter,
@@ -390,10 +342,9 @@ export function BaketCoordinatorClient() {
     search,
   ]);
 
-  // Filter laporan yang sudah memiliki Baket.
   const baketReports = useMemo(() => {
-    return reports.filter((r) => Boolean(r.baket) || r.processStatus === "BAKET_CREATED");
-  }, [reports]);
+    return bakets;
+  }, [bakets]);
 
   // Compute summary metrics based on Urgensi
   const urgencySummary = useMemo(() => {
@@ -405,7 +356,7 @@ export function BaketCoordinatorClient() {
     };
 
     for (const r of baketReports) {
-      const u = r.urgency || "NORMAL";
+      const u = currentBaketVersion(r)?.urgency ?? "NORMAL";
       if (u in summary) {
         summary[u as PriorityLevel] += 1;
       }
@@ -414,20 +365,32 @@ export function BaketCoordinatorClient() {
     return summary;
   }, [baketReports]);
 
-  // Jaring Popover options format
-  const popoverJaringOptions: JaringOption[] = useMemo(() => {
-    return jaringList.map((j) => ({
-      id: j.id,
-      code: j.aliasName || j.fullName || j.id,
-      aliasName: j.aliasName || j.fullName || j.id,
-      fullName: j.fullName,
-      registrationStatus: j.registrationStatus,
-    }));
-  }, [jaringList]);
-
   const provinceOptions = useMemo(() => {
     return buildProvinceFilterOptions(areaScopes);
   }, [areaScopes]);
+
+  const defaultProvinceFilter = useMemo(
+    () => findDkiJakartaProvinceFilterId(provinceOptions),
+    [provinceOptions],
+  );
+
+  useEffect(() => {
+    if (
+      didApplyDefaultProvinceFilter.current ||
+      directAreaFilter !== "ALL" ||
+      !defaultProvinceFilter ||
+      provinceFilter !== "ALL"
+    ) {
+      return;
+    }
+
+    setProvinceFilter(defaultProvinceFilter);
+    setRegencyFilter("ALL");
+    setDistrictFilter("ALL");
+    setVillageFilter("ALL");
+    setPage(1);
+    didApplyDefaultProvinceFilter.current = true;
+  }, [defaultProvinceFilter, directAreaFilter, provinceFilter]);
 
   const regencyOptions = useMemo(() => {
     return buildRegencyFilterOptions(areaScopes, provinceOptions.length > 0 ? provinceFilter : "ALL");
@@ -445,7 +408,7 @@ export function BaketCoordinatorClient() {
     () =>
       buildAreaFilterSubtitle({
         metricLabel: "Jumlah Baket",
-        allScopeLabel: "semua wilayah koordinasi",
+        allScopeLabel: directAreaFilter !== "ALL" ? "wilayah terpilih dari dashboard" : "semua wilayah koordinasi",
         provinceFilter,
         regencyFilter,
         districtFilter,
@@ -458,6 +421,7 @@ export function BaketCoordinatorClient() {
     [
       districtFilter,
       districtOptions,
+      directAreaFilter,
       provinceFilter,
       provinceOptions,
       regencyFilter,
@@ -489,8 +453,8 @@ export function BaketCoordinatorClient() {
     setSearch("");
     setUrgencyFilter("ALL");
     setCategoryFilter("ALL");
-    setJaringFilter("ALL");
-    setProvinceFilter("ALL");
+    setDirectAreaFilter("ALL");
+    setProvinceFilter(defaultProvinceFilter || "ALL");
     setRegencyFilter("ALL");
     setDistrictFilter("ALL");
     setVillageFilter("ALL");
@@ -505,28 +469,32 @@ export function BaketCoordinatorClient() {
     if (filteredReports.length === 0) return;
 
     const headers = [
-      "No Ref",
-      "Kode Jaring",
+      "No Baket",
+      "Kode Sumber",
       "Judul Baket",
       "Versi Baket",
       "Urgensi",
-      "Lokasi Aktual Laporan",
-      "Wilayah Penempatan Jaring",
-      "Tanggal Laporan Jaring",
+      "Kategori",
+      "Lokasi Baket",
+      "Wilayah Sumber",
       "Tanggal Baket",
     ];
 
-    const rows = filteredReports.map((r) => [
-      `"${r.referenceNumber || r.id}"`,
-      `"${r.jaringAlias || r.jaringCode || "-"}"`,
-      `"${(r.displayTitle || r.content || "-").replace(/"/g, '""')}"`,
-      `"${getBaketVersionLabel(r)}"`,
-      `"${getUrgencyCardStyle(r.urgency).label}"`,
-      `"${formatFullAreaName(r.resolvedArea)}"`,
-      `"${formatFullAreaName(r.placementArea)}"`,
-      `"${formatDateTime(getSourceReportDate(r))}"`,
-      `"${formatDateTime(getBaketDate(r))}"`,
-    ]);
+    const rows = filteredReports.map((r) => {
+      const identity = resolveJaringIdentity(getBaketJaringIdentitySource(r));
+      const version = currentBaketVersion(r);
+      return [
+        `"${getBaketReferenceLabel(r)}"`,
+        `"${identity.code}"`,
+        `"${getBaketDisplayTitle(r).replace(/"/g, '""')}"`,
+        `"${getBaketVersionLabel(r)}"`,
+        `"${getUrgencyCardStyle(version?.urgency).label}"`,
+        `"${r.reportCategory?.name ?? "-"}"`,
+        `"${formatBaketAreaName(version?.eventArea)}"`,
+        `"${identity.placementArea}"`,
+        `"${formatDateTime(getBaketDate(r))}"`,
+      ];
+    });
 
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
     const encodedUri = encodeURI(csvContent);
@@ -558,8 +526,8 @@ export function BaketCoordinatorClient() {
         <div>
           <h1 className="font-heading font-bold text-3xl tracking-tight text-foreground">Bahan Keterangan (Baket)</h1>
           <p className="mt-1 text-muted-foreground text-sm max-w-2xl">
-            Daftar Bahan Keterangan (Baket) yang telah diformalisasi dari laporan Jaring, lengkap dengan sumber,
-            tanggal, lokasi aktual laporan, dan wilayah penempatan Jaring.
+            Daftar Bahan Keterangan (Baket) yang telah dipilih, diberi kategori, urgensi, dan diproses sebagai bahan
+            operasional.
           </p>
           <p className="mt-2 text-sm font-medium text-foreground">{areaSubtitle}</p>
         </div>
@@ -780,22 +748,6 @@ export function BaketCoordinatorClient() {
               className="h-9 w-full border-slate-200 text-xs dark:border-white/10"
             />
 
-            {/* 8. Jaring / Gaswil Filter Popover */}
-            <div className="w-full">
-              <JaringSelectPopover
-                options={popoverJaringOptions}
-                value={jaringFilter}
-                onValueChange={(val) => {
-                  setJaringFilter(val);
-                  setPage(1);
-                }}
-                allowAllOption
-                allOptionLabel="Semua Jaring"
-                filterVerifiedOnly={false}
-                className="h-9 text-xs w-full"
-              />
-            </div>
-
             {/* 8. Filter Periode Waktu */}
             <NativeSelect
               aria-label="Filter Periode Waktu"
@@ -819,8 +771,7 @@ export function BaketCoordinatorClient() {
           search ||
           urgencyFilter !== "ALL" ||
           categoryFilter !== "ALL" ||
-          jaringFilter !== "ALL" ||
-          provinceFilter !== "ALL" ||
+          provinceFilter !== (defaultProvinceFilter || "ALL") ||
           regencyFilter !== "ALL" ||
           districtFilter !== "ALL" ||
           villageFilter !== "ALL" ||
@@ -861,8 +812,8 @@ export function BaketCoordinatorClient() {
               {(search ||
                 urgencyFilter !== "ALL" ||
                 categoryFilter !== "ALL" ||
-                jaringFilter !== "ALL" ||
-                provinceFilter !== "ALL" ||
+                directAreaFilter !== "ALL" ||
+                provinceFilter !== (defaultProvinceFilter || "ALL") ||
                 regencyFilter !== "ALL" ||
                 districtFilter !== "ALL" ||
                 villageFilter !== "ALL" ||
@@ -918,17 +869,14 @@ export function BaketCoordinatorClient() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginatedReports.map((item) => {
-              const refNum =
-                item.referenceNumber ||
-                item.submittedMessage?.referenceNumber ||
-                item.jaringAlias ||
-                item.jaringCode ||
-                `# ${item.id.slice(0, 8)}`;
-              const title = item.displayTitle || item.content || "Baket Intelijen";
-              const mediaCount = item.media?.length || item.counts?.media || 0;
-              const partsCount = item.counts?.contentParts || 1;
-              const locationName = formatFullAreaName(item.resolvedArea);
-              const urgencyStyle = getUrgencyCardStyle(item.urgency);
+              const version = currentBaketVersion(item);
+              const refNum = getBaketReferenceLabel(item);
+              const title = getBaketDisplayTitle(item);
+              const content = getBaketContent(item);
+              const mediaCount = version?.attachments?.length;
+              const partsCount = version?.sourceMessages?.length;
+              const locationName = formatBaketAreaName(version?.eventArea);
+              const urgencyStyle = getUrgencyCardStyle(version?.urgency);
 
               return (
                 <div
@@ -959,24 +907,13 @@ export function BaketCoordinatorClient() {
                       <h3 className="font-heading font-bold text-base text-foreground leading-snug line-clamp-2">
                         {title}
                       </h3>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.content || "-"}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{content || "-"}</p>
                     </div>
 
                     <JaringIdentitySummary
                       compact
-                      source={{
-                        id: item.jaringId,
-                        jaringFullName: item.jaringFullName,
-                        jaringAlias: item.jaringAlias,
-                        jaringCode: item.jaringCode,
-                        jaringWhatsAppNumber: item.jaringWhatsAppNumber,
-                        jaringProfilePhotoFileId: item.jaringProfilePhotoFileId,
-                        profilePhotoUrl: item.jaringProfilePhotoUrl,
-                        gaswilName: item.gaswilName,
-                        gaswilAssignmentId: item.gaswilAssignmentId,
-                        gaswilUserProfileId: item.gaswilUserProfileId,
-                        placementArea: item.placementArea,
-                      }}
+                      source={getBaketJaringIdentitySource(item)}
+                      labelOverrides={BAKET_SOURCE_LABELS}
                     />
                   </div>
 
@@ -984,10 +921,12 @@ export function BaketCoordinatorClient() {
                     <div className="flex flex-wrap items-center justify-between text-xs text-muted-foreground gap-2">
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1">
-                          <MessageSquare className="size-3.5 text-sky-500" /> {partsCount} pesan
+                          <MessageSquare className="size-3.5 text-sky-500" />{" "}
+                          {typeof partsCount === "number" ? `${partsCount} sumber` : "Sumber tertaut"}
                         </span>
                         <span className="flex items-center gap-1">
-                          <ImageIcon className="size-3.5 text-amber-500" /> {mediaCount} foto
+                          <ImageIcon className="size-3.5 text-amber-500" />{" "}
+                          {typeof mediaCount === "number" ? `${mediaCount} lampiran` : "Lampiran Baket"}
                         </span>
                         <span className="flex items-center gap-1">
                           <MapPin className="size-3.5 text-emerald-500" /> {locationName}
@@ -1010,7 +949,7 @@ export function BaketCoordinatorClient() {
                         urgencyStyle.button,
                       )}
                     >
-                      <Link href={`/dashboard/laporan-jaring/${item.id}?from=baket`}>
+                      <Link href={getBaketHref(item)}>
                         <Eye className="size-4" /> Lihat Detail Baket
                       </Link>
                     </Button>
@@ -1045,10 +984,10 @@ export function BaketCoordinatorClient() {
                     <TableHead className="w-12 text-center text-xs font-bold uppercase tracking-wider">Foto</TableHead>
                   )}
                   {isColVisible("namaJaring") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">Nama Jaring</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Sumber</TableHead>
                   )}
                   {isColVisible("kodeJaring") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">Kode Jaring</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Kode Sumber</TableHead>
                   )}
                   {isColVisible("gaswil") && (
                     <TableHead className="text-xs font-bold uppercase tracking-wider">
@@ -1064,20 +1003,15 @@ export function BaketCoordinatorClient() {
                     </TableHead>
                   )}
                   {isColVisible("wilayahSumber") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider">Lokasi Aktual Laporan</TableHead>
+                    <TableHead className="text-xs font-bold uppercase tracking-wider">Lokasi Baket</TableHead>
                   )}
                   {isColVisible("wilayahPenempatan") && (
                     <TableHead className="text-xs font-bold uppercase tracking-wider">
-                      Wilayah Penempatan Jaring
+                      Wilayah Sumber
                     </TableHead>
                   )}
                   {isColVisible("urgensi") && (
                     <TableHead className="text-xs font-bold uppercase tracking-wider text-center">Urgensi</TableHead>
-                  )}
-                  {isColVisible("tanggalLaporan") && (
-                    <TableHead className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">
-                      Tanggal Laporan Jaring
-                    </TableHead>
                   )}
                   {isColVisible("tanggalBaket") && (
                     <TableHead className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">
@@ -1089,22 +1023,11 @@ export function BaketCoordinatorClient() {
               </TableHeader>
               <TableBody>
                 {paginatedReports.map((item) => {
-                  const refNum = item.referenceNumber || item.jaringAlias || item.jaringCode || item.id.slice(0, 8);
-                  const urgencyStyle = getUrgencyCardStyle(item.urgency);
+                  const refNum = getBaketReferenceLabel(item);
+                  const version = currentBaketVersion(item);
+                  const urgencyStyle = getUrgencyCardStyle(version?.urgency);
 
-                  const identity = resolveJaringIdentity({
-                    id: item.jaringId,
-                    jaringFullName: item.jaringFullName,
-                    jaringAlias: item.jaringAlias,
-                    jaringCode: item.jaringCode,
-                    jaringWhatsAppNumber: item.jaringWhatsAppNumber,
-                    jaringProfilePhotoFileId: item.jaringProfilePhotoFileId,
-                    profilePhotoUrl: item.jaringProfilePhotoUrl,
-                    gaswilName: item.gaswilName,
-                    gaswilAssignmentId: item.gaswilAssignmentId,
-                    gaswilUserProfileId: item.gaswilUserProfileId,
-                    placementArea: item.placementArea,
-                  });
+                  const identity = resolveJaringIdentity(getBaketJaringIdentitySource(item));
 
                   return (
                     <TableRow
@@ -1172,15 +1095,17 @@ export function BaketCoordinatorClient() {
                       {isColVisible("judulIsi") && (
                         <TableCell className="align-middle max-w-[280px]">
                           <p className="font-semibold text-xs text-foreground line-clamp-1">
-                            {item.displayTitle || item.content || "Baket Intelijen"}
+                            {getBaketDisplayTitle(item)}
                           </p>
-                          <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{item.content || "-"}</p>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+                            {getBaketContent(item) || "-"}
+                          </p>
                         </TableCell>
                       )}
 
                       {isColVisible("wilayahSumber") && (
                         <TableCell className="align-middle text-xs font-mono text-foreground">
-                          {formatFullAreaName(item.resolvedArea)}
+                          {formatBaketAreaName(version?.eventArea)}
                         </TableCell>
                       )}
 
@@ -1204,12 +1129,6 @@ export function BaketCoordinatorClient() {
                         </TableCell>
                       )}
 
-                      {isColVisible("tanggalLaporan") && (
-                        <TableCell className="align-middle text-xs font-mono text-muted-foreground whitespace-nowrap">
-                          {formatDateTime(getSourceReportDate(item))}
-                        </TableCell>
-                      )}
-
                       {isColVisible("tanggalBaket") && (
                         <TableCell className="align-middle text-xs font-mono text-muted-foreground whitespace-nowrap">
                           <div>{formatDateTime(getBaketDate(item))}</div>
@@ -1224,7 +1143,7 @@ export function BaketCoordinatorClient() {
                           asChild
                           className="h-8 px-2.5 text-xs rounded-lg gap-1.5 font-medium border-sky-500/30 text-sky-600 hover:bg-sky-500/10 dark:text-[#38BDF8]"
                         >
-                          <Link href={`/dashboard/laporan-jaring/${item.id}?from=baket`}>
+                          <Link href={getBaketHref(item)}>
                             <Eye className="size-3.5" />
                             Detail
                           </Link>

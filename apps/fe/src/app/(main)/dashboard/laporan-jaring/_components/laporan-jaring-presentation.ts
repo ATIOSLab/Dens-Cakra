@@ -11,6 +11,7 @@ import type { PriorityLevel, VerificationStatus } from "./laporan-jaring-types";
 export type JaringReportCategorySummary = {
   totalJaringReports?: number;
   baketReports?: number;
+  reportingJaringCount?: number;
 };
 
 export type JaringReportCategoryKey = "TOTAL" | "BAKET";
@@ -40,10 +41,7 @@ export function isJaringReportCategoryFilterActive(
   filters: { verificationStatus: string; stage: string },
 ) {
   const expected = JARING_REPORT_CATEGORY_FILTERS[category];
-  return (
-    filters.verificationStatus === expected.verificationStatus &&
-    filters.stage === expected.stage
-  );
+  return filters.verificationStatus === expected.verificationStatus && filters.stage === expected.stage;
 }
 
 export function jaringReportCategoryFromStage(value: string): JaringReportCategoryKey {
@@ -70,6 +68,7 @@ export function alignJaringReportCategorySummary(summary?: JaringReportCategoryS
   return {
     totalJaringReports: summary?.totalJaringReports ?? 0,
     baketReports: summary?.baketReports ?? 0,
+    reportingJaringCount: summary?.reportingJaringCount ?? 0,
   };
 }
 

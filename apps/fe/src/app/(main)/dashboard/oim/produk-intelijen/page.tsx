@@ -1,7 +1,18 @@
-import { IntelligenceReportComingSoonPage } from "@/app/(main)/dashboard/_components/intelligence-products/intelligence-report-coming-soon-page";
+import { UniversalDensRoutePage } from "@/features/dens-page/universal-dens-route-page";
 
 export const dynamic = "force-dynamic";
 
-export default function Page() {
-  return <IntelligenceReportComingSoonPage />;
+type PageProps = {
+  params?: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Page({ params, searchParams }: PageProps) {
+  return (
+    <UniversalDensRoutePage
+      routePattern="/dashboard/oim/produk-intelijen"
+      params={(await params) ?? {}}
+      searchParams={(await searchParams) ?? {}}
+    />
+  );
 }

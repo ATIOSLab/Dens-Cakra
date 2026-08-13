@@ -73,10 +73,11 @@ import { BaketAdministrativeArea } from "@/features/baket/components/baket-admin
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
-import type { OimPageData, OimView } from "./oim-types";
+import type { OimPageData, OimProductContext, OimView } from "./oim-types";
 
 const SituationMap = dynamic(() => import("./oim-situation-map").then((module) => module.OimSituationMap), {
   ssr: false,
@@ -95,6 +96,16 @@ const BaketLocationMap = dynamic(
 
 type Row = Record<string, any>;
 type Props = { view: OimView; data: OimPageData; params: Record<string, string> };
+
+const DEFAULT_PRODUCT_CONTEXT: OimProductContext = {
+  label: "Laporan Intelijen",
+  listTitle: "Daftar Laporan Intelijen",
+  createTitle: "Buat Laporan Intelijen",
+  detailTitle: "Detail Laporan Intelijen",
+  listPath: "/dashboard/oim/produk-intelijen/daftar-produk",
+  createPath: "/dashboard/oim/produk-intelijen/buat-produk",
+  detailBasePath: "/dashboard/oim/produk-intelijen/daftar-produk",
+};
 
 const VIEW_META: Record<OimView, [string, string, LucideIcon]> = {
   dashboard: ["Pusat Kendali OIM", "Ringkasan antrean intelijen dalam cakupan komando dan wilayah Anda.", RadioTower],
@@ -124,18 +135,34 @@ const VIEW_META: Record<OimView, [string, string, LucideIcon]> = {
   ],
   "analysis-edit": ["Edit Analisis", "Perbarui versi aktif sebelum difinalkan.", BarChart3],
   "analysis-version": ["Versi Analisis", "Snapshot final tidak dapat diubah.", BarChart3],
-  products: ["Produk Intelijen", "Laporan Intelijen yang bersumber dari analisis final.", DOMAIN_VISUALS.intelligenceReport.Icon],
-  "product-list": ["Daftar Produk", "Alur draf, revisi, pengajuan, dan versi produk.", DOMAIN_VISUALS.intelligenceReport.Icon],
+  products: ["Laporan Intelijen", "Laporan Intelijen yang bersumber dari analisis final.", DOMAIN_VISUALS.intelligenceReport.Icon],
+  "product-list": [
+    "Daftar Laporan Intelijen",
+    "Alur draf, revisi, pengajuan, dan versi Laporan Intelijen.",
+    DOMAIN_VISUALS.intelligenceReport.Icon,
+  ],
   "product-new": [
     "Buat Laporan Intelijen",
     "Pilih jenis laporan dan susun isinya dari analisis final beserta Baket sumber.",
     Plus,
   ],
-  "product-detail": ["Detail Produk", "Metadata, sumber, versi, validasi, persetujuan, dan ketertelusuran.", DOMAIN_VISUALS.intelligenceReport.Icon],
-  "product-edit": ["Edit Produk", "Koreksi metadata draf dan konten versi aktif.", DOMAIN_VISUALS.intelligenceReport.Icon],
-  "product-version": ["Versi Produk", "Snapshot produk untuk audit dan cetak.", DOMAIN_VISUALS.intelligenceReport.Icon],
-  approval: ["Pengajuan Persetujuan", "Produk final yang menunggu keputusan Komandan Regional.", Send],
-  "approval-detail": ["Persiapan Pengajuan", "Finalkan produk dan kunci versi untuk Komandan Regional.", Send],
+  "product-detail": [
+    "Detail Laporan Intelijen",
+    "Metadata, sumber, versi, validasi, persetujuan, dan ketertelusuran.",
+    DOMAIN_VISUALS.intelligenceReport.Icon,
+  ],
+  "product-edit": [
+    "Ubah Laporan Intelijen",
+    "Koreksi metadata draf dan konten versi aktif.",
+    DOMAIN_VISUALS.intelligenceReport.Icon,
+  ],
+  "product-version": [
+    "Versi Laporan Intelijen",
+    "Snapshot Laporan Intelijen untuk audit dan cetak.",
+    DOMAIN_VISUALS.intelligenceReport.Icon,
+  ],
+  approval: ["Pengajuan Persetujuan", "Laporan Intelijen final yang menunggu keputusan Komandan Regional.", Send],
+  "approval-detail": ["Persiapan Pengajuan", "Finalkan Laporan Intelijen dan kunci versi untuk Komandan Regional.", Send],
   "workflow-detail": ["Linimasa Persetujuan", "Status keputusan Komandan Regional.", Send],
   monitoring: [
     "Monitoring Lapangan",
@@ -160,6 +187,15 @@ function rows(value: unknown): Row[] {
   return [];
 }
 
+function areaFilterIdentity(area: Row) {
+  return {
+    id: String(area.id ?? ""),
+    name: String(area.name ?? ""),
+    code: typeof area.code === "string" ? area.code : null,
+    officialCode: typeof area.officialCode === "string" ? area.officialCode : null,
+  };
+}
+
 function fieldOfficerUserName(assignment?: Row | null) {
   const profile = assignment?.userProfile;
   return profile?.fullName ?? profile?.authUser?.name ?? profile?.username ?? "User pengirim tidak teridentifikasi";
@@ -167,6 +203,16 @@ function fieldOfficerUserName(assignment?: Row | null) {
 
 function currentVersion(item: Row) {
   return Array.isArray(item.versions) ? (item.versions[0] ?? {}) : (item.currentVersion ?? {});
+}
+
+function productContext(data?: OimPageData): OimProductContext {
+  return { ...DEFAULT_PRODUCT_CONTEXT, ...(data?.productContext ?? {}) };
+}
+
+function isProductView(view: OimView) {
+  return ["products", "product-list", "product-new", "product-detail", "product-edit", "product-version"].includes(
+    view,
+  );
 }
 
 function fmtDate(value?: string) {
@@ -234,13 +280,27 @@ function urgencyBadgeStyle(value?: string) {
 }
 
 function Header({ view, data }: { view: OimView; data?: OimPageData }) {
-  const [title, description, Icon] = VIEW_META[view];
+  const [metaTitle, metaDescription, Icon] = VIEW_META[view];
+  const context = productContext(data);
+  const title =
+    view === "product-list" || view === "products"
+      ? context.listTitle
+      : view === "product-new"
+        ? context.createTitle
+        : ["product-detail", "product-edit", "product-version"].includes(view)
+          ? context.detailTitle
+          : metaTitle;
+  const description =
+    isProductView(view) && data?.productContext
+      ? `${context.label} disusun dari analisis final dan Bahan Keterangan (Baket) sumber.`
+      : metaDescription;
   const router = useRouter();
 
   const root = (data?.areas ?? {}) as Row;
   const topLevel = rows(root.children);
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
-  const provinceName = provinces[0]?.name || "REGIONAL";
+  const defaultProvinceId = findDkiJakartaProvinceFilterId(provinces.map(areaFilterIdentity));
+  const provinceName = provinces.find((area) => area.id === defaultProvinceId)?.name || provinces[0]?.name || "REGIONAL";
 
   const hasBackButton = [
     "report-detail",
@@ -260,7 +320,7 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
             : ["analysis-detail", "analysis-new", "analysis-edit"].includes(view)
               ? "/dashboard/oim/analisis-intelijen"
               : ["product-new", "product-edit", "product-detail"].includes(view)
-                ? "/dashboard/oim/produk-intelijen/daftar-produk"
+                ? context.listPath
                 : undefined,
       }
     : undefined;
@@ -302,9 +362,9 @@ function Header({ view, data }: { view: OimView; data?: OimPageData }) {
               asChild
               className="bg-[#3B82F6] hover:bg-[#2563EB] text-white transition-all duration-[150ms] ease-out rounded-lg h-10 px-4 shadow-[0_4px_12px_rgba(59,130,246,0.2)] border-none"
             >
-              <Link href="/dashboard/oim/produk-intelijen/buat-produk" className="flex items-center gap-2">
+              <Link href={context.createPath} className="flex items-center gap-2">
                 <Plus className="size-4 shrink-0" style={{ strokeWidth: "2px" }} />
-                <span>PRODUK</span>
+                <span>LAPORAN</span>
               </Link>
             </Button>
           </div>
@@ -392,7 +452,7 @@ function Kpis({ data }: { data: OimPageData }) {
       badge: "Draf Aktif",
     },
     {
-      label: "Draf produk",
+      label: "Draf Laporan Intelijen",
       value: products.filter((item) => ["DRAFT", "NEEDS_REVISION"].includes(item.status)).length,
       hint: "Belum diajukan",
       icon: FileCheck,
@@ -566,10 +626,12 @@ function Filters({
   areas,
   reportCategories,
   mode = "baket",
+  productLabel = "Laporan Intelijen",
 }: {
   areas?: unknown;
   reportCategories?: unknown;
   mode?: "baket" | "verification" | "product";
+  productLabel?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -578,7 +640,7 @@ function Filters({
   const categories = rows(reportCategories);
   const topLevel = rows(root.children);
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
-  const provinceId = provinces[0]?.id || "";
+  const provinceId = findDkiJakartaProvinceFilterId(provinces.map(areaFilterIdentity)) || provinces[0]?.id || "";
 
   // Controlled filter states
   const [search, setSearch] = useState(searchParams.get("search") || "");
@@ -704,7 +766,7 @@ function Filters({
       <FilterPanel
         title={
           mode === "product"
-            ? "Filter produk intelijen"
+            ? `Filter ${productLabel}`
             : mode === "verification"
               ? "Filter verifikasi"
               : "Filter laporan"
@@ -716,7 +778,7 @@ function Filters({
         <Input
           name="search"
           aria-label="Cari laporan"
-          placeholder="Cari judul, isi, nomor produk..."
+          placeholder="Cari judul, isi, nomor laporan..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-10 border-border bg-background text-sm text-foreground"
@@ -1954,7 +2016,7 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
           <CardHeader>
             <CardTitle>Simpan analisis</CardTitle>
             <CardDescription>
-              Analisis final akan dikunci dan dapat dipakai untuk membuat Produk Intelijen.
+              Analisis final akan dikunci dan dapat dipakai untuk membuat Laporan Intelijen.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -1978,7 +2040,7 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
                       start(async () => {
                         try {
                           await apiBrowserMutation("PATCH", `/analysis-versions/${version.id}`, form);
-                          toast.success("Draft tersimpan");
+                          toast.success("Draf tersimpan");
                           router.refresh();
                         } catch (error) {
                           toast.error(error instanceof Error ? error.message : "Gagal menyimpan");
@@ -2004,7 +2066,7 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
                   <AlertDialogTitle>Finalkan Analisis Intelijen?</AlertDialogTitle>
                   <AlertDialogDescription>
                     Apakah Anda yakin ingin memfinalkan analisis ini? Analisis yang difinalkan akan dikunci dan siap
-                    digunakan untuk membuat Produk Intelijen.
+                    digunakan untuk membuat Laporan Intelijen.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -2064,6 +2126,7 @@ function AnalysisWorkspace({ item }: { item?: unknown }) {
 
 function ProductList({ data, approval = false }: { data: OimPageData; approval?: boolean }) {
   const searchParams = useSearchParams();
+  const context = productContext(data);
   const initialItems = useMemo(
     () =>
       rows(data.products).filter(
@@ -2096,6 +2159,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
           search: searchParams.get("search") || undefined,
           status: searchParams.get("status") || undefined,
           classification: searchParams.get("classification") || undefined,
+          productTypeId: context.productTypeId ?? searchParams.get("productTypeId") ?? undefined,
           periodFrom: searchParams.get("periodStart") || undefined,
           periodTo: searchParams.get("periodEnd") || undefined,
           sortBy: "updatedAt",
@@ -2113,7 +2177,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
       setDateSortDirection(direction);
       setPage(1);
     } catch {
-      toast.error("Urutan tanggal produk belum dapat diperbarui.");
+      toast.error("Urutan tanggal Laporan Intelijen belum dapat diperbarui.");
     } finally {
       setIsSorting(false);
     }
@@ -2143,7 +2207,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
         <h3 className="font-mono text-xs font-bold tracking-wider text-slate-500 dark:text-[#7C8798] uppercase">
-          Daftar Produk ({items.length})
+          {context.listTitle} ({items.length})
         </h3>
         <ViewModeToggle value={viewMode} onValueChange={setViewMode} buttonClassName="size-7" />
       </div>
@@ -2159,13 +2223,13 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                       Klasifikasi & Status
                     </TableHead>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
-                      Judul Produk
+                      Judul Laporan
                     </TableHead>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
-                      Nomor Produk
+                      Nomor Laporan
                     </TableHead>
                     <TableHead className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5">
-                      Jenis Produk
+                      Jenis Laporan
                     </TableHead>
                     <SortableTableHeader
                       className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#7C8798] py-3.5"
@@ -2215,7 +2279,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                         </TableCell>
                         <TableCell className="py-4 max-w-[320px]">
                           <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">
-                            {item.title ?? "Produk tanpa judul"}
+                            {item.title ?? "Laporan Intelijen tanpa judul"}
                           </h4>
                         </TableCell>
                         <TableCell className="py-4 font-mono text-xs text-slate-700 dark:text-[#94A3B8]">
@@ -2237,7 +2301,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                               href={
                                 approval
                                   ? `/dashboard/oim/pengajuan-persetujuan/${item.id}`
-                                  : `/dashboard/oim/produk-intelijen/daftar-produk/${item.id}`
+                                  : `${context.detailBasePath}/${item.id}`
                               }
                             >
                               {approval ? "Siapkan pengajuan" : "Buka"}
@@ -2303,7 +2367,7 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
                           href={
                             approval
                               ? `/dashboard/oim/pengajuan-persetujuan/${item.id}`
-                              : `/dashboard/oim/produk-intelijen/daftar-produk/${item.id}`
+                              : `${context.detailBasePath}/${item.id}`
                           }
                         >
                           {approval ? "Siapkan pengajuan" : "Buka"}
@@ -2326,9 +2390,11 @@ function ProductList({ data, approval = false }: { data: OimPageData; approval?:
           </div>
           <div className="space-y-1">
             <h3 className="text-[15px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              TIDAK ADA PRODUK
+              TIDAK ADA LAPORAN
             </h3>
-            <p className="text-[13px] text-slate-600 dark:text-[#94A3B8]">Belum ada produk intelijen yang terdaftar.</p>
+            <p className="text-[13px] text-slate-600 dark:text-[#94A3B8]">
+              Belum ada {context.label} yang terdaftar.
+            </p>
           </div>
         </div>
       )}
@@ -2445,13 +2511,15 @@ function templateContentComplete(
 }
 
 function ProductBuilder({ data }: { data: OimPageData }) {
+  const context = productContext(data);
   const productTypes = rows(data.productTypes)
+    .filter((item) => !context.productTypeId || item.id === context.productTypeId)
     .slice()
     .sort((left, right) => Number(left.formatNo ?? 0) - Number(right.formatNo ?? 0));
   const analyses = rows(data.analyses).filter((item) => item.status === "VALIDATED");
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [selectedProductTypeId, setSelectedProductTypeId] = useState("");
+  const [selectedProductTypeId, setSelectedProductTypeId] = useState(context.productTypeId ?? "");
   const [template, setTemplate] = useState<Row | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [analysisCase, setAnalysisCase] = useState<Row | null>(null);
@@ -2463,7 +2531,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
   const analysisVersion = useMemo(() => (analysisCase ? currentVersion(analysisCase) : {}), [analysisCase]);
   const productContent = buildProductContent(template, fieldValues, journalRows);
 
-  // Alur kerja produk
+  // Alur kerja Laporan Intelijen
   const [activeStep, setActiveStep] = useState(1);
   const [zoom, setZoom] = useState(100);
   const [expandedSections, setExpandedSections] = useState({
@@ -2536,13 +2604,13 @@ function ProductBuilder({ data }: { data: OimPageData }) {
             versionId: version.id,
             confirmation: "SUBMIT",
           });
-          toast.success("Produk final dikirim ke Komandan Regional");
+          toast.success(`${context.label} final dikirim ke Komandan Regional`);
         } else {
-          toast.success("Draft Produk Intelijen tersimpan");
+          toast.success(`Draf ${context.label} tersimpan`);
         }
-        router.push(`/dashboard/oim/produk-intelijen/daftar-produk/${result.id}`);
+        router.push(`${context.detailBasePath}/${result.id}`);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Gagal menyimpan Produk Intelijen");
+        toast.error(error instanceof Error ? error.message : `Gagal menyimpan ${context.label}`);
       }
     });
 
@@ -2690,7 +2758,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
                         htmlFor="product-title"
                         className="text-[12px] uppercase font-mono tracking-wider font-semibold text-muted-foreground"
                       >
-                        Judul Produk
+                        Judul Laporan
                       </Label>
                       <Input
                         id="product-title"
@@ -2945,7 +3013,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
 
         {/* RIGHT Section Actions */}
         <div className="ml-auto flex items-center gap-2">
-          {/* Secondary Button: Simpan Draft */}
+          {/* Secondary Button: Simpan Draf */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -2954,7 +3022,7 @@ function ProductBuilder({ data }: { data: OimPageData }) {
                 className="h-9 rounded-[4px] border border-slate-300 dark:border-[#3A4657] bg-transparent px-3 font-mono text-xs text-slate-700 dark:text-[#C8D3E2] transition-all duration-200 hover:scale-[1.02] hover:bg-slate-100 dark:hover:bg-[#1A2434] active:scale-[0.98] active:bg-slate-200 dark:active:bg-[#141C28] sm:px-4"
               >
                 <DOMAIN_VISUALS.intelligenceReport.Icon className="mr-1 size-3.5" />
-                Simpan Draft
+                Simpan Draf
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -3061,7 +3129,7 @@ function ProductPreview({
           </p>
 
           <h3 className="mt-8 text-center text-sm font-extrabold uppercase tracking-wide leading-relaxed border-t border-b border-black py-2">
-            {title || "JUDUL PRODUK INTELIJEN"}
+            {title || "JUDUL LAPORAN INTELIJEN"}
           </h3>
 
           <div className="mt-8 text-xs leading-6 space-y-4">
@@ -3117,7 +3185,7 @@ function ProductDetail({ item, approval = false }: { item?: unknown; approval?: 
             <StatusBadge value={product.classification} />
             <StatusBadge value={product.status} />
           </div>
-          <CardTitle>{product.title ?? "Produk"}</CardTitle>
+          <CardTitle>{product.title ?? "Laporan Intelijen"}</CardTitle>
           <CardDescription className="font-mono">{product.productNumber ?? "Nomor otomatis"}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -3192,7 +3260,7 @@ function ProductDetail({ item, approval = false }: { item?: unknown; approval?: 
       </Card>
       <Card className="h-fit">
         <CardHeader>
-          <CardTitle>{approval ? "Pra-pengajuan" : "Kontrol produk"}</CardTitle>
+          <CardTitle>{approval ? "Pra-pengajuan" : "Kontrol Laporan Intelijen"}</CardTitle>
           <CardDescription>{"Alur: OIM -> Komandan Regional -> Deputi II (baca setelah disetujui)."}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -3221,7 +3289,7 @@ function ProductDetail({ item, approval = false }: { item?: unknown; approval?: 
                       versionId: version.id,
                       confirmation: "SUBMIT",
                     });
-                    toast.success("Produk diajukan");
+                    toast.success("Laporan Intelijen diajukan");
                     router.refresh();
                   } catch (error) {
                     toast.error(error instanceof Error ? error.message : "Pengajuan gagal");
@@ -3369,7 +3437,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
                       },
                     },
                     {
-                      label: "Produk resmi",
+                      label: "Laporan Intelijen resmi",
                       count: products.filter((item) => ["DRAFT", "NEEDS_REVISION"].includes(item.status)).length,
                       get status() {
                         return this.count === 0 ? "TIDAK ADA DRAF" : "PENULISAN";
@@ -3499,7 +3567,7 @@ export function OimWorkspaceClient({ view, data }: Props) {
         {view === "products" && <ProductList data={data} />}
         {view === "product-list" && (
           <>
-            <Filters areas={data.areas} mode="product" />
+            <Filters areas={data.areas} mode="product" productLabel={productContext(data).label} />
             <ProductList data={data} />
           </>
         )}

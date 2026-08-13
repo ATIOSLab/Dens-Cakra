@@ -39,7 +39,7 @@ export function LaporanJaringLocationMap({
 
   return (
     <section
-      className="h-[min(22rem,52svh)] min-h-72 w-full overflow-hidden rounded-[var(--dc-radius-lg)] border"
+      className="h-[min(30rem,64svh)] min-h-[22rem] w-full overflow-hidden rounded-[var(--dc-radius-lg)] border sm:min-h-[24rem]"
       aria-label={`Peta lokasi pembuatan laporan ${title} di ${areaLabel}`}
     >
       <MapView center={[longitude, latitude]} zoom={16}>
