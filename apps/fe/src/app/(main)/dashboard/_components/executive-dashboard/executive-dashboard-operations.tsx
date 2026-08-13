@@ -401,7 +401,7 @@ function RankingTables({
                   ]).join(" - ")}
                   metrics={[
                     { label: DOMAIN_TERMS.jaringReport, value: formatDashboardNumber(item.reports) },
-                    { label: "Baket Dibuat", value: formatDashboardNumber(item.verified) },
+                    { label: "Laporan Jadi Baket", value: formatDashboardNumber(item.verified) },
                     { label: DOMAIN_TERMS.draftBaket, value: formatDashboardNumber(item.draftBakets) },
                   ]}
                 />
@@ -416,7 +416,7 @@ function RankingTables({
                     <TableHead>{DOMAIN_TERMS.fieldOfficer}</TableHead>
                     <TableHead>Wilayah</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.jaringReport}</TableHead>
-                    <TableHead className="text-right">Baket Dibuat</TableHead>
+                    <TableHead className="text-right">Laporan Jadi Baket</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.draftBaket}</TableHead>
                     <TableHead>Aktivitas Terakhir</TableHead>
                   </TableRow>
@@ -461,7 +461,7 @@ function RankingTables({
                   metrics={[
                     { label: DOMAIN_TERMS.jaringActive90Days, value: formatDashboardNumber(item.activeJaring) },
                     { label: DOMAIN_TERMS.jaringReport, value: formatDashboardNumber(item.reports) },
-                    { label: "Baket Dibuat", value: formatDashboardNumber(item.verified) },
+                    { label: "Laporan Jadi Baket", value: formatDashboardNumber(item.verified) },
                     { label: "Respons Rata-rata", value: formatDashboardDuration(item.averageVerificationHours) },
                   ]}
                 />
@@ -477,7 +477,7 @@ function RankingTables({
                     <TableHead className="text-right">{DOMAIN_TERMS.jaring}</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.jaringActive90Days}</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.jaringReport}</TableHead>
-                    <TableHead className="text-right">Baket Dibuat</TableHead>
+                    <TableHead className="text-right">Laporan Jadi Baket</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.draftBaket}</TableHead>
                     <TableHead className="text-right">Respons Rata-rata</TableHead>
                   </TableRow>
@@ -528,7 +528,7 @@ function RankingTables({
                   metrics={[
                     { label: DOMAIN_TERMS.jaringReport, value: formatDashboardNumber(item.reports) },
                     { label: DOMAIN_TERMS.jaringActive90Days, value: formatDashboardNumber(item.activeJaring) },
-                    { label: "Baket Dibuat", value: formatDashboardNumber(item.verified) },
+                    { label: "Laporan Jadi Baket", value: formatDashboardNumber(item.verified) },
                   ]}
                 />
               ))}
@@ -541,7 +541,7 @@ function RankingTables({
                     <TableHead>Wilayah</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.jaringReport}</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.jaringActive90Days}</TableHead>
-                    <TableHead className="text-right">Baket Dibuat</TableHead>
+                    <TableHead className="text-right">Laporan Jadi Baket</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.draftBaket}</TableHead>
                     <TableHead>Perlu Perhatian</TableHead>
                   </TableRow>

@@ -16,8 +16,8 @@ import {
 import type { DashboardQueryState, DistributionItem, ExecutiveDashboardData } from "./executive-dashboard-types";
 
 const trendConfig = {
-  total: { label: "Total Laporan", color: "var(--chart-1)" },
-  verified: { label: "Baket Dibuat", color: "var(--chart-2)" },
+  total: { label: "Laporan Jaring", color: "var(--chart-1)" },
+  verified: { label: "Laporan Jadi Baket", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
 const distributionConfig = {
@@ -38,7 +38,7 @@ function formatBucket(value: unknown) {
 
 function EmptyChart() {
   return (
-    <div className="grid h-60 place-items-center rounded-lg border border-dashed text-sm text-muted-foreground">
+    <div className="grid h-64 place-items-center rounded-lg border border-dashed text-sm text-muted-foreground">
       Tidak ada data pada filter aktif.
     </div>
   );
@@ -59,8 +59,8 @@ function attachmentFilterValue(value: string) {
 export function ReportTrendPanel({ trend }: { trend: ExecutiveDashboardData["analytics"]["trend"] }) {
   const [visibleSeries, setVisibleSeries] = useState({ total: true, verified: true });
   const series = [
-    { key: "total", label: "Total Laporan", color: "var(--chart-1)" },
-    { key: "verified", label: "Baket Dibuat", color: "var(--chart-2)" },
+    { key: "total", label: "Laporan Jaring", color: "var(--chart-1)" },
+    { key: "verified", label: "Laporan Jadi Baket", color: "var(--chart-2)" },
   ] as const;
 
   const toggleSeries = (key: keyof typeof visibleSeries) => {
@@ -74,8 +74,10 @@ export function ReportTrendPanel({ trend }: { trend: ExecutiveDashboardData["ana
   return (
     <Card className="border-[var(--dc-border-subtle)] xl:col-span-2">
       <CardHeader>
-        <CardTitle>Tren Laporan Jaring</CardTitle>
-        <CardDescription>Volume Laporan Jaring dan pembuatan Baket menurut periode penerimaan.</CardDescription>
+        <CardTitle>Tren Laporan ke Baket</CardTitle>
+        <CardDescription>
+          Perbandingan Laporan Jaring dan laporan yang sudah menjadi Bahan Keterangan (Baket).
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {trend.points.length === 0 ? (
@@ -100,12 +102,16 @@ export function ReportTrendPanel({ trend }: { trend: ExecutiveDashboardData["ana
                 </button>
               ))}
             </fieldset>
-            <ChartContainer config={trendConfig} className="h-72 w-full" aria-label="Grafik tren Laporan Jaring">
+            <ChartContainer config={trendConfig} className="h-80 w-full" aria-label="Grafik tren Laporan ke Baket">
               <AreaChart accessibilityLayer data={trend.points} margin={{ left: 0, right: 12, top: 12 }}>
                 <defs>
                   <linearGradient id="dashboard-trend-total" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-total)" stopOpacity={0.4} />
                     <stop offset="95%" stopColor="var(--color-total)" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="dashboard-trend-converted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-verified)" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="var(--color-verified)" stopOpacity={0.01} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -131,9 +137,9 @@ export function ReportTrendPanel({ trend }: { trend: ExecutiveDashboardData["ana
                   <Area
                     dataKey="verified"
                     type="monotone"
-                    fill="transparent"
+                    fill="url(#dashboard-trend-converted)"
                     stroke="var(--color-verified)"
-                    strokeWidth={2}
+                    strokeWidth={2.25}
                   />
                 ) : null}
               </AreaChart>
@@ -161,8 +167,8 @@ export function WorkflowPanel({
   return (
     <Card className="border-[var(--dc-border-subtle)]">
       <CardHeader>
-        <CardTitle>Komposisi Alur Kerja</CardTitle>
-        <CardDescription>Status Laporan Jaring hingga pembuatan Baket.</CardDescription>
+        <CardTitle>Komposisi Alur Laporan</CardTitle>
+        <CardDescription>Tahapan Laporan Jaring menuju Bahan Keterangan (Baket).</CardDescription>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
@@ -191,7 +197,7 @@ export function WorkflowPanel({
               <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
                 <div>
                   <strong className="block font-mono text-2xl tabular-nums">{formatDashboardNumber(total)}</strong>
-                  <span className="text-[0.62rem] uppercase tracking-wide text-muted-foreground">Total Laporan</span>
+                  <span className="text-[0.62rem] uppercase tracking-wide text-muted-foreground">Laporan Jaring</span>
                 </div>
               </div>
             </div>
@@ -238,10 +244,10 @@ export function CategoryPanel({
   onSelect?: (key: string) => void;
 }) {
   return (
-    <Card className="border-[var(--dc-border-subtle)] xl:col-span-2">
+    <Card className="border-[var(--dc-border-subtle)] xl:col-span-3">
       <CardHeader>
-        <CardTitle>Kategori Baket dan Isu Dominan</CardTitle>
-        <CardDescription>Kategori ditetapkan saat Laporan Jaring dijadikan Baket.</CardDescription>
+        <CardTitle>Kategori Bahan Keterangan (Baket)</CardTitle>
+        <CardDescription>Kategori ditetapkan dari Laporan Jaring yang sudah menjadi Baket.</CardDescription>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (

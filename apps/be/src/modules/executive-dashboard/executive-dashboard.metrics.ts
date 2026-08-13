@@ -40,9 +40,9 @@ export const EXECUTIVE_DASHBOARD_METRICS: MetricDefinition[] = [
   },
   {
     key: 'baketCreatedReports',
-    label: 'Baket Dibuat',
+    label: 'Laporan Jadi Baket',
     description:
-      'Laporan Jaring yang sudah ditindaklanjuti menjadi Bahan Keterangan (Baket).',
+      'Laporan Jaring yang sudah dipilih dan dibuat menjadi Bahan Keterangan (Baket).',
     entity: 'Baket',
     dateField: 'WhatsAppReportSession.submittedAt',
     denominator: 'totalReports',

@@ -14,6 +14,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { getSystemRoleLabel, type SystemRole } from "@/navigation/sidebar/system-roles";
 
@@ -156,9 +157,6 @@ export function ExecutiveDashboardAnalysisOverview({
   const followUp = data.operations.followUp.summary;
   const quality = data.analytics.dataQuality;
   const baketCreatedRate = percent(baketCreatedReports, totalReports);
-  const baketTotal = draftBakets + validatedBakets;
-  const baketConversionRate = percent(baketTotal, totalReports);
-  const preparedBakets = Math.max(0, baketTotal - draftBakets);
   const activeJaringRate = percent(network.active, network.total);
   const productRate = percent(productTotal, totalReports);
   const resolvedLocationCount = Math.max(0, quality.total - quality.missingLocation);
@@ -175,14 +173,20 @@ export function ExecutiveDashboardAnalysisOverview({
       : "Belum ada Jaring dalam cakupan aktif";
   const reportHelper =
     totalReports > 0
-      ? `${formatDashboardNumber(totalReports)} Laporan Jaring; ${formatDashboardNumber(baketCreatedReports)} sudah menjadi Baket`
+      ? `${formatDashboardNumber(baketCreatedReports)} sudah menjadi ${DOMAIN_TERMS.baket}`
       : "Belum ada Laporan Jaring pada periode aktif";
   const baketCreatedHelper =
-    totalReports > 0 ? `${formatDashboardPercent(baketCreatedRate)} dari total laporan` : "Belum ada pembanding laporan";
-  const baketHelper =
     totalReports > 0
-      ? `${formatDashboardPercent(baketConversionRate)} dari Laporan Jaring; ${formatDashboardNumber(draftBakets)} draf, ${formatDashboardNumber(preparedBakets)} siap diteruskan`
-      : `${formatDashboardNumber(draftBakets)} draf, ${formatDashboardNumber(preparedBakets)} siap diteruskan`;
+      ? `${formatDashboardPercent(baketCreatedRate)} dari ${DOMAIN_TERMS.jaringReport}; ${formatDashboardNumber(draftBakets)} draf, ${formatDashboardNumber(validatedBakets)} tervalidasi`
+      : "Belum ada pembanding Laporan Jaring";
+  const draftBaketHelper =
+    baketCreatedReports > 0
+      ? `${formatDashboardPercent(percent(draftBakets, baketCreatedReports))} dari laporan yang sudah menjadi Baket`
+      : "Belum ada Draf Baket pada filter aktif";
+  const validatedBaketHelper =
+    baketCreatedReports > 0
+      ? `${formatDashboardPercent(percent(validatedBakets, baketCreatedReports))} dari laporan yang sudah menjadi Baket`
+      : "Belum ada Baket Tervalidasi pada filter aktif";
   const productHelper =
     totalReports > 0 ? `${formatDashboardPercent(productRate)} terhadap total Laporan Jaring` : "Belum ada pembanding laporan";
   const personnelHref =
@@ -286,67 +290,91 @@ export function ExecutiveDashboardAnalysisOverview({
         </CardContent>
       </Card>
 
-      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,13.5rem),1fr))]">
-        <SummaryMetric
-          label="Korwil"
-          value={network.korwilCount}
-          helper={`${formatDashboardNumber(network.gaswilCount)} Petugas Wilayah (Gaswil) dalam cakupan`}
-          href={personnelHref}
-          icon={MapPinned}
-          buildHref={buildHref}
-        />
-        <SummaryMetric
-          label="Petugas Wilayah (Gaswil)"
-          value={network.gaswilCount}
-          helper={`${formatDashboardNumber(network.total)} Jaring binaan terhubung ke cakupan aktif`}
-          href={personnelHref}
-          icon={DOMAIN_VISUALS.gaswil.Icon}
-          tone="neutral"
-          buildHref={buildHref}
-        />
-        <SummaryMetric
-          label="Jaring"
-          value={network.total}
-          helper={jaringHelper}
-          href="/dashboard/daftar-jaring"
-          icon={DOMAIN_VISUALS.jaring.Icon}
-          buildHref={buildHref}
-        />
-        <SummaryMetric
-          label="Laporan Jaring"
-          value={totalReports}
-          helper={reportHelper}
-          href="/dashboard/laporan-jaring"
-          icon={DOMAIN_VISUALS.jaringReport.Icon}
-          buildHref={buildHref}
-        />
-        <SummaryMetric
-          label="Baket Dibuat"
-          value={baketCreatedReports}
-          helper={baketCreatedHelper}
-          href={null}
-          icon={DOMAIN_VISUALS.baket.Icon}
-          tone="success"
-          buildHref={buildHref}
-        />
-        <SummaryMetric
-          label="Bahan Keterangan (Baket)"
-          value={baketTotal}
-          helper={baketHelper}
-          href="/dashboard/baket"
-          icon={DOMAIN_VISUALS.baket.Icon}
-          tone="warning"
-          buildHref={buildHref}
-        />
-        <SummaryMetric
-          label="Produk Intelijen"
-          value={productTotal}
-          helper={productHelper}
-          href="/dashboard/produk-intelijen"
-          icon={DOMAIN_VISUALS.intelligenceReport.Icon}
-          tone="success"
-          buildHref={buildHref}
-        />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+        <div className="space-y-2">
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--dc-primary)]">
+            Jaringan Pelaporan
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <SummaryMetric
+              label="Korwil"
+              value={network.korwilCount}
+              helper={`${formatDashboardNumber(network.gaswilCount)} Petugas Wilayah (Gaswil) dalam cakupan`}
+              href={personnelHref}
+              icon={MapPinned}
+              buildHref={buildHref}
+            />
+            <SummaryMetric
+              label="Petugas Wilayah (Gaswil)"
+              value={network.gaswilCount}
+              helper={`${formatDashboardNumber(network.total)} Jaring binaan terhubung ke cakupan aktif`}
+              href={personnelHref}
+              icon={DOMAIN_VISUALS.gaswil.Icon}
+              tone="neutral"
+              buildHref={buildHref}
+            />
+            <SummaryMetric
+              label="Jaring"
+              value={network.total}
+              helper={jaringHelper}
+              href="/dashboard/daftar-jaring"
+              icon={DOMAIN_VISUALS.jaring.Icon}
+              buildHref={buildHref}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--dc-primary)]">
+            Rantai Produk Intelijen
+          </p>
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr))]">
+            <SummaryMetric
+              label={DOMAIN_TERMS.jaringReport}
+              value={totalReports}
+              helper={reportHelper}
+              href="/dashboard/laporan-jaring"
+              icon={DOMAIN_VISUALS.jaringReport.Icon}
+              buildHref={buildHref}
+            />
+            <SummaryMetric
+              label="Laporan Jadi Baket"
+              value={baketCreatedReports}
+              helper={baketCreatedHelper}
+              href="/dashboard/baket"
+              icon={DOMAIN_VISUALS.baket.Icon}
+              tone="success"
+              buildHref={buildHref}
+            />
+            <SummaryMetric
+              label={DOMAIN_TERMS.draftBaket}
+              value={draftBakets}
+              helper={draftBaketHelper}
+              href="/dashboard/baket?status=DRAFT"
+              icon={DOMAIN_VISUALS.baket.Icon}
+              tone="warning"
+              buildHref={buildHref}
+            />
+            <SummaryMetric
+              label={DOMAIN_TERMS.validatedBaket}
+              value={validatedBakets}
+              helper={validatedBaketHelper}
+              href="/dashboard/baket?status=VERIFIED"
+              icon={DOMAIN_VISUALS.baket.Icon}
+              tone="success"
+              buildHref={buildHref}
+            />
+            <SummaryMetric
+              label={DOMAIN_TERMS.intelligenceReport}
+              value={productTotal}
+              helper={productHelper}
+              href="/dashboard/produk-intelijen"
+              icon={DOMAIN_VISUALS.intelligenceReport.Icon}
+              tone="success"
+              buildHref={buildHref}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">

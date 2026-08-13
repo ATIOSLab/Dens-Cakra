@@ -16,7 +16,7 @@ import { getSystemRoleLabel } from "@/navigation/sidebar/system-roles";
 
 import { DashboardHeaderFilter } from "./dashboard-header-filter";
 import { ExecutiveDashboardAnalysisOverview } from "./executive-dashboard-analysis-overview";
-import { CategoryPanel, ReportTrendPanel } from "./executive-dashboard-charts";
+import { CategoryPanel, ReportTrendPanel, WorkflowPanel } from "./executive-dashboard-charts";
 import {
   LeadershipAttentionPanel,
   PerformanceRankingPanel,
@@ -387,6 +387,7 @@ export function ExecutiveDashboardClient({
         </div>
         <div className="grid gap-4 xl:grid-cols-3">
           <ReportTrendPanel trend={data.analytics.trend} />
+          <WorkflowPanel items={data.analytics.workflow} />
           <CategoryPanel items={data.analytics.categories} />
         </div>
       </section>
