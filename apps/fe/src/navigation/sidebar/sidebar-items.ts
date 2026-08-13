@@ -174,6 +174,18 @@ export const sidebarItems: NavGroup[] = [
         roles: OIM_ROLE,
         subItems: [
           {
+            id: "oim-information-reports-list",
+            title: `Daftar ${DOMAIN_TERMS.informationReport}`,
+            url: "/dashboard/oim/laporan-informasi",
+            roles: OIM_ROLE,
+          },
+          {
+            id: "oim-information-reports-create",
+            title: `Buat ${DOMAIN_TERMS.informationReport}`,
+            url: "/dashboard/oim/laporan-informasi/buat",
+            roles: OIM_ROLE,
+          },
+          {
             id: "oim-products-list",
             title: "Daftar Laporan Intelijen",
             url: "/dashboard/oim/produk-intelijen/daftar-produk",
@@ -313,6 +325,13 @@ export const sidebarItems: NavGroup[] = [
         roles: ADMIN_SYSTEM_ROLE,
       },
       {
+        id: "admin-system-smtp-settings",
+        title: DOMAIN_TERMS.smtpSettings,
+        url: "/dashboard/admin-system/pengaturan-smtp",
+        icon: DOMAIN_VISUALS.notification.Icon,
+        roles: ADMIN_SYSTEM_ROLE,
+      },
+      {
         id: "beranda-field-officer",
         title: "Beranda",
         url: "/dashboard/field-officer",
@@ -380,6 +399,7 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
       "admin-system-wa-center",
       "admin-system-wa-activity-log",
       "admin-system-wa-notification-settings",
+      "admin-system-smtp-settings",
       "admin-system-security",
       "admin-system-configuration",
     ];
@@ -400,6 +420,7 @@ export function getSidebarItemsForRole(role: SystemRole): NavGroup[] {
     "admin-system-wa-center",
     "admin-system-wa-activity-log",
     "admin-system-wa-notification-settings",
+    "admin-system-smtp-settings",
     "admin-system-master-data",
     "admin-system-security",
     "admin-system-configuration",

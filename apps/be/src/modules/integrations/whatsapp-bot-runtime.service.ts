@@ -41,12 +41,12 @@ import {
 import { ApiException } from '../../common/api/api-exception.js';
 import { normalizeIndonesianPhoneNumber } from '../../common/utils/phone-normalizer.js';
 import { env } from '../../lib/env.js';
-import { queueMail } from '../../lib/email.js';
 import {
   SecretVaultService,
   type EncryptedValue,
 } from '../infrastructure/secret-vault.service.js';
 import { LocalStorageService } from '../infrastructure/local-storage.service.js';
+import { MailSettingsService } from '../infrastructure/mail-settings.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AsyncJobService } from '../runtime/async-job.service.js';
 import { SpatialRepository } from '../spatial/spatial.repository.js';
@@ -254,6 +254,7 @@ export class WhatsappBotRuntimeService
     private readonly vault: SecretVaultService,
     private readonly jobs: AsyncJobService,
     private readonly storage: LocalStorageService,
+    private readonly mailSettings: MailSettingsService,
     private readonly spatial: SpatialRepository,
     private readonly channelScope: WhatsAppChannelScopeService,
     private readonly reportFlow: WhatsAppReportFlowService,
@@ -1273,7 +1274,7 @@ export class WhatsappBotRuntimeService
       `;
 
       for (const recipient of recipients) {
-        queueMail({
+        this.mailSettings.queueMail({
           to: recipient.email,
           subject: `[DENS CAKRA] ${title} - ${phoneNumber}`,
           text,

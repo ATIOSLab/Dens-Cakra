@@ -1,31 +1,141 @@
+import { createDecipheriv, createHash } from 'node:crypto';
 import nodemailer from 'nodemailer';
+import { prisma } from '../modules/prisma/prisma.service.js';
 import { env } from './env.js';
 
-const transporter = nodemailer.createTransport({
-  host: env.email.smtp.host,
-  port: env.email.smtp.port,
-  secure: env.email.smtp.secure,
-  auth: {
-    user: env.email.smtp.user,
-    pass: env.email.smtp.pass,
-  },
-});
+const SMTP_SETTING_KEY = 'email.smtp';
 
-type SendMailOptions = {
+export type SmtpMailConfig = {
+  from: string;
+  host: string;
+  pass: string;
+  port: number;
+  secure: boolean;
+  user: string;
+};
+
+export type SendMailOptions = {
   html: string;
   subject: string;
   text: string;
   to: string;
 };
 
+type StoredSmtpSettings = {
+  enabled?: boolean;
+  from?: string;
+  host?: string;
+  pass?: string;
+  port?: number;
+  secure?: boolean;
+  user?: string;
+};
+
+type EncryptedSmtpSettings = {
+  algorithm: 'aes-256-gcm';
+  authTag: string;
+  ciphertext: string;
+  iv: string;
+  keyVersion: 1;
+};
+
+export function defaultSmtpMailConfig(): SmtpMailConfig {
+  return {
+    from: env.email.from,
+    host: env.email.smtp.host,
+    port: env.email.smtp.port,
+    secure: env.email.smtp.secure,
+    user: env.email.smtp.user,
+    pass: env.email.smtp.pass,
+  };
+}
+
+function isEncryptedValue(value: unknown): value is EncryptedSmtpSettings {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<EncryptedSmtpSettings>;
+  return (
+    candidate.algorithm === 'aes-256-gcm' &&
+    typeof candidate.iv === 'string' &&
+    typeof candidate.authTag === 'string' &&
+    typeof candidate.ciphertext === 'string'
+  );
+}
+
+function decryptStoredSettings(value: EncryptedSmtpSettings) {
+  const key = createHash('sha256').update(env.encryptionKey).digest();
+  const decipher = createDecipheriv(
+    'aes-256-gcm',
+    key,
+    Buffer.from(value.iv, 'base64'),
+  );
+  decipher.setAuthTag(Buffer.from(value.authTag, 'base64'));
+  const plaintext = Buffer.concat([
+    decipher.update(Buffer.from(value.ciphertext, 'base64')),
+    decipher.final(),
+  ]);
+  return JSON.parse(plaintext.toString('utf8')) as StoredSmtpSettings;
+}
+
+function completeStoredSettings(
+  value: StoredSmtpSettings,
+): SmtpMailConfig | null {
+  if (value.enabled !== true) return null;
+  if (
+    !value.from?.trim() ||
+    !value.host?.trim() ||
+    !value.user?.trim() ||
+    !value.pass
+  ) {
+    return null;
+  }
+
+  return {
+    from: value.from,
+    host: value.host,
+    port: typeof value.port === 'number' ? value.port : 587,
+    secure: value.secure === true,
+    user: value.user,
+    pass: value.pass,
+  };
+}
+
+export async function resolveSmtpMailConfig(): Promise<SmtpMailConfig> {
+  const fallback = defaultSmtpMailConfig();
+
+  try {
+    const row = await prisma.systemSetting.findUnique({
+      where: { key: SMTP_SETTING_KEY },
+    });
+    const value = row?.isSecret
+      ? isEncryptedValue(row.value)
+        ? decryptStoredSettings(row.value)
+        : null
+      : (row?.value as StoredSmtpSettings | null | undefined);
+    return (value ? completeStoredSettings(value) : null) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function sendMail({
   html,
   subject,
   text,
   to,
-}: SendMailOptions): Promise<void> {
+}: SendMailOptions, config?: SmtpMailConfig): Promise<void> {
+  const resolvedConfig = config ?? (await resolveSmtpMailConfig());
+  const transporter = nodemailer.createTransport({
+    host: resolvedConfig.host,
+    port: resolvedConfig.port,
+    secure: resolvedConfig.secure,
+    auth: {
+      user: resolvedConfig.user,
+      pass: resolvedConfig.pass,
+    },
+  });
+
   await transporter.sendMail({
-    from: env.email.from,
+    from: resolvedConfig.from,
     to,
     subject,
     text,
@@ -33,8 +143,11 @@ export async function sendMail({
   });
 }
 
-export function queueMail(options: SendMailOptions): void {
-  void sendMail(options).catch((error: unknown) => {
+export function queueMail(
+  options: SendMailOptions,
+  config?: SmtpMailConfig,
+): void {
+  void sendMail(options, config).catch((error: unknown) => {
     console.error('Failed to send email notification.', error);
   });
 }

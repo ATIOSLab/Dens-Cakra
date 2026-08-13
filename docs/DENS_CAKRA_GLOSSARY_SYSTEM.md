@@ -133,6 +133,15 @@ Anev adalah fungsi analisis dan evaluasi, bukan tingkat wilayah. Fungsi Anev dap
 | Anev Direktorat | Pusat | Personel Direktorat 21-25 |
 | Anev Kedeputian | Pusat | Personel Kedeputian II |
 
+## Integrasi Dan Notifikasi
+
+| Konsep | Label UI kanonis | Catatan |
+| --- | --- | --- |
+| Integrasi WhatsApp | Integrasi WhatsApp | Menu Admin Sistem untuk koneksi WhatsApp Center dan nomor pengirim. |
+| Log Aktivitas WhatsApp | Log Aktivitas WhatsApp | Menu Admin Sistem untuk riwayat status login, logout, terputus, dan error sesi WhatsApp. |
+| Notifikasi WhatsApp | Notifikasi WhatsApp | Menu Admin Sistem untuk penerima email notifikasi status WhatsApp. |
+| Pengaturan SMTP | Pengaturan SMTP | Menu Admin Sistem untuk konfigurasi server email custom. SMTP tetap istilah teknis. |
+
 Contoh pemisahan jabatan dan fungsi:
 
 ```text
@@ -238,6 +247,7 @@ Kewenangan tindakan dipisahkan menjadi:
 | Log Aktivitas WhatsApp | Log Aktivitas WhatsApp | WA activity log | Untuk audit aktif, logout, terputus, dan error sesi WhatsApp. |
 | Notifikasi WhatsApp | Notifikasi WhatsApp | WA notification settings | Menu pengaturan penerima email notifikasi status sesi WhatsApp. |
 | Produk Intelijen | Produk Intelijen | intelligence product | Untuk UI utama. |
+| Laporan Informasi | Laporan Informasi | information report | Jenis Laporan Intelijen berbasis informasi dari analisis atau Baket sumber. |
 | Laporan Intelijen | Laporan Intelijen | intelligence report | Label menu generik untuk akses lintas role. |
 | Laporan Intelijen Binda | Laporan Intelijen Binda | regional intelligence report | Sesuai produk/laporan level Binda. |
 | Laporan Intelijen Direktorat | Laporan Intelijen Direktorat | directorate intelligence report | Sesuai produk/laporan level Direktorat. |

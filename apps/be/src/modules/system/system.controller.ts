@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -24,6 +25,11 @@ import { DomainAccessGuard } from '../../common/guards/domain-access.guard.js';
 import { SessionGuard } from '../../common/guards/session.guard.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { SecretVaultService } from '../infrastructure/secret-vault.service.js';
+import {
+  MailSettingsService,
+  TestSmtpSettingsDto,
+  UpdateSmtpSettingsDto,
+} from '../infrastructure/mail-settings.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 class EnumQuery {
   @IsOptional() @IsString() names?: string;
@@ -44,6 +50,7 @@ export class SystemController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly vault: SecretVaultService,
+    private readonly mailSettings: MailSettingsService,
   ) {}
   @Get('reference-data/enums')
   @ApiContract({
@@ -110,6 +117,43 @@ export class SystemController {
         value: i.isSecret ? { redacted: true } : i.value,
       })),
     );
+  }
+  @Get('system/email-settings')
+  @ApiContract({
+    operationId: 'apiSys008',
+    contractId: 'API-SYS-008',
+    summary: 'Pengaturan SMTP email',
+    roles: ['admin_system'],
+  })
+  async emailSettings() {
+    return apiResult(await this.mailSettings.getSettings());
+  }
+  @Put('system/email-settings')
+  @ApiContract({
+    operationId: 'apiSys009',
+    contractId: 'API-SYS-009',
+    summary: 'Ubah pengaturan SMTP email',
+    roles: ['admin_system'],
+    idempotent: true,
+  })
+  async updateEmailSettings(
+    @Body() body: UpdateSmtpSettingsDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.mailSettings.updateSettings(body, context));
+  }
+  @Post('system/email-settings/test')
+  @ApiContract({
+    operationId: 'apiSys010',
+    contractId: 'API-SYS-010',
+    summary: 'Kirim tes SMTP email',
+    roles: ['admin_system'],
+  })
+  async testEmailSettings(
+    @Body() body: TestSmtpSettingsDto,
+    @CurrentAccessContext() context: AuthorizationContext,
+  ) {
+    return apiResult(await this.mailSettings.sendTest(body, context));
   }
   @Get('system/settings/:key')
   @ApiContract({
