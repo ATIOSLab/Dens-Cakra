@@ -5,7 +5,6 @@ import type { PopupOptions } from "maplibre-gl";
 
 import { Button } from "@/components/ui/button";
 import { MapPopup } from "@/components/ui/map";
-import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
 import { getFeatureTypePresentation, getUrgencyPresentation, MapSemanticBadge } from "./maps-intelijen-presentation";
 import {
@@ -32,14 +31,14 @@ const INLINE_MAP_POPUP_PADDING = {
 
 const HOVER_POPUP_OFFSET = {
   center: [0, 0],
-  top: [0, 18],
-  "top-left": [14, 18],
-  "top-right": [-14, 18],
-  bottom: [0, -18],
-  "bottom-left": [14, -18],
-  "bottom-right": [-14, -18],
-  left: [18, 0],
-  right: [-18, 0],
+  top: [0, 14],
+  "top-left": [12, 14],
+  "top-right": [-12, 14],
+  bottom: [0, -14],
+  "bottom-left": [12, -14],
+  "bottom-right": [-12, -14],
+  left: [14, 0],
+  right: [-14, 0],
 } satisfies NonNullable<PopupOptions["offset"]>;
 
 export function MapsIntelijenHoverPopup({
@@ -58,7 +57,6 @@ export function MapsIntelijenHoverPopup({
   onDetail: () => void;
 }) {
   const properties = feature.properties;
-  const isAgent = properties.markerType === "agent";
   const presentation = getFeatureTypePresentation(properties);
   const urgency = getUrgencyPresentation(properties.urgency);
   const jaring = properties.jaring ?? properties.jarings?.[0] ?? null;
@@ -76,12 +74,12 @@ export function MapsIntelijenHoverPopup({
         aria-label={`Ringkasan ${presentation.label} ${getMapFeatureReference(feature)}`}
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
-        className="dark w-[min(14.5rem,calc(100vw-1.5rem))] space-y-2 rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-[10px] text-slate-100 shadow-2xl"
+        className="dark w-[min(15.5rem,calc(100vw-1.5rem))] space-y-2 rounded-md border border-cyan-400/25 bg-slate-950/95 p-2.5 text-[10px] text-slate-100 shadow-[0_18px_48px_rgba(2,6,23,0.55)] backdrop-blur"
       >
         <div className="flex min-w-0 items-center gap-1.5">
-          <MapSemanticBadge presentation={presentation} />
-          {!isAgent ? <MapSemanticBadge presentation={urgency} /> : null}
-          <span className="ml-auto max-w-20 truncate font-mono text-[9px] text-slate-500">
+          <MapSemanticBadge presentation={presentation} className="h-5 px-1.5 text-[9px]" />
+          <MapSemanticBadge presentation={urgency} className="h-5 px-1.5 text-[9px]" />
+          <span className="ml-auto max-w-16 truncate font-mono text-[8px] text-slate-500">
             {getMapFeatureReference(feature)}
           </span>
           <button
@@ -89,20 +87,16 @@ export function MapsIntelijenHoverPopup({
             aria-label="Tutup popup peta"
             title="Tutup"
             onClick={onClose}
-            className="grid size-6 shrink-0 place-items-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-cyan-500/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            className="grid size-5 shrink-0 place-items-center rounded border border-slate-700 bg-slate-900 text-slate-400 transition hover:border-cyan-500/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
           >
-            <X className="size-3.5" aria-hidden />
+            <X className="size-3" aria-hidden />
           </button>
         </div>
 
         <div className="min-w-0">
-          <h2 className="line-clamp-2 font-semibold text-[11px] leading-snug">{getMapFeatureTitle(feature)}</h2>
+          <h2 className="line-clamp-2 font-semibold text-[11px] leading-snug text-white">{getMapFeatureTitle(feature)}</h2>
           <p className="mt-1 line-clamp-1 text-slate-400">
-            {isAgent
-              ? (properties.positionTitle ?? DOMAIN_TERMS.fieldOfficer)
-              : jaring
-                ? `Jaring: ${jaring.name}`
-                : "Jaring belum tersedia"}
+            {jaring ? `Jaring: ${jaring.name}` : "Jaring belum tersedia"}
           </p>
         </div>
 
@@ -114,7 +108,7 @@ export function MapsIntelijenHoverPopup({
           <p className="truncate pl-[18px] font-mono text-[9px]">{formatDateTime(getMapFeatureTimestamp(feature))}</p>
         </div>
 
-        <Button size="sm" onClick={onDetail} className="h-8 w-full gap-1.5 text-[10px]">
+        <Button size="sm" onClick={onDetail} className="h-7 w-full gap-1.5 rounded text-[10px]">
           <Eye className="size-3.5" aria-hidden /> Lihat Detail
         </Button>
       </article>

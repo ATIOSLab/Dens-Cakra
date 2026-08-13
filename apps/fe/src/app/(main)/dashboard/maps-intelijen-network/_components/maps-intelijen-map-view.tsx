@@ -52,7 +52,6 @@ interface MapsIntelijenMapViewProps {
   onOpenDetail: (feature: MapNetworkFeature) => void;
   onVisibleCountChange: (count: number) => void;
   filters: MapNetworkFilters;
-  fieldOfficerOptions: MapEntityFilterOption[];
   jaringOptions: MapEntityFilterOption[];
   areaOptions: MapAreaFilterOptions;
   onFilterChange: (patch: Partial<MapNetworkFilters>) => void;
@@ -120,7 +119,6 @@ export function MapsIntelijenMapView({
   onOpenDetail,
   onVisibleCountChange,
   filters,
-  fieldOfficerOptions,
   jaringOptions,
   areaOptions,
   onFilterChange,
@@ -133,8 +131,6 @@ export function MapsIntelijenMapView({
   const [layerVisibility, setLayerVisibility] = useState<Record<CommandLayerKey, boolean>>({
     report: true,
     baket: true,
-    agent_active: true,
-    agent_last_known: true,
   });
   const closeTimer = useRef<number | null>(null);
   const activeStyle = MAP_THEMES[mapLayer];
@@ -143,9 +139,7 @@ export function MapsIntelijenMapView({
       features.filter((feature) => {
         if (feature.properties.markerType === "report") return layerVisibility.report;
         if (feature.properties.markerType === "baket") return layerVisibility.baket;
-        return feature.properties.agentState === "active"
-          ? layerVisibility.agent_active
-          : layerVisibility.agent_last_known;
+        return false;
       }),
     [features, layerVisibility],
   );
@@ -314,7 +308,7 @@ export function MapsIntelijenMapView({
                           : feature.properties.markerType === "agent"
                             ? "rounded-md rotate-45"
                             : "rounded-full",
-                        isActive ? "z-50 scale-110" : "hover:scale-105",
+                        isActive ? "z-50 scale-[1.08]" : "hover:scale-[1.04]",
                       )}
                       style={{ backgroundColor: markerColor(feature, colorMode) }}
                     >
@@ -446,7 +440,6 @@ export function MapsIntelijenMapView({
         isFullscreen={isFullscreen}
         loading={loading}
         filters={filters}
-        fieldOfficerOptions={fieldOfficerOptions}
         jaringOptions={jaringOptions}
         areaOptions={areaOptions}
         layerVisibility={layerVisibility}
@@ -457,9 +450,7 @@ export function MapsIntelijenMapView({
         onFilterChange={onFilterChange}
         onResetFilters={onResetFilters}
         onLayerToggle={(layer) => setLayerVisibility((current) => ({ ...current, [layer]: !current[layer] }))}
-        onShowAllLayers={() =>
-          setLayerVisibility({ report: true, baket: true, agent_active: true, agent_last_known: true })
-        }
+        onShowAllLayers={() => setLayerVisibility({ report: true, baket: true })}
         onVisualizationChange={onVisualizationChange}
         onMapLayerChange={onMapLayerChange}
         onFitFeatures={fitVisibleFeatures}

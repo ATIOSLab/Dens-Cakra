@@ -241,12 +241,11 @@ export const SAMPLE_MOCK_REPORTS: JaringReportSessionDetail[] = [];
 export type MapMarkerType = "report" | "baket" | "agent";
 export type VisualizationMode = "marker" | "cluster" | "heatmap";
 export type BaseMapLayer = "dark" | "satellite" | "terrain" | "light" | "osm";
-export type CommandLayerKey = "report" | "baket" | "agent_active" | "agent_last_known";
+export type CommandLayerKey = "report" | "baket";
 export type MarkerColorMode = "validity" | "urgency" | "category";
 export type HeatmapWeight = "count" | "urgency" | "valid" | "baket";
 export type SummaryCardFilter = "ALL" | "REPORT" | "BAKET";
-export type DataTypeFilter = "ALL" | "REPORT" | "BAKET" | "AGENT";
-export type AgentStateFilter = "ALL" | "active" | "last_known";
+export type DataTypeFilter = "ALL" | "REPORT" | "BAKET";
 
 export type MapNetworkFilters = {
   search: string;
@@ -263,9 +262,6 @@ export type MapNetworkFilters = {
   districtId: string;
   villageId: string;
   suitability: string;
-  agentState: AgentStateFilter;
-  activeWithinMinutes: number;
-  lastKnownWithinHours: number;
 };
 
 export type MapEntityFilterOption = {

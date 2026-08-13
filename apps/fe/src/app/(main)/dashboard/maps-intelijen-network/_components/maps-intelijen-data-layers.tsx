@@ -4,8 +4,6 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { GeoJSONSource, MapLayerMouseEvent, Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
 
-import { PERSONNEL_LOCATION_VISUALS } from "@/lib/domain/visual-system";
-
 import {
   DATA_TYPE_PRESENTATION,
   getMarkerPresentation,
@@ -20,7 +18,6 @@ const LAYERS = [
   "dc-network-cluster-count",
   "dc-network-report-point",
   "dc-network-baket-point",
-  "dc-network-agent-point",
 ] as const;
 
 function hasUsableStyle(map: MapLibreMap) {
@@ -210,23 +207,6 @@ export function MapsIntelijenDataLayers({
           "text-halo-width": 1.25,
         },
       });
-      map.addLayer({
-        id: "dc-network-agent-point",
-        type: "circle",
-        source: SOURCE_ID,
-        filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "markerType"], "agent"]],
-        paint: {
-          "circle-color": [
-            "case",
-            ["==", ["get", "agentState"], "active"],
-            PERSONNEL_LOCATION_VISUALS.ONLINE.markerColor,
-            PERSONNEL_LOCATION_VISUALS.OFFLINE.markerColor,
-          ],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 14, 7],
-          "circle-stroke-width": 2,
-          "circle-stroke-color": ["case", ["==", ["get", "agentState"], "active"], "#bbf7d0", "#e2e8f0"],
-        },
-      });
     };
 
     install();
@@ -244,7 +224,7 @@ export function MapsIntelijenDataLayers({
 
   useEffect(() => {
     if (!map || mode === "heatmap") return;
-    const pointLayers = ["dc-network-report-point", "dc-network-baket-point", "dc-network-agent-point"];
+    const pointLayers = ["dc-network-report-point", "dc-network-baket-point"];
     const enter = (event: MapLayerMouseEvent) => {
       map.getCanvas().style.cursor = "pointer";
       const rendered = event.features?.[0];

@@ -93,9 +93,7 @@ export function MapsIntelijenLegend({
                   </span>
                 );
               })}
-              {(
-                [DATA_TYPE_PRESENTATION.baket, DATA_TYPE_PRESENTATION.report, DATA_TYPE_PRESENTATION.agent] as const
-              ).map((presentation) => {
+              {([DATA_TYPE_PRESENTATION.baket, DATA_TYPE_PRESENTATION.report] as const).map((presentation) => {
                 const Icon = presentation.icon;
                 return (
                   <span key={presentation.label} className="inline-flex min-h-7 items-center gap-2">

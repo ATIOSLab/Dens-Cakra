@@ -2,9 +2,8 @@
 
 import { useMemo } from "react";
 
-import { ChevronRight, type LucideIcon, ShieldCheck, TrendingUp, UserRoundCheck } from "lucide-react";
+import { ChevronRight, type LucideIcon, ShieldCheck, TrendingUp, TriangleAlert } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { DC_TYPOGRAPHY } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
@@ -39,9 +38,8 @@ export function MapsIntelijenLeadershipBrief({
   const intelligence = useMemo(() => {
     const reportTotal = meta.summary.reports.total ?? meta.counts.report ?? 0;
     const baketTotal = meta.summary.bakets.total ?? 0;
-    const agentTotal = meta.counts.agent ?? 0;
-    const total = reportTotal + baketTotal + agentTotal;
-    const mappable = (meta.summary.reports.mappable ?? 0) + (meta.summary.bakets.mappable ?? 0) + agentTotal;
+    const total = reportTotal + baketTotal;
+    const mappable = (meta.summary.reports.mappable ?? 0) + (meta.summary.bakets.mappable ?? 0);
     const outsideScope = features.filter(({ properties }) => properties.locationSuitability === "OUTSIDE_SCOPE").length;
 
     const areaCounts = new Map<string, number>();
@@ -54,7 +52,6 @@ export function MapsIntelijenLeadershipBrief({
     return {
       reportTotal,
       baketTotal,
-      agentTotal,
       total,
       mappable,
       coordinateCoverage: percentage(mappable, total),
@@ -88,10 +85,9 @@ export function MapsIntelijenLeadershipBrief({
             </span>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Metric label="Laporan Jaring" value={intelligence.reportTotal} detail="Belum menjadi Baket" />
             <Metric label="Baket" value={intelligence.baketTotal} detail="Dari Laporan Jaring" tone="cyan" />
-            <Metric label="Personel" value={intelligence.agentTotal} detail="Lokasi termuat" tone="cyan" />
             <Metric
               label="Cakupan Koordinat"
               value={`${intelligence.coordinateCoverage}%`}
@@ -118,34 +114,20 @@ export function MapsIntelijenLeadershipBrief({
 
           <div className="mt-3 grid gap-2">
             <AttentionButton
-              icon={UserRoundCheck}
-              label="Personel aktif"
-              value={meta.counts.activeAgents}
+              icon={TriangleAlert}
+              label="Titik di luar cakupan"
+              value={intelligence.outsideScope}
               tone="amber"
-              disabled={loading}
+              disabled={loading || intelligence.outsideScope === 0}
               onClick={() => {
                 onCardFilterChange("ALL");
                 onFilterChange({
-                  dataType: "AGENT",
-                  agentState: "active",
+                  suitability: "OUTSIDE_SCOPE",
                   urgency: "ALL",
                 });
               }}
             />
           </div>
-
-          {intelligence.outsideScope > 0 ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="mt-2 h-8 w-full justify-between text-amber-700 text-xs dark:text-amber-300"
-              onClick={() => onFilterChange({ suitability: "OUTSIDE_SCOPE" })}
-            >
-              <span>{intelligence.outsideScope.toLocaleString("id-ID")} titik di luar cakupan penempatan</span>
-              <ChevronRight className="size-4" aria-hidden />
-            </Button>
-          ) : null}
         </div>
       </div>
     </section>

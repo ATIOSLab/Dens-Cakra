@@ -57,7 +57,6 @@ type MapsIntelijenCommandHudProps = {
   isFullscreen: boolean;
   loading: boolean;
   filters: MapNetworkFilters;
-  fieldOfficerOptions: MapEntityFilterOption[];
   jaringOptions: MapEntityFilterOption[];
   areaOptions: MapAreaFilterOptions;
   layerVisibility: LayerVisibility;
@@ -117,9 +116,8 @@ function formatTickerAge(value: string | null, now: Date | null) {
 }
 
 function featureLayer(feature: MapNetworkFeature): CommandLayerKey {
-  if (feature.properties.markerType === "report") return "report";
   if (feature.properties.markerType === "baket") return "baket";
-  return feature.properties.agentState === "active" ? "agent_active" : "agent_last_known";
+  return "report";
 }
 
 export function MapsIntelijenCommandHud({
@@ -132,7 +130,6 @@ export function MapsIntelijenCommandHud({
   isFullscreen,
   loading,
   filters,
-  fieldOfficerOptions,
   jaringOptions,
   areaOptions,
   layerVisibility,
@@ -167,7 +164,6 @@ export function MapsIntelijenCommandHud({
   const intelligence = useMemo(() => {
     const reportTotal = meta.summary.reports.total ?? meta.counts.totalReports ?? meta.counts.report ?? 0;
     const baketTotal = meta.summary.bakets.total ?? meta.counts.totalBakets ?? meta.counts.baket ?? 0;
-    const agentTotal = meta.counts.agent ?? 0;
     const baketCategoryLabels = new Map<string, string>();
     for (const category of meta.facets.categories) {
       baketCategoryLabels.set(category.id, category.name);
@@ -203,13 +199,10 @@ export function MapsIntelijenCommandHud({
       .sort((left, right) => right[1] - left[1]);
     const categoryCounts =
       sourceBaketCategoryCounts.length > 0 ? sourceBaketCategoryCounts : featureBaketCategoryCounts;
-    const urgencyCounts = countBy(
-      features.filter((feature) => feature.properties.markerType !== "agent"),
-      (feature) => feature.properties.urgency ?? "NORMAL",
-    );
+    const urgencyCounts = countBy(features, (feature) => feature.properties.urgency ?? "NORMAL");
     const layerCounts = countBy(features, featureLayer);
-    const total = reportTotal + baketTotal + agentTotal;
-    const mapped = (meta.summary.reports.mappable ?? 0) + (meta.summary.bakets.mappable ?? 0) + agentTotal;
+    const total = reportTotal + baketTotal;
+    const mapped = (meta.summary.reports.mappable ?? 0) + (meta.summary.bakets.mappable ?? 0);
     const sortedFeed = [...features].sort((left, right) => {
       const leftTime = new Date(getMapFeatureTimestamp(left) ?? 0).getTime();
       const rightTime = new Date(getMapFeatureTimestamp(right) ?? 0).getTime();
@@ -220,7 +213,6 @@ export function MapsIntelijenCommandHud({
       jaringTotal: jaringIds.size,
       reportTotal,
       baketTotal,
-      agentTotal,
       total,
       coverage: total > 0 ? Math.round((mapped / total) * 100) : 0,
       areaCounts,
@@ -269,20 +261,6 @@ export function MapsIntelijenCommandHud({
       count: intelligence.layerCounts.baket ?? 0,
       tone: DOMAIN_VISUALS.baket.tone,
     },
-    {
-      key: "agent_active",
-      label: "Petugas Wilayah Aktif",
-      icon: DOMAIN_VISUALS.gaswil.Icon,
-      count: intelligence.layerCounts.agent_active ?? 0,
-      tone: DOMAIN_VISUALS.gaswil.tone,
-    },
-    {
-      key: "agent_last_known",
-      label: "Lokasi Terakhir",
-      icon: MapPin,
-      count: intelligence.layerCounts.agent_last_known ?? 0,
-      tone: "slate",
-    },
   ];
   const layerCards = allLayerCards.filter((layer) => layer.count > 0);
 
@@ -312,14 +290,6 @@ export function MapsIntelijenCommandHud({
       tone: DOMAIN_VISUALS.baket.tone,
     },
     {
-      key: "agent",
-      label: "Petugas Wilayah Aktif",
-      value: meta.counts.activeAgents,
-      detail: `Aktif ${meta.freshness.activeWithinMinutes} menit`,
-      icon: DOMAIN_VISUALS.gaswil.Icon,
-      tone: DOMAIN_VISUALS.gaswil.tone,
-    },
-    {
       key: "area",
       label: "Wilayah Terpantau",
       value: meta.facets.areas.length,
@@ -327,7 +297,7 @@ export function MapsIntelijenCommandHud({
       icon: MapPin,
       tone: "emerald",
     },
-  ].filter((card) => card.key !== "agent" || card.value > 0);
+  ];
 
   return (
     <div className="pointer-events-none absolute inset-0 z-30 font-sans text-slate-100">
@@ -494,7 +464,6 @@ export function MapsIntelijenCommandHud({
                 ["ALL", "Semua Lapisan"],
                 ["REPORT", DOMAIN_TERMS.jaringReport],
                 ["BAKET", DOMAIN_TERMS.baket],
-                ["AGENT", DOMAIN_TERMS.fieldOfficer],
               ]}
             />
             <HudSelect
@@ -516,15 +485,6 @@ export function MapsIntelijenCommandHud({
               options={[
                 ["ALL", "Semua Kategori Baket"],
                 ...meta.facets.categories.map((item) => [item.id, item.name] as [string, string]),
-              ]}
-            />
-            <HudSelect
-              label="Petugas Wilayah (Gaswil)"
-              value={filters.fieldOfficerAssignmentId}
-              onChange={(fieldOfficerAssignmentId) => onFilterChange({ fieldOfficerAssignmentId })}
-              options={[
-                ["ALL", "Semua Petugas Wilayah"],
-                ...fieldOfficerOptions.map((item) => [item.id, item.label] as [string, string]),
               ]}
             />
             <HudSelect
@@ -578,32 +538,6 @@ export function MapsIntelijenCommandHud({
                 ["NOT_DETERMINED", "Belum ditentukan"],
               ]}
             />
-            <HudSelect
-              label="Status Petugas Wilayah"
-              value={filters.agentState}
-              onChange={(value) => onFilterChange({ agentState: value as MapNetworkFilters["agentState"] })}
-              options={[
-                ["ALL", "Semua"],
-                ["active", "Aktif"],
-                ["last_known", "Lokasi terakhir"],
-              ]}
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <HudNumber
-                label="Aktif (menit)"
-                value={filters.activeWithinMinutes}
-                min={1}
-                max={Math.min(1440, filters.lastKnownWithinHours * 60)}
-                onChange={(value) => onFilterChange({ activeWithinMinutes: value })}
-              />
-              <HudNumber
-                label="Lokasi terakhir (jam)"
-                value={filters.lastKnownWithinHours}
-                min={Math.ceil(filters.activeWithinMinutes / 60)}
-                max={2160}
-                onChange={(value) => onFilterChange({ lastKnownWithinHours: value })}
-              />
-            </div>
           </div>
           <div className="grid grid-cols-2 gap-2 border-t border-slate-800 p-3">
             <Button
@@ -748,7 +682,7 @@ export function MapsIntelijenCommandHud({
       {analyticsOpen ? (
         <section
           className={cn(
-            "pointer-events-auto absolute bottom-[3.35rem] hidden h-[9.25rem] grid-cols-4 gap-2 xl:grid",
+            "pointer-events-auto absolute bottom-[3.35rem] hidden h-[9.25rem] grid-cols-3 gap-2 xl:grid",
             leftPanelOpen ? "left-[17.25rem]" : "left-3",
             rightPanelOpen ? "right-[19.25rem]" : "right-3",
           )}
@@ -760,7 +694,6 @@ export function MapsIntelijenCommandHud({
             items={[
               [DOMAIN_TERMS.jaringReport, intelligence.layerCounts.report ?? 0, DOMAIN_VISUALS.jaringReport.tone],
               [DOMAIN_TERMS.baket, intelligence.layerCounts.baket ?? 0, DOMAIN_VISUALS.baket.tone],
-              [DOMAIN_TERMS.fieldOfficer, intelligence.agentTotal, DOMAIN_VISUALS.gaswil.tone],
             ]}
           />
           <MiniAnalytics
@@ -839,21 +772,14 @@ function TickerItem({
   onClick: () => void;
 }) {
   const properties = feature.properties;
-  const rawStatus = properties.markerType === "agent" ? properties.agentState : (properties.urgency ?? "NORMAL");
-  const statusLabel =
-    properties.markerType === "agent"
-      ? properties.agentState === "active"
-        ? "Aktif"
-        : "Lokasi Terakhir"
-      : getUrgencyPresentation(properties.urgency).label;
+  const rawStatus = properties.urgency ?? "NORMAL";
+  const statusLabel = getUrgencyPresentation(properties.urgency).label;
   const statusClass =
     rawStatus === "URGENT"
       ? "border-rose-300 bg-rose-100 text-rose-700"
       : rawStatus === "HIGH"
         ? "border-amber-300 bg-amber-100 text-amber-700"
-        : rawStatus === "active"
-          ? "border-emerald-300 bg-emerald-100 text-emerald-700"
-          : "border-sky-300 bg-sky-100 text-sky-700";
+        : "border-sky-300 bg-sky-100 text-sky-700";
   const area = properties.primaryArea?.name ?? "Wilayah belum ditentukan";
 
   return (
@@ -929,35 +855,6 @@ function HudDate({ label, value, onChange }: { label: string; value: string; onC
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="h-9 border-slate-700 bg-slate-950/90 px-1.5 text-[10px] text-slate-100"
-      />
-    </div>
-  );
-}
-
-function HudNumber({
-  label,
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className="grid gap-1 text-[10px] text-slate-400">
-      <span>{label}</span>
-      <Input
-        aria-label={label}
-        type="number"
-        value={value}
-        min={min}
-        max={max}
-        onChange={(event) => onChange(Math.max(min, Math.min(max, Number(event.target.value) || min)))}
-        className="h-9 border-slate-700 bg-slate-950/90 px-2 text-[10px] text-slate-100"
       />
     </div>
   );
@@ -1053,23 +950,15 @@ function FeedSection({
 function FeedItem({ feature, onClick }: { feature: MapNetworkFeature; onClick: () => void }) {
   const properties = feature.properties;
   const urgencyPresentation = getUrgencyPresentation(properties.urgency);
-  const statusLabel =
-    properties.markerType === "agent"
-      ? properties.agentState === "active"
-        ? "Aktif"
-        : "Lokasi Terakhir"
-      : urgencyPresentation.label;
-  const statusClass =
-    properties.markerType === "agent"
-      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-      : urgencyPresentation.badgeClass;
+  const statusLabel = urgencyPresentation.label;
+  const statusClass = urgencyPresentation.badgeClass;
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
         "block w-full rounded-lg border border-slate-800 bg-slate-900/65 p-2 text-left transition hover:border-cyan-400/40 hover:bg-slate-900",
-        properties.markerType !== "agent" && urgencyPresentation.surfaceClass,
+        urgencyPresentation.surfaceClass,
       )}
     >
       <div className="flex items-center justify-between gap-2 text-[9px]">

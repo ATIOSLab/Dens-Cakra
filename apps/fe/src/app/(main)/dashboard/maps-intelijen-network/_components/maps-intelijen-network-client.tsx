@@ -58,9 +58,6 @@ const INITIAL_FILTERS: MapNetworkFilters = {
   districtId: "ALL",
   villageId: "ALL",
   suitability: "ALL",
-  agentState: "ALL",
-  activeWithinMinutes: 15,
-  lastKnownWithinHours: 168,
 };
 
 const INITIAL_MAP_LIMIT_PER_TYPE = 160;
@@ -163,10 +160,9 @@ function buildQuery(
   debouncedSearch: string,
 ) {
   const reportSpecific = card === "REPORT";
-  let types = "report,baket,agent";
+  let types = "report,baket";
   if (filters.dataType === "REPORT") types = "report";
   if (filters.dataType === "BAKET") types = "baket";
-  if (filters.dataType === "AGENT") types = "agent";
   if (card === "BAKET") types = "baket";
   else if (card !== "ALL" || (filters.dataType === "ALL" && reportSpecific))
     types = "report";
@@ -192,10 +188,7 @@ function buildQuery(
     filters.jaringId !== "ALL" ||
     Boolean(selectedAreaId) ||
     filters.suitability !== "ALL" ||
-    filters.agentState !== "ALL" ||
-    hasNarrowedPeriod ||
-    filters.activeWithinMinutes !== INITIAL_FILTERS.activeWithinMinutes ||
-    filters.lastKnownWithinHours !== INITIAL_FILTERS.lastKnownWithinHours;
+    hasNarrowedPeriod;
 
   return {
     types,
@@ -218,16 +211,10 @@ function buildQuery(
     ...(filters.suitability !== "ALL"
       ? { locationSuitability: filters.suitability }
       : {}),
-    ...(filters.agentState !== "ALL"
-      ? { agentStates: filters.agentState }
-      : {}),
-    activeWithinMinutes: filters.activeWithinMinutes,
-    lastKnownWithinHours: filters.lastKnownWithinHours,
   };
 }
 
 type MapEntityFilterOptions = {
-  fieldOfficers: MapEntityFilterOption[];
   jarings: MapEntityFilterOption[];
 };
 
@@ -235,15 +222,8 @@ function mergeEntityFilterOptions(
   current: MapEntityFilterOptions,
   response: MapNetworkResponse,
 ): MapEntityFilterOptions {
-  const fieldOfficers = new Map(
-    current.fieldOfficers.map((item) => [item.id, item]),
-  );
   const jarings = new Map(current.jarings.map((item) => [item.id, item]));
 
-  const addFieldOfficer = (id?: string | null, name?: string | null) => {
-    if (!id || !name) return;
-    fieldOfficers.set(id, { id, label: name });
-  };
   const addJaring = (jaring?: MapNetworkFeature["properties"]["jaring"]) => {
     if (!jaring?.id) return;
     const label = jaring.code ? `${jaring.name} - ${jaring.code}` : jaring.name;
@@ -252,16 +232,10 @@ function mergeEntityFilterOptions(
       label,
       fieldOfficerAssignmentId: jaring.gaswilAssignmentId ?? null,
     });
-    addFieldOfficer(jaring.gaswilAssignmentId, jaring.gaswilName);
   };
 
   for (const feature of response.features) {
     const properties = feature.properties;
-    addFieldOfficer(
-      properties.fieldOfficer?.assignmentId,
-      properties.fieldOfficer?.name,
-    );
-    addFieldOfficer(properties.assignmentId, properties.userName);
     addJaring(properties.jaring);
     for (const jaring of properties.jarings ?? []) addJaring(jaring);
   }
@@ -270,8 +244,44 @@ function mergeEntityFilterOptions(
     right: MapEntityFilterOption,
   ) => left.label.localeCompare(right.label, "id-ID");
   return {
-    fieldOfficers: [...fieldOfficers.values()].sort(sortByLabel),
     jarings: [...jarings.values()].sort(sortByLabel),
+  };
+}
+
+function withoutPersonnelMarkers(response: MapNetworkResponse): MapNetworkResponse {
+  const features = response.features.filter((feature) => feature.properties.markerType !== "agent");
+  const reportCount = response.meta.counts.report ?? response.meta.summary.visible.reports ?? 0;
+  const baketCount = response.meta.counts.baket ?? response.meta.summary.visible.bakets ?? 0;
+  const visibleReports = response.meta.summary.visible.reports ?? reportCount;
+  const visibleBakets = response.meta.summary.visible.bakets ?? baketCount;
+
+  return {
+    ...response,
+    features,
+    meta: {
+      ...response.meta,
+      counts: {
+        ...response.meta.counts,
+        total: reportCount + baketCount,
+        agent: 0,
+        unlocatedAgent: 0,
+        activeAgents: 0,
+        lastKnownAgents: 0,
+      },
+      summary: {
+        ...response.meta.summary,
+        visible: {
+          ...response.meta.summary.visible,
+          total: visibleReports + visibleBakets,
+          agents: 0,
+        },
+      },
+      facets: {
+        ...response.meta.facets,
+        markerTypes: response.meta.facets.markerTypes.filter((type) => type !== "agent"),
+        agentStates: [],
+      },
+    },
   };
 }
 
@@ -284,7 +294,6 @@ export function MapsIntelijenNetworkClient() {
   const [filters, setFilters] = useState<MapNetworkFilters>(INITIAL_FILTERS);
   const [entityFilterOptions, setEntityFilterOptions] =
     useState<MapEntityFilterOptions>({
-      fieldOfficers: [],
       jarings: [],
     });
   const [areaOptions, setAreaOptions] = useState<MapAreaFilterOptions>({
@@ -453,7 +462,7 @@ export function MapsIntelijenNetworkClient() {
           const shouldLoadSummary =
             cardFilter !== "ALL" &&
             loadedSummaryQueryRef.current !== summaryQueryKey;
-          const data = await apiBrowserFetch<MapNetworkResponse>(
+          const rawData = await apiBrowserFetch<MapNetworkResponse>(
             "/map/markers",
             {
               query,
@@ -461,6 +470,7 @@ export function MapsIntelijenNetworkClient() {
             },
           );
           if (!controller.signal.aborted) {
+            const data = withoutPersonnelMarkers(rawData);
             setResponse(data);
             if (cardFilter === "ALL") {
               setSummaryMeta(data.meta);
@@ -480,7 +490,7 @@ export function MapsIntelijenNetworkClient() {
               })
                 .then((summaryData) => {
                   if (!summaryController.signal.aborted) {
-                    setSummaryMeta(summaryData.meta);
+                    setSummaryMeta(withoutPersonnelMarkers(summaryData).meta);
                     loadedSummaryQueryRef.current = summaryQueryKey;
                   }
                 })
@@ -558,10 +568,6 @@ export function MapsIntelijenNetworkClient() {
         if (key === "search") return Boolean(value);
         if (key === "period") return value !== "LAST_30_DAYS";
         if (key === "startDate" || key === "endDate") return Boolean(value);
-        if (key === "activeWithinMinutes")
-          return value !== INITIAL_FILTERS.activeWithinMinutes;
-        if (key === "lastKnownWithinHours")
-          return value !== INITIAL_FILTERS.lastKnownWithinHours;
         return value !== "ALL";
       }).length + (cardFilter === "ALL" ? 0 : 1),
     [cardFilter, filters],
@@ -645,9 +651,7 @@ export function MapsIntelijenNetworkClient() {
     response.meta.summary.reports.total ?? response.meta.counts.report ?? 0;
   const activeBaketTotal = response.meta.summary.bakets.total ?? 0;
   const activeMappableTotal =
-    (response.meta.summary.reports.mappable ?? 0) +
-    (response.meta.summary.bakets.mappable ?? 0) +
-    response.meta.counts.agent;
+    (response.meta.summary.reports.mappable ?? 0) + (response.meta.summary.bakets.mappable ?? 0);
 
   return (
     <main className="mx-auto flex w-full max-w-[1680px] flex-col gap-5 p-3 sm:p-5 lg:p-7">
@@ -697,8 +701,6 @@ export function MapsIntelijenNetworkClient() {
           <strong>{activeReportTotal.toLocaleString("id-ID")}</strong> Laporan
           Jaring dan <strong>{activeBaketTotal.toLocaleString("id-ID")}</strong>{" "}
           Baket sesuai filter;{" "}
-          <strong>{response.meta.counts.agent.toLocaleString("id-ID")}</strong>{" "}
-          personel termuat;{" "}
           <strong>{activeMappableTotal.toLocaleString("id-ID")}</strong> data
           berkoordinat dapat dipetakan.
         </p>
@@ -737,7 +739,6 @@ export function MapsIntelijenNetworkClient() {
         onOpenDetail={openDetail}
         onVisibleCountChange={setVisibleCount}
         filters={filters}
-        fieldOfficerOptions={entityFilterOptions.fieldOfficers}
         jaringOptions={entityFilterOptions.jarings}
         areaOptions={areaOptions}
         onFilterChange={handleFilterChange}
