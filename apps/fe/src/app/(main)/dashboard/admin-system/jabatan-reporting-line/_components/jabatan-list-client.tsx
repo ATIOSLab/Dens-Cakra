@@ -406,7 +406,7 @@ function CommandSupervisionDiagram() {
             <div className="rounded-[6px] border border-sky-500/30 bg-background p-3 text-xs">
               <div className="font-semibold">Sumber mapping</div>
               <p className="mt-1 text-muted-foreground">
-                Dibaca dari assignment wilayah supervisi yang diatur admin, bukan dari mapping source code.
+                Dibaca dari penugasan wilayah supervisi yang diatur Admin Sistem, bukan dari pemetaan kode.
               </p>
             </div>
             <div className="rounded-[6px] border border-sky-500/30 bg-background p-3 text-xs">
@@ -438,7 +438,7 @@ function CommandSupervisionDiagram() {
             </p>
             <p className="mt-2 text-muted-foreground text-sm">
               Khusus DKI Jakarta, supervisi Direktorat diarahkan sampai wilayah kota/Korwil seperti panel pengecualian
-              di atas. Assignment kota/kabupaten DKI diubah melalui panel admin, tanpa perubahan source code.
+              di atas. Penugasan kota/kabupaten DKI diubah melalui panel Admin Sistem, tanpa perubahan kode.
             </p>
           </div>
 

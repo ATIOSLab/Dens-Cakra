@@ -144,6 +144,11 @@ Anev adalah fungsi analisis dan evaluasi, bukan tingkat wilayah. Fungsi Anev dap
 | Pengaturan SMTP | Pengaturan SMTP | Menu Admin Sistem untuk konfigurasi server email custom. SMTP tetap istilah teknis. |
 | Role dan Hak Akses | Role dan Hak Akses | Menu Admin Sistem untuk pengelolaan role, kewenangan tindakan, dan cakupan akses. |
 | Jabatan dan Alur Pelaporan | Jabatan dan Alur Pelaporan | Menu Admin Sistem untuk relasi jabatan dan alur pelaporan. |
+| Akun & Akses | Akun & Akses | Klaster menu Admin Sistem untuk pengguna, role, dan hak akses. |
+| Struktur & Cakupan | Struktur & Cakupan | Klaster menu Admin Sistem untuk jabatan, alur pelaporan, dan cakupan supervisi. |
+| Referensi Data | Referensi Data | Klaster menu Admin Sistem untuk master data dan referensi lintas modul. |
+| WhatsApp & Email | WhatsApp & Email | Klaster menu Admin Sistem untuk koneksi WhatsApp, log sesi WhatsApp, notifikasi, dan SMTP. |
+| Keamanan & Audit | Keamanan & Audit | Klaster/menu Admin Sistem untuk jejak audit, sesi, dan keamanan sistem. |
 
 Contoh pemisahan jabatan dan fungsi:
 

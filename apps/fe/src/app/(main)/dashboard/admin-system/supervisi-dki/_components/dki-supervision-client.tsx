@@ -183,7 +183,7 @@ export function DkiSupervisionClient({ initialData }: DkiSupervisionClientProps)
             Admin Sistem
           </Badge>
           <div>
-            <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">Supervisi DKI</h1>
+            <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">Wilayah Supervisi DKI</h1>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
               Atur cakupan supervisi Direktorat/Ditwil untuk Kota/Kabupaten administratif di Provinsi DKI Jakarta.
             </p>
@@ -199,7 +199,13 @@ export function DkiSupervisionClient({ initialData }: DkiSupervisionClientProps)
               className="h-9 rounded-[6px] pl-9 text-sm"
             />
           </div>
-          <Button variant="outline" size="sm" onClick={() => void refreshData()} disabled={loading} className="h-9 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void refreshData()}
+            disabled={loading}
+            className="h-9 gap-2"
+          >
             <RefreshCw className={cn("size-4", loading && "animate-spin")} />
             Muat ulang
           </Button>
@@ -260,7 +266,9 @@ export function DkiSupervisionClient({ initialData }: DkiSupervisionClientProps)
                     <tr key={assignment.id} className="align-top hover:bg-muted/20">
                       <td className="px-4 py-4">
                         <div className="font-semibold text-foreground">{displayUserName(assignment)}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">{assignment.user.authUser?.email ?? "-"}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {assignment.user.authUser?.email ?? "-"}
+                        </div>
                         <div className="mt-2 text-[11px] text-muted-foreground">
                           Berlaku sejak {formatDateTime(assignment.validFrom)}
                         </div>
@@ -289,8 +297,11 @@ export function DkiSupervisionClient({ initialData }: DkiSupervisionClientProps)
                                 htmlFor={checkboxId}
                                 className={cn(
                                   "flex min-h-12 cursor-pointer items-start gap-2 rounded-[6px] border border-border bg-background p-2 text-xs transition-colors hover:bg-muted/40",
-                                  checked && "border-sky-400 bg-sky-50 text-sky-950 dark:bg-sky-950/30 dark:text-sky-100",
-                                  sharedWithOther && !checked && "border-sky-200 bg-sky-50/60 dark:border-sky-900/50 dark:bg-sky-950/20",
+                                  checked &&
+                                    "border-sky-400 bg-sky-50 text-sky-950 dark:bg-sky-950/30 dark:text-sky-100",
+                                  sharedWithOther &&
+                                    !checked &&
+                                    "border-sky-200 bg-sky-50/60 dark:border-sky-900/50 dark:bg-sky-950/20",
                                 )}
                               >
                                 <Checkbox

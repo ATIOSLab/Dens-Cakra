@@ -33,7 +33,7 @@ export const ROLE_ACCESS_PROFILES: RoleAccessProfile[] = [
     functionLabel: "Komando dan supervisi wilayah",
     accessScope: "Provinsi atau Kota/Kabupaten DKI sesuai UserAreaScope aktif.",
     actions: ["Lihat", "Verifikasi", "Teruskan", "Disposisi", "Ekspor"],
-    policy: "Cakupan Direktorat/Ditwil ditentukan dari assignment dan wilayah supervisi, bukan hardcode.",
+    policy: "Cakupan Direktorat/Ditwil ditentukan dari penugasan aktif dan wilayah supervisi, bukan hardcode.",
   },
   {
     id: SYSTEM_ROLES.OPERATIONAL_INTELLIGENCE_MANAGER,
@@ -129,7 +129,7 @@ export function RoleHakAksesPageContent() {
         <Card size="sm">
           <CardHeader>
             <CardDescription className={DC_TYPOGRAPHY.tableHeader}>Sumber Cakupan</CardDescription>
-            <CardTitle className="truncate text-xl [font-family:var(--dc-font-metadata)]">Assignment Aktif</CardTitle>
+            <CardTitle className="truncate text-xl [font-family:var(--dc-font-metadata)]">Penugasan Aktif</CardTitle>
           </CardHeader>
         </Card>
       </section>

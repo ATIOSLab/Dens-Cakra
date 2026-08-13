@@ -498,7 +498,7 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
             <CardHeader className="pb-4 border-b border-border/40">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <UserRound className="size-4 text-primary" />
-                Identitas Akun & Role Authorization
+                Identitas Akun & Role Sistem
               </CardTitle>
               <CardDescription className="text-xs">
                 Kondisi akun Better Auth dan sinkronisasi role domain.
@@ -508,14 +508,14 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-1">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    AUTH ROLE
+                    Role Login
                   </span>
                   <div className="font-semibold text-sm text-foreground">{getRoleLabel(user.authUser.role)}</div>
                 </div>
 
                 <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-1">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    DOMAIN ROLE
+                    Role Domain
                   </span>
                   <div className="font-semibold text-sm text-foreground">
                     {derivedAuthRole ? getRoleLabel(derivedAuthRole) : "Belum terdeteksi"}
@@ -574,7 +574,7 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
                   </Badge>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Kode Unit: {primaryUnit?.code || "-"} • Berlaku sejak {formatDateTime(primaryAssignment?.validFrom)}
+                  Kode Unit: {primaryUnit?.code || "-"} - Berlaku sejak {formatDateTime(primaryAssignment?.validFrom)}
                 </div>
               </div>
 
@@ -598,12 +598,12 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
             </CardContent>
           </Card>
 
-          {/* Timeline Assignment */}
+          {/* Histori Penugasan */}
           <Card className="border border-border/60 shadow-sm">
             <CardHeader className="pb-4 border-b border-border/40">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <Clock className="size-4 text-primary" />
-                Histori Timeline Assignment
+                Histori Penugasan
               </CardTitle>
               <CardDescription className="text-xs">
                 Rekam jejak mutasi unit, role, dan wilayah operasional pengguna.
@@ -618,10 +618,10 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
                     </div>
                     <div className="flex items-center gap-1.5">
                       {assignment.isPrimary ? (
-                        <Badge className="text-[10px] py-0">Primary</Badge>
+                        <Badge className="text-[10px] py-0">Utama</Badge>
                       ) : (
                         <Badge variant="outline" className="text-[10px] py-0">
-                          Secondary
+                          Pendukung
                         </Badge>
                       )}
                       {assignment.isActive ? (
@@ -636,7 +636,7 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
                     </div>
                   </div>
                   <div className="text-muted-foreground">
-                    Role: <span className="font-medium text-foreground">{getAssignmentRoleLabel(assignment)}</span> •{" "}
+                    Role: <span className="font-medium text-foreground">{getAssignmentRoleLabel(assignment)}</span> -{" "}
                     {formatDateTime(assignment.validFrom)} s/d {formatDateTime(assignment.validUntil)}
                   </div>
                   <div className="flex flex-wrap gap-1 pt-1">
@@ -1113,7 +1113,9 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Arsipkan Pengguna</DialogTitle>
-            <DialogDescription>User akan dikeluarkan dari roster aktif dan assignment akan ditutup.</DialogDescription>
+            <DialogDescription>
+              Pengguna akan dikeluarkan dari daftar aktif dan penugasan akan ditutup.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -1222,7 +1224,7 @@ export function PenggunaDetailClient({ user, actorUserProfileId }: PenggunaDetai
                 <AlertTitle className="text-xs font-semibold">{DOMAIN_TERMS.dkiDirectorateSupervisionScope}</AlertTitle>
                 <AlertDescription className="text-xs">
                   Non-DKI memakai cakupan Provinsi. Khusus DKI Jakarta, pilih Kota/Kabupaten administratif sesuai
-                  assignment supervisi admin.
+                  penugasan supervisi Admin Sistem.
                 </AlertDescription>
               </Alert>
             ) : null}

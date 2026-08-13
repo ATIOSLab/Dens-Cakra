@@ -32,7 +32,7 @@ type SearchItem = {
 };
 
 function getSubItemGroup(groupLabel: string | undefined, itemTitle: string) {
-  return groupLabel ?? itemTitle;
+  return groupLabel ? `${groupLabel} / ${itemTitle}` : itemTitle;
 }
 
 function getAvailableItems(items: SearchItem[]) {
