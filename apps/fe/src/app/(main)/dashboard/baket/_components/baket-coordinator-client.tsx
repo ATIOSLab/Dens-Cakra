@@ -57,6 +57,7 @@ import {
   resolveJakartaPeriodRange,
 } from "@/lib/domain/date-time";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
@@ -308,7 +309,7 @@ export function BaketCoordinatorClient() {
     try {
       const [categoryItems, areaScopeItems] = await Promise.all([fetchCategories(), fetchAreaScopes()]);
 
-      setCategories(categoryItems);
+      setCategories(sortReportCategories(categoryItems));
       setAreaScopes(areaScopeItems);
     } catch (err) {
       console.error("Gagal memuat referensi Baket:", err);
@@ -632,7 +633,7 @@ export function BaketCoordinatorClient() {
               value={categoryFilter}
               options={[
                 { value: "ALL", label: "Semua Kategori" },
-                ...categories.map((cat) => ({ value: cat.id, label: `${cat.name} (${cat.code})` })),
+                ...sortReportCategories(categories).map((cat) => ({ value: cat.id, label: `${cat.name} (${cat.code})` })),
               ]}
               onValueChange={(value) => {
                 setCategoryFilter(value);

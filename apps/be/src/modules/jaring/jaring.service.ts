@@ -19,6 +19,7 @@ import {
   WhatsAppValidationSummary,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
+import { sortReportCategories } from '../../common/report-category-order.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   getIndonesianPhoneSearchVariants,
@@ -2040,25 +2041,27 @@ export class JaringService {
         identity: query,
         ttlMs: 30 * 60_000,
       },
-      () =>
-        this.prisma.reportCategory.findMany({
-          where: {
-            ...(query.includeInactive ? {} : { isActive: true }),
-            ...(query.search
-              ? {
-                  OR: [
-                    { code: { contains: query.search, mode: 'insensitive' } },
-                    { name: { contains: query.search, mode: 'insensitive' } },
-                  ],
-                }
-              : {}),
-          },
-          take: query.limit,
-          orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
-          include: {
-            _count: { select: { whatsAppMessages: true } },
-          },
-        }),
+      async () =>
+        sortReportCategories(
+          await this.prisma.reportCategory.findMany({
+            where: {
+              ...(query.includeInactive ? {} : { isActive: true }),
+              ...(query.search
+                ? {
+                    OR: [
+                      { code: { contains: query.search, mode: 'insensitive' } },
+                      { name: { contains: query.search, mode: 'insensitive' } },
+                    ],
+                  }
+                : {}),
+            },
+            take: query.limit,
+            orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+            include: {
+              _count: { select: { whatsAppMessages: true } },
+            },
+          }),
+        ),
     );
   }
 

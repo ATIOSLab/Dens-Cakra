@@ -23,6 +23,7 @@ import {
 import { AppLogo } from "@/components/app-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
@@ -165,7 +166,7 @@ export function MapsIntelijenCommandHud({
     const reportTotal = meta.summary.reports.total ?? meta.counts.totalReports ?? meta.counts.report ?? 0;
     const baketTotal = meta.summary.bakets.total ?? meta.counts.totalBakets ?? meta.counts.baket ?? 0;
     const baketCategoryLabels = new Map<string, string>();
-    for (const category of meta.facets.categories) {
+    for (const category of sortReportCategories(meta.facets.categories)) {
       baketCategoryLabels.set(category.id, category.name);
       if (category.code) {
         baketCategoryLabels.set(category.code, category.name);
@@ -484,7 +485,7 @@ export function MapsIntelijenCommandHud({
               onChange={(value) => onFilterChange({ categoryId: value })}
               options={[
                 ["ALL", "Semua Kategori Baket"],
-                ...meta.facets.categories.map((item) => [item.id, item.name] as [string, string]),
+                ...sortReportCategories(meta.facets.categories).map((item) => [item.id, item.name] as [string, string]),
               ]}
             />
             <HudSelect

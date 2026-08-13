@@ -281,6 +281,18 @@ Aturan Laporan Jaring dan Baket:
 3. Kategori tidak menjadi milik Laporan Jaring. Kategori ditentukan saat Bahan Keterangan (Baket) dibuat atau diperbarui.
 4. Relasi sumber Laporan Jaring ke Bahan Keterangan (Baket) harus tetap dapat ditelusuri melalui data sumber/versi Baket.
 
+Urutan kategori pada seluruh filter dan pilihan kategori mengikuti IPOLEKSOSBUDHANKAM:
+
+1. Ideologi
+2. Politik
+3. Ekonomi
+4. Sosial
+5. Budaya
+6. Pertahanan
+7. Keamanan
+
+Kategori lain yang belum masuk urutan kanonis tetap ditampilkan setelah tujuh kategori tersebut secara alfabetis.
+
 ## Flow Laporan Bottom-Up
 
 Alur informasi lapangan bergerak dari bawah ke atas:

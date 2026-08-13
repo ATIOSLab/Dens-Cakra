@@ -31,6 +31,7 @@ import {
   resolveDashboardDetailPeriodPreset,
 } from "@/lib/domain/date-time";
 import { resolveJaringIdentity } from "@/lib/domain/jaring-identity";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
@@ -186,8 +187,8 @@ export function BaketOfficerClient() {
   async function fetchCategories() {
     try {
       const res = await apiBrowserFetch<ReportCategoryResponse>("/jaring/report-categories");
-      if (Array.isArray(res)) setCategories(res);
-      else if (res && "items" in res && Array.isArray(res.items)) setCategories(res.items);
+      if (Array.isArray(res)) setCategories(sortReportCategories(res));
+      else if (res && "items" in res && Array.isArray(res.items)) setCategories(sortReportCategories(res.items));
     } catch (err) {
       console.warn("Gagal memuat kategori:", err);
     }
@@ -394,7 +395,7 @@ export function BaketOfficerClient() {
                   className="h-8 text-xs bg-background min-w-[160px]"
                 >
                   <option value="ALL">Semua Kategori</option>
-                  {categories.map((cat) => (
+                  {sortReportCategories(categories).map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name} ({cat.code})
                     </option>

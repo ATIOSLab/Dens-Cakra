@@ -50,6 +50,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-attachment-viewer";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
@@ -120,7 +121,7 @@ export function LaporanJaringDetailClient({
     async function loadCategories() {
       try {
         const res = await apiBrowserFetch<ReportCategoryOption[]>("/jaring/report-categories");
-        setCategories(Array.isArray(res) ? res : []);
+        setCategories(sortReportCategories(Array.isArray(res) ? res : []));
       } catch (err) {
         console.error("Gagal memuat kategori Baket:", err);
       }
@@ -666,7 +667,7 @@ export function LaporanJaringDetailClient({
                             className="h-9 text-xs bg-background"
                           >
                             <option value="">-- Pilih Kategori Baket --</option>
-                            {categories.map((cat) => (
+                            {sortReportCategories(categories).map((cat) => (
                               <option key={cat.id} value={cat.id}>
                                 {cat.name}
                               </option>

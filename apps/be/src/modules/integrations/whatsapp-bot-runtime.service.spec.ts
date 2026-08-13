@@ -4,20 +4,32 @@ import { env } from '../../lib/env.js';
 import { WhatsappBotRuntimeService } from './whatsapp-bot-runtime.service.js';
 
 describe('WhatsappBotRuntimeService report intake', () => {
+  function createRuntimeService(
+    prisma: Record<string, unknown> = {},
+    deps: {
+      spatial?: unknown;
+      channelScope?: unknown;
+      reportFlow?: unknown;
+    } = {},
+  ) {
+    return new WhatsappBotRuntimeService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      (deps.spatial ?? {}) as never,
+      (deps.channelScope ?? {}) as never,
+      (deps.reportFlow ?? {}) as never,
+    );
+  }
+
   function createServiceForUnknownSender() {
     const sendMessage = jest.fn<() => Promise<void>>(() => Promise.resolve());
     const prisma = {
       jaring: { findFirst: jest.fn(() => Promise.resolve(null)) },
     };
-    const service = new WhatsappBotRuntimeService(
-      prisma as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      { isJaringAllowed: jest.fn(() => Promise.resolve(false)) } as never,
-      {} as never,
-      {} as never,
-    );
+    const service = createRuntimeService(prisma);
 
     return { service, sendMessage };
   }
@@ -96,15 +108,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
         ),
       },
     };
-    const service = new WhatsappBotRuntimeService(
-      prisma as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-    );
+    const service = createRuntimeService(prisma);
     const disconnectChannel = jest
       .spyOn(service, 'disconnectChannel')
       .mockResolvedValue(undefined);
@@ -172,15 +176,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
         ),
       },
     };
-    const service = new WhatsappBotRuntimeService(
-      prisma as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-    );
+    const service = createRuntimeService(prisma);
     const disconnectChannel = jest
       .spyOn(service, 'disconnectChannel')
       .mockResolvedValue(undefined);
@@ -244,15 +240,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
         ),
       },
     };
-    const service = new WhatsappBotRuntimeService(
-      prisma as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-    );
+    const service = createRuntimeService(prisma);
     const disconnectChannel = jest
       .spyOn(service, 'disconnectChannel')
       .mockResolvedValue(undefined);
@@ -286,16 +274,214 @@ describe('WhatsappBotRuntimeService report intake', () => {
     }
   });
 
-  it('menolak lokasi statis dan menerima live location pada sesi laporan', async () => {
-    const service = new WhatsappBotRuntimeService(
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
+  it('mencoba restore otomatis kanal WhatsApp error jika session tersimpan', async () => {
+    const prisma = {
+      integrationChannel: {
+        findMany: jest.fn(() =>
+          Promise.resolve([
+            {
+              id: 'channel-error',
+              code: 'WHATSAPP-ERROR',
+              channelType: 'WHATSAPP',
+              status: 'ERROR',
+              config: {},
+            },
+          ]),
+        ),
+      },
+    };
+    const service = createRuntimeService(prisma);
+    const shouldBootstrapChannel = jest.fn(() => Promise.resolve(true));
+    const connectChannel = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        shouldBootstrapChannel: typeof shouldBootstrapChannel;
+        connectChannel: typeof connectChannel;
+      }
+    ).shouldBootstrapChannel = shouldBootstrapChannel;
+    (
+      service as unknown as {
+        shouldBootstrapChannel: typeof shouldBootstrapChannel;
+        connectChannel: typeof connectChannel;
+      }
+    ).connectChannel = connectChannel;
+
+    await service.onModuleInit();
+
+    expect(prisma.integrationChannel.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: { in: ['ACTIVE', 'DEGRADED', 'ERROR'] },
+        }),
+      }),
     );
+    expect(shouldBootstrapChannel).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'channel-error', status: 'ERROR' }),
+    );
+    expect(connectChannel).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'channel-error' }),
+    );
+  });
+
+  it('tidak memaksa restore kanal error jika session tersimpan tidak ada', async () => {
+    const prisma = {
+      integrationChannel: {
+        findMany: jest.fn(() =>
+          Promise.resolve([
+            {
+              id: 'channel-error',
+              code: 'WHATSAPP-ERROR',
+              channelType: 'WHATSAPP',
+              status: 'ERROR',
+              config: {},
+            },
+          ]),
+        ),
+      },
+    };
+    const service = createRuntimeService(prisma);
+    const shouldBootstrapChannel = jest.fn(() => Promise.resolve(false));
+    const connectChannel = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        shouldBootstrapChannel: typeof shouldBootstrapChannel;
+        connectChannel: typeof connectChannel;
+      }
+    ).shouldBootstrapChannel = shouldBootstrapChannel;
+    (
+      service as unknown as {
+        shouldBootstrapChannel: typeof shouldBootstrapChannel;
+        connectChannel: typeof connectChannel;
+      }
+    ).connectChannel = connectChannel;
+
+    await service.onModuleInit();
+
+    expect(connectChannel).not.toHaveBeenCalled();
+  });
+
+  it('menghentikan reconnect otomatis setelah batas percobaan tercapai', async () => {
+    const mutableEnv = env as unknown as {
+      whatsapp: { autoReconnectMaxAttempts: number };
+    };
+    const previousMaxAttempts = mutableEnv.whatsapp.autoReconnectMaxAttempts;
+    mutableEnv.whatsapp.autoReconnectMaxAttempts = 0;
+
+    const service = createRuntimeService();
+    const socket = { ws: { close: jest.fn() } };
+    const persistState = jest.fn(() => Promise.resolve());
+    const connectChannel = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        runtimes: Map<string, unknown>;
+        persistState: typeof persistState;
+        connectChannel: typeof connectChannel;
+      }
+    ).runtimes.set('channel-id', {
+      connecting: false,
+      credsSavePromise: Promise.resolve(),
+      autoReconnectAttempts: 0,
+      socket,
+    });
+    (
+      service as unknown as {
+        persistState: typeof persistState;
+        connectChannel: typeof connectChannel;
+      }
+    ).persistState = persistState;
+    (
+      service as unknown as {
+        persistState: typeof persistState;
+        connectChannel: typeof connectChannel;
+      }
+    ).connectChannel = connectChannel;
+    const handleConnectionUpdate = (
+      service as unknown as {
+        handleConnectionUpdate: (...args: unknown[]) => Promise<void>;
+      }
+    ).handleConnectionUpdate.bind(service);
+
+    try {
+      await handleConnectionUpdate(
+        { id: 'channel-id', code: 'WHATSAPP-UTAMA', config: {} },
+        socket,
+        { connection: 'close', lastDisconnect: { error: new Error('down') } },
+        'qr',
+        null,
+      );
+
+      expect(connectChannel).not.toHaveBeenCalled();
+      expect(persistState).toHaveBeenLastCalledWith(
+        'channel-id',
+        expect.objectContaining({
+          connectionStatus: 'ERROR',
+          lastError: expect.stringContaining('Pemulihan otomatis WhatsApp dihentikan'),
+        }),
+        'ERROR',
+      );
+    } finally {
+      mutableEnv.whatsapp.autoReconnectMaxAttempts = previousMaxAttempts;
+    }
+  });
+
+  it('mempertahankan session tersimpan saat socket tertutup karena shutdown aplikasi', async () => {
+    const service = createRuntimeService();
+    const socket = { ws: { close: jest.fn() } };
+    const persistState = jest.fn(() => Promise.resolve());
+    const connectChannel = jest.fn(() => Promise.resolve());
+    (
+      service as unknown as {
+        shuttingDown: boolean;
+        runtimes: Map<string, unknown>;
+        persistState: typeof persistState;
+        connectChannel: typeof connectChannel;
+      }
+    ).shuttingDown = true;
+    (
+      service as unknown as {
+        shuttingDown: boolean;
+        runtimes: Map<string, unknown>;
+        persistState: typeof persistState;
+        connectChannel: typeof connectChannel;
+      }
+    ).runtimes.set('channel-id', {
+      connecting: false,
+      credsSavePromise: Promise.resolve(),
+      autoReconnectAttempts: 0,
+      socket,
+    });
+    (
+      service as unknown as {
+        persistState: typeof persistState;
+        connectChannel: typeof connectChannel;
+      }
+    ).persistState = persistState;
+    (
+      service as unknown as {
+        persistState: typeof persistState;
+        connectChannel: typeof connectChannel;
+      }
+    ).connectChannel = connectChannel;
+    const handleConnectionUpdate = (
+      service as unknown as {
+        handleConnectionUpdate: (...args: unknown[]) => Promise<void>;
+      }
+    ).handleConnectionUpdate.bind(service);
+
+    await handleConnectionUpdate(
+      { id: 'channel-id', code: 'WHATSAPP-UTAMA', config: {} },
+      socket,
+      { connection: 'close', lastDisconnect: { error: new Error('shutdown') } },
+      'qr',
+      null,
+    );
+
+    expect(persistState).not.toHaveBeenCalled();
+    expect(connectChannel).not.toHaveBeenCalled();
+  });
+
+  it('menolak lokasi statis dan menerima live location pada sesi laporan', async () => {
+    const service = createRuntimeService();
     const sendHumanLikeReplies = jest.fn(() => Promise.resolve());
     (
       service as unknown as {
@@ -586,15 +772,7 @@ describe('WhatsappBotRuntimeService report intake', () => {
     const channelScope = {
       isJaringAllowed: jest.fn(() => Promise.resolve(false)),
     };
-    const service = new WhatsappBotRuntimeService(
-      prisma as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      channelScope as never,
-      {} as never,
-    );
+    const service = createRuntimeService(prisma, { channelScope });
     (
       service as unknown as {
         sendHumanLikeReplies: typeof sendHumanLikeReplies;
@@ -641,14 +819,9 @@ describe('WhatsappBotRuntimeService report intake', () => {
         resolvedAt,
       })),
     };
-    const service = new WhatsappBotRuntimeService(
-      { whatsAppMessage: { create } } as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      spatial as never,
-      {} as never,
-      {} as never,
+    const service = createRuntimeService(
+      { whatsAppMessage: { create } },
+      { spatial },
     );
     const saveCompletedReport = (
       service as unknown as {

@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { PagedResponse } from "@/lib/api/types";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { backendApi } from "@/server/backend-api";
 
 import type {
@@ -565,7 +566,7 @@ function messageJaring(record: MessageRecord): FieldOfficerJaring | null {
 }
 
 function mapCategories(categories: Array<ReportCategory & { _count?: { whatsAppMessages?: number } }>) {
-  return categories.map((category) => ({
+  return sortReportCategories(categories).map((category) => ({
     id: category.id,
     code: category.code,
     name: category.name,
@@ -907,7 +908,7 @@ export async function getFieldOfficerWorkspace(
     })),
     districtAreas,
     villageAreas,
-    reportCategories: reportCategories.map((category) => ({
+    reportCategories: sortReportCategories(reportCategories).map((category) => ({
       id: category.id,
       code: category.code,
       name: category.name,

@@ -105,6 +105,10 @@ export const env = {
   whatsapp: {
     authRoot: whatsappAuthRoot,
     allowSessionReset: getBoolean('WHATSAPP_ALLOW_SESSION_RESET', false),
+    autoReconnectMaxAttempts: getNumber(
+      'WHATSAPP_AUTO_RECONNECT_MAX_ATTEMPTS',
+      3,
+    ),
   },
   encryptionKey: getString(
     'APPLICATION_ENCRYPTION_KEY',

@@ -7,6 +7,7 @@
 import { Injectable } from '@nestjs/common';
 import { ApiException } from '../../common/api/api-exception.js';
 import { SYSTEM_ROLES } from '../../common/constants/system-role.js';
+import { sortReportCategories } from '../../common/report-category-order.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import {
   BaketStatus,
@@ -464,7 +465,7 @@ export class ExecutiveDashboardService {
 
     return {
       scope: this.scope.scopeSummary(context),
-      categories,
+      categories: sortReportCategories(categories),
       productTypes,
       areaTree,
       fieldOfficers: (

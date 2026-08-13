@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import type { FieldOfficerIncoming, FieldOfficerWorkspace } from "@/server/field-ops/types";
 
@@ -365,7 +366,7 @@ export function PetaLaporanMap() {
                   value={categoryId}
                   options={[
                     { value: "all", label: "Semua kategori" },
-                    ...(workspace?.reportCategories ?? []).map((category) => ({
+                    ...sortReportCategories(workspace?.reportCategories).map((category) => ({
                       value: category.id,
                       label: category.name,
                     })),

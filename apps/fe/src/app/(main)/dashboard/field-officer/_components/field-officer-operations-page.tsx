@@ -67,6 +67,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import { apiBrowserFetch } from "@/lib/api/browser-client";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
@@ -2031,8 +2032,7 @@ export function FieldOfficerOperationsPage({
                     aria-label="Filter kategori baket"
                   >
                     <option value="">Semua kategori</option>
-                    {workspace.reportCategories
-                      .filter((item) => item.isActive)
+                    {sortReportCategories(workspace.reportCategories.filter((item) => item.isActive))
                       .map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
@@ -3311,8 +3311,7 @@ function BaketCandidateForm({
                   <SelectValue placeholder="PILIH KATEGORI" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories
-                    .filter((item) => item.isActive)
+                  {sortReportCategories(categories.filter((item) => item.isActive))
                     .map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name.toUpperCase()}

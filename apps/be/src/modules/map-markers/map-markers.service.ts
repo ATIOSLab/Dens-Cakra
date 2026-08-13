@@ -9,6 +9,7 @@ import {
   WhatsAppValidationSummary,
 } from '../../generated/prisma/client.js';
 import { ApiException } from '../../common/api/api-exception.js';
+import { sortReportCategories } from '../../common/report-category-order.js';
 import type { AuthorizationContext } from '../../common/types/authorization-context.js';
 import { getIndonesianPhoneSearchVariants } from '../../common/utils/phone-normalizer.js';
 import { DomainScopeService } from '../access/domain-scope.service.js';
@@ -179,7 +180,7 @@ export class MapMarkersService {
         },
         facets: {
           markerTypes: Object.values(MapMarkerType),
-          categories,
+          categories: sortReportCategories(categories),
           baketStatuses: Object.values(BaketStatus),
           urgencies: Object.values(PriorityLevel),
           agentStates: Object.values(AgentLocationState),

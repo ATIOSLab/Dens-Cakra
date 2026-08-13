@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { SearchableSelect, type SearchableSelectOption } from "@/components/ui/searchable-select";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_TERMS } from "@/lib/domain/terminology";
 
 import { dashboardStatusLabel, formatDashboardDate } from "./executive-dashboard-format";
@@ -249,7 +250,7 @@ export function DashboardHeaderFilter({
   const operationalFilterPlaceholder = hasSelectedProvince ? undefined : provincePlaceholder;
   const categoryOptions: SearchableSelectOption[] = [
     { value: ALL_FILTERS, label: "Semua kategori", description: "Laporan Jaring dan Baket" },
-    ...(filters?.categories ?? []).map(namedOption),
+    ...sortReportCategories(filters?.categories).map(namedOption),
   ];
   const productTypeOptions: SearchableSelectOption[] = [
     { value: ALL_FILTERS, label: "Semua jenis produk", description: "Produk intelijen" },

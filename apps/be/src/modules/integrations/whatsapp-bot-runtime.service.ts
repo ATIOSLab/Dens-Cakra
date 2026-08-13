@@ -59,6 +59,7 @@ import {
 type RuntimeState = {
   connecting: boolean;
   credsSavePromise: Promise<void>;
+  autoReconnectAttempts: number;
   socket?: WASocket;
 };
 
@@ -248,6 +249,7 @@ export class WhatsappBotRuntimeService
   private readonly logger = new Logger(WhatsappBotRuntimeService.name);
   private readonly runtimes = new Map<string, RuntimeState>();
   private readonly reportSessions = new Map<string, ReportSession>();
+  private shuttingDown = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -269,7 +271,11 @@ export class WhatsappBotRuntimeService
           { channelType: { contains: 'WA', mode: 'insensitive' } },
         ],
         status: {
-          in: [IntegrationStatus.ACTIVE, IntegrationStatus.DEGRADED],
+          in: [
+            IntegrationStatus.ACTIVE,
+            IntegrationStatus.DEGRADED,
+            IntegrationStatus.ERROR,
+          ],
         },
       },
       select: {
@@ -282,6 +288,13 @@ export class WhatsappBotRuntimeService
     });
 
     for (const channel of channels) {
+      if (!(await this.shouldBootstrapChannel(channel))) {
+        this.logger.warn(
+          `WhatsApp channel ${channel.code} skipped at bootstrap because no saved session state was found.`,
+        );
+        continue;
+      }
+
       void this.connectChannel(channel).catch((error: unknown) => {
         this.logger.error(
           `Failed to bootstrap WhatsApp channel ${channel.code}: ${this.messageOf(error)}`,
@@ -291,6 +304,7 @@ export class WhatsappBotRuntimeService
   }
 
   async onModuleDestroy() {
+    this.shuttingDown = true;
     for (const runtime of this.runtimes.values()) {
       try {
         runtime.socket?.ws?.close();
@@ -418,7 +432,7 @@ export class WhatsappBotRuntimeService
 
   private async connectChannel(
     channel: WhatsAppChannelRecord,
-    options?: { force?: boolean },
+    options?: { force?: boolean; autoReconnectAttempts?: number },
   ) {
     const existing = this.runtimes.get(channel.id);
 
@@ -439,6 +453,8 @@ export class WhatsappBotRuntimeService
     const runtime: RuntimeState = {
       connecting: true,
       credsSavePromise: Promise.resolve(),
+      autoReconnectAttempts:
+        options?.autoReconnectAttempts ?? existing?.autoReconnectAttempts ?? 0,
     };
     this.runtimes.set(channel.id, runtime);
 
@@ -656,6 +672,13 @@ export class WhatsappBotRuntimeService
       runtime.connecting = false;
       runtime.socket = undefined;
 
+      if (this.shuttingDown) {
+        this.logger.log(
+          `WhatsApp channel ${channel.code} closed during application shutdown; saved session retained.`,
+        );
+        return;
+      }
+
       const statusCode = (lastDisconnect?.error as Boom | undefined)?.output
         ?.statusCode;
       const requiresPairing = [
@@ -693,6 +716,31 @@ export class WhatsappBotRuntimeService
       );
 
       if (!requiresPairing) {
+        const autoReconnectAttempts = runtime.autoReconnectAttempts + 1;
+        const maxAutoReconnectAttempts = Math.max(
+          0,
+          env.whatsapp.autoReconnectMaxAttempts,
+        );
+        if (autoReconnectAttempts > maxAutoReconnectAttempts) {
+          await this.persistState(
+            channel.id,
+            {
+              connectionStatus: WhatsAppBotConnectionStatus.ERROR,
+              qrCodeText: null,
+              qrCodeDataUrl: null,
+              pairingCode: null,
+              lastDisconnectedAt: new Date(),
+              lastError: `Pemulihan otomatis WhatsApp dihentikan setelah ${maxAutoReconnectAttempts} percobaan. Periksa sesi atau hubungkan ulang dari menu Integrasi WhatsApp.`,
+            },
+            IntegrationStatus.ERROR,
+          );
+          this.logger.warn(
+            `WhatsApp channel ${channel.code} auto reconnect stopped after ${maxAutoReconnectAttempts} attempts.`,
+          );
+          return;
+        }
+
+        runtime.autoReconnectAttempts = autoReconnectAttempts;
         setTimeout(() => {
           void (async () => {
             await runtime.credsSavePromise;
@@ -700,7 +748,7 @@ export class WhatsappBotRuntimeService
               return;
             }
 
-            await this.connectChannel(channel);
+            await this.connectChannel(channel, { autoReconnectAttempts });
           })().catch((error: unknown) => {
             this.logger.error(
               `Failed to reconnect WhatsApp channel ${channel.code}: ${this.messageOf(error)}`,
@@ -1042,12 +1090,20 @@ export class WhatsappBotRuntimeService
     );
   }
 
+  private authCredsPathForChannel(channelCode: string) {
+    return resolve(this.authDirForChannel(channelCode), 'creds.json');
+  }
+
   private legacyAuthDirForChannel(channelCode: string) {
     return resolve(
       process.cwd(),
       LEGACY_WHATSAPP_AUTH_ROOT,
       this.authDirNameForChannel(channelCode),
     );
+  }
+
+  private legacyAuthCredsPathForChannel(channelCode: string) {
+    return resolve(this.legacyAuthDirForChannel(channelCode), 'creds.json');
   }
 
   private authDirNameForChannel(channelCode: string) {
@@ -1084,6 +1140,21 @@ export class WhatsappBotRuntimeService
     return access(path)
       .then(() => true)
       .catch(() => false);
+  }
+
+  private async hasStoredAuthState(channelCode: string) {
+    return (
+      (await this.pathExists(this.authCredsPathForChannel(channelCode))) ||
+      (await this.pathExists(this.legacyAuthCredsPathForChannel(channelCode)))
+    );
+  }
+
+  private async shouldBootstrapChannel(channel: WhatsAppChannelRecord) {
+    if (channel.status !== IntegrationStatus.ERROR) {
+      return true;
+    }
+
+    return this.hasStoredAuthState(channel.code);
   }
 
   private assertSessionResetAllowed() {

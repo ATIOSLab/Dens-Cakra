@@ -74,6 +74,7 @@ import { EvidenceAttachmentViewer } from "@/features/baket/components/evidence-a
 import { EvidenceImageViewer } from "@/features/baket/components/evidence-image-viewer";
 import { apiBrowserFetch, apiBrowserMutation } from "@/lib/api/browser-client";
 import { findDkiJakartaProvinceFilterId } from "@/lib/domain/area-filter";
+import { sortReportCategories } from "@/lib/domain/report-category-order";
 import { DOMAIN_VISUALS } from "@/lib/domain/visual-system";
 import { cn } from "@/lib/utils";
 
@@ -637,7 +638,7 @@ function Filters({
   const searchParams = useSearchParams();
 
   const root = (areas ?? {}) as Row;
-  const categories = rows(reportCategories);
+  const categories = sortReportCategories(rows(reportCategories));
   const topLevel = rows(root.children);
   const provinces = topLevel.filter((area) => area.level === "PROVINCE");
   const provinceId = findDkiJakartaProvinceFilterId(provinces.map(areaFilterIdentity)) || provinces[0]?.id || "";
@@ -882,7 +883,7 @@ function Filters({
             value={categoryId || "ALL"}
             options={[
               { value: "ALL", label: "Semua kategori" },
-              ...categories.map((category) => ({ value: category.id, label: category.name })),
+              ...categories.map((category) => ({ value: String(category.id), label: String(category.name ?? "") })),
             ]}
             onValueChange={(val) => setCategoryId(val === "ALL" ? "" : val)}
             placeholder="Semua kategori"
