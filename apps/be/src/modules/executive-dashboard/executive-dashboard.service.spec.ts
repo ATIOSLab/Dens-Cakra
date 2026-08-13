@@ -44,8 +44,8 @@ function report(overrides: Record<string, unknown> = {}) {
     },
     jaring: {
       id: 'jaring-1',
-      aliasName: 'Jaring Alpha',
-      fullName: null,
+      aliasName: 'W01001',
+      fullName: 'Jaring Alpha',
       registrationStatus: 'APPROVED',
       caretakerAssignments: [],
       areaCoverages: [],
@@ -92,8 +92,8 @@ function report(overrides: Record<string, unknown> = {}) {
 function jaring(overrides: Record<string, unknown> = {}) {
   return {
     id: 'jaring-1',
-    aliasName: 'Jaring Alpha',
-    fullName: null,
+    aliasName: 'W01001',
+    fullName: 'Jaring Alpha',
     status: 'ACTIVE',
     registrationStatus: 'APPROVED',
     registeredAt: new Date('2026-07-01T00:00:00.000Z'),
@@ -261,7 +261,11 @@ describe('ExecutiveDashboardService', () => {
       validatedBakets: 0,
       urgentReports: 1,
     });
-    expect(result.operations.jaringRanking[0]).toMatchObject({ reports: 1 });
+    expect(result.operations.jaringRanking[0]).toMatchObject({
+      code: 'W01001',
+      name: 'Jaring Alpha',
+      reports: 1,
+    });
     expect(result.operations.fieldOfficerRanking[0]).toMatchObject({
       userProfileId: 'profile-field-officer-1',
       drilldown:

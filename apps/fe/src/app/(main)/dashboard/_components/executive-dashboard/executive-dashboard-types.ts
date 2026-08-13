@@ -145,6 +145,7 @@ export type ExecutiveDashboardData = {
     }>;
     jaringRanking: Array<{
       id: string;
+      code: string | null;
       name: string;
       status: string;
       registrationStatus: string;

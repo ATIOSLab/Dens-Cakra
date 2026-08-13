@@ -1398,6 +1398,7 @@ export class ExecutiveDashboardService {
       string,
       {
         id: string;
+        code: string | null;
         name: string;
         status: string;
         registrationStatus: string;
@@ -1414,7 +1415,8 @@ export class ExecutiveDashboardService {
         network.caretakerAssignments[0]?.fieldOfficerAssignment ?? null;
       values.set(network.id, {
         id: network.id,
-        name: network.aliasName ?? network.fullName ?? network.id,
+        code: this.jaringCode(network),
+        name: this.jaringDisplayName(network),
         status: this.isJaringActiveByReportWindow(network)
           ? 'ACTIVE'
           : 'INACTIVE',
@@ -1437,7 +1439,8 @@ export class ExecutiveDashboardService {
         report.jaring.caretakerAssignments[0]?.fieldOfficerAssignment ?? null;
       const item = values.get(id) ?? {
         id,
-        name: report.jaring.aliasName ?? report.jaring.fullName ?? id,
+        code: this.jaringCode(report.jaring),
+        name: this.jaringDisplayName(report.jaring),
         status: 'UNKNOWN',
         registrationStatus: report.jaring.registrationStatus,
         gaswil:
@@ -1472,6 +1475,23 @@ export class ExecutiveDashboardService {
           b.verified - a.verified ||
           a.name.localeCompare(b.name),
       );
+  }
+
+  private jaringDisplayName(jaring: {
+    id: string;
+    aliasName: string | null;
+    fullName: string | null;
+  }) {
+    return jaring.fullName?.trim() || jaring.aliasName?.trim() || jaring.id;
+  }
+
+  private jaringCode(jaring: {
+    aliasName: string | null;
+    fullName: string | null;
+  }) {
+    const code = jaring.aliasName?.trim();
+    if (!code) return null;
+    return code === jaring.fullName?.trim() ? null : code;
   }
 
   private fieldOfficerRanking(

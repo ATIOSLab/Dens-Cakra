@@ -59,7 +59,7 @@ function toneClass(tone: DashboardTone) {
   return "border-[color-mix(in_srgb,var(--dc-primary)_35%,transparent)] bg-[var(--dc-primary-soft)] text-[var(--dc-primary)]";
 }
 
-function EmptyState({ children }: { children: string }) {
+function EmptyState({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-28 place-items-center rounded-lg border border-dashed px-4 text-center text-muted-foreground text-sm">
       {children}
@@ -299,6 +299,32 @@ function NumericCell({ children }: { children: React.ReactNode }) {
   return <TableCell className="whitespace-nowrap text-right font-mono tabular-nums">{children}</TableCell>;
 }
 
+type JaringRankingItem = ExecutiveDashboardData["operations"]["jaringRanking"][number];
+
+function entityMeta(items: Array<string | null | undefined>) {
+  return items.filter((item): item is string => Boolean(item?.trim()));
+}
+
+function JaringRankingTitle({ item, href }: { item: JaringRankingItem; href: string }) {
+  return (
+    <div className="min-w-0 space-y-1">
+      <Link className="block truncate font-medium hover:underline" href={href}>
+        {item.name}
+      </Link>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-[0.68rem]">
+        {item.code ? (
+          <span className="rounded border border-[var(--dc-border-subtle)] bg-muted/30 px-1.5 py-0.5 font-mono text-[0.62rem]">
+            {DOMAIN_TERMS.jaringCode}: {item.code}
+          </span>
+        ) : null}
+        <span>
+          {dashboardStatusLabel(item.status)} - {dashboardStatusLabel(item.registrationStatus)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function MobileRankingCard({
   rank,
   title,
@@ -315,7 +341,7 @@ function MobileRankingCard({
       <div className="flex items-start gap-3">
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted font-mono text-xs">{rank}</span>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-medium text-sm">{title}</h3>
+          <div className="min-w-0 font-medium text-sm">{title}</div>
           {subtitle ? <p className="mt-1 text-muted-foreground text-xs">{subtitle}</p> : null}
         </div>
       </div>
@@ -347,7 +373,7 @@ function RankingTables({
       </TabsList>
       <TabsContent value="jaring">
         {operations.jaringRanking.length === 0 ? (
-          <EmptyState>Belum ada Jaring dalam cakupan aktif.</EmptyState>
+          <EmptyState>Belum ada {DOMAIN_TERMS.jaring} dalam cakupan aktif.</EmptyState>
         ) : (
           <>
             <div className="space-y-2 md:hidden">
@@ -355,30 +381,30 @@ function RankingTables({
                 <MobileRankingCard
                   key={item.id}
                   rank={index + 1}
-                  title={
-                    <Link className="hover:underline" href={item.drilldown}>
-                      {item.name}
-                    </Link>
-                  }
-                  subtitle={`${item.gaswil ?? "Petugas Wilayah belum tersedia"} - ${item.area ?? "Wilayah belum tersedia"}`}
+                  title={<JaringRankingTitle item={item} href={buildHref(item.drilldown)} />}
+                  subtitle={entityMeta([
+                    item.gaswil ? `${DOMAIN_TERMS.fieldOfficer}: ${item.gaswil}` : null,
+                    item.area ? `Wilayah: ${item.area}` : null,
+                  ]).join(" - ")}
                   metrics={[
-                    { label: "Laporan", value: formatDashboardNumber(item.reports) },
+                    { label: DOMAIN_TERMS.jaringReport, value: formatDashboardNumber(item.reports) },
                     { label: "Baket Dibuat", value: formatDashboardNumber(item.verified) },
+                    { label: DOMAIN_TERMS.draftBaket, value: formatDashboardNumber(item.draftBakets) },
                   ]}
                 />
               ))}
             </div>
             <div className="hidden md:block">
-              <Table className="min-w-[980px] text-xs">
+              <Table className="min-w-[1040px] text-xs">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12 text-center">#</TableHead>
-                    <TableHead>Jaring</TableHead>
-                    <TableHead>Petugas Wilayah</TableHead>
+                    <TableHead>{DOMAIN_TERMS.jaringName}</TableHead>
+                    <TableHead>{DOMAIN_TERMS.fieldOfficer}</TableHead>
                     <TableHead>Wilayah</TableHead>
-                    <TableHead className="text-right">Laporan</TableHead>
+                    <TableHead className="text-right">{DOMAIN_TERMS.jaringReport}</TableHead>
                     <TableHead className="text-right">Baket Dibuat</TableHead>
-                    <TableHead className="text-right">Draf Baket</TableHead>
+                    <TableHead className="text-right">{DOMAIN_TERMS.draftBaket}</TableHead>
                     <TableHead>Aktivitas Terakhir</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -387,12 +413,7 @@ function RankingTables({
                     <TableRow key={item.id}>
                       <TableCell className="text-center font-mono">{index + 1}</TableCell>
                       <TableCell>
-                        <Link className="font-medium hover:underline" href={item.drilldown}>
-                          {item.name}
-                        </Link>
-                        <p className="mt-1 text-muted-foreground">
-                          {dashboardStatusLabel(item.status)} - {dashboardStatusLabel(item.registrationStatus)}
-                        </p>
+                        <JaringRankingTitle item={item} href={buildHref(item.drilldown)} />
                       </TableCell>
                       <TableCell>{item.gaswil ?? "Belum tersedia"}</TableCell>
                       <TableCell>{item.area ?? "Belum tersedia"}</TableCell>
@@ -410,7 +431,7 @@ function RankingTables({
       </TabsContent>
       <TabsContent value="gaswil">
         {operations.fieldOfficerRanking.length === 0 ? (
-          <EmptyState>Belum ada aktivitas Petugas Wilayah pada cakupan aktif.</EmptyState>
+          <EmptyState>Belum ada aktivitas {DOMAIN_TERMS.fieldOfficer} pada cakupan aktif.</EmptyState>
         ) : (
           <>
             <div className="space-y-2 md:hidden">
@@ -426,7 +447,7 @@ function RankingTables({
                   subtitle={item.area ?? "Wilayah penugasan belum tersedia"}
                   metrics={[
                     { label: DOMAIN_TERMS.jaringActive90Days, value: formatDashboardNumber(item.activeJaring) },
-                    { label: "Laporan", value: formatDashboardNumber(item.reports) },
+                    { label: DOMAIN_TERMS.jaringReport, value: formatDashboardNumber(item.reports) },
                     { label: "Baket Dibuat", value: formatDashboardNumber(item.verified) },
                     { label: "Respons Rata-rata", value: formatDashboardDuration(item.averageVerificationHours) },
                   ]}
@@ -438,13 +459,13 @@ function RankingTables({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12 text-center">#</TableHead>
-                    <TableHead>Petugas Wilayah</TableHead>
-                    <TableHead>Wilayah Penugasan</TableHead>
-                    <TableHead className="text-right">Jaring</TableHead>
+                    <TableHead>{DOMAIN_TERMS.fieldOfficer}</TableHead>
+                    <TableHead>{DOMAIN_TERMS.assignmentArea}</TableHead>
+                    <TableHead className="text-right">{DOMAIN_TERMS.jaring}</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.jaringActive90Days}</TableHead>
-                    <TableHead className="text-right">Laporan</TableHead>
+                    <TableHead className="text-right">{DOMAIN_TERMS.jaringReport}</TableHead>
                     <TableHead className="text-right">Baket Dibuat</TableHead>
-                    <TableHead className="text-right">Draf Baket</TableHead>
+                    <TableHead className="text-right">{DOMAIN_TERMS.draftBaket}</TableHead>
                     <TableHead className="text-right">Respons Rata-rata</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -492,7 +513,7 @@ function RankingTables({
                   }
                   subtitle={dashboardStatusLabel(item.level)}
                   metrics={[
-                    { label: "Laporan", value: formatDashboardNumber(item.reports) },
+                    { label: DOMAIN_TERMS.jaringReport, value: formatDashboardNumber(item.reports) },
                     { label: DOMAIN_TERMS.jaringActive90Days, value: formatDashboardNumber(item.activeJaring) },
                     { label: "Baket Dibuat", value: formatDashboardNumber(item.verified) },
                   ]}
@@ -505,10 +526,10 @@ function RankingTables({
                   <TableRow>
                     <TableHead className="w-12 text-center">#</TableHead>
                     <TableHead>Wilayah</TableHead>
-                    <TableHead className="text-right">Laporan</TableHead>
+                    <TableHead className="text-right">{DOMAIN_TERMS.jaringReport}</TableHead>
                     <TableHead className="text-right">{DOMAIN_TERMS.jaringActive90Days}</TableHead>
                     <TableHead className="text-right">Baket Dibuat</TableHead>
-                    <TableHead className="text-right">Draf Baket</TableHead>
+                    <TableHead className="text-right">{DOMAIN_TERMS.draftBaket}</TableHead>
                     <TableHead>Perlu Perhatian</TableHead>
                   </TableRow>
                 </TableHeader>
