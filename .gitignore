@@ -12,6 +12,7 @@ apps/worldmonitor/
 *.out
 logs/
 .tmp/
+apps/be/production-backups/
 
 # Dependencies
 node_modules/
